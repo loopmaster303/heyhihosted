@@ -1,9 +1,11 @@
+
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AppHeader from '@/components/layout/AppHeader';
 import TileMenu from '@/components/navigation/TileMenu';
 import ChatView from '@/components/chat/ChatView';
+import ChatInput from '@/components/chat/ChatInput'; // Import global ChatInput
 import type { ChatMessage, Conversation, ToolType } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { useToast } from "@/hooks/use-toast";
@@ -54,52 +56,92 @@ export default function Home() {
           setActiveConversation(prev => prev ? { ...prev, title: result.title } : null);
         } catch (error) {
           console.error("Failed to generate chat title:", error);
-          // Toast for error can be added here if needed
+          toast({
+            title: "Error",
+            description: "Could not update chat title.",
+            variant: "destructive",
+          });
         }
       }
     }
-  }, []);
+  }, [toast]);
 
-  const handleSendMessage = useCallback(async (messageText: string) => {
-    if (!activeConversation) return;
-
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: messageText,
-      timestamp: new Date(),
-      toolType: activeConversation.toolType,
-    };
-
-    const updatedMessages = [...currentMessages, userMessage];
-    setCurrentMessages(updatedMessages);
+  const handleSendMessageGlobal = useCallback(async (messageText: string) => {
     setIsAiResponding(true);
+    let conversationToUpdate = activeConversation;
+    let messagesForThisTurn: ChatMessage[];
 
+    if (!conversationToUpdate) {
+      const defaultToolType: ToolType = 'FLUX Kontext'; // Default tool
+      const newConversationId = crypto.randomUUID();
+      const now = new Date();
+      const systemMessageContent = `You are now in ${defaultToolType} mode. How can I assist you with ${defaultToolType.toLowerCase()}?`;
+      
+      const systemMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'system',
+        content: systemMessageContent,
+        timestamp: now,
+        toolType: defaultToolType,
+      };
+
+      const userMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: messageText,
+        timestamp: new Date(),
+        toolType: defaultToolType,
+      };
+      
+      messagesForThisTurn = [systemMessage, userMessage];
+
+      const newConversation: Conversation = {
+        id: newConversationId,
+        title: `New ${defaultToolType} Chat`,
+        messages: messagesForThisTurn, 
+        createdAt: now,
+        toolType: defaultToolType,
+      };
+      
+      setActiveConversation(newConversation);
+      setCurrentMessages(messagesForThisTurn);
+      setCurrentView('chat');
+      conversationToUpdate = newConversation;
+    } else {
+      const userMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: messageText,
+        timestamp: new Date(),
+        toolType: conversationToUpdate.toolType,
+      };
+      messagesForThisTurn = [...currentMessages, userMessage];
+      setCurrentMessages(messagesForThisTurn);
+    }
+    
     // Simulate AI response
-    // In a real app, this would call the Pollinations API or similar
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    let aiResponseContent = `AI response to "${messageText}" using ${activeConversation.toolType || 'general AI'}.`;
-    if (activeConversation.toolType === 'Easy Image Loop' && messageText.toLowerCase().includes('image')) {
+    let aiResponseContent = `AI response to "${messageText}" using ${conversationToUpdate.toolType || 'general AI'}.`;
+    if (conversationToUpdate.toolType === 'Easy Image Loop' && messageText.toLowerCase().includes('image')) {
         aiResponseContent = `Okay, I'll generate an image based on: "${messageText}". Here is a placeholder: ![Placeholder Image](https://placehold.co/300x200.png?text=Generated+Image)`;
-    } else if (activeConversation.toolType === 'Code a Loop' && messageText.toLowerCase().includes('code')) {
+    } else if (conversationToUpdate.toolType === 'Code a Loop' && messageText.toLowerCase().includes('code')) {
         aiResponseContent = "```python\nfor i in range(5):\n  print(f'Loop iteration {i+1} for: {messageText}')\n```";
     }
-
 
     const aiMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'assistant',
       content: aiResponseContent,
       timestamp: new Date(),
-      toolType: activeConversation.toolType,
+      toolType: conversationToUpdate.toolType,
     };
     
-    const finalMessages = [...updatedMessages, aiMessage];
+    const finalMessages = [...messagesForThisTurn, aiMessage];
     setCurrentMessages(finalMessages);
     
     const updatedConversation = {
-      ...activeConversation,
+      ...conversationToUpdate,
       messages: finalMessages,
     };
     setActiveConversation(updatedConversation);
@@ -107,30 +149,35 @@ export default function Home() {
 
     updateConversationTitle(updatedConversation);
 
-  }, [activeConversation, currentMessages, updateConversationTitle]);
+  }, [activeConversation, currentMessages, updateConversationTitle, toast]);
 
   const handleGoBack = () => {
     setCurrentView('tiles');
-    setActiveConversation(null);
+    setActiveConversation(null); 
     setCurrentMessages([]);
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+    <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
       <AppHeader />
-      <main className="flex-grow container mx-auto px-2 sm:px-4 py-6 flex flex-col items-center justify-center">
+      <main className="flex-grow container mx-auto px-2 sm:px-4 py-6 flex flex-col items-center overflow-y-auto">
         {currentView === 'tiles' ? (
           <TileMenu onSelectTile={handleSelectTile} />
         ) : (
           <ChatView
             conversation={activeConversation}
             messages={currentMessages}
-            onSendMessage={handleSendMessage}
             isLoading={isAiResponding}
             onGoBack={handleGoBack}
           />
         )}
       </main>
+      <ChatInput
+        onSendMessage={handleSendMessageGlobal}
+        isLoading={isAiResponding}
+      />
     </div>
   );
 }
+
+    
