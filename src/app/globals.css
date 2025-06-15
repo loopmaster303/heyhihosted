@@ -42,39 +42,40 @@ body {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 240 2.3% 16.7%; /* Dark Gray #28282B */
+    --foreground: 240 60% 90%; /* Lighter Lavender/Gray for text */
+    --card: 240 2.5% 20%; /* Slightly lighter dark gray */
+    --card-foreground: 240 60% 90%;
+    --popover: 240 2.3% 20%; /* Adjusted popover background for dark theme */
+    --popover-foreground: 240 60% 90%;
+    --primary: 272 100% 25.3%; /* Deep Indigo #4B0082 */
+    --primary-foreground: 240 67% 94.1%; /* Lavender #E6E6FA */
+    --secondary: 240 3% 22%; /* Another shade of gray for secondary elements */
+    --secondary-foreground: 240 60% 90%;
+    --muted: 240 3% 25%;
+    --muted-foreground: 240 5% 55%; /* Adjusted for better contrast */
+    --accent: 240 67% 94.1%; /* Lavender #E6E6FA */
+    --accent-foreground: 272 70% 20%; /* Darker Indigo for text on Lavender, adjusted for readability */
+    --destructive: 0 72% 51%; /* Adjusted destructive color */
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 240 2% 28%;
+    --input: 240 2% 25%;
+    --ring: 240 67% 94.1%; /* Lavender */
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 240 3% 13%; /* Darker sidebar background */
+    --sidebar-foreground: 240 60% 90%;
+    --sidebar-primary: 272 100% 25.3%; /* Primary color for sidebar active elements */
+    --sidebar-primary-foreground: 240 67% 94.1%;
+    --sidebar-accent: 240 3% 18%; /* Darker accent for sidebar */
+    --sidebar-accent-foreground: 240 60% 90%;
+    --sidebar-border: 240 2% 28%;
+    --sidebar-ring: 240 67% 94.1%;
   }
 }
 
