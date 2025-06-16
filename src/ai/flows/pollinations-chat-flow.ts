@@ -140,6 +140,7 @@ export async function getPollinationsChatCompletion(
       }
     }
 
+    // Fallback attempts if primary structure fails
     if (replyText === null && result && typeof result === 'object') {
         if (typeof result.reply === 'string') {
             replyText = result.reply; 
@@ -165,15 +166,19 @@ export async function getPollinationsChatCompletion(
       );
     }
   } catch (error) {
+    // Log detailed error including the payload if the error didn't originate from our specific "could not extract" or "non-200" paths
     if (error instanceof Error && !(error.message.startsWith('Pollinations API request failed') || error.message.startsWith('Pollinations API returned a 200 OK but the reply content could not be extracted'))) {
       console.error('Error calling Pollinations API or processing its response:', error, 'Request Payload (if available):', JSON.stringify(payload, null, 2));
     } else if (!(error instanceof Error)) {
+      // Catch non-Error objects thrown
       console.error('Unknown error calling Pollinations API or processing its response:', error, 'Request Payload (if available):', JSON.stringify(payload, null, 2));
     }
     
+    // Re-throw the original error or a more specific one
     if (error instanceof Error) {
         throw new Error(`Failed to get completion from Pollinations API: ${error.message}`);
     }
+    // Fallback for non-Error objects
     throw new Error('An unknown error occurred while contacting the Pollinations API.');
   }
 }
