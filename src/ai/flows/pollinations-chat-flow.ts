@@ -96,15 +96,24 @@ export async function getPollinationsChatCompletion(
     }
 
     const result = await response.json();
+    let replyText = '';
 
-    if (result.choices && result.choices.length > 0 && result.choices[0].message && result.choices[0].message.content) {
-      return { responseText: result.choices[0].message.content.trim() };
-    } else if (typeof result.reply === 'string') { // Fallback for other possible response structures
-        return { responseText: result.reply.trim() };
-    } else if (typeof result.content === 'string') { // Another fallback
-        return { responseText: result.content.trim() };
+    if (result.choices && Array.isArray(result.choices) && result.choices.length > 0) {
+      const choice = result.choices[0];
+      if (choice.message && typeof choice.message.content === 'string') {
+        replyText = choice.message.content.trim();
+      } else if (typeof choice.text === 'string') {
+        replyText = choice.text.trim();
+      }
+    } else if (typeof result.reply === 'string') {
+        replyText = result.reply.trim();
+    } else if (typeof result.content === 'string') {
+        replyText = result.content.trim();
     }
-     else {
+
+    if (replyText) {
+      return { responseText: replyText };
+    } else {
       console.error('Pollinations API - Unexpected response structure:', result);
       throw new Error('Pollinations API returned an unexpected response structure.');
     }
@@ -116,3 +125,4 @@ export async function getPollinationsChatCompletion(
     throw new Error('An unknown error occurred while contacting the Pollinations API.');
   }
 }
+
