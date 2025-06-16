@@ -6,13 +6,16 @@ import AppHeader from '@/components/layout/AppHeader';
 import TileMenu from '@/components/navigation/TileMenu';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
-import SidebarNav from '@/components/navigation/SidebarNav'; // New import
+import SidebarNav from '@/components/navigation/SidebarNav';
 import type { ChatMessage, Conversation, ToolType, TileItem } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
+import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
+import type { PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { useToast } from "@/hooks/use-toast";
 import { Image as ImageIcon, GalleryHorizontal, CodeXml, MessageSquare } from 'lucide-react';
+import { DEFAULT_POLLINATIONS_MODEL_ID, getDefaultSystemPrompt } from '@/config/chat-options';
 
-// Define toolTileItems here to pass to TileMenu and SidebarNav
+
 const toolTileItems: TileItem[] = [
   { id: 'FLUX Kontext', title: 'FLUX Kontext', icon: ImageIcon, description: "Engage with contextual AI" },
   { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images effortlessly" },
@@ -30,7 +33,14 @@ export default function Home() {
   const handleSelectTile = useCallback((toolType: ToolType) => {
     const newConversationId = crypto.randomUUID();
     const now = new Date();
-    const systemMessageContent = `You are now in ${toolType} mode. How can I assist you with ${toolType.toLowerCase()}?`;
+    
+    // For "Long Language Loops", use the default system prompt from config.
+    // For others, use a generic system message.
+    let systemMessageContent = `You are now in ${toolType} mode. How can I assist you with ${toolType.toLowerCase()}?`;
+    if (toolType === 'Long Language Loops') {
+      // This message is for UI display. The actual system prompt for API is handled by ChatInput selection.
+      systemMessageContent = `Switched to Long Language Loops. ${getDefaultSystemPrompt()}`;
+    }
     
     const systemMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -42,7 +52,7 @@ export default function Home() {
 
     const newConversation: Conversation = {
       id: newConversationId,
-      title: `New ${toolType} Chat`, // Consider more dynamic title like "Chat with [Tool Name]"
+      title: `New ${toolType} Chat`,
       messages: [systemMessage],
       createdAt: now,
       toolType: toolType,
@@ -66,33 +76,35 @@ export default function Home() {
           setActiveConversation(prev => prev ? { ...prev, title: result.title } : null);
         } catch (error) {
           console.error("Failed to generate chat title:", error);
-          toast({
-            title: "Error",
-            description: "Could not update chat title.",
-            variant: "destructive",
-          });
+          // Toast for title generation failure is optional, can be noisy
         }
       }
     }
-  }, [toast]);
+  }, []);
 
-  const handleSendMessageGlobal = useCallback(async (messageText: string) => {
+  const handleSendMessageGlobal = useCallback(async (
+    messageText: string, 
+    modelId: string = DEFAULT_POLLINATIONS_MODEL_ID, 
+    systemPrompt: string = getDefaultSystemPrompt()
+  ) => {
     setIsAiResponding(true);
     let conversationToUpdate = activeConversation;
     let messagesForThisTurn: ChatMessage[];
+    let currentToolType: ToolType;
 
-    if (!conversationToUpdate) { // Sent from initial tile view or if no active conversation somehow
-      const defaultToolType: ToolType = 'Long Language Loops';
+    if (!conversationToUpdate) { // Sent from initial tile view or if no active conversation
+      currentToolType = 'Long Language Loops'; // Default to LLL
       const newConversationId = crypto.randomUUID();
       const now = new Date();
-      const systemMessageContent = `You are now in ${defaultToolType} mode. How can I assist you with ${defaultToolType.toLowerCase()}?`;
       
-      const systemMessage: ChatMessage = {
+      // UI system message
+      const uiSystemMessageContent = `Started a new chat in ${currentToolType} mode. ${systemPrompt}`;
+      const uiSystemMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'system',
-        content: systemMessageContent,
+        content: uiSystemMessageContent,
         timestamp: now,
-        toolType: defaultToolType,
+        toolType: currentToolType,
       };
 
       const userMessage: ChatMessage = {
@@ -100,42 +112,74 @@ export default function Home() {
         role: 'user',
         content: messageText,
         timestamp: new Date(),
-        toolType: defaultToolType,
+        toolType: currentToolType,
       };
       
-      messagesForThisTurn = [systemMessage, userMessage];
+      messagesForThisTurn = [uiSystemMessage, userMessage];
 
       const newConversation: Conversation = {
         id: newConversationId,
-        title: `New ${defaultToolType} Chat`,
+        title: `New ${currentToolType} Chat`,
         messages: messagesForThisTurn, 
         createdAt: now,
-        toolType: defaultToolType,
+        toolType: currentToolType,
       };
       
       setActiveConversation(newConversation);
       setCurrentMessages(messagesForThisTurn);
-      setCurrentView('chat'); // Switch to chat view
+      setCurrentView('chat');
       conversationToUpdate = newConversation;
     } else {
+      currentToolType = conversationToUpdate.toolType || 'Long Language Loops';
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'user',
         content: messageText,
         timestamp: new Date(),
-        toolType: conversationToUpdate.toolType,
+        toolType: currentToolType,
       };
       messagesForThisTurn = [...currentMessages, userMessage];
       setCurrentMessages(messagesForThisTurn);
     }
     
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate AI response
-    
-    let aiResponseContent = `AI response to "${messageText}" using ${conversationToUpdate.toolType || 'general AI'}.`;
-    if (conversationToUpdate.toolType === 'Easy Image Loop' && messageText.toLowerCase().includes('image')) {
+    let aiResponseContent = `An unexpected error occurred.`;
+
+    if (currentToolType === 'Long Language Loops') {
+      try {
+        // Prepare messages for API: system prompt + user/assistant history + current user message
+        const apiMessages = messagesForThisTurn
+          .filter(msg => msg.role === 'user' || msg.role === 'assistant' || (msg.role === 'system' && msg.content === systemPrompt)) // Include the relevant system prompt
+          .map(msg => ({ role: msg.role, content: msg.content }));
+
+        // Ensure the selected systemPrompt is the first message if not already there
+        if (!apiMessages.find(msg => msg.role === 'system' && msg.content === systemPrompt) && systemPrompt) {
+            apiMessages.unshift({role: 'system', content: systemPrompt});
+        }
+        
+        const apiInput: PollinationsChatInput = {
+          messages: apiMessages,
+          modelId: modelId,
+          systemPrompt: systemPrompt, // This is now primary, API structure prepends it
+        };
+        const result = await getPollinationsChatCompletion(apiInput);
+        aiResponseContent = result.responseText;
+      } catch (error) {
+        console.error("Error getting chat completion:", error);
+        const errorMessage = error instanceof Error ? error.message : "Failed to get AI response.";
+        toast({
+          title: "AI Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        aiResponseContent = `Sorry, I couldn't get a response. ${errorMessage}`;
+      }
+    } else if (currentToolType === 'Easy Image Loop' && messageText.toLowerCase().includes('image')) {
         aiResponseContent = `Okay, I'll generate an image based on: "${messageText}". Here is a placeholder: ![Placeholder Image](https://placehold.co/300x200.png?text=Generated+Image)`;
-    } else if (conversationToUpdate.toolType === 'Code a Loop' && messageText.toLowerCase().includes('code')) {
+    } else if (currentToolType === 'Code a Loop' && messageText.toLowerCase().includes('code')) {
         aiResponseContent = "```python\nfor i in range(5):\n  print(f'Loop iteration {i+1} for: {messageText}')\n```";
+    } else {
+        // Fallback for other tools or general mock response
+        aiResponseContent = `Mock AI response for "${messageText}" in ${currentToolType} mode. Model: ${modelId}.`;
     }
 
     const aiMessage: ChatMessage = {
@@ -143,27 +187,29 @@ export default function Home() {
       role: 'assistant',
       content: aiResponseContent,
       timestamp: new Date(),
-      toolType: conversationToUpdate.toolType,
+      toolType: currentToolType,
     };
     
     const finalMessages = [...messagesForThisTurn, aiMessage];
     setCurrentMessages(finalMessages);
     
-    const updatedConversation = {
-      ...conversationToUpdate,
-      messages: finalMessages,
-    };
-    setActiveConversation(updatedConversation);
+    if (conversationToUpdate) {
+        const updatedConversation = {
+        ...conversationToUpdate,
+        messages: finalMessages,
+        };
+        setActiveConversation(updatedConversation);
+        updateConversationTitle(updatedConversation); // Attempt to update title
+    }
+    
     setIsAiResponding(false);
-
-    updateConversationTitle(updatedConversation);
 
   }, [activeConversation, currentMessages, updateConversationTitle, toast]);
 
   const handleGoBackToTilesView = () => {
     setCurrentView('tiles');
-    setActiveConversation(null); 
-    setCurrentMessages([]);
+    // setActiveConversation(null); // Keep active conversation for potential resume? Or clear?
+    // setCurrentMessages([]); // Clear messages if conversation is fully reset
   };
 
   if (currentView === 'tiles') {
@@ -173,7 +219,10 @@ export default function Home() {
         <main className="flex-grow container mx-auto px-2 sm:px-4 py-6 flex flex-col items-center overflow-y-auto">
           <TileMenu onSelectTile={handleSelectTile} tileItems={toolTileItems} />
         </main>
-        <ChatInput onSendMessage={handleSendMessageGlobal} isLoading={isAiResponding} />
+        <ChatInput 
+            onSendMessage={handleSendMessageGlobal} 
+            isLoading={isAiResponding} 
+        />
       </div>
     );
   }
@@ -181,24 +230,27 @@ export default function Home() {
   // currentView === 'chat'
   return (
     <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-      <div className="flex flex-1 overflow-hidden"> {/* This container will hold sidebar and chat area */}
+      <div className="flex flex-1 overflow-hidden">
         <SidebarNav 
           tileItems={toolTileItems} 
           activeToolType={activeConversation?.toolType || null}
-          onSelectTile={handleSelectTile} // Allows switching tools from sidebar
-          className="w-72 flex-shrink-0 bg-background border-r border-border" 
+          onSelectTile={handleSelectTile}
+          className="w-60 md:w-72 flex-shrink-0 bg-card border-r border-border" 
         />
-        <main className="flex-1 flex flex-col overflow-hidden"> {/* Chat area takes remaining space */}
+        <main className="flex-1 flex flex-col overflow-hidden">
           <ChatView
             conversation={activeConversation}
             messages={currentMessages}
             isLoading={isAiResponding}
-            onGoBack={handleGoBackToTilesView} // This goes back to the main TileMenu view
-            className="flex-grow overflow-y-auto" // ChatView itself manages internal scrolling of messages
+            onGoBack={handleGoBackToTilesView}
+            className="flex-grow overflow-y-auto"
           />
         </main>
       </div>
-      <ChatInput onSendMessage={handleSendMessageGlobal} isLoading={isAiResponding} />
+      <ChatInput 
+        onSendMessage={handleSendMessageGlobal} 
+        isLoading={isAiResponding}
+      />
     </div>
   );
 }
