@@ -67,7 +67,7 @@ export async function getPollinationsChatCompletion(
     messages: apiMessagesToSend,
     temperature: 1.0, 
     stream: false, 
-    max_tokens: 500, // Aligned with user's working example
+    max_tokens: 500, 
     // `private` parameter removed to use API default (false)
   };
 
@@ -130,6 +130,7 @@ export async function getPollinationsChatCompletion(
             console.warn(`Pollinations API: choices[0].message.content is not a string or null, it's a ${typeof choice.message.content}. Path: choices[0].message.content. Full API Response:`, JSON.stringify(result, null, 2));
           }
         } else if (typeof choice.text === 'string') {
+          // Fallback if message.content is not present, but choice.text is (less common for chat completions)
           replyText = choice.text; 
           console.log("Extracted reply from choice.text. Full API Response:", JSON.stringify(result, null, 2));
         } else {
@@ -140,26 +141,29 @@ export async function getPollinationsChatCompletion(
       }
     }
 
-    // Fallback attempts if primary structure fails
+    // Fallback attempts if primary structure fails and replyText is still null
     if (replyText === null && result && typeof result === 'object') {
         if (typeof result.reply === 'string') {
             replyText = result.reply; 
             console.log("Extracted reply from result.reply. Full API Response:", JSON.stringify(result, null, 2));
         } else if (typeof result.content === 'string') {
+            // This is a less common structure for chat, more for simple text generation
             replyText = result.content; 
             console.log("Extracted reply from result.content. Full API Response:", JSON.stringify(result, null, 2));
         }
     }
     
+    // Check if replyText was successfully assigned (even if it's an empty string)
     if (replyText !== null) {
       const trimmedReply = replyText.trim();
-      if (trimmedReply === "" && replyText !== "") { 
+      if (trimmedReply === "" && replyText !== "") { // Content was only whitespace
          console.warn('Pollinations API: Successfully parsed response, content was only whitespace. Original content: "' + replyText + '". Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
-      } else if (trimmedReply === "") { 
+      } else if (trimmedReply === "") { // Content was genuinely an empty string
          console.warn('Pollinations API: Successfully parsed response, but content is an empty string. Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
       }
       return { responseText: trimmedReply };
     } else {
+      // This means none of the parsing strategies found a suitable field for the reply.
       console.error('Pollinations API - Successful response (200 OK), but the reply content could not be extracted from the JSON structure. Full response:', JSON.stringify(result, null, 2), 'Request Payload:', JSON.stringify(payload, null, 2));
       throw new Error(
         'Pollinations API returned a 200 OK but the reply content could not be extracted from the JSON structure.'
