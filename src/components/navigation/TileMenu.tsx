@@ -1,15 +1,16 @@
+
 "use client";
 
 import type React from 'react';
 import TileCard from './TileCard';
 import type { TileItem } from '@/types';
-import { Brain, Image as ImageIcon, CodeXml, Puzzle } from 'lucide-react';
+import { Image as ImageIcon, GalleryHorizontal, CodeXml, MessageSquare } from 'lucide-react';
 
 const tileItems: TileItem[] = [
-  { id: 'FLUX Kontext', title: 'FLUX Kontext', icon: Brain, description: "Engage with contextual AI" },
-  { id: 'Easy Image Loop', title: 'Easy Image Loop', icon: ImageIcon, description: "Generate images effortlessly" },
-  { id: 'Code a Loop', title: 'Code a Loop', icon: CodeXml, description: "AI-assisted coding" },
-  { id: 'Placeholder Loop', title: 'Placeholder Loop', icon: Puzzle, description: "Versatile placeholder tool" },
+  { id: 'FLUX Kontext', title: 'FLUX Kontext', icon: ImageIcon, description: "Engage with contextual AI" },
+  { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images effortlessly" },
+  { id: 'Code a Loop', title: 'Code some Loops', icon: CodeXml, description: "AI-assisted coding" },
+  { id: 'Placeholder Loop', title: 'Long Language Loops', icon: MessageSquare, description: "Loops about everything." },
 ];
 
 interface TileMenuProps {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import type React from 'react';
@@ -25,7 +26,7 @@ const TileCard: React.FC<TileCardProps> = ({ item, onSelect }) => {
       aria-label={`Start chat with ${item.title}`}
     >
       <CardHeader className="p-0">
-        <IconComponent className="w-10 h-10 text-primary mx-auto mb-2" />
+        <IconComponent className="w-10 h-10 text-primary-foreground mx-auto mb-2" />
         <CardTitle className="font-headline text-md font-semibold text-card-foreground">{item.title}</CardTitle>
         <CardDescription className="text-xs text-muted-foreground mt-1">{item.description}</CardDescription>
       </CardHeader>
