@@ -5,10 +5,20 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AppHeader from '@/components/layout/AppHeader';
 import TileMenu from '@/components/navigation/TileMenu';
 import ChatView from '@/components/chat/ChatView';
-import ChatInput from '@/components/chat/ChatInput'; // Import global ChatInput
-import type { ChatMessage, Conversation, ToolType } from '@/types';
+import ChatInput from '@/components/chat/ChatInput';
+import SidebarNav from '@/components/navigation/SidebarNav'; // New import
+import type { ChatMessage, Conversation, ToolType, TileItem } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { useToast } from "@/hooks/use-toast";
+import { Image as ImageIcon, GalleryHorizontal, CodeXml, MessageSquare } from 'lucide-react';
+
+// Define toolTileItems here to pass to TileMenu and SidebarNav
+const toolTileItems: TileItem[] = [
+  { id: 'FLUX Kontext', title: 'FLUX Kontext', icon: ImageIcon, description: "Engage with contextual AI" },
+  { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images effortlessly" },
+  { id: 'Code a Loop', title: 'Code some Loops', icon: CodeXml, description: "AI-assisted coding" },
+  { id: 'Long Language Loops', title: 'Long Language Loops', icon: MessageSquare, description: "Loops about everything." },
+];
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<'tiles' | 'chat'>('tiles');
@@ -32,7 +42,7 @@ export default function Home() {
 
     const newConversation: Conversation = {
       id: newConversationId,
-      title: `New ${toolType} Chat`,
+      title: `New ${toolType} Chat`, // Consider more dynamic title like "Chat with [Tool Name]"
       messages: [systemMessage],
       createdAt: now,
       toolType: toolType,
@@ -71,8 +81,8 @@ export default function Home() {
     let conversationToUpdate = activeConversation;
     let messagesForThisTurn: ChatMessage[];
 
-    if (!conversationToUpdate) {
-      const defaultToolType: ToolType = 'Long Language Loops'; // Ensure this is 'Long Language Loops'
+    if (!conversationToUpdate) { // Sent from initial tile view or if no active conversation somehow
+      const defaultToolType: ToolType = 'Long Language Loops';
       const newConversationId = crypto.randomUUID();
       const now = new Date();
       const systemMessageContent = `You are now in ${defaultToolType} mode. How can I assist you with ${defaultToolType.toLowerCase()}?`;
@@ -105,7 +115,7 @@ export default function Home() {
       
       setActiveConversation(newConversation);
       setCurrentMessages(messagesForThisTurn);
-      setCurrentView('chat');
+      setCurrentView('chat'); // Switch to chat view
       conversationToUpdate = newConversation;
     } else {
       const userMessage: ChatMessage = {
@@ -119,8 +129,7 @@ export default function Home() {
       setCurrentMessages(messagesForThisTurn);
     }
     
-    // Simulate AI response
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate AI response
     
     let aiResponseContent = `AI response to "${messageText}" using ${conversationToUpdate.toolType || 'general AI'}.`;
     if (conversationToUpdate.toolType === 'Easy Image Loop' && messageText.toLowerCase().includes('image')) {
@@ -151,31 +160,45 @@ export default function Home() {
 
   }, [activeConversation, currentMessages, updateConversationTitle, toast]);
 
-  const handleGoBack = () => {
+  const handleGoBackToTilesView = () => {
     setCurrentView('tiles');
     setActiveConversation(null); 
     setCurrentMessages([]);
   };
 
+  if (currentView === 'tiles') {
+    return (
+      <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+        <AppHeader />
+        <main className="flex-grow container mx-auto px-2 sm:px-4 py-6 flex flex-col items-center overflow-y-auto">
+          <TileMenu onSelectTile={handleSelectTile} tileItems={toolTileItems} />
+        </main>
+        <ChatInput onSendMessage={handleSendMessageGlobal} isLoading={isAiResponding} />
+      </div>
+    );
+  }
+
+  // currentView === 'chat'
   return (
     <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-      <AppHeader />
-      <main className="flex-grow container mx-auto px-2 sm:px-4 py-6 flex flex-col items-center overflow-y-auto">
-        {currentView === 'tiles' ? (
-          <TileMenu onSelectTile={handleSelectTile} />
-        ) : (
+      <div className="flex flex-1 overflow-hidden"> {/* This container will hold sidebar and chat area */}
+        <SidebarNav 
+          tileItems={toolTileItems} 
+          activeToolType={activeConversation?.toolType || null}
+          onSelectTile={handleSelectTile} // Allows switching tools from sidebar
+          className="w-72 flex-shrink-0 bg-background border-r border-border" 
+        />
+        <main className="flex-1 flex flex-col overflow-hidden"> {/* Chat area takes remaining space */}
           <ChatView
             conversation={activeConversation}
             messages={currentMessages}
             isLoading={isAiResponding}
-            onGoBack={handleGoBack}
+            onGoBack={handleGoBackToTilesView} // This goes back to the main TileMenu view
+            className="flex-grow overflow-y-auto" // ChatView itself manages internal scrolling of messages
           />
-        )}
-      </main>
-      <ChatInput
-        onSendMessage={handleSendMessageGlobal}
-        isLoading={isAiResponding}
-      />
+        </main>
+      </div>
+      <ChatInput onSendMessage={handleSendMessageGlobal} isLoading={isAiResponding} />
     </div>
   );
 }
