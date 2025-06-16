@@ -36,6 +36,8 @@ export interface PollinationsChatOutput {
 }
 
 const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
+// IMPORTANT: Move this token to your .env file as POLLINATIONS_API_TOKEN
+const API_TOKEN = 'uI8ZTSLs84zigEv2'; 
 
 export async function getPollinationsChatCompletion(
   input: PollinationsChatInput
@@ -64,21 +66,26 @@ export async function getPollinationsChatCompletion(
   const payload: Record<string, any> = {
     model: modelId,
     messages: apiMessagesToSend,
-    private: true, // Keep requests private as per earlier examples
-    temperature: 1.0, // A common default, adjust if needed
-    stream: false, // We are not handling streaming responses here
+    private: true, 
+    temperature: 1.0,
+    stream: false, 
   };
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
-  if (process.env.POLLINATIONS_API_TOKEN) {
-    console.log('Using POLLINATIONS_API_TOKEN for authorization.');
-    headers['Authorization'] = `Bearer ${process.env.POLLINATIONS_API_TOKEN}`;
+  const tokenToUse = process.env.POLLINATIONS_API_TOKEN || API_TOKEN;
+
+  if (tokenToUse) {
+    headers['Authorization'] = `Bearer ${tokenToUse}`;
+    if (tokenToUse === API_TOKEN && !process.env.POLLINATIONS_API_TOKEN) {
+        console.warn('POLLINATIONS_API_TOKEN is hardcoded in pollinations-chat-flow.ts. Please move it to your .env file for security.');
+    }
   } else {
-    console.warn('POLLINATIONS_API_TOKEN not set, API requests might be rate-limited or restricted.');
+    console.warn('POLLINATIONS_API_TOKEN not set. API requests might be rate-limited or restricted.');
   }
+
 
   try {
     const response = await fetch(POLLINATIONS_API_URL, {
@@ -105,60 +112,55 @@ export async function getPollinationsChatCompletion(
     const result = await response.json();
     let replyText: string | null = null;
 
-    // Robustly attempt to extract reply from common structures
     if (result.choices && Array.isArray(result.choices) && result.choices.length > 0) {
       const choice = result.choices[0];
       if (choice && typeof choice === 'object') {
         if (choice.message && typeof choice.message === 'object' && choice.message.hasOwnProperty('content')) {
           if (typeof choice.message.content === 'string') {
-            replyText = choice.message.content; // No trim here yet, preserve original
+            replyText = choice.message.content; 
           } else if (choice.message.content === null) {
             console.warn('Pollinations API: choices[0].message.content is null. Interpreting as empty reply.');
-            replyText = ""; // Treat null content as an empty string reply
+            replyText = ""; 
           } else {
-            console.warn(`Pollinations API: choices[0].message.content is not a string or null, it's a ${typeof choice.message.content}. Path: choices[0].message.content`);
+            console.warn(`Pollinations API: choices[0].message.content is not a string or null, it's a ${typeof choice.message.content}. Path: choices[0].message.content. Full API Response:`, JSON.stringify(result, null, 2));
           }
         } else if (typeof choice.text === 'string') {
-          replyText = choice.text; // No trim here yet
+          replyText = choice.text; 
           console.log("Extracted reply from choice.text");
         } else {
-          console.warn('Pollinations API: choices[0] exists but lacks expected message.content or text structure.');
+          console.warn('Pollinations API: choices[0] exists but lacks expected message.content or text structure. Full API Response:', JSON.stringify(result, null, 2));
         }
       } else {
-        console.warn('Pollinations API: choices[0] is not a valid object or is missing.');
+        console.warn('Pollinations API: choices[0] is not a valid object or is missing. Full API Response:', JSON.stringify(result, null, 2));
       }
     }
 
-    // Secondary fallbacks for less common, top-level structures if replyText is still null
     if (replyText === null && result && typeof result === 'object') {
         if (typeof result.reply === 'string') {
-            replyText = result.reply; // No trim here yet
+            replyText = result.reply; 
             console.log("Extracted reply from result.reply");
         } else if (typeof result.content === 'string') {
-            replyText = result.content; // No trim here yet
+            replyText = result.content; 
             console.log("Extracted reply from result.content");
         }
     }
-
-    if (replyText !== null) { // A string was assigned (could be empty or just whitespace)
+    
+    if (replyText !== null) {
       const trimmedReply = replyText.trim();
-      if (trimmedReply === "" && replyText !== "") { // It was only whitespace
+      if (trimmedReply === "" && replyText !== "") { 
          console.warn('Pollinations API: Successfully parsed response, content was only whitespace. Original content: "' + replyText + '". Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
-      } else if (trimmedReply === "") { // It was genuinely an empty string
+      } else if (trimmedReply === "") { 
          console.warn('Pollinations API: Successfully parsed response, but content is an empty string. Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
       }
-      return { responseText: trimmedReply }; // Return the trimmed reply
+      return { responseText: trimmedReply }; 
     } else {
       console.error('Pollinations API - Successful response (200 OK), but the reply content could not be extracted from the JSON structure. Full response:', JSON.stringify(result, null, 2), 'Request Payload:', JSON.stringify(payload, null, 2));
       throw new Error('Pollinations API returned a 200 OK but the reply content could not be extracted from the JSON structure.');
     }
   } catch (error) {
     console.error('Error calling Pollinations API or processing its response:', error, 'Request Payload (if available):', JSON.stringify(payload, null, 2));
-    if (error instanceof Error && error.message.startsWith('Pollinations API request failed')) {
-        throw error; // Re-throw the more specific error from non-200 status
-    }
-    if (error instanceof Error && error.message.startsWith('Pollinations API returned a 200 OK but the reply content could not be extracted')) {
-        throw error; // Re-throw the specific error for unextractable content
+    if (error instanceof Error && (error.message.startsWith('Pollinations API request failed') || error.message.startsWith('Pollinations API returned a 200 OK but the reply content could not be extracted'))) {
+        throw error;
     }
     if (error instanceof Error) {
         throw new Error(`Failed to get completion from Pollinations API: ${error.message}`);
