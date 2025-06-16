@@ -16,6 +16,8 @@ interface SidebarNavProps {
   allConversations: Conversation[];
   activeConversationId: string | null;
   onSelectChatHistory: (conversationId: string) => void;
+  onEditTitle: (conversationId: string) => void;
+  onDeleteChat: (conversationId: string) => void;
   className?: string;
 }
 
@@ -26,6 +28,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   allConversations,
   activeConversationId,
   onSelectChatHistory,
+  onEditTitle,
+  onDeleteChat,
   className 
 }) => {
   const displayToolItems = tileItems; 
@@ -41,7 +45,6 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
               key={item.id} 
               item={item} 
               onSelect={onSelectTile}
-              // LLL tile is an action to start new, not to show active state of current LLL chat
               isActive={item.id === activeToolType && item.id !== 'Long Language Loops'} 
               showPlusIcon={item.id === 'Long Language Loops'}
             />
@@ -52,7 +55,6 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
           <>
             <Separator className="my-3 mx-2 bg-border/50" />
             <div className="px-2 py-1">
-              {/* Removed "Chat History" label */}
               <div className="space-y-1">
                 {sortedConversations.map(conv => (
                   <ChatHistoryItem 
@@ -60,6 +62,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                     conversation={conv} 
                     onSelect={onSelectChatHistory}
                     isActive={conv.id === activeConversationId}
+                    onEditTitle={onEditTitle}
+                    onDeleteChat={onDeleteChat}
                   />
                 ))}
               </div>

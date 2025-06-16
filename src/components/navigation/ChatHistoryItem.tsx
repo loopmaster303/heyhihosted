@@ -4,19 +4,33 @@ import type React from 'react';
 import type { Conversation } from '@/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns'; // For formatting dates
+import { Pencil, Trash2 } from 'lucide-react';
 
 interface ChatHistoryItemProps {
   conversation: Conversation;
   onSelect: (id: Conversation['id']) => void;
   isActive: boolean;
+  onEditTitle: (id: Conversation['id']) => void;
+  onDeleteChat: (id: Conversation['id']) => void;
 }
 
-const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelect, isActive }) => {
+const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelect, isActive, onEditTitle, onDeleteChat }) => {
+  
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEditTitle(conversation.id);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDeleteChat(conversation.id);
+  };
+
   return (
     <button
       onClick={() => onSelect(conversation.id)}
       className={cn(
-        "w-full flex flex-col items-start p-2.5 rounded-md text-left transition-colors duration-150 ease-in-out",
+        "w-full group flex flex-col items-start p-2.5 rounded-md text-left transition-colors duration-150 ease-in-out",
         "focus:outline-none focus:ring-1 focus:ring-primary/50",
         isActive ? "bg-accent/70 text-accent-foreground" : "hover:bg-accent/30 text-muted-foreground hover:text-foreground"
       )}
@@ -29,12 +43,36 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
          )}>
         {conversation.title || "Chat"} 
       </p>
-      <p className={cn(
-        "text-xs mt-0.5",
-         isActive ? "text-primary-foreground/70" : "text-muted-foreground/80"
-         )}>
-        {format(new Date(conversation.createdAt), "dd/MM/yy HH:mm")}
-      </p>
+      <div className="flex justify-between items-center w-full mt-0.5">
+        <p className={cn(
+          "text-xs",
+           isActive ? "text-primary-foreground/70" : "text-muted-foreground/80"
+           )}>
+          {format(new Date(conversation.createdAt), "dd/MM/yy HH:mm")}
+        </p>
+        <div className="flex items-center space-x-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+          <button
+            onClick={handleEditClick}
+            className={cn(
+              "p-0.5 rounded hover:bg-muted-foreground/20",
+              isActive ? "text-primary-foreground/70 hover:text-primary-foreground" : "text-muted-foreground/70 hover:text-foreground"
+            )}
+            aria-label="Edit chat title"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={handleDeleteClick}
+            className={cn(
+              "p-0.5 rounded hover:bg-destructive/20",
+               isActive ? "text-primary-foreground/70 hover:text-destructive" : "text-muted-foreground/70 hover:text-destructive"
+            )}
+            aria-label="Delete chat"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
     </button>
   );
 };

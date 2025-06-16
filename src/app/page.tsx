@@ -14,6 +14,16 @@ import type { PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { useToast } from "@/hooks/use-toast";
 import { Image as ImageIcon, GalleryHorizontal, CodeXml, MessageSquare } from 'lucide-react';
 import { DEFAULT_POLLINATIONS_MODEL_ID, getDefaultSystemPrompt } from '@/config/chat-options';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 const toolTileItems: TileItem[] = [
@@ -31,33 +41,34 @@ export default function Home() {
   const [isAiResponding, setIsAiResponding] = useState(false);
   const { toast } = useToast();
 
-  // Load conversations from localStorage on initial mount
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [chatToDeleteId, setChatToDeleteId] = useState<string | null>(null);
+
+
   useEffect(() => {
     const storedConversations = localStorage.getItem('chatConversations');
     if (storedConversations) {
       try {
         const parsedConversations: Conversation[] = JSON.parse(storedConversations).map((conv: any) => ({
           ...conv,
-          createdAt: new Date(conv.createdAt), // Ensure dates are Date objects
+          createdAt: new Date(conv.createdAt), 
           messages: conv.messages.map((msg: any) => ({
             ...msg,
-            timestamp: new Date(msg.timestamp) // Ensure timestamps are Date objects
+            timestamp: new Date(msg.timestamp) 
           }))
         }));
         setAllConversations(parsedConversations);
       } catch (error) {
         console.error("Failed to parse conversations from localStorage", error);
-        localStorage.removeItem('chatConversations'); // Clear corrupted data
+        localStorage.removeItem('chatConversations'); 
       }
     }
   }, []);
 
-  // Save conversations to localStorage whenever they change
   useEffect(() => {
     if (allConversations.length > 0) {
       localStorage.setItem('chatConversations', JSON.stringify(allConversations));
     } else {
-      // If all conversations are deleted, remove the item from localStorage
       const storedConversations = localStorage.getItem('chatConversations');
       if (storedConversations) {
         localStorage.removeItem('chatConversations');
@@ -71,7 +82,6 @@ export default function Home() {
     if (convIndex === -1) return;
 
     const conversation = allConversations[convIndex];
-    // Only generate title if it's still a default-like title
     const isDefaultTitle = conversation.title === "New Long Language Loop" || 
                            conversation.title.startsWith("New ") || 
                            conversation.title === "Chat";
@@ -115,14 +125,14 @@ export default function Home() {
     const newConversation: Conversation = {
       id: newConversationId,
       title: conversationTitle,
-      messages: [], // Start with no messages
+      messages: [], 
       createdAt: now,
       toolType: toolType,
     };
 
     setAllConversations(prev => [newConversation, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
     setActiveConversation(newConversation);
-    setCurrentMessages([]); // Start with no messages
+    setCurrentMessages([]); 
     setCurrentView('chat');
   }, []);
 
@@ -159,7 +169,7 @@ export default function Home() {
         toolType: currentToolType,
       };
       
-      messagesForThisTurn = [userMessage]; // Start with only the user's message
+      messagesForThisTurn = [userMessage];
 
       conversationToUpdate = {
         id: newConversationId,
@@ -191,7 +201,6 @@ export default function Home() {
 
     if (currentToolType === 'Long Language Loops') {
       try {
-        // Prepare messages for the API: only user and assistant messages. System prompt is handled separately by the flow.
         const apiMessages = messagesForThisTurn
           .filter(msg => msg.role === 'user' || msg.role === 'assistant')
           .map(msg => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
@@ -199,7 +208,7 @@ export default function Home() {
         const apiInput: PollinationsChatInput = {
           messages: apiMessages,
           modelId: modelId,
-          systemPrompt: systemPrompt,  // Pass the selected or default system prompt
+          systemPrompt: systemPrompt, 
         };
         const result = await getPollinationsChatCompletion(apiInput);
         aiResponseContent = result.responseText;
@@ -218,7 +227,6 @@ export default function Home() {
     } else if (currentToolType === 'Code a Loop' && messageText.toLowerCase().includes('code')) {
         aiResponseContent = "```python\nfor i in range(5):\n  print(f'Loop iteration {i+1} for: {messageText}')\n```";
     } else {
-        // Fallback for FLUX Kontext or other non-LLL tools
         aiResponseContent = `Mock AI response for "${messageText}" in ${currentToolType} mode. Model: ${modelId}.`;
     }
 
@@ -253,8 +261,45 @@ export default function Home() {
 
   const handleGoBackToTilesView = () => {
     setCurrentView('tiles');
-    setActiveConversation(null); // Clear active conversation when going back to tiles
+    setActiveConversation(null); 
   };
+
+  const handleRequestEditTitle = (conversationId: string) => {
+    const conversation = allConversations.find(c => c.id === conversationId);
+    if (!conversation) return;
+
+    const newTitle = window.prompt("Enter new chat title:", conversation.title);
+    if (newTitle && newTitle.trim() !== "") {
+      const updatedTitle = newTitle.trim();
+      setAllConversations(prev => 
+        prev.map(c => c.id === conversationId ? { ...c, title: updatedTitle } : c)
+      );
+      if (activeConversation?.id === conversationId) {
+        setActiveConversation(prev => prev ? { ...prev, title: updatedTitle } : null);
+      }
+    }
+  };
+
+  const handleRequestDeleteChat = (conversationId: string) => {
+    setChatToDeleteId(conversationId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDeleteChat = () => {
+    if (!chatToDeleteId) return;
+
+    setAllConversations(prev => prev.filter(c => c.id !== chatToDeleteId));
+    
+    if (activeConversation?.id === chatToDeleteId) {
+      setCurrentView('tiles');
+      setActiveConversation(null);
+      setCurrentMessages([]);
+    }
+    setIsDeleteDialogOpen(false);
+    setChatToDeleteId(null);
+    toast({ title: "Chat Deleted", description: "The conversation has been removed." });
+  };
+
 
   if (currentView === 'tiles') {
     return (
@@ -277,10 +322,12 @@ export default function Home() {
         <SidebarNav 
           tileItems={toolTileItems} 
           activeToolType={activeConversation?.toolType || null}
-          onSelectTile={handleSelectTile} // Sidebar tiles also start new chats
+          onSelectTile={handleSelectTile} 
           allConversations={allConversations}
           activeConversationId={activeConversation?.id || null}
           onSelectChatHistory={handleSelectChatFromHistory}
+          onEditTitle={handleRequestEditTitle}
+          onDeleteChat={handleRequestDeleteChat}
           className="w-60 md:w-72 flex-shrink-0 bg-card border-r border-border" 
         />
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -297,6 +344,23 @@ export default function Home() {
         onSendMessage={handleSendMessageGlobal} 
         isLoading={isAiResponding}
       />
+      {isDeleteDialogOpen && chatToDeleteId && (
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete this chat
+                and remove its data from our servers.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => { setIsDeleteDialogOpen(false); setChatToDeleteId(null); }}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDeleteChat}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }
