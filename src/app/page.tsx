@@ -72,7 +72,7 @@ export default function Home() {
     let messagesForThisTurn: ChatMessage[];
 
     if (!conversationToUpdate) {
-      const defaultToolType: ToolType = 'Long Language Loops'; // Changed default tool type
+      const defaultToolType: ToolType = 'Long Language Loops'; // Ensure this is 'Long Language Loops'
       const newConversationId = crypto.randomUUID();
       const now = new Date();
       const systemMessageContent = `You are now in ${defaultToolType} mode. How can I assist you with ${defaultToolType.toLowerCase()}?`;
