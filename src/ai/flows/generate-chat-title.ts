@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -14,12 +15,12 @@ import {z} from 'genkit';
 const GenerateChatTitleInputSchema = z.object({
   messages: z
     .string()
-    .describe('The first few messages of the chat conversation.'),
+    .describe('The first few messages of the chat conversation, formatted as a single string.'),
 });
 export type GenerateChatTitleInput = z.infer<typeof GenerateChatTitleInputSchema>;
 
 const GenerateChatTitleOutputSchema = z.object({
-  title: z.string().describe('The generated title for the chat conversation.'),
+  title: z.string().describe('The generated title for the chat conversation, concise and under 5 words.'),
 });
 export type GenerateChatTitleOutput = z.infer<typeof GenerateChatTitleOutputSchema>;
 
@@ -31,7 +32,12 @@ const prompt = ai.definePrompt({
   name: 'generateChatTitlePrompt',
   input: {schema: GenerateChatTitleInputSchema},
   output: {schema: GenerateChatTitleOutputSchema},
-  prompt: `You are an expert at generating concise and descriptive titles for chat conversations based on their content.\n\nGenerate a title that summarizes the following chat messages:\n\n{{messages}}\n\nTitle: `,
+  prompt: `Generate a very concise title (under 5 words, ideally 2-3 words) for a chat conversation based on the following messages. Focus on the main topic or question.
+
+Messages:
+{{{messages}}}
+
+Concise Title:`,
 });
 
 const generateChatTitleFlow = ai.defineFlow(
@@ -40,8 +46,14 @@ const generateChatTitleFlow = ai.defineFlow(
     inputSchema: GenerateChatTitleInputSchema,
     outputSchema: GenerateChatTitleOutputSchema,
   },
-  async input => {
+  async (input) => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      // Fallback in case the LLM doesn't return a structured output as expected.
+      // This could happen if the response is empty or doesn't match the schema.
+      console.warn('GenerateChatTitleFlow received no structured output, returning default title.');
+      return { title: "Chat" };
+    }
+    return output;
   }
 );

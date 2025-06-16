@@ -26,19 +26,85 @@ const toolTileItems: TileItem[] = [
 export default function Home() {
   const [currentView, setCurrentView] = useState<'tiles' | 'chat'>('tiles');
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [allConversations, setAllConversations] = useState<Conversation[]>([]);
   const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
   const [isAiResponding, setIsAiResponding] = useState(false);
   const { toast } = useToast();
+
+  // Load conversations from localStorage on initial mount
+  useEffect(() => {
+    const storedConversations = localStorage.getItem('chatConversations');
+    if (storedConversations) {
+      try {
+        const parsedConversations: Conversation[] = JSON.parse(storedConversations).map((conv: any) => ({
+          ...conv,
+          createdAt: new Date(conv.createdAt), // Ensure dates are Date objects
+          messages: conv.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp) // Ensure timestamps are Date objects
+          }))
+        }));
+        setAllConversations(parsedConversations);
+      } catch (error) {
+        console.error("Failed to parse conversations from localStorage", error);
+        localStorage.removeItem('chatConversations'); // Clear corrupted data
+      }
+    }
+  }, []);
+
+  // Save conversations to localStorage whenever they change
+  useEffect(() => {
+    if (allConversations.length > 0) {
+      localStorage.setItem('chatConversations', JSON.stringify(allConversations));
+    } else {
+      // If all conversations are deleted, remove the item from localStorage
+      const storedConversations = localStorage.getItem('chatConversations');
+      if (storedConversations) {
+        localStorage.removeItem('chatConversations');
+      }
+    }
+  }, [allConversations]);
+
+
+  const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]) => {
+    // Check if enough messages and if title is still default
+    const convIndex = allConversations.findIndex(c => c.id === conversationId);
+    if (convIndex === -1) return;
+
+    const conversation = allConversations[convIndex];
+    if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && (conversation.title.startsWith("New ") || conversation.title === "Chat")) {
+      const relevantMessages = messagesForTitleGen
+        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+        .slice(0, 3) 
+        .map(msg => `${msg.role}: ${msg.content}`)
+        .join('\n\n');
+
+      if (relevantMessages.length > 0) {
+        try {
+          console.log("Attempting to generate title for:", conversation.id, "with messages:", relevantMessages);
+          const result = await generateChatTitle({ messages: relevantMessages });
+          console.log("Generated title:", result.title);
+          
+          setAllConversations(prev =>
+            prev.map(c => (c.id === conversationId ? { ...c, title: result.title } : c))
+          );
+          if (activeConversation?.id === conversationId) {
+            setActiveConversation(prev => (prev ? { ...prev, title: result.title } : null));
+          }
+        } catch (error) {
+          console.error("Failed to generate chat title:", error);
+          // Toast for title generation failure is optional, can be noisy
+        }
+      }
+    }
+  }, [allConversations, activeConversation?.id]);
 
   const handleSelectTile = useCallback((toolType: ToolType) => {
     const newConversationId = crypto.randomUUID();
     const now = new Date();
     
-    // For "Long Language Loops", use the default system prompt from config.
-    // For others, use a generic system message.
     let systemMessageContent = `You are now in ${toolType} mode. How can I assist you with ${toolType.toLowerCase()}?`;
     if (toolType === 'Long Language Loops') {
-      // This message is for UI display. The actual system prompt for API is handled by ChatInput selection.
       systemMessageContent = `Switched to Long Language Loops. ${getDefaultSystemPrompt()}`;
     }
     
@@ -52,35 +118,27 @@ export default function Home() {
 
     const newConversation: Conversation = {
       id: newConversationId,
-      title: `New ${toolType} Chat`,
+      title: `New ${toolType} Chat`, // Default title
       messages: [systemMessage],
       createdAt: now,
       toolType: toolType,
     };
+
+    setAllConversations(prev => [newConversation, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
     setActiveConversation(newConversation);
     setCurrentMessages([systemMessage]);
     setCurrentView('chat');
   }, []);
 
-  const updateConversationTitle = useCallback(async (conversation: Conversation) => {
-    if (conversation.messages.length > 1 && conversation.messages.length < 5 && (conversation.title.startsWith("New "))) {
-      const messagesForTitle = conversation.messages
-        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-        .slice(0, 3) 
-        .map(msg => `${msg.role}: ${msg.content}`)
-        .join('\n');
-
-      if (messagesForTitle.length > 0) {
-        try {
-          const result = await generateChatTitle({ messages: messagesForTitle });
-          setActiveConversation(prev => prev ? { ...prev, title: result.title } : null);
-        } catch (error) {
-          console.error("Failed to generate chat title:", error);
-          // Toast for title generation failure is optional, can be noisy
-        }
-      }
+  const handleSelectChatFromHistory = useCallback((conversationId: string) => {
+    const conversation = allConversations.find(c => c.id === conversationId);
+    if (conversation) {
+      setActiveConversation(conversation);
+      setCurrentMessages(conversation.messages);
+      setCurrentView('chat');
     }
-  }, []);
+  }, [allConversations]);
+
 
   const handleSendMessageGlobal = useCallback(async (
     messageText: string, 
@@ -88,16 +146,17 @@ export default function Home() {
     systemPrompt: string = getDefaultSystemPrompt()
   ) => {
     setIsAiResponding(true);
-    let conversationToUpdate = activeConversation;
+    let conversationToUpdate: Conversation;
     let messagesForThisTurn: ChatMessage[];
     let currentToolType: ToolType;
+    let isNewConversation = false;
 
-    if (!conversationToUpdate) { // Sent from initial tile view or if no active conversation
+    if (!activeConversation) { // Sent from initial tile view or if no active conversation
+      isNewConversation = true;
       currentToolType = 'Long Language Loops'; // Default to LLL
       const newConversationId = crypto.randomUUID();
       const now = new Date();
       
-      // UI system message
       const uiSystemMessageContent = `Started a new chat in ${currentToolType} mode. ${systemPrompt}`;
       const uiSystemMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -117,19 +176,20 @@ export default function Home() {
       
       messagesForThisTurn = [uiSystemMessage, userMessage];
 
-      const newConversation: Conversation = {
+      conversationToUpdate = {
         id: newConversationId,
-        title: `New ${currentToolType} Chat`,
+        title: `New ${currentToolType} Chat`, // Default title
         messages: messagesForThisTurn, 
         createdAt: now,
         toolType: currentToolType,
       };
       
-      setActiveConversation(newConversation);
+      setAllConversations(prev => [conversationToUpdate!, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
+      setActiveConversation(conversationToUpdate);
       setCurrentMessages(messagesForThisTurn);
       setCurrentView('chat');
-      conversationToUpdate = newConversation;
     } else {
+      conversationToUpdate = activeConversation;
       currentToolType = conversationToUpdate.toolType || 'Long Language Loops';
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -146,12 +206,10 @@ export default function Home() {
 
     if (currentToolType === 'Long Language Loops') {
       try {
-        // Prepare messages for API: system prompt + user/assistant history + current user message
         const apiMessages = messagesForThisTurn
-          .filter(msg => msg.role === 'user' || msg.role === 'assistant' || (msg.role === 'system' && msg.content === systemPrompt)) // Include the relevant system prompt
+          .filter(msg => msg.role === 'user' || msg.role === 'assistant' || (msg.role === 'system' && msg.content === systemPrompt))
           .map(msg => ({ role: msg.role, content: msg.content }));
 
-        // Ensure the selected systemPrompt is the first message if not already there
         if (!apiMessages.find(msg => msg.role === 'system' && msg.content === systemPrompt) && systemPrompt) {
             apiMessages.unshift({role: 'system', content: systemPrompt});
         }
@@ -159,7 +217,7 @@ export default function Home() {
         const apiInput: PollinationsChatInput = {
           messages: apiMessages,
           modelId: modelId,
-          systemPrompt: systemPrompt, // This is now primary, API structure prepends it
+          systemPrompt: systemPrompt,
         };
         const result = await getPollinationsChatCompletion(apiInput);
         aiResponseContent = result.responseText;
@@ -178,7 +236,6 @@ export default function Home() {
     } else if (currentToolType === 'Code a Loop' && messageText.toLowerCase().includes('code')) {
         aiResponseContent = "```python\nfor i in range(5):\n  print(f'Loop iteration {i+1} for: {messageText}')\n```";
     } else {
-        // Fallback for other tools or general mock response
         aiResponseContent = `Mock AI response for "${messageText}" in ${currentToolType} mode. Model: ${modelId}.`;
     }
 
@@ -193,23 +250,28 @@ export default function Home() {
     const finalMessages = [...messagesForThisTurn, aiMessage];
     setCurrentMessages(finalMessages);
     
-    if (conversationToUpdate) {
-        const updatedConversation = {
-        ...conversationToUpdate,
-        messages: finalMessages,
-        };
-        setActiveConversation(updatedConversation);
-        updateConversationTitle(updatedConversation); // Attempt to update title
+    const updatedConversationWithAiResponse = {
+      ...conversationToUpdate,
+      messages: finalMessages,
+    };
+    setActiveConversation(updatedConversationWithAiResponse);
+    setAllConversations(prev =>
+      prev.map(c => (c.id === conversationToUpdate.id ? updatedConversationWithAiResponse : c))
+    );
+    
+    // Attempt to update title after AI responds, for new or existing conversations
+    // Pass only user and assistant messages for title generation
+    const messagesForTitleGen = finalMessages.filter(msg => msg.role === 'user' || msg.role === 'assistant');
+    if (messagesForTitleGen.length > 0) {
+        updateConversationTitle(conversationToUpdate.id, messagesForTitleGen);
     }
     
     setIsAiResponding(false);
 
-  }, [activeConversation, currentMessages, updateConversationTitle, toast]);
+  }, [activeConversation, currentMessages, allConversations, updateConversationTitle, toast]);
 
   const handleGoBackToTilesView = () => {
     setCurrentView('tiles');
-    // setActiveConversation(null); // Keep active conversation for potential resume? Or clear?
-    // setCurrentMessages([]); // Clear messages if conversation is fully reset
   };
 
   if (currentView === 'tiles') {
@@ -235,6 +297,9 @@ export default function Home() {
           tileItems={toolTileItems} 
           activeToolType={activeConversation?.toolType || null}
           onSelectTile={handleSelectTile}
+          allConversations={allConversations}
+          activeConversationId={activeConversation?.id || null}
+          onSelectChatHistory={handleSelectChatFromHistory}
           className="w-60 md:w-72 flex-shrink-0 bg-card border-r border-border" 
         />
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -242,7 +307,7 @@ export default function Home() {
             conversation={activeConversation}
             messages={currentMessages}
             isLoading={isAiResponding}
-            onGoBack={handleGoBackToTilesView}
+            onGoBack={handleGoBackToTilesView} // This might need to be rethought if sidebar is persistent
             className="flex-grow overflow-y-auto"
           />
         </main>
