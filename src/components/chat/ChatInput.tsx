@@ -5,7 +5,7 @@ import type React from 'react';
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { SendHorizonal, Paperclip, ChevronDown, Cpu, Brain, ImageIcon } from 'lucide-react';
+import { SendHorizonal, Paperclip, ChevronDown, Brain, Fingerprint, ImageIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,8 +28,8 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
       onSendMessage(inputValue.trim());
       setInputValue('');
       if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'; // Reset height before recalculating
-        textareaRef.current.style.height = '120px'; // Initial taller height
+        textareaRef.current.style.height = 'auto'; 
+        textareaRef.current.style.height = '120px'; 
         textareaRef.current.focus();
       }
     }
@@ -87,7 +87,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground rounded-lg flex items-center gap-1">
-                    <Cpu className="w-5 h-5" />
+                    <Brain className="w-5 h-5" />
                     <ChevronDown className="w-3 h-3 opacity-70" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -100,7 +100,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground rounded-lg flex items-center gap-1">
-                    <Brain className="w-5 h-5" />
+                    <Fingerprint className="w-5 h-5" />
                     <ChevronDown className="w-3 h-3 opacity-70" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -140,3 +140,4 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
 };
 
 export default ChatInput;
+
