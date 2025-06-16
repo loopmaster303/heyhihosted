@@ -11,32 +11,34 @@
 
 import { z } from 'zod';
 
+// Internal Zod schema for input validation
 const PollinationsApiChatMessageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant']),
   content: z.string(),
 });
 
-const PollinationsChatInputSchema = z.object({
+const PollinationsChatInputSchemaInternal = z.object({
   messages: z.array(PollinationsApiChatMessageSchema.extend({
-    // Allow role to be 'user' or 'assistant' specifically for history, system prompt is separate
     role: z.enum(['user', 'assistant']), 
   })).min(1).describe('Array of historical message objects (role: user, assistant).'),
   modelId: z.string().describe('The Pollinations model ID to use (e.g., openai, mistral).'),
   systemPrompt: z.string().optional().describe('An optional system prompt to guide the AI.'),
 });
-export type PollinationsChatInput = z.infer<typeof PollinationsChatInputSchema>;
 
-const PollinationsChatOutputSchema = z.object({
-  responseText: z.string().describe('The AI-generated text response.'),
-});
-export type PollinationsChatOutput = z.infer<typeof PollinationsChatOutputSchema>;
+// Exported TypeScript type for input
+export type PollinationsChatInput = z.infer<typeof PollinationsChatInputSchemaInternal>;
+
+// Exported TypeScript type for output
+export interface PollinationsChatOutput {
+  responseText: string;
+}
 
 const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
 
 export async function getPollinationsChatCompletion(
   input: PollinationsChatInput
 ): Promise<PollinationsChatOutput> {
-  const validationResult = PollinationsChatInputSchema.safeParse(input);
+  const validationResult = PollinationsChatInputSchemaInternal.safeParse(input);
   if (!validationResult.success) {
     console.error("Invalid input to getPollinationsChatCompletion:", validationResult.error.issues);
     throw new Error(`Invalid input: ${validationResult.error.issues.map(i => i.path + ': ' + i.message).join(', ')}`);
@@ -50,7 +52,6 @@ export async function getPollinationsChatCompletion(
     apiMessagesToSend.push({ role: 'system', content: systemPrompt });
   }
   
-  // Add history messages (already filtered to be user/assistant by page.tsx)
   apiMessagesToSend = [...apiMessagesToSend, ...historyMessages];
 
 
@@ -58,9 +59,9 @@ export async function getPollinationsChatCompletion(
     model: modelId,
     messages: apiMessagesToSend,
     private: true, 
-    temperature: 1.0, // From user example
-    max_tokens: 500,  // From user example
-    // referrer: "FluxFlowAI", // Optional: identify your app
+    temperature: 1.0, 
+    stream: false, // Explicitly set stream to false
+    // max_tokens: 500, // Removing max_tokens to align more strictly with provided POST endpoint docs
   };
 
   const headers: Record<string, string> = {
@@ -82,14 +83,14 @@ export async function getPollinationsChatCompletion(
     });
 
     if (!response.ok) {
-      const errorBody = await response.text(); // Use text first to avoid JSON parse error if body isn't JSON
+      const errorBody = await response.text(); 
       let errorData;
       try {
         errorData = JSON.parse(errorBody);
       } catch (e) {
-        errorData = errorBody; // Keep as text if not valid JSON
+        errorData = errorBody; 
       }
-      console.error('Pollinations API Error:', response.status, errorData);
+      console.error('Pollinations API Error (non-200 status):', response.status, errorData, 'Request Payload:', payload);
       throw new Error(
         `Pollinations API request failed with status ${response.status}: ${typeof errorData === 'string' ? errorData : JSON.stringify(errorData)}`
       );
@@ -114,15 +115,14 @@ export async function getPollinationsChatCompletion(
     if (replyText) {
       return { responseText: replyText };
     } else {
-      console.error('Pollinations API - Unexpected response structure:', result);
-      throw new Error('Pollinations API returned an unexpected response structure.');
+      console.error('Pollinations API - Successful response (200 OK), but unexpected JSON structure. Full response:', result, 'Request Payload:', payload);
+      throw new Error('Pollinations API returned a 200 OK but with an unparseable JSON structure for the reply content.');
     }
   } catch (error) {
-    console.error('Error calling Pollinations API:', error);
+    console.error('Error calling Pollinations API or processing its response:', error, 'Request Payload:', payload);
     if (error instanceof Error) {
         throw new Error(`Failed to get completion from Pollinations API: ${error.message}`);
     }
     throw new Error('An unknown error occurred while contacting the Pollinations API.');
   }
 }
-
