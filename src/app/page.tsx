@@ -104,35 +104,25 @@ export default function Home() {
     const newConversationId = crypto.randomUUID();
     const now = new Date();
     
-    let systemMessageContent = `You are now in ${toolType} mode. How can I assist you with ${toolType.toLowerCase()}?`;
     let conversationTitle: string;
 
     if (toolType === 'Long Language Loops') {
-      systemMessageContent = `Switched to Long Language Loops. ${getDefaultSystemPrompt()}`;
       conversationTitle = "New Long Language Loop";
     } else {
       conversationTitle = `New ${toolType} Chat`;
     }
     
-    const systemMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'system',
-      content: systemMessageContent,
-      timestamp: now,
-      toolType: toolType,
-    };
-
     const newConversation: Conversation = {
       id: newConversationId,
       title: conversationTitle,
-      messages: [systemMessage],
+      messages: [], // Start with no messages
       createdAt: now,
       toolType: toolType,
     };
 
     setAllConversations(prev => [newConversation, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
     setActiveConversation(newConversation);
-    setCurrentMessages([systemMessage]);
+    setCurrentMessages([]); // Start with no messages
     setCurrentView('chat');
   }, []);
 
@@ -155,23 +145,12 @@ export default function Home() {
     let conversationToUpdate: Conversation;
     let messagesForThisTurn: ChatMessage[];
     let currentToolType: ToolType;
-    let isNewConversation = false;
 
     if (!activeConversation) { 
-      isNewConversation = true;
       currentToolType = 'Long Language Loops'; 
       const newConversationId = crypto.randomUUID();
       const now = new Date();
       
-      const uiSystemMessageContent = `Started a new chat in ${currentToolType} mode. ${systemPrompt}`;
-      const uiSystemMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'system',
-        content: uiSystemMessageContent,
-        timestamp: now,
-        toolType: currentToolType,
-      };
-
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'user',
@@ -180,11 +159,11 @@ export default function Home() {
         toolType: currentToolType,
       };
       
-      messagesForThisTurn = [uiSystemMessage, userMessage];
+      messagesForThisTurn = [userMessage]; // Start with only the user's message
 
       conversationToUpdate = {
         id: newConversationId,
-        title: "New Long Language Loop", // Specific title for LLL initiated from homepage
+        title: "New Long Language Loop",
         messages: messagesForThisTurn, 
         createdAt: now,
         toolType: currentToolType,
@@ -212,22 +191,15 @@ export default function Home() {
 
     if (currentToolType === 'Long Language Loops') {
       try {
+        // Prepare messages for the API: only user and assistant messages. System prompt is handled separately by the flow.
         const apiMessages = messagesForThisTurn
-          .filter(msg => msg.role === 'user' || msg.role === 'assistant' || (msg.role === 'system' && msg.content.includes(systemPrompt))) // Looser check for system prompt
-          .map(msg => ({ role: msg.role as 'user' | 'assistant' | 'system', content: msg.content }));
-
-
-        const effectiveSystemPrompt = conversationToUpdate.messages.find(msg => msg.role === 'system' && msg.content.includes(systemPrompt))?.content || systemPrompt;
-        
-        // Ensure system prompt is first if not already present or part of the specific UI system message.
-        if (!apiMessages.find(msg => msg.role === 'system' && msg.content === effectiveSystemPrompt) && effectiveSystemPrompt) {
-            apiMessages.unshift({role: 'system', content: effectiveSystemPrompt});
-        }
+          .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+          .map(msg => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
         
         const apiInput: PollinationsChatInput = {
           messages: apiMessages,
           modelId: modelId,
-          systemPrompt: effectiveSystemPrompt, 
+          systemPrompt: systemPrompt,  // Pass the selected or default system prompt
         };
         const result = await getPollinationsChatCompletion(apiInput);
         aiResponseContent = result.responseText;
@@ -246,6 +218,7 @@ export default function Home() {
     } else if (currentToolType === 'Code a Loop' && messageText.toLowerCase().includes('code')) {
         aiResponseContent = "```python\nfor i in range(5):\n  print(f'Loop iteration {i+1} for: {messageText}')\n```";
     } else {
+        // Fallback for FLUX Kontext or other non-LLL tools
         aiResponseContent = `Mock AI response for "${messageText}" in ${currentToolType} mode. Model: ${modelId}.`;
     }
 
