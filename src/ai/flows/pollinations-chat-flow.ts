@@ -63,10 +63,9 @@ export async function getPollinationsChatCompletion(
   const payload: Record<string, any> = {
     model: modelId,
     messages: apiMessagesToSend,
-    private: true, // Keep requests private by default as per user's old example
-    temperature: 1.0, // Default temperature
-    stream: false, // Explicitly set stream to false
-    // Note: max_tokens removed to align with POST endpoint docs (not in common params)
+    private: true, 
+    temperature: 1.0, 
+    stream: false, 
   };
 
   const headers: Record<string, string> = {
@@ -88,13 +87,12 @@ export async function getPollinationsChatCompletion(
     });
 
     if (!response.ok) {
-      // Attempt to parse error response from API if not OK
-      const errorBody = await response.text(); // Get error as text first
+      const errorBody = await response.text(); 
       let errorData;
       try {
-        errorData = JSON.parse(errorBody); // Try to parse it as JSON
+        errorData = JSON.parse(errorBody); 
       } catch (e) {
-        errorData = errorBody; // If not JSON, use the raw text
+        errorData = errorBody; 
       }
       console.error('Pollinations API Error (non-200 status):', response.status, errorData, 'Request Payload:', payload);
       throw new Error(
@@ -103,7 +101,7 @@ export async function getPollinationsChatCompletion(
     }
 
     const result = await response.json();
-    let replyText = '';
+    let replyText: string | null = null; // Initialize to null
 
     // Robustly attempt to extract reply from common structures
     if (result.choices && Array.isArray(result.choices) && result.choices.length > 0) {
@@ -114,44 +112,41 @@ export async function getPollinationsChatCompletion(
             replyText = choice.message.content.trim();
           } else if (choice.message.content === null) {
             console.warn('Pollinations API: choices[0].message.content is null. No reply extracted from this path.');
+            replyText = ""; // Treat null content as an empty string reply
           } else {
             console.warn(`Pollinations API: choices[0].message.content is not a string or null, it's a ${typeof choice.message.content}. No reply extracted from this path.`);
           }
-        } else if (typeof choice.text === 'string') { // Fallback within choice object if message.content is not the source
+        } else if (typeof choice.text === 'string') { 
           replyText = choice.text.trim();
-          if (replyText) console.log("Extracted reply from choice.text");
+          if (replyText !== null && replyText !== "") console.log("Extracted reply from choice.text");
         } else {
           console.warn('Pollinations API: choices[0] exists but lacks expected message.content or text structure.');
         }
       }
     }
     
-    // Secondary fallbacks for less common, top-level structures if replyText is still empty
-    if (!replyText && result && typeof result === 'object') {
+    // Secondary fallbacks for less common, top-level structures if replyText is still null
+    if (replyText === null && result && typeof result === 'object') {
         if (typeof result.reply === 'string') {
             replyText = result.reply.trim();
-            if (replyText) console.log("Extracted reply from result.reply");
-        } else if (typeof result.content === 'string') { // Check for top-level content
+            if (replyText !== null && replyText !== "") console.log("Extracted reply from result.reply");
+        } else if (typeof result.content === 'string') { 
             replyText = result.content.trim();
-            if (replyText) console.log("Extracted reply from result.content");
+            if (replyText !== null && replyText !== "") console.log("Extracted reply from result.content");
         }
     }
 
-    if (replyText) {
+    if (replyText !== null) { // Check if replyText was assigned any string (including empty)
       return { responseText: replyText };
     } else {
-      // This is critical: log the exact response and payload when parsing fails.
       console.error('Pollinations API - Successful response (200 OK), but unexpected JSON structure or empty content. Full response:', JSON.stringify(result, null, 2), 'Request Payload:', JSON.stringify(payload, null, 2));
       throw new Error('Pollinations API returned a 200 OK but the reply content could not be extracted from the JSON structure.');
     }
   } catch (error) {
-    // Log the payload in case of any error during fetch or processing
     console.error('Error calling Pollinations API or processing its response:', error, 'Request Payload:', payload);
     if (error instanceof Error) {
-        // Re-throw the original error or a more specific one
         throw new Error(`Failed to get completion from Pollinations API: ${error.message}`);
     }
-    // Fallback for non-Error objects
     throw new Error('An unknown error occurred while contacting the Pollinations API.');
   }
 }
