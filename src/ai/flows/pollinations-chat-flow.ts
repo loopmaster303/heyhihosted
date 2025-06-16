@@ -67,8 +67,8 @@ export async function getPollinationsChatCompletion(
     model: modelId,
     messages: apiMessagesToSend,
     private: true, 
-    temperature: 1.0,
-    stream: false, 
+    temperature: 1.0, // Based on user's prior example
+    stream: false, // Explicitly not streaming for this flow
   };
 
   const headers: Record<string, string> = {
@@ -119,7 +119,7 @@ export async function getPollinationsChatCompletion(
           if (typeof choice.message.content === 'string') {
             replyText = choice.message.content; 
           } else if (choice.message.content === null) {
-            console.warn('Pollinations API: choices[0].message.content is null. Interpreting as empty reply.');
+            console.warn('Pollinations API: choices[0].message.content is null. Interpreting as empty reply. Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
             replyText = ""; // Treat null content as an empty string
           } else {
             // Log if content is present but not a string or null
@@ -179,5 +179,4 @@ export async function getPollinationsChatCompletion(
     throw new Error('An unknown error occurred while contacting the Pollinations API.');
   }
 }
-
     
