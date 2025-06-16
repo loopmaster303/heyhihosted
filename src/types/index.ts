@@ -1,3 +1,4 @@
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -11,14 +12,14 @@ export interface Conversation {
   title: string;
   messages: ChatMessage[];
   createdAt: Date;
-  toolType?: ToolType; 
+  toolType?: ToolType;
 }
 
-export type ToolType = 'FLUX Kontext' | 'Easy Image Loop' | 'Code a Loop' | 'Placeholder Loop';
+export type ToolType = 'FLUX Kontext' | 'Easy Image Loop' | 'Code a Loop' | 'Long Language Loops';
 
 export interface TileItem {
   id: ToolType;
-  title: ToolType;
+  title: string; // Changed from ToolType to string for flexible display titles
   icon: React.ElementType;
   description: string;
 }

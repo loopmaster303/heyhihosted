@@ -72,7 +72,7 @@ export default function Home() {
     let messagesForThisTurn: ChatMessage[];
 
     if (!conversationToUpdate) {
-      const defaultToolType: ToolType = 'FLUX Kontext'; // Default tool
+      const defaultToolType: ToolType = 'Long Language Loops'; // Changed default tool type
       const newConversationId = crypto.randomUUID();
       const now = new Date();
       const systemMessageContent = `You are now in ${defaultToolType} mode. How can I assist you with ${defaultToolType.toLowerCase()}?`;
@@ -179,5 +179,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

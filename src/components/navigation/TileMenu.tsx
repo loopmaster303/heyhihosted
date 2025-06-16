@@ -10,7 +10,7 @@ const tileItems: TileItem[] = [
   { id: 'FLUX Kontext', title: 'FLUX Kontext', icon: ImageIcon, description: "Engage with contextual AI" },
   { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images effortlessly" },
   { id: 'Code a Loop', title: 'Code some Loops', icon: CodeXml, description: "AI-assisted coding" },
-  { id: 'Placeholder Loop', title: 'Long Language Loops', icon: MessageSquare, description: "Loops about everything." },
+  { id: 'Long Language Loops', title: 'Long Language Loops', icon: MessageSquare, description: "Loops about everything." }, // Changed id from 'Placeholder Loop'
 ];
 
 interface TileMenuProps {
