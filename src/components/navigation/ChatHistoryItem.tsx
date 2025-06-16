@@ -17,20 +17,30 @@ interface ChatHistoryItemProps {
 const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelect, isActive, onEditTitle, onDeleteChat }) => {
   
   const handleEditClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent the parent div's onClick from firing
     onEditTitle(conversation.id);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent the parent div's onClick from firing
     onDeleteChat(conversation.id);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect(conversation.id);
+    }
+  };
+
   return (
-    <button
+    <div
       onClick={() => onSelect(conversation.id)}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
       className={cn(
-        "w-full group flex flex-col items-start p-2.5 rounded-md text-left transition-colors duration-150 ease-in-out",
+        "w-full group flex flex-col items-start p-2.5 rounded-md text-left transition-colors duration-150 ease-in-out cursor-pointer",
         "focus:outline-none focus:ring-1 focus:ring-primary/50",
         isActive ? "bg-accent/70 text-accent-foreground" : "hover:bg-accent/30 text-muted-foreground hover:text-foreground"
       )}
@@ -73,7 +83,7 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
           </button>
         </div>
       </div>
-    </button>
+    </div>
   );
 };
 export default ChatHistoryItem;
