@@ -19,6 +19,7 @@ const PollinationsApiChatMessageSchema = z.object({
 
 const PollinationsChatInputSchemaInternal = z.object({
   messages: z.array(PollinationsApiChatMessageSchema.extend({
+    // Allow only user and assistant roles in the historical messages for the API call
     role: z.enum(['user', 'assistant']), 
   })).min(1).describe('Array of historical message objects (role: user, assistant).'),
   modelId: z.string().describe('The Pollinations model ID to use (e.g., openai, mistral).'),
@@ -41,27 +42,31 @@ export async function getPollinationsChatCompletion(
   const validationResult = PollinationsChatInputSchemaInternal.safeParse(input);
   if (!validationResult.success) {
     console.error("Invalid input to getPollinationsChatCompletion:", validationResult.error.issues);
+    // Construct a more detailed error message from Zod issues
     throw new Error(`Invalid input: ${validationResult.error.issues.map(i => i.path + ': ' + i.message).join(', ')}`);
   }
   
   const { messages: historyMessages, modelId, systemPrompt } = validationResult.data;
 
+  // Prepare messages for the API: Prepend system prompt if provided
   let apiMessagesToSend: {role: string; content: string}[] = [];
 
   if (systemPrompt && systemPrompt.trim() !== "") {
     apiMessagesToSend.push({ role: 'system', content: systemPrompt });
   }
   
+  // Add historical messages (already validated to be 'user' or 'assistant')
   apiMessagesToSend = [...apiMessagesToSend, ...historyMessages];
 
 
+  // Construct the payload for Pollinations API
   const payload: Record<string, any> = {
     model: modelId,
     messages: apiMessagesToSend,
-    private: true, 
-    temperature: 1.0, 
+    private: true, // Keep requests private by default as per user's old example
+    temperature: 1.0, // Default temperature
     stream: false, // Explicitly set stream to false
-    // max_tokens: 500, // Removing max_tokens to align more strictly with provided POST endpoint docs
+    // Note: max_tokens removed to align with POST endpoint docs (not in common params)
   };
 
   const headers: Record<string, string> = {
@@ -83,12 +88,13 @@ export async function getPollinationsChatCompletion(
     });
 
     if (!response.ok) {
-      const errorBody = await response.text(); 
+      // Attempt to parse error response from API if not OK
+      const errorBody = await response.text(); // Get error as text first
       let errorData;
       try {
-        errorData = JSON.parse(errorBody);
+        errorData = JSON.parse(errorBody); // Try to parse it as JSON
       } catch (e) {
-        errorData = errorBody; 
+        errorData = errorBody; // If not JSON, use the raw text
       }
       console.error('Pollinations API Error (non-200 status):', response.status, errorData, 'Request Payload:', payload);
       throw new Error(
@@ -99,30 +105,53 @@ export async function getPollinationsChatCompletion(
     const result = await response.json();
     let replyText = '';
 
+    // Robustly attempt to extract reply from common structures
     if (result.choices && Array.isArray(result.choices) && result.choices.length > 0) {
       const choice = result.choices[0];
-      if (choice.message && typeof choice.message.content === 'string') {
-        replyText = choice.message.content.trim();
-      } else if (typeof choice.text === 'string') {
-        replyText = choice.text.trim();
+      if (choice && typeof choice === 'object') {
+        if (choice.message && typeof choice.message === 'object' && choice.message.hasOwnProperty('content')) {
+          if (typeof choice.message.content === 'string') {
+            replyText = choice.message.content.trim();
+          } else if (choice.message.content === null) {
+            console.warn('Pollinations API: choices[0].message.content is null. No reply extracted from this path.');
+          } else {
+            console.warn(`Pollinations API: choices[0].message.content is not a string or null, it's a ${typeof choice.message.content}. No reply extracted from this path.`);
+          }
+        } else if (typeof choice.text === 'string') { // Fallback within choice object if message.content is not the source
+          replyText = choice.text.trim();
+          if (replyText) console.log("Extracted reply from choice.text");
+        } else {
+          console.warn('Pollinations API: choices[0] exists but lacks expected message.content or text structure.');
+        }
       }
-    } else if (typeof result.reply === 'string') {
-        replyText = result.reply.trim();
-    } else if (typeof result.content === 'string') {
-        replyText = result.content.trim();
+    }
+    
+    // Secondary fallbacks for less common, top-level structures if replyText is still empty
+    if (!replyText && result && typeof result === 'object') {
+        if (typeof result.reply === 'string') {
+            replyText = result.reply.trim();
+            if (replyText) console.log("Extracted reply from result.reply");
+        } else if (typeof result.content === 'string') { // Check for top-level content
+            replyText = result.content.trim();
+            if (replyText) console.log("Extracted reply from result.content");
+        }
     }
 
     if (replyText) {
       return { responseText: replyText };
     } else {
-      console.error('Pollinations API - Successful response (200 OK), but unexpected JSON structure. Full response:', result, 'Request Payload:', payload);
-      throw new Error('Pollinations API returned a 200 OK but with an unparseable JSON structure for the reply content.');
+      // This is critical: log the exact response and payload when parsing fails.
+      console.error('Pollinations API - Successful response (200 OK), but unexpected JSON structure or empty content. Full response:', JSON.stringify(result, null, 2), 'Request Payload:', JSON.stringify(payload, null, 2));
+      throw new Error('Pollinations API returned a 200 OK but the reply content could not be extracted from the JSON structure.');
     }
   } catch (error) {
+    // Log the payload in case of any error during fetch or processing
     console.error('Error calling Pollinations API or processing its response:', error, 'Request Payload:', payload);
     if (error instanceof Error) {
+        // Re-throw the original error or a more specific one
         throw new Error(`Failed to get completion from Pollinations API: ${error.message}`);
     }
+    // Fallback for non-Error objects
     throw new Error('An unknown error occurred while contacting the Pollinations API.');
   }
 }
