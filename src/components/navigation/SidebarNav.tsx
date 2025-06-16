@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 
 interface SidebarNavProps {
   tileItems: TileItem[];
-  activeToolType: ToolType | null; // This might be less relevant if LLL tile always starts new
+  activeToolType: ToolType | null; 
   onSelectTile: (toolType: ToolType) => void;
   allConversations: Conversation[];
   activeConversationId: string | null;
@@ -42,7 +42,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
               item={item} 
               onSelect={onSelectTile}
               // LLL tile is an action to start new, not to show active state of current LLL chat
-              isActive={item.id === activeConversation?.toolType && item.id !== 'Long Language Loops'} 
+              isActive={item.id === activeToolType && item.id !== 'Long Language Loops'} 
               showPlusIcon={item.id === 'Long Language Loops'}
             />
           ))}
