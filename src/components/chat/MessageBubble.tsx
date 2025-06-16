@@ -1,3 +1,4 @@
+
 "use client";
 
 import type React from 'react';
@@ -14,6 +15,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const isUser = message.role === 'user';
   const Icon = isUser ? User : Bot;
   const initial = isUser ? 'U' : 'AI';
+
+  let displayContent = message.content;
+  if (message.role === 'assistant' && (!message.content || message.content.trim() === '')) {
+    displayContent = "[AI response was empty]";
+  }
 
   return (
     <div
@@ -38,7 +44,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             : 'bg-secondary text-secondary-foreground rounded-bl-none'
         )}
       >
-        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        <p className="text-sm whitespace-pre-wrap">{displayContent}</p>
         <p className={cn(
             "text-xs mt-1",
             isUser ? "text-primary-foreground/70 text-right" : "text-muted-foreground text-left"
