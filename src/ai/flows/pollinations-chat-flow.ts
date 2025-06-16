@@ -19,7 +19,7 @@ const PollinationsApiChatMessageSchema = z.object({
 
 const PollinationsChatInputSchemaInternal = z.object({
   messages: z.array(PollinationsApiChatMessageSchema.extend({
-    role: z.enum(['user', 'assistant']),
+    role: z.enum(['user', 'assistant']), // For history, only user/assistant
   })).min(1).describe('Array of historical message objects (role: user, assistant).'),
   modelId: z.string().describe('The Pollinations model ID to use (e.g., openai, mistral).'),
   systemPrompt: z.string().optional().describe('An optional system prompt to guide the AI.'),
@@ -34,7 +34,8 @@ export interface PollinationsChatOutput {
 }
 
 const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
-// IMPORTANT: Move this token to your .env file as POLLINATIONS_API_TOKEN if not already done.
+// IMPORTANT: This token is hardcoded for demonstration.
+// Move it to your .env file as POLLINATIONS_API_TOKEN (e.g., POLLINATIONS_API_TOKEN=your_actual_token)
 const API_TOKEN = 'uI8ZTSLs84zigEv2'; 
 
 export async function getPollinationsChatCompletion(
@@ -64,10 +65,10 @@ export async function getPollinationsChatCompletion(
   const payload: Record<string, any> = {
     model: modelId,
     messages: apiMessagesToSend,
-    private: true, 
     temperature: 1.0, 
     stream: false, 
-    max_tokens: 1024,
+    max_tokens: 500, // Aligned with user's working example
+    // `private` parameter removed to use API default (false)
   };
 
   const headers: Record<string, string> = {
@@ -81,7 +82,7 @@ export async function getPollinationsChatCompletion(
     if (tokenToUse === API_TOKEN && !process.env.POLLINATIONS_API_TOKEN) {
         // This console.warn will appear in your server-side logs, not the browser.
         console.warn('\nPOLLINATIONS_API_TOKEN is hardcoded in pollinations-chat-flow.ts. ' +
-                     'Please move it to your .env file (POLLINATIONS_API_TOKEN=uI8ZTSLs84zigEv2) for security and to ensure it is being used properly.\n' +
+                     'Please move it to your .env file (e.g., POLLINATIONS_API_TOKEN=uI8ZTSLs84zigEv2) for security and to ensure it is being used properly.\n' +
                      'Make sure to restart your development server after updating the .env file.\n');
     }
   } else {
@@ -113,7 +114,7 @@ export async function getPollinationsChatCompletion(
     }
 
     const result = await response.json();
-    let replyText: string | null = null; // Initialize as null
+    let replyText: string | null = null; 
 
     // Attempt to extract reply from standard OpenAI structure
     if (result.choices && Array.isArray(result.choices) && result.choices.length > 0) {
@@ -126,52 +127,44 @@ export async function getPollinationsChatCompletion(
             console.warn('Pollinations API: choices[0].message.content is null. Interpreting as empty reply. Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
             replyText = ""; // Treat null content as an empty string
           } else {
-            // Log if content is present but not a string or null
             console.warn(`Pollinations API: choices[0].message.content is not a string or null, it's a ${typeof choice.message.content}. Path: choices[0].message.content. Full API Response:`, JSON.stringify(result, null, 2));
           }
         } else if (typeof choice.text === 'string') {
-          // Fallback to choice.text if message.content is not found/valid
           replyText = choice.text; 
           console.log("Extracted reply from choice.text. Full API Response:", JSON.stringify(result, null, 2));
         } else {
-          // Log if choice is an object but lacks expected structure
           console.warn('Pollinations API: choices[0] exists but lacks expected message.content or text structure. Full API Response:', JSON.stringify(result, null, 2));
         }
       } else {
-        // Log if choices[0] is not a valid object or is missing
         console.warn('Pollinations API: choices[0] is not a valid object or is missing. Full API Response:', JSON.stringify(result, null, 2));
       }
     }
 
-    // Further fallbacks if choices structure wasn't helpful
     if (replyText === null && result && typeof result === 'object') {
         if (typeof result.reply === 'string') {
-            replyText = result.reply; // Fallback to result.reply
+            replyText = result.reply; 
             console.log("Extracted reply from result.reply. Full API Response:", JSON.stringify(result, null, 2));
         } else if (typeof result.content === 'string') {
-            replyText = result.content; // Fallback to result.content
+            replyText = result.content; 
             console.log("Extracted reply from result.content. Full API Response:", JSON.stringify(result, null, 2));
         }
     }
     
-    // Check if replyText was successfully assigned (even if it's an empty string)
     if (replyText !== null) {
       const trimmedReply = replyText.trim();
-      if (trimmedReply === "" && replyText !== "") { // Content was only whitespace
+      if (trimmedReply === "" && replyText !== "") { 
          console.warn('Pollinations API: Successfully parsed response, content was only whitespace. Original content: "' + replyText + '". Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
-      } else if (trimmedReply === "") { // Content was truly an empty string
+      } else if (trimmedReply === "") { 
          console.warn('Pollinations API: Successfully parsed response, but content is an empty string. Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
       }
       return { responseText: trimmedReply };
     } else {
-      // This means none of the parsing strategies found a suitable text field.
       console.error('Pollinations API - Successful response (200 OK), but the reply content could not be extracted from the JSON structure. Full response:', JSON.stringify(result, null, 2), 'Request Payload:', JSON.stringify(payload, null, 2));
       throw new Error(
         'Pollinations API returned a 200 OK but the reply content could not be extracted from the JSON structure.'
       );
     }
   } catch (error) {
-    // Log the payload if the error isn't one we've already logged it with
     if (error instanceof Error && !(error.message.startsWith('Pollinations API request failed') || error.message.startsWith('Pollinations API returned a 200 OK but the reply content could not be extracted'))) {
       console.error('Error calling Pollinations API or processing its response:', error, 'Request Payload (if available):', JSON.stringify(payload, null, 2));
     } else if (!(error instanceof Error)) {
@@ -179,10 +172,8 @@ export async function getPollinationsChatCompletion(
     }
     
     if (error instanceof Error) {
-        // Re-throw the original error or a more specific one
         throw new Error(`Failed to get completion from Pollinations API: ${error.message}`);
     }
-    // Fallback for non-Error objects
     throw new Error('An unknown error occurred while contacting the Pollinations API.');
   }
 }
