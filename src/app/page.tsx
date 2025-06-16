@@ -69,6 +69,7 @@ export default function Home() {
     if (allConversations.length > 0) {
       localStorage.setItem('chatConversations', JSON.stringify(allConversations));
     } else {
+      // If allConversations becomes empty, remove the item from localStorage
       const storedConversations = localStorage.getItem('chatConversations');
       if (storedConversations) {
         localStorage.removeItem('chatConversations');
@@ -82,14 +83,16 @@ export default function Home() {
     if (convIndex === -1) return;
 
     const conversation = allConversations[convIndex];
+    // Check if the title is still the default "New Long Language Loop" or similar generic new chat titles
     const isDefaultTitle = conversation.title === "New Long Language Loop" || 
-                           conversation.title.startsWith("New ") || 
-                           conversation.title === "Chat";
+                           conversation.title.startsWith("New ") || // Catches "New FLUX Kontext Chat" etc.
+                           conversation.title === "Chat"; // A very generic fallback
 
+    // Only attempt to generate a title if it's the default and we have between 1 and 4 messages
     if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
       const relevantMessages = messagesForTitleGen
-        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-        .slice(0, 3) 
+        .filter(msg => msg.role === 'user' || msg.role === 'assistant') // Consider both user and AI for context
+        .slice(0, 3) // Use up to the first 3 relevant messages
         .map(msg => `${msg.role}: ${msg.content}`)
         .join('\n\n');
 
@@ -105,6 +108,7 @@ export default function Home() {
           }
         } catch (error) {
           console.error("Failed to generate chat title:", error);
+          // Do not toast here, it's a background process
         }
       }
     }
@@ -119,20 +123,22 @@ export default function Home() {
     if (toolType === 'Long Language Loops') {
       conversationTitle = "New Long Language Loop";
     } else {
-      conversationTitle = `New ${toolType} Chat`;
+      // For other tools, create a more specific default title
+      const selectedTool = toolTileItems.find(item => item.id === toolType);
+      conversationTitle = selectedTool ? `New ${selectedTool.title} Chat` : `New ${toolType} Chat`;
     }
     
     const newConversation: Conversation = {
       id: newConversationId,
       title: conversationTitle,
-      messages: [], 
+      messages: [], // Start with no messages
       createdAt: now,
       toolType: toolType,
     };
 
     setAllConversations(prev => [newConversation, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
     setActiveConversation(newConversation);
-    setCurrentMessages([]); 
+    setCurrentMessages([]); // Ensure current messages are cleared for the new chat
     setCurrentView('chat');
   }, []);
 
@@ -152,13 +158,16 @@ export default function Home() {
     systemPrompt: string = getDefaultSystemPrompt()
   ) => {
     setIsAiResponding(true);
-    let conversationToUpdate: Conversation;
+    let conversationToUpdateId: string;
     let messagesForThisTurn: ChatMessage[];
     let currentToolType: ToolType;
+    let isNewConversation = false;
 
     if (!activeConversation) { 
-      currentToolType = 'Long Language Loops'; 
+      isNewConversation = true;
+      currentToolType = 'Long Language Loops'; // Default to LLL if no active conversation
       const newConversationId = crypto.randomUUID();
+      conversationToUpdateId = newConversationId;
       const now = new Date();
       
       const userMessage: ChatMessage = {
@@ -171,21 +180,21 @@ export default function Home() {
       
       messagesForThisTurn = [userMessage];
 
-      conversationToUpdate = {
+      const newConversation: Conversation = {
         id: newConversationId,
-        title: "New Long Language Loop",
+        title: "New Long Language Loop", // Initial title for LLL
         messages: messagesForThisTurn, 
         createdAt: now,
         toolType: currentToolType,
       };
       
-      setAllConversations(prev => [conversationToUpdate!, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
-      setActiveConversation(conversationToUpdate);
+      setAllConversations(prev => [newConversation, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
+      setActiveConversation(newConversation);
       setCurrentMessages(messagesForThisTurn);
       setCurrentView('chat');
     } else {
-      conversationToUpdate = activeConversation;
-      currentToolType = conversationToUpdate.toolType || 'Long Language Loops';
+      conversationToUpdateId = activeConversation.id;
+      currentToolType = activeConversation.toolType || 'Long Language Loops';
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'user',
@@ -197,18 +206,26 @@ export default function Home() {
       setCurrentMessages(messagesForThisTurn);
     }
     
+    // Update the specific conversation in allConversations with the user message immediately
+    setAllConversations(prev => 
+      prev.map(c => c.id === conversationToUpdateId ? {...c, messages: messagesForThisTurn} : c)
+    );
+    if (activeConversation && activeConversation.id === conversationToUpdateId) {
+        setActiveConversation(prev => prev ? {...prev, messages: messagesForThisTurn} : null);
+    }
+    
     let aiResponseContent = `An unexpected error occurred.`;
 
     if (currentToolType === 'Long Language Loops') {
       try {
         const apiMessages = messagesForThisTurn
-          .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+          .filter(msg => msg.role === 'user' || msg.role === 'assistant') // Filter out any system messages from history
           .map(msg => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
         
         const apiInput: PollinationsChatInput = {
-          messages: apiMessages,
+          messages: apiMessages, // Only user and assistant messages for the API
           modelId: modelId,
-          systemPrompt: systemPrompt, 
+          systemPrompt: systemPrompt, // This is the main system prompt for the AI's behavior
         };
         const result = await getPollinationsChatCompletion(apiInput);
         aiResponseContent = result.responseText;
@@ -226,7 +243,7 @@ export default function Home() {
         aiResponseContent = `Okay, I'll generate an image based on: "${messageText}". Here is a placeholder: ![Placeholder Image](https://placehold.co/300x200.png?text=Generated+Image)`;
     } else if (currentToolType === 'Code a Loop' && messageText.toLowerCase().includes('code')) {
         aiResponseContent = "```python\nfor i in range(5):\n  print(f'Loop iteration {i+1} for: {messageText}')\n```";
-    } else {
+    } else { // Fallback for other tool types or if specific conditions aren't met
         aiResponseContent = `Mock AI response for "${messageText}" in ${currentToolType} mode. Model: ${modelId}.`;
     }
 
@@ -241,18 +258,19 @@ export default function Home() {
     const finalMessages = [...messagesForThisTurn, aiMessage];
     setCurrentMessages(finalMessages);
     
-    const updatedConversationWithAiResponse = {
-      ...conversationToUpdate,
-      messages: finalMessages,
-    };
-    setActiveConversation(updatedConversationWithAiResponse);
     setAllConversations(prev =>
-      prev.map(c => (c.id === conversationToUpdate.id ? updatedConversationWithAiResponse : c))
+      prev.map(c => (c.id === conversationToUpdateId ? { ...c, messages: finalMessages } : c))
     );
+    if (activeConversation && activeConversation.id === conversationToUpdateId) {
+        setActiveConversation(prev => prev ? {...prev, messages: finalMessages} : null);
+    }
     
-    const messagesForTitleGen = finalMessages.filter(msg => msg.role === 'user' || msg.role === 'assistant');
-    if (messagesForTitleGen.length > 0) {
-        updateConversationTitle(conversationToUpdate.id, messagesForTitleGen);
+    // Trigger title generation after the AI's first response, or if it's a new conversation
+    // and for existing conversations if the message count is low.
+    const conversationForTitle = allConversations.find(c => c.id === conversationToUpdateId);
+    if (conversationForTitle) {
+      const messagesForTitleGen = finalMessages.filter(msg => msg.role === 'user' || msg.role === 'assistant');
+      updateConversationTitle(conversationToUpdateId, messagesForTitleGen);
     }
     
     setIsAiResponding(false);
@@ -262,6 +280,7 @@ export default function Home() {
   const handleGoBackToTilesView = () => {
     setCurrentView('tiles');
     setActiveConversation(null); 
+    // setCurrentMessages([]); // Not strictly needed as ChatView won't be rendered
   };
 
   const handleRequestEditTitle = (conversationId: string) => {
@@ -288,13 +307,28 @@ export default function Home() {
   const handleConfirmDeleteChat = () => {
     if (!chatToDeleteId) return;
 
-    setAllConversations(prev => prev.filter(c => c.id !== chatToDeleteId));
+    const wasActiveConversationDeleted = activeConversation?.id === chatToDeleteId;
+    const updatedConversations = allConversations.filter(c => c.id !== chatToDeleteId);
+    setAllConversations(updatedConversations);
     
-    if (activeConversation?.id === chatToDeleteId) {
-      setCurrentView('tiles');
-      setActiveConversation(null);
-      setCurrentMessages([]);
+    if (wasActiveConversationDeleted) {
+      if (updatedConversations.length > 0) {
+        // Sort by createdAt descending to get the most recent
+        const sortedRemainingConversations = [...updatedConversations].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const nextActiveConversation = sortedRemainingConversations[0];
+        setActiveConversation(nextActiveConversation);
+        setCurrentMessages(nextActiveConversation.messages);
+        // currentView remains 'chat'
+      } else {
+        // No chats left, go to tiles view
+        setCurrentView('tiles');
+        setActiveConversation(null);
+        setCurrentMessages([]);
+      }
     }
+    // If a non-active chat was deleted, no change to activeConversation or view is needed.
+    // The history list will simply update.
+
     setIsDeleteDialogOpen(false);
     setChatToDeleteId(null);
     toast({ title: "Chat Deleted", description: "The conversation has been removed." });
@@ -351,7 +385,7 @@ export default function Home() {
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete this chat
-                and remove its data from our servers.
+                and remove its data.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -364,3 +398,6 @@ export default function Home() {
     </div>
   );
 }
+
+
+    
