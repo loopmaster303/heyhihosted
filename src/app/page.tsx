@@ -67,12 +67,16 @@ export default function Home() {
 
 
   const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]) => {
-    // Check if enough messages and if title is still default
     const convIndex = allConversations.findIndex(c => c.id === conversationId);
     if (convIndex === -1) return;
 
     const conversation = allConversations[convIndex];
-    if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && (conversation.title.startsWith("New ") || conversation.title === "Chat")) {
+    // Only generate title if it's still a default-like title
+    const isDefaultTitle = conversation.title === "New Long Language Loop" || 
+                           conversation.title.startsWith("New ") || 
+                           conversation.title === "Chat";
+
+    if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
       const relevantMessages = messagesForTitleGen
         .filter(msg => msg.role === 'user' || msg.role === 'assistant')
         .slice(0, 3) 
@@ -81,9 +85,7 @@ export default function Home() {
 
       if (relevantMessages.length > 0) {
         try {
-          console.log("Attempting to generate title for:", conversation.id, "with messages:", relevantMessages);
           const result = await generateChatTitle({ messages: relevantMessages });
-          console.log("Generated title:", result.title);
           
           setAllConversations(prev =>
             prev.map(c => (c.id === conversationId ? { ...c, title: result.title } : c))
@@ -93,7 +95,6 @@ export default function Home() {
           }
         } catch (error) {
           console.error("Failed to generate chat title:", error);
-          // Toast for title generation failure is optional, can be noisy
         }
       }
     }
@@ -104,8 +105,13 @@ export default function Home() {
     const now = new Date();
     
     let systemMessageContent = `You are now in ${toolType} mode. How can I assist you with ${toolType.toLowerCase()}?`;
+    let conversationTitle: string;
+
     if (toolType === 'Long Language Loops') {
       systemMessageContent = `Switched to Long Language Loops. ${getDefaultSystemPrompt()}`;
+      conversationTitle = "New Long Language Loop";
+    } else {
+      conversationTitle = `New ${toolType} Chat`;
     }
     
     const systemMessage: ChatMessage = {
@@ -118,7 +124,7 @@ export default function Home() {
 
     const newConversation: Conversation = {
       id: newConversationId,
-      title: `New ${toolType} Chat`, // Default title
+      title: conversationTitle,
       messages: [systemMessage],
       createdAt: now,
       toolType: toolType,
@@ -151,9 +157,9 @@ export default function Home() {
     let currentToolType: ToolType;
     let isNewConversation = false;
 
-    if (!activeConversation) { // Sent from initial tile view or if no active conversation
+    if (!activeConversation) { 
       isNewConversation = true;
-      currentToolType = 'Long Language Loops'; // Default to LLL
+      currentToolType = 'Long Language Loops'; 
       const newConversationId = crypto.randomUUID();
       const now = new Date();
       
@@ -178,7 +184,7 @@ export default function Home() {
 
       conversationToUpdate = {
         id: newConversationId,
-        title: `New ${currentToolType} Chat`, // Default title
+        title: "New Long Language Loop", // Specific title for LLL initiated from homepage
         messages: messagesForThisTurn, 
         createdAt: now,
         toolType: currentToolType,
@@ -207,17 +213,21 @@ export default function Home() {
     if (currentToolType === 'Long Language Loops') {
       try {
         const apiMessages = messagesForThisTurn
-          .filter(msg => msg.role === 'user' || msg.role === 'assistant' || (msg.role === 'system' && msg.content === systemPrompt))
-          .map(msg => ({ role: msg.role, content: msg.content }));
+          .filter(msg => msg.role === 'user' || msg.role === 'assistant' || (msg.role === 'system' && msg.content.includes(systemPrompt))) // Looser check for system prompt
+          .map(msg => ({ role: msg.role as 'user' | 'assistant' | 'system', content: msg.content }));
 
-        if (!apiMessages.find(msg => msg.role === 'system' && msg.content === systemPrompt) && systemPrompt) {
-            apiMessages.unshift({role: 'system', content: systemPrompt});
+
+        const effectiveSystemPrompt = conversationToUpdate.messages.find(msg => msg.role === 'system' && msg.content.includes(systemPrompt))?.content || systemPrompt;
+        
+        // Ensure system prompt is first if not already present or part of the specific UI system message.
+        if (!apiMessages.find(msg => msg.role === 'system' && msg.content === effectiveSystemPrompt) && effectiveSystemPrompt) {
+            apiMessages.unshift({role: 'system', content: effectiveSystemPrompt});
         }
         
         const apiInput: PollinationsChatInput = {
           messages: apiMessages,
           modelId: modelId,
-          systemPrompt: systemPrompt,
+          systemPrompt: effectiveSystemPrompt, 
         };
         const result = await getPollinationsChatCompletion(apiInput);
         aiResponseContent = result.responseText;
@@ -259,8 +269,6 @@ export default function Home() {
       prev.map(c => (c.id === conversationToUpdate.id ? updatedConversationWithAiResponse : c))
     );
     
-    // Attempt to update title after AI responds, for new or existing conversations
-    // Pass only user and assistant messages for title generation
     const messagesForTitleGen = finalMessages.filter(msg => msg.role === 'user' || msg.role === 'assistant');
     if (messagesForTitleGen.length > 0) {
         updateConversationTitle(conversationToUpdate.id, messagesForTitleGen);
@@ -272,6 +280,7 @@ export default function Home() {
 
   const handleGoBackToTilesView = () => {
     setCurrentView('tiles');
+    setActiveConversation(null); // Clear active conversation when going back to tiles
   };
 
   if (currentView === 'tiles') {
@@ -289,14 +298,13 @@ export default function Home() {
     );
   }
 
-  // currentView === 'chat'
   return (
     <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
       <div className="flex flex-1 overflow-hidden">
         <SidebarNav 
           tileItems={toolTileItems} 
           activeToolType={activeConversation?.toolType || null}
-          onSelectTile={handleSelectTile}
+          onSelectTile={handleSelectTile} // Sidebar tiles also start new chats
           allConversations={allConversations}
           activeConversationId={activeConversation?.id || null}
           onSelectChatHistory={handleSelectChatFromHistory}
@@ -307,7 +315,7 @@ export default function Home() {
             conversation={activeConversation}
             messages={currentMessages}
             isLoading={isAiResponding}
-            onGoBack={handleGoBackToTilesView} // This might need to be rethought if sidebar is persistent
+            onGoBack={handleGoBackToTilesView} 
             className="flex-grow overflow-y-auto"
           />
         </main>

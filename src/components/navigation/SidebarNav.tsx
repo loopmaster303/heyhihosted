@@ -4,14 +4,14 @@ import type React from 'react';
 import type { TileItem, ToolType, Conversation } from '@/types';
 import CompactHeader from '@/components/layout/CompactHeader';
 import SidebarTileCard from './SidebarTileCard';
-import ChatHistoryItem from './ChatHistoryItem'; // New component for history
+import ChatHistoryItem from './ChatHistoryItem';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
 interface SidebarNavProps {
   tileItems: TileItem[];
-  activeToolType: ToolType | null;
+  activeToolType: ToolType | null; // This might be less relevant if LLL tile always starts new
   onSelectTile: (toolType: ToolType) => void;
   allConversations: Conversation[];
   activeConversationId: string | null;
@@ -28,11 +28,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   onSelectChatHistory,
   className 
 }) => {
-  // Display all tool tiles, including the active one if desired, or filter it out.
-  // For now, let's show all tiles, the active one won't be visually distinct here unless styled in SidebarTileCard
   const displayToolItems = tileItems; 
-
-  // Sort conversations by most recent first
   const sortedConversations = [...allConversations].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
@@ -45,8 +41,9 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
               key={item.id} 
               item={item} 
               onSelect={onSelectTile}
-              // Add isActive prop if you want to highlight the active tool tile
-              isActive={item.id === activeToolType} 
+              // LLL tile is an action to start new, not to show active state of current LLL chat
+              isActive={item.id === activeConversation?.toolType && item.id !== 'Long Language Loops'} 
+              showPlusIcon={item.id === 'Long Language Loops'}
             />
           ))}
         </nav>
@@ -55,7 +52,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
           <>
             <Separator className="my-3 mx-2 bg-border/50" />
             <div className="px-2 py-1">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Chat History</h3>
+              {/* Removed "Chat History" label */}
               <div className="space-y-1">
                 {sortedConversations.map(conv => (
                   <ChatHistoryItem 
