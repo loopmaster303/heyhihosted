@@ -80,7 +80,7 @@ export async function getPollinationsChatCompletion(
   if (tokenToUse) {
     headers['Authorization'] = `Bearer ${tokenToUse}`;
     if (tokenToUse === API_TOKEN && !process.env.POLLINATIONS_API_TOKEN) {
-        console.warn('POLLINATIONS_API_TOKEN is hardcoded in pollinations-chat-flow.ts. Please move it to your .env file for security.');
+        console.warn('POLLINATIONS_API_TOKEN is hardcoded in pollinations-chat-flow.ts. Please move it to your .env file for security and to ensure it is being used properly.');
     }
   } else {
     console.warn('POLLINATIONS_API_TOKEN not set. API requests might be rate-limited or restricted.');
@@ -120,42 +120,53 @@ export async function getPollinationsChatCompletion(
             replyText = choice.message.content; 
           } else if (choice.message.content === null) {
             console.warn('Pollinations API: choices[0].message.content is null. Interpreting as empty reply.');
-            replyText = ""; 
+            replyText = ""; // Treat null content as an empty string
           } else {
+            // Log if content is present but not a string or null
             console.warn(`Pollinations API: choices[0].message.content is not a string or null, it's a ${typeof choice.message.content}. Path: choices[0].message.content. Full API Response:`, JSON.stringify(result, null, 2));
           }
         } else if (typeof choice.text === 'string') {
+          // Fallback to choice.text if message.content is not found/valid
           replyText = choice.text; 
           console.log("Extracted reply from choice.text");
         } else {
+          // Log if choice structure is unexpected
           console.warn('Pollinations API: choices[0] exists but lacks expected message.content or text structure. Full API Response:', JSON.stringify(result, null, 2));
         }
       } else {
+        // Log if choices[0] is not a valid object or is missing
         console.warn('Pollinations API: choices[0] is not a valid object or is missing. Full API Response:', JSON.stringify(result, null, 2));
       }
     }
 
+    // Further fallbacks if choices structure wasn't helpful
     if (replyText === null && result && typeof result === 'object') {
         if (typeof result.reply === 'string') {
-            replyText = result.reply; 
+            replyText = result.reply; // Fallback to result.reply
             console.log("Extracted reply from result.reply");
         } else if (typeof result.content === 'string') {
-            replyText = result.content; 
+            replyText = result.content; // Fallback to result.content
             console.log("Extracted reply from result.content");
         }
     }
     
+    // Check the extracted replyText
     if (replyText !== null) {
       const trimmedReply = replyText.trim();
       if (trimmedReply === "" && replyText !== "") { 
+         // Content was successfully parsed but was only whitespace
          console.warn('Pollinations API: Successfully parsed response, content was only whitespace. Original content: "' + replyText + '". Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
       } else if (trimmedReply === "") { 
+         // Content was successfully parsed and was a genuinely empty string
          console.warn('Pollinations API: Successfully parsed response, but content is an empty string. Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
       }
-      return { responseText: trimmedReply }; 
+      return { responseText: trimmedReply }; // Return the trimmed (potentially empty) string
     } else {
+      // This means replyText remained null after all parsing attempts
       console.error('Pollinations API - Successful response (200 OK), but the reply content could not be extracted from the JSON structure. Full response:', JSON.stringify(result, null, 2), 'Request Payload:', JSON.stringify(payload, null, 2));
-      throw new Error('Pollinations API returned a 200 OK but the reply content could not be extracted from the JSON structure.');
+      throw new Error(
+        'Pollinations API returned a 200 OK but the reply content could not be extracted from the JSON structure.'
+      );
     }
   } catch (error) {
     console.error('Error calling Pollinations API or processing its response:', error, 'Request Payload (if available):', JSON.stringify(payload, null, 2));
@@ -168,3 +179,5 @@ export async function getPollinationsChatCompletion(
     throw new Error('An unknown error occurred while contacting the Pollinations API.');
   }
 }
+
+    
