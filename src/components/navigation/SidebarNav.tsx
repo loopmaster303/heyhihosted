@@ -53,9 +53,9 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
         {sortedConversations.length > 0 && (
           <>
             <div className="px-2 py-1 mt-3">
-              <h3 className="mb-2 px-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+              {/* <h3 className="mb-2 px-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                 Recent Chats
-              </h3>
+              </h3> */}
               <div className="space-y-1">
                 {sortedConversations.map(conv => (
                   <ChatHistoryItem
@@ -76,3 +76,4 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   );
 };
 export default SidebarNav;
+
