@@ -41,14 +41,23 @@ const VisualizingLoopsTool: FC = () => {
 
   const [aspectRatio, setAspectRatio] = useState<string>('1:1');
   const [batchSize, setBatchSize] = useState<number>(1);
+  // const [safetyTolerance, setSafetyTolerance] = useState<number>(0); // Not used by Pollinations /generate
   const [upsampling, setUpsampling] = useState(false); 
+  // const [outputFormat, setOutputFormat] = useState<string>('jpg'); // Not directly controllable via basic Pollinations /prompt endpoint
+
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   useEffect(() => {
     fetch('/api/image/models')
       .then(res => {
         if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
+          console.error("Failed to fetch image models, status:", res.status);
+          // Attempt to parse error body if not OK
+          return res.json().then(errData => {
+            throw new Error(errData.error || `HTTP error! status: ${res.status}`);
+          }).catch(() => { // Catch if res.json() itself fails (e.g. not JSON response)
+            throw new Error(`HTTP error! status: ${res.status}, response not JSON.`);
+          });
         }
         return res.json();
       })
@@ -60,6 +69,7 @@ const VisualizingLoopsTool: FC = () => {
             setModel(fetchedModels.includes('flux') ? 'flux' : fetchedModels[0]);
           }
         } else {
+          console.warn("No models array or empty models array received:", data);
           const fallbackModels = ['flux', 'turbo', 'sdxl', 'dall-e-3', 'gptimage'];
           setImageModels(fallbackModels);
           setModel(fallbackModels[0]);
@@ -67,12 +77,12 @@ const VisualizingLoopsTool: FC = () => {
       })
       .catch(err => {
         console.error('Error loading image models:', err);
-        toast({ title: "Model Loading Error", description: "Could not fetch image models. Using defaults.", variant: "destructive" });
+        toast({ title: "Model Loading Error", description: err.message || "Could not fetch image models. Using defaults.", variant: "destructive" });
         const fallbackModels = ['flux', 'turbo', 'sdxl', 'dall-e-3', 'gptimage'];
         setImageModels(fallbackModels);
         if (!model) setModel(fallbackModels[0]);
       });
-  }, [model, toast]);
+  }, [model, toast]); // model dependency ensures we re-check if model state is somehow invalid against fetched models
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -81,18 +91,20 @@ const VisualizingLoopsTool: FC = () => {
     }
     setLoading(true);
     setError('');
-    setImageUrls([]);
+    setImageUrls([]); // Clear previous images
     
     const urls: string[] = [];
     for (let i = 0; i < batchSize; i++) {
-      let currentSeed: string | undefined = seed.trim() || undefined;
-      if (currentSeed && batchSize > 1) {
-        const baseSeed = Number(currentSeed);
+      let currentSeedForIteration: string | undefined = seed.trim() || undefined;
+      // If batching and a seed is provided, increment seed for each image in batch
+      // If no seed provided but batching, generate a random seed for each (Pollinations might do this anyway)
+      if (currentSeedForIteration && batchSize > 1) {
+        const baseSeed = Number(currentSeedForIteration);
         if (!isNaN(baseSeed)) {
-          currentSeed = String(baseSeed + i);
+          currentSeedForIteration = String(baseSeed + i);
         }
-      } else if (batchSize > 1 && !currentSeed) {
-         currentSeed = String(Math.floor(Math.random() * 1000000));
+      } else if (batchSize > 1 && !currentSeedForIteration) {
+         // Let Pollinations handle random seed per image or use a fixed one if user specifies
       }
 
       const payload: Record<string, any> = {
@@ -105,8 +117,8 @@ const VisualizingLoopsTool: FC = () => {
         enhance: upsampling, 
         transparent: transparent,
       };
-      if (currentSeed) {
-        const seedNum = parseInt(currentSeed, 10);
+      if (currentSeedForIteration) {
+        const seedNum = parseInt(currentSeedForIteration, 10);
         if (!isNaN(seedNum)) {
             payload.seed = seedNum;
         }
@@ -120,10 +132,24 @@ const VisualizingLoopsTool: FC = () => {
         });
 
         if (!resp.ok) {
-          const errorData = await resp.json().catch(() => ({ error: `Image generation failed with status ${resp.status}` }));
-          setError(errorData.error || `Error: ${resp.status}`);
-          toast({ title: "Image Generation Error", description: errorData.error || `Request failed with status ${resp.status}`, variant: "destructive"});
-          break; 
+          const errorData = await resp.json().catch(() => ({ 
+            error: `Image generation failed with status ${resp.status}. Response was not valid JSON.`,
+            modelUsed: model 
+          }));
+          console.error('API-Generate Error (client-side):', resp.status, errorData);
+          
+          const modelInError = errorData.modelUsed || model;
+
+          if (modelInError === 'gptimage' && errorData.error?.toLowerCase().includes('flower tier')) {
+            setError('gptimage nicht freigeschaltet. Wechsle auf flux und erneut generieren.');
+            toast({ title: "Modell-Problem", description: "gptimage ist nicht freigeschaltet. Bitte 'flux' auswählen.", variant: "destructive" });
+            setModel('flux'); // Switch model to flux
+          } else {
+            const displayError = errorData.error || `Fehler: ${resp.status}`;
+            setError(displayError);
+            toast({ title: "Image Generation Error", description: displayError, variant: "destructive"});
+          }
+          break; // Stop batch generation on first error
         }
         const blob = await resp.blob();
         if (blob.type.startsWith('image/')) {
@@ -131,15 +157,17 @@ const VisualizingLoopsTool: FC = () => {
           urls.push(objectUrl);
         } else {
           const errorText = await blob.text();
-          setError(`Received non-image data: ${errorText.substring(0,100)}`);
-          toast({ title: "Image Data Error", description: `Received non-image data from server.`, variant: "destructive"});
-          break;
+          const displayError =`Received non-image data: ${errorText.substring(0,100)}`;
+          setError(displayError);
+          toast({ title: "Image Data Error", description: displayError, variant: "destructive"});
+          break; // Stop batch
         }
       } catch (err: any) {
-        console.error('Network-Error during /api/generate:', err);
-        setError(err.message || 'Network error during image request.');
-        toast({ title: "Network Error", description: err.message || 'Could not connect to image generation service.', variant: "destructive"});
-        break;
+        console.error('Network-Error during /api/generate (client-side):', err);
+        const displayError = err.message || 'Network error during image request.';
+        setError(displayError);
+        toast({ title: "Network Error", description: displayError, variant: "destructive"});
+        break; // Stop batch
       }
     }
     setImageUrls(urls);
@@ -153,11 +181,15 @@ const VisualizingLoopsTool: FC = () => {
     const hRatio = Number(hStr);
     if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
       const currentWidth = width[0];
+      // Calculate new height based on current width and new aspect ratio
       let newHeight = Math.round((currentWidth * hRatio) / wRatio);
+      // Ensure new height is a multiple of 64 and at least 256
       newHeight = Math.max(256, Math.round(newHeight / 64) * 64); 
-      let newWidth = currentWidth;
       
-      setWidth([Math.max(256, Math.round(newWidth / 64) * 64)]);
+      // Update width to be a multiple of 64 and at least 256 (though it likely is already)
+      let newWidth = Math.max(256, Math.round(currentWidth / 64) * 64);
+      
+      setWidth([newWidth]);
       setHeight([newHeight]);
     }
   };
@@ -304,4 +336,3 @@ const VisualizingLoopsTool: FC = () => {
 };
 
 export default VisualizingLoopsTool;
-

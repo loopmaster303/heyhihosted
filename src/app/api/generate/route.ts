@@ -45,38 +45,49 @@ export async function POST(request: Request) {
     if (isPrivate) params.append('private', 'true');
     if (transparent) params.append('transparent', 'true');
     
-    // The prompt needs to be path-encoded as it's part of the URL path itself
     const encodedPrompt = encodeURIComponent(prompt.trim());
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
 
-    console.log("Requesting image from Pollinations:", imageUrl);
+    console.log(`Requesting image from Pollinations (model: ${model}):`, imageUrl);
 
     const response = await fetch(imageUrl, { method: 'GET', cache: 'no-store' });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Pollinations API Error:', response.status, errorText);
-      // Try to parse error if JSON, otherwise return text
-      let errorDetail = errorText;
-      try {
-        const jsonError = JSON.parse(errorText);
-        if (jsonError && jsonError.error) errorDetail = jsonError.error;
-        else if (jsonError && jsonError.message) errorDetail = jsonError.message;
-      } catch (e) { /* was not json */ }
+      // Log the raw error text
+      console.error(`Pollinations API Error (model: ${model}, status: ${response.status}): RAW TEXT:`, errorText);
       
-      return NextResponse.json({ error: `Pollinations API request failed: ${response.status} - ${errorDetail.substring(0,200)}` }, { status: response.status });
+      let errorDetail = errorText.substring(0, 500); // Limit length for response message
+      let parsedError: any = null;
+      try {
+        parsedError = JSON.parse(errorText);
+        if (parsedError && parsedError.error) {
+          errorDetail = typeof parsedError.error === 'string' ? parsedError.error : JSON.stringify(parsedError.error);
+        } else if (parsedError && parsedError.message) {
+          errorDetail = typeof parsedError.message === 'string' ? parsedError.message : JSON.stringify(parsedError.message);
+        }
+        // Log the parsed error if successful
+        console.error(`Pollinations API Error (model: ${model}, status: ${response.status}): PARSED JSON:`, parsedError);
+      } catch (e) {
+        // If JSON parsing fails, errorDetail remains the raw text (or its substring)
+        console.warn(`Pollinations API Error (model: ${model}, status: ${response.status}): Failed to parse error response as JSON. Raw text (limited) was: ${errorText.substring(0,200)}`);
+      }
+      
+      return NextResponse.json({ 
+        error: `Pollinations API request failed for model ${model}: ${response.status} - ${errorDetail.substring(0,200)}`,
+        modelUsed: model 
+      }, { status: response.status });
     }
 
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.startsWith('image/')) {
         const responseText = await response.text();
-        console.error('Pollinations API did not return an image. Content-Type:', contentType, 'Body:', responseText.substring(0, 200));
-        return NextResponse.json({ error: `Pollinations API did not return an image. Received: ${contentType}` }, { status: 502 }); // Bad Gateway
+        console.error(`Pollinations API (model: ${model}) did not return an image. Content-Type:`, contentType, 'Body (limited):', responseText.substring(0, 200));
+        return NextResponse.json({ error: `Pollinations API (model: ${model}) did not return an image. Received: ${contentType}`, modelUsed: model }, { status: 502 }); // Bad Gateway
     }
 
     const imageBuffer = await response.arrayBuffer();
     
-    // Return as blob
     return new NextResponse(imageBuffer, {
       status: 200,
       headers: {
@@ -90,5 +101,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Internal server error: ${error.message || 'Unknown error'}` }, { status: 500 });
   }
 }
-
-    
