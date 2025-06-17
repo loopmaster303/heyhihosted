@@ -1,7 +1,7 @@
 
 export interface PollinationsModel {
-  id: string;
-  name: string;
+  id: string; // This will be the 'value' from the user's example
+  name: string; // This will be the 'label' from the user's example
   description?: string;
 }
 
@@ -10,21 +10,16 @@ export interface ResponseStyle {
   systemPrompt: string;
 }
 
+// Updated to match the user's provided 'staticAvailableModels'
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-  { id: "deepseek", name: "DeepSeek V3" },
-  { id: "grok", name: "xAI Grok-3 Mini" },
-  { id: "llamascout", name: "Llama 4 Scout 17B" },
-  { id: "mistral", name: "Mistral Small 3.1 24B" },
-  { id: "openai", name: "OpenAI GPT-4.1 Mini" },
-  { id: "openai-fast", name: "OpenAI GPT-4.1 Nano" },
-  { id: "openai-large", name: "OpenAI GPT-4.1" },
-  { id: "phi", name: "Phi-4 Mini Instruct" },
-  { id: "searchgpt", name: "OpenAI GPT-4o Mini Search" },
-  { id: "elixposearch", name: "Elixpo Search" },
-  { id: "evil", name: "Evil (Uncensored)" },
-  { id: "mirexa", name: "Mirexa AI Companion" },
-  { id: "sur", name: "Sur AI Assistant" },
-  { id: "unity", name: "Unity Unrestricted Agent" },
+  { id: 'openai', name: 'OpenAI GPT-4.1-nano' },
+  { id: 'openai-large', name: 'OpenAI GPT-4.1-mini' },
+  { id: 'openai-reasoning', name: 'OpenAI o4-mini' },
+  { id: 'qwen-coder', name: 'Qwen 2.5 Coder 32B' },
+  { id: 'llama', name: 'Llama 3.3 70B' },
+  { id: 'llamascout', name: 'Llama 4 Scout 17B' },
+  { id: 'mistral', name: 'Mistral Small 3' },
+  { id: 'unity', name: 'Unity Mistral Large' },
 ];
 
 export const AVAILABLE_RESPONSE_STYLES: ResponseStyle[] = [
@@ -105,12 +100,10 @@ export const AVAILABLE_RESPONSE_STYLES: ResponseStyle[] = [
   },
 ];
 
-export const DEFAULT_POLLINATIONS_MODEL_ID = "openai"; // Default to OpenAI GPT-4.1 Mini
-export const DEFAULT_RESPONSE_STYLE_NAME = "Normal"; // Changed to Normal
+export const DEFAULT_POLLINATIONS_MODEL_ID = "openai"; // Corresponds to 'OpenAI GPT-4.1-nano'
+export const DEFAULT_RESPONSE_STYLE_NAME = "Normal";
 
 export const getDefaultSystemPrompt = (): string => {
   const defaultStyle = AVAILABLE_RESPONSE_STYLES.find(style => style.name === DEFAULT_RESPONSE_STYLE_NAME);
   return defaultStyle ? defaultStyle.systemPrompt : 'Du bist ein hilfreicher Assistent.'; // Fallback
 };
-
-    

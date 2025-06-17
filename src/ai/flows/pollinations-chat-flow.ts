@@ -98,11 +98,9 @@ export async function getPollinationsChatCompletion(
     if (msg.role === 'user' || msg.role === 'assistant') {
       // Ensure content is not empty after processing, especially if only an image was "sent"
       if (messageContentString.trim() === "" && msg.content !== "" && typeof msg.content !== 'string' && msg.content.some(p => p.type === 'image_url')) {
-        // This case occurs if an image was uploaded with no accompanying text.
-        // Provide a generic placeholder, as an empty string might be invalid for some models.
         apiMessagesToSend.push({
           role: msg.role,
-          content: "[User uploaded an image]" // Or a more descriptive placeholder
+          content: "[User uploaded an image]" 
         });
       } else if (messageContentString.trim() !== "") {
          apiMessagesToSend.push({
@@ -110,8 +108,6 @@ export async function getPollinationsChatCompletion(
           content: messageContentString
         });
       }
-      // If messageContentString is empty AND it was not an image-only message, it's genuinely empty and might be skipped
-      // or handled by API if it allows empty user/assistant messages (usually not).
     } else if (msg.role === 'system' && apiMessagesToSend.length === 0 && (!systemPromptText || systemPromptText.trim() === "")) {
       // This handles if the first message in history is 'system' and no systemPromptText was directly provided.
       if (messageContentString.trim() !== "") {
@@ -120,10 +116,8 @@ export async function getPollinationsChatCompletion(
     }
   }
 
-  // Ensure there's at least one non-system message or a system prompt.
   if (apiMessagesToSend.length === 0 || (apiMessagesToSend.length === 1 && apiMessagesToSend[0].role === 'system' && apiMessagesToSend[0].content.trim() === "")) {
     console.warn("getPollinationsChatCompletion: No meaningful messages to send after processing. Aborting API call.");
-    // Return a default or error-like response, or let the caller handle this (e.g., if user sent only an image that was stripped)
     return { responseText: "[No actionable content to send to AI after processing input.]" };
   }
 
@@ -132,9 +126,9 @@ export async function getPollinationsChatCompletion(
     model: modelId,
     messages: apiMessagesToSend,
     temperature: 1.0, 
-    stream: false,
-    max_tokens: 500, // Explicitly set as per working examples / docs
-    // private: true, // Removed as per documentation and to align with example. Default is false.
+    max_tokens: 500, // Aligned with user's working example
+    // stream: false, // Removed to align with user's working example (rely on Pollinations default)
+    // private: true, // Already removed in previous steps
   };
 
   const headers: Record<string, string> = {
@@ -201,7 +195,7 @@ export async function getPollinationsChatCompletion(
       }
     }
     
-    // Additional fallbacks based on observed Pollinations structures
+    // Additional fallbacks based on observed Pollinations structures and user's example
     if (replyText === null && result && typeof result === 'object') {
         if (typeof result.reply === 'string') { // Common for some models
             replyText = result.reply;
@@ -215,10 +209,8 @@ export async function getPollinationsChatCompletion(
     if (replyText !== null) {
       const trimmedReply = replyText.trim();
       if (trimmedReply === "" && replyText.length > 0) { 
-         // Content was only whitespace
          console.warn('Pollinations API: Successfully parsed response, content was only whitespace. Original content: "' + replyText + '". Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
       } else if (trimmedReply === "") { 
-         // Content was genuinely an empty string
          console.warn('Pollinations API: Successfully parsed response, but content is an empty string. Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
       }
       return { responseText: trimmedReply };
@@ -229,22 +221,15 @@ export async function getPollinationsChatCompletion(
       );
     }
   } catch (error) {
-    // Log specific errors for better debugging if they are not already well-formed
     if (error instanceof Error && !(error.message.startsWith('Pollinations API request failed') || error.message.startsWith('Pollinations API returned a 200 OK but the reply content could not be extracted'))) {
-      // This logs errors from fetch itself (network issues) or JSON parsing errors not related to API response structure
       console.error('Error calling Pollinations API or processing its response:', error, 'Request Payload:', JSON.stringify(payload, null, 2), 'Raw API Response (if available):', fullApiResponseForLogging);
     } else if (!(error instanceof Error)) {
-      // Unknown non-Error object thrown
       console.error('Unknown error calling Pollinations API or processing its response:', error, 'Request Payload:', JSON.stringify(payload, null, 2), 'Raw API Response (if available):', fullApiResponseForLogging);
     }
-    // else, the error was already well-formed by the !response.ok block or the extraction failure block, and logged there.
     
     if (error instanceof Error) {
-        // Re-throw the original error or a more specific one
         throw new Error(`Failed to get completion from Pollinations API: ${error.message}`);
     }
-    // Fallback for non-Error objects
     throw new Error('An unknown error occurred while contacting the Pollinations API.');
   }
 }
-
