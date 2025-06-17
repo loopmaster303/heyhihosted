@@ -10,8 +10,8 @@ import SidebarNav from '@/components/navigation/SidebarNav';
 import ToolViewHeader from '@/components/layout/ToolViewHeader';
 import ImageKontextTool from '@/components/tools/ImageKontextTool';
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
-import GPTImageTool from '@/components/tools/GPTImageTool'; 
-import { Button } from "@/components/ui/button"; // Added Button import
+import GPTImageTool from '@/components/tools/GPTImageTool';
+import { Button } from "@/components/ui/button";
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -34,7 +34,7 @@ import {
 
 const toolTileItems: TileItem[] = [
   { id: 'FLUX Kontext', title: 'FLUX Kontext', icon: BrainCircuit, description: "Engage with contextual AI" },
-  { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images via Pollinations or OpenAI" }, 
+  { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images via Pollinations or OpenAI" },
   { id: 'Code a Loop', title: 'Code some Loops', icon: CodeXml, description: "AI-assisted coding" },
   { id: 'Long Language Loops', title: 'Long Language Loops', icon: MessageSquare, description: "Chat, generate images, or analyze uploaded pictures." },
 ];
@@ -173,22 +173,22 @@ export default function Home() {
 
 
   const handleSelectPollinationsForLoop = () => {
-    setActiveToolTypeForView('Easy Image Loop'); 
-    setCurrentView('easyImageLoopTool'); 
+    setActiveToolTypeForView('Easy Image Loop');
+    setCurrentView('easyImageLoopTool');
     setActiveConversation(null);
     setIsModelPreSelectionDialogOpen(false);
   };
 
   const handleSelectOpenAIForLoop = () => {
-    setActiveToolTypeForView('Easy Image Loop'); 
-    setCurrentView('gptImageTool'); 
+    setActiveToolTypeForView('Easy Image Loop'); // Still 'Easy Image Loop' conceptually, but using GPTImageTool view
+    setCurrentView('gptImageTool');
     setActiveConversation(null);
     setIsModelPreSelectionDialogOpen(false);
   };
 
   const handleSelectTile = useCallback((toolType: ToolType) => {
     setActiveToolTypeForView(toolType);
-    setActiveConversation(null); 
+    setActiveConversation(null);
     setCurrentMessages([]);
     setIsImageMode(false);
     setUploadedFile(null);
@@ -215,9 +215,9 @@ export default function Home() {
       setCurrentView('chat');
     } else if (toolType === 'FLUX Kontext') {
       setCurrentView('fluxKontextTool');
-    } else if (toolType === 'Easy Image Loop') {
-      setIsModelPreSelectionDialogOpen(true);
-    } else {
+    } else if (toolType === 'Easy Image Loop') { // This is for "Visualizing Loops" tile
+      setIsModelPreSelectionDialogOpen(true); // Open dialog to choose Pollinations or GPT
+    } else { // Handles 'Code a Loop' and any other unassigned tool types
       toast({
         title: "Tool Selected",
         description: `${toolType} selected. This tool is not yet fully implemented.`,
@@ -492,7 +492,7 @@ export default function Home() {
         const dataUrl = reader.result as string;
         setUploadedFile(file);
         setUploadedFilePreview(dataUrl);
-        setIsImageMode(false); 
+        setIsImageMode(false);
 
         updateActiveConversationState({ isImageMode: false, uploadedFilePreview: dataUrl, uploadedFile: file });
       };
@@ -573,13 +573,13 @@ export default function Home() {
               <ImageKontextTool />
             </>
           )}
-          {currentView === 'easyImageLoopTool' && (
+          {currentView === 'easyImageLoopTool' && ( // This is for Pollinations flux/turbo
             <>
               <ToolViewHeader title="Visualizing Loops (Pollinations)" onGoBack={handleGoBackToTilesView} />
               <VisualizingLoopsTool />
             </>
           )}
-          {currentView === 'gptImageTool' && (
+          {currentView === 'gptImageTool' && ( // This is for gptimage via Pollinations
             <>
               <ToolViewHeader title="Visualizing Loops (OpenAI GPT)" onGoBack={handleGoBackToTilesView} />
               <GPTImageTool />
@@ -601,10 +601,10 @@ export default function Home() {
                <Button onClick={handleSelectPollinationsForLoop} className="w-full sm:w-auto">Pollinations (Flux, Turbo)</Button>
                <Button onClick={handleSelectOpenAIForLoop} className="w-full sm:w-auto">OpenAI (GPT Image)</Button>
             </AlertDialogFooter>
-             <AlertDialogCancel 
+             <AlertDialogCancel
                 onClick={() => {
                     setIsModelPreSelectionDialogOpen(false);
-                    if (!activeConversation && currentView !== 'chat' && currentView !== 'fluxKontextTool') {
+                    if (!activeConversation && currentView !== 'chat' && currentView !== 'fluxKontextTool' && currentView !== 'easyImageLoopTool' && currentView !== 'gptImageTool') {
                         handleGoBackToTilesView();
                     }
                 }}
@@ -636,3 +636,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
