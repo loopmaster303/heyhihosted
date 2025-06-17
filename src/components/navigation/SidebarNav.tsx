@@ -7,7 +7,7 @@ import SidebarTileCard from './SidebarTileCard';
 import ChatHistoryItem from './ChatHistoryItem';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+// import { Separator } from '@/components/ui/separator'; // Separator is no longer used
 
 interface SidebarNavProps {
   tileItems: TileItem[];
@@ -57,8 +57,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
         {/* Chat history is only relevant for 'Long Language Loops' */}
         {sortedConversations.length > 0 && (
           <>
-            <Separator className="my-3 mx-2 bg-border/50" />
-            <div className="px-2 py-1">
+            {/* <Separator className="my-3 mx-2 bg-border/50" />  -- Removed Separator */}
+            <div className="px-2 py-1 mt-3"> {/* Added mt-3 for spacing previously provided by separator */}
               <h3 className="mb-2 px-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                 Recent Chats
               </h3>
