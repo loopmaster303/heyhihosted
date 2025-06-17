@@ -4,7 +4,7 @@
 import { useState, useEffect, FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -15,8 +15,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import Image from 'next/image';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Settings, ImagePlus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 const VisualizingLoopsTool: FC = () => {
@@ -149,140 +154,120 @@ const VisualizingLoopsTool: FC = () => {
     if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
       const currentWidth = width[0];
       let newHeight = Math.round((currentWidth * hRatio) / wRatio);
-      newHeight = Math.max(256, Math.round(newHeight / 64) * 64); // Ensure min and step of 64
+      newHeight = Math.max(256, Math.round(newHeight / 64) * 64); 
       let newWidth = currentWidth;
-      
-      // If maintaining height and adjusting width (optional logic, current one is fine)
-      // const currentHeight = height[0];
-      // let newWidth = Math.round((currentHeight * wRatio) / hRatio);
-      // newWidth = Math.max(256, Math.round(newWidth / 64) * 64);
-      // setWidth([newWidth]);
       
       setWidth([Math.max(256, Math.round(newWidth / 64) * 64)]);
       setHeight([newHeight]);
     }
   };
 
-
   return (
-    <div className="flex flex-col space-y-6 p-4 w-full h-full overflow-y-auto bg-background text-foreground">
-      <Card className="flex-shrink-0 shadow-md rounded-lg">
-        <CardContent className="p-4 md:p-6 space-y-4">
-          <div className="flex flex-col md:flex-row items-stretch md:items-end space-y-2 md:space-y-0 md:space-x-2">
-            <div className="flex-grow space-y-1">
-              <Label htmlFor="prompt-visualize" className="text-xs font-medium">Prompt</Label>
-              <Input
-                id="prompt-visualize"
-                type="text"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="A pink elephant in a futuristic city..."
-                className="bg-input border-border focus-visible:ring-primary"
-                aria-label="Image prompt"
-              />
-            </div>
-            <Button onClick={handleGenerate} disabled={loading} className="w-full md:w-auto self-end md:self-stretch">
-              {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : 'Generate'}
-            </Button>
+    <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground p-4 md:p-6 space-y-4 md:space-y-6">
+      
+      <div className="bg-card p-3 rounded-lg shadow-md flex flex-col space-y-3">
+        <div className="flex items-end space-x-2">
+          <div className="flex-grow space-y-1">
+            <Label htmlFor="prompt-visualize" className="text-xs font-medium sr-only">Prompt</Label>
+            <Input
+              id="prompt-visualize"
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="A pink elephant in a futuristic city..."
+              className="bg-input border-border focus-visible:ring-primary h-10"
+              aria-label="Image prompt"
+            />
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="model-select-visualize" className="text-xs">Model</Label>
-              <Select value={model} onValueChange={setModel}>
-                <SelectTrigger id="model-select-visualize" className="bg-input border-border text-xs h-9">
-                  <SelectValue placeholder="Select model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {imageModels.length > 0 ? (
-                    imageModels.map(m => (
-                      <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
-                    ))
-                  ) : (
-                     <SelectItem value="flux" disabled className="text-xs">Loading models...</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="width-slider-visualize" className="text-xs">Width: {width[0]}px</Label>
-              <Slider
-                id="width-slider-visualize"
-                value={width}
-                onValueChange={setWidth}
-                min={256} 
-                max={2048}
-                step={64}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="height-slider-visualize" className="text-xs">Height: {height[0]}px</Label>
-              <Slider
-                id="height-slider-visualize"
-                value={height}
-                onValueChange={setHeight}
-                min={256}
-                max={2048}
-                step={64}
-              />
-            </div>
-             <div className="space-y-1">
-              <Label htmlFor="aspect-ratio-select-visualize" className="text-xs">Aspect Ratio</Label>
-              <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
-                <SelectTrigger id="aspect-ratio-select-visualize" className="bg-input border-border text-xs h-9">
-                  <SelectValue placeholder="Aspect Ratio" />
-                </SelectTrigger>
-                <SelectContent>
-                  {['1:1','4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
-                    <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="batch-size-slider-visualize" className="text-xs">Batch Size: {batchSize}</Label>
-              <Slider
-                id="batch-size-slider-visualize"
-                value={[batchSize]}
-                onValueChange={(val) => setBatchSize(val[0])}
-                min={1}
-                max={5} 
-                step={1}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="seed-input-visualize" className="text-xs">Seed</Label>
-              <div className="flex items-center space-x-2">
-                <Input
-                  id="seed-input-visualize"
-                  type="number"
-                  value={seed}
-                  onChange={(e) => setSeed(e.target.value)}
-                  placeholder="Random"
-                  className="flex-grow bg-input border-border text-xs h-9"
-                />
-                <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random()*9999999)))} className="text-xs h-9">Random</Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Image Settings">
+                <Settings className="h-5 w-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Image Settings</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Adjust parameters for image generation.
+                  </p>
+                </div>
+                <div className="grid gap-3">
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="model-select-visualize" className="col-span-1 text-xs">Model</Label>
+                    <Select value={model} onValueChange={setModel}>
+                      <SelectTrigger id="model-select-visualize" className="col-span-2 h-8 bg-input border-border text-xs">
+                        <SelectValue placeholder="Select model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {imageModels.length > 0 ? (
+                          imageModels.map(m => (
+                            <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
+                          ))
+                        ) : (
+                           <SelectItem value="flux" disabled className="text-xs">Loading models...</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="width-slider-visualize" className="col-span-1 text-xs">Width</Label>
+                    <Slider id="width-slider-visualize" value={width} onValueChange={setWidth} min={256} max={2048} step={64} className="col-span-2" />
+                    <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width[0]}px</span>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="height-slider-visualize" className="col-span-1 text-xs">Height</Label>
+                    <Slider id="height-slider-visualize" value={height} onValueChange={setHeight} min={256} max={2048} step={64} className="col-span-2" />
+                    <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height[0]}px</span>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="aspect-ratio-select-visualize" className="col-span-1 text-xs">Aspect Ratio</Label>
+                    <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
+                      <SelectTrigger id="aspect-ratio-select-visualize" className="col-span-2 h-8 bg-input border-border text-xs">
+                        <SelectValue placeholder="Aspect Ratio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['1:1','4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
+                          <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="batch-size-slider-visualize" className="col-span-1 text-xs">Batch Size</Label>
+                    <Slider id="batch-size-slider-visualize" value={[batchSize]} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} className="col-span-2" />
+                     <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="seed-input-visualize" className="col-span-1 text-xs">Seed</Label>
+                    <Input id="seed-input-visualize" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random()*9999999)))} className="text-xs h-8 w-full">
+                    Random Seed
+                  </Button>
+                  <div className="flex items-center justify-between pt-1">
+                    <Label htmlFor="private-check-visualize" className="text-xs cursor-pointer">Private</Label>
+                    <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-visualize" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="upsampling-check-visualize" className="text-xs cursor-pointer">Upsample</Label>
+                    <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-visualize" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="transparent-check-visualize" className="text-xs cursor-pointer">Transparent BG</Label>
+                    <Checkbox checked={transparent} onCheckedChange={(checked) => setTransparent(!!checked)} id="transparent-check-visualize" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 items-center pt-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-visualize" />
-              <Label htmlFor="private-check-visualize" className="text-xs cursor-pointer">Private</Label>
-            </div>
-             <div className="flex items-center space-x-2">
-              <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-visualize" />
-              <Label htmlFor="upsampling-check-visualize" className="text-xs cursor-pointer">Upsample</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox checked={transparent} onCheckedChange={(checked) => setTransparent(!!checked)} id="transparent-check-visualize" />
-              <Label htmlFor="transparent-check-visualize" className="text-xs cursor-pointer">Transparent BG</Label>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
+            </PopoverContent>
+          </Popover>
+          <Button onClick={handleGenerate} disabled={loading} size="default" className="h-10">
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Generate'}
+          </Button>
+        </div>
+      </div>
+      
       <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
         <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-lg">
           {loading && <Loader2 className="h-10 w-10 animate-spin text-primary" />}
@@ -307,7 +292,10 @@ const VisualizingLoopsTool: FC = () => {
             </div>
           )}
           {!loading && !error && imageUrls.length === 0 && (
-            <p className="text-muted-foreground">Your generated images will appear here.</p>
+            <div className="text-muted-foreground flex flex-col items-center space-y-2">
+                <ImagePlus className="w-12 h-12"/>
+                <p>Your generated images will appear here.</p>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -317,4 +305,3 @@ const VisualizingLoopsTool: FC = () => {
 
 export default VisualizingLoopsTool;
 
-    
