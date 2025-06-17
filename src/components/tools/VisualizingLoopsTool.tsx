@@ -49,7 +49,7 @@ const VisualizingLoopsTool: FC = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch('/api/image/models')
+    fetch('/api/image/models') // This API route now filters out 'gptimage'
       .then(res => {
         if (!res.ok) {
           return res.json().then(errData => {
@@ -61,13 +61,15 @@ const VisualizingLoopsTool: FC = () => {
         return res.json();
       })
       .then(data => {
-        const filteredModels = Array.isArray(data.models) ? data.models.filter(m => SUPPORTED_POLLINATIONS_MODELS.includes(m)) : [];
-        if (filteredModels.length > 0) {
-          setImageModels(filteredModels);
-          if (!filteredModels.includes(model)) {
-            setModel(filteredModels.includes(DEFAULT_POLLINATIONS_MODEL) ? DEFAULT_POLLINATIONS_MODEL : filteredModels[0]);
+        // Models fetched should already be filtered by the API to exclude 'gptimage'
+        const availableModels = Array.isArray(data.models) ? data.models : [];
+        if (availableModels.length > 0) {
+          setImageModels(availableModels);
+          if (!availableModels.includes(model)) {
+            setModel(availableModels.includes(DEFAULT_POLLINATIONS_MODEL) ? DEFAULT_POLLINATIONS_MODEL : availableModels[0]);
           }
         } else {
+          // Fallback if API returns empty or unexpected
           setImageModels(SUPPORTED_POLLINATIONS_MODELS);
           setModel(DEFAULT_POLLINATIONS_MODEL);
         }
@@ -110,6 +112,8 @@ const VisualizingLoopsTool: FC = () => {
         nologo: true, 
         private: isPrivate,
         enhance: upsampling,
+        // 'transparent' for general Pollinations models is less common, but we keep the state.
+        // The API /api/generate might decide if this param is valid for flux/turbo.
         transparent: transparentPollinations, 
       };
       if (currentSeedForIteration) {
@@ -131,13 +135,34 @@ const VisualizingLoopsTool: FC = () => {
             error: `Image generation failed with status ${resp.status}. Response not JSON.`,
             modelUsed: model 
           }));
+          console.error('API-Generate Error (client-side, VisualizingLoopsTool):', resp.status, errorData);
+
           const status = resp.status;
+          const modelInError = errorData.modelUsed || model;
           let displayErrorMsg: string;
 
           if (status === 402) {
-            displayErrorMsg = `Error 402: Payment Required. Please check your API access or quota for the ${model} model. Details: ${errorData.error || 'No additional details.'}`;
+            let baseUserMessage = `Error 402: Payment Required. Please check your API access or quota for the '${modelInError}' model via Pollinations.`;
+            const backendError = errorData.error || '';
+            const detailMatch = backendError.match(/402 - (.*)/i);
+            const specificApiDetail = detailMatch && detailMatch[1] ? detailMatch[1].trim() : '';
+            if (specificApiDetail && specificApiDetail.toLowerCase() !== "payment required") {
+                displayErrorMsg = `${baseUserMessage} API Detail: ${specificApiDetail}`;
+            } else {
+                displayErrorMsg = baseUserMessage;
+            }
+          } else if (status === 403) {
+            let baseUserMessage = `Error 403: Forbidden. Access to the '${modelInError}' model via Pollinations is denied. This might be due to API key requirements, regional restrictions, or model-specific policies.`;
+            const backendError = errorData.error || '';
+            const detailMatch = backendError.match(/403 - (.*)/i);
+            const specificApiDetail = detailMatch && detailMatch[1] ? detailMatch[1].trim() : '';
+            if (specificApiDetail && specificApiDetail.toLowerCase() !== "forbidden") {
+                displayErrorMsg = `${baseUserMessage} API Detail: ${specificApiDetail}`;
+            } else {
+                displayErrorMsg = baseUserMessage;
+            }
           } else {
-             displayErrorMsg = errorData.error || `Error generating image (Model: ${model}, Status: ${status})`;
+             displayErrorMsg = errorData.error || `Error generating image (Model: ${modelInError}, Status: ${status})`;
           }
           
           toast({ title: "Image Generation Error", description: displayErrorMsg, variant: "destructive", duration: 7000});
@@ -172,10 +197,10 @@ const VisualizingLoopsTool: FC = () => {
     const wRatio = Number(wStr);
     const hRatio = Number(hStr);
     if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
-      const currentWidth = width[0];
-      let newHeight = Math.round((currentWidth * hRatio) / wRatio);
+      const currentWidthVal = width[0];
+      let newHeight = Math.round((currentWidthVal * hRatio) / wRatio);
       newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64)); 
-      let newWidth = Math.max(256, Math.min(2048, Math.round(currentWidth / 64) * 64));
+      let newWidth = Math.max(256, Math.min(2048, Math.round(currentWidthVal / 64) * 64));
       setWidth([newWidth]);
       setHeight([newHeight]);
     }
@@ -193,7 +218,7 @@ const VisualizingLoopsTool: FC = () => {
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="A vibrant landscape..."
+              placeholder="A vibrant landscape (Flux/Turbo)..."
               className="bg-input border-border focus-visible:ring-primary h-10"
               aria-label="Image prompt for Pollinations (Flux/Turbo)"
             />
@@ -269,6 +294,7 @@ const VisualizingLoopsTool: FC = () => {
                     <Label htmlFor="upsampling-check-pollinations-tool" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
                     <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-pollinations-tool" />
                   </div>
+                  {/* Transparent for general Pollinations flux/turbo might not always apply, but UI element is kept. API will decide. */}
                   <div className="flex items-center justify-between">
                     <Label htmlFor="transparent-check-pollinations-tool" className="text-xs cursor-pointer">Transparent (Pollinations)</Label>
                     <Checkbox 

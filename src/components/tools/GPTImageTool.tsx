@@ -64,7 +64,6 @@ const GPTImageTool: FC = () => {
 
       const payload: Record<string, any> = {
         prompt: prompt.trim(),
-        // Model is implicitly 'gptimage' via the API route
         width: width[0],
         height: height[0],
         private: isPrivate,
@@ -79,8 +78,6 @@ const GPTImageTool: FC = () => {
       }
       
       try {
-        // This tool specifically calls the /api/openai-image route which is now
-        // dedicated to Pollinations 'gptimage' model
         const resp = await fetch('/api/openai-image', { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -90,17 +87,36 @@ const GPTImageTool: FC = () => {
         if (!resp.ok) {
           const errorData = await resp.json().catch(() => ({ 
             error: `Image generation failed with status ${resp.status}. Response not JSON.`,
-            modelUsed: 'gptimage' // Explicitly set model for error context
+            modelUsed: 'gptimage'
           }));
+          console.error('API-Generate Error (client-side, GPTImageTool):', resp.status, errorData);
+          
           const status = resp.status;
+          const modelInError = errorData.modelUsed || 'gptimage';
           let displayErrorMsg: string;
 
           if (status === 402) {
-            displayErrorMsg = `Error 402: Payment Required. Please check your API access or quota for the GPT Image service via Pollinations. Details: ${errorData.error || 'No additional details.'}`;
+            let baseUserMessage = `Error 402: Payment Required. Please check your API access or quota for the GPT Image service via Pollinations.`;
+            const backendError = errorData.error || '';
+            const detailMatch = backendError.match(/402 - (.*)/i);
+            const specificApiDetail = detailMatch && detailMatch[1] ? detailMatch[1].trim() : '';
+            if (specificApiDetail && specificApiDetail.toLowerCase() !== "payment required") {
+                displayErrorMsg = `${baseUserMessage} API Detail: ${specificApiDetail}`;
+            } else {
+                displayErrorMsg = baseUserMessage;
+            }
           } else if (status === 403) {
-            displayErrorMsg = `Error 403: Forbidden. Access to the 'gptimage' model via Pollinations is denied. This might be due to API key requirements, regional restrictions, or model-specific policies. Details: ${errorData.error || 'No additional details.'}`;
+            let baseUserMessage = `Error 403: Forbidden. Access to the 'gptimage' model via Pollinations is denied. This might be due to API key requirements, regional restrictions, or model-specific policies.`;
+            const backendError = errorData.error || '';
+            const detailMatch = backendError.match(/403 - (.*)/i);
+            const specificApiDetail = detailMatch && detailMatch[1] ? detailMatch[1].trim() : '';
+            if (specificApiDetail && specificApiDetail.toLowerCase() !== "forbidden") {
+                displayErrorMsg = `${baseUserMessage} API Detail: ${specificApiDetail}`;
+            } else {
+                displayErrorMsg = baseUserMessage;
+            }
           } else {
-            displayErrorMsg = errorData.error || `Error generating image (Status: ${status}, Model: gptimage)`;
+            displayErrorMsg = errorData.error || `Error generating image (Status: ${status}, Model: ${modelInError})`;
           }
           
           toast({ title: "GPT Image Generation Error", description: displayErrorMsg, variant: "destructive", duration: 7000});
@@ -135,10 +151,22 @@ const GPTImageTool: FC = () => {
     const wRatio = Number(wStr);
     const hRatio = Number(hStr);
     if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
+      // For GPT Image tool, let's assume a base dimension (e.g., 1024) and adjust the other.
+      // Or, better, map to allowed OpenAI sizes if we were using direct API.
+      // For Pollinations 'gptimage', it's flexible like other Pollinations models.
       const currentWidth = width[0];
       let newHeight = Math.round((currentWidth * hRatio) / wRatio);
+      // Ensure dimensions are reasonable and step by 64 (common for image models)
       newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64)); 
       let newWidth = Math.max(256, Math.min(2048, Math.round(currentWidth / 64) * 64));
+      
+      // If we want to maintain one dimension and calculate the other based on ratio:
+      // Example: Keep width, calculate height
+      // newWidth = width[0]; // Or a fixed base like 1024
+      // newHeight = Math.round((newWidth * hRatio) / wRatio);
+      // newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64));
+      
+      // For now, let's just update both based on the current width and new ratio
       setWidth([newWidth]);
       setHeight([newHeight]);
     }
