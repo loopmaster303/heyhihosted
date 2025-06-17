@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 
-// This route now handles 'gptimage' model requests VIA Pollinations.ai API
+// This route handles 'gptimage' model requests VIA Pollinations.ai API
 
 export async function POST(request: Request) {
   let body;
@@ -9,9 +9,9 @@ export async function POST(request: Request) {
     body = await request.json();
   } catch (e) {
     console.error('Failed to parse request JSON in /api/openai-image (Pollinations gptimage):', e);
-    return NextResponse.json({ 
-      error: "Invalid JSON in request body.", 
-      details: (e instanceof Error ? e.message : String(e)) 
+    return NextResponse.json({
+      error: "Invalid JSON in request body.",
+      details: (e instanceof Error ? e.message : String(e))
     }, { status: 400 });
   }
 
@@ -21,24 +21,22 @@ export async function POST(request: Request) {
       width = 1024, // Default width if not provided
       height = 1024, // Default height if not provided
       seed,
-      nologo = true, // Default to nologo=true
+      nologo = true, // Default to nologo=true if not specified
       private: isPrivate = false,
       enhance = false,
-      transparent = false, 
+      transparent = false,
     } = body;
 
     if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
       return NextResponse.json({ error: 'Prompt is required and must be a non-empty string.', modelUsed: 'gptimage' }, { status: 400 });
     }
 
-    // --- Pollinations.ai API Logic for gptimage ---
     const params = new URLSearchParams();
     params.append('model', 'gptimage'); // Hardcode gptimage for this route
-    
-    // Append all relevant parameters for Pollinations 'gptimage'
+
     params.append('width', String(width));
     params.append('height', String(height));
-    
+
     if (seed !== undefined && seed !== null && String(seed).trim() !== '') {
         const seedNum = parseInt(String(seed).trim(), 10);
         if (!isNaN(seedNum)) {
@@ -55,26 +53,27 @@ export async function POST(request: Request) {
 
     console.log(`Requesting image from Pollinations (model: gptimage):`, imageUrl);
 
+    // Using GET method to call Pollinations API, with no-store cache policy
     const response = await fetch(imageUrl, { method: 'GET', cache: 'no-store' });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Pollinations API Error (model: gptimage, status: ${response.status}): RAW TEXT:`, errorText);
 
-      let errorDetail = errorText.substring(0, 500);
+      let errorDetail = errorText.substring(0, 500); // Limit length of error detail from external API
       try {
-        const parsedError = JSON.parse(errorText);
+        const parsedError = JSON.parse(errorText); // Attempt to parse if it's JSON
         if (parsedError && parsedError.error) {
           errorDetail = typeof parsedError.error === 'string' ? parsedError.error : JSON.stringify(parsedError.error);
         } else if (parsedError && parsedError.message) {
           errorDetail = typeof parsedError.message === 'string' ? parsedError.message : JSON.stringify(parsedError.message);
         }
       } catch (e) {
-        // Error response was not JSON
+        // Error response was not JSON, use the raw text (already captured in errorDetail)
       }
 
       return NextResponse.json({
-        error: `Pollinations API request failed for model gptimage: ${response.status} - ${errorDetail.substring(0,200)}`,
+        error: `Pollinations API request failed for model gptimage: ${response.status} - ${errorDetail.substring(0,200)}`, // Further limit for client display
         modelUsed: 'gptimage'
       }, { status: response.status });
     }
@@ -93,6 +92,7 @@ export async function POST(request: Request) {
       headers: {
         'Content-Type': contentTypeHeader,
         'Content-Length': String(imageBuffer.byteLength),
+        'Cache-Control': 'no-store', // Ensure client and proxies don't cache
       },
     });
 
