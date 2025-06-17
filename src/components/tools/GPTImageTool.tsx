@@ -7,39 +7,28 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+// Removed Select for aspect ratio as width/height are not sent for gptimage via Pollinations
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import NextImage from 'next/image';
+import NextImage from 'next/image'; // Renamed to avoid conflict with global Image
 import { Loader2, Settings, ImagePlus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 // This tool now uses Pollinations API with model='gptimage'
-// via the /api/openai-image route (which is now a misnomer but kept for path stability)
+// via the /api/openai-image route.
 
 const GPTImageTool: FC = () => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
   
-  // Settings for Pollinations gptimage
-  const [width, setWidth] = useState([1024]);
-  const [height, setHeight] = useState([1024]);
-  const [seed, setSeed] = useState<string>('');
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [upsampling, setUpsampling] = useState(false); // Corresponds to 'enhance'
+  // Settings for Pollinations gptimage - simplified
+  // Width, height, seed, private, upsampling are removed as Pollinations gptimage might not support them or have fixed values.
   const [transparent, setTransparent] = useState(false); // Pollinations 'transparent' for gptimage
-  const [aspectRatio, setAspectRatio] = useState<string>('1:1');
-  const [batchSize, setBatchSize] = useState<number>(1);
+  const [batchSize, setBatchSize] = useState<number>(1); // Client-side batching
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -56,35 +45,17 @@ const GPTImageTool: FC = () => {
     
     const generatedUrls: string[] = [];
     for (let i = 0; i < batchSize; i++) {
-      let currentSeedForIteration: string | undefined = seed.trim() || undefined;
-      if (currentSeedForIteration && batchSize > 1) {
-        const baseSeed = Number(currentSeedForIteration);
-        if (!isNaN(baseSeed)) {
-          currentSeedForIteration = String(baseSeed + i);
-        }
-      } else if (batchSize > 1 && !currentSeedForIteration) {
-         currentSeedForIteration = String(Math.floor(Math.random() * 99999999));
-      }
-
+      // For Pollinations gptimage, we only send prompt and transparent.
+      // Other params like seed for iteration are handled if Pollinations supports them,
+      // but for gptimage, we keep it simple.
       const payload: Record<string, any> = {
         prompt: prompt.trim(),
-        model: 'gptimage', // This will be used by the backend to ensure correct Pollinations call
-        width: width[0],
-        height: height[0],
-        nologo: true, 
-        private: isPrivate,
-        enhance: upsampling,
         transparent: transparent,
+        // No width, height, seed, nologo, private, enhance sent for gptimage Pollinations call from here
       };
-      if (currentSeedForIteration) {
-        const seedNum = parseInt(currentSeedForIteration, 10);
-        if (!isNaN(seedNum)) {
-            payload.seed = seedNum;
-        }
-      }
       
       try {
-        // This route now proxies to Pollinations for 'gptimage'
+        // This route proxies to Pollinations for 'gptimage'
         const resp = await fetch('/api/openai-image', { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -123,20 +94,7 @@ const GPTImageTool: FC = () => {
     setLoading(false);
   };
 
-  const handleAspectRatioChange = (val: string) => {
-    setAspectRatio(val);
-    const [wStr, hStr] = val.split(':');
-    const wRatio = Number(wStr);
-    const hRatio = Number(hStr);
-    if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
-      const currentWidth = width[0];
-      let newHeight = Math.round((currentWidth * hRatio) / wRatio);
-      newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64)); 
-      let newWidth = Math.max(256, Math.min(2048, Math.round(currentWidth / 64) * 64));
-      setWidth([newWidth]);
-      setHeight([newHeight]);
-    }
-  };
+  // handleAspectRatioChange is removed as width/height are no longer controlled for gptimage
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground p-4 md:p-6 space-y-4 md:space-y-6">
@@ -165,52 +123,15 @@ const GPTImageTool: FC = () => {
                 <div className="space-y-2">
                   <h4 className="font-medium leading-none">GPT Image Settings (Pollinations)</h4>
                   <p className="text-xs text-muted-foreground">
-                    Adjust parameters for 'gptimage' model via Pollinations.
+                    Parameters for 'gptimage' model via Pollinations.
                   </p>
                 </div>
                 <div className="grid gap-3">
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="width-slider-gpt" className="col-span-1 text-xs">Width</Label>
-                    <Slider id="width-slider-gpt" value={width} onValueChange={setWidth} min={256} max={2048} step={64} className="col-span-2" />
-                    <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width[0]}px</span>
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="height-slider-gpt" className="col-span-1 text-xs">Height</Label>
-                    <Slider id="height-slider-gpt" value={height} onValueChange={setHeight} min={256} max={2048} step={64} className="col-span-2" />
-                    <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height[0]}px</span>
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="aspect-ratio-gpt" className="col-span-1 text-xs">Aspect Ratio</Label>
-                    <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
-                      <SelectTrigger id="aspect-ratio-gpt" className="col-span-2 h-8 bg-input border-border text-xs">
-                        <SelectValue placeholder="Aspect Ratio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {['1:1','4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
-                          <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* Width, Height, Aspect Ratio, Seed, Private, Upsampling controls removed for gptimage via Pollinations */}
                   <div className="grid grid-cols-3 items-center gap-4">
                     <Label htmlFor="batch-size-gpt" className="col-span-1 text-xs">Batch Count</Label>
                     <Slider id="batch-size-gpt" value={[batchSize]} onValueChange={(val) => setBatchSize(val[0])} min={1} max={4} step={1} className="col-span-2" />
                      <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
-                  </div>
-                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="seed-input-gpt" className="col-span-1 text-xs">Seed</Label>
-                    <Input id="seed-input-gpt" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random()*99999999)))} className="text-xs h-8 w-full">
-                    Random Seed
-                  </Button>
-                  <div className="flex items-center justify-between pt-1">
-                    <Label htmlFor="private-check-gpt" className="text-xs cursor-pointer">Private</Label>
-                    <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-gpt" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="upsampling-check-gpt" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
-                    <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-gpt" />
                   </div>
                   <div className="flex items-center justify-between">
                     <Label htmlFor="transparent-check-gpt" className="text-xs cursor-pointer">Transparent BG</Label>
