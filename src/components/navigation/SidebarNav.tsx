@@ -33,6 +33,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
 }) => {
   const sortedConversations = [...allConversations].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+
   return (
     <aside className={cn("flex flex-col h-full bg-card", className)}>
       <CompactHeader />
