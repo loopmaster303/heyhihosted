@@ -34,8 +34,8 @@ const GPTImageTool: FC = () => {
   const [seed, setSeed] = useState<string>('');
   const [batchSize, setBatchSize] = useState<number>(1);
   const [isPrivate, setIsPrivate] = useState(false);
-  const [upsampling, setUpsampling] = useState(false); // Corresponds to 'enhance'
-  const [transparent, setTransparent] = useState(false);
+  const [upsampling, setUpsampling] = useState(false); // Corresponds to 'enhance' for Pollinations
+  const [transparent, setTransparent] = useState(false); // For Pollinations 'transparent' param with gptimage
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -64,6 +64,7 @@ const GPTImageTool: FC = () => {
 
       const payload: Record<string, any> = {
         prompt: prompt.trim(),
+        // Model is implicitly 'gptimage' via the API route
         width: width[0],
         height: height[0],
         private: isPrivate,
@@ -78,6 +79,8 @@ const GPTImageTool: FC = () => {
       }
       
       try {
+        // This tool specifically calls the /api/openai-image route which is now
+        // dedicated to Pollinations 'gptimage' model
         const resp = await fetch('/api/openai-image', { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -87,15 +90,17 @@ const GPTImageTool: FC = () => {
         if (!resp.ok) {
           const errorData = await resp.json().catch(() => ({ 
             error: `Image generation failed with status ${resp.status}. Response not JSON.`,
-            modelUsed: 'gptimage' 
+            modelUsed: 'gptimage' // Explicitly set model for error context
           }));
           const status = resp.status;
           let displayErrorMsg: string;
 
           if (status === 402) {
-            displayErrorMsg = `Error 402: Payment Required. Please check your API access or quota for the GPT Image service. Details: ${errorData.error || 'No additional details.'}`;
+            displayErrorMsg = `Error 402: Payment Required. Please check your API access or quota for the GPT Image service via Pollinations. Details: ${errorData.error || 'No additional details.'}`;
+          } else if (status === 403) {
+            displayErrorMsg = `Error 403: Forbidden. Access to the 'gptimage' model via Pollinations is denied. This might be due to API key requirements, regional restrictions, or model-specific policies. Details: ${errorData.error || 'No additional details.'}`;
           } else {
-            displayErrorMsg = errorData.error || `Error generating image (Status: ${status})`;
+            displayErrorMsg = errorData.error || `Error generating image (Status: ${status}, Model: gptimage)`;
           }
           
           toast({ title: "GPT Image Generation Error", description: displayErrorMsg, variant: "destructive", duration: 7000});
@@ -108,13 +113,13 @@ const GPTImageTool: FC = () => {
           generatedUrls.push(objectUrl);
         } else {
           const errorText = await blob.text();
-          const displayError =`Received non-image data (GPT Image service): ${errorText.substring(0,100)}`;
+          const displayError =`Received non-image data (GPT Image service via Pollinations): ${errorText.substring(0,100)}`;
           setError(displayError);
           toast({ title: "Image Data Error", description: displayError, variant: "destructive"});
           break;
         }
       } catch (err: any) {
-        const displayError = err.message || 'Network error during GPT Image request.';
+        const displayError = err.message || 'Network error during GPT Image request (via Pollinations).';
         setError(displayError);
         toast({ title: "Network Error", description: displayError, variant: "destructive"});
         break;
@@ -150,7 +155,7 @@ const GPTImageTool: FC = () => {
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="A photorealistic image for GPT Image model..."
+              placeholder="A photorealistic image for GPT Image (via Pollinations)..."
               className="bg-input border-border focus-visible:ring-primary h-10"
               aria-label="Image prompt for GPT Image (via Pollinations gptimage model)"
             />
