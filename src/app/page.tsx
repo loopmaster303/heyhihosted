@@ -265,8 +265,6 @@ export default function Home() {
         })
     };
     
-    // Ensure currentConversationRef is updated before any async calls if it was newly created
-    // This makes sure that the ref passed to updateConversationTitle is the most current one.
     if (activeConversation?.id !== currentConversationRef.id && currentConversationRef.id === conversationToUpdateId) {
        setActiveConversation({ ...currentConversationRef, ...interimConversationUpdate });
     } else {
@@ -335,21 +333,19 @@ export default function Home() {
     setActiveConversation(prevActive => {
         const baseConv = prevActive && prevActive.id === conversationToUpdateId ? prevActive : 
                          (currentConversationRef && currentConversationRef.id === conversationToUpdateId ? currentConversationRef : null);
-        if (!baseConv) return prevActive; // Should not happen if logic is correct
+        if (!baseConv) return prevActive; 
         
         const updatedConv = { ...baseConv, ...finalConversationState };
         setAllConversations(prevAll => prevAll.map(c => c.id === conversationToUpdateId ? updatedConv : c));
         return updatedConv;
     });
 
-    // Get the most up-to-date conversation for title generation
     const finalConvForTitle = allConversations.find(c => c.id === conversationToUpdateId) || 
                               (activeConversation?.id === conversationToUpdateId ? activeConversation : currentConversationRef);
 
     if (finalConvForTitle) { 
         const messagesToConsiderForTitle = currentMessagesForTurn.filter(msg => msg.role === 'user' || msg.role === 'assistant');
         if (messagesToConsiderForTitle.length > 0) {
-            // Pass the up-to-date finalConvForTitle or its messages for context
             updateConversationTitle(conversationToUpdateId, messagesToConsiderForTitle);
         }
     }
@@ -531,4 +527,3 @@ export default function Home() {
     </div>
   );
 }
-

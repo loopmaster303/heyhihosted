@@ -33,6 +33,11 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
     }
   };
 
+  // Determine icon container classes based on active state
+  const iconContainerClasses = isActive 
+    ? "flex items-center space-x-1.5 opacity-100 transition-opacity duration-150"
+    : "flex items-center space-x-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150";
+
   return (
     <div
       onClick={() => onSelect(conversation.id)}
@@ -60,15 +65,12 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
            )}>
           {format(new Date(conversation.createdAt), "dd/MM/yy HH:mm")}
         </p>
-        <div className={cn(
-          "flex items-center space-x-1.5 transition-opacity duration-150",
-          isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-        )}>
+        <div className={iconContainerClasses}>
           <button
             onClick={handleEditClick}
             className={cn(
-              "p-0.5 rounded hover:bg-muted-foreground/20",
-              isActive ? "text-accent-foreground hover:text-accent-foreground/80" : "text-muted-foreground/70 hover:text-foreground"
+              "p-0.5 rounded",
+              isActive ? "text-accent-foreground hover:text-accent-foreground/80 hover:bg-accent-foreground/10" : "text-muted-foreground/70 hover:text-foreground hover:bg-muted-foreground/20"
             )}
             aria-label="Edit chat title"
           >
@@ -77,8 +79,8 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
           <button
             onClick={handleDeleteClick}
             className={cn(
-              "p-0.5 rounded hover:bg-destructive/20",
-               isActive ? "text-accent-foreground hover:text-destructive" : "text-muted-foreground/70 hover:text-destructive"
+              "p-0.5 rounded",
+               isActive ? "text-accent-foreground hover:text-destructive hover:bg-destructive/10" : "text-muted-foreground/70 hover:text-destructive hover:bg-destructive/20"
             )}
             aria-label="Delete chat"
           >
