@@ -13,7 +13,7 @@ interface SidebarNavProps {
   tileItems: TileItem[];
   activeToolType: ToolType | null; 
   onSelectTile: (toolType: ToolType) => void;
-  allConversations: Conversation[];
+  allConversations: Conversation[]; // Should already be filtered for LLL by parent
   activeConversationId: string | null;
   onSelectChatHistory: (conversationId: string) => void;
   onEditTitle: (conversationId: string) => void; 
@@ -25,32 +25,36 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   tileItems, 
   activeToolType, 
   onSelectTile,
-  allConversations,
+  allConversations, // These are expected to be only 'Long Language Loops' conversations
   activeConversationId,
   onSelectChatHistory,
   onEditTitle, 
   onDeleteChat, 
   className 
 }) => {
-  const displayToolItems = tileItems; 
+  // Sort conversations by creation date, most recent first
   const sortedConversations = [...allConversations].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
-    <aside className={cn("flex flex-col h-full", className)}>
+    <aside className={cn("flex flex-col h-full bg-card border-r border-border", className)}>
       <CompactHeader />
       <ScrollArea className="flex-grow">
         <nav className="p-2 space-y-1 mt-2">
-          {displayToolItems.map(item => (
+          {tileItems.map(item => (
             <SidebarTileCard 
               key={item.id} 
               item={item} 
               onSelect={onSelectTile}
-              isActive={item.id === activeToolType && activeConversationId === null} 
+              // A tile is "active" if its tooltype matches and no specific chat history item is active.
+              // For LLL, if a chat history item is active, the LLL tile itself is not visually "active".
+              isActive={item.id === activeToolType && (item.id !== 'Long Language Loops' || activeConversationId === null) }
+              // Show plus icon only for LLL, as it's the only one that creates new "chat sessions"
               showPlusIcon={item.id === 'Long Language Loops'} 
             />
           ))}
         </nav>
         
+        {/* Chat history is only relevant for 'Long Language Loops' */}
         {sortedConversations.length > 0 && (
           <>
             <Separator className="my-3 mx-2 bg-border/50" />
@@ -60,6 +64,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
               </h3>
               <div className="space-y-1">
                 {sortedConversations.map(conv => (
+                  // Ensure ChatHistoryItem is only for LLL conversations
+                  // This should be guaranteed if `allConversations` prop is pre-filtered
                   <ChatHistoryItem 
                     key={conv.id} 
                     conversation={conv} 
@@ -78,3 +84,4 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   );
 };
 export default SidebarNav;
+

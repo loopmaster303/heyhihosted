@@ -14,15 +14,21 @@ interface ChatHistoryItemProps {
   onDeleteChat: (id: Conversation['id']) => void;
 }
 
-const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelect, isActive, onEditTitle, onDeleteChat }) => {
+const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ 
+  conversation, 
+  onSelect, 
+  isActive, 
+  onEditTitle, 
+  onDeleteChat 
+}) => {
 
   const handleEditClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent onSelect from firing
     onEditTitle(conversation.id);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent onSelect from firing
     onDeleteChat(conversation.id);
   };
 
@@ -33,18 +39,23 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
     }
   };
 
-  // Simplified icon container classes for now
-  const iconContainerClasses = isActive
-    ? "flex items-center space-x-1.5 opacity-100" // Always visible if active
-    : "flex items-center space-x-1.5 opacity-0 group-hover:opacity-100"; // Visible on hover if inactive
+  // Determine icon container classes based on active state
+  const iconContainerClasses = cn(
+    "flex items-center space-x-1.5 transition-opacity duration-150 ease-in-out",
+    isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+  );
 
-  const iconButtonClasses = isActive
-    ? "text-accent-foreground hover:text-accent-foreground/80"
-    : "text-muted-foreground/70 hover:text-foreground";
+  const iconButtonBaseClasses = "p-0.5 rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-primary";
 
-  const deleteIconButtonClasses = isActive
-    ? "text-accent-foreground hover:text-destructive"
-    : "text-muted-foreground/70 hover:text-destructive";
+  const editIconButtonClasses = cn(
+    iconButtonBaseClasses,
+    isActive ? "text-accent-foreground hover:text-accent-foreground/80" : "text-muted-foreground hover:text-foreground"
+  );
+
+  const deleteIconButtonClasses = cn(
+    iconButtonBaseClasses,
+    isActive ? "text-accent-foreground hover:text-destructive" : "text-muted-foreground hover:text-destructive"
+  );
 
 
   return (
@@ -54,16 +65,16 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
       role="button"
       tabIndex={0}
       className={cn(
-        "w-full group flex flex-col items-start p-2.5 rounded-md text-left transition-colors duration-150 ease-in-out cursor-pointer",
-        "focus:outline-none focus:ring-1 focus:ring-primary/50",
-        isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent/30 text-muted-foreground hover:text-foreground"
+        "w-full group flex flex-col items-start p-2.5 rounded-lg text-left transition-colors duration-150 ease-in-out cursor-pointer",
+        "focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/70 focus-visible:ring-offset-1 focus-visible:ring-offset-card", // Enhanced focus visibility
+        isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent/50 text-foreground"
       )}
       aria-label={`Continue chat: ${conversation.title}`}
       aria-current={isActive ? "page" : undefined}
     >
       <p className={cn(
         "font-medium text-sm truncate w-full",
-         isActive ? "text-accent-foreground" : "text-foreground/90"
+         isActive ? "text-accent-foreground" : "text-foreground" // Ensure text color contrasts with background
          )}>
         {conversation.title || "Chat"}
       </p>
@@ -74,19 +85,19 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
            )}>
           {format(new Date(conversation.createdAt), "dd/MM/yy HH:mm")}
         </p>
-        {/* Render buttons only for Long Language Loop chats, as other tools won't have persistent chats */}
+        {/* Render buttons only if it's a Long Language Loop chat, as others won't have persistent state for edit/delete */}
         {conversation.toolType === 'Long Language Loops' && (
             <div className={iconContainerClasses}>
             <button
                 onClick={handleEditClick}
-                className={cn(iconButtonClasses, "p-0.5 rounded hover:bg-muted-foreground/20")}
+                className={editIconButtonClasses}
                 aria-label="Edit chat title"
             >
                 <Pencil size={14} />
             </button>
             <button
                 onClick={handleDeleteClick}
-                className={cn(deleteIconButtonClasses, "p-0.5 rounded hover:bg-destructive/10")}
+                className={deleteIconButtonClasses}
                 aria-label="Delete chat"
             >
                 <Trash2 size={14} />
