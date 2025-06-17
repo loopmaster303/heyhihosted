@@ -10,7 +10,8 @@ import SidebarNav from '@/components/navigation/SidebarNav';
 import ToolViewHeader from '@/components/layout/ToolViewHeader';
 import ImageKontextTool from '@/components/tools/ImageKontextTool';
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
-import GPTImageTool from '@/components/tools/GPTImageTool'; // New OpenAI Image Tool
+import GPTImageTool from '@/components/tools/GPTImageTool'; 
+import { Button } from "@/components/ui/button"; // Added Button import
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -28,13 +29,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 
 const toolTileItems: TileItem[] = [
   { id: 'FLUX Kontext', title: 'FLUX Kontext', icon: BrainCircuit, description: "Engage with contextual AI" },
-  { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images via Pollinations or OpenAI" }, // Updated description
+  { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images via Pollinations or OpenAI" }, 
   { id: 'Code a Loop', title: 'Code some Loops', icon: CodeXml, description: "AI-assisted coding" },
   { id: 'Long Language Loops', title: 'Long Language Loops', icon: MessageSquare, description: "Chat, generate images, or analyze uploaded pictures." },
 ];
@@ -173,15 +173,15 @@ export default function Home() {
 
 
   const handleSelectPollinationsForLoop = () => {
-    setActiveToolTypeForView('Easy Image Loop'); // Keep original tool type for sidebar highlight
-    setCurrentView('easyImageLoopTool'); // This view now renders Pollinations specific tool
+    setActiveToolTypeForView('Easy Image Loop'); 
+    setCurrentView('easyImageLoopTool'); 
     setActiveConversation(null);
     setIsModelPreSelectionDialogOpen(false);
   };
 
   const handleSelectOpenAIForLoop = () => {
-    setActiveToolTypeForView('Easy Image Loop'); // Keep original tool type for sidebar highlight
-    setCurrentView('gptImageTool'); // New view for GPT Image Tool
+    setActiveToolTypeForView('Easy Image Loop'); 
+    setCurrentView('gptImageTool'); 
     setActiveConversation(null);
     setIsModelPreSelectionDialogOpen(false);
   };
@@ -216,7 +216,6 @@ export default function Home() {
     } else if (toolType === 'FLUX Kontext') {
       setCurrentView('fluxKontextTool');
     } else if (toolType === 'Easy Image Loop') {
-      // Open the pre-selection dialog instead of directly setting the view
       setIsModelPreSelectionDialogOpen(true);
     } else {
       toast({
@@ -605,7 +604,6 @@ export default function Home() {
              <AlertDialogCancel 
                 onClick={() => {
                     setIsModelPreSelectionDialogOpen(false);
-                    // If user cancels, and no other tool/chat is active, go back to tiles
                     if (!activeConversation && currentView !== 'chat' && currentView !== 'fluxKontextTool') {
                         handleGoBackToTilesView();
                     }
