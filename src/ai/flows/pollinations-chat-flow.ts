@@ -90,7 +90,7 @@ export async function getPollinationsChatCompletion(
       }
       // If only image parts were present and no text, provide a placeholder.
       if (!messageContentString && imageParts.length > 0) {
-          messageContentString = "[Image content was present but could not be sent as text to this model via Pollinations /openai endpoint]";
+          messageContentString = "[User uploaded an image or image content was present but could not be sent as text to this model via Pollinations /openai endpoint]";
       }
     }
 
@@ -133,8 +133,8 @@ export async function getPollinationsChatCompletion(
     messages: apiMessagesToSend,
     temperature: 1.0, 
     stream: false,
-    max_tokens: 500, // Explicitly set as per working examples
-    // private: true, // Removed as per documentation and to align with example
+    max_tokens: 500, // Explicitly set as per working examples / docs
+    // private: true, // Removed as per documentation and to align with example. Default is false.
   };
 
   const headers: Record<string, string> = {
