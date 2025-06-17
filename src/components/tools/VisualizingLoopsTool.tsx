@@ -36,9 +36,7 @@ const VisualizingLoopsTool: FC = () => {
 
   const [aspectRatio, setAspectRatio] = useState<string>('1:1');
   const [batchSize, setBatchSize] = useState<number>(1);
-  const [safetyTolerance, setSafetyTolerance] = useState<number>(0); // Note: Pollinations might not use this directly.
-  const [upsampling, setUpsampling] = useState(false); // Corresponds to 'enhance' in Pollinations
-  const [outputFormat, setOutputFormat] = useState<string>('jpg'); // Note: Pollinations usually determines format based on content-type
+  const [upsampling, setUpsampling] = useState(false); 
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   useEffect(() => {
@@ -57,7 +55,6 @@ const VisualizingLoopsTool: FC = () => {
             setModel(fetchedModels.includes('flux') ? 'flux' : fetchedModels[0]);
           }
         } else {
-           // Fallback models if API is empty or malformed
           const fallbackModels = ['flux', 'turbo', 'sdxl', 'dall-e-3', 'gptimage'];
           setImageModels(fallbackModels);
           setModel(fallbackModels[0]);
@@ -98,11 +95,10 @@ const VisualizingLoopsTool: FC = () => {
         model,
         width: width[0],
         height: height[0],
-        nologo: true, // Generally a good default
+        nologo: true, 
         private: isPrivate,
         enhance: upsampling, 
         transparent: transparent,
-        // seed: currentSeed ? Number(currentSeed) : undefined, // Pollinations expects number or undefined
       };
       if (currentSeed) {
         const seedNum = parseInt(currentSeed, 10);
@@ -151,56 +147,67 @@ const VisualizingLoopsTool: FC = () => {
     const wRatio = Number(wStr);
     const hRatio = Number(hStr);
     if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
-      // Maintain current width, adjust height, or vice-versa, or normalize to a base
-      // For simplicity, let's adjust height based on current width[0]
-      const newHeight = Math.round((width[0] * hRatio) / wRatio);
-      // Ensure height is a multiple of 64 for some models
-      setHeight([Math.round(newHeight / 64) * 64]);
+      const currentWidth = width[0];
+      let newHeight = Math.round((currentWidth * hRatio) / wRatio);
+      newHeight = Math.max(256, Math.round(newHeight / 64) * 64); // Ensure min and step of 64
+      let newWidth = currentWidth;
+      
+      // If maintaining height and adjusting width (optional logic, current one is fine)
+      // const currentHeight = height[0];
+      // let newWidth = Math.round((currentHeight * wRatio) / hRatio);
+      // newWidth = Math.max(256, Math.round(newWidth / 64) * 64);
+      // setWidth([newWidth]);
+      
+      setWidth([Math.max(256, Math.round(newWidth / 64) * 64)]);
+      setHeight([newHeight]);
     }
   };
 
 
   return (
-    <div className="flex flex-col space-y-6 p-4 w-full h-full overflow-y-auto">
-      <Card className="flex-shrink-0">
-        <CardHeader><CardTitle className="text-center md:text-left">Visualizing Loops</CardTitle></CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-center space-y-2 md:space-y-0 md:space-x-4 w-full mb-6">
-            <Input
-              type="text"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="A pink elephant in a futuristic city..."
-              className="flex-grow bg-input text-foreground placeholder:text-muted-foreground"
-              aria-label="Image prompt"
-            />
-            <Button onClick={handleGenerate} disabled={loading} className="w-full md:w-auto">
+    <div className="flex flex-col space-y-6 p-4 w-full h-full overflow-y-auto bg-background text-foreground">
+      <Card className="flex-shrink-0 shadow-md rounded-lg">
+        <CardContent className="p-4 md:p-6 space-y-4">
+          <div className="flex flex-col md:flex-row items-stretch md:items-end space-y-2 md:space-y-0 md:space-x-2">
+            <div className="flex-grow space-y-1">
+              <Label htmlFor="prompt-visualize" className="text-xs font-medium">Prompt</Label>
+              <Input
+                id="prompt-visualize"
+                type="text"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="A pink elephant in a futuristic city..."
+                className="bg-input border-border focus-visible:ring-primary"
+                aria-label="Image prompt"
+              />
+            </div>
+            <Button onClick={handleGenerate} disabled={loading} className="w-full md:w-auto self-end md:self-stretch">
               {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : 'Generate'}
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
             <div className="space-y-1">
-              <Label htmlFor="model-select">Model</Label>
+              <Label htmlFor="model-select-visualize" className="text-xs">Model</Label>
               <Select value={model} onValueChange={setModel}>
-                <SelectTrigger id="model-select" className="bg-input text-foreground">
+                <SelectTrigger id="model-select-visualize" className="bg-input border-border text-xs h-9">
                   <SelectValue placeholder="Select model" />
                 </SelectTrigger>
                 <SelectContent>
                   {imageModels.length > 0 ? (
                     imageModels.map(m => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                      <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
                     ))
                   ) : (
-                     <SelectItem value="flux" disabled>Loading models...</SelectItem>
+                     <SelectItem value="flux" disabled className="text-xs">Loading models...</SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="width-slider">Width: {width[0]}px</Label>
+              <Label htmlFor="width-slider-visualize" className="text-xs">Width: {width[0]}px</Label>
               <Slider
-                id="width-slider"
+                id="width-slider-visualize"
                 value={width}
                 onValueChange={setWidth}
                 min={256} 
@@ -209,9 +216,9 @@ const VisualizingLoopsTool: FC = () => {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="height-slider">Height: {height[0]}px</Label>
+              <Label htmlFor="height-slider-visualize" className="text-xs">Height: {height[0]}px</Label>
               <Slider
-                id="height-slider"
+                id="height-slider-visualize"
                 value={height}
                 onValueChange={setHeight}
                 min={256}
@@ -220,71 +227,68 @@ const VisualizingLoopsTool: FC = () => {
               />
             </div>
              <div className="space-y-1">
-              <Label htmlFor="aspect-ratio-select">Aspect Ratio</Label>
+              <Label htmlFor="aspect-ratio-select-visualize" className="text-xs">Aspect Ratio</Label>
               <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
-                <SelectTrigger id="aspect-ratio-select" className="bg-input text-foreground">
+                <SelectTrigger id="aspect-ratio-select-visualize" className="bg-input border-border text-xs h-9">
                   <SelectValue placeholder="Aspect Ratio" />
                 </SelectTrigger>
                 <SelectContent>
                   {['1:1','4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                    <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="batch-size-slider">Batch Size: {batchSize}</Label>
+              <Label htmlFor="batch-size-slider-visualize" className="text-xs">Batch Size: {batchSize}</Label>
               <Slider
-                id="batch-size-slider"
+                id="batch-size-slider-visualize"
                 value={[batchSize]}
                 onValueChange={(val) => setBatchSize(val[0])}
                 min={1}
-                max={5} // Max 5 for Pollinations free tier usually
+                max={5} 
                 step={1}
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="seed-input">Seed</Label>
+              <Label htmlFor="seed-input-visualize" className="text-xs">Seed</Label>
               <div className="flex items-center space-x-2">
                 <Input
-                  id="seed-input"
+                  id="seed-input-visualize"
                   type="number"
                   value={seed}
                   onChange={(e) => setSeed(e.target.value)}
                   placeholder="Random"
-                  className="flex-grow bg-input text-foreground placeholder:text-muted-foreground"
+                  className="flex-grow bg-input border-border text-xs h-9"
                 />
-                <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random()*9999999)))}>Random</Button>
+                <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random()*9999999)))} className="text-xs h-9">Random</Button>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-center justify-start mb-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 items-center pt-2">
             <div className="flex items-center space-x-2">
-              <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check" />
-              <Label htmlFor="private-check">Private</Label>
+              <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-visualize" />
+              <Label htmlFor="private-check-visualize" className="text-xs cursor-pointer">Private</Label>
             </div>
              <div className="flex items-center space-x-2">
-              <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check" />
-              <Label htmlFor="upsampling-check">Upsample (Enhance)</Label>
+              <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-visualize" />
+              <Label htmlFor="upsampling-check-visualize" className="text-xs cursor-pointer">Upsample</Label>
             </div>
             <div className="flex items-center space-x-2">
-              <Checkbox checked={transparent} onCheckedChange={(checked) => setTransparent(!!checked)} id="transparent-check" />
-              <Label htmlFor="transparent-check">Transparent BG</Label>
+              <Checkbox checked={transparent} onCheckedChange={(checked) => setTransparent(!!checked)} id="transparent-check-visualize" />
+              <Label htmlFor="transparent-check-visualize" className="text-xs cursor-pointer">Transparent BG</Label>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px]">
-        <CardHeader>
-          <CardTitle className="text-center md:text-left">Result</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 flex-grow flex items-center justify-center text-center bg-card rounded-b-md">
-          {loading && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
-          {error && <p className="text-destructive font-semibold">{error}</p>}
+      <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
+        <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-lg">
+          {loading && <Loader2 className="h-10 w-10 animate-spin text-primary" />}
+          {error && !loading && <p className="text-destructive font-semibold">{error}</p>}
           {!loading && !error && imageUrls.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full h-full overflow-y-auto p-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4 w-full h-full overflow-y-auto p-1 md:p-2">
               {imageUrls.map((url, idx) => (
                 <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="block relative aspect-square group rounded-md overflow-hidden shadow-md hover:shadow-lg transition-shadow">
                    <Image 
