@@ -180,11 +180,21 @@ export default function Home() {
   };
 
   const handleSelectOpenAIForLoop = () => {
-    setActiveToolTypeForView('Easy Image Loop'); // Still 'Easy Image Loop' conceptually, but using GPTImageTool view
+    setActiveToolTypeForView('Easy Image Loop'); 
     setCurrentView('gptImageTool');
     setActiveConversation(null);
     setIsModelPreSelectionDialogOpen(false);
   };
+
+  const handleGoBackToTilesView = useCallback(() => {
+    setCurrentView('tiles');
+    setActiveConversation(null);
+    setCurrentMessages([]);
+    setIsImageMode(false);
+    setUploadedFile(null);
+    setUploadedFilePreview(null);
+    setActiveToolTypeForView(null);
+  }, []);
 
   const handleSelectTile = useCallback((toolType: ToolType) => {
     setActiveToolTypeForView(toolType);
@@ -215,19 +225,20 @@ export default function Home() {
       setCurrentView('chat');
     } else if (toolType === 'FLUX Kontext') {
       setCurrentView('fluxKontextTool');
-    } else if (toolType === 'Easy Image Loop') { // This is for "Visualizing Loops" tile
-      setIsModelPreSelectionDialogOpen(true); // Open dialog to choose Pollinations or GPT
-    } else { // Handles 'Code a Loop' and any other unassigned tool types
+    } else if (toolType === 'Easy Image Loop') { 
+      setIsModelPreSelectionDialogOpen(true); 
+    } else { 
       toast({
         title: "Tool Selected",
         description: `${toolType} selected. This tool is not yet fully implemented.`,
       });
       if (currentView !== 'tiles') {
-          setCurrentView('tiles');
-          setActiveToolTypeForView(null);
+          handleGoBackToTilesView();
+      } else {
+        setActiveToolTypeForView(null); // Reset if already on tiles and non-functional tile clicked
       }
     }
-  }, [currentView, toast]);
+  }, [currentView, toast, handleGoBackToTilesView]);
 
 
   const handleSelectChatFromHistory = useCallback((conversationId: string) => {
@@ -397,15 +408,6 @@ export default function Home() {
     updateActiveConversationState,
   ]);
 
-  const handleGoBackToTilesView = () => {
-    setCurrentView('tiles');
-    setActiveConversation(null);
-    setCurrentMessages([]);
-    setIsImageMode(false);
-    setUploadedFile(null);
-    setUploadedFilePreview(null);
-    setActiveToolTypeForView(null);
-  };
 
   const handleRequestEditTitle = (conversationId: string) => {
     const conversation = allConversations.find(c => c.id === conversationId);
@@ -517,77 +519,76 @@ export default function Home() {
   }, [activeConversation, updateActiveConversationState]);
 
 
-  if (currentView === 'tiles') {
-    return (
-      <div className="flex flex-col h-screen bg-background text-primary selection:bg-primary selection:text-primary-foreground">
-        <AppHeader />
-        <main className="flex-grow container mx-auto px-2 sm:px-4 py-6 flex flex-col items-center overflow-y-auto">
-          <TileMenu onSelectTile={handleSelectTile} tileItems={toolTileItems} />
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-      <div className="flex flex-1 overflow-hidden">
-        <SidebarNav
-          tileItems={toolTileItems}
-          activeToolType={activeToolTypeForView}
-          onSelectTile={handleSelectTile}
-          allConversations={allConversations.filter(c => c.toolType === 'Long Language Loops')}
-          activeConversationId={activeConversation?.id || null}
-          onSelectChatHistory={handleSelectChatFromHistory}
-          onEditTitle={handleRequestEditTitle}
-          onDeleteChat={handleRequestDeleteChat}
-          className="w-60 md:w-72 flex-shrink-0"
-        />
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {currentView === 'chat' && activeConversation && activeConversation.toolType === 'Long Language Loops' && (
-            <>
-              <ChatView
-                conversation={activeConversation}
-                messages={currentMessages}
-                isLoading={isAiResponding}
-                onGoBack={handleGoBackToTilesView}
-                className="flex-grow overflow-y-auto"
-              />
-              <ChatInput
-                onSendMessage={(message) => handleSendMessageGlobal(message, {isImageModeIntent: isImageMode})}
-                isLoading={isAiResponding}
-                isImageModeActive={isImageMode}
-                onToggleImageMode={handleToggleImageMode}
-                uploadedFilePreviewUrl={uploadedFilePreview}
-                onFileSelect={handleFileSelect}
-                isLongLanguageLoopActive={true}
-                selectedModelId={activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
-                selectedResponseStyleName={activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
-                onModelChange={handleModelChange}
-                onStyleChange={handleStyleChange}
-              />
-            </>
-          )}
-          {currentView === 'fluxKontextTool' && (
-            <>
-              <ToolViewHeader title="FLUX Kontext" onGoBack={handleGoBackToTilesView} />
-              <ImageKontextTool />
-            </>
-          )}
-          {currentView === 'easyImageLoopTool' && ( // This is for Pollinations flux/turbo
-            <>
-              <ToolViewHeader title="Visualizing Loops (Pollinations)" onGoBack={handleGoBackToTilesView} />
-              <VisualizingLoopsTool />
-            </>
-          )}
-          {currentView === 'gptImageTool' && ( // This is for gptimage via Pollinations
-            <>
-              <ToolViewHeader title="Visualizing Loops (OpenAI GPT)" onGoBack={handleGoBackToTilesView} />
-              <GPTImageTool />
-            </>
-          )}
-        </main>
-      </div>
+      {currentView === 'tiles' ? (
+        <>
+          <AppHeader />
+          <main className="flex-grow container mx-auto px-2 sm:px-4 py-6 flex flex-col items-center overflow-y-auto">
+            <TileMenu onSelectTile={handleSelectTile} tileItems={toolTileItems} />
+          </main>
+        </>
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
+          <SidebarNav
+            tileItems={toolTileItems}
+            activeToolType={activeToolTypeForView}
+            onSelectTile={handleSelectTile}
+            allConversations={allConversations.filter(c => c.toolType === 'Long Language Loops')}
+            activeConversationId={activeConversation?.id || null}
+            onSelectChatHistory={handleSelectChatFromHistory}
+            onEditTitle={handleRequestEditTitle}
+            onDeleteChat={handleRequestDeleteChat}
+            className="w-60 md:w-72 flex-shrink-0"
+          />
+          <main className="flex-1 flex flex-col overflow-hidden">
+            {currentView === 'chat' && activeConversation && activeConversation.toolType === 'Long Language Loops' && (
+              <>
+                <ChatView
+                  conversation={activeConversation}
+                  messages={currentMessages}
+                  isLoading={isAiResponding}
+                  onGoBack={handleGoBackToTilesView}
+                  className="flex-grow overflow-y-auto"
+                />
+                <ChatInput
+                  onSendMessage={(message) => handleSendMessageGlobal(message, {isImageModeIntent: isImageMode})}
+                  isLoading={isAiResponding}
+                  isImageModeActive={isImageMode}
+                  onToggleImageMode={handleToggleImageMode}
+                  uploadedFilePreviewUrl={uploadedFilePreview}
+                  onFileSelect={handleFileSelect}
+                  isLongLanguageLoopActive={true}
+                  selectedModelId={activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
+                  selectedResponseStyleName={activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
+                  onModelChange={handleModelChange}
+                  onStyleChange={handleStyleChange}
+                />
+              </>
+            )}
+            {currentView === 'fluxKontextTool' && (
+              <>
+                <ToolViewHeader title="FLUX Kontext" onGoBack={handleGoBackToTilesView} />
+                <ImageKontextTool />
+              </>
+            )}
+            {currentView === 'easyImageLoopTool' && ( 
+              <>
+                <ToolViewHeader title="Visualizing Loops (Pollinations)" onGoBack={handleGoBackToTilesView} />
+                <VisualizingLoopsTool />
+              </>
+            )}
+            {currentView === 'gptImageTool' && ( 
+              <>
+                <ToolViewHeader title="Visualizing Loops (OpenAI GPT)" onGoBack={handleGoBackToTilesView} />
+                <GPTImageTool />
+              </>
+            )}
+          </main>
+        </div>
+      )}
 
+      {/* Dialogs rendered at the root level of the Home component's return */}
       {isModelPreSelectionDialogOpen && (
         <AlertDialog open={isModelPreSelectionDialogOpen} onOpenChange={setIsModelPreSelectionDialogOpen}>
           <AlertDialogContent>
@@ -604,8 +605,10 @@ export default function Home() {
              <AlertDialogCancel
                 onClick={() => {
                     setIsModelPreSelectionDialogOpen(false);
-                    if (!activeConversation && currentView !== 'chat' && currentView !== 'fluxKontextTool' && currentView !== 'easyImageLoopTool' && currentView !== 'gptImageTool') {
-                        handleGoBackToTilesView();
+                    // If the dialog was opened from the 'tiles' view,
+                    // ensure activeToolType is reset to prevent unintended sidebar state.
+                    if (currentView === 'tiles') {
+                        setActiveToolTypeForView(null);
                     }
                 }}
                 className="mt-2 sm:mt-0 w-full"
@@ -636,5 +639,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
