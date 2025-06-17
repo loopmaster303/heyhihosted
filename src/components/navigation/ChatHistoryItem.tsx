@@ -3,7 +3,7 @@
 import type React from 'react';
 import type { Conversation } from '@/types';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns'; 
+import { format } from 'date-fns';
 import { Pencil, Trash2 } from 'lucide-react';
 
 interface ChatHistoryItemProps {
@@ -15,14 +15,14 @@ interface ChatHistoryItemProps {
 }
 
 const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelect, isActive, onEditTitle, onDeleteChat }) => {
-  
+
   const handleEditClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     onEditTitle(conversation.id);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     onDeleteChat(conversation.id);
   };
 
@@ -33,10 +33,19 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
     }
   };
 
-  // Determine icon container classes based on active state
-  const iconContainerClasses = isActive 
-    ? "flex items-center space-x-1.5 opacity-100 transition-opacity duration-150"
-    : "flex items-center space-x-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150";
+  // Simplified icon container classes for now
+  const iconContainerClasses = isActive
+    ? "flex items-center space-x-1.5 opacity-100" // Always visible if active
+    : "flex items-center space-x-1.5 opacity-0 group-hover:opacity-100"; // Visible on hover if inactive
+
+  const iconButtonClasses = isActive
+    ? "text-accent-foreground hover:text-accent-foreground/80"
+    : "text-muted-foreground/70 hover:text-foreground";
+
+  const deleteIconButtonClasses = isActive
+    ? "text-accent-foreground hover:text-destructive"
+    : "text-muted-foreground/70 hover:text-destructive";
+
 
   return (
     <div
@@ -56,7 +65,7 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
         "font-medium text-sm truncate w-full",
          isActive ? "text-accent-foreground" : "text-foreground/90"
          )}>
-        {conversation.title || "Chat"} 
+        {conversation.title || "Chat"}
       </p>
       <div className="flex justify-between items-center w-full mt-0.5">
         <p className={cn(
@@ -65,30 +74,28 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
            )}>
           {format(new Date(conversation.createdAt), "dd/MM/yy HH:mm")}
         </p>
-        <div className={iconContainerClasses}>
-          <button
-            onClick={handleEditClick}
-            className={cn(
-              "p-0.5 rounded",
-              isActive ? "text-accent-foreground hover:text-accent-foreground/80 hover:bg-accent-foreground/10" : "text-muted-foreground/70 hover:text-foreground hover:bg-muted-foreground/20"
-            )}
-            aria-label="Edit chat title"
-          >
-            <Pencil size={14} />
-          </button>
-          <button
-            onClick={handleDeleteClick}
-            className={cn(
-              "p-0.5 rounded",
-               isActive ? "text-accent-foreground hover:text-destructive hover:bg-destructive/10" : "text-muted-foreground/70 hover:text-destructive hover:bg-destructive/20"
-            )}
-            aria-label="Delete chat"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
+        {/* Render buttons only for Long Language Loop chats, as other tools won't have persistent chats */}
+        {conversation.toolType === 'Long Language Loops' && (
+            <div className={iconContainerClasses}>
+            <button
+                onClick={handleEditClick}
+                className={cn(iconButtonClasses, "p-0.5 rounded hover:bg-muted-foreground/20")}
+                aria-label="Edit chat title"
+            >
+                <Pencil size={14} />
+            </button>
+            <button
+                onClick={handleDeleteClick}
+                className={cn(deleteIconButtonClasses, "p-0.5 rounded hover:bg-destructive/10")}
+                aria-label="Delete chat"
+            >
+                <Trash2 size={14} />
+            </button>
+            </div>
+        )}
       </div>
     </div>
   );
 };
 export default ChatHistoryItem;
+
