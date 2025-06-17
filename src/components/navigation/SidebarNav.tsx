@@ -36,7 +36,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   const sortedConversations = [...allConversations].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
-    <aside className={cn("flex flex-col h-full bg-card border-r border-border", className)}>
+    <aside className={cn("flex flex-col h-full bg-card", className)}>
       <CompactHeader />
       <ScrollArea className="flex-grow">
         <nav className="p-2 space-y-1 mt-2">
@@ -84,4 +84,3 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   );
 };
 export default SidebarNav;
-

@@ -134,7 +134,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     : (isLongLanguageLoopActive && uploadedFilePreviewUrl ? "Optional: Bild beschreiben oder Frage stellen..." : "Nachricht eingeben...");
 
   return (
-    <div className="sticky bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm p-3 md:p-4 border-t border-border">
+    <div className="sticky bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm p-3 md:p-4">
       {isLongLanguageLoopActive && uploadedFilePreviewUrl && (
         <div className="max-w-3xl mx-auto mb-2 flex justify-center">
           <div className="relative w-fit max-w-[200px] group">
@@ -279,4 +279,3 @@ const ChatInput: React.FC<ChatInputProps> = ({
 };
 
 export default ChatInput;
-

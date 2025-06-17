@@ -28,7 +28,7 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
 
   return (
     <div className={cn("w-full h-full flex flex-col bg-background overflow-hidden", className)}>
-      <header className="p-4 border-b border-border flex items-center justify-between bg-card sticky top-0 z-10 flex-shrink-0">
+      <header className="p-4 flex items-center justify-between bg-card sticky top-0 z-10 flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={onGoBack} aria-label="Go back to tools menu">
           <ArrowLeft className="h-5 w-5" />
         </Button>
