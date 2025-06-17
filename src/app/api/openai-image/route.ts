@@ -18,8 +18,13 @@ export async function POST(request: Request) {
   try {
     const {
       prompt,
-      // width, height, seed, nologo, isPrivate, enhance are no longer used for gptimage via Pollinations
-      transparent = false, // For Pollinations gptimage
+      width = 1024, // Default width if not provided
+      height = 1024, // Default height if not provided
+      seed,
+      nologo = true, // Default to nologo=true
+      private: isPrivate = false,
+      enhance = false,
+      transparent = false, 
     } = body;
 
     if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
@@ -30,13 +35,20 @@ export async function POST(request: Request) {
     const params = new URLSearchParams();
     params.append('model', 'gptimage'); // Hardcode gptimage for this route
     
-    // Only add 'transparent' if true, as Pollinations 'gptimage' example shows
-    if (transparent) {
-      params.append('transparent', 'true');
+    // Append all relevant parameters for Pollinations 'gptimage'
+    params.append('width', String(width));
+    params.append('height', String(height));
+    
+    if (seed !== undefined && seed !== null && String(seed).trim() !== '') {
+        const seedNum = parseInt(String(seed).trim(), 10);
+        if (!isNaN(seedNum)) {
+            params.append('seed', String(seedNum));
+        }
     }
-    // Note: Other parameters like width, height, seed, nologo, private, enhance are omitted
-    // as they might not be supported or cause issues with Pollinations' gptimage endpoint.
-    // Pollinations will likely use default dimensions for gptimage.
+    if (nologo) params.append('nologo', 'true');
+    if (isPrivate) params.append('private', 'true');
+    if (enhance) params.append('enhance', 'true');
+    if (transparent) params.append('transparent', 'true');
 
     const encodedPrompt = encodeURIComponent(prompt.trim());
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
