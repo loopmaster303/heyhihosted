@@ -4,7 +4,17 @@ import { NextResponse } from 'next/server';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 export async function POST(request: Request) {
-  const body = await request.json(); // Declare body here
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    console.error('Failed to parse request JSON in /api/generate:', e);
+    return NextResponse.json({ 
+      error: "Invalid JSON in request body.", 
+      details: (e instanceof Error ? e.message : String(e)) 
+    }, { status: 400 });
+  }
+
   try {
     const {
       prompt,
@@ -19,11 +29,12 @@ export async function POST(request: Request) {
     } = body;
 
     if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
-      return NextResponse.json({ error: 'Prompt is required and must be a non-empty string.' }, { status: 400 });
+      return NextResponse.json({ error: 'Prompt is required and must be a non-empty string.', modelUsed: model }, { status: 400 });
     }
     // Check model explicitly because of the default
     if (!model || typeof model !== 'string' || model.trim() === '') {
-      return NextResponse.json({ error: 'Model is required and must be a non-empty string.' }, { status: 400 });
+      // It's unlikely to hit this due to default, but good for robustness
+      return NextResponse.json({ error: 'Model is required and must be a non-empty string.', modelUsed: model || 'unknown' }, { status: 400 });
     }
 
     // --- OpenAI API Logic for 'gptimage' ---
@@ -35,18 +46,17 @@ export async function POST(request: Request) {
 
       const openAiPayload: any = {
         prompt: prompt.trim(),
-        model: "gpt-image-1", // Using the specific OpenAI model that supports transparency and b64_json output
-        n: 1, // Client handles batching by calling this API multiple times
-        size: "1024x1024", // Defaulting to a supported size for gpt-image-1
-        // response_format: "b64_json", // REMOVED: gpt-image-1 always returns b64_json and doesn't support this param
+        model: "gpt-image-1", 
+        n: 1, 
+        size: "1024x1024", 
       };
 
       if (transparent) {
         openAiPayload.background = "transparent";
-        openAiPayload.output_format = "png"; // Required for transparency
+        openAiPayload.output_format = "png"; 
       } else {
         openAiPayload.background = "auto";
-        openAiPayload.output_format = "png"; // Default output format
+        openAiPayload.output_format = "png";
       }
 
       console.log(`Requesting image from OpenAI (model: gpt-image-1):`, JSON.stringify(openAiPayload, null, 2));
@@ -74,7 +84,7 @@ export async function POST(request: Request) {
       }
 
       const imageBuffer = Buffer.from(openaiData.data[0].b64_json, 'base64');
-      const contentType = transparent ? 'image/png' : 'image/png';
+      const contentType = transparent ? 'image/png' : 'image/png'; // gpt-image-1 with b64_json output is png
 
       return new NextResponse(imageBuffer, {
         status: 200,
@@ -97,9 +107,9 @@ export async function POST(request: Request) {
           }
       }
       if (nologo) params.append('nologo', 'true');
-      if (enhance) params.append('enhance', 'true');
+      if (enhance) params.append('enhance', 'true'); // 'enhance' from client maps to Pollinations 'enhance'
       if (isPrivate) params.append('private', 'true');
-      if (transparent) params.append('transparent', 'true');
+      if (transparent) params.append('transparent', 'true'); // Pollinations also has a transparent param
 
       const encodedPrompt = encodeURIComponent(prompt.trim());
       const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
@@ -121,9 +131,9 @@ export async function POST(request: Request) {
           } else if (parsedError && parsedError.message) {
             errorDetail = typeof parsedError.message === 'string' ? parsedError.message : JSON.stringify(parsedError.message);
           }
-          console.error(`Pollinations API Error (model: ${model}, status: ${response.status}): PARSED JSON:`, parsedError);
+          // console.error(`Pollinations API Error (model: ${model}, status: ${response.status}): PARSED JSON:`, parsedError);
         } catch (e) {
-          console.warn(`Pollinations API Error (model: ${model}, status: ${response.status}): Failed to parse error response as JSON. Raw text (limited) was: ${errorText.substring(0,200)}`);
+          // console.warn(`Pollinations API Error (model: ${model}, status: ${response.status}): Failed to parse error response as JSON. Raw text (limited) was: ${errorText.substring(0,200)}`);
         }
 
         return NextResponse.json({
@@ -151,8 +161,10 @@ export async function POST(request: Request) {
     }
 
   } catch (error: any) {
-    console.error('Error in /api/generate:', error);
-    const modelInError = body?.model || 'unknown';
+    console.error('Error in /api/generate (main logic):', error);
+    // body might not be defined if the error happened very early before destructuring,
+    // though the initial JSON parse is now handled.
+    const modelInError = body?.model || 'unknown'; 
     return NextResponse.json({
         error: `Internal server error: ${error.message || 'Unknown error'}`,
         modelUsed: modelInError
