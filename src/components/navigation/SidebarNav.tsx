@@ -55,6 +55,9 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
           <>
             <Separator className="my-3 mx-2 bg-border/50" />
             <div className="px-2 py-1">
+              <h3 className="mb-2 px-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+                Recent Chats
+              </h3>
               <div className="space-y-1">
                 {sortedConversations.map(conv => (
                   <ChatHistoryItem 

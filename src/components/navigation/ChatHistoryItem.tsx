@@ -3,7 +3,7 @@
 import type React from 'react';
 import type { Conversation } from '@/types';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns'; // For formatting dates
+import { format } from 'date-fns'; 
 import { Pencil, Trash2 } from 'lucide-react';
 
 interface ChatHistoryItemProps {
@@ -17,12 +17,12 @@ interface ChatHistoryItemProps {
 const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelect, isActive, onEditTitle, onDeleteChat }) => {
   
   const handleEditClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent the parent div's onClick from firing
+    e.stopPropagation(); 
     onEditTitle(conversation.id);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent the parent div's onClick from firing
+    e.stopPropagation(); 
     onDeleteChat(conversation.id);
   };
 
@@ -42,21 +42,21 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
       className={cn(
         "w-full group flex flex-col items-start p-2.5 rounded-md text-left transition-colors duration-150 ease-in-out cursor-pointer",
         "focus:outline-none focus:ring-1 focus:ring-primary/50",
-        isActive ? "bg-accent/70 text-accent-foreground" : "hover:bg-accent/30 text-muted-foreground hover:text-foreground"
+        isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent/30 text-muted-foreground hover:text-foreground"
       )}
       aria-label={`Continue chat: ${conversation.title}`}
       aria-current={isActive ? "page" : undefined}
     >
       <p className={cn(
         "font-medium text-sm truncate w-full",
-         isActive ? "text-primary-foreground" : "text-foreground/90"
+         isActive ? "text-accent-foreground" : "text-foreground/90" // Use accent-foreground for active title
          )}>
         {conversation.title || "Chat"} 
       </p>
       <div className="flex justify-between items-center w-full mt-0.5">
         <p className={cn(
           "text-xs",
-           isActive ? "text-primary-foreground/70" : "text-muted-foreground/80"
+           isActive ? "text-accent-foreground/70" : "text-muted-foreground/80" // Use accent-foreground for active date
            )}>
           {format(new Date(conversation.createdAt), "dd/MM/yy HH:mm")}
         </p>
@@ -65,7 +65,7 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
             onClick={handleEditClick}
             className={cn(
               "p-0.5 rounded hover:bg-muted-foreground/20",
-              isActive ? "text-primary-foreground/70 hover:text-primary-foreground" : "text-muted-foreground/70 hover:text-foreground"
+              isActive ? "text-accent-foreground/80 hover:text-accent-foreground" : "text-muted-foreground/70 hover:text-foreground"
             )}
             aria-label="Edit chat title"
           >
@@ -75,7 +75,7 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
             onClick={handleDeleteClick}
             className={cn(
               "p-0.5 rounded hover:bg-destructive/20",
-               isActive ? "text-primary-foreground/70 hover:text-destructive" : "text-muted-foreground/70 hover:text-destructive"
+               isActive ? "text-accent-foreground/80 hover:text-destructive" : "text-muted-foreground/70 hover:text-destructive"
             )}
             aria-label="Delete chat"
           >
