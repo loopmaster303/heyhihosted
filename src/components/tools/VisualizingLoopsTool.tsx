@@ -52,10 +52,9 @@ const VisualizingLoopsTool: FC = () => {
       .then(res => {
         if (!res.ok) {
           console.error("Failed to fetch image models, status:", res.status);
-          // Attempt to parse error body if not OK
           return res.json().then(errData => {
             throw new Error(errData.error || `HTTP error! status: ${res.status}`);
-          }).catch(() => { // Catch if res.json() itself fails (e.g. not JSON response)
+          }).catch(() => {
             throw new Error(`HTTP error! status: ${res.status}, response not JSON.`);
           });
         }
@@ -82,7 +81,7 @@ const VisualizingLoopsTool: FC = () => {
         setImageModels(fallbackModels);
         if (!model) setModel(fallbackModels[0]);
       });
-  }, [model, toast]); // model dependency ensures we re-check if model state is somehow invalid against fetched models
+  }, [model, toast]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -91,22 +90,18 @@ const VisualizingLoopsTool: FC = () => {
     }
     setLoading(true);
     setError('');
-    setImageUrls([]); // Clear previous images
+    setImageUrls([]);
     
     const urls: string[] = [];
     for (let i = 0; i < batchSize; i++) {
       let currentSeedForIteration: string | undefined = seed.trim() || undefined;
-      // If batching and a seed is provided, increment seed for each image in batch
-      // If no seed provided but batching, generate a random seed for each (Pollinations might do this anyway)
       if (currentSeedForIteration && batchSize > 1) {
         const baseSeed = Number(currentSeedForIteration);
         if (!isNaN(baseSeed)) {
           currentSeedForIteration = String(baseSeed + i);
         }
-      } else if (batchSize > 1 && !currentSeedForIteration) {
-         // Let Pollinations handle random seed per image or use a fixed one if user specifies
       }
-
+      
       const payload: Record<string, any> = {
         prompt: prompt.trim(),
         model,
@@ -139,17 +134,25 @@ const VisualizingLoopsTool: FC = () => {
           console.error('API-Generate Error (client-side):', resp.status, errorData);
           
           const modelInError = errorData.modelUsed || model;
+          let displayErrorMsg: string;
 
-          if (modelInError === 'gptimage' && errorData.error?.toLowerCase().includes('flower tier')) {
-            setError('gptimage nicht freigeschaltet. Wechsle auf flux und erneut generieren.');
-            toast({ title: "Modell-Problem", description: "gptimage ist nicht freigeschaltet. Bitte 'flux' auswählen.", variant: "destructive" });
-            setModel('flux'); // Switch model to flux
+          if (modelInError === 'gptimage') {
+            if (errorData.error?.toLowerCase().includes('flower tier')) {
+              displayErrorMsg = 'gptimage nicht freigeschaltet. Bitte \'flux\' auswählen oder ein anderes Modell probieren.';
+              toast({ title: "Modell-Problem", description: displayErrorMsg, variant: "destructive" });
+              setModel('flux');
+            } else {
+              const pollinationStatus = resp.status;
+              const pollinationErrorDetail = errorData.error || `Unbekannter Fehler von Pollinations (Status: ${pollinationStatus})`;
+              displayErrorMsg = `Problem mit gptimage Modell: "${pollinationErrorDetail.substring(0,100)}". Bitte versuchen Sie ein anderes Modell (z.B. flux).`;
+              toast({ title: "gptimage Fehler", description: displayErrorMsg, variant: "destructive" });
+            }
           } else {
-            const displayError = errorData.error || `Fehler: ${resp.status}`;
-            setError(displayError);
-            toast({ title: "Image Generation Error", description: displayError, variant: "destructive"});
+            displayErrorMsg = errorData.error || `Fehler beim Generieren des Bildes (Status: ${resp.status})`;
+            toast({ title: "Image Generation Error", description: displayErrorMsg, variant: "destructive"});
           }
-          break; // Stop batch generation on first error
+          setError(displayErrorMsg);
+          break; 
         }
         const blob = await resp.blob();
         if (blob.type.startsWith('image/')) {
@@ -160,14 +163,14 @@ const VisualizingLoopsTool: FC = () => {
           const displayError =`Received non-image data: ${errorText.substring(0,100)}`;
           setError(displayError);
           toast({ title: "Image Data Error", description: displayError, variant: "destructive"});
-          break; // Stop batch
+          break;
         }
       } catch (err: any) {
         console.error('Network-Error during /api/generate (client-side):', err);
         const displayError = err.message || 'Network error during image request.';
         setError(displayError);
         toast({ title: "Network Error", description: displayError, variant: "destructive"});
-        break; // Stop batch
+        break;
       }
     }
     setImageUrls(urls);
@@ -181,12 +184,8 @@ const VisualizingLoopsTool: FC = () => {
     const hRatio = Number(hStr);
     if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
       const currentWidth = width[0];
-      // Calculate new height based on current width and new aspect ratio
       let newHeight = Math.round((currentWidth * hRatio) / wRatio);
-      // Ensure new height is a multiple of 64 and at least 256
       newHeight = Math.max(256, Math.round(newHeight / 64) * 64); 
-      
-      // Update width to be a multiple of 64 and at least 256 (though it likely is already)
       let newWidth = Math.max(256, Math.round(currentWidth / 64) * 64);
       
       setWidth([newWidth]);
