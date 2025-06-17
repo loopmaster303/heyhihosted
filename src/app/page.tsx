@@ -10,7 +10,7 @@ import SidebarNav from '@/components/navigation/SidebarNav';
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
-import { generateImage as generateImageFlow } from '@/ai/flows/generate-image-flow';
+import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow'; // Updated import
 import { useToast } from "@/hooks/use-toast";
 import { Image as ImageIcon, GalleryHorizontal, CodeXml, MessageSquare } from 'lucide-react';
 import { DEFAULT_POLLINATIONS_MODEL_ID, getDefaultSystemPrompt } from '@/config/chat-options';
@@ -61,9 +61,8 @@ export default function Home() {
             ...msg,
             timestamp: new Date(msg.timestamp)
           })),
-          // Restore transient states if needed, or initialize them
           isImageMode: conv.isImageMode || false,
-          uploadedFile: null, // Files can't be stored in localStorage
+          uploadedFile: null, 
           uploadedFilePreview: null,
         }));
         setAllConversations(parsedConversations);
@@ -75,7 +74,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Persist all conversations, excluding non-serializable fields like File objects
     if (allConversations.length > 0 || localStorage.getItem('chatConversations')) {
         const conversationsToStore = allConversations.map(conv => {
             const { uploadedFile, uploadedFilePreview, ...storableConv } = conv;
@@ -85,7 +83,6 @@ export default function Home() {
     }
   }, [allConversations]);
 
-  // Sync image mode and file upload states with active conversation
   useEffect(() => {
     if (activeConversation) {
       setIsImageMode(activeConversation.isImageMode || false);
@@ -119,11 +116,10 @@ export default function Home() {
       const relevantTextMessages = messagesForTitleGen
         .map(msg => {
           if (typeof msg.content === 'string') return `${msg.role}: ${msg.content}`;
-          // For structured content, take the first text part if available
           const textPart = msg.content.find(part => part.type === 'text');
           return textPart ? `${msg.role}: ${textPart.text}` : null;
         })
-        .filter(Boolean) // Remove nulls (e.g. if a message was only an image)
+        .filter(Boolean) 
         .slice(0, 3)
         .join('\n\n');
 
@@ -177,7 +173,6 @@ export default function Home() {
     if (conversation) {
       setActiveConversation(conversation);
       setCurrentMessages(conversation.messages);
-      // isImageMode, uploadedFile, uploadedFilePreview will be set by the useEffect for activeConversation
       setCurrentView('chat');
     }
   }, [allConversations]);
@@ -187,28 +182,26 @@ export default function Home() {
     messageText: string,
     modelId: string = DEFAULT_POLLINATIONS_MODEL_ID,
     systemPrompt: string = getDefaultSystemPrompt(),
-    options: { // New options object from ChatInput
+    options: { 
       isImageMode?: boolean;
-      // uploadedImageFile is now managed by page.tsx's state `uploadedFile`
     } = {}
   ) => {
     setIsAiResponding(true);
     let conversationToUpdateId: string;
     let messagesForThisTurn: ChatMessage[];
     let currentToolType: ToolType;
-    let currentConversationRef = activeConversation; // Capture ref for updates
+    let currentConversationRef = activeConversation; 
 
-    // Create new conversation if none is active
     if (!currentConversationRef) {
-      currentToolType = 'Long Language Loops'; // Default
+      currentToolType = 'Long Language Loops'; 
       const newConversationId = crypto.randomUUID();
       conversationToUpdateId = newConversationId;
       const now = new Date();
       const tempNewConv: Conversation = {
         id: newConversationId, title: "New Long Language Loop", messages: [], createdAt: now, toolType: currentToolType,
         isImageMode: options.isImageMode || false,
-        uploadedFile: uploadedFile || null, // Use page state
-        uploadedFilePreview: uploadedFilePreview || null, // Use page state
+        uploadedFile: uploadedFile || null, 
+        uploadedFilePreview: uploadedFilePreview || null, 
       };
       setAllConversations(prev => [tempNewConv, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
       setActiveConversation(tempNewConv);
@@ -222,7 +215,6 @@ export default function Home() {
       messagesForThisTurn = [...currentMessages];
     }
     
-    // Determine message type (text, image prompt, file upload)
     const activeIsImageMode = currentConversationRef.isImageMode || false;
     const activeUploadedFile = currentConversationRef.uploadedFile || null;
 
@@ -231,25 +223,26 @@ export default function Home() {
     let skipPollinationsCall = false;
 
     if (currentToolType === 'Long Language Loops') {
-      if (activeIsImageMode && messageText.trim()) { // Image Generation
+      if (activeIsImageMode && messageText.trim()) { 
         userMessageContent = `Image prompt: "${messageText.trim()}"`;
         try {
-          const result = await generateImageFlow({ prompt: messageText.trim() });
+          // Use the new Pollinations image generation flow
+          const result = await generateImageViaPollinations({ prompt: messageText.trim() });
           aiResponseContent = [
             { type: 'text', text: `Generated image for: "${result.promptUsed}"` },
             { type: 'image_url', image_url: { url: result.imageDataUri, altText: `Generated image for ${result.promptUsed}`, isGenerated: true } }
           ];
           skipPollinationsCall = true;
-          updateActiveConversationState({ isImageMode: false }); // Exit image mode
+          updateActiveConversationState({ isImageMode: false }); 
         } catch (error) {
-          console.error("Error generating image:", error);
+          console.error("Error generating image via Pollinations:", error);
           const errorMessage = error instanceof Error ? error.message : "Failed to generate image.";
           toast({ title: "Image Generation Error", description: errorMessage, variant: "destructive" });
           aiResponseContent = `Sorry, I couldn't generate the image. ${errorMessage}`;
-          skipPollinationsCall = true; // Still skip Pollinations if image gen failed
+          skipPollinationsCall = true; 
           updateActiveConversationState({ isImageMode: false });
         }
-      } else if (activeUploadedFile) { // Image Upload for Analysis
+      } else if (activeUploadedFile) { 
         const reader = new FileReader();
         const fileReadPromise = new Promise<string>((resolve, reject) => {
           reader.onload = () => resolve(reader.result as string);
@@ -262,7 +255,6 @@ export default function Home() {
           const textPart: ChatMessageContentPart = { type: 'text', text: messageText.trim() || "Describe this image." };
           const imagePart: ChatMessageContentPart = { type: 'image_url', image_url: { url: dataUrl, altText: activeUploadedFile.name, isUploaded: true } };
           userMessageContent = [textPart, imagePart];
-          // Pollinations call will happen below for this structured message
           updateActiveConversationState({ uploadedFile: null, uploadedFilePreview: null });
         } catch (error) {
            console.error("Error reading uploaded file:", error);
@@ -272,7 +264,6 @@ export default function Home() {
            updateActiveConversationState({ uploadedFile: null, uploadedFilePreview: null });
         }
       }
-      // If it's a plain text message, userMessageContent is already messageText
     }
 
 
@@ -283,21 +274,19 @@ export default function Home() {
     setCurrentMessages(messagesForThisTurn);
     setAllConversations(prev => prev.map(c => c.id === conversationToUpdateId ? {...c, messages: messagesForThisTurn} : c));
     if (currentConversationRef && currentConversationRef.id === conversationToUpdateId) {
-      setActiveConversation(prev => prev ? {...prev, messages: messagesForThisTurn} : null); // Will be re-set with full conv below
+      setActiveConversation(prev => prev ? {...prev, messages: messagesForThisTurn} : null);
     }
 
 
-    if (!skipPollinationsCall) { // Standard text chat or image analysis via Pollinations
+    if (!skipPollinationsCall) { 
       try {
-        // Prepare messages for Pollinations API (might include image data URI)
         const apiMessages = messagesForThisTurn
           .map(msg => {
             if (typeof msg.content === 'string') {
               return { role: msg.role as 'user' | 'assistant', content: msg.content };
             }
-            // If content is array (multimodal), pass it as is (after ensuring role is user/assistant)
-            const role = msg.role as 'user' | 'assistant'; // System messages are pre-pended or not part of history this deep
-            if (role !== 'user' && role !== 'assistant') return null; // Should not happen here
+            const role = msg.role as 'user' | 'assistant'; 
+            if (role !== 'user' && role !== 'assistant') return null; 
             return { role, content: msg.content };
           })
           .filter(Boolean) as PollinationsChatInput['messages'];
@@ -325,11 +314,9 @@ export default function Home() {
     const finalMessages = [...messagesForThisTurn, aiMessage];
     setCurrentMessages(finalMessages);
 
-    // Update conversation with final messages and any state changes
     setAllConversations(prev =>
       prev.map(c => (c.id === conversationToUpdateId ? { ...c, messages: finalMessages, isImageMode: false, uploadedFile: null, uploadedFilePreview: null } : c))
     );
-    // Ensure activeConversation in state is also fully updated
      const finalActiveConv = allConversations.find(c => c.id === conversationToUpdateId);
      if (finalActiveConv) {
          setActiveConversation({...finalActiveConv, messages: finalMessages, isImageMode: false, uploadedFile: null, uploadedFilePreview: null });
@@ -348,7 +335,6 @@ export default function Home() {
   const handleGoBackToTilesView = () => {
     setCurrentView('tiles');
     setActiveConversation(null);
-    // Reset image/file states when going back
     setIsImageMode(false);
     setUploadedFile(null);
     setUploadedFilePreview(null);
@@ -397,7 +383,6 @@ export default function Home() {
     toast({ title: "Chat Deleted", description: "The conversation has been removed." });
   };
 
-  // Callbacks for ChatInput
   const handleToggleImageMode = () => {
     if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') return;
     const newImageMode = !isImageMode;
@@ -412,11 +397,11 @@ export default function Home() {
         updateActiveConversationState({ 
           uploadedFile: file, 
           uploadedFilePreview: reader.result as string,
-          isImageMode: false // Turn off image prompt mode if a file is selected
+          isImageMode: false 
         });
       };
       reader.readAsDataURL(file);
-    } else { // Clearing the file
+    } else { 
       updateActiveConversationState({ uploadedFile: null, uploadedFilePreview: null });
     }
   };
@@ -432,11 +417,11 @@ export default function Home() {
         <ChatInput
             onSendMessage={handleSendMessageGlobal}
             isLoading={isAiResponding}
-            isImageModeActive={false} // Not relevant in tiles view
-            onToggleImageMode={() => {}} // No-op
-            uploadedFilePreviewUrl={null} // No preview in tiles
-            onFileSelect={() => {}} // No-op
-            isLongLanguageLoopActive={false} // Features disabled
+            isImageModeActive={false} 
+            onToggleImageMode={() => {}} 
+            uploadedFilePreviewUrl={null} 
+            onFileSelect={() => {}} 
+            isLongLanguageLoopActive={false} 
         />
       </div>
     );
