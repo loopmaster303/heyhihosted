@@ -17,7 +17,6 @@ export interface Conversation {
   messages: ChatMessage[];
   createdAt: Date;
   toolType: ToolType;
-  // State for image generation/upload within a conversation context
   isImageMode?: boolean;
   uploadedFile?: File | null;
   uploadedFilePreview?: string | null;
@@ -25,6 +24,7 @@ export interface Conversation {
   selectedResponseStyleName?: string;
 }
 
+// Ensure 'Easy Image Loop' matches the id in toolTileItems for Visualizing Loops tool
 export type ToolType = 'FLUX Kontext' | 'Easy Image Loop' | 'Code a Loop' | 'Long Language Loops';
 
 export interface TileItem {
@@ -35,4 +35,6 @@ export interface TileItem {
 }
 
 // Add a type for the view state
-export type CurrentAppView = 'tiles' | 'chat' | 'fluxKontextTool';
+export type CurrentAppView = 'tiles' | 'chat' | 'fluxKontextTool' | 'easyImageLoopTool';
+
+    

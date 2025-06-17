@@ -7,8 +7,9 @@ import TileMenu from '@/components/navigation/TileMenu';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
-import ToolViewHeader from '@/components/layout/ToolViewHeader'; // New Header for tools
-import ImageKontextTool from '@/components/tools/ImageKontextTool'; // New Tool Component
+import ToolViewHeader from '@/components/layout/ToolViewHeader';
+import ImageKontextTool from '@/components/tools/ImageKontextTool';
+import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool'; // New Tool Component
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -168,6 +169,12 @@ export default function Home() {
 
   const handleSelectTile = useCallback((toolType: ToolType) => {
     setActiveToolTypeForView(toolType);
+    setActiveConversation(null); // Clear active conversation for all tool switches initially
+    setCurrentMessages([]);
+    setIsImageMode(false);
+    setUploadedFile(null);
+    setUploadedFilePreview(null);
+
     if (toolType === 'Long Language Loops') {
       const newConversationId = crypto.randomUUID();
       const now = new Date();
@@ -186,25 +193,19 @@ export default function Home() {
 
       setAllConversations(prev => [newConversation, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
       setActiveConversation(newConversation);
-      setCurrentMessages([]);
-      setIsImageMode(false);
-      setUploadedFile(null);
-      setUploadedFilePreview(null);
       setCurrentView('chat');
     } else if (toolType === 'FLUX Kontext') {
-      setActiveConversation(null); // No conversation for this tool
-      setCurrentMessages([]);
       setCurrentView('fluxKontextTool');
+    } else if (toolType === 'Easy Image Loop') {
+      setCurrentView('easyImageLoopTool');
     } else {
+      // For 'Code a Loop' or any other unimplemented tool
       toast({
         title: "Tool Selected",
         description: `${toolType} selected. This tool is not yet fully implemented.`,
       });
-      // If currently in a chat or tool view, go back to tiles, otherwise stay.
       if (currentView !== 'tiles') {
           setCurrentView('tiles');
-          setActiveConversation(null);
-          setCurrentMessages([]);
           setActiveToolTypeForView(null);
       }
     }
@@ -244,11 +245,7 @@ export default function Home() {
     } = {}
   ) => {
     if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') {
-      toast({
-        title: "No Active Chat",
-        description: "Please select or start a 'Long Language Loop' chat to send a message.",
-        variant: "destructive",
-      });
+      // This function is now only for 'Long Language Loops'
       return;
     }
 
@@ -446,13 +443,8 @@ export default function Home() {
         setUploadedFilePreview(null);
         setActiveToolTypeForView('Long Language Loops');
       } else {
-        setCurrentView('tiles');
-        setActiveConversation(null);
-        setCurrentMessages([]);
-        setIsImageMode(false);
-        setUploadedFile(null);
-        setUploadedFilePreview(null);
-        setActiveToolTypeForView(null);
+        // No LLL chats left, go to tiles
+        handleGoBackToTilesView();
       }
     }
     setIsDeleteDialogOpen(false);
@@ -484,7 +476,7 @@ export default function Home() {
         const dataUrl = reader.result as string;
         setUploadedFile(file);
         setUploadedFilePreview(dataUrl);
-        setIsImageMode(false);
+        setIsImageMode(false); // Entering file upload mode cancels "image prompt" mode
 
         updateActiveConversationState({ isImageMode: false, uploadedFilePreview: dataUrl, uploadedFile: file });
       };
@@ -520,7 +512,6 @@ export default function Home() {
     );
   }
 
-  // Layout for Chat view or specific Tool view (e.g., FLUX Kontext)
   return (
     <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
       <div className="flex flex-1 overflow-hidden">
@@ -566,6 +557,12 @@ export default function Home() {
               <ImageKontextTool />
             </>
           )}
+          {currentView === 'easyImageLoopTool' && (
+            <>
+              <ToolViewHeader title="Visualizing Loops" onGoBack={handleGoBackToTilesView} />
+              <VisualizingLoopsTool />
+            </>
+          )}
         </main>
       </div>
       {isDeleteDialogOpen && chatToDeleteId && (
@@ -588,3 +585,6 @@ export default function Home() {
     </div>
   );
 }
+
+
+    
