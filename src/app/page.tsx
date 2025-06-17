@@ -9,7 +9,8 @@ import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
 import ToolViewHeader from '@/components/layout/ToolViewHeader';
 import ImageKontextTool from '@/components/tools/ImageKontextTool';
-import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool'; // New Tool Component
+import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
+import GPTImageTool from '@/components/tools/GPTImageTool'; // New OpenAI Image Tool
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -27,12 +28,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 
 const toolTileItems: TileItem[] = [
   { id: 'FLUX Kontext', title: 'FLUX Kontext', icon: BrainCircuit, description: "Engage with contextual AI" },
-  { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images effortlessly" },
+  { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images via Pollinations or OpenAI" }, // Updated description
   { id: 'Code a Loop', title: 'Code some Loops', icon: CodeXml, description: "AI-assisted coding" },
   { id: 'Long Language Loops', title: 'Long Language Loops', icon: MessageSquare, description: "Chat, generate images, or analyze uploaded pictures." },
 ];
@@ -52,6 +54,8 @@ export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedFilePreview, setUploadedFilePreview] = useState<string | null>(null);
   const [activeToolTypeForView, setActiveToolTypeForView] = useState<ToolType | null>(null);
+
+  const [isModelPreSelectionDialogOpen, setIsModelPreSelectionDialogOpen] = useState(false);
 
 
   useEffect(() => {
@@ -167,9 +171,24 @@ export default function Home() {
     }
   }, [allConversations, activeConversation?.id]);
 
+
+  const handleSelectPollinationsForLoop = () => {
+    setActiveToolTypeForView('Easy Image Loop'); // Keep original tool type for sidebar highlight
+    setCurrentView('easyImageLoopTool'); // This view now renders Pollinations specific tool
+    setActiveConversation(null);
+    setIsModelPreSelectionDialogOpen(false);
+  };
+
+  const handleSelectOpenAIForLoop = () => {
+    setActiveToolTypeForView('Easy Image Loop'); // Keep original tool type for sidebar highlight
+    setCurrentView('gptImageTool'); // New view for GPT Image Tool
+    setActiveConversation(null);
+    setIsModelPreSelectionDialogOpen(false);
+  };
+
   const handleSelectTile = useCallback((toolType: ToolType) => {
     setActiveToolTypeForView(toolType);
-    setActiveConversation(null); // Clear active conversation for all tool switches initially
+    setActiveConversation(null); 
     setCurrentMessages([]);
     setIsImageMode(false);
     setUploadedFile(null);
@@ -197,9 +216,9 @@ export default function Home() {
     } else if (toolType === 'FLUX Kontext') {
       setCurrentView('fluxKontextTool');
     } else if (toolType === 'Easy Image Loop') {
-      setCurrentView('easyImageLoopTool');
+      // Open the pre-selection dialog instead of directly setting the view
+      setIsModelPreSelectionDialogOpen(true);
     } else {
-      // For 'Code a Loop' or any other unimplemented tool
       toast({
         title: "Tool Selected",
         description: `${toolType} selected. This tool is not yet fully implemented.`,
@@ -245,7 +264,6 @@ export default function Home() {
     } = {}
   ) => {
     if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') {
-      // This function is now only for 'Long Language Loops'
       return;
     }
 
@@ -443,7 +461,6 @@ export default function Home() {
         setUploadedFilePreview(null);
         setActiveToolTypeForView('Long Language Loops');
       } else {
-        // No LLL chats left, go to tiles
         handleGoBackToTilesView();
       }
     }
@@ -476,7 +493,7 @@ export default function Home() {
         const dataUrl = reader.result as string;
         setUploadedFile(file);
         setUploadedFilePreview(dataUrl);
-        setIsImageMode(false); // Entering file upload mode cancels "image prompt" mode
+        setIsImageMode(false); 
 
         updateActiveConversationState({ isImageMode: false, uploadedFilePreview: dataUrl, uploadedFile: file });
       };
@@ -559,12 +576,48 @@ export default function Home() {
           )}
           {currentView === 'easyImageLoopTool' && (
             <>
-              <ToolViewHeader title="Visualizing Loops" onGoBack={handleGoBackToTilesView} />
+              <ToolViewHeader title="Visualizing Loops (Pollinations)" onGoBack={handleGoBackToTilesView} />
               <VisualizingLoopsTool />
+            </>
+          )}
+          {currentView === 'gptImageTool' && (
+            <>
+              <ToolViewHeader title="Visualizing Loops (OpenAI GPT)" onGoBack={handleGoBackToTilesView} />
+              <GPTImageTool />
             </>
           )}
         </main>
       </div>
+
+      {isModelPreSelectionDialogOpen && (
+        <AlertDialog open={isModelPreSelectionDialogOpen} onOpenChange={setIsModelPreSelectionDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Choose Image Generation Engine</AlertDialogTitle>
+              <AlertDialogDescription>
+                Select which image generation service you'd like to use for "Visualizing Loops".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+               <Button onClick={handleSelectPollinationsForLoop} className="w-full sm:w-auto">Pollinations (Flux, Turbo)</Button>
+               <Button onClick={handleSelectOpenAIForLoop} className="w-full sm:w-auto">OpenAI (GPT Image)</Button>
+            </AlertDialogFooter>
+             <AlertDialogCancel 
+                onClick={() => {
+                    setIsModelPreSelectionDialogOpen(false);
+                    // If user cancels, and no other tool/chat is active, go back to tiles
+                    if (!activeConversation && currentView !== 'chat' && currentView !== 'fluxKontextTool') {
+                        handleGoBackToTilesView();
+                    }
+                }}
+                className="mt-2 sm:mt-0 w-full"
+            >
+                Cancel
+            </AlertDialogCancel>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
       {isDeleteDialogOpen && chatToDeleteId && (
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
@@ -585,6 +638,3 @@ export default function Home() {
     </div>
   );
 }
-
-
-    

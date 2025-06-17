@@ -35,6 +35,6 @@ export interface TileItem {
 }
 
 // Add a type for the view state
-export type CurrentAppView = 'tiles' | 'chat' | 'fluxKontextTool' | 'easyImageLoopTool';
+export type CurrentAppView = 'tiles' | 'chat' | 'fluxKontextTool' | 'easyImageLoopTool' | 'gptImageTool';
 
     

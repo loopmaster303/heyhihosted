@@ -11,6 +11,7 @@ export interface ResponseStyle {
 }
 
 // Updated to match the user's provided 'staticAvailableModels'
+// These are for the Long Language Loop chat tool, not image generation models.
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   { id: 'openai', name: 'OpenAI GPT-4.1-nano' },
   { id: 'openai-large', name: 'OpenAI GPT-4.1-mini' },
@@ -107,3 +108,8 @@ export const getDefaultSystemPrompt = (): string => {
   const defaultStyle = AVAILABLE_RESPONSE_STYLES.find(style => style.name === DEFAULT_RESPONSE_STYLE_NAME);
   return defaultStyle ? defaultStyle.systemPrompt : 'Du bist ein hilfreicher Assistent.'; // Fallback
 };
+
+// Image generation specific model lists
+export const POLLINATIONS_IMAGE_MODELS = ['flux', 'turbo'];
+export const DEFAULT_POLLINATIONS_IMAGE_MODEL = 'flux';
+// GPTImageTool is hardcoded to use 'gpt-image-1' via OpenAI API
