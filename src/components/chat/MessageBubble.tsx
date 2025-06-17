@@ -50,6 +50,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     });
   };
 
+  const aiAvatarUrl = `https://placehold.co/40x40/333333/EEEEEE?text=${initial}`; // Dark grey bg, light grey text
+  const userAvatarUrl = `https://placehold.co/40x40/CCCCCC/000000?text=${initial}`; // Light grey bg, black text
+
   return (
     <div
       className={cn(
@@ -59,7 +62,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     >
       {!isUser && (
         <Avatar className="w-8 h-8">
-          <AvatarImage src={`https://placehold.co/40x40/4B0082/E6E6FA?text=${initial}`} alt="AI Avatar" data-ai-hint="robot face" />
+          <AvatarImage src={aiAvatarUrl} alt="AI Avatar" data-ai-hint="robot face" />
           <AvatarFallback className="bg-primary text-primary-foreground">
             <Bot size={20} />
           </AvatarFallback>
@@ -83,7 +86,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       </div>
       {isUser && (
          <Avatar className="w-8 h-8">
-          <AvatarImage src={`https://placehold.co/40x40/E6E6FA/4B0082?text=${initial}`} alt="User Avatar" data-ai-hint="person silhouette" />
+          <AvatarImage src={userAvatarUrl} alt="User Avatar" data-ai-hint="person silhouette" />
           <AvatarFallback className="bg-accent text-accent-foreground">
             <User size={20} />
           </AvatarFallback>
