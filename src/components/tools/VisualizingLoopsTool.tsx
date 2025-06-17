@@ -24,7 +24,6 @@ import Image from 'next/image';
 import { Loader2, Settings, ImagePlus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
-// This tool now only supports Pollinations models like 'flux', 'turbo'
 const SUPPORTED_POLLINATIONS_MODELS = ['flux', 'turbo'];
 const DEFAULT_POLLINATIONS_MODEL = 'flux';
 
@@ -38,8 +37,8 @@ const VisualizingLoopsTool: FC = () => {
   const [height, setHeight] = useState([1024]);
   const [seed, setSeed] = useState<string>('');
   const [isPrivate, setIsPrivate] = useState(false);
-  const [upsampling, setUpsampling] = useState(false); // Corresponds to 'enhance'
-  const [transparentPollinations, setTransparentPollinations] = useState(false); // Pollinations own transparent flag
+  const [upsampling, setUpsampling] = useState(false);
+  const [transparentPollinations, setTransparentPollinations] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -50,7 +49,7 @@ const VisualizingLoopsTool: FC = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch('/api/image/models') // This API now returns only 'flux', 'turbo'
+    fetch('/api/image/models')
       .then(res => {
         if (!res.ok) {
           return res.json().then(errData => {
@@ -62,10 +61,11 @@ const VisualizingLoopsTool: FC = () => {
         return res.json();
       })
       .then(data => {
-        if (Array.isArray(data.models) && data.models.length > 0) {
-          setImageModels(data.models);
-          if (!data.models.includes(model)) {
-            setModel(data.models.includes(DEFAULT_POLLINATIONS_MODEL) ? DEFAULT_POLLINATIONS_MODEL : data.models[0]);
+        const filteredModels = Array.isArray(data.models) ? data.models.filter(m => SUPPORTED_POLLINATIONS_MODELS.includes(m)) : [];
+        if (filteredModels.length > 0) {
+          setImageModels(filteredModels);
+          if (!filteredModels.includes(model)) {
+            setModel(filteredModels.includes(DEFAULT_POLLINATIONS_MODEL) ? DEFAULT_POLLINATIONS_MODEL : filteredModels[0]);
           }
         } else {
           setImageModels(SUPPORTED_POLLINATIONS_MODELS);
@@ -73,7 +73,7 @@ const VisualizingLoopsTool: FC = () => {
         }
       })
       .catch(err => {
-        console.error('Error loading Pollinations models:', err);
+        console.error('Error loading Pollinations models for VisualizingLoopsTool:', err);
         toast({ title: "Model Loading Error", description: err.message || "Could not fetch Pollinations models. Using defaults.", variant: "destructive" });
         setImageModels(SUPPORTED_POLLINATIONS_MODELS);
         setModel(DEFAULT_POLLINATIONS_MODEL);
@@ -120,7 +120,6 @@ const VisualizingLoopsTool: FC = () => {
       }
       
       try {
-        // Uses /api/generate which is now Pollinations-only
         const resp = await fetch('/api/generate', { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -132,7 +131,15 @@ const VisualizingLoopsTool: FC = () => {
             error: `Image generation failed with status ${resp.status}. Response not JSON.`,
             modelUsed: model 
           }));
-          const displayErrorMsg = errorData.error || `Error generating image (Status: ${resp.status})`;
+          const status = resp.status;
+          let displayErrorMsg: string;
+
+          if (status === 402) {
+            displayErrorMsg = `Error 402: Payment Required. Please check your API access or quota for the ${model} model. Details: ${errorData.error || 'No additional details.'}`;
+          } else {
+             displayErrorMsg = errorData.error || `Error generating image (Model: ${model}, Status: ${status})`;
+          }
+          
           toast({ title: "Image Generation Error", description: displayErrorMsg, variant: "destructive", duration: 7000});
           setError(displayErrorMsg);
           break; 
@@ -143,13 +150,13 @@ const VisualizingLoopsTool: FC = () => {
           urls.push(objectUrl);
         } else {
           const errorText = await blob.text();
-          const displayError =`Received non-image data: ${errorText.substring(0,100)}`;
+          const displayError =`Received non-image data (Model: ${model}): ${errorText.substring(0,100)}`;
           setError(displayError);
           toast({ title: "Image Data Error", description: displayError, variant: "destructive"});
           break;
         }
       } catch (err: any) {
-        const displayError = err.message || 'Network error during image request.';
+        const displayError = err.message || `Network error during image request for model ${model}.`;
         setError(displayError);
         toast({ title: "Network Error", description: displayError, variant: "destructive"});
         break;
@@ -180,15 +187,15 @@ const VisualizingLoopsTool: FC = () => {
       <div className="bg-card p-3 rounded-lg shadow-md flex flex-col space-y-3">
         <div className="flex items-end space-x-2">
           <div className="flex-grow space-y-1">
-            <Label htmlFor="prompt-pollinations" className="text-xs font-medium sr-only">Prompt</Label>
+            <Label htmlFor="prompt-pollinations-tool" className="text-xs font-medium sr-only">Prompt</Label>
             <Input
-              id="prompt-pollinations"
+              id="prompt-pollinations-tool"
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="A vibrant landscape..."
               className="bg-input border-border focus-visible:ring-primary h-10"
-              aria-label="Image prompt for Pollinations"
+              aria-label="Image prompt for Pollinations (Flux/Turbo)"
             />
           </div>
           <Popover>
@@ -202,14 +209,14 @@ const VisualizingLoopsTool: FC = () => {
                 <div className="space-y-2">
                   <h4 className="font-medium leading-none">Pollinations Settings</h4>
                   <p className="text-xs text-muted-foreground">
-                    Adjust parameters for Pollinations.ai models.
+                    Adjust parameters for Pollinations.ai models (Flux, Turbo).
                   </p>
                 </div>
                 <div className="grid gap-3">
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="model-select-pollinations" className="col-span-1 text-xs">Model</Label>
+                    <Label htmlFor="model-select-pollinations-tool" className="col-span-1 text-xs">Model</Label>
                     <Select value={model} onValueChange={setModel}>
-                      <SelectTrigger id="model-select-pollinations" className="col-span-2 h-8 bg-input border-border text-xs">
+                      <SelectTrigger id="model-select-pollinations-tool" className="col-span-2 h-8 bg-input border-border text-xs">
                         <SelectValue placeholder="Select model" />
                       </SelectTrigger>
                       <SelectContent>
@@ -220,19 +227,19 @@ const VisualizingLoopsTool: FC = () => {
                     </Select>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="width-slider-pollinations" className="col-span-1 text-xs">Width</Label>
-                    <Slider id="width-slider-pollinations" value={width} onValueChange={setWidth} min={256} max={2048} step={64} className="col-span-2" />
+                    <Label htmlFor="width-slider-pollinations-tool" className="col-span-1 text-xs">Width</Label>
+                    <Slider id="width-slider-pollinations-tool" value={width} onValueChange={setWidth} min={256} max={2048} step={64} className="col-span-2" />
                     <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width[0]}px</span>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="height-slider-pollinations" className="col-span-1 text-xs">Height</Label>
-                    <Slider id="height-slider-pollinations" value={height} onValueChange={setHeight} min={256} max={2048} step={64} className="col-span-2" />
+                    <Label htmlFor="height-slider-pollinations-tool" className="col-span-1 text-xs">Height</Label>
+                    <Slider id="height-slider-pollinations-tool" value={height} onValueChange={setHeight} min={256} max={2048} step={64} className="col-span-2" />
                     <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height[0]}px</span>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="aspect-ratio-pollinations" className="col-span-1 text-xs">Aspect Ratio</Label>
+                    <Label htmlFor="aspect-ratio-pollinations-tool" className="col-span-1 text-xs">Aspect Ratio</Label>
                     <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
-                      <SelectTrigger id="aspect-ratio-pollinations" className="col-span-2 h-8 bg-input border-border text-xs">
+                      <SelectTrigger id="aspect-ratio-pollinations-tool" className="col-span-2 h-8 bg-input border-border text-xs">
                         <SelectValue placeholder="Aspect Ratio" />
                       </SelectTrigger>
                       <SelectContent>
@@ -243,31 +250,31 @@ const VisualizingLoopsTool: FC = () => {
                     </Select>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="batch-size-pollinations" className="col-span-1 text-xs">Batch Size</Label>
-                    <Slider id="batch-size-pollinations" value={[batchSize]} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} className="col-span-2" />
+                    <Label htmlFor="batch-size-pollinations-tool" className="col-span-1 text-xs">Batch Size</Label>
+                    <Slider id="batch-size-pollinations-tool" value={[batchSize]} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} className="col-span-2" />
                      <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="seed-input-pollinations" className="col-span-1 text-xs">Seed</Label>
-                    <Input id="seed-input-pollinations" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
+                    <Label htmlFor="seed-input-pollinations-tool" className="col-span-1 text-xs">Seed</Label>
+                    <Input id="seed-input-pollinations-tool" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
                   </div>
                   <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random()*99999999)))} className="text-xs h-8 w-full">
                     Random Seed
                   </Button>
                   <div className="flex items-center justify-between pt-1">
-                    <Label htmlFor="private-check-pollinations" className="text-xs cursor-pointer">Private</Label>
-                    <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-pollinations" />
+                    <Label htmlFor="private-check-pollinations-tool" className="text-xs cursor-pointer">Private</Label>
+                    <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-pollinations-tool" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="upsampling-check-pollinations" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
-                    <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-pollinations" />
+                    <Label htmlFor="upsampling-check-pollinations-tool" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
+                    <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-pollinations-tool" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="transparent-check-pollinations" className="text-xs cursor-pointer">Transparent (Pollinations)</Label>
+                    <Label htmlFor="transparent-check-pollinations-tool" className="text-xs cursor-pointer">Transparent (Pollinations)</Label>
                     <Checkbox 
                         checked={transparentPollinations} 
                         onCheckedChange={(checked) => setTransparentPollinations(!!checked)} 
-                        id="transparent-check-pollinations" 
+                        id="transparent-check-pollinations-tool" 
                     />
                   </div>
                 </div>
@@ -306,7 +313,7 @@ const VisualizingLoopsTool: FC = () => {
           {!loading && !error && imageUrls.length === 0 && (
             <div className="text-muted-foreground flex flex-col items-center space-y-2">
                 <ImagePlus className="w-12 h-12"/>
-                <p>Your generated images will appear here.</p>
+                <p>Your generated images (Flux/Turbo) will appear here.</p>
             </div>
           )}
         </CardContent>

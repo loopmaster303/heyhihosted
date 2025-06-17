@@ -20,7 +20,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea'; // Using Textarea for prompt
+import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import { Loader2, ArrowRight, Settings, ImagePlus, Paperclip, X, Info } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
@@ -35,14 +35,13 @@ const ImageKontextTool: FC = () => {
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Settings states
-  const [aspectRatio, setAspectRatio] = useState('16:9'); // Default from screenshot
-  const [batchSize, setBatchSize] = useState([4]);
+  const [aspectRatio, setAspectRatio] = useState('16:9');
+  const [batchSizeState, setBatchSizeState] = useState([1]); // BFL 'batch_size' is typically 1. We'll use 1 for API.
   const [safetyTolerance, setSafetyTolerance] = useState([2]);
   const [promptUpsampling, setPromptUpsampling] = useState(false);
   const [outputFormat, setOutputFormat] = useState('PNG');
   const [seed, setSeed] = useState('');
-  const [inferenceSteps, setInferenceSteps] = useState([20]); // Retained from previous version
+  const [inferenceSteps, setInferenceSteps] = useState([20]);
 
   const handleImageUpload = (file: File | null) => {
     if (file && file.type.startsWith('image/')) {
@@ -50,7 +49,7 @@ const ImageKontextTool: FC = () => {
       reader.onloadend = () => {
         setInputImageUrl(reader.result as string);
         setError('');
-        setResultImageUrl(''); // Clear previous result when new image is uploaded
+        setResultImageUrl('');
       };
       reader.readAsDataURL(file);
     } else if (file) {
@@ -61,7 +60,7 @@ const ImageKontextTool: FC = () => {
   const handleFileSelectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleImageUpload(e.target.files?.[0] || null);
      if (fileInputRef.current) {
-      fileInputRef.current.value = ""; // Reset file input
+      fileInputRef.current.value = "";
     }
   };
 
@@ -82,21 +81,19 @@ const ImageKontextTool: FC = () => {
     setError('');
 
     const payload: any = {
-      model: 'flux-kontext-pro', // Hardcoded as per the tool's purpose
+      model: 'flux-kontext-pro',
       prompt,
       aspect_ratio: aspectRatio,
-      // BFL API might not support all these, but we send them from UI
       num_inference_steps: inferenceSteps[0], 
-      batch_size: batchSize[0],
-      // safety_tolerance: safetyTolerance[0], // BFL specific params might differ
-      // upsampling: promptUpsampling,
-      // output_format: outputFormat,
+      batch_size: 1, // BFL API batch_size is 1, client-side batching is not typical for this type of API.
+      // Other BFL specific params can be added if needed, matching their API spec
     };
     if (inputImageUrl) {
       payload.input_image = inputImageUrl;
     }
     if (seed) {
-      payload.seed = parseInt(seed, 10);
+      const seedNum = parseInt(seed, 10);
+      if(!isNaN(seedNum)) payload.seed = seedNum;
     }
 
     try {
@@ -106,14 +103,18 @@ const ImageKontextTool: FC = () => {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
       if (!res.ok) {
+        const data = await res.json().catch(() => ({error: `API error: ${res.status}. Response not JSON.`}));
+        if (res.status === 402) {
+            throw new Error(`Error 402: Payment Required. Please check your BFL.ai API access or quota. Details: ${data.error || 'No additional details.'}`);
+        }
         throw new Error(data.error || `API error: ${res.status}`);
       }
+      const data = await res.json();
       setResultImageUrl(data.imageUrl);
-      toast({ title: "Success!", description: "Image generated successfully." });
+      toast({ title: "Success!", description: "Image generated successfully with FLUX Kontext." });
     } catch (err: any) {
-      console.error("Generation error:", err);
+      console.error("FLUX Kontext Generation error:", err);
       setError(err.message || 'An unknown error occurred.');
       toast({ title: "Generation Failed", description: err.message || 'An unknown error occurred.', variant: "destructive" });
     } finally {
@@ -125,10 +126,9 @@ const ImageKontextTool: FC = () => {
     <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex items-center space-x-2 text-sm text-muted-foreground">
         <ImagePlus className="w-5 h-5" />
-        <span>Generate images from text and references</span>
+        <span>Generate images from text and references using FLUX Kontext</span>
       </div>
 
-      {/* Input Bar */}
       <div className="bg-card p-3 rounded-lg shadow-md flex flex-col space-y-3">
         <div className="flex items-start space-x-2">
           {inputImageUrl && (
@@ -148,7 +148,7 @@ const ImageKontextTool: FC = () => {
           <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Enter a text prompt or reference image"
+            placeholder="Enter a text prompt or reference image for FLUX Kontext"
             className="flex-grow min-h-[56px] max-h-[120px] bg-input border-border focus-visible:ring-primary resize-none"
             rows={2}
           />
@@ -168,23 +168,23 @@ const ImageKontextTool: FC = () => {
           <div className="flex items-center space-x-2">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Settings">
+                <Button variant="ghost" size="icon" aria-label="FLUX Kontext Settings">
                   <Settings className="h-5 w-5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
                 <div className="grid gap-4">
                   <div className="space-y-2">
-                    <h4 className="font-medium leading-none">Image Settings</h4>
+                    <h4 className="font-medium leading-none">FLUX Kontext Settings</h4>
                     <p className="text-xs text-muted-foreground">
-                      Adjust parameters for image generation.
+                      Adjust parameters for FLUX Kontext.
                     </p>
                   </div>
                   <div className="grid gap-3">
                     <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="aspect-ratio-kontext" className="col-span-1 text-xs">Aspect Ratio</Label>
+                      <Label htmlFor="aspect-ratio-kontext-tool" className="col-span-1 text-xs">Aspect Ratio</Label>
                       <Select value={aspectRatio} onValueChange={setAspectRatio}>
-                        <SelectTrigger id="aspect-ratio-kontext" className="col-span-2 h-8 bg-input border-border text-xs">
+                        <SelectTrigger id="aspect-ratio-kontext-tool" className="col-span-2 h-8 bg-input border-border text-xs">
                           <SelectValue placeholder="Ratio" />
                         </SelectTrigger>
                         <SelectContent>
@@ -195,58 +195,29 @@ const ImageKontextTool: FC = () => {
                       </Select>
                     </div>
                      <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="batch-size-kontext" className="col-span-1 text-xs">Batch Size</Label>
-                      <Slider id="batch-size-kontext" value={batchSize} onValueChange={setBatchSize} min={1} max={4} step={1} className="col-span-2" />
-                      <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize[0]}</span>
-                    </div>
-                     <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="inf-steps-kontext" className="col-span-1 text-xs">Steps</Label>
-                      <Slider id="inf-steps-kontext" value={inferenceSteps} onValueChange={setInferenceSteps} min={10} max={50} step={1} className="col-span-2" />
+                      <Label htmlFor="inf-steps-kontext-tool" className="col-span-1 text-xs">Steps</Label>
+                      <Slider id="inf-steps-kontext-tool" value={inferenceSteps} onValueChange={setInferenceSteps} min={10} max={50} step={1} className="col-span-2" />
                       <span className="text-xs text-muted-foreground justify-self-end col-start-3">{inferenceSteps[0]}</span>
                     </div>
+                    {/* BFL Batch size is 1, so slider removed. Safety Tolerance, Upsampling, Output Format are not standard BFL params via its simple API */}
                     <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="safety-kontext" className="col-span-1 text-xs">Safety Tol.</Label>
-                      <Slider id="safety-kontext" value={safetyTolerance} onValueChange={setSafetyTolerance} min={0} max={10} step={1} className="col-span-2" />
-                       <span className="text-xs text-muted-foreground justify-self-end col-start-3">{safetyTolerance[0]}</span>
+                      <Label htmlFor="seed-kontext-tool" className="col-span-1 text-xs">Seed</Label>
+                      <Input id="seed-kontext-tool" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="upsampling-kontext" className="flex flex-col space-y-1 text-xs">
-                        <span>Upsampling</span>
-                      </Label>
-                      <Switch id="upsampling-kontext" checked={promptUpsampling} onCheckedChange={setPromptUpsampling} />
-                    </div>
-                     <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="output-format-kontext" className="col-span-1 text-xs">Format</Label>
-                      <Select value={outputFormat} onValueChange={setOutputFormat}>
-                        <SelectTrigger id="output-format-kontext" className="col-span-2 h-8 bg-input border-border text-xs">
-                          <SelectValue placeholder="Format" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["PNG", "JPEG"].map(f => (
-                            <SelectItem key={f} value={f} className="text-xs">{f}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="seed-kontext" className="col-span-1 text-xs">Seed</Label>
-                      <Input id="seed-kontext" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random() * 99999999)))} className="text-xs">
+                    <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random() * 99999999)))} className="text-xs h-8">
                       Random Seed
                     </Button>
                   </div>
                 </div>
               </PopoverContent>
             </Popover>
-            <Button onClick={handleGenerate} disabled={loading} size="icon" aria-label="Generate image">
+            <Button onClick={handleGenerate} disabled={loading} size="icon" aria-label="Generate image with FLUX Kontext">
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5" />}
             </Button>
           </div>
         </div>
       </div>
       
-      {/* Result Area */}
       <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
         <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-lg">
           {loading && <Loader2 className="h-10 w-10 animate-spin text-primary" />}
@@ -259,13 +230,13 @@ const ImageKontextTool: FC = () => {
           )}
           {resultImageUrl && !loading && !error && (
             <div className="relative w-full h-full max-h-[calc(100vh-250px)]">
-              <Image src={resultImageUrl} alt="Generated AI Image" layout="fill" objectFit="contain" className="rounded-md" data-ai-hint="digital art abstract" />
+              <Image src={resultImageUrl} alt="Generated AI Image with FLUX Kontext" layout="fill" objectFit="contain" className="rounded-md" data-ai-hint="digital art abstract" />
             </div>
           )}
           {!loading && !resultImageUrl && !error && (
             <div className="text-muted-foreground flex flex-col items-center space-y-2">
                 <ImagePlus className="w-12 h-12"/>
-                <p>Your generated image will appear here.</p>
+                <p>Your FLUX Kontext image will appear here.</p>
             </div>
           )}
         </CardContent>
@@ -275,5 +246,4 @@ const ImageKontextTool: FC = () => {
 };
 
 export default ImageKontextTool;
-
     
