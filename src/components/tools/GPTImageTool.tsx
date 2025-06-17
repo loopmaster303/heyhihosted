@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider'; // For batch size if client handles, or 'n'
+import { Slider } from '@/components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -14,34 +14,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import NextImage from 'next/image'; // Renamed to avoid conflict with HTMLImageElement
+import NextImage from 'next/image';
 import { Loader2, Settings, ImagePlus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
-// OpenAI gpt-image-1 specific parameters
-const GPT_IMAGE_SIZES = ["1024x1024", "1536x1024", "1024x1536", "auto"];
-const GPT_IMAGE_BACKGROUND_OPTIONS = ["auto", "transparent", "opaque"];
-const GPT_IMAGE_QUALITY_OPTIONS = ["auto", "high", "medium", "low"];
+// This tool now uses Pollinations API with model='gptimage'
+// via the /api/openai-image route (which is now a misnomer but kept for path stability)
 
 const GPTImageTool: FC = () => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
   
-  // OpenAI specific settings
-  const [size, setSize] = useState<string>("1024x1024");
-  const [background, setBackground] = useState<string>("auto");
-  const [quality, setQuality] = useState<string>("auto");
-  const [batchSize, setBatchSize] = useState<number>(1); // Maps to 'n', but gpt-image-1 usually n=1 from client
-                                                          // For simplicity, we'll make 1 call per batch item.
+  // Settings for Pollinations gptimage
+  const [width, setWidth] = useState([1024]);
+  const [height, setHeight] = useState([1024]);
+  const [seed, setSeed] = useState<string>('');
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [upsampling, setUpsampling] = useState(false); // Corresponds to 'enhance'
+  const [transparent, setTransparent] = useState(false); // Pollinations 'transparent' for gptimage
+  const [aspectRatio, setAspectRatio] = useState<string>('1:1');
+  const [batchSize, setBatchSize] = useState<number>(1);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [imageUrls, setImageUrls] = useState<string[]>([]); // Store multiple if batchSize > 1
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -54,15 +56,35 @@ const GPTImageTool: FC = () => {
     
     const generatedUrls: string[] = [];
     for (let i = 0; i < batchSize; i++) {
+      let currentSeedForIteration: string | undefined = seed.trim() || undefined;
+      if (currentSeedForIteration && batchSize > 1) {
+        const baseSeed = Number(currentSeedForIteration);
+        if (!isNaN(baseSeed)) {
+          currentSeedForIteration = String(baseSeed + i);
+        }
+      } else if (batchSize > 1 && !currentSeedForIteration) {
+         currentSeedForIteration = String(Math.floor(Math.random() * 99999999));
+      }
+
       const payload: Record<string, any> = {
         prompt: prompt.trim(),
-        size: size === "auto" ? undefined : size, // OpenAI API might prefer undefined for auto
-        background: background,
-        quality: quality,
-        // n: 1, // API will handle one image per call
+        model: 'gptimage', // This will be used by the backend to ensure correct Pollinations call
+        width: width[0],
+        height: height[0],
+        nologo: true, 
+        private: isPrivate,
+        enhance: upsampling,
+        transparent: transparent,
       };
+      if (currentSeedForIteration) {
+        const seedNum = parseInt(currentSeedForIteration, 10);
+        if (!isNaN(seedNum)) {
+            payload.seed = seedNum;
+        }
+      }
       
       try {
+        // This route now proxies to Pollinations for 'gptimage'
         const resp = await fetch('/api/openai-image', { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -72,9 +94,10 @@ const GPTImageTool: FC = () => {
         if (!resp.ok) {
           const errorData = await resp.json().catch(() => ({ 
             error: `Image generation failed with status ${resp.status}. Response not JSON.`,
+            modelUsed: 'gptimage' 
           }));
-          const displayErrorMsg = errorData.error || `Error generating image (Status: ${resp.status})`;
-          toast({ title: "OpenAI Image Generation Error", description: displayErrorMsg, variant: "destructive", duration: 7000});
+          const displayErrorMsg = errorData.error || `Error generating gptimage (Status: ${resp.status})`;
+          toast({ title: "GPT Image Generation Error", description: displayErrorMsg, variant: "destructive", duration: 7000});
           setError(displayErrorMsg);
           break; 
         }
@@ -84,13 +107,13 @@ const GPTImageTool: FC = () => {
           generatedUrls.push(objectUrl);
         } else {
           const errorText = await blob.text();
-          const displayError =`Received non-image data: ${errorText.substring(0,100)}`;
+          const displayError =`Received non-image data (gptimage): ${errorText.substring(0,100)}`;
           setError(displayError);
           toast({ title: "Image Data Error", description: displayError, variant: "destructive"});
           break;
         }
       } catch (err: any) {
-        const displayError = err.message || 'Network error during OpenAI image request.';
+        const displayError = err.message || 'Network error during gptimage request.';
         setError(displayError);
         toast({ title: "Network Error", description: displayError, variant: "destructive"});
         break;
@@ -100,87 +123,109 @@ const GPTImageTool: FC = () => {
     setLoading(false);
   };
 
+  const handleAspectRatioChange = (val: string) => {
+    setAspectRatio(val);
+    const [wStr, hStr] = val.split(':');
+    const wRatio = Number(wStr);
+    const hRatio = Number(hStr);
+    if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
+      const currentWidth = width[0];
+      let newHeight = Math.round((currentWidth * hRatio) / wRatio);
+      newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64)); 
+      let newWidth = Math.max(256, Math.min(2048, Math.round(currentWidth / 64) * 64));
+      setWidth([newWidth]);
+      setHeight([newHeight]);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="bg-card p-3 rounded-lg shadow-md flex flex-col space-y-3">
         <div className="flex items-end space-x-2">
           <div className="flex-grow space-y-1">
-            <Label htmlFor="prompt-openai" className="text-xs font-medium sr-only">Prompt</Label>
+            <Label htmlFor="prompt-gptimage" className="text-xs font-medium sr-only">Prompt</Label>
             <Input
-              id="prompt-openai"
+              id="prompt-gptimage"
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="A futuristic cityscape at dusk..."
+              placeholder="A photorealistic image of..."
               className="bg-input border-border focus-visible:ring-primary h-10"
-              aria-label="Image prompt for OpenAI gpt-image-1"
+              aria-label="Image prompt for GPT Image (via Pollinations)"
             />
           </div>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="OpenAI Settings" className="h-10 w-10">
+              <Button variant="ghost" size="icon" aria-label="GPT Image Settings" className="h-10 w-10">
                 <Settings className="h-5 w-5" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium leading-none">OpenAI gpt-image-1 Settings</h4>
+                  <h4 className="font-medium leading-none">GPT Image Settings (Pollinations)</h4>
                   <p className="text-xs text-muted-foreground">
-                    Adjust parameters for OpenAI image generation.
+                    Adjust parameters for 'gptimage' model via Pollinations.
                   </p>
                 </div>
                 <div className="grid gap-3">
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="size-select-openai" className="col-span-1 text-xs">Size</Label>
-                    <Select value={size} onValueChange={setSize}>
-                      <SelectTrigger id="size-select-openai" className="col-span-2 h-8 bg-input border-border text-xs">
-                        <SelectValue placeholder="Select size" />
+                    <Label htmlFor="width-slider-gpt" className="col-span-1 text-xs">Width</Label>
+                    <Slider id="width-slider-gpt" value={width} onValueChange={setWidth} min={256} max={2048} step={64} className="col-span-2" />
+                    <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width[0]}px</span>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="height-slider-gpt" className="col-span-1 text-xs">Height</Label>
+                    <Slider id="height-slider-gpt" value={height} onValueChange={setHeight} min={256} max={2048} step={64} className="col-span-2" />
+                    <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height[0]}px</span>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="aspect-ratio-gpt" className="col-span-1 text-xs">Aspect Ratio</Label>
+                    <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
+                      <SelectTrigger id="aspect-ratio-gpt" className="col-span-2 h-8 bg-input border-border text-xs">
+                        <SelectValue placeholder="Aspect Ratio" />
                       </SelectTrigger>
                       <SelectContent>
-                        {GPT_IMAGE_SIZES.map(s => (
-                          <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+                        {['1:1','4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
+                          <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="background-select-openai" className="col-span-1 text-xs">Background</Label>
-                    <Select value={background} onValueChange={setBackground}>
-                      <SelectTrigger id="background-select-openai" className="col-span-2 h-8 bg-input border-border text-xs">
-                        <SelectValue placeholder="Background" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {GPT_IMAGE_BACKGROUND_OPTIONS.map(b => (
-                          <SelectItem key={b} value={b} className="text-xs capitalize">{b}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="batch-size-gpt" className="col-span-1 text-xs">Batch Count</Label>
+                    <Slider id="batch-size-gpt" value={[batchSize]} onValueChange={(val) => setBatchSize(val[0])} min={1} max={4} step={1} className="col-span-2" />
+                     <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
                   </div>
                    <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="quality-select-openai" className="col-span-1 text-xs">Quality</Label>
-                    <Select value={quality} onValueChange={setQuality}>
-                      <SelectTrigger id="quality-select-openai" className="col-span-2 h-8 bg-input border-border text-xs">
-                        <SelectValue placeholder="Quality" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {GPT_IMAGE_QUALITY_OPTIONS.map(q => (
-                          <SelectItem key={q} value={q} className="text-xs capitalize">{q}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="seed-input-gpt" className="col-span-1 text-xs">Seed</Label>
+                    <Input id="seed-input-gpt" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
                   </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="batch-size-openai" className="col-span-1 text-xs">Batch Count</Label>
-                    <Slider id="batch-size-openai" value={[batchSize]} onValueChange={(val) => setBatchSize(val[0])} min={1} max={4} step={1} className="col-span-2" />
-                     <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
+                  <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random()*99999999)))} className="text-xs h-8 w-full">
+                    Random Seed
+                  </Button>
+                  <div className="flex items-center justify-between pt-1">
+                    <Label htmlFor="private-check-gpt" className="text-xs cursor-pointer">Private</Label>
+                    <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-gpt" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="upsampling-check-gpt" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
+                    <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-gpt" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="transparent-check-gpt" className="text-xs cursor-pointer">Transparent BG</Label>
+                    <Checkbox 
+                        checked={transparent} 
+                        onCheckedChange={(checked) => setTransparent(!!checked)} 
+                        id="transparent-check-gpt" 
+                    />
                   </div>
                 </div>
               </div>
             </PopoverContent>
           </Popover>
           <Button onClick={handleGenerate} disabled={loading} size="default" className="h-10">
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Generate with OpenAI'}
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Generate with GPT Image'}
           </Button>
         </div>
       </div>
@@ -195,7 +240,7 @@ const GPTImageTool: FC = () => {
                 <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="block relative aspect-square group rounded-md overflow-hidden shadow-md hover:shadow-lg transition-shadow">
                    <NextImage 
                     src={url} 
-                    alt={`Generated OpenAI image ${idx + 1} for prompt: ${prompt}`} 
+                    alt={`Generated GPT image ${idx + 1} for prompt: ${prompt}`} 
                     layout="fill" 
                     objectFit="contain"
                     className="bg-muted/20"
@@ -211,7 +256,7 @@ const GPTImageTool: FC = () => {
           {!loading && !error && imageUrls.length === 0 && (
             <div className="text-muted-foreground flex flex-col items-center space-y-2">
                 <ImagePlus className="w-12 h-12"/>
-                <p>Your OpenAI generated images will appear here.</p>
+                <p>Your GPT generated images (via Pollinations) will appear here.</p>
             </div>
           )}
         </CardContent>

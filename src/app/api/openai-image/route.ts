@@ -1,101 +1,103 @@
 
 import { NextResponse } from 'next/server';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// This route now handles 'gptimage' model requests VIA Pollinations.ai API
 
 export async function POST(request: Request) {
   let body;
   try {
     body = await request.json();
   } catch (e) {
-    console.error('Failed to parse request JSON in /api/openai-image:', e);
+    console.error('Failed to parse request JSON in /api/openai-image (Pollinations gptimage):', e);
     return NextResponse.json({ 
       error: "Invalid JSON in request body.", 
       details: (e instanceof Error ? e.message : String(e)) 
     }, { status: 400 });
   }
 
-  if (!OPENAI_API_KEY) {
-    console.error('OpenAI API key is not configured.');
-    return NextResponse.json({ error: 'OpenAI API key not configured on server.', modelUsed: 'gpt-image-1' }, { status: 500 });
-  }
-
   try {
     const {
       prompt,
-      size = "1024x1024", // Default size for gpt-image-1
-      background = "auto", // auto, transparent, opaque
-      quality = "auto", // auto, high, medium, low
-      // n is assumed to be 1 as client handles batching
+      width = 1024, // Default width
+      height = 1024, // Default height
+      seed,
+      nologo = true,
+      private: isPrivate = false,
+      enhance = false, // For Pollinations 'enhance'
+      transparent = false, // For Pollinations 'transparent' with gptimage
     } = body;
 
     if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
-      return NextResponse.json({ error: 'Prompt is required and must be a non-empty string.', modelUsed: 'gpt-image-1' }, { status: 400 });
+      return NextResponse.json({ error: 'Prompt is required and must be a non-empty string.', modelUsed: 'gptimage' }, { status: 400 });
     }
 
-    const openAiPayload: any = {
-      prompt: prompt.trim(),
-      model: "gpt-image-1", 
-      n: 1, 
-      size: size,
-      quality: quality,
-      // response_format is not needed for gpt-image-1 as it always returns b64_json
-    };
-
-    if (background === "transparent") {
-      openAiPayload.background = "transparent";
-      openAiPayload.output_format = "png"; // Transparency needs png or webp
-    } else if (background === "opaque") {
-      openAiPayload.background = "opaque";
-      openAiPayload.output_format = "png"; // Default to png
-    } else {
-      openAiPayload.background = "auto";
-      openAiPayload.output_format = "png"; // Default to png
+    // --- Pollinations.ai API Logic for gptimage ---
+    const params = new URLSearchParams();
+    params.append('model', 'gptimage'); // Hardcode gptimage for this route
+    params.append('width', String(width));
+    params.append('height', String(height));
+    if (seed !== undefined && seed !== null && String(seed).trim() !== '') {
+        const seedNum = parseInt(String(seed).trim(), 10);
+        if (!isNaN(seedNum)) {
+             params.append('seed', String(seedNum));
+        }
     }
-    
-    console.log(`Requesting image from OpenAI (model: gpt-image-1):`, JSON.stringify(openAiPayload, null, 2));
+    if (nologo) params.append('nologo', 'true');
+    if (isPrivate) params.append('private', 'true');
+    if (enhance) params.append('enhance', 'true');
+    if (transparent) params.append('transparent', 'true'); // For Pollinations gptimage
 
-    const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(openAiPayload),
-    });
+    const encodedPrompt = encodeURIComponent(prompt.trim());
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
 
-    const openaiData = await openaiResponse.json();
+    console.log(`Requesting image from Pollinations (model: gptimage):`, imageUrl);
 
-    if (!openaiResponse.ok) {
-      console.error(`OpenAI API Error (model: gpt-image-1, status: ${openaiResponse.status}):`, openaiData);
-      const errorDetail = openaiData.error?.message || `OpenAI API request failed with status ${openaiResponse.status}`;
-      return NextResponse.json({ error: errorDetail, modelUsed: 'gpt-image-1' }, { status: openaiResponse.status });
+    const response = await fetch(imageUrl, { method: 'GET', cache: 'no-store' });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Pollinations API Error (model: gptimage, status: ${response.status}): RAW TEXT:`, errorText);
+
+      let errorDetail = errorText.substring(0, 500);
+      try {
+        const parsedError = JSON.parse(errorText);
+        if (parsedError && parsedError.error) {
+          errorDetail = typeof parsedError.error === 'string' ? parsedError.error : JSON.stringify(parsedError.error);
+        } else if (parsedError && parsedError.message) {
+          errorDetail = typeof parsedError.message === 'string' ? parsedError.message : JSON.stringify(parsedError.message);
+        }
+      } catch (e) {
+        // Error response was not JSON
+      }
+
+      return NextResponse.json({
+        error: `Pollinations API request failed for model gptimage: ${response.status} - ${errorDetail.substring(0,200)}`,
+        modelUsed: 'gptimage'
+      }, { status: response.status });
     }
 
-    if (!openaiData.data || !openaiData.data[0] || !openaiData.data[0].b64_json) {
-      console.error('OpenAI API Error: Invalid response structure or missing b64_json data.', openaiData);
-      return NextResponse.json({ error: 'OpenAI API returned invalid image data.', modelUsed: 'gpt-image-1' }, { status: 500 });
+    const contentTypeHeader = response.headers.get('content-type');
+    if (!contentTypeHeader || !contentTypeHeader.startsWith('image/')) {
+        const responseText = await response.text();
+        console.error(`Pollinations API (model: gptimage) did not return an image. Content-Type:`, contentTypeHeader, 'Body (limited):', responseText.substring(0, 200));
+        return NextResponse.json({ error: `Pollinations API (model: gptimage) did not return an image. Received: ${contentTypeHeader}`, modelUsed: 'gptimage' }, { status: 502 });
     }
 
-    const imageBuffer = Buffer.from(openaiData.data[0].b64_json, 'base64');
-    // Determine content type based on output_format, default to png
-    const contentType = openAiPayload.output_format === 'jpeg' ? 'image/jpeg' : 
-                        openAiPayload.output_format === 'webp' ? 'image/webp' : 'image/png';
-
+    const imageBuffer = await response.arrayBuffer();
 
     return new NextResponse(imageBuffer, {
       status: 200,
       headers: {
-        'Content-Type': contentType,
+        'Content-Type': contentTypeHeader,
         'Content-Length': String(imageBuffer.byteLength),
       },
     });
 
   } catch (error: any) {
-    console.error('Error in /api/openai-image:', error);
+    console.error('Error in /api/openai-image (Pollinations gptimage handler):', error);
     return NextResponse.json({
-        error: `Internal server error in OpenAI handler: ${error.message || 'Unknown error'}`,
-        modelUsed: 'gpt-image-1'
+        error: `Internal server error in gptimage (Pollinations) handler: ${error.message || 'Unknown error'}`,
+        modelUsed: 'gptimage'
     }, { status: 500 });
   }
 }

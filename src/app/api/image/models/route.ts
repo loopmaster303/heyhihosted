@@ -20,6 +20,7 @@ export async function GET() {
     if (Array.isArray(modelsData) && modelsData.every(item => typeof item === 'string')) {
       const filteredModels = modelsData.filter(model => SUPPORTED_POLLINATIONS_MODELS.includes(model));
       if (filteredModels.length === 0) { 
+        // If API returns empty or only gptimage, fallback to our known good ones
         return NextResponse.json({ models: SUPPORTED_POLLINATIONS_MODELS });
       }
       return NextResponse.json({ models: filteredModels });
