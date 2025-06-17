@@ -1,5 +1,5 @@
 
-export type ChatMessageContentPart = 
+export type ChatMessageContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean } };
 
@@ -33,3 +33,6 @@ export interface TileItem {
   icon: React.ElementType;
   description: string;
 }
+
+// Add a type for the view state
+export type CurrentAppView = 'tiles' | 'chat' | 'fluxKontextTool';

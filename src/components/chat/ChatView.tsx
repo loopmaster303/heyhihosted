@@ -40,17 +40,17 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
         <Button variant="ghost" size="icon" onClick={onGoBack} aria-label="Go back to tools menu">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex flex-col items-center">
-          <h2 className="text-lg font-semibold text-card-foreground truncate">
+        <div className="flex flex-col items-center text-center">
+          <h2 className="text-lg font-semibold text-card-foreground truncate max-w-xs sm:max-w-md md:max-w-lg">
             {conversation?.title || 'New Chat'}
           </h2>
           {conversation?.toolType === 'Long Language Loops' && (
             <p className="text-xs text-muted-foreground">
-              Model: {selectedModelName} &bull; Style: {selectedStyleName}
+              Modell: {selectedModelName} &bull; Stil: {selectedStyleName}
             </p>
           )}
         </div>
-        <div className="w-8 flex-shrink-0"> 
+        <div className="w-8 flex-shrink-0">
           {isLoading && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
         </div>
       </header>

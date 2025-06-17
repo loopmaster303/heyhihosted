@@ -7,7 +7,10 @@ import TileMenu from '@/components/navigation/TileMenu';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
-import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart } from '@/types';
+import ToolViewHeader from '@/components/layout/ToolViewHeader'; // New Header for tools
+import ImageKontextTool from '@/components/tools/ImageKontextTool'; // New Tool Component
+
+import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
@@ -34,7 +37,7 @@ const toolTileItems: TileItem[] = [
 ];
 
 export default function Home() {
-  const [currentView, setCurrentView] = useState<'tiles' | 'chat'>('tiles');
+  const [currentView, setCurrentView] = useState<CurrentAppView>('tiles');
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [allConversations, setAllConversations] = useState<Conversation[]>([]);
   const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
@@ -47,6 +50,7 @@ export default function Home() {
   const [isImageMode, setIsImageMode] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedFilePreview, setUploadedFilePreview] = useState<string | null>(null);
+  const [activeToolTypeForView, setActiveToolTypeForView] = useState<ToolType | null>(null);
 
 
   useEffect(() => {
@@ -86,9 +90,9 @@ export default function Home() {
   const updateActiveConversationState = useCallback((updates: Partial<Pick<Conversation, 'isImageMode' | 'uploadedFilePreview' | 'selectedModelId' | 'selectedResponseStyleName'>> & { uploadedFile?: File | null }) => {
     setActiveConversation(prevActive => {
       if (!prevActive) return null;
-      const { uploadedFile: newUploadedFile, ...otherUpdates } = updates; 
+      const { uploadedFile: newUploadedFile, ...otherUpdates } = updates;
       const updatedConv = { ...prevActive, ...otherUpdates };
-      
+
       setAllConversations(prevAllConvs =>
         prevAllConvs.map(c => (c.id === prevActive.id ? updatedConv : c))
       );
@@ -129,8 +133,8 @@ export default function Home() {
     if (!convToUpdate || convToUpdate.toolType !== 'Long Language Loops') return;
 
     const isDefaultTitle = convToUpdate.title === "New Long Language Loop" ||
-                           convToUpdate.title.startsWith("New ") || 
-                           convToUpdate.title === "Chat" || 
+                           convToUpdate.title.startsWith("New ") ||
+                           convToUpdate.title === "Chat" ||
                            convToUpdate.title === `New ${convToUpdate.toolType} Chat`;
 
 
@@ -142,7 +146,7 @@ export default function Home() {
           return textPart ? `${msg.role}: ${textPart.text}` : null;
         })
         .filter(Boolean)
-        .slice(0, 3) 
+        .slice(0, 3)
         .join('\n\n');
 
       if (relevantTextMessages.length > 0) {
@@ -163,6 +167,7 @@ export default function Home() {
   }, [allConversations, activeConversation?.id]);
 
   const handleSelectTile = useCallback((toolType: ToolType) => {
+    setActiveToolTypeForView(toolType);
     if (toolType === 'Long Language Loops') {
       const newConversationId = crypto.randomUUID();
       const now = new Date();
@@ -181,20 +186,26 @@ export default function Home() {
 
       setAllConversations(prev => [newConversation, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
       setActiveConversation(newConversation);
-      setCurrentMessages([]); 
-      setIsImageMode(false); 
-      setUploadedFile(null); 
-      setUploadedFilePreview(null); 
+      setCurrentMessages([]);
+      setIsImageMode(false);
+      setUploadedFile(null);
+      setUploadedFilePreview(null);
       setCurrentView('chat');
+    } else if (toolType === 'FLUX Kontext') {
+      setActiveConversation(null); // No conversation for this tool
+      setCurrentMessages([]);
+      setCurrentView('fluxKontextTool');
     } else {
       toast({
         title: "Tool Selected",
-        description: `${toolType} selected. This tool does not have a dedicated chat view.`,
+        description: `${toolType} selected. This tool is not yet fully implemented.`,
       });
-      if (currentView === 'chat') { 
+      // If currently in a chat or tool view, go back to tiles, otherwise stay.
+      if (currentView !== 'tiles') {
           setCurrentView('tiles');
           setActiveConversation(null);
           setCurrentMessages([]);
+          setActiveToolTypeForView(null);
       }
     }
   }, [currentView, toast]);
@@ -203,7 +214,7 @@ export default function Home() {
   const handleSelectChatFromHistory = useCallback((conversationId: string) => {
     const conversation = allConversations.find(c => c.id === conversationId);
     if (conversation) {
-      if (conversation.toolType === 'Long Language Loops') { 
+      if (conversation.toolType === 'Long Language Loops') {
         setActiveConversation({
           ...conversation,
           selectedModelId: conversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID,
@@ -211,8 +222,9 @@ export default function Home() {
         });
         setCurrentMessages(conversation.messages);
         setIsImageMode(conversation.isImageMode || false);
-        setUploadedFile(null); 
+        setUploadedFile(null);
         setUploadedFilePreview(null);
+        setActiveToolTypeForView('Long Language Loops');
         setCurrentView('chat');
       } else {
          toast({
@@ -227,9 +239,8 @@ export default function Home() {
 
   const handleSendMessageGlobal = useCallback(async (
     messageText: string,
-    // modelId and systemPrompt are now derived from activeConversation
     options: {
-      isImageModeIntent?: boolean; 
+      isImageModeIntent?: boolean;
     } = {}
   ) => {
     if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') {
@@ -240,7 +251,7 @@ export default function Home() {
       });
       return;
     }
-    
+
     const currentModelId = activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
     const currentStyleName = activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
     const currentSystemPrompt = AVAILABLE_RESPONSE_STYLES.find(s => s.name === currentStyleName)?.systemPrompt || AVAILABLE_RESPONSE_STYLES.find(s => s.name === DEFAULT_RESPONSE_STYLE_NAME)!.systemPrompt;
@@ -252,7 +263,7 @@ export default function Home() {
     const currentToolType = activeConversation.toolType;
 
     const isActuallyImagePromptMode = options.isImageModeIntent || false;
-    const isActuallyFileUploadMode = !!uploadedFile && !isActuallyImagePromptMode; 
+    const isActuallyFileUploadMode = !!uploadedFile && !isActuallyImagePromptMode;
 
     let userMessageContent: string | ChatMessageContentPart[] = messageText.trim();
     let aiResponseContent: string | ChatMessageContentPart[] | null = null;
@@ -284,8 +295,7 @@ export default function Home() {
       messages: [...currentMessagesForTurn],
       isImageMode: isActuallyImagePromptMode,
     };
-    
-    // updateActiveConversationState will update both activeConversation and allConversations
+
     updateActiveConversationState(interimConversationUpdate);
 
 
@@ -302,18 +312,18 @@ export default function Home() {
         const errorMessageText = error instanceof Error ? error.message : "Failed to generate image.";
         toast({ title: "Image Generation Error", description: errorMessageText, variant: "destructive" });
         aiResponseContent = `Sorry, I couldn't generate the image. ${errorMessageText}`;
-        skipPollinationsChatCall = true; 
+        skipPollinationsChatCall = true;
       }
-    } else if (!skipPollinationsChatCall) { 
+    } else if (!skipPollinationsChatCall) {
       try {
         const apiMessages = currentMessagesForTurn
           .map(msg => {
-            if (msg.role === 'system') return null; 
-            
+            if (msg.role === 'system') return null;
+
             let apiContentString = "";
             if (typeof msg.content === 'string') {
               apiContentString = msg.content;
-            } else { 
+            } else {
               const textPart = msg.content.find(part => part.type === 'text');
               apiContentString = textPart ? textPart.text : "[Image content - text part missing]";
             }
@@ -349,7 +359,7 @@ export default function Home() {
       isImageMode: (isActuallyImagePromptMode || isActuallyFileUploadMode) ? false : activeConversation.isImageMode,
     };
     updateActiveConversationState(finalConversationUpdate);
-    
+
     if (isActuallyImagePromptMode || isActuallyFileUploadMode) {
         setIsImageMode(false);
         setUploadedFile(null);
@@ -365,10 +375,10 @@ export default function Home() {
 
   }, [
     activeConversation,
-    allConversations, 
+    allConversations,
     updateConversationTitle,
     toast,
-    uploadedFile, 
+    uploadedFile,
     uploadedFilePreview,
     updateActiveConversationState,
   ]);
@@ -376,10 +386,11 @@ export default function Home() {
   const handleGoBackToTilesView = () => {
     setCurrentView('tiles');
     setActiveConversation(null);
-    setCurrentMessages([]); 
+    setCurrentMessages([]);
     setIsImageMode(false);
     setUploadedFile(null);
     setUploadedFilePreview(null);
+    setActiveToolTypeForView(null);
   };
 
   const handleRequestEditTitle = (conversationId: string) => {
@@ -424,15 +435,16 @@ export default function Home() {
 
     if (wasActiveConversationDeleted) {
       const nextLllConversation = updatedConversations
-        .filter(c => c.toolType === 'Long Language Loops') 
+        .filter(c => c.toolType === 'Long Language Loops')
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
       if (nextLllConversation) {
         setActiveConversation(nextLllConversation);
         setCurrentMessages(nextLllConversation.messages);
-        setIsImageMode(nextLllConversation.isImageMode || false); 
-        setUploadedFile(null); 
-        setUploadedFilePreview(null); 
+        setIsImageMode(nextLllConversation.isImageMode || false);
+        setUploadedFile(null);
+        setUploadedFilePreview(null);
+        setActiveToolTypeForView('Long Language Loops');
       } else {
         setCurrentView('tiles');
         setActiveConversation(null);
@@ -440,6 +452,7 @@ export default function Home() {
         setIsImageMode(false);
         setUploadedFile(null);
         setUploadedFilePreview(null);
+        setActiveToolTypeForView(null);
       }
     }
     setIsDeleteDialogOpen(false);
@@ -452,13 +465,13 @@ export default function Home() {
 
     const newImageModeState = !isImageMode;
     setIsImageMode(newImageModeState);
-    if (newImageModeState) { 
-        setUploadedFile(null); 
+    if (newImageModeState) {
+        setUploadedFile(null);
         setUploadedFilePreview(null);
     }
-    updateActiveConversationState({ 
+    updateActiveConversationState({
       isImageMode: newImageModeState,
-      ...(newImageModeState && { uploadedFile: null, uploadedFilePreview: null }) 
+      ...(newImageModeState && { uploadedFile: null, uploadedFilePreview: null })
     });
   };
 
@@ -471,12 +484,12 @@ export default function Home() {
         const dataUrl = reader.result as string;
         setUploadedFile(file);
         setUploadedFilePreview(dataUrl);
-        setIsImageMode(false); 
+        setIsImageMode(false);
 
         updateActiveConversationState({ isImageMode: false, uploadedFilePreview: dataUrl, uploadedFile: file });
       };
       reader.readAsDataURL(file);
-    } else { 
+    } else {
       setUploadedFile(null);
       setUploadedFilePreview(null);
       updateActiveConversationState({ uploadedFilePreview: null, uploadedFile: null });
@@ -507,42 +520,51 @@ export default function Home() {
     );
   }
 
+  // Layout for Chat view or specific Tool view (e.g., FLUX Kontext)
   return (
     <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
       <div className="flex flex-1 overflow-hidden">
         <SidebarNav
           tileItems={toolTileItems}
-          activeToolType={activeConversation?.toolType || null}
+          activeToolType={activeToolTypeForView}
           onSelectTile={handleSelectTile}
-          allConversations={allConversations.filter(c => c.toolType === 'Long Language Loops')} 
+          allConversations={allConversations.filter(c => c.toolType === 'Long Language Loops')}
           activeConversationId={activeConversation?.id || null}
           onSelectChatHistory={handleSelectChatFromHistory}
-          onEditTitle={handleRequestEditTitle} 
-          onDeleteChat={handleRequestDeleteChat} 
-          className="w-60 md:w-72 flex-shrink-0 bg-card" 
+          onEditTitle={handleRequestEditTitle}
+          onDeleteChat={handleRequestDeleteChat}
+          className="w-60 md:w-72 flex-shrink-0"
         />
         <main className="flex-1 flex flex-col overflow-hidden">
-          <ChatView
-            conversation={activeConversation}
-            messages={currentMessages}
-            isLoading={isAiResponding}
-            onGoBack={handleGoBackToTilesView}
-            className="flex-grow overflow-y-auto" 
-          />
-          {activeConversation && activeConversation.toolType === 'Long Language Loops' && (
-            <ChatInput
-              onSendMessage={(message) => handleSendMessageGlobal(message, {isImageModeIntent: isImageMode})}
-              isLoading={isAiResponding}
-              isImageModeActive={isImageMode} 
-              onToggleImageMode={handleToggleImageMode}
-              uploadedFilePreviewUrl={uploadedFilePreview} 
-              onFileSelect={handleFileSelect}
-              isLongLanguageLoopActive={true}
-              selectedModelId={activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
-              selectedResponseStyleName={activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
-              onModelChange={handleModelChange}
-              onStyleChange={handleStyleChange}
-            />
+          {currentView === 'chat' && activeConversation && activeConversation.toolType === 'Long Language Loops' && (
+            <>
+              <ChatView
+                conversation={activeConversation}
+                messages={currentMessages}
+                isLoading={isAiResponding}
+                onGoBack={handleGoBackToTilesView}
+                className="flex-grow overflow-y-auto"
+              />
+              <ChatInput
+                onSendMessage={(message) => handleSendMessageGlobal(message, {isImageModeIntent: isImageMode})}
+                isLoading={isAiResponding}
+                isImageModeActive={isImageMode}
+                onToggleImageMode={handleToggleImageMode}
+                uploadedFilePreviewUrl={uploadedFilePreview}
+                onFileSelect={handleFileSelect}
+                isLongLanguageLoopActive={true}
+                selectedModelId={activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
+                selectedResponseStyleName={activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
+                onModelChange={handleModelChange}
+                onStyleChange={handleStyleChange}
+              />
+            </>
+          )}
+          {currentView === 'fluxKontextTool' && (
+            <>
+              <ToolViewHeader title="FLUX Kontext" onGoBack={handleGoBackToTilesView} />
+              <ImageKontextTool />
+            </>
           )}
         </main>
       </div>
