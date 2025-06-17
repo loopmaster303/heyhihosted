@@ -45,25 +45,22 @@ export async function generateImageViaPollinations(
       );
     }
 
-    const imageBlob = await response.blob();
+    const contentType = response.headers.get('Content-Type');
+    if (!contentType) {
+      console.error('Pollinations Image API Error: Could not determine Content-Type from response headers.');
+      throw new Error('Pollinations Image API did not provide a Content-Type for the image.');
+    }
+    
+    // Check if the content type indicates an image, otherwise it might be an error page or JSON
+    if (!contentType.startsWith('image/')) {
+        const errorText = await response.text();
+        console.error('Pollinations Image API Error: Expected an image, but received Content-Type:', contentType, 'Body:', errorText);
+        throw new Error(`Pollinations Image API returned non-image content (type: ${contentType}). This might indicate an error from their service. Response: ${errorText.substring(0, 200)}...`);
+    }
 
-    // Convert blob to data URI
-    const reader = new FileReader();
-    const dataUriPromise = new Promise<string>((resolve, reject) => {
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          resolve(reader.result);
-        } else {
-          reject(new Error('Failed to read blob as data URI.'));
-        }
-      };
-      reader.onerror = (error) => {
-        reject(new Error(`FileReader error: ${error}`));
-      };
-      reader.readAsDataURL(imageBlob);
-    });
-
-    const imageDataUri = await dataUriPromise;
+    const imageArrayBuffer = await response.arrayBuffer();
+    const base64String = Buffer.from(imageArrayBuffer).toString('base64');
+    const imageDataUri = `data:${contentType};base64,${base64String}`;
 
     return { imageDataUri, promptUsed: prompt };
 
@@ -76,3 +73,4 @@ export async function generateImageViaPollinations(
     throw new Error('An unknown error occurred during image generation via Pollinations.');
   }
 }
+
