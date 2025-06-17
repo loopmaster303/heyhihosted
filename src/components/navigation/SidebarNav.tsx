@@ -16,8 +16,8 @@ interface SidebarNavProps {
   allConversations: Conversation[];
   activeConversationId: string | null;
   onSelectChatHistory: (conversationId: string) => void;
-  onEditTitle: (conversationId: string) => void;
-  onDeleteChat: (conversationId: string) => void;
+  onEditTitle: (conversationId: string) => void; // Prop for editing title
+  onDeleteChat: (conversationId: string) => void; // Prop for deleting chat
   className?: string;
 }
 
@@ -28,8 +28,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   allConversations,
   activeConversationId,
   onSelectChatHistory,
-  onEditTitle,
-  onDeleteChat,
+  onEditTitle, // Destructure the prop
+  onDeleteChat, // Destructure the prop
   className 
 }) => {
   const displayToolItems = tileItems; 
@@ -45,8 +45,9 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
               key={item.id} 
               item={item} 
               onSelect={onSelectTile}
-              isActive={item.id === activeToolType && item.id !== 'Long Language Loops'} 
-              showPlusIcon={item.id === 'Long Language Loops'}
+              // Active state for tool cards is primarily for non-LLL tools or the LLL general selection
+              isActive={item.id === activeToolType && activeConversationId === null} 
+              showPlusIcon={item.id === 'Long Language Loops'} // Plus icon for LLL to indicate "new chat"
             />
           ))}
         </nav>
@@ -65,8 +66,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                     conversation={conv} 
                     onSelect={onSelectChatHistory}
                     isActive={conv.id === activeConversationId}
-                    onEditTitle={onEditTitle}
-                    onDeleteChat={onDeleteChat}
+                    onEditTitle={onEditTitle} // Pass down to ChatHistoryItem
+                    onDeleteChat={onDeleteChat} // Pass down to ChatHistoryItem
                   />
                 ))}
               </div>
@@ -78,3 +79,4 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   );
 };
 export default SidebarNav;
+

@@ -49,18 +49,21 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
     >
       <p className={cn(
         "font-medium text-sm truncate w-full",
-         isActive ? "text-accent-foreground" : "text-foreground/90" // Use accent-foreground for active title
+         isActive ? "text-accent-foreground" : "text-foreground/90"
          )}>
         {conversation.title || "Chat"} 
       </p>
       <div className="flex justify-between items-center w-full mt-0.5">
         <p className={cn(
           "text-xs",
-           isActive ? "text-accent-foreground/70" : "text-muted-foreground/80" // Use accent-foreground for active date
+           isActive ? "text-accent-foreground/70" : "text-muted-foreground/80"
            )}>
           {format(new Date(conversation.createdAt), "dd/MM/yy HH:mm")}
         </p>
-        <div className="flex items-center space-x-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        <div className={cn(
+          "flex items-center space-x-1.5 transition-opacity duration-150",
+          isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )}>
           <button
             onClick={handleEditClick}
             className={cn(
@@ -87,3 +90,4 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
   );
 };
 export default ChatHistoryItem;
+
