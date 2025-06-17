@@ -5,7 +5,7 @@ import type React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { SendHorizonal, Paperclip, ChevronDown, Brain, Fingerprint, ImagePlay, X } from 'lucide-react'; // ImagePlay instead of ImageIconLucide
+import { SendHorizonal, Paperclip, ChevronDown, Brain, Fingerprint, ImagePlay, X } from 'lucide-react'; 
 import Image from 'next/image';
 import {
   DropdownMenu,
@@ -15,48 +15,48 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, DEFAULT_POLLINATIONS_MODEL_ID, getDefaultSystemPrompt } from '@/config/chat-options';
+import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
 import type { PollinationsModel, ResponseStyle } from '@/config/chat-options';
 import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
   onSendMessage: (
-    message: string, 
-    modelId: string, 
-    systemPrompt: string,
+    message: string,
+    // modelId and systemPrompt are now handled by parent via selectedModelId/selectedResponseStyleName
     options: {
-      isImageMode?: boolean; // Intent to generate image or if current mode is image prompting
-      // uploadedImageFile is now managed by parent component (Home) via onFileSelect
+      isImageMode?: boolean; 
     }
   ) => void;
   isLoading: boolean;
-  isImageModeActive: boolean; // Is image prompt mode active for LLL tool
-  onToggleImageMode: () => void; // Callback to toggle image mode
-  uploadedFilePreviewUrl: string | null; // URL for image preview if a file is uploaded
-  onFileSelect: (file: File | null) => void; // Callback when a file is selected or cleared
-  isLongLanguageLoopActive: boolean; // True if 'Long Language Loops' tool is active
+  isImageModeActive: boolean; 
+  onToggleImageMode: () => void; 
+  uploadedFilePreviewUrl: string | null; 
+  onFileSelect: (file: File | null) => void; 
+  isLongLanguageLoopActive: boolean;
+  selectedModelId: string;
+  selectedResponseStyleName: string;
+  onModelChange: (modelId: string) => void;
+  onStyleChange: (styleName: string) => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({ 
   onSendMessage, 
   isLoading,
-  isImageModeActive, // This now comes from parent (Home.tsx's `isImageMode` state)
+  isImageModeActive,
   onToggleImageMode,
-  uploadedFilePreviewUrl, // This now comes from parent (Home.tsx's `uploadedFilePreview` state)
+  uploadedFilePreviewUrl,
   onFileSelect,
-  isLongLanguageLoopActive
+  isLongLanguageLoopActive,
+  selectedModelId,
+  selectedResponseStyleName,
+  onModelChange,
+  onStyleChange,
 }) => {
   const [inputValue, setInputValue] = useState('');
-  const [selectedModel, setSelectedModel] = useState<PollinationsModel>(
-    AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === DEFAULT_POLLINATIONS_MODEL_ID) || AVAILABLE_POLLINATIONS_MODELS[0]
-  );
-  const [selectedSystemPrompt, setSelectedSystemPrompt] = useState<string>(getDefaultSystemPrompt());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    // If image mode is activated or a file is uploaded, clear text input
-    // This effect now depends on props from Home.tsx that reflect the true state
     if (isImageModeActive || uploadedFilePreviewUrl) {
       setInputValue('');
     }
@@ -66,26 +66,22 @@ const ChatInput: React.FC<ChatInputProps> = ({
     e?.preventDefault();
     if (isLoading) return;
 
-    // Determine if a message can be sent
-    const canSendMessage = (isLongLanguageLoopActive && isImageModeActive && inputValue.trim() !== '') || // Image prompt mode
-                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) || // File upload mode (input can be empty)
-                           (!isImageModeActive && inputValue.trim() !== ''); // Normal text mode
+    const canSendMessage = (isLongLanguageLoopActive && isImageModeActive && inputValue.trim() !== '') || 
+                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) || 
+                           (!isImageModeActive && inputValue.trim() !== ''); 
 
     if (canSendMessage) {
       onSendMessage(
         inputValue.trim(), 
-        selectedModel.id, 
-        selectedSystemPrompt,
         {
-          isImageMode: isLongLanguageLoopActive ? isImageModeActive : false, // Pass current image mode if LLL active
+          isImageMode: isLongLanguageLoopActive ? isImageModeActive : false, 
         }
       );
-      setInputValue(''); // Clear input after sending
-      // Parent (Home.tsx) will handle clearing uploadedFilePreviewUrl via onFileSelect(null) after message processing
+      setInputValue(''); 
       
       if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'; // Reset height before recalculating
-        const newHeight = Math.min(textareaRef.current.scrollHeight, 120); // Initial height or content height up to 120px
+        textareaRef.current.style.height = 'auto'; 
+        const newHeight = Math.min(textareaRef.current.scrollHeight, 120); 
         textareaRef.current.style.height = `${newHeight}px`;
       }
     }
@@ -102,7 +98,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     setInputValue(e.target.value);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      // Max height smaller if image preview is shown, to prevent input area from becoming too large
       const maxHeight = isLongLanguageLoopActive && (isImageModeActive || uploadedFilePreviewUrl) ? 120 : 200; 
       const newHeight = Math.min(textareaRef.current.scrollHeight, maxHeight);
       textareaRef.current.style.height = `${newHeight}px`;
@@ -110,28 +105,32 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const handleSelectModel = (model: PollinationsModel) => {
-    setSelectedModel(model);
+    onModelChange(model.id);
   };
 
   const handleSelectStyle = (style: ResponseStyle) => {
-    setSelectedSystemPrompt(style.systemPrompt);
+    onStyleChange(style.name);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    onFileSelect(file || null); // Pass file (or null) to parent
+    onFileSelect(file || null); 
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""; // Reset file input to allow re-selection of the same file
+      fileInputRef.current.value = ""; 
     }
   };
 
   const handleClearUploadPreview = () => {
-    onFileSelect(null); // Signal parent to clear the file
+    onFileSelect(null); 
   };
   
   const placeholderText = isLongLanguageLoopActive && isImageModeActive 
     ? "Bild generieren mit Prompt..." 
     : (isLongLanguageLoopActive && uploadedFilePreviewUrl ? "Optional: Bild beschreiben oder Frage stellen..." : "Nachricht eingeben...");
+
+  const currentSelectedModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
+  const currentSelectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0];
+
 
   return (
     <div className="sticky bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm p-3 md:p-4">
@@ -142,7 +141,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               src={uploadedFilePreviewUrl} 
               alt="Upload preview" 
               width={200} height={150} 
-              className="rounded-md object-contain border border-border" 
+              className="rounded-md object-contain" 
             />
             <Button
               variant="destructive"
@@ -166,10 +165,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
               onKeyDown={handleKeyDown}
               placeholder={placeholderText}
               className="flex-grow resize-none w-full min-h-[60px] max-h-[200px] pr-12 pl-2 py-2 bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none overflow-y-auto"
-              rows={1} // Start with 1 row, auto-adjust height
+              rows={1} 
               disabled={isLoading}
               aria-label="Chat message input"
-              style={{ height: 'auto' }} // Auto height initially
+              style={{ height: 'auto' }} 
             />
             <Button
               type="submit"
@@ -177,9 +176,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
               variant="ghost"
               className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 text-primary hover:text-primary/80 disabled:text-muted-foreground"
               disabled={isLoading || 
-                (isLongLanguageLoopActive && isImageModeActive && !inputValue.trim()) || // Disabled if LLL image mode and no prompt
-                (isLongLanguageLoopActive && !isImageModeActive && !uploadedFilePreviewUrl && !inputValue.trim()) || // Disabled if LLL normal mode, no file, no text
-                (!isLongLanguageLoopActive && !inputValue.trim()) // Disabled if not LLL and no text
+                (isLongLanguageLoopActive && isImageModeActive && !inputValue.trim()) || 
+                (isLongLanguageLoopActive && !isImageModeActive && !uploadedFilePreviewUrl && !inputValue.trim()) || 
+                (!isLongLanguageLoopActive && !inputValue.trim()) 
               }
               aria-label="Send message"
             >
@@ -187,7 +186,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             </Button>
           </div>
           
-          <div className="flex items-center justify-between pt-2 border-t border-border/30">
+          <div className="flex items-center justify-between pt-2">
             <div className="flex items-center gap-1 md:gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -197,10 +196,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  <DropdownMenuLabel>Select Model ({selectedModel.name})</DropdownMenuLabel>
+                  <DropdownMenuLabel>Select Model ({currentSelectedModel.name})</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
-                    <DropdownMenuItem key={model.id} onClick={() => handleSelectModel(model)} className={selectedModel.id === model.id ? "bg-accent" : ""}>
+                    <DropdownMenuItem key={model.id} onClick={() => handleSelectModel(model)} className={selectedModelId === model.id ? "bg-accent" : ""}>
                       {model.name}
                     </DropdownMenuItem>
                   ))}
@@ -215,10 +214,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                   <DropdownMenuLabel>Response Style</DropdownMenuLabel>
+                   <DropdownMenuLabel>Response Style ({currentSelectedStyle.name})</DropdownMenuLabel>
                    <DropdownMenuSeparator />
                   {AVAILABLE_RESPONSE_STYLES.map((style) => (
-                    <DropdownMenuItem key={style.name} onClick={() => handleSelectStyle(style)} className={selectedSystemPrompt === style.systemPrompt ? "bg-accent" : ""}>
+                    <DropdownMenuItem key={style.name} onClick={() => handleSelectStyle(style)} className={selectedResponseStyleName === style.name ? "bg-accent" : ""}>
                       {style.name}
                     </DropdownMenuItem>
                   ))}
@@ -236,12 +235,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     className={cn(
                         "w-8 h-8 rounded-lg",
                         isImageModeActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground",
-                        uploadedFilePreviewUrl ? "opacity-50 cursor-not-allowed" : "" // Disable if a file is uploaded
+                        uploadedFilePreviewUrl ? "opacity-50 cursor-not-allowed" : "" 
                     )}
-                    onClick={onToggleImageMode} // Calls parent's handler
+                    onClick={onToggleImageMode} 
                     aria-label={isImageModeActive ? "Switch to text input mode" : "Switch to image prompt mode"}
                     title={isImageModeActive ? "Textmodus aktivieren" : "Bildmodus aktivieren"}
-                    disabled={!!uploadedFilePreviewUrl || isLoading} // Disable if file uploaded or AI is responding
+                    disabled={!!uploadedFilePreviewUrl || isLoading} 
                   >
                     <ImagePlay className="w-5 h-5" />
                   </Button>
@@ -251,12 +250,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     size="icon"
                     className={cn(
                       "w-8 h-8 text-muted-foreground hover:text-foreground rounded-lg",
-                      isImageModeActive ? "opacity-50 cursor-not-allowed" : "" // Disable if image mode is active
+                      isImageModeActive ? "opacity-50 cursor-not-allowed" : "" 
                     )}
                     onClick={() => fileInputRef.current?.click()}
                     aria-label="Attach image file"
                     title="Attach image file"
-                    disabled={isImageModeActive || isLoading} // Disable if image mode active or AI is responding
+                    disabled={isImageModeActive || isLoading} 
                   >
                     <Paperclip className="w-5 h-5" />
                   </Button>
@@ -266,7 +265,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     onChange={handleFileChange} 
                     accept="image/*" 
                     className="hidden" 
-                    disabled={isImageModeActive || isLoading} // Disable if image mode active or AI is responding
+                    disabled={isImageModeActive || isLoading} 
                   />
                 </>
               )}

@@ -8,6 +8,7 @@ import MessageBubble from './MessageBubble';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
 
 interface ChatViewProps {
   conversation: Conversation | null;
@@ -26,16 +27,30 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
 
   useEffect(scrollToBottom, [messages]);
 
+  const modelIdToUse = conversation?.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
+  const styleNameToUse = conversation?.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
+
+  const selectedModelName = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === modelIdToUse)?.name || modelIdToUse;
+  const selectedStyleName = AVAILABLE_RESPONSE_STYLES.find(s => s.name === styleNameToUse)?.name || styleNameToUse;
+
+
   return (
     <div className={cn("w-full h-full flex flex-col bg-background overflow-hidden", className)}>
       <header className="p-4 flex items-center justify-between bg-card sticky top-0 z-10 flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={onGoBack} aria-label="Go back to tools menu">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h2 className="text-lg font-semibold text-card-foreground truncate">
-          {conversation?.title || 'New Chat'}
-        </h2>
-        <div className="w-8 flex-shrink-0"> {/* Placeholder for potential right-side icon */}
+        <div className="flex flex-col items-center">
+          <h2 className="text-lg font-semibold text-card-foreground truncate">
+            {conversation?.title || 'New Chat'}
+          </h2>
+          {conversation?.toolType === 'Long Language Loops' && (
+            <p className="text-xs text-muted-foreground">
+              Model: {selectedModelName} &bull; Style: {selectedStyleName}
+            </p>
+          )}
+        </div>
+        <div className="w-8 flex-shrink-0"> 
           {isLoading && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
         </div>
       </header>
@@ -50,7 +65,7 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
          )}
         {messages.length === 0 && !isLoading && (
           <div className="text-center text-foreground/70 py-10">
-            <p>Just send something and we get deep into the Loop.</p>
+             <p>Just send something and we get deep into the Loop.</p>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -60,4 +75,3 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
 };
 
 export default ChatView;
-

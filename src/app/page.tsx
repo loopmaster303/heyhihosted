@@ -13,7 +13,7 @@ import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
 import { GalleryHorizontal, CodeXml, MessageSquare, BrainCircuit } from 'lucide-react';
-import { DEFAULT_POLLINATIONS_MODEL_ID, getDefaultSystemPrompt } from '@/config/chat-options';
+import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,7 +61,8 @@ export default function Home() {
             timestamp: new Date(msg.timestamp)
           })),
           isImageMode: conv.toolType === 'Long Language Loops' ? (conv.isImageMode || false) : undefined,
-          // Do not load File objects from localStorage
+          selectedModelId: conv.selectedModelId || (conv.toolType === 'Long Language Loops' ? DEFAULT_POLLINATIONS_MODEL_ID : undefined),
+          selectedResponseStyleName: conv.selectedResponseStyleName || (conv.toolType === 'Long Language Loops' ? DEFAULT_RESPONSE_STYLE_NAME : undefined),
         }));
         setAllConversations(parsedConversations);
       } catch (error) {
@@ -74,7 +75,6 @@ export default function Home() {
   useEffect(() => {
     if (allConversations.length > 0 || localStorage.getItem('chatConversations')) {
         const conversationsToStore = allConversations.map(conv => {
-            // Explicitly exclude non-serializable fields if they were ever part of the Conversation type
             const { uploadedFile: _uploadedFile, uploadedFilePreview: _uploadedFilePreview, ...storableConv } = conv;
             return storableConv;
         });
@@ -83,10 +83,10 @@ export default function Home() {
   }, [allConversations]);
 
 
-  const updateActiveConversationState = useCallback((updates: Partial<Pick<Conversation, 'isImageMode' | 'uploadedFilePreview'>> & { uploadedFile?: File | null }) => {
+  const updateActiveConversationState = useCallback((updates: Partial<Pick<Conversation, 'isImageMode' | 'uploadedFilePreview' | 'selectedModelId' | 'selectedResponseStyleName'>> & { uploadedFile?: File | null }) => {
     setActiveConversation(prevActive => {
       if (!prevActive) return null;
-      const { uploadedFile: newUploadedFile, ...otherUpdates } = updates; // Separate File object
+      const { uploadedFile: newUploadedFile, ...otherUpdates } = updates; 
       const updatedConv = { ...prevActive, ...otherUpdates };
       
       setAllConversations(prevAllConvs =>
@@ -95,7 +95,6 @@ export default function Home() {
       return updatedConv;
     });
 
-    // Manage local component state for File objects and previews separately
     if (updates.hasOwnProperty('uploadedFile')) {
         setUploadedFile(updates.uploadedFile || null);
     }
@@ -112,16 +111,12 @@ export default function Home() {
     if (activeConversation) {
       if (activeConversation.toolType === 'Long Language Loops') {
         setIsImageMode(activeConversation.isImageMode || false);
-        // Do not load file/preview from activeConversation for local state here
-        // as File objects are not stored in allConversations / localStorage.
-        // Local state for file/preview is managed by handleFileSelect and handleSendMessageGlobal.
       } else {
         setIsImageMode(false);
         setUploadedFile(null);
         setUploadedFilePreview(null);
       }
     } else {
-        // Reset LLL specific UI state if no conversation is active
         setIsImageMode(false);
         setUploadedFile(null);
         setUploadedFilePreview(null);
@@ -134,8 +129,8 @@ export default function Home() {
     if (!convToUpdate || convToUpdate.toolType !== 'Long Language Loops') return;
 
     const isDefaultTitle = convToUpdate.title === "New Long Language Loop" ||
-                           convToUpdate.title.startsWith("New ") || // Covers "New FLUX Kontext Chat" etc. if those were possible
-                           convToUpdate.title === "Chat" || // A generic default
+                           convToUpdate.title.startsWith("New ") || 
+                           convToUpdate.title === "Chat" || 
                            convToUpdate.title === `New ${convToUpdate.toolType} Chat`;
 
 
@@ -147,7 +142,7 @@ export default function Home() {
           return textPart ? `${msg.role}: ${textPart.text}` : null;
         })
         .filter(Boolean)
-        .slice(0, 3) // Use first 3 relevant messages
+        .slice(0, 3) 
         .join('\n\n');
 
       if (relevantTextMessages.length > 0) {
@@ -162,11 +157,10 @@ export default function Home() {
           }
         } catch (error) {
           console.error("Failed to generate chat title:", error);
-          // Don't toast here, it's a background process
         }
       }
     }
-  }, [allConversations, activeConversation?.id]); // Added activeConversation?.id
+  }, [allConversations, activeConversation?.id]);
 
   const handleSelectTile = useCallback((toolType: ToolType) => {
     if (toolType === 'Long Language Loops') {
@@ -180,23 +174,24 @@ export default function Home() {
         messages: [],
         createdAt: now,
         toolType: toolType,
-        isImageMode: false, // Default for new LLL chat
+        isImageMode: false,
+        selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
+        selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
       };
 
       setAllConversations(prev => [newConversation, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
       setActiveConversation(newConversation);
-      setCurrentMessages([]); // Clear messages for the new chat
-      setIsImageMode(false); // Reset local image mode state
-      setUploadedFile(null); // Reset local file state
-      setUploadedFilePreview(null); // Reset local preview state
+      setCurrentMessages([]); 
+      setIsImageMode(false); 
+      setUploadedFile(null); 
+      setUploadedFilePreview(null); 
       setCurrentView('chat');
     } else {
-      // For other tools, stay on tile view or switch to it, do not start a chat.
       toast({
         title: "Tool Selected",
         description: `${toolType} selected. This tool does not have a dedicated chat view.`,
       });
-      if (currentView === 'chat') { // If coming from a chat view (e.g. LLL)
+      if (currentView === 'chat') { 
           setCurrentView('tiles');
           setActiveConversation(null);
           setCurrentMessages([]);
@@ -209,16 +204,17 @@ export default function Home() {
     const conversation = allConversations.find(c => c.id === conversationId);
     if (conversation) {
       if (conversation.toolType === 'Long Language Loops') { 
-        setActiveConversation(conversation);
+        setActiveConversation({
+          ...conversation,
+          selectedModelId: conversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID,
+          selectedResponseStyleName: conversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME,
+        });
         setCurrentMessages(conversation.messages);
-        // Sync local UI state with the selected LLL conversation's mode
         setIsImageMode(conversation.isImageMode || false);
-        // Files are not stored in conversation objects, so reset local file state
         setUploadedFile(null); 
         setUploadedFilePreview(null);
         setCurrentView('chat');
       } else {
-         // This case should ideally not happen if only LLL chats are shown in history for selection
          toast({
             title: "Error",
             description: `Cannot open chat for tool type: ${conversation.toolType}.`,
@@ -231,13 +227,12 @@ export default function Home() {
 
   const handleSendMessageGlobal = useCallback(async (
     messageText: string,
-    modelId: string = DEFAULT_POLLINATIONS_MODEL_ID,
-    systemPrompt: string = getDefaultSystemPrompt(),
+    // modelId and systemPrompt are now derived from activeConversation
     options: {
-      isImageModeIntent?: boolean; // True if send is initiated with image mode toggle ON
+      isImageModeIntent?: boolean; 
     } = {}
   ) => {
-    if (!activeConversation) {
+    if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') {
       toast({
         title: "No Active Chat",
         description: "Please select or start a 'Long Language Loop' chat to send a message.",
@@ -245,28 +240,19 @@ export default function Home() {
       });
       return;
     }
+    
+    const currentModelId = activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
+    const currentStyleName = activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
+    const currentSystemPrompt = AVAILABLE_RESPONSE_STYLES.find(s => s.name === currentStyleName)?.systemPrompt || AVAILABLE_RESPONSE_STYLES.find(s => s.name === DEFAULT_RESPONSE_STYLE_NAME)!.systemPrompt;
 
-    // This function should only be callable if activeConversation.toolType === 'Long Language Loops'
-    // because ChatInput is only rendered for LLL.
-    if (activeConversation.toolType !== 'Long Language Loops') {
-        toast({
-            title: "Action Not Supported",
-            description: `Sending messages is only supported for 'Long Language Loops'. Current tool: ${activeConversation.toolType}`,
-            variant: "destructive",
-        });
-        return;
-    }
 
     setIsAiResponding(true);
     const conversationToUpdateId = activeConversation.id;
     let currentMessagesForTurn = [...activeConversation.messages];
-    const currentToolType = activeConversation.toolType; // Should be 'Long Language Loops'
+    const currentToolType = activeConversation.toolType;
 
-    // Determine current mode for this specific send operation
-    // options.isImageModeIntent comes from ChatInput, reflecting if the image toggle was active
-    // uploadedFile is the local state for the file input
     const isActuallyImagePromptMode = options.isImageModeIntent || false;
-    const isActuallyFileUploadMode = !!uploadedFile && !isActuallyImagePromptMode; // File upload takes precedence if not in image prompt mode
+    const isActuallyFileUploadMode = !!uploadedFile && !isActuallyImagePromptMode; 
 
     let userMessageContent: string | ChatMessageContentPart[] = messageText.trim();
     let aiResponseContent: string | ChatMessageContentPart[] | null = null;
@@ -287,7 +273,6 @@ export default function Home() {
         setIsAiResponding(false);
         return;
     }
-    // Else, it's a plain text message. userMessageContent is already messageText.trim().
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
@@ -295,16 +280,13 @@ export default function Home() {
     currentMessagesForTurn.push(userMessage);
     setCurrentMessages([...currentMessagesForTurn]);
 
-    // Update conversation: add new user message, set isImageMode based on this send operation
-    // This state will be used if the user navigates away and comes back before AI responds.
     const interimConversationUpdate = {
       messages: [...currentMessagesForTurn],
-      isImageMode: isActuallyImagePromptMode, // Persist the mode used for this send.
+      isImageMode: isActuallyImagePromptMode,
     };
-    setActiveConversation(prev => prev ? { ...prev, ...interimConversationUpdate } : null);
-    setAllConversations(prevAll => prevAll.map(c =>
-        c.id === conversationToUpdateId ? { ...c, ...interimConversationUpdate } : c
-    ));
+    
+    // updateActiveConversationState will update both activeConversation and allConversations
+    updateActiveConversationState(interimConversationUpdate);
 
 
     if (isActuallyImagePromptMode && messageText.trim()) {
@@ -320,24 +302,20 @@ export default function Home() {
         const errorMessageText = error instanceof Error ? error.message : "Failed to generate image.";
         toast({ title: "Image Generation Error", description: errorMessageText, variant: "destructive" });
         aiResponseContent = `Sorry, I couldn't generate the image. ${errorMessageText}`;
-        skipPollinationsChatCall = true; // Still skip, even on error, to show error as AI response
+        skipPollinationsChatCall = true; 
       }
-    } else if (!skipPollinationsChatCall) { // Covers text messages and file uploads (which need text chat API)
+    } else if (!skipPollinationsChatCall) { 
       try {
-        // Construct messages for API: use processed content from currentMessagesForTurn
         const apiMessages = currentMessagesForTurn
           .map(msg => {
-            if (msg.role === 'system') return null; // Exclude system messages from history sent to API
+            if (msg.role === 'system') return null; 
             
-            // For Pollinations /openai, content must be string.
-            // If msg.content is array (e.g. uploaded image), extract text.
             let apiContentString = "";
             if (typeof msg.content === 'string') {
               apiContentString = msg.content;
-            } else { // It's ChatMessageContentPart[]
+            } else { 
               const textPart = msg.content.find(part => part.type === 'text');
               apiContentString = textPart ? textPart.text : "[Image content - text part missing]";
-              // Note: image_url part is not sent to /openai endpoint by pollinations-chat-flow.ts
             }
             return { role: msg.role as 'user' | 'assistant', content: apiContentString };
           })
@@ -345,8 +323,8 @@ export default function Home() {
 
         const apiInput: PollinationsChatInput = {
           messages: apiMessages,
-          modelId: modelId,
-          systemPrompt: systemPrompt,
+          modelId: currentModelId,
+          systemPrompt: currentSystemPrompt,
         };
         const result = await getPollinationsChatCompletion(apiInput);
         aiResponseContent = result.responseText;
@@ -366,24 +344,18 @@ export default function Home() {
       setCurrentMessages([...currentMessagesForTurn]);
     }
 
-    // Final state update for conversation and local UI state reset
     const finalConversationUpdate = {
       messages: [...currentMessagesForTurn],
-      isImageMode: (isActuallyImagePromptMode || isActuallyFileUploadMode) ? false : activeConversation.isImageMode, // Reset LLL-specific modes after use
+      isImageMode: (isActuallyImagePromptMode || isActuallyFileUploadMode) ? false : activeConversation.isImageMode,
     };
-    setActiveConversation(prevActive => prevActive ? { ...prevActive, ...finalConversationUpdate } : null);
-    setAllConversations(prevAll => prevAll.map(c =>
-        c.id === conversationToUpdateId ? { ...c, ...finalConversationUpdate } : c
-    ));
+    updateActiveConversationState(finalConversationUpdate);
     
-    // Reset local UI state for LLL if an image/file operation just completed
     if (isActuallyImagePromptMode || isActuallyFileUploadMode) {
         setIsImageMode(false);
         setUploadedFile(null);
         setUploadedFilePreview(null);
     }
 
-    // Update title if needed
     const messagesToConsiderForTitle = currentMessagesForTurn.filter(msg => msg.role === 'user' || msg.role === 'assistant');
     if (messagesToConsiderForTitle.length > 0) {
       updateConversationTitle(conversationToUpdateId, messagesToConsiderForTitle);
@@ -398,14 +370,13 @@ export default function Home() {
     toast,
     uploadedFile, 
     uploadedFilePreview,
-    // updateActiveConversationState, // Removed, direct updates used
+    updateActiveConversationState,
   ]);
 
   const handleGoBackToTilesView = () => {
     setCurrentView('tiles');
     setActiveConversation(null);
     setCurrentMessages([]); 
-    // Reset LLL specific states when going back to tiles
     setIsImageMode(false);
     setUploadedFile(null);
     setUploadedFilePreview(null);
@@ -436,7 +407,6 @@ export default function Home() {
 
   const handleRequestDeleteChat = (conversationId: string) => {
     const convToDelete = allConversations.find(c => c.id === conversationId);
-    // Ensure only LLL chats can be deleted via this UI path.
     if (convToDelete && convToDelete.toolType !== 'Long Language Loops') {
         toast({ title: "Action Not Allowed", description: "Chat deletion is only available for 'Long Language Loops' chats.", variant: "destructive"});
         return;
@@ -453,19 +423,17 @@ export default function Home() {
     setAllConversations(updatedConversations);
 
     if (wasActiveConversationDeleted) {
-      // Try to select the next most recent 'Long Language Loops' chat, or go to tiles view
       const nextLllConversation = updatedConversations
-        .filter(c => c.toolType === 'Long Language Loops') // Make sure to only consider LLL
+        .filter(c => c.toolType === 'Long Language Loops') 
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
       if (nextLllConversation) {
         setActiveConversation(nextLllConversation);
         setCurrentMessages(nextLllConversation.messages);
-        setIsImageMode(nextLllConversation.isImageMode || false); // Sync UI
-        setUploadedFile(null); // Reset local file state
-        setUploadedFilePreview(null); // Reset local preview state
+        setIsImageMode(nextLllConversation.isImageMode || false); 
+        setUploadedFile(null); 
+        setUploadedFilePreview(null); 
       } else {
-        // No other LLL chats, go back to tiles view
         setCurrentView('tiles');
         setActiveConversation(null);
         setCurrentMessages([]);
@@ -483,16 +451,14 @@ export default function Home() {
     if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') return;
 
     const newImageModeState = !isImageMode;
-    // Update local component state first
     setIsImageMode(newImageModeState);
-    if (newImageModeState) { // If turning image mode ON
-        setUploadedFile(null); // Clear any uploaded file
+    if (newImageModeState) { 
+        setUploadedFile(null); 
         setUploadedFilePreview(null);
     }
-    // Persist this change to the active conversation object immediately
     updateActiveConversationState({ 
       isImageMode: newImageModeState,
-      ...(newImageModeState && { uploadedFile: null, uploadedFilePreview: null }) // Also clear file if turning image mode on
+      ...(newImageModeState && { uploadedFile: null, uploadedFilePreview: null }) 
     });
   };
 
@@ -503,24 +469,31 @@ export default function Home() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const dataUrl = reader.result as string;
-        // Update local component state
         setUploadedFile(file);
         setUploadedFilePreview(dataUrl);
-        setIsImageMode(false); // Turn off image prompt mode if a file is selected
+        setIsImageMode(false); 
 
-        // Persist that image mode is OFF (because file is selected) in conversation state
         updateActiveConversationState({ isImageMode: false, uploadedFilePreview: dataUrl, uploadedFile: file });
       };
       reader.readAsDataURL(file);
-    } else { // File cleared
+    } else { 
       setUploadedFile(null);
       setUploadedFilePreview(null);
-      // No change to conversation.isImageMode needed when just clearing a file, 
-      // user might want to switch to image prompt or type text.
-      // Persist that file is cleared in conversation state
       updateActiveConversationState({ uploadedFilePreview: null, uploadedFile: null });
     }
   };
+
+  const handleModelChange = useCallback((modelId: string) => {
+    if (activeConversation && activeConversation.toolType === 'Long Language Loops') {
+      updateActiveConversationState({ selectedModelId: modelId });
+    }
+  }, [activeConversation, updateActiveConversationState]);
+
+  const handleStyleChange = useCallback((styleName: string) => {
+     if (activeConversation && activeConversation.toolType === 'Long Language Loops') {
+      updateActiveConversationState({ selectedResponseStyleName: styleName });
+    }
+  }, [activeConversation, updateActiveConversationState]);
 
 
   if (currentView === 'tiles') {
@@ -541,12 +514,12 @@ export default function Home() {
           tileItems={toolTileItems}
           activeToolType={activeConversation?.toolType || null}
           onSelectTile={handleSelectTile}
-          allConversations={allConversations.filter(c => c.toolType === 'Long Language Loops')} // Only LLL chats in history
+          allConversations={allConversations.filter(c => c.toolType === 'Long Language Loops')} 
           activeConversationId={activeConversation?.id || null}
           onSelectChatHistory={handleSelectChatFromHistory}
-          onEditTitle={handleRequestEditTitle} // Pass handler
-          onDeleteChat={handleRequestDeleteChat} // Pass handler
-          className="w-60 md:w-72 flex-shrink-0 bg-card border-r border-border"
+          onEditTitle={handleRequestEditTitle} 
+          onDeleteChat={handleRequestDeleteChat} 
+          className="w-60 md:w-72 flex-shrink-0 bg-card" 
         />
         <main className="flex-1 flex flex-col overflow-hidden">
           <ChatView
@@ -554,18 +527,21 @@ export default function Home() {
             messages={currentMessages}
             isLoading={isAiResponding}
             onGoBack={handleGoBackToTilesView}
-            className="flex-grow overflow-y-auto" // Ensures ChatView takes up space
+            className="flex-grow overflow-y-auto" 
           />
-          {/* ChatInput is only rendered if an LLL conversation is active */}
           {activeConversation && activeConversation.toolType === 'Long Language Loops' && (
             <ChatInput
-              onSendMessage={(message, model, system) => handleSendMessageGlobal(message, model, system, {isImageModeIntent: isImageMode})}
+              onSendMessage={(message) => handleSendMessageGlobal(message, {isImageModeIntent: isImageMode})}
               isLoading={isAiResponding}
-              isImageModeActive={isImageMode} // Pass local component state
+              isImageModeActive={isImageMode} 
               onToggleImageMode={handleToggleImageMode}
-              uploadedFilePreviewUrl={uploadedFilePreview} // Pass local component state
+              uploadedFilePreviewUrl={uploadedFilePreview} 
               onFileSelect={handleFileSelect}
-              isLongLanguageLoopActive={true} // True because it's inside LLL condition
+              isLongLanguageLoopActive={true}
+              selectedModelId={activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
+              selectedResponseStyleName={activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
+              onModelChange={handleModelChange}
+              onStyleChange={handleStyleChange}
             />
           )}
         </main>
@@ -590,4 +566,3 @@ export default function Home() {
     </div>
   );
 }
-

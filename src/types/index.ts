@@ -21,6 +21,8 @@ export interface Conversation {
   isImageMode?: boolean;
   uploadedFile?: File | null;
   uploadedFilePreview?: string | null;
+  selectedModelId?: string;
+  selectedResponseStyleName?: string;
 }
 
 export type ToolType = 'FLUX Kontext' | 'Easy Image Loop' | 'Code a Loop' | 'Long Language Loops';
