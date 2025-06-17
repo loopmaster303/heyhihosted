@@ -56,6 +56,7 @@ export default function Home() {
   const [activeToolTypeForView, setActiveToolTypeForView] = useState<ToolType | null>(null);
 
   const [isModelPreSelectionDialogOpen, setIsModelPreSelectionDialogOpen] = useState(false);
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
 
   useEffect(() => {
@@ -73,23 +74,45 @@ export default function Home() {
           selectedModelId: conv.selectedModelId || (conv.toolType === 'Long Language Loops' ? DEFAULT_POLLINATIONS_MODEL_ID : undefined),
           selectedResponseStyleName: conv.selectedResponseStyleName || (conv.toolType === 'Long Language Loops' ? DEFAULT_RESPONSE_STYLE_NAME : undefined),
         }));
-        setAllConversations(parsedConversations);
+        
+        // Filter out empty LLL chats on load
+        const activeStoredConversations = parsedConversations.filter(conv => {
+          if (conv.toolType === 'Long Language Loops') {
+            return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
+          }
+          return true;
+        });
+        setAllConversations(activeStoredConversations.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       } catch (error) {
         console.error("Failed to parse conversations from localStorage", error);
-        localStorage.removeItem('chatConversations');
+        localStorage.removeItem('chatConversations'); // Clear corrupted data
       }
     }
+    setIsInitialLoadComplete(true);
   }, []);
 
   useEffect(() => {
-    if (allConversations.length > 0 || localStorage.getItem('chatConversations')) {
-        const conversationsToStore = allConversations.map(conv => {
-            const { uploadedFile: _uploadedFile, uploadedFilePreview: _uploadedFilePreview, ...storableConv } = conv;
-            return storableConv;
-        });
-        localStorage.setItem('chatConversations', JSON.stringify(conversationsToStore));
+    if (isInitialLoadComplete) { // Only run after initial load
+        const conversationsToStore = allConversations
+            .filter(conv => { // Filter empty LLL chats before saving
+                if (conv.toolType === 'Long Language Loops') {
+                    return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
+                }
+                return true;
+            })
+            .map(conv => { // Prepare for storage
+                const { uploadedFile: _uploadedFile, uploadedFilePreview: _uploadedFilePreview, ...storableConv } = conv;
+                return storableConv;
+            });
+
+        if (conversationsToStore.length > 0) {
+            localStorage.setItem('chatConversations', JSON.stringify(conversationsToStore));
+        } else {
+            // If all conversations were filtered out (e.g., only empty LLL chats existed)
+            localStorage.removeItem('chatConversations');
+        }
     }
-  }, [allConversations]);
+  }, [allConversations, isInitialLoadComplete]);
 
 
   const updateActiveConversationState = useCallback((updates: Partial<Pick<Conversation, 'isImageMode' | 'uploadedFilePreview' | 'selectedModelId' | 'selectedResponseStyleName'>> & { uploadedFile?: File | null }) => {
@@ -175,18 +198,29 @@ export default function Home() {
   const handleSelectPollinationsForLoop = () => {
     setActiveToolTypeForView('Easy Image Loop');
     setCurrentView('easyImageLoopTool');
-    setActiveConversation(null);
+    setActiveConversation(null); // Ensure no LLL chat is carried over
     setIsModelPreSelectionDialogOpen(false);
   };
 
   const handleSelectOpenAIForLoop = () => {
     setActiveToolTypeForView('Easy Image Loop'); 
     setCurrentView('gptImageTool');
-    setActiveConversation(null);
+    setActiveConversation(null); // Ensure no LLL chat is carried over
     setIsModelPreSelectionDialogOpen(false);
   };
 
+  const cleanupPreviousEmptyLllChat = useCallback((previousActiveConv: Conversation | null) => {
+    if (previousActiveConv && previousActiveConv.toolType === 'Long Language Loops') {
+        const hasMeaningfulMessages = previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
+        if (!hasMeaningfulMessages) {
+            setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== previousActiveConv.id));
+        }
+    }
+  }, []); // This useCallback depends on setAllConversations, not allConversations directly
+
   const handleGoBackToTilesView = useCallback(() => {
+    const prevActive = activeConversation;
+
     setCurrentView('tiles');
     setActiveConversation(null);
     setCurrentMessages([]);
@@ -194,12 +228,14 @@ export default function Home() {
     setUploadedFile(null);
     setUploadedFilePreview(null);
     setActiveToolTypeForView(null);
-  }, []);
+
+    cleanupPreviousEmptyLllChat(prevActive);
+  }, [activeConversation, cleanupPreviousEmptyLllChat]);
 
   const handleSelectTile = useCallback((toolType: ToolType) => {
+    const previousActiveConv = activeConversation;
+
     setActiveToolTypeForView(toolType);
-    setActiveConversation(null);
-    setCurrentMessages([]);
     setIsImageMode(false);
     setUploadedFile(null);
     setUploadedFilePreview(null);
@@ -208,7 +244,6 @@ export default function Home() {
       const newConversationId = crypto.randomUUID();
       const now = new Date();
       const conversationTitle = "New Long Language Loop";
-
       const newConversation: Conversation = {
         id: newConversationId,
         title: conversationTitle,
@@ -219,52 +254,76 @@ export default function Home() {
         selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
         selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
       };
-
-      setAllConversations(prev => [newConversation, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
+      setAllConversations(prev => [newConversation, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       setActiveConversation(newConversation);
+      setCurrentMessages([]);
       setCurrentView('chat');
-    } else if (toolType === 'FLUX Kontext') {
-      setCurrentView('fluxKontextTool');
-    } else if (toolType === 'Easy Image Loop') { 
-      setIsModelPreSelectionDialogOpen(true); 
-    } else { 
-      toast({
-        title: "Tool Selected",
-        description: `${toolType} selected. This tool is not yet fully implemented.`,
-      });
-      if (currentView !== 'tiles') {
-          handleGoBackToTilesView();
+    } else {
+      // For other tools, nullify active LLL chat state
+      setActiveConversation(null);
+      setCurrentMessages([]);
+      if (toolType === 'FLUX Kontext') {
+        setCurrentView('fluxKontextTool');
+      } else if (toolType === 'Easy Image Loop') {
+        setIsModelPreSelectionDialogOpen(true);
       } else {
-        setActiveToolTypeForView(null); // Reset if already on tiles and non-functional tile clicked
+        toast({
+          title: "Tool Selected",
+          description: `${toolType} selected. This tool is not yet fully implemented.`,
+        });
+        if (currentView !== 'tiles') {
+            // This call will handle cleanup if needed
+            handleGoBackToTilesView(); // Go back to tiles if a non-functional tool is selected from a view
+        } else {
+          setActiveToolTypeForView(null);
+        }
       }
     }
-  }, [currentView, toast, handleGoBackToTilesView]);
+    
+    // Cleanup previous LLL chat if it was empty and we've effectively switched away from it.
+    // This runs after the new activeConversation/view might have been set.
+    if (previousActiveConv && previousActiveConv.toolType === 'Long Language Loops') {
+      // Only cleanup if the new active conversation is different, or if we switched to a non-LLL tool.
+      if (activeConversation?.id !== previousActiveConv.id || toolType !== 'Long Language Loops') {
+        cleanupPreviousEmptyLllChat(previousActiveConv);
+      }
+    }
+
+  }, [activeConversation, toast, handleGoBackToTilesView, cleanupPreviousEmptyLllChat, currentView]);
 
 
   const handleSelectChatFromHistory = useCallback((conversationId: string) => {
-    const conversation = allConversations.find(c => c.id === conversationId);
-    if (conversation) {
-      if (conversation.toolType === 'Long Language Loops') {
-        setActiveConversation({
-          ...conversation,
-          selectedModelId: conversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID,
-          selectedResponseStyleName: conversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME,
-        });
-        setCurrentMessages(conversation.messages);
-        setIsImageMode(conversation.isImageMode || false);
-        setUploadedFile(null);
-        setUploadedFilePreview(null);
-        setActiveToolTypeForView('Long Language Loops');
-        setCurrentView('chat');
-      } else {
-         toast({
-            title: "Error",
-            description: `Cannot open chat for tool type: ${conversation.toolType}.`,
-            variant: "destructive"
-        });
-      }
+    const conversationToSelect = allConversations.find(c => c.id === conversationId);
+    if (!conversationToSelect) return;
+
+    const previousActiveConv = activeConversation;
+
+    if (conversationToSelect.toolType === 'Long Language Loops') {
+      setActiveConversation({
+        ...conversationToSelect,
+        selectedModelId: conversationToSelect.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID,
+        selectedResponseStyleName: conversationToSelect.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME,
+      });
+      setCurrentMessages(conversationToSelect.messages);
+      setIsImageMode(conversationToSelect.isImageMode || false);
+      setUploadedFile(null); // Reset file upload when selecting from history
+      setUploadedFilePreview(null);
+      setActiveToolTypeForView('Long Language Loops');
+      setCurrentView('chat');
+    } else {
+       toast({
+          title: "Error",
+          description: `Cannot open chat for tool type: ${conversationToSelect.toolType}.`,
+          variant: "destructive"
+      });
+      return; // Do not proceed with cleanup if selection failed
     }
-  }, [allConversations, toast]);
+
+    // Cleanup the previous active LLL chat if it was empty and different from the newly selected one.
+    if (previousActiveConv && previousActiveConv.id !== conversationId && previousActiveConv.toolType === 'Long Language Loops') {
+       cleanupPreviousEmptyLllChat(previousActiveConv);
+    }
+  }, [allConversations, activeConversation, toast, cleanupPreviousEmptyLllChat]);
 
 
   const handleSendMessageGlobal = useCallback(async (
@@ -284,7 +343,7 @@ export default function Home() {
 
     setIsAiResponding(true);
     const conversationToUpdateId = activeConversation.id;
-    let currentMessagesForTurn = [...activeConversation.messages];
+    let currentMessagesForTurn = [...activeConversation.messages]; // Use current state of activeConversation.messages
     const currentToolType = activeConversation.toolType;
 
     const isActuallyImagePromptMode = options.isImageModeIntent || false;
@@ -313,15 +372,16 @@ export default function Home() {
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
     };
-    currentMessagesForTurn.push(userMessage);
-    setCurrentMessages([...currentMessagesForTurn]);
-
-    const interimConversationUpdate = {
-      messages: [...currentMessagesForTurn],
-      isImageMode: isActuallyImagePromptMode,
-    };
-
-    updateActiveConversationState(interimConversationUpdate);
+    
+    // Update messages for the active conversation
+    setActiveConversation(prevActive => {
+      if (!prevActive) return null;
+      const updatedMessages = [...prevActive.messages, userMessage];
+      setCurrentMessages(updatedMessages); // Update local currentMessages for immediate UI
+      return { ...prevActive, messages: updatedMessages };
+    });
+    // This also updates allConversations via updateActiveConversationState's call to setAllConversations
+     setAllConversations(prevAll => prevAll.map(c => c.id === conversationToUpdateId ? {...c, messages: [...c.messages, userMessage]} : c));
 
 
     if (isActuallyImagePromptMode && messageText.trim()) {
@@ -341,10 +401,10 @@ export default function Home() {
       }
     } else if (!skipPollinationsChatCall) {
       try {
-        const apiMessages = currentMessagesForTurn
+        // Construct API messages from the *current* state of the conversation after user message is added
+        const messagesForApi = (allConversations.find(c => c.id === conversationToUpdateId)?.messages || [userMessage])
           .map(msg => {
             if (msg.role === 'system') return null;
-
             let apiContentString = "";
             if (typeof msg.content === 'string') {
               apiContentString = msg.content;
@@ -357,7 +417,7 @@ export default function Home() {
           .filter(Boolean) as PollinationsChatInput['messages'];
 
         const apiInput: PollinationsChatInput = {
-          messages: apiMessages,
+          messages: messagesForApi,
           modelId: currentModelId,
           systemPrompt: currentSystemPrompt,
         };
@@ -375,32 +435,36 @@ export default function Home() {
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: currentToolType,
       };
-      currentMessagesForTurn.push(aiMessage);
-      setCurrentMessages([...currentMessagesForTurn]);
+      setActiveConversation(prevActive => {
+        if (!prevActive) return null;
+        const updatedMessages = [...prevActive.messages, aiMessage];
+        setCurrentMessages(updatedMessages);
+        return { ...prevActive, messages: updatedMessages };
+      });
+      setAllConversations(prevAll => prevAll.map(c => c.id === conversationToUpdateId ? {...c, messages: [...c.messages, aiMessage]} : c));
     }
+    
+    // Final state updates for UI, like clearing image mode if applicable
+    const finalIsImageMode = (isActuallyImagePromptMode || isActuallyFileUploadMode) ? false : activeConversation.isImageMode; // Re-evaluate based on actual activeConversation
+    updateActiveConversationState({ isImageMode: finalIsImageMode });
 
-    const finalConversationUpdate = {
-      messages: [...currentMessagesForTurn],
-      isImageMode: (isActuallyImagePromptMode || isActuallyFileUploadMode) ? false : activeConversation.isImageMode,
-    };
-    updateActiveConversationState(finalConversationUpdate);
 
     if (isActuallyImagePromptMode || isActuallyFileUploadMode) {
-        setIsImageMode(false);
+        setIsImageMode(false); // UI state
         setUploadedFile(null);
         setUploadedFilePreview(null);
+        updateActiveConversationState({ uploadedFile: null, uploadedFilePreview: null, isImageMode: false}); // Conversation state
     }
 
-    const messagesToConsiderForTitle = currentMessagesForTurn.filter(msg => msg.role === 'user' || msg.role === 'assistant');
-    if (messagesToConsiderForTitle.length > 0) {
-      updateConversationTitle(conversationToUpdateId, messagesToConsiderForTitle);
+    const finalMessagesForTitle = allConversations.find(c=>c.id === conversationToUpdateId)?.messages || [];
+    if (finalMessagesForTitle.length > 0) {
+      updateConversationTitle(conversationToUpdateId, finalMessagesForTitle);
     }
-
     setIsAiResponding(false);
 
   }, [
     activeConversation,
-    allConversations,
+    allConversations, // Added as a dependency
     updateConversationTitle,
     toast,
     uploadedFile,
@@ -446,21 +510,17 @@ export default function Home() {
     if (!chatToDeleteId) return;
 
     const wasActiveConversationDeleted = activeConversation?.id === chatToDeleteId;
-    const updatedConversations = allConversations.filter(c => c.id !== chatToDeleteId);
-    setAllConversations(updatedConversations);
+    
+    setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== chatToDeleteId));
 
     if (wasActiveConversationDeleted) {
-      const nextLllConversation = updatedConversations
-        .filter(c => c.toolType === 'Long Language Loops')
+      const nextLllConversation = allConversations // use allConversations *before* filtering for the current update
+        .filter(c => c.id !== chatToDeleteId && c.toolType === 'Long Language Loops')
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
       if (nextLllConversation) {
-        setActiveConversation(nextLllConversation);
-        setCurrentMessages(nextLllConversation.messages);
-        setIsImageMode(nextLllConversation.isImageMode || false);
-        setUploadedFile(null);
-        setUploadedFilePreview(null);
-        setActiveToolTypeForView('Long Language Loops');
+        // Simulate selecting this next chat
+        handleSelectChatFromHistory(nextLllConversation.id);
       } else {
         handleGoBackToTilesView();
       }
@@ -474,15 +534,14 @@ export default function Home() {
     if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') return;
 
     const newImageModeState = !isImageMode;
-    setIsImageMode(newImageModeState);
-    if (newImageModeState) {
+    setIsImageMode(newImageModeState); // UI state
+    if (newImageModeState) { // If turning ON image mode
         setUploadedFile(null);
         setUploadedFilePreview(null);
+        updateActiveConversationState({ isImageMode: newImageModeState, uploadedFile: null, uploadedFilePreview: null });
+    } else { // If turning OFF image mode
+        updateActiveConversationState({ isImageMode: newImageModeState });
     }
-    updateActiveConversationState({
-      isImageMode: newImageModeState,
-      ...(newImageModeState && { uploadedFile: null, uploadedFilePreview: null })
-    });
   };
 
   const handleFileSelect = (file: File | null) => {
@@ -494,12 +553,12 @@ export default function Home() {
         const dataUrl = reader.result as string;
         setUploadedFile(file);
         setUploadedFilePreview(dataUrl);
-        setIsImageMode(false);
+        setIsImageMode(false); // Turn off image *prompt* mode when a file is selected
 
         updateActiveConversationState({ isImageMode: false, uploadedFilePreview: dataUrl, uploadedFile: file });
       };
       reader.readAsDataURL(file);
-    } else {
+    } else { // Clearing file
       setUploadedFile(null);
       setUploadedFilePreview(null);
       updateActiveConversationState({ uploadedFilePreview: null, uploadedFile: null });
@@ -534,7 +593,7 @@ export default function Home() {
             tileItems={toolTileItems}
             activeToolType={activeToolTypeForView}
             onSelectTile={handleSelectTile}
-            allConversations={allConversations.filter(c => c.toolType === 'Long Language Loops')}
+            allConversations={allConversations.filter(c => c.toolType === 'Long Language Loops')} // Only LLL shown in history
             activeConversationId={activeConversation?.id || null}
             onSelectChatHistory={handleSelectChatFromHistory}
             onEditTitle={handleRequestEditTitle}
@@ -588,7 +647,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Dialogs rendered at the root level of the Home component's return */}
       {isModelPreSelectionDialogOpen && (
         <AlertDialog open={isModelPreSelectionDialogOpen} onOpenChange={setIsModelPreSelectionDialogOpen}>
           <AlertDialogContent>
@@ -605,10 +663,8 @@ export default function Home() {
              <AlertDialogCancel
                 onClick={() => {
                     setIsModelPreSelectionDialogOpen(false);
-                    // If the dialog was opened from the 'tiles' view,
-                    // ensure activeToolType is reset to prevent unintended sidebar state.
-                    if (currentView === 'tiles') {
-                        setActiveToolTypeForView(null);
+                    if (currentView === 'tiles') { // If dialog was opened from tiles view
+                        setActiveToolTypeForView(null); // Reset if cancelled from tiles view
                     }
                 }}
                 className="mt-2 sm:mt-0 w-full"
@@ -639,7 +695,5 @@ export default function Home() {
     </div>
   );
 }
-
-    
 
     
