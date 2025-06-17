@@ -46,13 +46,11 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
         {messages.length === 1 && messages[0].role === 'system' && !isLoading && (
            <div className="text-center text-foreground/70 py-10">
             <p>You can now start talking to the AI.</p>
-            {conversation?.toolType && <p className="mt-2 text-sm">You are in <span className="font-semibold text-primary-foreground">{conversation.toolType}</span> mode.</p>}
           </div>
          )}
         {messages.length === 0 && !isLoading && (
           <div className="text-center text-foreground/70 py-10">
             <p>Just send something and we get deep into the Loop.</p>
-            {conversation?.toolType && <p className="mt-2 text-sm">You are in <span className="font-semibold text-primary-foreground">{conversation.toolType}</span> mode.</p>}
           </div>
         )}
         <div ref={messagesEndRef} />
