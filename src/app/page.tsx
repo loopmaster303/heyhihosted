@@ -7,10 +7,10 @@ import TileMenu from '@/components/navigation/TileMenu';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
-import type { ChatMessage, Conversation, ToolType, TileItem } from '@/types';
+import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
-import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
-import type { PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
+import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
+import { generateImage as generateImageFlow } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
 import { Image as ImageIcon, GalleryHorizontal, CodeXml, MessageSquare } from 'lucide-react';
 import { DEFAULT_POLLINATIONS_MODEL_ID, getDefaultSystemPrompt } from '@/config/chat-options';
@@ -30,7 +30,7 @@ const toolTileItems: TileItem[] = [
   { id: 'FLUX Kontext', title: 'FLUX Kontext', icon: ImageIcon, description: "Engage with contextual AI" },
   { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images effortlessly" },
   { id: 'Code a Loop', title: 'Code some Loops', icon: CodeXml, description: "AI-assisted coding" },
-  { id: 'Long Language Loops', title: 'Long Language Loops', icon: MessageSquare, description: "Loops about everything." },
+  { id: 'Long Language Loops', title: 'Long Language Loops', icon: MessageSquare, description: "Chat, generate images, or analyze uploaded pictures." },
 ];
 
 export default function Home() {
@@ -44,6 +44,11 @@ export default function Home() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [chatToDeleteId, setChatToDeleteId] = useState<string | null>(null);
 
+  // States for image mode and file upload, specific to active conversation
+  const [isImageMode, setIsImageMode] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFilePreview, setUploadedFilePreview] = useState<string | null>(null);
+
 
   useEffect(() => {
     const storedConversations = localStorage.getItem('chatConversations');
@@ -55,7 +60,11 @@ export default function Home() {
           messages: conv.messages.map((msg: any) => ({
             ...msg,
             timestamp: new Date(msg.timestamp)
-          }))
+          })),
+          // Restore transient states if needed, or initialize them
+          isImageMode: conv.isImageMode || false,
+          uploadedFile: null, // Files can't be stored in localStorage
+          uploadedFilePreview: null,
         }));
         setAllConversations(parsedConversations);
       } catch (error) {
@@ -66,10 +75,35 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    // Persist all conversations, excluding non-serializable fields like File objects
     if (allConversations.length > 0 || localStorage.getItem('chatConversations')) {
-        localStorage.setItem('chatConversations', JSON.stringify(allConversations));
+        const conversationsToStore = allConversations.map(conv => {
+            const { uploadedFile, uploadedFilePreview, ...storableConv } = conv;
+            return storableConv;
+        });
+        localStorage.setItem('chatConversations', JSON.stringify(conversationsToStore));
     }
   }, [allConversations]);
+
+  // Sync image mode and file upload states with active conversation
+  useEffect(() => {
+    if (activeConversation) {
+      setIsImageMode(activeConversation.isImageMode || false);
+      setUploadedFile(activeConversation.uploadedFile || null);
+      setUploadedFilePreview(activeConversation.uploadedFilePreview || null);
+    } else {
+      setIsImageMode(false);
+      setUploadedFile(null);
+      setUploadedFilePreview(null);
+    }
+  }, [activeConversation]);
+
+  const updateActiveConversationState = (updates: Partial<Conversation>) => {
+    if (!activeConversation) return;
+    const updatedConv = { ...activeConversation, ...updates };
+    setActiveConversation(updatedConv);
+    setAllConversations(prev => prev.map(c => c.id === activeConversation.id ? updatedConv : c));
+  };
 
 
   const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]) => {
@@ -78,20 +112,24 @@ export default function Home() {
 
     const conversation = allConversations[convIndex];
     const isDefaultTitle = conversation.title === "New Long Language Loop" ||
-                           conversation.title.startsWith("New ") || // Catches "New FLUX Kontext Chat" etc.
-                           conversation.title === "Chat"; // A very generic fallback
+                           conversation.title.startsWith("New ") || 
+                           conversation.title === "Chat";
 
     if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
-      const relevantMessages = messagesForTitleGen
-        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+      const relevantTextMessages = messagesForTitleGen
+        .map(msg => {
+          if (typeof msg.content === 'string') return `${msg.role}: ${msg.content}`;
+          // For structured content, take the first text part if available
+          const textPart = msg.content.find(part => part.type === 'text');
+          return textPart ? `${msg.role}: ${textPart.text}` : null;
+        })
+        .filter(Boolean) // Remove nulls (e.g. if a message was only an image)
         .slice(0, 3)
-        .map(msg => `${msg.role}: ${msg.content}`)
         .join('\n\n');
 
-      if (relevantMessages.length > 0) {
+      if (relevantTextMessages.length > 0) {
         try {
-          const result = await generateChatTitle({ messages: relevantMessages });
-
+          const result = await generateChatTitle({ messages: relevantTextMessages });
           setAllConversations(prev =>
             prev.map(c => (c.id === conversationId ? { ...c, title: result.title } : c))
           );
@@ -108,7 +146,6 @@ export default function Home() {
   const handleSelectTile = useCallback((toolType: ToolType) => {
     const newConversationId = crypto.randomUUID();
     const now = new Date();
-
     let conversationTitle: string;
 
     if (toolType === 'Long Language Loops') {
@@ -124,6 +161,9 @@ export default function Home() {
       messages: [],
       createdAt: now,
       toolType: toolType,
+      isImageMode: false,
+      uploadedFile: null,
+      uploadedFilePreview: null,
     };
 
     setAllConversations(prev => [newConversation, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
@@ -137,6 +177,7 @@ export default function Home() {
     if (conversation) {
       setActiveConversation(conversation);
       setCurrentMessages(conversation.messages);
+      // isImageMode, uploadedFile, uploadedFilePreview will be set by the useEffect for activeConversation
       setCurrentView('chat');
     }
   }, [allConversations]);
@@ -145,69 +186,122 @@ export default function Home() {
   const handleSendMessageGlobal = useCallback(async (
     messageText: string,
     modelId: string = DEFAULT_POLLINATIONS_MODEL_ID,
-    systemPrompt: string = getDefaultSystemPrompt()
+    systemPrompt: string = getDefaultSystemPrompt(),
+    options: { // New options object from ChatInput
+      isImageMode?: boolean;
+      // uploadedImageFile is now managed by page.tsx's state `uploadedFile`
+    } = {}
   ) => {
     setIsAiResponding(true);
     let conversationToUpdateId: string;
     let messagesForThisTurn: ChatMessage[];
     let currentToolType: ToolType;
+    let currentConversationRef = activeConversation; // Capture ref for updates
 
-    if (!activeConversation) {
-      currentToolType = 'Long Language Loops'; // Default to LLL if no active conversation
+    // Create new conversation if none is active
+    if (!currentConversationRef) {
+      currentToolType = 'Long Language Loops'; // Default
       const newConversationId = crypto.randomUUID();
       conversationToUpdateId = newConversationId;
       const now = new Date();
-
-      const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'user',
-        content: messageText,
-        timestamp: new Date(),
-        toolType: currentToolType,
+      const tempNewConv: Conversation = {
+        id: newConversationId, title: "New Long Language Loop", messages: [], createdAt: now, toolType: currentToolType,
+        isImageMode: options.isImageMode || false,
+        uploadedFile: uploadedFile || null, // Use page state
+        uploadedFilePreview: uploadedFilePreview || null, // Use page state
       };
-
-      messagesForThisTurn = [userMessage];
-
-      const newConversation: Conversation = {
-        id: newConversationId,
-        title: "New Long Language Loop",
-        messages: messagesForThisTurn,
-        createdAt: now,
-        toolType: currentToolType,
-      };
-
-      setAllConversations(prev => [newConversation, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
-      setActiveConversation(newConversation);
-      setCurrentMessages(messagesForThisTurn);
+      setAllConversations(prev => [tempNewConv, ...prev.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())]);
+      setActiveConversation(tempNewConv);
+      currentConversationRef = tempNewConv;
+      messagesForThisTurn = [];
+      setCurrentMessages([]);
       setCurrentView('chat');
     } else {
-      conversationToUpdateId = activeConversation.id;
-      currentToolType = activeConversation.toolType || 'Long Language Loops';
-      const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'user',
-        content: messageText,
-        timestamp: new Date(),
-        toolType: currentToolType,
-      };
-      messagesForThisTurn = [...currentMessages, userMessage];
-      setCurrentMessages(messagesForThisTurn);
-
-      setAllConversations(prev =>
-        prev.map(c => c.id === conversationToUpdateId ? {...c, messages: messagesForThisTurn} : c)
-      );
-      if (activeConversation && activeConversation.id === conversationToUpdateId) {
-          setActiveConversation(prev => prev ? {...prev, messages: messagesForThisTurn} : null);
-      }
+      conversationToUpdateId = currentConversationRef.id;
+      currentToolType = currentConversationRef.toolType || 'Long Language Loops';
+      messagesForThisTurn = [...currentMessages];
     }
+    
+    // Determine message type (text, image prompt, file upload)
+    const activeIsImageMode = currentConversationRef.isImageMode || false;
+    const activeUploadedFile = currentConversationRef.uploadedFile || null;
 
-    let aiResponseContent = `An unexpected error occurred.`;
+    let userMessageContent: string | ChatMessageContentPart[] = messageText;
+    let aiResponseContent: string | ChatMessageContentPart[] = `An unexpected error occurred.`;
+    let skipPollinationsCall = false;
 
     if (currentToolType === 'Long Language Loops') {
+      if (activeIsImageMode && messageText.trim()) { // Image Generation
+        userMessageContent = `Image prompt: "${messageText.trim()}"`;
+        try {
+          const result = await generateImageFlow({ prompt: messageText.trim() });
+          aiResponseContent = [
+            { type: 'text', text: `Generated image for: "${result.promptUsed}"` },
+            { type: 'image_url', image_url: { url: result.imageDataUri, altText: `Generated image for ${result.promptUsed}`, isGenerated: true } }
+          ];
+          skipPollinationsCall = true;
+          updateActiveConversationState({ isImageMode: false }); // Exit image mode
+        } catch (error) {
+          console.error("Error generating image:", error);
+          const errorMessage = error instanceof Error ? error.message : "Failed to generate image.";
+          toast({ title: "Image Generation Error", description: errorMessage, variant: "destructive" });
+          aiResponseContent = `Sorry, I couldn't generate the image. ${errorMessage}`;
+          skipPollinationsCall = true; // Still skip Pollinations if image gen failed
+          updateActiveConversationState({ isImageMode: false });
+        }
+      } else if (activeUploadedFile) { // Image Upload for Analysis
+        const reader = new FileReader();
+        const fileReadPromise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(activeUploadedFile);
+        });
+
+        try {
+          const dataUrl = await fileReadPromise;
+          const textPart: ChatMessageContentPart = { type: 'text', text: messageText.trim() || "Describe this image." };
+          const imagePart: ChatMessageContentPart = { type: 'image_url', image_url: { url: dataUrl, altText: activeUploadedFile.name, isUploaded: true } };
+          userMessageContent = [textPart, imagePart];
+          // Pollinations call will happen below for this structured message
+          updateActiveConversationState({ uploadedFile: null, uploadedFilePreview: null });
+        } catch (error) {
+           console.error("Error reading uploaded file:", error);
+           toast({ title: "File Read Error", description: "Could not read the uploaded file.", variant: "destructive" });
+           aiResponseContent = `Sorry, I couldn't read the uploaded file.`;
+           skipPollinationsCall = true;
+           updateActiveConversationState({ uploadedFile: null, uploadedFilePreview: null });
+        }
+      }
+      // If it's a plain text message, userMessageContent is already messageText
+    }
+
+
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
+    };
+    messagesForThisTurn = [...messagesForThisTurn, userMessage];
+    setCurrentMessages(messagesForThisTurn);
+    setAllConversations(prev => prev.map(c => c.id === conversationToUpdateId ? {...c, messages: messagesForThisTurn} : c));
+    if (currentConversationRef && currentConversationRef.id === conversationToUpdateId) {
+      setActiveConversation(prev => prev ? {...prev, messages: messagesForThisTurn} : null); // Will be re-set with full conv below
+    }
+
+
+    if (!skipPollinationsCall) { // Standard text chat or image analysis via Pollinations
       try {
+        // Prepare messages for Pollinations API (might include image data URI)
         const apiMessages = messagesForThisTurn
-          .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-          .map(msg => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
+          .map(msg => {
+            if (typeof msg.content === 'string') {
+              return { role: msg.role as 'user' | 'assistant', content: msg.content };
+            }
+            // If content is array (multimodal), pass it as is (after ensuring role is user/assistant)
+            const role = msg.role as 'user' | 'assistant'; // System messages are pre-pended or not part of history this deep
+            if (role !== 'user' && role !== 'assistant') return null; // Should not happen here
+            return { role, content: msg.content };
+          })
+          .filter(Boolean) as PollinationsChatInput['messages'];
+
 
         const apiInput: PollinationsChatInput = {
           messages: apiMessages,
@@ -219,61 +313,50 @@ export default function Home() {
       } catch (error) {
         console.error("Error getting chat completion:", error);
         const errorMessage = error instanceof Error ? error.message : "Failed to get AI response.";
-        toast({
-          title: "AI Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
         aiResponseContent = `Sorry, I couldn't get a response. ${errorMessage}`;
       }
-    } else if (currentToolType === 'Easy Image Loop' && messageText.toLowerCase().includes('image')) {
-        aiResponseContent = `Okay, I'll generate an image based on: "${messageText}". Here is a placeholder: ![Placeholder Image](https://placehold.co/300x200.png?text=Generated+Image)`;
-    } else if (currentToolType === 'Code a Loop' && messageText.toLowerCase().includes('code')) {
-        aiResponseContent = "```python\nfor i in range(5):\n  print(f'Loop iteration {i+1} for: {messageText}')\n```";
-    } else {
-        aiResponseContent = `Mock AI response for "${messageText}" in ${currentToolType} mode. Model: ${modelId}.`;
     }
 
-    const aiMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: aiResponseContent,
-      timestamp: new Date(),
-      toolType: currentToolType,
-    };
 
+    const aiMessage: ChatMessage = {
+      id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: currentToolType,
+    };
     const finalMessages = [...messagesForThisTurn, aiMessage];
     setCurrentMessages(finalMessages);
 
+    // Update conversation with final messages and any state changes
     setAllConversations(prev =>
-      prev.map(c => (c.id === conversationToUpdateId ? { ...c, messages: finalMessages } : c))
+      prev.map(c => (c.id === conversationToUpdateId ? { ...c, messages: finalMessages, isImageMode: false, uploadedFile: null, uploadedFilePreview: null } : c))
     );
-    if (activeConversation && activeConversation.id === conversationToUpdateId) {
-        setActiveConversation(prev => prev ? {...prev, messages: finalMessages} : null);
-    }
+    // Ensure activeConversation in state is also fully updated
+     const finalActiveConv = allConversations.find(c => c.id === conversationToUpdateId);
+     if (finalActiveConv) {
+         setActiveConversation({...finalActiveConv, messages: finalMessages, isImageMode: false, uploadedFile: null, uploadedFilePreview: null });
+     }
+
 
     const conversationForTitle = allConversations.find(c => c.id === conversationToUpdateId) || 
                                  (activeConversation?.id === conversationToUpdateId ? activeConversation : null);
-                                 
     if (conversationForTitle) {
-      // Use finalMessages which includes the AI response for title generation
-      const messagesForTitleGen = finalMessages.filter(msg => msg.role === 'user' || msg.role === 'assistant');
-      updateConversationTitle(conversationToUpdateId, messagesForTitleGen);
+      updateConversationTitle(conversationToUpdateId, finalMessages.filter(msg => msg.role === 'user' || msg.role === 'assistant'));
     }
-
     setIsAiResponding(false);
 
-  }, [activeConversation, currentMessages, allConversations, updateConversationTitle, toast]);
+  }, [activeConversation, currentMessages, allConversations, updateConversationTitle, toast, uploadedFile, uploadedFilePreview]);
 
   const handleGoBackToTilesView = () => {
     setCurrentView('tiles');
     setActiveConversation(null);
+    // Reset image/file states when going back
+    setIsImageMode(false);
+    setUploadedFile(null);
+    setUploadedFilePreview(null);
   };
 
   const handleRequestEditTitle = (conversationId: string) => {
     const conversation = allConversations.find(c => c.id === conversationId);
     if (!conversation) return;
-
     const newTitle = window.prompt("Enter new chat title:", conversation.title);
     if (newTitle && newTitle.trim() !== "") {
       const updatedTitle = newTitle.trim();
@@ -293,7 +376,6 @@ export default function Home() {
 
   const handleConfirmDeleteChat = () => {
     if (!chatToDeleteId) return;
-
     const wasActiveConversationDeleted = activeConversation?.id === chatToDeleteId;
     const updatedConversations = allConversations.filter(c => c.id !== chatToDeleteId);
     setAllConversations(updatedConversations);
@@ -310,10 +392,33 @@ export default function Home() {
         setCurrentMessages([]);
       }
     }
-
     setIsDeleteDialogOpen(false);
     setChatToDeleteId(null);
     toast({ title: "Chat Deleted", description: "The conversation has been removed." });
+  };
+
+  // Callbacks for ChatInput
+  const handleToggleImageMode = () => {
+    if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') return;
+    const newImageMode = !isImageMode;
+    updateActiveConversationState({ isImageMode: newImageMode, uploadedFile: null, uploadedFilePreview: null });
+  };
+
+  const handleFileSelect = (file: File | null) => {
+    if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') return;
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateActiveConversationState({ 
+          uploadedFile: file, 
+          uploadedFilePreview: reader.result as string,
+          isImageMode: false // Turn off image prompt mode if a file is selected
+        });
+      };
+      reader.readAsDataURL(file);
+    } else { // Clearing the file
+      updateActiveConversationState({ uploadedFile: null, uploadedFilePreview: null });
+    }
   };
 
 
@@ -327,6 +432,11 @@ export default function Home() {
         <ChatInput
             onSendMessage={handleSendMessageGlobal}
             isLoading={isAiResponding}
+            isImageModeActive={false} // Not relevant in tiles view
+            onToggleImageMode={() => {}} // No-op
+            uploadedFilePreviewUrl={null} // No preview in tiles
+            onFileSelect={() => {}} // No-op
+            isLongLanguageLoopActive={false} // Features disabled
         />
       </div>
     );
@@ -359,6 +469,11 @@ export default function Home() {
       <ChatInput
         onSendMessage={handleSendMessageGlobal}
         isLoading={isAiResponding}
+        isImageModeActive={activeConversation?.toolType === 'Long Language Loops' ? isImageMode : false}
+        onToggleImageMode={handleToggleImageMode}
+        uploadedFilePreviewUrl={activeConversation?.toolType === 'Long Language Loops' ? uploadedFilePreview : null}
+        onFileSelect={handleFileSelect}
+        isLongLanguageLoopActive={activeConversation?.toolType === 'Long Language Loops'}
       />
       {isDeleteDialogOpen && chatToDeleteId && (
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -380,4 +495,3 @@ export default function Home() {
     </div>
   );
 }
-    

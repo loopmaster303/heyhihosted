@@ -3,9 +3,10 @@
 
 import type React from 'react';
 import { cn } from '@/lib/utils';
-import type { ChatMessage } from '@/types';
+import type { ChatMessage, ChatMessageContentPart } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Bot, User } from 'lucide-react';
+import Image from 'next/image';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -16,10 +17,38 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const Icon = isUser ? User : Bot;
   const initial = isUser ? 'U' : 'AI';
 
-  let displayContent = message.content;
-  if (message.role === 'assistant' && (!message.content || message.content.trim() === '')) {
-    displayContent = "[AI response was empty]";
-  }
+  const renderContent = (content: string | ChatMessageContentPart[]) => {
+    if (typeof content === 'string') {
+      let displayContent = content;
+      if (message.role === 'assistant' && (!content || content.trim() === '')) {
+        displayContent = "[AI response was empty]";
+      }
+      return <p className="text-sm whitespace-pre-wrap">{displayContent}</p>;
+    }
+
+    // Handle array of content parts
+    return content.map((part, index) => {
+      if (part.type === 'text') {
+        return <p key={index} className="text-sm whitespace-pre-wrap">{part.text}</p>;
+      }
+      if (part.type === 'image_url') {
+        const altText = part.image_url.altText || (part.image_url.isGenerated ? "Generated image" : (part.image_url.isUploaded ? "Uploaded image" : "Image"));
+        return (
+          <div key={index} className="mt-2 mb-1">
+            <Image
+              src={part.image_url.url}
+              alt={altText}
+              width={300} // Adjust as needed, or make responsive
+              height={200} // Adjust as needed
+              className="rounded-md object-contain max-w-full h-auto"
+              data-ai-hint={part.image_url.isGenerated ? "illustration digital art" : (part.image_url.isUploaded ? "photo object" : "image")}
+            />
+          </div>
+        );
+      }
+      return null;
+    });
+  };
 
   return (
     <div
@@ -44,7 +73,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             : 'bg-secondary text-secondary-foreground rounded-bl-none'
         )}
       >
-        <p className="text-sm whitespace-pre-wrap">{displayContent}</p>
+        {renderContent(message.content)}
         <p className={cn(
             "text-xs mt-1",
             isUser ? "text-primary-foreground/70 text-right" : "text-muted-foreground text-left"
