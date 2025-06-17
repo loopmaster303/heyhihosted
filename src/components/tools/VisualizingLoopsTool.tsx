@@ -24,11 +24,14 @@ import Image from 'next/image';
 import { Loader2, Settings, ImagePlus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
+const SUPPORTED_IMAGE_MODELS_FALLBACK = ['flux', 'turbo', 'gptimage'];
+const DEFAULT_IMAGE_MODEL = 'flux';
+
 const VisualizingLoopsTool: FC = () => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
-  const [imageModels, setImageModels] = useState<string[]>([]);
-  const [model, setModel] = useState<string>(''); 
+  const [imageModels, setImageModels] = useState<string[]>(SUPPORTED_IMAGE_MODELS_FALLBACK);
+  const [model, setModel] = useState<string>(DEFAULT_IMAGE_MODEL); 
   
   const [width, setWidth] = useState([1024]);
   const [height, setHeight] = useState([1024]);
@@ -41,9 +44,7 @@ const VisualizingLoopsTool: FC = () => {
 
   const [aspectRatio, setAspectRatio] = useState<string>('1:1');
   const [batchSize, setBatchSize] = useState<number>(1);
-  // const [safetyTolerance, setSafetyTolerance] = useState<number>(0); // Not used by Pollinations /generate
   const [upsampling, setUpsampling] = useState(false); 
-  // const [outputFormat, setOutputFormat] = useState<string>('jpg'); // Not directly controllable via basic Pollinations /prompt endpoint
 
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
@@ -55,7 +56,8 @@ const VisualizingLoopsTool: FC = () => {
           return res.json().then(errData => {
             throw new Error(errData.error || `HTTP error! status: ${res.status}`);
           }).catch(() => {
-            throw new Error(`HTTP error! status: ${res.status}, response not JSON.`);
+            // If response is not JSON, or error parsing fails
+             throw new Error(`HTTP error! status: ${res.status}, response not JSON or error parsing failed.`);
           });
         }
         return res.json();
@@ -63,25 +65,28 @@ const VisualizingLoopsTool: FC = () => {
       .then(data => {
         if (Array.isArray(data.models) && data.models.length > 0) {
           const fetchedModels = data.models.filter((m: any) => typeof m === 'string');
-          setImageModels(fetchedModels);
-          if (!model || !fetchedModels.includes(model)) {
-            setModel(fetchedModels.includes('flux') ? 'flux' : fetchedModels[0]);
+          // Ensure only supported models are listed
+          const validModels = fetchedModels.filter(m => SUPPORTED_IMAGE_MODELS_FALLBACK.includes(m));
+          setImageModels(validModels.length > 0 ? validModels : SUPPORTED_IMAGE_MODELS_FALLBACK);
+          if (!model || !validModels.includes(model)) {
+            setModel(validModels.includes(DEFAULT_IMAGE_MODEL) ? DEFAULT_IMAGE_MODEL : (validModels[0] || DEFAULT_IMAGE_MODEL));
           }
         } else {
           console.warn("No models array or empty models array received:", data);
-          const fallbackModels = ['flux', 'turbo', 'sdxl', 'dall-e-3', 'gptimage'];
-          setImageModels(fallbackModels);
-          setModel(fallbackModels[0]);
+          setImageModels(SUPPORTED_IMAGE_MODELS_FALLBACK);
+          setModel(DEFAULT_IMAGE_MODEL);
         }
       })
       .catch(err => {
         console.error('Error loading image models:', err);
         toast({ title: "Model Loading Error", description: err.message || "Could not fetch image models. Using defaults.", variant: "destructive" });
-        const fallbackModels = ['flux', 'turbo', 'sdxl', 'dall-e-3', 'gptimage'];
-        setImageModels(fallbackModels);
-        if (!model) setModel(fallbackModels[0]);
+        setImageModels(SUPPORTED_IMAGE_MODELS_FALLBACK);
+        if (!model || !SUPPORTED_IMAGE_MODELS_FALLBACK.includes(model)) {
+            setModel(DEFAULT_IMAGE_MODEL);
+        }
       });
-  }, [model, toast]);
+  }, []); // model dependency removed to avoid re-fetch loop; model is set correctly inside
+
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -100,6 +105,9 @@ const VisualizingLoopsTool: FC = () => {
         if (!isNaN(baseSeed)) {
           currentSeedForIteration = String(baseSeed + i);
         }
+      } else if (batchSize > 1 && !currentSeedForIteration) {
+        // If batching and no seed, generate random seed per image for variety
+         currentSeedForIteration = String(Math.floor(Math.random() * 99999999));
       }
       
       const payload: Record<string, any> = {
@@ -137,19 +145,12 @@ const VisualizingLoopsTool: FC = () => {
           let displayErrorMsg: string;
 
           if (modelInError === 'gptimage') {
-            if (errorData.error?.toLowerCase().includes('flower tier')) {
-              displayErrorMsg = 'gptimage nicht freigeschaltet. Bitte \'flux\' auswählen oder ein anderes Modell probieren.';
-              toast({ title: "Modell-Problem", description: displayErrorMsg, variant: "destructive" });
-              setModel('flux');
-            } else {
-              const pollinationStatus = resp.status;
-              const pollinationErrorDetail = errorData.error || `Unbekannter Fehler von Pollinations (Status: ${pollinationStatus})`;
-              displayErrorMsg = `Problem mit gptimage Modell: "${pollinationErrorDetail.substring(0,100)}". Bitte versuchen Sie ein anderes Modell (z.B. flux).`;
-              toast({ title: "gptimage Fehler", description: displayErrorMsg, variant: "destructive" });
-            }
+              displayErrorMsg = `The 'gptimage' model is currently unstable or unavailable from Pollinations. Please try 'flux' or 'turbo'. Error: ${errorData.error || `Status ${resp.status}`}`.substring(0,150);
+              toast({ title: "gptimage Model Issue", description: displayErrorMsg, variant: "destructive", duration: 7000 });
+              setModel('flux'); // Suggest switching to a more stable model
           } else {
             displayErrorMsg = errorData.error || `Fehler beim Generieren des Bildes (Status: ${resp.status})`;
-            toast({ title: "Image Generation Error", description: displayErrorMsg, variant: "destructive"});
+            toast({ title: "Image Generation Error", description: displayErrorMsg, variant: "destructive", duration: 7000});
           }
           setError(displayErrorMsg);
           break; 
@@ -183,10 +184,16 @@ const VisualizingLoopsTool: FC = () => {
     const wRatio = Number(wStr);
     const hRatio = Number(hStr);
     if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
+      // Maintain current width, adjust height. Or vice-versa.
+      // Let's try to keep the area somewhat consistent, or one dimension fixed.
+      // For simplicity, let's adjust height based on current width.
       const currentWidth = width[0];
       let newHeight = Math.round((currentWidth * hRatio) / wRatio);
-      newHeight = Math.max(256, Math.round(newHeight / 64) * 64); 
-      let newWidth = Math.max(256, Math.round(currentWidth / 64) * 64);
+      // Ensure height is a multiple of 64 and within reasonable bounds (e.g., 256-2048)
+      newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64)); 
+      
+      // Also ensure width is a multiple of 64
+      let newWidth = Math.max(256, Math.min(2048, Math.round(currentWidth / 64) * 64));
       
       setWidth([newWidth]);
       setHeight([newHeight]);
@@ -212,7 +219,7 @@ const VisualizingLoopsTool: FC = () => {
           </div>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Image Settings">
+              <Button variant="ghost" size="icon" aria-label="Image Settings" className="h-10 w-10">
                 <Settings className="h-5 w-5" />
               </Button>
             </PopoverTrigger>
@@ -237,7 +244,7 @@ const VisualizingLoopsTool: FC = () => {
                             <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
                           ))
                         ) : (
-                           <SelectItem value="flux" disabled className="text-xs">Loading models...</SelectItem>
+                           <SelectItem value={DEFAULT_IMAGE_MODEL} disabled className="text-xs">Loading models...</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -274,7 +281,7 @@ const VisualizingLoopsTool: FC = () => {
                     <Label htmlFor="seed-input-visualize" className="col-span-1 text-xs">Seed</Label>
                     <Input id="seed-input-visualize" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random()*9999999)))} className="text-xs h-8 w-full">
+                  <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random()*99999999)))} className="text-xs h-8 w-full">
                     Random Seed
                   </Button>
                   <div className="flex items-center justify-between pt-1">
@@ -282,7 +289,7 @@ const VisualizingLoopsTool: FC = () => {
                     <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-visualize" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="upsampling-check-visualize" className="text-xs cursor-pointer">Upsample</Label>
+                    <Label htmlFor="upsampling-check-visualize" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
                     <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-visualize" />
                   </div>
                   <div className="flex items-center justify-between">
@@ -335,3 +342,4 @@ const VisualizingLoopsTool: FC = () => {
 };
 
 export default VisualizingLoopsTool;
+
