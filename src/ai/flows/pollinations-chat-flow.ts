@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview Interacts with the Pollinations AI API for chat completions.
- * Supports text and multimodal inputs (text + image).
+ * Supports text and limited multimodal inputs (text part of image uploads).
  *
  * Exports:
  * - getPollinationsChatCompletion - Fetches a chat completion from Pollinations AI.
@@ -13,30 +13,20 @@
 import { z } from 'zod';
 import type { ChatMessageContentPart } from '@/types'; // Import for structured content
 
-// Internal Zod schema for input validation
-const PollinationsApiMessageContentPartSchema = z.union([
-  z.object({ type: z.literal('text'), text: z.string() }),
-  z.object({ 
-    type: z.literal('image_url'), 
-    image_url: z.object({ 
-      url: z.string().describe("Image URL, can be a public URL or a data URI (e.g., 'data:image/jpeg;base64,...').") 
-    }) 
-  })
-]);
-
-const PollinationsApiChatMessageSchema = z.object({
+// Internal Zod schema for input validation - simplified as content is processed to string
+const PollinationsApiChatMessageSchemaInternal = z.object({
   role: z.enum(['system', 'user', 'assistant']),
-  content: z.union([z.string(), z.array(PollinationsApiMessageContentPartSchema)]),
+  // content will be processed to string before API call, so internal schema can reflect that if needed
+  // For now, input type from page.tsx can still be complex.
+  content: z.union([z.string(), z.array(z.union([
+    z.object({ type: z.literal('text'), text: z.string() }),
+    z.object({ type: z.literal('image_url'), image_url: z.object({ url: z.string() }) })
+  ]))]),
 });
 
+
 const PollinationsChatInputSchemaInternal = z.object({
-  messages: z.array(
-    // Allow historical messages to be simpler (string content for user/assistant),
-    // but the last user message might be complex. This schema adapts.
-    PollinationsApiChatMessageSchema.extend({
-      role: z.enum(['user', 'assistant', 'system']), // Allow system for initial prompt, user/assistant for history
-    })
-  ).min(1).describe('Array of message objects.'),
+  messages: z.array(PollinationsApiChatMessageSchemaInternal).min(1).describe('Array of message objects.'),
   modelId: z.string().describe('The Pollinations model ID to use (e.g., openai, mistral).'),
   systemPrompt: z.string().optional().describe('An optional system prompt to guide the AI.'),
 });
@@ -71,26 +61,46 @@ export async function getPollinationsChatCompletion(
 
   const { messages: historyMessages, modelId, systemPrompt: systemPromptText } = validationResult.data;
 
-  let apiMessagesToSend: Array<{role: string; content: string | ChatMessageContentPart[]}> = [];
+  const apiMessagesToSend: Array<{role: 'system' | 'user' | 'assistant'; content: string}> = [];
 
+  // Add system prompt first if it exists
   if (systemPromptText && systemPromptText.trim() !== "") {
     apiMessagesToSend.push({ role: 'system', content: systemPromptText });
   }
-  
-  // Add historical messages, ensuring content is correctly formatted for the API
-  historyMessages.forEach(msg => {
-    // The Pollinations API expects user/assistant roles for message history in the /openai endpoint.
-    // System prompt is handled separately or as the first message if included in historyMessages.
+
+  // Process history messages
+  for (const msg of historyMessages) {
+    let messageContentString: string;
+
+    if (typeof msg.content === 'string') {
+      messageContentString = msg.content;
+    } else {
+      // msg.content is ChatMessageContentPart[]
+      const textParts = msg.content
+        .filter(part => part.type === 'text')
+        .map(part => (part as { type: 'text'; text: string }).text);
+      messageContentString = textParts.join('\n');
+
+      const imageParts = msg.content.filter(part => part.type === 'image_url');
+      if (imageParts.length > 0) {
+        console.warn(`Pollinations API (model: ${modelId}): Message (role: ${msg.role}) contained image parts. These are being omitted as the /openai endpoint expects string content. Text sent: "${messageContentString}"`);
+      }
+      if (!messageContentString && imageParts.length > 0) {
+          messageContentString = "[Image content was present but could not be sent as text to this model via Pollinations /openai endpoint]";
+      }
+    }
+
+    // Add to API payload if role is user or assistant
     if (msg.role === 'user' || msg.role === 'assistant') {
       apiMessagesToSend.push({
         role: msg.role,
-        content: msg.content // This can be string or array of parts
+        content: messageContentString
       });
-    } else if (msg.role === 'system' && apiMessagesToSend.length === 0) {
-      // If a system message is the first in historyMessages and no systemPromptText was provided, use it.
-      apiMessagesToSend.push({ role: 'system', content: msg.content as string});
+    } else if (msg.role === 'system' && apiMessagesToSend.length === 0 && (!systemPromptText || systemPromptText.trim() === "")) {
+      // This handles if the first message in history is 'system' and no systemPromptText was directly provided.
+      apiMessagesToSend.push({ role: 'system', content: messageContentString });
     }
-  });
+  }
 
 
   const payload: Record<string, any> = {
@@ -98,7 +108,7 @@ export async function getPollinationsChatCompletion(
     messages: apiMessagesToSend,
     temperature: 1.0,
     stream: false,
-    max_tokens: 500,
+    max_tokens: 500, // Kept based on previous successful interactions
   };
 
   const headers: Record<string, string> = {
@@ -111,7 +121,7 @@ export async function getPollinationsChatCompletion(
     console.warn('POLLINATIONS_API_TOKEN not set. API requests might be rate-limited or restricted.');
   }
 
-  let fullApiResponseForLogging: any = null; // For logging in case of parsing issues
+  let fullApiResponseForLogging: any = null; 
 
   try {
     const response = await fetch(POLLINATIONS_API_URL, {
@@ -120,8 +130,8 @@ export async function getPollinationsChatCompletion(
       body: JSON.stringify(payload),
     });
 
-    const responseText = await response.text(); // Get text for logging in all cases
-    fullApiResponseForLogging = responseText; // Store raw text for potential error logging
+    const responseText = await response.text(); 
+    fullApiResponseForLogging = responseText; 
 
     if (!response.ok) {
       let errorData;
@@ -138,7 +148,7 @@ export async function getPollinationsChatCompletion(
     }
 
     const result = JSON.parse(responseText);
-    fullApiResponseForLogging = result; // Store parsed JSON for logging if parsing succeeds
+    fullApiResponseForLogging = result; 
 
     let replyText: string | null = null;
 
@@ -152,7 +162,6 @@ export async function getPollinationsChatCompletion(
             console.warn('Pollinations API: choices[0].message.content is null. Interpreting as empty reply. Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
             replyText = ""; 
           } else {
-            // Content might be an object or array in multimodal responses, but we expect text here.
             console.warn(`Pollinations API: choices[0].message.content is not a string or null (it's ${typeof choice.message.content}). This flow expects a text reply. Full API Response:`, JSON.stringify(result, null, 2));
           }
         } else if (typeof choice.text === 'string') {
@@ -170,7 +179,7 @@ export async function getPollinationsChatCompletion(
         if (typeof result.reply === 'string') {
             replyText = result.reply;
             console.log("Extracted reply from result.reply. Full API Response:", JSON.stringify(result, null, 2));
-        } else if (typeof result.content === 'string') { // Less common for chat, more for simple text gen
+        } else if (typeof result.content === 'string') { 
             replyText = result.content;
             console.log("Extracted reply from result.content. Full API Response:", JSON.stringify(result, null, 2));
         }
@@ -178,7 +187,7 @@ export async function getPollinationsChatCompletion(
     
     if (replyText !== null) {
       const trimmedReply = replyText.trim();
-      if (trimmedReply === "" && replyText !== "") { 
+      if (trimmedReply === "" && replyText.length > 0) { 
          console.warn('Pollinations API: Successfully parsed response, content was only whitespace. Original content: "' + replyText + '". Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
       } else if (trimmedReply === "") { 
          console.warn('Pollinations API: Successfully parsed response, but content is an empty string. Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
