@@ -16,8 +16,8 @@ interface SidebarNavProps {
   allConversations: Conversation[];
   activeConversationId: string | null;
   onSelectChatHistory: (conversationId: string) => void;
-  onEditTitle: (conversationId: string) => void; // Prop for editing title
-  onDeleteChat: (conversationId: string) => void; // Prop for deleting chat
+  onEditTitle: (conversationId: string) => void; 
+  onDeleteChat: (conversationId: string) => void; 
   className?: string;
 }
 
@@ -28,8 +28,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   allConversations,
   activeConversationId,
   onSelectChatHistory,
-  onEditTitle, // Destructure the prop
-  onDeleteChat, // Destructure the prop
+  onEditTitle, 
+  onDeleteChat, 
   className 
 }) => {
   const displayToolItems = tileItems; 
@@ -45,9 +45,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
               key={item.id} 
               item={item} 
               onSelect={onSelectTile}
-              // Active state for tool cards is primarily for non-LLL tools or the LLL general selection
               isActive={item.id === activeToolType && activeConversationId === null} 
-              showPlusIcon={item.id === 'Long Language Loops'} // Plus icon for LLL to indicate "new chat"
+              showPlusIcon={item.id === 'Long Language Loops'} 
             />
           ))}
         </nav>
@@ -66,8 +65,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                     conversation={conv} 
                     onSelect={onSelectChatHistory}
                     isActive={conv.id === activeConversationId}
-                    onEditTitle={onEditTitle} // Pass down to ChatHistoryItem
-                    onDeleteChat={onDeleteChat} // Pass down to ChatHistoryItem
+                    onEditTitle={onEditTitle} 
+                    onDeleteChat={onDeleteChat} 
                   />
                 ))}
               </div>
@@ -79,4 +78,3 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   );
 };
 export default SidebarNav;
-

@@ -68,7 +68,7 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
             onClick={handleEditClick}
             className={cn(
               "p-0.5 rounded hover:bg-muted-foreground/20",
-              isActive ? "text-accent-foreground/80 hover:text-accent-foreground" : "text-muted-foreground/70 hover:text-foreground"
+              isActive ? "text-accent-foreground hover:text-accent-foreground/80" : "text-muted-foreground/70 hover:text-foreground"
             )}
             aria-label="Edit chat title"
           >
@@ -78,7 +78,7 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
             onClick={handleDeleteClick}
             className={cn(
               "p-0.5 rounded hover:bg-destructive/20",
-               isActive ? "text-accent-foreground/80 hover:text-destructive" : "text-muted-foreground/70 hover:text-destructive"
+               isActive ? "text-accent-foreground hover:text-destructive" : "text-muted-foreground/70 hover:text-destructive"
             )}
             aria-label="Delete chat"
           >
@@ -90,4 +90,3 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({ conversation, onSelec
   );
 };
 export default ChatHistoryItem;
-
