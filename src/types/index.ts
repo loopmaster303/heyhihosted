@@ -25,7 +25,7 @@ export interface Conversation {
 }
 
 // Ensure 'Easy Image Loop' matches the id in toolTileItems for Visualizing Loops tool
-export type ToolType = 'FLUX Kontext' | 'Easy Image Loop' | 'Code a Loop' | 'Long Language Loops';
+export type ToolType = 'FLUX Kontext' | 'Easy Image Loop' | 'Replicate Image Tool' | 'Long Language Loops';
 
 export interface TileItem {
   id: ToolType;
@@ -35,6 +35,6 @@ export interface TileItem {
 }
 
 // Add a type for the view state
-export type CurrentAppView = 'tiles' | 'chat' | 'fluxKontextTool' | 'easyImageLoopTool' | 'gptImageTool';
+export type CurrentAppView = 'tiles' | 'chat' | 'fluxKontextTool' | 'easyImageLoopTool' | 'gptImageTool' | 'replicateImageTool';
 
     
