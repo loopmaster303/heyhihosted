@@ -8,6 +8,7 @@ const MODEL_VERSIONS: Record<string, string> = {
   "flux-kontext-max": "black-forest-labs/flux-kontext-max:dfec52f5191e1e0c8e054f259bbaf22f9e7b1ed97ea51012d951181869fb86be",
   "flux-kontext-pro": "black-forest-labs/flux-kontext-pro:402c39d028c3e2c58aebfad299fa1e3b0f626da07b252325d87e59161fd2be91",
   "veo-3": "google/veo-3:139def04146afc5fdb23f3e1b8e15c93e6a75ad8ec17cbe924060c2485a5d570"
+  // Add other model versions here as "modelKey": "replicate_owner/model_name:version_hash"
 };
 
 export async function POST(request: NextRequest) {
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: MODEL_VERSIONS[modelKey],
+        version: MODEL_VERSIONS[modelKey], // Use the mapped version hash
         input: sanitizedInput,
       }),
     });
@@ -77,13 +78,14 @@ export async function POST(request: NextRequest) {
 
     let prediction = await startResponse.json();
 
+    // Polling logic
     if (prediction.urls && prediction.urls.get) {
       while (prediction.status !== "succeeded" && prediction.status !== "failed" && prediction.status !== "canceled") {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Poll interval
         const pollResponse = await fetch(prediction.urls.get, {
           headers: { 
             'Authorization': `Token ${process.env.REPLICATE_API_KEY}`,
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json', // Added for consistency, though GET usually doesn't need it
            }
         });
         if (!pollResponse.ok) {
@@ -99,10 +101,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (prediction.status === "succeeded") {
+      // The output can be a string (URL) or an array of URLs
       return NextResponse.json({ output: prediction.output });
     } else if (prediction.status === "failed" || prediction.status === "canceled") {
       return NextResponse.json({ error: prediction.error || `Prediction ${prediction.status}.` }, { status: 500 });
     } else {
+       // Should not happen if polling is complete, but as a fallback
        return NextResponse.json({ error: 'Prediction did not succeed or fail in time.', status: prediction.status }, { status: 202 }); // Accepted but not finished
     }
 

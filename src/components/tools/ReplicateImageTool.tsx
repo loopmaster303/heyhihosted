@@ -29,7 +29,7 @@ const ReplicateImageTool: React.FC = () => {
   const [currentModelConfig, setCurrentModelConfig] = useState<ReplicateModelConfig | null>(null);
   
   const [formFields, setFormFields] = useState<Record<string, any>>({});
-  const [outputImageUrl, setOutputImageUrl] = useState<string | null>(null);
+  const [outputImageUrl, setOutputImageUrl] = useState<string | null>(null); // Can also be video URL
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +47,8 @@ const ReplicateImageTool: React.FC = () => {
     } else {
       setCurrentModelConfig(null);
       setFormFields({});
+      setOutputImageUrl(null);
+      setError(null);
     }
   }, [selectedModelKey]);
 
@@ -72,7 +74,7 @@ const ReplicateImageTool: React.FC = () => {
                 <TooltipTrigger asChild>
                     <AlertCircle className="ml-1.5 h-3.5 w-3.5 text-muted-foreground cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
+                <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground border border-border shadow-lg p-2 rounded-md">
                     <p className="text-xs">{inputConfig.info}</p>
                 </TooltipContent>
                 </Tooltip>
@@ -93,6 +95,7 @@ const ReplicateImageTool: React.FC = () => {
                 onChange={(e) => handleInputChange(inputConfig.name, e.target.value)}
                 className="bg-input border-border focus-visible:ring-primary min-h-[80px]"
                 rows={inputConfig.name === 'prompt' ? 3 : 2}
+                required={inputConfig.required}
               />
             </div>
           );
@@ -106,18 +109,18 @@ const ReplicateImageTool: React.FC = () => {
               placeholder={inputConfig.placeholder || `Enter ${inputConfig.label.toLowerCase()}`}
               onChange={(e) => handleInputChange(inputConfig.name, e.target.value)}
               className="bg-input border-border focus-visible:ring-primary"
+              required={inputConfig.required}
             />
           </div>
         );
       case 'number':
-        // Use Slider if min, max, step are defined, otherwise Input type="number"
         if (inputConfig.min !== undefined && inputConfig.max !== undefined && inputConfig.step !== undefined) {
              return (
                 <div key={inputConfig.name} className="space-y-1.5">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-1">
                         {label}
                         <span className="text-xs text-muted-foreground tabular-nums">
-                            {formFields[inputConfig.name] ?? inputConfig.default}
+                            {formFields[inputConfig.name] ?? inputConfig.default ?? inputConfig.min}
                         </span>
                     </div>
                     <Slider
@@ -145,12 +148,13 @@ const ReplicateImageTool: React.FC = () => {
               placeholder={inputConfig.placeholder || String(inputConfig.default) || ''}
               onChange={(e) => handleInputChange(inputConfig.name, parseFloat(e.target.value))}
               className="bg-input border-border focus-visible:ring-primary"
+              required={inputConfig.required}
             />
           </div>
         );
         case 'boolean':
             return (
-                <div key={inputConfig.name} className="flex items-center justify-between space-x-2 py-2">
+                <div key={inputConfig.name} className="flex items-center justify-between space-x-2 py-2.5 border-b border-border last:border-b-0">
                     {label}
                     <Switch
                         id={inputConfig.name}
@@ -169,28 +173,41 @@ const ReplicateImageTool: React.FC = () => {
     event.preventDefault();
     if (!selectedModelKey || !currentModelConfig) return;
 
+    // Basic client-side validation for required fields
+    for (const input of currentModelConfig.inputs) {
+      if (input.required && (formFields[input.name] === undefined || formFields[input.name] === '')) {
+        toast({
+          title: "Missing Required Field",
+          description: `Please fill in the "${input.label}" field.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
     setOutputImageUrl(null);
 
     const payload: Record<string, any> = { model: selectedModelKey };
     currentModelConfig.inputs.forEach(input => {
-      // Only include field if it has a value or is required with a default
-      // Replicate handles missing optional fields better than empty strings for numbers etc.
       if (formFields[input.name] !== undefined && formFields[input.name] !== '' && formFields[input.name] !== null) {
         if (input.type === 'number') {
-          payload[input.name] = parseFloat(formFields[input.name]);
+          const numValue = parseFloat(formFields[input.name]);
+          if (!isNaN(numValue)) {
+            payload[input.name] = numValue;
+          }
         } else {
           payload[input.name] = formFields[input.name];
         }
-      } else if (input.required && input.default !== undefined) {
-         payload[input.name] = input.default;
+      } else if (input.default !== undefined) {
+         payload[input.name] = input.default; // Send default if field is empty but has a default
       }
     });
     
-    // Ensure prompt is not an empty string if it's a field for the model
-    if (payload.prompt === "") {
-        delete payload.prompt; // Some models error on empty prompt
+    // Ensure prompt is not an empty string if it's a field for the model, unless it's not required and has no default
+    if (payload.prompt === "" && currentModelConfig.inputs.find(i=>i.name === "prompt" && !i.required && i.default === undefined) ) {
+        delete payload.prompt; 
     }
 
 
@@ -208,10 +225,10 @@ const ReplicateImageTool: React.FC = () => {
       }
       
       if (data.output) {
-        // Replicate output can be a string (URL) or an array of URLs
-        const imageUrl = Array.isArray(data.output) ? data.output[0] : data.output;
-        setOutputImageUrl(imageUrl);
-        toast({ title: "Image Generated!", description: `Successfully generated image with ${currentModelConfig.name}.` });
+        const resultUrl = Array.isArray(data.output) ? data.output[0] : data.output;
+        setOutputImageUrl(resultUrl);
+        toast({ title: "Generation Started!", description: `Replicate job submitted for ${currentModelConfig.name}. Polling for results...` });
+        // Polling is handled by backend, frontend just gets final result or error
       } else if (data.error) {
         throw new Error(data.error);
       } else {
@@ -226,6 +243,8 @@ const ReplicateImageTool: React.FC = () => {
       setLoading(false);
     }
   };
+  
+  const isVideoOutput = selectedModelKey === 'veo-3';
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground">
@@ -236,7 +255,7 @@ const ReplicateImageTool: React.FC = () => {
                    <Wand2 className="mr-2 h-5 w-5 text-primary" /> Visualizing Loops 2.0 (Replicate)
                 </CardTitle>
                 <CardDescription>
-                    Select a Replicate model and provide inputs to generate an image.
+                    {currentModelConfig?.description || "Select a Replicate model and provide inputs to generate an image or video."}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -282,36 +301,49 @@ const ReplicateImageTool: React.FC = () => {
                 </div>
                 )}
               {!loading && !error && outputImageUrl && (
-                <a href={outputImageUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full max-h-[calc(100vh-400px)] group">
-                    <NextImage
-                    src={outputImageUrl}
-                    alt={`Generated image using ${currentModelConfig?.name} for prompt: ${formFields.prompt || 'Replicate model'}`}
-                    layout="fill"
-                    objectFit="contain"
-                    className="rounded-md"
-                    data-ai-hint="ai generated digital art"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
-                        <p className="text-white text-xs p-1 bg-black/70 rounded">View Full Image</p>
-                    </div>
-                </a>
+                <div className="relative w-full h-full max-h-[calc(100vh-400px)]">
+                  {isVideoOutput ? (
+                     <video
+                        src={outputImageUrl}
+                        controls
+                        className="rounded-md w-full h-full object-contain"
+                        data-ai-hint="ai generated video"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                  ) : (
+                    <a href={outputImageUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
+                        <NextImage
+                        src={outputImageUrl}
+                        alt={`Generated using ${currentModelConfig?.name} for prompt: ${formFields.prompt || 'Replicate model'}`}
+                        layout="fill"
+                        objectFit="contain"
+                        className="rounded-md"
+                        data-ai-hint="ai generated digital art"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
+                            <p className="text-white text-xs p-1 bg-black/70 rounded">View Full</p>
+                        </div>
+                    </a>
+                  )}
+                </div>
               )}
               {!loading && !error && !outputImageUrl && (
                 <div className="text-muted-foreground flex flex-col items-center space-y-2">
                   <ImagePlus className="w-12 h-12" />
                   <p className="text-sm">
-                    {currentModelConfig ? `Your image generated with ${currentModelConfig.name} will appear here.` : "Select a model to begin."}
+                    {currentModelConfig ? `Your ${isVideoOutput ? 'video' : 'image'} generated with ${currentModelConfig.name} will appear here.` : "Select a model to begin."}
                   </p>
                 </div>
               )}
             </CardContent>
           </Card>
         )}
-        {!selectedModelKey && (
+        {!selectedModelKey && !loading && (
          <div className="flex-grow flex flex-col items-center justify-center text-muted-foreground min-h-[400px]">
             <Wand2 className="w-16 h-16 mb-4 text-primary/30"/>
             <p className="text-lg font-medium">Welcome to Visualizing Loops 2.0</p>
-            <p className="text-sm">Please select a model from the dropdown above to start generating images with Replicate.</p>
+            <p className="text-sm">Please select a model from the dropdown above to start generating.</p>
          </div>
        )}
       </div>
