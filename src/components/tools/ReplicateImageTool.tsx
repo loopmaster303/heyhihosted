@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ImagePlus, AlertCircle, Wand2, Info, Paperclip, X, Settings, ArrowRight } from 'lucide-react';
+import { Loader2, ImagePlus as ImageIcon, AlertCircle, Wand2, Info, Paperclip, X, Settings, ArrowRight, MoreHorizontal } from 'lucide-react'; // Changed ImagePlus to ImageIcon to avoid conflict
 import { useToast } from "@/hooks/use-toast";
 import NextImage from 'next/image';
 import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 const ReplicateImageTool: React.FC = () => {
   const { toast } = useToast();
@@ -32,7 +33,7 @@ const ReplicateImageTool: React.FC = () => {
   const [currentModelConfig, setCurrentModelConfig] = useState<ReplicateModelConfig | null>(null);
   
   const [formFields, setFormFields] = useState<Record<string, any>>({});
-  const [fluxPrompt, setFluxPrompt] = useState(''); 
+  const [mainPromptValue, setMainPromptValue] = useState('');
 
   const [outputUrl, setOutputUrl] = useState<string | null>(null); 
   const [loading, setLoading] = useState(false);
@@ -53,12 +54,8 @@ const ReplicateImageTool: React.FC = () => {
         initialFields[input.name] = input.default ?? (input.type === 'number' ? 0 : (input.type === 'boolean' ? false : (input.type === 'select' ? (typeof input.options?.[0] === 'object' ? input.options?.[0].value : input.options?.[0]) : '')));
       });
       setFormFields(initialFields);
-      
-      if (config.id.startsWith("flux-kontext")) {
-        setFluxPrompt(initialFields.prompt || '');
-      } else {
-        setFluxPrompt(''); // Clear fluxPrompt if not a flux model
-      }
+      setMainPromptValue(initialFields.prompt || '');
+
 
       setOutputUrl(null);
       setError(null);
@@ -67,7 +64,7 @@ const ReplicateImageTool: React.FC = () => {
     } else {
       setCurrentModelConfig(null);
       setFormFields({});
-      setFluxPrompt('');
+      setMainPromptValue('');
       setOutputUrl(null);
       setError(null);
       setUploadedImageFile(null);
@@ -78,6 +75,10 @@ const ReplicateImageTool: React.FC = () => {
   const handleInputChange = useCallback((name: string, value: string | number | boolean) => {
     setFormFields(prevFields => ({ ...prevFields, [name]: value }));
   }, []);
+
+  const handleMainPromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMainPromptValue(e.target.value);
+  };
 
   const handleFileSelectAndConvert = (file: File | null) => {
     if (file && file.type.startsWith('image/')) {
@@ -115,7 +116,7 @@ const ReplicateImageTool: React.FC = () => {
 
   const renderInputField = (inputConfig: ReplicateModelInput) => {
     const commonProps = {
-      id: `${inputConfig.name}-replicate-param`, 
+      id: `${inputConfig.name}-replicate-param-${currentModelConfig?.id || 'default'}`, 
       name: inputConfig.name,
       disabled: loading,
     };
@@ -157,6 +158,10 @@ const ReplicateImageTool: React.FC = () => {
             </div>
         );
       case 'url': 
+        // This case will not be directly rendered for input_image for Flux models
+        // as it's handled by the specific upload UI.
+        // It could be used for other URL inputs if any model requires it.
+        if (isFluxModelSelected && inputConfig.name === "input_image") return null;
         return (
           <div key={inputConfig.name} className="space-y-1.5">
             {label}
@@ -256,30 +261,27 @@ const ReplicateImageTool: React.FC = () => {
     if (!selectedModelKey || !currentModelConfig) return;
 
     const currentPayload: Record<string, any> = { model: selectedModelKey };
+    
+    const effectivePrompt = mainPromptValue.trim();
 
-    // Handle prompt
-    const mainPromptValue = isFluxModelSelected ? fluxPrompt.trim() : (formFields.prompt || '').trim();
-    if (currentModelConfig.inputs.find(i => i.name === 'prompt')?.required && !mainPromptValue && !(isFluxModelSelected && uploadedImagePreview) ) {
+    if (currentModelConfig.inputs.find(i => i.name === 'prompt')?.required && !effectivePrompt && !(isFluxModelSelected && uploadedImagePreview) ) {
         toast({ title: "Prompt Missing", description: "Please enter a prompt.", variant: "destructive" });
         return;
     }
-    if (mainPromptValue) {
-        currentPayload.prompt = mainPromptValue;
+    if (effectivePrompt) {
+        currentPayload.prompt = effectivePrompt;
     }
 
-
-    // Handle input_image for Flux models
     if (isFluxModelSelected && uploadedImagePreview) {
-        currentPayload.input_image = uploadedImagePreview;
-    } else if (isFluxModelSelected && currentModelConfig.inputs.find(i => i.name === 'input_image')?.required && !uploadedImagePreview && !mainPromptValue) {
+        currentPayload.input_image = uploadedImagePreview; // This is the data URI
+    } else if (isFluxModelSelected && currentModelConfig.inputs.find(i => i.name === 'input_image')?.required && !uploadedImagePreview && !effectivePrompt) {
         toast({ title: "Input Missing", description: "Flux models require a prompt or an input image.", variant: "destructive" });
         return;
     }
     
-    // Add other form fields (from settings popover or non-Flux main fields)
     for (const input of currentModelConfig.inputs) {
-      if (input.name === "prompt") continue; // Already handled
-      if (isFluxModelSelected && input.name === "input_image") continue; // Handled by upload
+      if (input.name === "prompt") continue; 
+      if (isFluxModelSelected && input.name === "input_image") continue;
 
       const valueToUse = formFields[input.name];
 
@@ -288,9 +290,9 @@ const ReplicateImageTool: React.FC = () => {
          return;
       }
       
-      if (valueToUse !== undefined && valueToUse !== '') {
+      if (valueToUse !== undefined && valueToUse !== '' && valueToUse !== null) {
          if (input.type === 'number') {
-          const numValue = parseFloat(valueToUse);
+          const numValue = parseFloat(String(valueToUse));
           if (!isNaN(numValue)) currentPayload[input.name] = numValue;
           else if (input.default !== undefined && typeof input.default === 'number') currentPayload[input.name] = input.default;
         } else {
@@ -343,177 +345,195 @@ const ReplicateImageTool: React.FC = () => {
   };
   
   const isVideoOutput = currentModelConfig?.outputType === 'video';
-  const mainPromptConfig = currentModelConfig?.inputs.find(i => i.name === 'prompt');
-  const mainPromptPlaceholder = mainPromptConfig?.placeholder || `Enter prompt for ${currentModelConfig?.name || 'model'}...`;
+  
+  let dynamicPlaceholder = "Enter prompt...";
+  if (currentModelConfig) {
+      const promptConfig = currentModelConfig.inputs.find(i => i.name === 'prompt');
+      if (isFluxModelSelected) {
+          dynamicPlaceholder = promptConfig?.placeholder || "Enter a text prompt or upload reference image...";
+      } else {
+          dynamicPlaceholder = promptConfig?.placeholder || `Enter prompt for ${currentModelConfig.name}...`;
+      }
+  }
 
   const canSubmit = !loading && currentModelConfig && 
-    (isFluxModelSelected ? (fluxPrompt.trim() !== '' || uploadedImagePreview) : (formFields.prompt || '').trim() !== '');
+    (mainPromptValue.trim() !== '' || (isFluxModelSelected && uploadedImagePreview));
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background text-foreground">
       <ScrollArea className="flex-grow">
         <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-          <Card className="shadow-md">
-              <CardHeader>
-                  <CardTitle className="flex items-center text-xl">
-                    <Wand2 className="mr-3 h-6 w-6 text-primary" /> 
-                    Visualizing Loops 2.0 
-                    <span className="ml-2 text-sm font-normal text-muted-foreground">(Replicate API)</span>
-                  </CardTitle>
-                  <CardDescription>
-                      {currentModelConfig?.description || "Select a Replicate model and provide inputs to generate an image or video."}
-                  </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                  <div>
-                      <Label htmlFor="replicate-model-select" className="text-sm font-medium">Select Model</Label>
-                      <Select onValueChange={setSelectedModelKey} value={selectedModelKey} disabled={loading}>
-                          <SelectTrigger id="replicate-model-select" className="w-full mt-1.5 bg-input border-border focus-visible:ring-primary h-11 text-base">
-                          <SelectValue placeholder="Choose an AI model..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                          {modelKeys.map(key => (
-                              <SelectItem key={key} value={key} className="text-base py-2">
-                              {modelConfigs[key].name}
-                              </SelectItem>
-                          ))}
-                          </SelectContent>
-                      </Select>
-                  </div>
+          <div className="space-y-2">
+              <Label htmlFor="replicate-model-select" className="text-sm font-medium">Select Model</Label>
+              <Select onValueChange={setSelectedModelKey} value={selectedModelKey} disabled={loading}>
+                  <SelectTrigger id="replicate-model-select" className="w-full bg-input border-border focus-visible:ring-primary h-11 text-base">
+                  <SelectValue placeholder="Choose an AI model..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                  {modelKeys.map(key => (
+                      <SelectItem key={key} value={key} className="text-base py-2">
+                      {modelConfigs[key].name}
+                      </SelectItem>
+                  ))}
+                  </SelectContent>
+              </Select>
+          </div>
 
-                  {currentModelConfig && (
-                    <form onSubmit={handleSubmit}>
-                         <div className="bg-card p-3 rounded-lg shadow-inner flex flex-col space-y-3 border border-border/70">
-                            <div className="flex items-start space-x-2">
-                            {isFluxModelSelected && uploadedImagePreview && (
-                                <div className="relative flex-shrink-0 group w-14 h-14">
-                                <NextImage src={uploadedImagePreview} alt="Input preview" layout="fill" className="rounded-md object-cover border" />
-                                <Button
-                                    variant="ghost" size="icon"
-                                    className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/80 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                    onClick={handleClearUploadedImage} aria-label="Remove image" type="button"
-                                > <X className="w-3 h-3" /> </Button>
-                                </div>
+          {currentModelConfig && (
+            <form onSubmit={handleSubmit}>
+                <Card className="shadow-md">
+                    <CardContent className="p-3 md:p-4 space-y-3">
+                        <div className="flex items-start space-x-2">
+                            {isFluxModelSelected && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button 
+                                                variant="outline" 
+                                                size="icon" 
+                                                onClick={() => fileInputRef.current?.click()} 
+                                                type="button" 
+                                                disabled={loading}
+                                                className="flex-shrink-0 h-14 w-14 border-dashed hover:border-primary"
+                                                aria-label="Upload reference image"
+                                            >
+                                                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                            <p>Upload Reference Image</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             )}
                             <Textarea
-                                value={isFluxModelSelected ? fluxPrompt : (formFields.prompt || '')}
-                                onChange={(e) => isFluxModelSelected ? setFluxPrompt(e.target.value) : handleInputChange('prompt', e.target.value)}
-                                placeholder={mainPromptPlaceholder}
+                                value={mainPromptValue}
+                                onChange={handleMainPromptChange}
+                                placeholder={dynamicPlaceholder}
                                 className="flex-grow min-h-[56px] max-h-[150px] bg-input border-border focus-visible:ring-primary resize-none text-base"
-                                rows={3}
+                                rows={2} // Adjusted for a slimmer look
                                 disabled={loading}
-                                required={mainPromptConfig?.required && !(isFluxModelSelected && uploadedImagePreview)}
+                                required={currentModelConfig.inputs.find(i => i.name === 'prompt')?.required && !(isFluxModelSelected && uploadedImagePreview)}
                             />
+                        </div>
+
+                        {uploadedImagePreview && isFluxModelSelected && (
+                            <div className="pl-[64px]"> {/* Aligns with textarea when icon button is present */}
+                                <div className="relative w-28 h-28 group">
+                                    <NextImage src={uploadedImagePreview} alt="Upload preview" layout="fill" className="rounded-md object-cover border" />
+                                    <Button
+                                    variant="destructive" size="icon"
+                                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-70 group-hover:opacity-100 transition-opacity z-10"
+                                    onClick={handleClearUploadedImage} aria-label="Remove image" type="button"
+                                    > <X className="w-4 h-4" /> </Button>
+                                </div>
                             </div>
-                            <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-1.5">
-                                {isFluxModelSelected && (
-                                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} type="button" disabled={loading} className="h-9">
-                                    <Paperclip className="mr-1.5 h-4 w-4" /> Attach
-                                </Button>
-                                )}
-                                <input type="file" ref={fileInputRef} onChange={handleReplicateFileChange} accept="image/*" className="hidden" disabled={loading}/>
+                        )}
+                        
+                        <div className="flex items-center justify-between pt-2">
+                            <div>
+                                <Badge variant="outline" className="text-xs sm:text-sm">{currentModelConfig.name}</Badge>
                             </div>
-                            <div className="flex items-center space-x-1.5">
+                            <div className="flex items-center space-x-1 sm:space-x-2">
                                 <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" size="sm" aria-label={`${currentModelConfig.name} Settings`} type="button" disabled={loading} className="h-9">
-                                      <Settings className="mr-1.5 h-4 w-4" /> Settings
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
-                                   <ScrollArea className="max-h-80 pr-3">
-                                    <div className="grid gap-4">
-                                    <div className="space-y-1">
-                                        <h4 className="font-medium leading-none">{currentModelConfig.name} Parameters</h4>
-                                        <p className="text-xs text-muted-foreground">Adjust advanced options for generation.</p>
-                                    </div>
-                                    <div className="grid gap-3">
-                                        {currentModelConfig.inputs
-                                            .filter(input => {
-                                                if (input.name === "prompt") return false;
-                                                if (isFluxModelSelected && input.name === "input_image") return false;
-                                                return true;
-                                            })
-                                            .map(input => renderInputField(input))}
-                                    </div>
-                                    </div>
-                                   </ScrollArea>
-                                </PopoverContent>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="ghost" size="icon" aria-label={`${currentModelConfig.name} Settings`} type="button" disabled={loading}>
+                                        <MoreHorizontal className="h-5 w-5" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
+                                    <ScrollArea className="max-h-[60vh] sm:max-h-80 pr-3">
+                                        <div className="grid gap-4">
+                                        <div className="space-y-1">
+                                            <h4 className="font-medium leading-none">{currentModelConfig.name} Parameters</h4>
+                                            <p className="text-xs text-muted-foreground">Adjust advanced options for generation.</p>
+                                        </div>
+                                        <div className="grid gap-3">
+                                            {currentModelConfig.inputs
+                                                .filter(input => {
+                                                    if (input.name === "prompt") return false;
+                                                    if (isFluxModelSelected && input.name === "input_image") return false;
+                                                    return true;
+                                                })
+                                                .map(input => renderInputField(input))}
+                                        </div>
+                                        </div>
+                                    </ScrollArea>
+                                    </PopoverContent>
                                 </Popover>
-                                <Button type="submit" disabled={!canSubmit} className="h-9 px-5">
-                                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <> <ArrowRight className="mr-1.5 h-4 w-4" /> Generate </>}
+                                <Button type="submit" disabled={!canSubmit} className="px-3 sm:px-4 h-9 sm:h-10">
+                                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <> <ArrowRight className="mr-1.5 h-4 w-4" /> Generate </>}
                                 </Button>
-                            </div>
                             </div>
                         </div>
-                    </form>
-                  )}
-                  {!currentModelConfig && !loading && (
-                    <div className="text-center py-10 text-muted-foreground">
-                        <Wand2 className="w-12 h-12 mx-auto mb-3 text-primary/40"/>
-                        <p>Please select a model to see its options.</p>
-                    </div>
-                  )}
-            </CardContent>
-          </Card>
-
-          {selectedModelKey && (
-            <Card className="flex-grow flex flex-col min-h-[350px] md:min-h-[450px] border-border shadow-md rounded-lg">
-              <CardHeader className="pb-3 border-b">
-                  <CardTitle className="text-lg">Output</CardTitle>
-              </CardHeader>
-              <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-b-lg">
-                {loading && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
-                {error && !loading && (
-                  <div className="text-destructive flex flex-col items-center space-y-2 max-w-md mx-auto">
-                      <AlertCircle className="w-10 h-10 mb-2"/>
-                      <p className="font-semibold text-lg">Generation Error</p>
-                      <p className="text-sm leading-relaxed">{error}</p>
-                  </div>
-                  )}
-                {!loading && !error && outputUrl && (
-                  <div className={cn(
-                      "relative w-full h-full",
-                      isVideoOutput ? "aspect-video max-h-[calc(100vh-500px)]" : "max-h-[calc(100vh-500px)] aspect-auto"
-                    )}>
-                    {isVideoOutput ? (
-                      <video
-                          src={outputUrl}
-                          controls
-                          className="rounded-md w-full h-full object-contain"
-                          data-ai-hint="ai generated video"
-                        >
-                          Your browser does not support the video tag.
-                        </video>
-                    ) : (
-                      <a href={outputUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
-                          <NextImage
-                          src={outputUrl}
-                          alt={`Generated using ${currentModelConfig?.name}`}
-                          layout="fill"
-                          objectFit="contain"
-                          className="rounded-md"
-                          data-ai-hint="ai generated digital art"
-                          />
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
-                              <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
-                          </div>
-                      </a>
-                    )}
-                  </div>
-                )}
-                {!loading && !error && !outputUrl && (
-                  <div className="text-muted-foreground flex flex-col items-center space-y-3">
-                    <ImagePlus className="w-16 h-16 opacity-50" />
-                    <p className="text-md">
-                      {currentModelConfig ? `Your ${isVideoOutput ? 'video' : 'image'} from ${currentModelConfig.name} will appear here.` : "Select a model to begin."}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
+                    </CardContent>
+                </Card>
+            </form>
+          )}
+          {!currentModelConfig && !loading && (
+            <Card className="shadow-md">
+                <CardContent className="text-center py-10 text-muted-foreground">
+                    <Wand2 className="w-12 h-12 mx-auto mb-3 text-primary/40"/>
+                    <p>Please select a model to see its options.</p>
+                </CardContent>
             </Card>
           )}
+            
+          {/* Output Area */}
+          <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
+            <CardHeader className="py-3 px-4 border-b">
+                <CardTitle className="text-base sm:text-lg">Output</CardTitle>
+            </CardHeader>
+            <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-b-lg">
+            {loading && <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />}
+            {error && !loading && (
+                <div className="text-destructive flex flex-col items-center space-y-2 max-w-md mx-auto">
+                    <AlertCircle className="w-8 h-8 sm:w-10 sm:h-10 mb-2"/>
+                    <p className="font-semibold text-md sm:text-lg">Generation Error</p>
+                    <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
+                </div>
+                )}
+            {!loading && !error && outputUrl && (
+                <div className={cn(
+                    "relative w-full h-full",
+                    isVideoOutput ? "aspect-video max-h-[calc(100vh-400px)]" : "max-h-[calc(100vh-400px)] aspect-auto" // Adjusted max height
+                )}>
+                {isVideoOutput ? (
+                    <video
+                        src={outputUrl}
+                        controls
+                        className="rounded-md w-full h-full object-contain"
+                        data-ai-hint="ai generated video"
+                    >
+                        Your browser does not support the video tag.
+                    </video>
+                ) : (
+                    <a href={outputUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
+                        <NextImage
+                        src={outputUrl}
+                        alt={`Generated using ${currentModelConfig?.name}`}
+                        layout="fill"
+                        objectFit="contain"
+                        className="rounded-md"
+                        data-ai-hint="ai generated digital art"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
+                            <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
+                        </div>
+                    </a>
+                )}
+                </div>
+            )}
+            {!loading && !error && !outputUrl && (
+                <div className="text-muted-foreground flex flex-col items-center space-y-3">
+                <ImageIcon className="w-12 h-12 sm:w-16 sm:h-16 opacity-50" />
+                <p className="text-sm sm:text-md">
+                    {currentModelConfig ? `Your ${isVideoOutput ? 'video' : 'image'} from ${currentModelConfig.name} will appear here.` : "Select a model to begin."}
+                </p>
+                </div>
+            )}
+            </CardContent>
+          </Card>
         </div>
       </ScrollArea>
     </div>

@@ -48,8 +48,8 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     outputType: "image",
     description: "Advanced model by Black Forest Labs for contextual image generation, supporting image inputs.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Epic fantasy battle scene, inspired by reference image...", info:"The main text prompt describing the image, can be used to modify the input image.", isPrompt: true },
-      { name: "input_image", label: "Input Image URL", type: "url", placeholder: "https://example.com/image.png", info: "URL of an image to use as a reference or base for generation." },
+      { name: "prompt", label: "Prompt", type: "text", required: false, placeholder: "Describe your image or modifications...", info:"Text prompt. Can be combined with an input image.", isPrompt: true },
+      { name: "input_image", label: "Input Image", type: "url", info: "Upload an image to use as a reference or base for generation." }, // Type 'url' is for internal data handling; UI handles upload
       { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Cartoonish, simple, ugly", info:"Elements to exclude from the image.", isNegativePrompt: true },
       { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "match_input_image", options: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4"], info: "Desired aspect ratio. 'match_input_image' will use the input image's ratio if provided."},
       { name: "output_format", label: "Output Format", type: "select", default: "png", options: ["png", "jpg", "webp"], info: "Format for the generated image."},
@@ -67,8 +67,8 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     outputType: "image",
     description: "Professional grade contextual image generation by Black Forest Labs, also with image input capabilities.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Photorealistic product shot, using input image as base...", info:"The main text prompt.", isPrompt: true },
-      { name: "input_image", label: "Input Image URL", type: "url", placeholder: "https://example.com/reference.jpg", info: "URL of an image to guide the generation." },
+      { name: "prompt", label: "Prompt", type: "text", required: false, placeholder: "Describe your image or modifications...", info:"Text prompt. Can be combined with an input image.", isPrompt: true },
+      { name: "input_image", label: "Input Image", type: "url", info: "Upload an image to guide the generation." }, // Type 'url' for internal data; UI handles upload
       { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Drawing, sketch, watermark", info:"What to avoid in the image.", isNegativePrompt: true },
       { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "match_input_image", options: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4"], info: "Target aspect ratio."},
       { name: "output_format", label: "Output Format", type: "select", default: "png", options: ["png", "jpg", "webp"], info: "Image output format."},
