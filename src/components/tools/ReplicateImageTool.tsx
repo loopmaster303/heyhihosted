@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Select,
   SelectContent,
@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ImagePlus, AlertCircle, Wand2, Info } from 'lucide-react';
+import { Loader2, ImagePlus, AlertCircle, Wand2, Info, Paperclip, X } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import NextImage from 'next/image';
 import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
@@ -22,6 +22,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 const ReplicateImageTool: React.FC = () => {
   const { toast } = useToast();
@@ -34,6 +35,10 @@ const ReplicateImageTool: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
+  const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (selectedModelKey && modelConfigs[selectedModelKey]) {
       const config = modelConfigs[selectedModelKey];
@@ -45,17 +50,56 @@ const ReplicateImageTool: React.FC = () => {
       setFormFields(initialFields);
       setOutputUrl(null);
       setError(null);
+      setUploadedImageFile(null);
+      setUploadedImagePreview(null);
     } else {
       setCurrentModelConfig(null);
       setFormFields({});
       setOutputUrl(null);
       setError(null);
+      setUploadedImageFile(null);
+      setUploadedImagePreview(null);
     }
   }, [selectedModelKey]);
 
   const handleInputChange = useCallback((name: string, value: string | number | boolean) => {
     setFormFields(prevFields => ({ ...prevFields, [name]: value }));
   }, []);
+
+  const handleFileSelectAndConvert = (file: File | null) => {
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUri = reader.result as string;
+        setUploadedImageFile(file);
+        setUploadedImagePreview(dataUri);
+        handleInputChange("input_image", dataUri); // Store data URI in formFields
+      };
+      reader.readAsDataURL(file);
+    } else if (file) {
+      toast({ title: "Invalid File", description: "Please upload an image file.", variant: "destructive" });
+      setUploadedImageFile(null);
+      setUploadedImagePreview(null);
+      handleInputChange("input_image", ""); // Clear from formFields
+    }
+  };
+
+  const handleReplicateFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileSelectAndConvert(event.target.files?.[0] || null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""; // Reset file input
+    }
+  };
+
+  const handleClearUploadedImage = () => {
+    setUploadedImageFile(null);
+    setUploadedImagePreview(null);
+    handleInputChange("input_image", ""); // Clear from formFields
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
 
   const renderInputField = (inputConfig: ReplicateModelInput) => {
     const commonProps = {
@@ -67,7 +111,7 @@ const ReplicateImageTool: React.FC = () => {
     const label = (
         <Label htmlFor={inputConfig.name} className="text-sm font-medium flex items-center">
             {inputConfig.label}
-            {inputConfig.required && <span className="text-destructive ml-1">*</span>}
+            {inputConfig.required && (!uploadedImagePreview && inputConfig.name === "input_image") && <span className="text-destructive ml-1">*</span>}
             {inputConfig.info && (
             <TooltipProvider delayDuration={100}>
                 <Tooltip>
@@ -82,6 +126,48 @@ const ReplicateImageTool: React.FC = () => {
             )}
         </Label>
     );
+
+    if (inputConfig.name === "input_image" && (currentModelConfig?.id.startsWith("flux-kontext"))) {
+        return (
+          <div key={inputConfig.name} className="space-y-1.5">
+            {label}
+            {uploadedImagePreview ? (
+              <div className="mt-2 relative w-32 h-32 group">
+                <NextImage src={uploadedImagePreview} alt="Uploaded preview" layout="fill" objectFit="cover" className="rounded-md border border-border" />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-70 group-hover:opacity-100 z-10"
+                  onClick={handleClearUploadedImage}
+                  aria-label="Clear uploaded image"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => fileInputRef.current?.click()} 
+                className="w-full mt-1 bg-input hover:bg-muted"
+                disabled={loading}
+              >
+                <Paperclip className="mr-2 h-4 w-4" />
+                Upload Image
+              </Button>
+            )}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleReplicateFileChange} 
+              accept="image/*" 
+              className="hidden" 
+              disabled={loading}
+            />
+          </div>
+        );
+    }
+
 
     switch (inputConfig.type) {
       case 'text':
@@ -100,7 +186,7 @@ const ReplicateImageTool: React.FC = () => {
             />
             </div>
         );
-      case 'url':
+      case 'url': // This will now typically not be used for input_image if model is Flux
         return (
           <div key={inputConfig.name} className="space-y-1.5">
             {label}
@@ -199,16 +285,35 @@ const ReplicateImageTool: React.FC = () => {
     event.preventDefault();
     if (!selectedModelKey || !currentModelConfig) return;
 
+    // Validation for required fields
     for (const input of currentModelConfig.inputs) {
-      if (input.required && (formFields[input.name] === undefined || formFields[input.name] === '')) {
-        toast({
-          title: "Missing Required Field",
-          description: `Please fill in the "${input.label}" field.`,
-          variant: "destructive",
-        });
-        return;
+      const isInputImageField = input.name === "input_image";
+      const isFluxModel = currentModelConfig.id.startsWith("flux-kontext");
+      const isInputImageUploaded = !!uploadedImagePreview;
+
+      // Special handling for input_image on Flux models: it's required if no text prompt is given (or vice-versa)
+      // For simplicity here, if input_image is 'required' in config, we check if it's uploaded.
+      // Replicate itself might have more complex inter-dependencies for required fields.
+      if (input.required) {
+        if (isInputImageField && isFluxModel && !isInputImageUploaded) {
+           toast({
+            title: "Missing Required Image",
+            description: `Please upload an image for the "${input.label}" field.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        if (!isInputImageField && (formFields[input.name] === undefined || formFields[input.name] === '')) {
+           toast({
+            title: "Missing Required Field",
+            description: `Please fill in the "${input.label}" field.`,
+            variant: "destructive",
+          });
+          return;
+        }
       }
     }
+
 
     setLoading(true);
     setError(null);
@@ -216,14 +321,17 @@ const ReplicateImageTool: React.FC = () => {
 
     const payload: Record<string, any> = { model: selectedModelKey };
     currentModelConfig.inputs.forEach(input => {
-      // Only include the field in the payload if it has a value or a default
-      // Or if it's explicitly set to false for booleans or 0 for numbers (don't skip these)
       let valueToUse = formFields[input.name];
+      // Use uploaded image data URI if it's the input_image field
+      if (input.name === "input_image" && uploadedImagePreview) {
+        valueToUse = uploadedImagePreview;
+      }
+
       if (valueToUse === undefined || valueToUse === '') {
         if (input.default !== undefined) {
           valueToUse = input.default;
         } else if (input.type === 'boolean') {
-          valueToUse = false; // Default undefined booleans to false if no explicit default
+          valueToUse = false; 
         }
       }
 
@@ -233,21 +341,16 @@ const ReplicateImageTool: React.FC = () => {
           if (!isNaN(numValue)) {
             payload[input.name] = numValue;
           } else if (input.default !== undefined && typeof input.default === 'number') {
-            payload[input.name] = input.default; // Fallback to default if parsing fails
+            payload[input.name] = input.default; 
           }
         } else {
           payload[input.name] = valueToUse;
         }
-      } else if (valueToUse === false || valueToUse === 0) { // Explicitly include false or 0
+      } else if (valueToUse === false || valueToUse === 0) { 
          payload[input.name] = valueToUse;
       }
     });
     
-    // Some models might expect an empty prompt if nothing is entered, Replicate handles this.
-    // However, if a prompt is required and empty, we've already caught it.
-    // If a prompt is not required, and empty, we send it as empty or omit it based on Replicate's typical behavior for that model.
-    // The current logic passes it if it's explicitly set or has a default.
-
     try {
       const response = await fetch('/api/replicate', {
         method: 'POST',
@@ -268,11 +371,6 @@ const ReplicateImageTool: React.FC = () => {
       } else if (data.error) {
         throw new Error(data.error);
       } else {
-        // This case handles when the API returns 200 but the prediction is still processing or needs polling.
-        // The backend /api/replicate should handle polling and only return final output or error.
-        // If we reach here, it implies backend might have sent back intermediate state.
-        // For robust frontend, one might handle prediction objects and poll here too if backend doesn't.
-        // But current backend is designed to poll.
         if(data.status && data.status !== "succeeded" && data.status !== "failed"){
             setError(`Prediction is ${data.status}. This might take a moment. The backend should poll. If this persists, check logs.`);
             toast({title: `Prediction ${data.status}`, description: "Waiting for completion.", variant: "default", duration: 7000});
@@ -356,7 +454,10 @@ const ReplicateImageTool: React.FC = () => {
                   </div>
                   )}
                 {!loading && !error && outputUrl && (
-                  <div className="relative w-full h-full max-h-[calc(100vh-500px)] aspect-auto">
+                  <div className={cn(
+                      "relative w-full h-full",
+                      isVideoOutput ? "aspect-video max-h-[calc(100vh-500px)]" : "max-h-[calc(100vh-500px)] aspect-auto" // Adjusted for video aspect ratio
+                    )}>
                     {isVideoOutput ? (
                       <video
                           src={outputUrl}
@@ -401,3 +502,6 @@ const ReplicateImageTool: React.FC = () => {
 };
 
 export default ReplicateImageTool;
+
+
+    
