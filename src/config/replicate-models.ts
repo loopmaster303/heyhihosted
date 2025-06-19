@@ -2,29 +2,27 @@
 export interface ReplicateModelInput {
   name: string; // Internal name for the parameter
   label: string; // User-facing label
-  type: "text" | "number" | "boolean" | "select" | "url"; // Added "select" and "url"
+  type: "text" | "number" | "boolean" | "select" | "url";
   required?: boolean;
   default?: string | number | boolean;
-  placeholder?: string; // For text/number/url inputs
-  min?: number;         // For number inputs (slider/input type=number)
-  max?: number;         // For number inputs (slider/input type=number)
-  step?: number;        // For number inputs (slider/input type=number)
-  options?: Array<{ value: string; label: string } | string>;   // For select type
-  info?: string;        // Tooltip text for an info icon next to the label
-  isPrompt?: boolean; // To identify primary prompt fields for larger textareas
-  isNegativePrompt?: boolean; // To identify negative prompt fields
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: Array<{ value: string; label: string } | string>;
+  info?: string;
+  isPrompt?: boolean;
+  isNegativePrompt?: boolean;
 }
 
 export interface ReplicateModelConfig {
   id: string; // User-friendly key, e.g., "imagen-4-ultra"
   name: string; // User-friendly display name, e.g., "Imagen 4 Ultra"
   inputs: ReplicateModelInput[];
-  description?: string; // Optional description of the model
-  outputType?: "image" | "video"; // To help frontend render output correctly
+  description?: string;
+  outputType?: "image" | "video";
 }
 
-// Configuration for each Replicate model
-// The `id` here should match the keys in MODEL_VERSIONS in the API route src/app/api/replicate/route.ts
 export const modelConfigs: Record<string, ReplicateModelConfig> = {
   "imagen-4-ultra": {
     id: "imagen-4-ultra",
