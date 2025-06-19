@@ -34,8 +34,8 @@ const GPTImageTool: FC = () => {
   const [seed, setSeed] = useState<string>('');
   const [batchSize, setBatchSize] = useState<number>(1);
   const [isPrivate, setIsPrivate] = useState(false);
-  const [upsampling, setUpsampling] = useState(false); // Corresponds to 'enhance' for Pollinations
-  const [transparent, setTransparent] = useState(false); // For Pollinations 'transparent' param with gptimage
+  const [upsampling, setUpsampling] = useState(false); 
+  const [transparent, setTransparent] = useState(false); 
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -151,22 +151,11 @@ const GPTImageTool: FC = () => {
     const wRatio = Number(wStr);
     const hRatio = Number(hStr);
     if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
-      // For GPT Image tool, let's assume a base dimension (e.g., 1024) and adjust the other.
-      // Or, better, map to allowed OpenAI sizes if we were using direct API.
-      // For Pollinations 'gptimage', it's flexible like other Pollinations models.
       const currentWidth = width[0];
       let newHeight = Math.round((currentWidth * hRatio) / wRatio);
-      // Ensure dimensions are reasonable and step by 64 (common for image models)
       newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64)); 
       let newWidth = Math.max(256, Math.min(2048, Math.round(currentWidth / 64) * 64));
       
-      // If we want to maintain one dimension and calculate the other based on ratio:
-      // Example: Keep width, calculate height
-      // newWidth = width[0]; // Or a fixed base like 1024
-      // newHeight = Math.round((newWidth * hRatio) / wRatio);
-      // newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64));
-      
-      // For now, let's just update both based on the current width and new ratio
       setWidth([newWidth]);
       setHeight([newHeight]);
     }
@@ -275,8 +264,8 @@ const GPTImageTool: FC = () => {
                    <NextImage 
                     src={url} 
                     alt={`Generated GPT image ${idx + 1} for prompt: ${prompt}`} 
-                    layout="fill" 
-                    objectFit="contain"
+                    fill 
+                    style={{ objectFit: "contain" }}
                     className="bg-muted/20"
                     data-ai-hint="ai generated art"
                   />

@@ -22,7 +22,6 @@ import { cn } from '@/lib/utils';
 interface ChatInputProps {
   onSendMessage: (
     message: string,
-    // modelId and systemPrompt are now handled by parent via selectedModelId/selectedResponseStyleName
     options: {
       isImageMode?: boolean; 
     }
@@ -141,7 +140,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
               src={uploadedFilePreviewUrl} 
               alt="Upload preview" 
               width={200} height={150} 
-              className="rounded-md object-contain" 
+              style={{ objectFit: "contain" }}
+              className="rounded-md" 
+              data-ai-hint="image user upload"
             />
             <Button
               variant="destructive"

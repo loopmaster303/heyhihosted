@@ -38,9 +38,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             <Image
               src={part.image_url.url}
               alt={altText}
-              width={300} // Adjust as needed, or make responsive
-              height={200} // Adjust as needed
-              className="rounded-md object-contain max-w-full h-auto"
+              width={300} 
+              height={200} 
+              style={{ objectFit: "contain" }}
+              className="rounded-md max-w-full h-auto"
               data-ai-hint={part.image_url.isGenerated ? "illustration digital art" : (part.image_url.isUploaded ? "photo object" : "image")}
             />
           </div>
@@ -50,8 +51,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     });
   };
 
-  const aiAvatarUrl = `https://placehold.co/40x40/333333/EEEEEE?text=${initial}`; // Dark grey bg, light grey text
-  const userAvatarUrl = `https://placehold.co/40x40/CCCCCC/000000?text=${initial}`; // Light grey bg, black text
+  const aiAvatarUrl = `https://placehold.co/40x40/333333/EEEEEE?text=${initial}`; 
+  const userAvatarUrl = `https://placehold.co/40x40/CCCCCC/000000?text=${initial}`;
 
   return (
     <div

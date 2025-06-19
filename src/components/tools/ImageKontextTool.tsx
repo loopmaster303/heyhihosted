@@ -19,12 +19,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import { Loader2, ArrowRight, Settings, ImagePlus, Paperclip, X, Info } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { cn } from '@/lib/utils';
 
 const ImageKontextTool: FC = () => {
   const { toast } = useToast();
@@ -36,10 +34,6 @@ const ImageKontextTool: FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [batchSizeState, setBatchSizeState] = useState([1]); // BFL 'batch_size' is typically 1. We'll use 1 for API.
-  const [safetyTolerance, setSafetyTolerance] = useState([2]);
-  const [promptUpsampling, setPromptUpsampling] = useState(false);
-  const [outputFormat, setOutputFormat] = useState('PNG');
   const [seed, setSeed] = useState('');
   const [inferenceSteps, setInferenceSteps] = useState([20]);
 
@@ -85,8 +79,7 @@ const ImageKontextTool: FC = () => {
       prompt,
       aspect_ratio: aspectRatio,
       num_inference_steps: inferenceSteps[0], 
-      batch_size: 1, // BFL API batch_size is 1, client-side batching is not typical for this type of API.
-      // Other BFL specific params can be added if needed, matching their API spec
+      batch_size: 1, 
     };
     if (inputImageUrl) {
       payload.input_image = inputImageUrl;
@@ -133,7 +126,7 @@ const ImageKontextTool: FC = () => {
         <div className="flex items-start space-x-2">
           {inputImageUrl && (
             <div className="relative flex-shrink-0 group">
-              <Image src={inputImageUrl} alt="Input preview" width={56} height={56} className="rounded-md object-cover w-14 h-14" />
+              <Image src={inputImageUrl} alt="Input preview" width={56} height={56} style={{ objectFit: "cover" }} className="rounded-md w-14 h-14" />
               <Button
                 variant="ghost"
                 size="icon"
@@ -199,7 +192,6 @@ const ImageKontextTool: FC = () => {
                       <Slider id="inf-steps-kontext-tool" value={inferenceSteps} onValueChange={setInferenceSteps} min={10} max={50} step={1} className="col-span-2" />
                       <span className="text-xs text-muted-foreground justify-self-end col-start-3">{inferenceSteps[0]}</span>
                     </div>
-                    {/* BFL Batch size is 1, so slider removed. Safety Tolerance, Upsampling, Output Format are not standard BFL params via its simple API */}
                     <div className="grid grid-cols-3 items-center gap-4">
                       <Label htmlFor="seed-kontext-tool" className="col-span-1 text-xs">Seed</Label>
                       <Input id="seed-kontext-tool" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
@@ -230,7 +222,7 @@ const ImageKontextTool: FC = () => {
           )}
           {resultImageUrl && !loading && !error && (
             <div className="relative w-full h-full max-h-[calc(100vh-250px)]">
-              <Image src={resultImageUrl} alt="Generated AI Image with FLUX Kontext" layout="fill" objectFit="contain" className="rounded-md" data-ai-hint="digital art abstract" />
+              <Image src={resultImageUrl} alt="Generated AI Image with FLUX Kontext" fill style={{ objectFit: "contain" }} className="rounded-md" data-ai-hint="digital art abstract" />
             </div>
           )}
           {!loading && !resultImageUrl && !error && (
@@ -246,4 +238,3 @@ const ImageKontextTool: FC = () => {
 };
 
 export default ImageKontextTool;
-    
