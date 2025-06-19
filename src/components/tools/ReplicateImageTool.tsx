@@ -22,7 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, Info, ImageIcon, X, MoreHorizontal, ArrowRight } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import NextImage from 'next/image'; // Renamed to NextImage to avoid conflict with HTMLImageElement
+import NextImage from 'next/image';
 import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
@@ -36,8 +36,8 @@ import { Badge } from '@/components/ui/badge';
 const ReplicateImageTool: React.FC = () => {
   const { toast } = useToast();
   const modelKeys = Object.keys(modelConfigs);
-  const [selectedModelKey, setSelectedModelKey] = useState<string>(modelKeys.length > 0 ? modelKeys[0] : "");
-  const [currentModelConfig, setCurrentModelConfig] = useState<ReplicateModelConfig | null>(modelConfigs[selectedModelKey] || null);
+  const [selectedModelKey, setSelectedModelKey] = useState<string>(""); // Initialize empty
+  const [currentModelConfig, setCurrentModelConfig] = useState<ReplicateModelConfig | null>(null);
 
   const [formFields, setFormFields] = useState<Record<string, any>>({});
   const [mainPromptValue, setMainPromptValue] = useState('');
@@ -61,10 +61,14 @@ const ReplicateImageTool: React.FC = () => {
 
       const promptInputConfig = config.inputs.find(input => input.isPrompt && input.name === 'prompt');
       initialMainPrompt = String(promptInputConfig?.default ?? '');
+      if (promptInputConfig?.placeholder && !initialMainPrompt) {
+        // No explicit default, might be handled by placeholder logic if needed
+      }
+
 
       config.inputs.forEach(input => {
         if (!((input.isPrompt && input.name === 'prompt') || (config.id.startsWith("flux-kontext") && input.name === 'input_image'))) {
-          initialFields[input.name] = input.default ?? (input.type === 'number' ? 0 : (input.type === 'boolean' ? false : (input.type === 'select' ? (typeof input.options?.[0] === 'object' ? input.options?.[0].value : input.options?.[0]) : '')));
+          initialFields[input.name] = input.default ?? (input.type === 'number' ? (input.min ?? 0) : (input.type === 'boolean' ? false : (input.type === 'select' ? (typeof input.options?.[0] === 'object' ? input.options?.[0].value : input.options?.[0]) : '')));
         }
       });
       setMainPromptValue(initialMainPrompt);
@@ -75,10 +79,10 @@ const ReplicateImageTool: React.FC = () => {
       setUploadedImageFile(null);
       setUploadedImagePreview(null);
        if (config.id.startsWith("flux-kontext") && initialFields.input_image) {
-         delete initialFields.input_image;
+         delete initialFields.input_image; // ensure this doesn't linger if model changes
       }
     } else {
-      setCurrentModelConfig(null);
+      setCurrentModelConfig(null); // Explicitly nullify if no model is selected
       setFormFields({});
       setMainPromptValue('');
       setOutputUrl(null);
@@ -103,7 +107,7 @@ const ReplicateImageTool: React.FC = () => {
         const dataUri = reader.result as string;
         setUploadedImageFile(file);
         setUploadedImagePreview(dataUri);
-        if (isFluxModelSelected) {
+        if (isFluxModelSelected) { // Ensure this is only for Flux
             handleInputChange("input_image", dataUri);
         }
       };
@@ -112,8 +116,8 @@ const ReplicateImageTool: React.FC = () => {
       toast({ title: "Invalid File", description: "Please upload an image file.", variant: "destructive" });
       setUploadedImageFile(null);
       setUploadedImagePreview(null);
-      if (isFluxModelSelected) {
-        handleInputChange("input_image", "");
+      if (isFluxModelSelected) { // Ensure this is only for Flux
+        handleInputChange("input_image", ""); // Clear it from form fields
       }
     }
   };
@@ -128,8 +132,8 @@ const ReplicateImageTool: React.FC = () => {
   const handleClearUploadedImage = () => {
     setUploadedImageFile(null);
     setUploadedImagePreview(null);
-    if (isFluxModelSelected) {
-        handleInputChange("input_image", "");
+    if (isFluxModelSelected) { // Ensure this is only for Flux
+        handleInputChange("input_image", ""); // Clear it from form fields
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -151,7 +155,9 @@ const ReplicateImageTool: React.FC = () => {
             <TooltipProvider delayDuration={100}>
                 <Tooltip>
                 <TooltipTrigger asChild>
-                    <Info className="ml-1.5 h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    <button type="button" className="ml-1.5 focus:outline-none">
+                        <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground border border-border shadow-lg p-2 rounded-md text-xs">
                     <p>{inputConfig.info}</p>
@@ -179,6 +185,7 @@ const ReplicateImageTool: React.FC = () => {
             </div>
         );
       case 'url':
+         // This case is now specifically handled for input_image by the dedicated upload UI for Flux models
         if (inputConfig.name === "input_image" && isFluxModelSelected) return null;
         return (
           <div key={inputConfig.name} className="space-y-1.5">
@@ -223,7 +230,7 @@ const ReplicateImageTool: React.FC = () => {
             <Input
               {...commonProps}
               type="number"
-              value={formFields[inputConfig.name] ?? ''}
+              value={String(formFields[inputConfig.name] ?? '')}
               min={inputConfig.min}
               max={inputConfig.max}
               step={inputConfig.step}
@@ -276,7 +283,10 @@ const ReplicateImageTool: React.FC = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedModelKey || !currentModelConfig) return;
+    if (!selectedModelKey || !currentModelConfig) {
+        toast({ title: "No Model Selected", description: "Please select a model first.", variant: "destructive" });
+        return;
+    }
 
     const currentPayload: Record<string, any> = { model: selectedModelKey };
 
@@ -285,33 +295,31 @@ const ReplicateImageTool: React.FC = () => {
 
     if (promptConfig) {
         if (promptConfig.required && !effectivePrompt && !(isFluxModelSelected && uploadedImagePreview) ) {
-            toast({ title: "Prompt Missing", description: "Please enter a prompt.", variant: "destructive" });
+            toast({ title: "Prompt Missing", description: "This model requires a prompt.", variant: "destructive" });
             return;
         }
         if (effectivePrompt) {
             currentPayload.prompt = effectivePrompt;
-        } else if (!promptConfig.required && (isFluxModelSelected && uploadedImagePreview)) {
-            // Allow empty prompt for Flux if an image is uploaded
-        } else if (promptConfig.required && !(isFluxModelSelected && uploadedImagePreview)){
-            toast({ title: "Prompt Missing", description: "This model requires a prompt.", variant: "destructive" });
-            return;
         }
     }
 
     if (isFluxModelSelected && uploadedImagePreview && formFields.input_image) {
-        currentPayload.input_image = formFields.input_image;
+        currentPayload.input_image = formFields.input_image; // This will be the data URI
     } else if (isFluxModelSelected && currentModelConfig.inputs.find(i => i.name === 'input_image')?.required && !uploadedImagePreview && !effectivePrompt) {
+        // Flux models might require either prompt OR image, or both. This logic might need adjustment based on exact model behavior.
+        // For now, if input_image is required by config and not provided (and no prompt), it's an issue.
         toast({ title: "Input Missing", description: "Flux models require a prompt or an input image.", variant: "destructive" });
         return;
     }
 
+
     for (const input of currentModelConfig.inputs) {
-      if ((input.isPrompt && input.name === 'prompt')) continue;
-      if (isFluxModelSelected && input.name === "input_image") continue;
+      if ((input.isPrompt && input.name === 'prompt')) continue; // Handled by mainPromptValue
+      if (isFluxModelSelected && input.name === "input_image") continue; // Handled by uploadedImagePreview/dataURI
 
       const valueToUse = formFields[input.name];
 
-      if (input.required && (valueToUse === undefined || valueToUse === '')) {
+      if (input.required && (valueToUse === undefined || valueToUse === '' || valueToUse === null)) {
          toast({ title: "Missing Required Field", description: `Please fill in the "${input.label}" field.`, variant: "destructive"});
          return;
       }
@@ -324,7 +332,7 @@ const ReplicateImageTool: React.FC = () => {
         } else {
           currentPayload[input.name] = valueToUse;
         }
-      } else if (valueToUse === false || valueToUse === 0) {
+      } else if (input.type === 'boolean' && valueToUse === false) { // Booleans can be explicitly false
          currentPayload[input.name] = valueToUse;
       }
     }
@@ -348,15 +356,22 @@ const ReplicateImageTool: React.FC = () => {
 
       if (data.output) {
         const resultUrl = Array.isArray(data.output) ? data.output[0] : data.output;
-        setOutputUrl(resultUrl);
-        toast({ title: "Generation Succeeded!", description: `${currentModelConfig.name} finished processing.` });
+        if (typeof resultUrl === 'string' && resultUrl.trim() !== '') {
+            setOutputUrl(resultUrl);
+            toast({ title: "Generation Succeeded!", description: `${currentModelConfig.name} finished processing.` });
+        } else {
+            throw new Error("Received empty or invalid output URL from API.");
+        }
       } else if (data.error) {
         throw new Error(data.error);
       } else {
-        if(data.status && data.status !== "succeeded" && data.status !== "failed"){
-            setError(`Prediction is ${data.status}. This might take a moment. The backend should poll. If this persists, check logs.`);
-            toast({title: `Prediction ${data.status}`, description: "Waiting for completion.", variant: "default", duration: 7000});
-        } else {
+        if(data.status && data.status !== "succeeded" && data.status !== "failed" && data.status !== "canceled"){
+            setError(`Prediction is ${data.status}. This might take a moment. The backend should poll. If this persists, check logs or Replicate dashboard.`);
+            toast({title: `Prediction ${data.status}`, description: "Waiting for completion from Replicate.", variant: "default", duration: 7000});
+        } else if (data.status === "failed" || data.status === "canceled") {
+            throw new Error(`Prediction ${data.status}. ${data.error || 'Check Replicate dashboard for details.'}`);
+        }
+         else {
             throw new Error("Unknown response structure from Replicate API or prediction still processing.");
         }
       }
@@ -375,12 +390,17 @@ const ReplicateImageTool: React.FC = () => {
   let dynamicPromptPlaceholder = "Enter prompt...";
   if (currentModelConfig) {
       const promptConfig = currentModelConfig.inputs.find(i => i.isPrompt && i.name === 'prompt');
-      if (isFluxModelSelected) {
-          dynamicPromptPlaceholder = promptConfig?.placeholder || "Enter a text prompt or upload a reference image...";
-      } else if (promptConfig) {
-          dynamicPromptPlaceholder = promptConfig.placeholder || `Enter prompt for ${currentModelConfig.name}...`;
+      if (promptConfig?.placeholder) {
+        dynamicPromptPlaceholder = promptConfig.placeholder;
+      } else if (isFluxModelSelected) {
+        dynamicPromptPlaceholder = "Enter a text prompt or upload a reference image...";
+      } else {
+        dynamicPromptPlaceholder = `Enter prompt for ${currentModelConfig.name}...`;
       }
+  } else {
+    dynamicPromptPlaceholder = "Select a model to begin...";
   }
+
 
   const canSubmit = !loading && currentModelConfig &&
     ( (isFluxModelSelected && (mainPromptValue.trim() !== '' || uploadedImagePreview)) ||
@@ -398,7 +418,7 @@ const ReplicateImageTool: React.FC = () => {
                 placeholder={dynamicPromptPlaceholder}
                 className="flex-grow min-h-[56px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2"
                 rows={2}
-                disabled={loading}
+                disabled={loading || !currentModelConfig}
                 aria-label="Main prompt input"
               />
               <div className="flex items-center justify-between pt-1 px-1">
@@ -431,16 +451,17 @@ const ReplicateImageTool: React.FC = () => {
                         variant="outline"
                         size="sm"
                         className="h-7 px-3 rounded-full text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border"
-                        disabled={loading || !currentModelConfig}
+                        disabled={loading}
                       >
                         {currentModelConfig ? currentModelConfig.name : "Select Model"}
-                        <MoreHorizontal className="ml-1.5 h-3 w-3 opacity-70" /> 
+                        <ChevronDown className="ml-1.5 h-3 w-3 opacity-70" /> 
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {modelKeys.map(key => (
                         <DropdownMenuItem key={key} onSelect={() => setSelectedModelKey(key)} disabled={loading}>
                           {modelConfigs[key].name}
+                           {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-xs">Video</Badge>}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
@@ -472,6 +493,7 @@ const ReplicateImageTool: React.FC = () => {
                               </div>
                             </>
                           )}
+                           {!currentModelConfig && <p className="text-sm text-muted-foreground p-4 text-center">Select a model to see its parameters.</p>}
                         </div>
                       </ScrollArea>
                     </PopoverContent>
@@ -482,13 +504,13 @@ const ReplicateImageTool: React.FC = () => {
                 </div>
               </div>
             </div>
-            <input type="file" ref={fileInputRef} onChange={handleReplicateFileChange} accept="image/*" className="hidden" />
+            <input type="file" ref={fileInputRef} onChange={handleReplicateFileChange} accept="image/*,video/*" className="hidden" />
           </form>
 
           {isFluxModelSelected && uploadedImagePreview && (
             <div className="mt-3 flex justify-center">
                 <div className="relative w-32 h-32 group">
-                    <NextImage src={uploadedImagePreview} alt="Upload preview" fill style={{ objectFit: "cover" }} className="rounded-md border" data-ai-hint="object photo"/>
+                    <NextImage src={uploadedImagePreview} alt="Upload preview" fill style={{ objectFit: "cover" }} className="rounded-md border" data-ai-hint="upload preview content"/>
                     <Button
                     variant="destructive" size="icon"
                     className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-70 group-hover:opacity-100 transition-opacity z-10"
@@ -513,8 +535,11 @@ const ReplicateImageTool: React.FC = () => {
                 )}
             {!loading && !error && outputUrl && (
                 <div className={cn(
-                    "relative w-full h-full",
-                    isVideoOutput ? "aspect-video max-h-[calc(100vh-450px)]" : "max-h-[calc(100vh-450px)]"
+                    "relative w-full",
+                    isVideoOutput 
+                        ? "aspect-video max-h-[calc(100vh-450px)]" 
+                        // For images, use aspect-square and max-width to control size within the flex centered CardContent
+                        : "aspect-square max-h-[calc(100vh-450px)] max-w-full md:max-w-md lg:max-w-lg mx-auto" 
                 )}>
                 {isVideoOutput ? (
                     <video
@@ -565,3 +590,4 @@ const ReplicateImageTool: React.FC = () => {
 };
 
 export default ReplicateImageTool;
+
