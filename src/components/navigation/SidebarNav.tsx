@@ -59,7 +59,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
             className="font-code text-lg text-sidebar-foreground/80 hover:text-sidebar-foreground transition-colors duration-150 block w-full text-left py-1"
             aria-label={`Run ${item.title.replace(/\s/g, '')}`}
             >
-            └{item.id === 'personalization' ? item.title : `run/${item.title}`}
+            {item.id === 'personalization' ? `└${item.title}` : `└run/${item.title}`}
             </button>
         ))}
       </div>

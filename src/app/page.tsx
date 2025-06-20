@@ -7,7 +7,7 @@ import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
-import GPTImageTool from '@/components/tools/GPTImageTool'; // Kept for consistency, though not directly linked
+import GPTImageTool from '@/components/tools/GPTImageTool'; 
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import { Button } from "@/components/ui/button";
@@ -107,20 +107,23 @@ export default function Home() {
     const storedActiveToolType = localStorage.getItem(ACTIVE_TOOL_TYPE_KEY) as ToolType | null;
     if (storedActiveToolType && toolTileItems.some(item => item.id === storedActiveToolType)) {
       setActiveToolTypeForView(storedActiveToolType);
-      // Determine currentView based on storedActiveToolType
+      
       if (storedActiveToolType === 'long language loops') {
         const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
         if (storedActiveConvId) {
-          const conv = allConversations.find(c => c.id === storedActiveConvId);
+          // We need to find the conversation from the potentially already loaded `allConversations`
+          // This part requires `allConversations` to be populated first.
+          // Let's adjust the logic slightly: populate `allConversations` then try to find the active one.
+          const conv = JSON.parse(storedConversations || '[]').find((c: Conversation) => c.id === storedActiveConvId);
           if (conv) {
              setActiveConversation(conv);
              setCurrentMessages(conv.messages);
              setCurrentView('chat');
           } else {
-            setCurrentView('tiles'); // Fallback if conversation not found
+            setCurrentView('tiles'); 
           }
         } else {
-            setCurrentView('tiles'); // Fallback if no active conversation ID
+            setCurrentView('tiles'); 
         }
       } else if (storedActiveToolType === 'nocost imagination') {
         setCurrentView('easyImageLoopTool');
@@ -137,9 +140,9 @@ export default function Home() {
 
 
     setIsInitialLoadComplete(true);
-  }, []); // Empty dependency array for initial load
+  }, []); 
 
-  // Persist activeToolTypeForView and activeConversationId
+  
   useEffect(() => {
     if (isInitialLoadComplete) {
       if (activeToolTypeForView) {
@@ -150,7 +153,10 @@ export default function Home() {
       if (currentView === 'chat' && activeConversation) {
         localStorage.setItem(ACTIVE_CONVERSATION_ID_KEY, activeConversation.id);
       } else {
-        localStorage.removeItem(ACTIVE_CONVERSATION_ID_KEY);
+        // Only remove if we are not in chat or there's no active conversation
+        if (currentView !== 'chat' || !activeConversation) {
+           localStorage.removeItem(ACTIVE_CONVERSATION_ID_KEY);
+        }
       }
     }
   }, [activeToolTypeForView, activeConversation, currentView, isInitialLoadComplete]);
@@ -632,7 +638,7 @@ export default function Home() {
                   className="font-code text-3xl sm:text-4xl md:text-5xl text-foreground hover:text-primary transition-colors duration-200 text-left"
                   aria-label={`Run ${item.title.replace(/\s/g, '')}`}
                 >
-                  └run/{item.id === 'personalization' ? item.title : item.title.replace(/\./g, ' ')}
+                  {item.id === 'personalization' ? `└${item.title}` : `└run/${item.title}`}
                 </button>
               ))}
             </div>
