@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -107,25 +106,4 @@ body {
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* Blinking cursor animation */
-@keyframes blink-caret {
-  from, to { border-color: transparent }
-  50% { border-color: hsl(var(--foreground)); } /* Use foreground color for cursor */
-}
-
-.typing-cursor::after {
-  content: '';
-  border-right: 0.1em solid hsl(var(--foreground)); /* Adjust size as needed */
-  animation: blink-caret 0.75s step-end infinite;
-  margin-left: 0.05em; /* Small space for the cursor */
-  /* Prevent the cursor from causing layout shift when text is empty */
-  display: inline-block;
-  vertical-align: bottom; /* Aligns cursor with text baseline */
-}
-
-/* Ensure the span itself doesn't cause extra space if it's empty but has a cursor */
-.typing-cursor:empty::after {
-  margin-left: 0;
 }
