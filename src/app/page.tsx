@@ -12,7 +12,7 @@ import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
-import { X, SlidersHorizontal, Image as ImageIconLucide, Database, UserCog } from 'lucide-react'; // Added icons for personalization
+import { X, SlidersHorizontal, Image as ImageIconLucide, Database, UserCog } from 'lucide-react';
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -20,7 +20,7 @@ import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
-import { useTypingEffect } from '@/hooks/useTypingEffect';
+import { useGlitchyTypingEffect } from '@/hooks/useGlitchyTypingEffect'; // UPDATED
 import { cn } from '@/lib/utils';
 
 import {
@@ -46,10 +46,10 @@ const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
 const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
 const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
 
-const TOOL_LINK_TYPING_SPEED = 75;
-const DELAY_BETWEEN_LINKS = 200;
+const TOOL_LINK_TYPING_SPEED = 90; // Adjusted for glitch effect
+const TOOL_LINK_GLITCH_PAUSE = 800; // Pause between glitch phases
+const DELAY_BETWEEN_LINKS = 200; // Stagger start of each link
 
-// For AppHeader animation timing
 const INITIAL_MISSPELLED_TEXT = "just.... </say.hi>";
 const CORRECT_TEXT = "</hey.hi>";
 const INITIAL_TYPING_SPEED = 180;
@@ -64,14 +64,30 @@ const AnimatedTileLink: React.FC<{
   headerAnimationDone: boolean;
 }> = ({ item, onSelect, startDelay, headerAnimationDone }) => {
   const prefix = item.id === 'personalization' ? '└' : '└run/';
-  const fullLinkText = `${prefix}${item.title}`;
+  const baseTitle = item.title;
+  const fullLinkText = `${prefix}${baseTitle}`;
 
-  const { text: animatedLinkText, isComplete: linkIsComplete } = useTypingEffect(
-    fullLinkText,
+  let glitchPhases: string[];
+  let loopGlitchEffect = true;
+
+  if (prefix === '└run/') {
+    const glitchPrefix = prefix.replace(/^r/, 'u'); // Changes "run/" to "unn/"
+    glitchPhases = [
+      fullLinkText,
+      `${glitchPrefix}${baseTitle}`,
+      fullLinkText
+    ];
+  } else {
+    glitchPhases = [fullLinkText];
+    loopGlitchEffect = false; // Type "import/personalization" once
+  }
+
+  const { text: animatedLinkText, isTypingPhaseComplete: currentPhaseNotYetTyped } = useGlitchyTypingEffect(
+    glitchPhases,
     TOOL_LINK_TYPING_SPEED,
-    // If header animation is not done, use a very large delay to effectively pause tile animation.
-    // Otherwise, use the calculated startDelay.
-    headerAnimationDone ? startDelay : 999999
+    TOOL_LINK_GLITCH_PAUSE,
+    loopGlitchEffect,
+    headerAnimationDone ? startDelay : 999999 // Effectively pause if header not done.
   );
 
   return (
@@ -79,9 +95,9 @@ const AnimatedTileLink: React.FC<{
       onClick={() => onSelect(item.id)}
       className="font-code text-3xl sm:text-4xl md:text-5xl text-foreground hover:text-primary transition-colors duration-200 text-left"
       aria-label={`Run ${item.title.replace(/\./g, ' ')}`}
-      disabled={!headerAnimationDone || !linkIsComplete}
+      disabled={!headerAnimationDone} // Button enabled once header is done
     >
-      <span className={cn(headerAnimationDone && !linkIsComplete && "typing-cursor")}>
+      <span className={cn(headerAnimationDone && currentPhaseNotYetTyped && "typing-cursor")}>
         {headerAnimationDone ? animatedLinkText : ""}
       </span>
     </button>
@@ -110,7 +126,6 @@ export default function Home() {
   const [userDisplayName, setUserDisplayName] = useState<string>("User");
   const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
 
-  // Calculate total duration for header animation to delay subsequent tile animations
   const headerAnimationDuration =
     (INITIAL_MISSPELLED_TEXT.length * INITIAL_TYPING_SPEED) +
     PAUSE_DURATION +
@@ -171,7 +186,7 @@ export default function Home() {
              setActiveConversation(conv);
              setCurrentMessages(conv.messages);
              setCurrentView('chat');
-             setHeaderAnimationComplete(true); // Skip animation if loading a chat
+             setHeaderAnimationComplete(true); 
           } else {
             setCurrentView('tiles');
           }
@@ -342,7 +357,7 @@ export default function Home() {
     setCurrentMessages([]);
     setIsImageMode(false);
     setActiveToolTypeForView(null);
-    setHeaderAnimationComplete(false); // Reset for next time tiles view is shown
+    setHeaderAnimationComplete(false); 
 
     cleanupPreviousEmptyLllChat(prevActive);
   }, [activeConversation, cleanupPreviousEmptyLllChat]);
@@ -371,7 +386,7 @@ export default function Home() {
     setCurrentMessages([]);
     setActiveToolTypeForView('long language loops');
     setCurrentView('chat');
-    setHeaderAnimationComplete(true); // Ensure header animation is marked complete
+    setHeaderAnimationComplete(true); 
   }, [activeConversation, cleanupPreviousEmptyLllChat]);
 
 
@@ -380,7 +395,7 @@ export default function Home() {
 
     setActiveToolTypeForView(toolType);
     setIsImageMode(false);
-    setHeaderAnimationComplete(true); // Mark header animation as complete when a tile is selected
+    setHeaderAnimationComplete(true); 
 
     if (toolType === 'long language loops') {
       startNewLongLanguageLoopChat();
@@ -411,7 +426,7 @@ export default function Home() {
     if (!conversationToSelect) return;
 
     const previousActiveConv = activeConversation;
-    setHeaderAnimationComplete(true); // Mark header animation complete
+    setHeaderAnimationComplete(true); 
 
     if (conversationToSelect.toolType === 'long language loops') {
       setActiveConversation({
@@ -650,7 +665,7 @@ export default function Home() {
       reader.onloadend = () => {
         const dataUrl = reader.result as string;
         updateActiveConversationState({
-            isImageMode: false, // Turn off image generation prompt mode when a file is uploaded
+            isImageMode: false, 
             uploadedFile: file,
             uploadedFilePreview: dataUrl
         });
@@ -818,5 +833,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
