@@ -49,6 +49,14 @@ const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
 const TOOL_LINK_TYPING_SPEED = 75;
 const DELAY_BETWEEN_LINKS = 200;
 
+// For AppHeader animation timing
+const INITIAL_MISSPELLED_TEXT = "just.... </say.hi>";
+const CORRECT_TEXT = "</hey.hi>";
+const INITIAL_TYPING_SPEED = 180;
+const BACKSPACE_SPEED = 40;
+const FINAL_TYPING_SPEED = 120;
+const PAUSE_DURATION = 1500;
+
 const AnimatedTileLink: React.FC<{
   item: TileItem;
   onSelect: (id: ToolType) => void;
@@ -61,7 +69,9 @@ const AnimatedTileLink: React.FC<{
   const { text: animatedLinkText, isComplete: linkIsComplete } = useTypingEffect(
     fullLinkText,
     TOOL_LINK_TYPING_SPEED,
-    headerAnimationDone ? startDelay : 999999 // Large delay if header not done
+    // If header animation is not done, use a very large delay to effectively pause tile animation.
+    // Otherwise, use the calculated startDelay.
+    headerAnimationDone ? startDelay : 999999
   );
 
   return (
@@ -99,6 +109,14 @@ export default function Home() {
 
   const [userDisplayName, setUserDisplayName] = useState<string>("User");
   const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
+
+  // Calculate total duration for header animation to delay subsequent tile animations
+  const headerAnimationDuration =
+    (INITIAL_MISSPELLED_TEXT.length * INITIAL_TYPING_SPEED) +
+    PAUSE_DURATION +
+    (INITIAL_MISSPELLED_TEXT.length * BACKSPACE_SPEED) +
+    (CORRECT_TEXT.length * FINAL_TYPING_SPEED);
+
 
   useEffect(() => {
     const storedConversations = localStorage.getItem('chatConversations');
@@ -324,7 +342,7 @@ export default function Home() {
     setCurrentMessages([]);
     setIsImageMode(false);
     setActiveToolTypeForView(null);
-    setHeaderAnimationComplete(false);
+    setHeaderAnimationComplete(false); // Reset for next time tiles view is shown
 
     cleanupPreviousEmptyLllChat(prevActive);
   }, [activeConversation, cleanupPreviousEmptyLllChat]);
@@ -353,7 +371,7 @@ export default function Home() {
     setCurrentMessages([]);
     setActiveToolTypeForView('long language loops');
     setCurrentView('chat');
-    setHeaderAnimationComplete(true);
+    setHeaderAnimationComplete(true); // Ensure header animation is marked complete
   }, [activeConversation, cleanupPreviousEmptyLllChat]);
 
 
@@ -362,7 +380,7 @@ export default function Home() {
 
     setActiveToolTypeForView(toolType);
     setIsImageMode(false);
-    setHeaderAnimationComplete(true);
+    setHeaderAnimationComplete(true); // Mark header animation as complete when a tile is selected
 
     if (toolType === 'long language loops') {
       startNewLongLanguageLoopChat();
@@ -393,7 +411,7 @@ export default function Home() {
     if (!conversationToSelect) return;
 
     const previousActiveConv = activeConversation;
-    setHeaderAnimationComplete(true);
+    setHeaderAnimationComplete(true); // Mark header animation complete
 
     if (conversationToSelect.toolType === 'long language loops') {
       setActiveConversation({
@@ -664,11 +682,6 @@ export default function Home() {
     }
   }
 
-  const headerAnimationDuration =
-    (INITIAL_MISSPELLED_TEXT.length * INITIAL_TYPING_SPEED) +
-    PAUSE_DURATION +
-    (INITIAL_MISSPELLED_TEXT.length * BACKSPACE_SPEED) +
-    (CORRECT_TEXT.length * FINAL_TYPING_SPEED);
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
@@ -806,10 +819,4 @@ export default function Home() {
   );
 }
 
-// For AppHeader animation timing
-const INITIAL_MISSPELLED_TEXT = "just.... </say.hi>";
-const CORRECT_TEXT = "</hey.hi>";
-const INITIAL_TYPING_SPEED = 180;
-const BACKSPACE_SPEED = 40;
-const FINAL_TYPING_SPEED = 120;
-const PAUSE_DURATION = 1500;
+    
