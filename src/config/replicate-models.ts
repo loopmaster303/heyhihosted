@@ -80,20 +80,5 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min:0, info:"Random seed. Blank for random." },
     ],
   },
-  "veo-3": {
-    id: "veo-3",
-    name: "Veo 3 (Video)",
-    outputType: "video",
-    description: "Google's state-of-the-art text-to-video model.",
-    inputs: [
-      { name: "prompt", label: "Video Prompt", type: "text", required: true, placeholder: "A cinematic shot of a futuristic city at dusk...", info:"Describe the video you want to create.", isPrompt: true },
-      { name: "negative_prompt", label: "Negative Video Prompt", type: "text", placeholder: "Low resolution, shaky camera, bad lighting", info:"Elements to discourage in the video.", isNegativePrompt: true },
-      { name: "enhance_prompt", label: "Enhance Prompt", type: "boolean", default: true, info:"Use Gemini to enhance your prompt for better video generation results."},
-      { name: "width", label: "Width", type: "number", default: 1024, min: 256, max: 1920, step: 64, info:"Video width in pixels." },
-      { name: "height", label: "Height", type: "number", default: 576, min: 256, max: 1080, step: 64, info:"Video height in pixels." },
-      { name: "duration_secs", label: "Duration (seconds)", type: "number", default: 4, min: 1, max: 16, step: 1, info:"Length of the video in seconds." },
-      { name: "fps", label: "FPS (Frames Per Second)", type: "number", default: 24, min: 8, max: 60, step: 1, info:"Frames per second for the video." },
-      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min:0, info:"Randomization seed." },
-    ],
-  },
 };
+
