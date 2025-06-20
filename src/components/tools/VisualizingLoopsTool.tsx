@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const SUPPORTED_POLLINATIONS_MODELS = ['flux', 'turbo'];
 const DEFAULT_POLLINATIONS_MODEL = 'flux';
+const LOCAL_STORAGE_KEY = 'visualizingLoopsToolSettings';
 
 const VisualizingLoopsTool: FC = () => {
   const { toast } = useToast();
@@ -64,7 +65,9 @@ const VisualizingLoopsTool: FC = () => {
         const availableModels = Array.isArray(data.models) ? data.models : [];
         if (availableModels.length > 0) {
           setImageModels(availableModels);
-          if (!availableModels.includes(model)) {
+          // If loaded model from localStorage is not in newly fetched availableModels, reset to default or first available.
+          const currentModelIsValid = availableModels.includes(model);
+          if (!currentModelIsValid) {
             setModel(availableModels.includes(DEFAULT_POLLINATIONS_MODEL) ? DEFAULT_POLLINATIONS_MODEL : availableModels[0]);
           }
         } else {
@@ -78,7 +81,48 @@ const VisualizingLoopsTool: FC = () => {
         setImageModels(SUPPORTED_POLLINATIONS_MODELS);
         setModel(DEFAULT_POLLINATIONS_MODEL);
       });
-  }, []);
+  }, []); // Model state is initialized by loadSettingsEffect or defaults
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedSettings) {
+      try {
+        const settings = JSON.parse(storedSettings);
+        if (settings.prompt !== undefined) setPrompt(settings.prompt);
+        // Defer setting model until imageModels are loaded, or check against initial SUPPORTED_POLLINATIONS_MODELS
+        if (settings.model !== undefined && (imageModels.length === 0 ? SUPPORTED_POLLINATIONS_MODELS : imageModels).includes(settings.model) ) setModel(settings.model);
+        if (settings.width !== undefined) setWidth(settings.width);
+        if (settings.height !== undefined) setHeight(settings.height);
+        if (settings.seed !== undefined) setSeed(settings.seed);
+        if (settings.isPrivate !== undefined) setIsPrivate(settings.isPrivate);
+        if (settings.upsampling !== undefined) setUpsampling(settings.upsampling);
+        if (settings.transparentPollinations !== undefined) setTransparentPollinations(settings.transparentPollinations);
+        if (settings.aspectRatio !== undefined) setAspectRatio(settings.aspectRatio);
+        if (settings.batchSize !== undefined) setBatchSize(settings.batchSize);
+      } catch (e) {
+        console.error("Failed to parse VisualizingLoopsTool settings from localStorage", e);
+        localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear corrupted data
+      }
+    }
+  }, [imageModels]); // Rerun if imageModels changes, to validate loaded model
+
+  // Save settings to localStorage whenever they change
+  useEffect(() => {
+    const settingsToSave = {
+      prompt,
+      model,
+      width,
+      height,
+      seed,
+      isPrivate,
+      upsampling,
+      transparentPollinations,
+      aspectRatio,
+      batchSize,
+    };
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settingsToSave));
+  }, [prompt, model, width, height, seed, isPrivate, upsampling, transparentPollinations, aspectRatio, batchSize]);
 
 
   const handleGenerate = async () => {
@@ -344,3 +388,5 @@ const VisualizingLoopsTool: FC = () => {
 };
 
 export default VisualizingLoopsTool;
+
+    

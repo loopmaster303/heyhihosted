@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, FC } from 'react';
+import { useState, FC, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,6 +24,8 @@ import NextImage from 'next/image';
 import { Loader2, Settings, ImagePlus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
+const LOCAL_STORAGE_KEY_GPT = 'gptImageToolSettings';
+
 const GPTImageTool: FC = () => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
@@ -40,6 +42,45 @@ const GPTImageTool: FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+
+  // Load settings from localStorage
+  useEffect(() => {
+    const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY_GPT);
+    if (storedSettings) {
+      try {
+        const settings = JSON.parse(storedSettings);
+        if (settings.prompt !== undefined) setPrompt(settings.prompt);
+        if (settings.width !== undefined) setWidth(settings.width);
+        if (settings.height !== undefined) setHeight(settings.height);
+        if (settings.aspectRatio !== undefined) setAspectRatio(settings.aspectRatio);
+        if (settings.seed !== undefined) setSeed(settings.seed);
+        if (settings.batchSize !== undefined) setBatchSize(settings.batchSize);
+        if (settings.isPrivate !== undefined) setIsPrivate(settings.isPrivate);
+        if (settings.upsampling !== undefined) setUpsampling(settings.upsampling);
+        if (settings.transparent !== undefined) setTransparent(settings.transparent);
+      } catch (e) {
+        console.error("Failed to parse GPTImageTool settings from localStorage", e);
+        localStorage.removeItem(LOCAL_STORAGE_KEY_GPT); // Clear corrupted data
+      }
+    }
+  }, []);
+
+  // Save settings to localStorage
+  useEffect(() => {
+    const settingsToSave = {
+      prompt,
+      width,
+      height,
+      aspectRatio,
+      seed,
+      batchSize,
+      isPrivate,
+      upsampling,
+      transparent,
+    };
+    localStorage.setItem(LOCAL_STORAGE_KEY_GPT, JSON.stringify(settingsToSave));
+  }, [prompt, width, height, aspectRatio, seed, batchSize, isPrivate, upsampling, transparent]);
+
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -289,3 +330,5 @@ const GPTImageTool: FC = () => {
 };
 
 export default GPTImageTool;
+
+    

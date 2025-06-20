@@ -8,7 +8,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'; // Retained for Popover if needed for other params
+} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Info, ImageIcon, X, MoreHorizontal, ArrowRight, ChevronDown } from 'lucide-react'; // Added ChevronDown
+import { Loader2, AlertCircle, Info, ImageIcon, X, MoreHorizontal, ArrowRight, ChevronDown } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import NextImage from 'next/image';
 import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
@@ -32,6 +32,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
+const REPLICATE_TOOL_SETTINGS_KEY = 'replicateImageToolSettings';
 
 const ReplicateImageTool: React.FC = () => {
   const { toast } = useToast();
@@ -51,10 +52,35 @@ const ReplicateImageTool: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
+  // Load selectedModelKey on mount
   useEffect(() => {
-    if (selectedModelKey && modelConfigs[selectedModelKey]) {
-      const config = modelConfigs[selectedModelKey];
+    const storedData = localStorage.getItem(REPLICATE_TOOL_SETTINGS_KEY);
+    if (storedData) {
+      try {
+        const settings = JSON.parse(storedData);
+        if (settings.selectedModelKey && modelKeys.includes(settings.selectedModelKey)) {
+          setSelectedModelKey(settings.selectedModelKey);
+        } else if (modelKeys.length > 0) {
+          setSelectedModelKey(modelKeys[0]); // Fallback to first if saved is invalid
+        }
+      } catch (e) {
+        console.error("Error loading ReplicateImageTool selectedModelKey:", e);
+        if (modelKeys.length > 0) setSelectedModelKey(modelKeys[0]);
+      }
+    } else if (modelKeys.length > 0) {
+      setSelectedModelKey(modelKeys[0]); // Default to first model if no settings
+    }
+    setInitialLoadComplete(true);
+  }, []); // modelKeys are static, so no dependency needed for initial key load.
+
+  // Effect to initialize/reset form fields when model changes, and load model-specific settings
+  useEffect(() => {
+    if (!initialLoadComplete || !selectedModelKey) return; // Wait for initial key load & ensure key exists
+
+    const config = modelConfigs[selectedModelKey];
+    if (config) {
       setCurrentModelConfig(config);
       const initialFields: Record<string, any> = {};
       let initialMainPrompt = '';
@@ -62,13 +88,7 @@ const ReplicateImageTool: React.FC = () => {
       const promptInputConfig = config.inputs.find(input => input.isPrompt && input.name === 'prompt');
       initialMainPrompt = String(promptInputConfig?.default ?? '');
       
-      if (promptInputConfig?.placeholder && !initialMainPrompt && !config.id.startsWith("flux-kontext")) {
-          initialMainPrompt = ''; // Use placeholder if no explicit default unless it's flux
-      }
-
-
       config.inputs.forEach(input => {
-        // Exclude main prompt and Flux's input_image from general form fields as they are handled separately
         if (!((input.isPrompt && input.name === 'prompt') || (config.id.startsWith("flux-kontext") && input.name === 'input_image'))) {
             initialFields[input.name] = input.default ?? 
                                         (input.type === 'number' ? (input.min ?? 0) : 
@@ -76,27 +96,57 @@ const ReplicateImageTool: React.FC = () => {
                                         (input.type === 'select' ? (typeof input.options?.[0] === 'object' ? input.options?.[0].value : input.options?.[0]) : '')));
         }
       });
+      
+      // Try to load saved settings for THIS model
+      const storedData = localStorage.getItem(REPLICATE_TOOL_SETTINGS_KEY);
+      let modelSpecificSettingsLoaded = false;
+      if (storedData) {
+        try {
+          const settings = JSON.parse(storedData);
+          if (settings.selectedModelKey === selectedModelKey) { // Ensure settings are for current model
+            if (settings.mainPromptValue !== undefined) {
+              initialMainPrompt = settings.mainPromptValue;
+            }
+            if (settings.formFields !== undefined) {
+              // Merge saved fields with defaults, preferring saved values
+              Object.keys(initialFields).forEach(key => {
+                if (settings.formFields[key] !== undefined) {
+                  initialFields[key] = settings.formFields[key];
+                }
+              });
+            }
+            modelSpecificSettingsLoaded = true;
+          }
+        } catch (e) { console.error("Error applying ReplicateImageTool model specific settings:", e); }
+      }
+      
       setMainPromptValue(initialMainPrompt);
       setFormFields(initialFields);
 
+      // Reset output and errors when model changes
       setOutputUrl(null);
       setError(null);
       setUploadedImageFile(null);
       setUploadedImagePreview(null);
-      // Explicitly clear input_image from formFields if it's there from a previous model type
-      if (config.id.startsWith("flux-kontext") && initialFields.input_image) {
-         delete initialFields.input_image;
-      }
     } else {
-      setCurrentModelConfig(null); 
+      setCurrentModelConfig(null);
       setFormFields({});
       setMainPromptValue('');
-      setOutputUrl(null);
-      setError(null);
-      setUploadedImageFile(null);
-      setUploadedImagePreview(null);
     }
-  }, [selectedModelKey]);
+  }, [selectedModelKey, initialLoadComplete]);
+
+  // Save settings to localStorage
+  useEffect(() => {
+    if (!initialLoadComplete || !selectedModelKey || !currentModelConfig) return; // Only save if a model is selected and initial load is done
+
+    const settingsToSave = {
+      selectedModelKey,
+      mainPromptValue,
+      formFields,
+    };
+    localStorage.setItem(REPLICATE_TOOL_SETTINGS_KEY, JSON.stringify(settingsToSave));
+  }, [selectedModelKey, mainPromptValue, formFields, currentModelConfig, initialLoadComplete]);
+
 
   const handleInputChange = useCallback((name: string, value: string | number | boolean) => {
     setFormFields(prevFields => ({ ...prevFields, [name]: value }));
@@ -114,7 +164,10 @@ const ReplicateImageTool: React.FC = () => {
         setUploadedImageFile(file);
         setUploadedImagePreview(dataUri);
         if (isFluxModelSelected) { 
-            handleInputChange("input_image", dataUri); // Store data URI for submission
+            // The actual data URI for submission will be picked from formFields.input_image or mainPayload.input_image
+            // This just updates the preview and the internal File object.
+            // The formFields.input_image should be set here if this model is selected.
+            setFormFields(prev => ({...prev, input_image: dataUri }));
         }
       };
       reader.readAsDataURL(file);
@@ -123,7 +176,7 @@ const ReplicateImageTool: React.FC = () => {
       setUploadedImageFile(null);
       setUploadedImagePreview(null);
       if (isFluxModelSelected) { 
-        handleInputChange("input_image", ""); 
+        setFormFields(prev => ({...prev, input_image: undefined }));
       }
     }
   };
@@ -139,7 +192,7 @@ const ReplicateImageTool: React.FC = () => {
     setUploadedImageFile(null);
     setUploadedImagePreview(null);
     if (isFluxModelSelected) { 
-        handleInputChange("input_image", ""); 
+        setFormFields(prev => ({...prev, input_image: undefined }));
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -244,7 +297,6 @@ const ReplicateImageTool: React.FC = () => {
               placeholder={String(inputConfig.default) || ''}
               onChange={(e) => {
                 const val = e.target.value;
-                // Allow empty string for clearing, otherwise parse as float
                 handleInputChange(inputConfig.name, val === '' ? '' : parseFloat(val));
               }}
               className="bg-input border-border focus-visible:ring-primary"
@@ -309,14 +361,13 @@ const ReplicateImageTool: React.FC = () => {
             toast({ title: "Prompt Missing", description: "This model requires a prompt.", variant: "destructive" });
             return;
         }
-        if (effectivePrompt) { // Only add prompt if it's not empty
+        if (effectivePrompt) { 
             currentPayload.prompt = effectivePrompt;
         }
     }
     
-    // Handle input_image for Flux models specifically
     if (isFluxModelSelected && uploadedImagePreview && formFields.input_image) {
-        currentPayload.input_image = formFields.input_image; // This will be the data URI
+        currentPayload.input_image = formFields.input_image; 
     } else if (isFluxModelSelected && currentModelConfig.inputs.find(i => i.name === 'input_image')?.required && !uploadedImagePreview && !effectivePrompt) {
         toast({ title: "Input Missing", description: "Flux models require a prompt or an input image.", variant: "destructive" });
         return;
@@ -330,7 +381,7 @@ const ReplicateImageTool: React.FC = () => {
       const valueToUse = formFields[input.name];
 
       if (input.required && (valueToUse === undefined || valueToUse === '' || valueToUse === null)) {
-         if (!(input.type === 'boolean' && valueToUse === false)) { // false is a valid required boolean
+         if (!(input.type === 'boolean' && valueToUse === false)) { 
              toast({ title: "Missing Required Field", description: `Please fill in the "${input.label}" field.`, variant: "destructive"});
              return;
          }
@@ -339,17 +390,13 @@ const ReplicateImageTool: React.FC = () => {
       if (valueToUse !== undefined && valueToUse !== '' && valueToUse !== null) {
          if (input.type === 'number') {
           const numValue = parseFloat(String(valueToUse));
-          // Only add if it's a valid number. Empty string in formFields for number means "use default" or "don't send"
           if (!isNaN(numValue)) currentPayload[input.name] = numValue;
-          // If valueToUse was an empty string for a number field, and it's not required, we effectively skip it.
-          // If it IS required and empty, the check above would have caught it.
         } else {
           currentPayload[input.name] = valueToUse;
         }
       } else if (input.type === 'boolean' && valueToUse === false) { 
-         currentPayload[input.name] = false; // Explicitly send false for booleans
+         currentPayload[input.name] = false; 
       }
-      // If valueToUse is undefined, empty, or null for non-required fields, it's generally omitted from payload
     }
 
     setLoading(true);
@@ -381,18 +428,13 @@ const ReplicateImageTool: React.FC = () => {
       } else if (data.error) {
         throw new Error(data.error);
       } else {
-        // Handle cases where prediction is still processing on Replicate's side (if API returns such status)
         if(data.status && data.status !== "succeeded" && data.status !== "failed" && data.status !== "canceled"){
-            // This state indicates the backend should be polling. The frontend doesn't need to do much here
-            // except inform the user if the backend didn't handle polling quickly enough.
-            // For robust UX, the backend should ideally return final result or a specific error.
             setError(`Prediction is ${data.status}. This might take a moment. If this persists, check server logs or Replicate dashboard.`);
             toast({title: `Prediction ${data.status}`, description: "Waiting for completion from Replicate. The backend is polling.", variant: "default", duration: 7000});
         } else if (data.status === "failed" || data.status === "canceled") {
             throw new Error(`Prediction ${data.status}. ${data.error || 'Check Replicate dashboard for details.'}`);
         }
          else {
-            // This case means backend polling might have finished but no output URL was in the final response.
             console.warn("Unknown response structure from Replicate API or prediction completed without output URL:", data);
             throw new Error("Unknown response structure from Replicate API or prediction completed without output URL.");
         }
@@ -557,9 +599,9 @@ const ReplicateImageTool: React.FC = () => {
                 )}
             {!loading && !error && outputUrl && (
                 <div className={cn(
-                    "relative w-full h-full", // Let flex in CardContent center it, give it full space of its container
+                    "relative w-full h-full", 
                     isVideoOutput 
-                        ? "aspect-video max-h-[calc(100vh-400px)]" // Max height so it doesn't overflow screen
+                        ? "aspect-video max-h-[calc(100vh-400px)]" 
                         : "aspect-square max-h-[calc(100vh-400px)]" 
                 )}>
                 {isVideoOutput ? (
@@ -611,3 +653,5 @@ const ReplicateImageTool: React.FC = () => {
 };
 
 export default ReplicateImageTool;
+
+    
