@@ -5,8 +5,8 @@ import type React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { SendHorizonal, Paperclip, ChevronDown, Brain, Fingerprint, ImagePlus, X, Mic, ArrowUp } from 'lucide-react';
-import Image from 'next/image'; 
+import { Paperclip, ChevronDown, Brain, Fingerprint, ImagePlus, X, ArrowUp } from 'lucide-react';
+import Image from 'next/image';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +29,7 @@ interface ChatInputProps {
   isLoading: boolean;
   isImageModeActive: boolean;
   onToggleImageMode: () => void;
-  uploadedFilePreviewUrl: string | null; 
+  uploadedFilePreviewUrl: string | null;
   onFileSelect: (file: File | null) => void;
   isLongLanguageLoopActive: boolean;
   selectedModelId: string;
@@ -66,7 +66,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     if (isLoading) return;
 
     const canSendMessage = (isLongLanguageLoopActive && isImageModeActive && inputValue.trim() !== '') ||
-                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) || 
+                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) ||
                            (!isImageModeActive && inputValue.trim() !== '');
 
     if (canSendMessage) {
@@ -121,49 +121,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  let AttachIcon = Paperclip;
-  let attachLabel = "Attach file or prompt for image";
-  let attachAction = () => {
-    if (isImageModeActive) { // If already in image mode, toggle it off (back to paperclip mode)
-      onToggleImageMode();
-    } else { // Not in image mode, so this click should open file dialog
-      fileInputRef.current?.click();
-    }
-  };
-  
-  if (isLongLanguageLoopActive) {
-    if (uploadedFilePreviewUrl) {
-      AttachIcon = X; 
-      attachLabel = "Clear uploaded image";
-      attachAction = () => onFileSelect(null);
-    } else if (isImageModeActive) {
-      AttachIcon = ImagePlus; 
-      attachLabel = "Switch to text input / Clear image prompt mode";
-      attachAction = onToggleImageMode; 
-    } else {
-      AttachIcon = Paperclip; 
-      attachLabel = "Attach file or switch to image prompt mode";
-      // This button can have a dual action, or open a mini-menu.
-      // For now, let's keep it simple: if not in image mode and no file, primary action is to prompt for image.
-      // Secondary would be file attach. For simplicity, we make the button trigger image prompt mode for now.
-      // If user wants to attach file, they use the secondary button (imagePlus)
-      // This is slightly different from old logic, to be refined.
-      // Or: Paperclip always means file. ImagePlus is for mode toggle.
-      // Let's go with Paperclip = file, ImagePlus = toggle image prompt mode.
-      // The current logic in page.tsx for onToggleImageMode() toggles the state.
-      // AttachIcon is just icon representation.
-      // This logic needs to be crystal clear.
-
-      // Revised logic:
-      // Paperclip (AttachIcon when !isImageModeActive && !uploadedFilePreviewUrl): Opens file dialog.
-      // ImagePlus (button next to it): Toggles image prompt mode.
-      // X (AttachIcon when uploadedFilePreviewUrl): Clears file.
-      // ImagePlus (AttachIcon when isImageModeActive): Toggles image prompt mode OFF.
-    }
-  }
-
-
-  const placeholderText = 
+  const placeholderText =
     isLongLanguageLoopActive && isImageModeActive ? "Describe the image you want to generate..." :
     isLongLanguageLoopActive && uploadedFilePreviewUrl ? "Describe the uploaded image or ask a question..." :
     "Wie kann ich helfen?";
@@ -180,7 +138,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
             alt="Uploaded preview"
             width={80}
             height={80}
-            className="rounded-md object-cover"
+            style={{ objectFit: "cover" }}
+            className="rounded-md"
             data-ai-hint="upload preview"
           />
           <Button
@@ -241,7 +200,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               onChange={handleFileChange}
               accept="image/*"
               className="hidden"
-              disabled={isLoading || isImageModeActive} 
+              disabled={isLoading || isImageModeActive}
             />
 
             <DropdownMenu>
