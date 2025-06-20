@@ -20,6 +20,9 @@ import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
+import { useTypingEffect } from '@/hooks/useTypingEffect'; // Import the new hook
+import { cn } from '@/lib/utils'; // For potential conditional classNames
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +45,37 @@ const toolTileItems: TileItem[] = [
 const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
 const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
 const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
+
+const TOOL_LINK_TYPING_SPEED = 75; // ms per character
+const INITIAL_LINK_DELAY = 1200; // Delay after header typing might finish before links start
+const DELAY_BETWEEN_LINKS = 300; // Delay between each tool link typing
+
+// Helper component for animated tool links
+const AnimatedTileLink: React.FC<{
+  item: TileItem;
+  onSelect: (id: ToolType) => void;
+  startDelay: number;
+}> = ({ item, onSelect, startDelay }) => {
+  const prefix = item.id === 'personalization' ? '└' : '└run/';
+  const fullLinkText = `${prefix}${item.title}`;
+  const { text: animatedLinkText, isComplete: linkIsComplete } = useTypingEffect(
+    fullLinkText,
+    TOOL_LINK_TYPING_SPEED,
+    startDelay
+  );
+
+  return (
+    <button
+      onClick={() => onSelect(item.id)}
+      className="font-code text-3xl sm:text-4xl md:text-5xl text-foreground hover:text-primary transition-colors duration-200 text-left"
+      aria-label={`Run ${item.title.replace(/\./g, ' ')}`}
+    >
+      <span className={cn(!linkIsComplete && "typing-cursor")}>
+        {animatedLinkText}
+      </span>
+    </button>
+  );
+};
 
 
 export default function Home() {
@@ -111,9 +145,6 @@ export default function Home() {
       if (storedActiveToolType === 'long language loops') {
         const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
         if (storedActiveConvId) {
-          // We need to find the conversation from the potentially already loaded `allConversations`
-          // This part requires `allConversations` to be populated first.
-          // Let's adjust the logic slightly: populate `allConversations` then try to find the active one.
           const conv = JSON.parse(storedConversations || '[]').find((c: Conversation) => c.id === storedActiveConvId);
           if (conv) {
              setActiveConversation(conv);
@@ -153,7 +184,6 @@ export default function Home() {
       if (currentView === 'chat' && activeConversation) {
         localStorage.setItem(ACTIVE_CONVERSATION_ID_KEY, activeConversation.id);
       } else {
-        // Only remove if we are not in chat or there's no active conversation
         if (currentView !== 'chat' || !activeConversation) {
            localStorage.removeItem(ACTIVE_CONVERSATION_ID_KEY);
         }
@@ -237,8 +267,8 @@ export default function Home() {
     if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
 
     const isDefaultTitle = convToUpdate.title === "default.long.language.loop" || 
-                           convToUpdate.title.toLowerCase().startsWith("new ") || // Keep for backward compatibility if old "new..." titles exist
-                           convToUpdate.title === "Chat"; // Another fallback check
+                           convToUpdate.title.toLowerCase().startsWith("new ") ||
+                           convToUpdate.title === "Chat"; 
 
 
     if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
@@ -630,16 +660,14 @@ export default function Home() {
         <>
           <AppHeader onNavigateToTiles={handleGoBackToTilesView} />
           <main className="flex-grow container mx-auto px-4 sm:px-6 py-10 flex flex-col items-start justify-start overflow-y-auto">
-            <div className="flex flex-col items-start justify-start space-y-3 animate-in fade-in-0 duration-500">
-              {toolTileItems.map((item) => (
-                <button
+            <div className="flex flex-col items-start justify-start space-y-3">
+              {toolTileItems.map((item, index) => (
+                <AnimatedTileLink
                   key={item.id}
-                  onClick={() => handleSelectTile(item.id)}
-                  className="font-code text-3xl sm:text-4xl md:text-5xl text-foreground hover:text-primary transition-colors duration-200 text-left"
-                  aria-label={`Run ${item.title.replace(/\s/g, '')}`}
-                >
-                  {item.id === 'personalization' ? `└${item.title}` : `└run/${item.title}`}
-                </button>
+                  item={item}
+                  onSelect={handleSelectTile}
+                  startDelay={INITIAL_LINK_DELAY + index * (TOOL_LINK_TYPING_SPEED * item.title.length + DELAY_BETWEEN_LINKS)}
+                />
               ))}
             </div>
           </main>
