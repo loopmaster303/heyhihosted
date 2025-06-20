@@ -4,7 +4,7 @@ import type React from 'react';
 import type { Conversation } from '@/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, MessageSquareText } from 'lucide-react'; // Added MessageSquareText for collapsed view
 
 interface ChatHistoryItemProps {
   conversation: Conversation;
@@ -23,12 +23,12 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({
 }) => {
 
   const handleEditClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent onSelect from firing
+    e.stopPropagation(); 
     onEditTitle(conversation.id);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent onSelect from firing
+    e.stopPropagation(); 
     onDeleteChat(conversation.id);
   };
 
@@ -39,10 +39,9 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({
     }
   };
 
-  // Determine icon container classes based on active state
   const iconContainerClasses = cn(
     "flex items-center space-x-1.5 transition-opacity duration-150 ease-in-out",
-    isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+    isActive ? "opacity-100" : "opacity-0 group-hover/item:opacity-100" // Use group-hover/item for specificity
   );
 
   const iconButtonBaseClasses = "p-0.5 rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-primary";
@@ -65,48 +64,53 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({
       role="button"
       tabIndex={0}
       className={cn(
-        "w-full group flex flex-col items-start p-2.5 rounded-lg text-left transition-colors duration-150 ease-in-out cursor-pointer",
-        "focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/70 focus-visible:ring-offset-1 focus-visible:ring-offset-card", // Enhanced focus visibility
-        isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent/50 text-foreground"
+        "w-full group/item flex items-center p-2.5 rounded-lg text-left transition-colors duration-150 ease-in-out cursor-pointer", // Added group/item
+        "focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/70 focus-visible:ring-offset-1 focus-visible:ring-offset-card",
+        isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent/50 text-foreground",
+        "group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:px-0" // Center content when collapsed
       )}
       aria-label={`Continue chat: ${conversation.title}`}
       aria-current={isActive ? "page" : undefined}
     >
-      <p className={cn(
-        "font-medium text-sm truncate w-full",
-         isActive ? "text-accent-foreground" : "text-foreground" // Ensure text color contrasts with background
-         )}>
-        {conversation.title || "Chat"}
-      </p>
-      <div className="flex justify-between items-center w-full mt-0.5">
+      {/* Icon for collapsed state */}
+      <MessageSquareText className={cn("w-5 h-5 flex-shrink-0 group-data-[state=expanded]:hidden", isActive ? "text-accent-foreground" : "text-muted-foreground")} />
+
+      {/* Expanded state content */}
+      <div className="flex-col items-start w-full group-data-[state=collapsed]:hidden">
         <p className={cn(
-          "text-xs",
-           isActive ? "text-accent-foreground/70" : "text-muted-foreground/80"
+          "font-medium text-sm truncate w-full",
+           isActive ? "text-accent-foreground" : "text-foreground"
            )}>
-          {format(new Date(conversation.createdAt), "dd/MM/yy HH:mm")}
+          {conversation.title || "Chat"}
         </p>
-        {/* Render buttons only if it's a Long Language Loop chat, as others won't have persistent state for edit/delete */}
-        {conversation.toolType === 'Long Language Loops' && (
-            <div className={iconContainerClasses}>
-            <button
-                onClick={handleEditClick}
-                className={editIconButtonClasses}
-                aria-label="Edit chat title"
-            >
-                <Pencil size={14} />
-            </button>
-            <button
-                onClick={handleDeleteClick}
-                className={deleteIconButtonClasses}
-                aria-label="Delete chat"
-            >
-                <Trash2 size={14} />
-            </button>
-            </div>
-        )}
+        <div className="flex justify-between items-center w-full mt-0.5">
+          <p className={cn(
+            "text-xs",
+             isActive ? "text-accent-foreground/70" : "text-muted-foreground/80"
+             )}>
+            {format(new Date(conversation.createdAt), "dd/MM/yy HH:mm")}
+          </p>
+          {conversation.toolType === 'Long Language Loops' && (
+              <div className={iconContainerClasses}>
+              <button
+                  onClick={handleEditClick}
+                  className={editIconButtonClasses}
+                  aria-label="Edit chat title"
+              >
+                  <Pencil size={14} />
+              </button>
+              <button
+                  onClick={handleDeleteClick}
+                  className={deleteIconButtonClasses}
+                  aria-label="Delete chat"
+              >
+                  <Trash2 size={14} />
+              </button>
+              </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 export default ChatHistoryItem;
-

@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
 import { X } from 'lucide-react';
 
-
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
@@ -34,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarInset, SidebarRail } from '@/components/ui/sidebar';
 
 
 const toolTileItems: TileItem[] = [
@@ -55,9 +55,6 @@ export default function Home() {
   const [chatToDeleteId, setChatToDeleteId] = useState<string | null>(null);
 
   const [isImageMode, setIsImageMode] = useState(false);
-  // These two are now managed through activeConversation for LLL
-  // const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  // const [uploadedFilePreview, setUploadedFilePreview] = useState<string | null>(null);
   const [activeToolTypeForView, setActiveToolTypeForView] = useState<ToolType | null>(null);
 
   const [isModelPreSelectionDialogOpen, setIsModelPreSelectionDialogOpen] = useState(false);
@@ -76,9 +73,6 @@ export default function Home() {
             timestamp: new Date(msg.timestamp)
           })),
           isImageMode: conv.toolType === 'Long Language Loops' ? (conv.isImageMode || false) : undefined,
-          // uploadedFilePreview is intentionally not restored from localStorage directly for LLL
-          // as File objects cannot be serialized. It's re-derived or user re-uploads.
-          // uploadedFilePreview: conv.toolType === 'Long Language Loops' ? conv.uploadedFilePreview : undefined,
           selectedModelId: conv.selectedModelId || (conv.toolType === 'Long Language Loops' ? DEFAULT_POLLINATIONS_MODEL_ID : undefined),
           selectedResponseStyleName: conv.selectedResponseStyleName || (conv.toolType === 'Long Language Loops' ? DEFAULT_RESPONSE_STYLE_NAME : undefined),
         }));
@@ -108,10 +102,7 @@ export default function Home() {
                 return true;
             })
             .map(conv => { 
-                // Exclude File object and potentially large data URI from general storage, keep only if necessary
                 const { uploadedFile: _uploadedFile, ...storableConv } = conv;
-                // uploadedFilePreview might be very large, consider if it should always be stored or re-derived.
-                // For now, let's keep it but be mindful.
                 return storableConv;
             });
 
@@ -127,8 +118,6 @@ export default function Home() {
   const updateActiveConversationState = useCallback((updates: Partial<Conversation>) => {
     setActiveConversation(prevActive => {
       if (!prevActive) return null;
-      // Ensure uploadedFile is handled correctly: if explicitly passed as null, it's set to null.
-      // If not passed in 'updates', it retains its existing value from prevActive.
       const updatedConv = {
         ...prevActive,
         ...updates,
@@ -152,14 +141,11 @@ export default function Home() {
     if (activeConversation) {
       if (activeConversation.toolType === 'Long Language Loops') {
         setIsImageMode(activeConversation.isImageMode || false);
-        // uploadedFile and uploadedFilePreview are now part of activeConversation state
       } else {
         setIsImageMode(false);
-        // No need to manage separate top-level uploadedFile/Preview state here
       }
     } else {
         setIsImageMode(false);
-        // No need to manage separate top-level uploadedFile/Preview state here
     }
   }, [activeConversation]);
 
@@ -233,7 +219,6 @@ export default function Home() {
     setActiveConversation(null);
     setCurrentMessages([]);
     setIsImageMode(false);
-    // uploadedFile/Preview are part of activeConversation, will clear with it
     setActiveToolTypeForView(null);
 
     cleanupPreviousEmptyLllChat(prevActive);
@@ -244,7 +229,6 @@ export default function Home() {
 
     setActiveToolTypeForView(toolType);
     setIsImageMode(false);
-    // uploadedFile/Preview are part of activeConversation, reset when new LLL starts or other tool selected
 
     if (toolType === 'Long Language Loops') {
       const newConversationId = crypto.randomUUID();
@@ -264,10 +248,10 @@ export default function Home() {
       };
       setAllConversations(prev => [newConversation, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       setActiveConversation(newConversation);
-      setCurrentMessages([]); // Ensure current messages are for the new conv
+      setCurrentMessages([]); 
       setCurrentView('chat');
     } else {
-      setActiveConversation(null); // Clear active conv if not LLL
+      setActiveConversation(null); 
       setCurrentMessages([]);
       if (toolType === 'FLUX Kontext') {
         setCurrentView('fluxKontextTool');
@@ -308,10 +292,7 @@ export default function Home() {
         ...conversationToSelect,
         selectedModelId: conversationToSelect.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID,
         selectedResponseStyleName: conversationToSelect.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME,
-        // uploadedFile is not persisted, so it starts as null when loading from history
         uploadedFile: null, 
-        // uploadedFilePreview can be loaded if it was saved, or set to null if not.
-        // It's part of conversationToSelect so it's included.
       });
       setCurrentMessages(conversationToSelect.messages);
       setIsImageMode(conversationToSelect.isImageMode || false);
@@ -342,52 +323,52 @@ export default function Home() {
       console.warn("handleSendMessageGlobal called without active LLL conversation.");
       return;
     }
-
-    const currentModelId = activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
-    const currentStyleName = activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
+  
+    const currentActiveConv = activeConversation; // Capture current active conversation
+  
+    const currentModelId = currentActiveConv.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
+    const currentStyleName = currentActiveConv.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
     const currentSystemPrompt = AVAILABLE_RESPONSE_STYLES.find(s => s.name === currentStyleName)?.systemPrompt || AVAILABLE_RESPONSE_STYLES.find(s => s.name === DEFAULT_RESPONSE_STYLE_NAME)!.systemPrompt;
-
+  
     setIsAiResponding(true);
-    const conversationToUpdateId = activeConversation.id;
-    const currentToolType = activeConversation.toolType;
-
+    const conversationToUpdateId = currentActiveConv.id;
+    const currentToolType = currentActiveConv.toolType;
+  
     const isActuallyImagePromptMode = options.isImageModeIntent || false;
-    const isActuallyFileUploadMode = !!activeConversation.uploadedFile && !isActuallyImagePromptMode;
-
+    const isActuallyFileUploadMode = !!currentActiveConv.uploadedFile && !isActuallyImagePromptMode;
+  
     let userMessageContent: string | ChatMessageContentPart[] = messageText.trim();
-    let aiResponseContent: string | ChatMessageContentPart[] | null = null;
-    let skipPollinationsChatCall = false;
-
+  
     if (isActuallyImagePromptMode && messageText.trim()) {
       userMessageContent = `Image prompt: "${messageText.trim()}"`;
-    } else if (isActuallyFileUploadMode && activeConversation.uploadedFile && activeConversation.uploadedFilePreview) {
+    } else if (isActuallyFileUploadMode && currentActiveConv.uploadedFile && currentActiveConv.uploadedFilePreview) {
       const textPart: ChatMessageContentPart = { type: 'text', text: messageText.trim() || "Describe this image." };
       const imagePart: ChatMessageContentPart = {
         type: 'image_url',
-        image_url: { url: activeConversation.uploadedFilePreview, altText: activeConversation.uploadedFile.name, isUploaded: true }
+        image_url: { url: currentActiveConv.uploadedFilePreview, altText: currentActiveConv.uploadedFile.name, isUploaded: true }
       };
       userMessageContent = [textPart, imagePart];
-    } else if (isActuallyFileUploadMode && (!activeConversation.uploadedFile || !activeConversation.uploadedFilePreview)){
+    } else if (isActuallyFileUploadMode && (!currentActiveConv.uploadedFile || !currentActiveConv.uploadedFilePreview)){
         console.error("File selected for LLL, but file data or preview is missing from activeConversation.");
         toast({ title: "File Error", description: "Could not process uploaded file data for sending.", variant: "destructive" });
         setIsAiResponding(false);
         return;
     }
-
+  
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
     };
     
-    // Use the state of activeConversation.messages which should be the most up-to-date
-    // It's updated synchronously by setActiveConversation before this async part.
-    const messagesForApiSubmission = [...(activeConversation.messages || []), userMessage];
-
+    // Build messagesForApiSubmission synchronously
+    const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage];
+  
     // Optimistic UI update for user message
-    const updatedMessagesWithUser = [...(activeConversation.messages || []), userMessage];
-    updateActiveConversationState({ messages: updatedMessagesWithUser });
-    setCurrentMessages(updatedMessagesWithUser);
-
-
+    updateActiveConversationState({ messages: messagesForApiSubmission });
+    setCurrentMessages(messagesForApiSubmission);
+  
+    let aiResponseContent: string | ChatMessageContentPart[] | null = null;
+    let skipPollinationsChatCall = false;
+  
     if (isActuallyImagePromptMode && messageText.trim()) {
       try {
         const result = await generateImageViaPollinations({ prompt: messageText.trim() });
@@ -401,19 +382,19 @@ export default function Home() {
         const errorMessageText = error instanceof Error ? error.message : "Failed to generate image.";
         toast({ title: "Image Generation Error", description: errorMessageText, variant: "destructive" });
         aiResponseContent = `Sorry, I couldn't generate the image. ${errorMessageText}`;
-        skipPollinationsChatCall = true; // Still skip if generation fails, error shown as AI message
+        skipPollinationsChatCall = true; 
       }
     }
     
     if (!skipPollinationsChatCall) {
       try {
         const messagesForApi = messagesForApiSubmission // Use the synchronously constructed list
-          .filter(msg => msg.role === 'user' || msg.role === 'assistant') // Pollinations doesn't want 'system' in messages array
+          .filter(msg => msg.role === 'user' || msg.role === 'assistant') 
           .map(msg => {
             let apiContentString: string;
             if (typeof msg.content === 'string') {
               apiContentString = msg.content;
-            } else { // ChatMessageContentPart[]
+            } else { 
               const textPart = msg.content.find(part => part.type === 'text');
               apiContentString = textPart ? textPart.text : "[Image content - text part missing]";
               if (apiContentString.trim() === "" && msg.content.some(p => p.type === 'image_url') && !textPart) {
@@ -426,7 +407,6 @@ export default function Home() {
         if (messagesForApi.length === 0) {
           toast({ title: "Cannot send message", description: "The message content appears to be empty after processing.", variant: "destructive" });
           setIsAiResponding(false);
-          // Revert user message (optional, complex) or just show error. For now, show error.
           return;
         }
 
@@ -449,13 +429,11 @@ export default function Home() {
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: currentToolType,
       };
-      // Add AI message to conversation
-      const finalMessages = [...updatedMessagesWithUser, aiMessage];
+      const finalMessages = [...messagesForApiSubmission, aiMessage];
       updateActiveConversationState({ messages: finalMessages });
       setCurrentMessages(finalMessages);
     }
     
-    // Reset image mode/file state after message is sent (user & AI response handled)
     if (isActuallyImagePromptMode || isActuallyFileUploadMode) {
         updateActiveConversationState({ 
             isImageMode: false, 
@@ -464,7 +442,6 @@ export default function Home() {
         });
     }
 
-    // Update title based on the potentially new messages
     const finalMessagesForTitle = (allConversations.find(c=>c.id === conversationToUpdateId)?.messages || messagesForApiSubmission);
     if (finalMessagesForTitle.length > 0) {
       updateConversationTitle(conversationToUpdateId, finalMessagesForTitle);
@@ -473,11 +450,10 @@ export default function Home() {
 
   }, [
     activeConversation,
-    allConversations, // This is a dependency now due to find
+    allConversations, 
     updateConversationTitle,
     toast,
     updateActiveConversationState,
-    // uploadedFile and uploadedFilePreview are now accessed via activeConversation
   ]);
 
 
@@ -522,15 +498,14 @@ export default function Home() {
     setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== chatToDeleteId));
 
     if (wasActiveConversationDeleted) {
-      const nextLllConversation = allConversations // Use allConversations *before* filter for finding next
+      const nextLllConversation = allConversations 
         .filter(c => c.id !== chatToDeleteId && c.toolType === 'Long Language Loops')
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
       if (nextLllConversation) {
         handleSelectChatFromHistory(nextLllConversation.id);
       } else {
-        // If no LLL chats left, go to tiles or create a new one
-        handleGoBackToTilesView(); // Or handleSelectTile('Long Language Loops') for new one
+        handleGoBackToTilesView(); 
       }
     }
     setIsDeleteDialogOpen(false);
@@ -541,12 +516,10 @@ export default function Home() {
   const handleToggleImageMode = () => {
     if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') return;
 
-    const newImageModeState = !isImageMode; // isImageMode is the component's local copy
+    const newImageModeState = !isImageMode; 
     if (newImageModeState) { 
-      // Entering image prompt mode: clear any uploaded file for this conversation
       updateActiveConversationState({ isImageMode: newImageModeState, uploadedFile: null, uploadedFilePreview: null });
     } else { 
-      // Exiting image prompt mode (back to text or if a file was uploaded, that state remains)
       updateActiveConversationState({ isImageMode: newImageModeState });
     }
   };
@@ -558,7 +531,6 @@ export default function Home() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const dataUrl = reader.result as string;
-        // When a file is selected, ensure isImageMode is false (we are in file upload mode, not image prompt mode)
         updateActiveConversationState({ 
             isImageMode: false, 
             uploadedFile: file, 
@@ -567,11 +539,9 @@ export default function Home() {
       };
       reader.readAsDataURL(file);
     } else { 
-      // Clearing the file
       updateActiveConversationState({ 
           uploadedFile: null, 
           uploadedFilePreview: null 
-          // isImageMode remains as is, user might want to switch to text or image prompt
       });
     }
   };
@@ -590,7 +560,7 @@ export default function Home() {
 
   const clearUploadedImageForLLL = () => {
     if (activeConversation && activeConversation.toolType === 'Long Language Loops') {
-        handleFileSelect(null); // This calls updateActiveConversationState
+        handleFileSelect(null); 
     }
   }
 
@@ -605,93 +575,101 @@ export default function Home() {
           </main>
         </>
       ) : (
-        <div className="flex flex-1 overflow-hidden">
-          <SidebarNav
-            tileItems={toolTileItems}
-            activeToolType={activeToolTypeForView}
-            onSelectTile={handleSelectTile}
-            allConversations={allConversations.filter(c => c.toolType === 'Long Language Loops')} 
-            activeConversationId={activeConversation?.id || null}
-            onSelectChatHistory={handleSelectChatFromHistory}
-            onEditTitle={handleRequestEditTitle}
-            onDeleteChat={handleRequestDeleteChat}
-            className="w-60 md:w-72 flex-shrink-0"
-          />
-          <main className="flex-1 flex flex-col overflow-hidden">
-            {currentView === 'chat' && activeConversation && activeConversation.toolType === 'Long Language Loops' && (
-              <>
-                <ChatView
-                  conversation={activeConversation}
-                  messages={currentMessages}
-                  isLoading={isAiResponding}
-                  onGoBack={handleGoBackToTilesView}
-                  className="flex-grow overflow-y-auto"
+        <SidebarProvider>
+          <div className="flex flex-1 overflow-hidden">
+            <Sidebar side="left" collapsible="icon" className="border-r">
+              <SidebarContent>
+                <SidebarNav
+                  tileItems={toolTileItems}
+                  activeToolType={activeToolTypeForView}
+                  onSelectTile={handleSelectTile}
+                  allConversations={allConversations.filter(c => c.toolType === 'Long Language Loops')} 
+                  activeConversationId={activeConversation?.id || null}
+                  onSelectChatHistory={handleSelectChatFromHistory}
+                  onEditTitle={handleRequestEditTitle}
+                  onDeleteChat={handleRequestDeleteChat}
+                  className="w-full" // Ensure SidebarNav takes full width of its container
                 />
-                {/* Image Preview for LLL, placed above ChatInput */}
-                {activeConversation.uploadedFilePreview && (
-                  <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
-                    <NextImage
-                      src={activeConversation.uploadedFilePreview}
-                      alt="Uploaded preview"
-                      width={80}
-                      height={80}
-                      style={{ objectFit: "cover" }}
-                      className="rounded-md"
-                      data-ai-hint="upload preview"
+              </SidebarContent>
+              <SidebarRail />
+            </Sidebar>
+            <SidebarInset>
+              <main className="flex-1 flex flex-col overflow-hidden">
+                {currentView === 'chat' && activeConversation && activeConversation.toolType === 'Long Language Loops' && (
+                  <>
+                    <ChatView
+                      conversation={activeConversation}
+                      messages={currentMessages}
+                      isLoading={isAiResponding}
+                      onGoBack={handleGoBackToTilesView}
+                      className="flex-grow overflow-y-auto"
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute -top-1 -right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
-                      onClick={clearUploadedImageForLLL}
-                      aria-label="Clear uploaded image"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
+                    {activeConversation.uploadedFilePreview && (
+                      <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
+                        <NextImage
+                          src={activeConversation.uploadedFilePreview}
+                          alt="Uploaded preview"
+                          width={80}
+                          height={80}
+                          style={{ objectFit: "cover" }}
+                          className="rounded-md"
+                          data-ai-hint="upload preview"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute -top-1 -right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                          onClick={clearUploadedImageForLLL}
+                          aria-label="Clear uploaded image"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                    <ChatInput
+                      onSendMessage={(message, opts) => handleSendMessageGlobal(message, opts)}
+                      isLoading={isAiResponding}
+                      isImageModeActive={isImageMode} 
+                      onToggleImageMode={handleToggleImageMode}
+                      uploadedFilePreviewUrl={activeConversation.uploadedFilePreview} 
+                      onFileSelect={handleFileSelect}
+                      isLongLanguageLoopActive={true}
+                      selectedModelId={activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
+                      selectedResponseStyleName={activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
+                      onModelChange={handleModelChange}
+                      onStyleChange={handleStyleChange}
+                    />
+                  </>
                 )}
-                <ChatInput
-                  onSendMessage={(message, opts) => handleSendMessageGlobal(message, opts)}
-                  isLoading={isAiResponding}
-                  isImageModeActive={isImageMode} // Pass the local isImageMode state
-                  onToggleImageMode={handleToggleImageMode}
-                  uploadedFilePreviewUrl={activeConversation.uploadedFilePreview} // Pass from activeConversation
-                  onFileSelect={handleFileSelect}
-                  isLongLanguageLoopActive={true}
-                  selectedModelId={activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
-                  selectedResponseStyleName={activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
-                  onModelChange={handleModelChange}
-                  onStyleChange={handleStyleChange}
-                />
-              </>
-            )}
-            {currentView === 'fluxKontextTool' && (
-              <>
-                <ToolViewHeader title="FLUX Kontext" onGoBack={handleGoBackToTilesView} />
-                <ImageKontextTool />
-              </>
-            )}
-            {currentView === 'easyImageLoopTool' && ( 
-              <>
-                <ToolViewHeader title="Visualizing Loops (Pollinations)" onGoBack={handleGoBackToTilesView} />
-                <VisualizingLoopsTool />
-              </>
-            )}
-            {currentView === 'gptImageTool' && ( 
-              <>
-                <ToolViewHeader title="Visualizing Loops (OpenAI GPT)" onGoBack={handleGoBackToTilesView} />
-                <GPTImageTool />
-              </>
-            )}
-             {currentView === 'replicateImageTool' && ( 
-              <>
-                <ToolViewHeader title="Visualizing Loops 2.0 (Replicate)" onGoBack={handleGoBackToTilesView} />
-                <ReplicateImageTool />
-              </>
-            )}
-          </main>
-        </div>
+                {currentView === 'fluxKontextTool' && (
+                  <>
+                    <ToolViewHeader title="FLUX Kontext" onGoBack={handleGoBackToTilesView} />
+                    <ImageKontextTool />
+                  </>
+                )}
+                {currentView === 'easyImageLoopTool' && ( 
+                  <>
+                    <ToolViewHeader title="Visualizing Loops (Pollinations)" onGoBack={handleGoBackToTilesView} />
+                    <VisualizingLoopsTool />
+                  </>
+                )}
+                {currentView === 'gptImageTool' && ( 
+                  <>
+                    <ToolViewHeader title="Visualizing Loops (OpenAI GPT)" onGoBack={handleGoBackToTilesView} />
+                    <GPTImageTool />
+                  </>
+                )}
+                 {currentView === 'replicateImageTool' && ( 
+                  <>
+                    <ToolViewHeader title="Visualizing Loops 2.0 (Replicate)" onGoBack={handleGoBackToTilesView} />
+                    <ReplicateImageTool />
+                  </>
+                )}
+              </main>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
       )}
 
       {isModelPreSelectionDialogOpen && (

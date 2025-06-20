@@ -6,7 +6,7 @@ import CompactHeader from '@/components/layout/CompactHeader';
 import SidebarTileCard from './SidebarTileCard';
 import ChatHistoryItem from './ChatHistoryItem';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// ScrollArea import is removed
 
 interface SidebarNavProps {
   tileItems: TileItem[];
@@ -33,47 +33,40 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
 }) => {
   const sortedConversations = [...allConversations].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-
   return (
-    <aside className={cn("flex flex-col h-full bg-card", className)}>
+    // The main 'aside' element itself will be scrolled by SidebarContent from ui/sidebar
+    <aside className={cn("flex flex-col h-full", className)}> 
       <CompactHeader />
-      <ScrollArea className="flex-grow">
-        <nav className="p-2 space-y-1 mt-2">
-          {tileItems.map(item => (
-            <SidebarTileCard
-              key={item.id}
-              item={item}
-              onSelect={onSelectTile}
-              isActive={item.id === activeToolType && (item.id !== 'Long Language Loops' || activeConversationId === null)}
-              showPlusIcon={item.id === 'Long Language Loops'}
-            />
-          ))}
-        </nav>
+      {/* ScrollArea component is removed */}
+      <nav className="p-2 space-y-1 mt-2 flex-shrink-0">
+        {tileItems.map(item => (
+          <SidebarTileCard
+            key={item.id}
+            item={item}
+            onSelect={onSelectTile}
+            isActive={item.id === activeToolType && (item.id !== 'Long Language Loops' || activeConversationId === null)}
+            showPlusIcon={item.id === 'Long Language Loops'}
+          />
+        ))}
+      </nav>
 
-        {sortedConversations.length > 0 && (
-          <>
-            <div className="px-2 py-1 mt-3">
-              {/* <h3 className="mb-2 px-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
-                Recent Chats
-              </h3> */}
-              <div className="space-y-1">
-                {sortedConversations.map(conv => (
-                  <ChatHistoryItem
-                    key={conv.id}
-                    conversation={conv}
-                    onSelect={onSelectChatHistory}
-                    isActive={conv.id === activeConversationId}
-                    onEditTitle={onEditTitle}
-                    onDeleteChat={onDeleteChat}
-                  />
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </ScrollArea>
+      {sortedConversations.length > 0 && (
+        <div className="px-2 py-1 mt-3 flex-grow overflow-y-auto"> {/* Added flex-grow and overflow-y-auto here if this section needs independent scroll, or rely on SidebarContent */}
+          <div className="space-y-1">
+            {sortedConversations.map(conv => (
+              <ChatHistoryItem
+                key={conv.id}
+                conversation={conv}
+                onSelect={onSelectChatHistory}
+                isActive={conv.id === activeConversationId}
+                onEditTitle={onEditTitle}
+                onDeleteChat={onDeleteChat}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </aside>
   );
 };
 export default SidebarNav;
-

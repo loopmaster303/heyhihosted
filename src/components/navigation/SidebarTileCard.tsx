@@ -27,14 +27,19 @@ const SidebarTileCard: React.FC<SidebarTileCardProps> = ({ item, onSelect, isAct
       aria-label={`Select tool: ${item.title}${showPlusIcon ? ' or start new chat' : ''}`}
       aria-current={isActive ? "page" : undefined}
     >
-      <IconComponent className={cn("w-5 h-5 mr-3 flex-shrink-0", isActive ? "text-primary" : "text-muted-foreground group-hover:text-accent-foreground")} />
-      <div className="flex-grow">
+      <IconComponent className={cn(
+          "w-5 h-5 flex-shrink-0",
+          "group-data-[state=expanded]:mr-3", // Only add margin right if expanded
+          isActive ? "text-primary" : "text-muted-foreground group-hover:text-accent-foreground"
+        )} />
+      <div className="flex-grow group-data-[state=collapsed]:hidden"> {/* Hide text when collapsed */}
         <p className={cn("font-medium text-sm", isActive ? "text-primary" : "text-foreground")}>{item.title}</p>
-        {/* The description paragraph below is removed as per user request */}
-        {/* <p className={cn("text-xs truncate", isActive ? "text-primary/80" : "text-muted-foreground group-hover:text-accent-foreground/80")}>{item.description}</p> */}
       </div>
       {showPlusIcon && (
-        <Plus className={cn("w-5 h-5 ml-auto flex-shrink-0", isActive ? "text-primary" : "text-muted-foreground group-hover:text-accent-foreground")} />
+        <Plus className={cn(
+            "w-5 h-5 ml-auto flex-shrink-0 group-data-[state=collapsed]:hidden", // Hide plus icon when collapsed
+            isActive ? "text-primary" : "text-muted-foreground group-hover:text-accent-foreground"
+          )} />
       )}
     </button>
   );

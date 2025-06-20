@@ -8,8 +8,7 @@ import MessageBubble from './MessageBubble';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-// Model and style imports are removed as they are no longer displayed in the header here
-// import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
+import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 
 interface ChatViewProps {
   conversation: Conversation | null;
@@ -21,6 +20,7 @@ interface ChatViewProps {
 
 const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, onGoBack, className }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { isMobile } = useSidebar();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -28,36 +28,25 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
 
   useEffect(scrollToBottom, [messages]);
 
-  // Model and style name calculation removed as it's not shown in this header anymore
-  // const modelIdToUse = conversation?.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
-  // const styleNameToUse = conversation?.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
-  // const selectedModelName = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === modelIdToUse)?.name || modelIdToUse;
-  // const selectedStyleName = AVAILABLE_RESPONSE_STYLES.find(s => s.name === styleNameToUse)?.name || styleNameToUse;
-
-
   return (
     <div className={cn("w-full h-full flex flex-col bg-background overflow-hidden", className)}>
       <header className="p-4 flex items-center justify-between bg-card sticky top-0 z-10 flex-shrink-0">
-        <Button variant="ghost" size="icon" onClick={onGoBack} aria-label="Go back to tools menu">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {!isMobile && <SidebarTrigger />}
+          <Button variant="ghost" size="icon" onClick={onGoBack} aria-label="Go back to tools menu">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        </div>
         <div className="flex flex-col items-center text-center">
           <h2 className="text-lg font-semibold text-card-foreground truncate max-w-xs sm:max-w-md md:max-w-lg">
             {conversation?.title || 'New Chat'}
           </h2>
-          {/* Model and Style display removed from header
-          {conversation?.toolType === 'Long Language Loops' && (
-            <p className="text-xs text-muted-foreground">
-              Modell: {selectedModelName} &bull; Stil: {selectedStyleName}
-            </p>
-          )}
-          */}
         </div>
-        <div className="w-8 flex-shrink-0"> {/* Spacer for loading icon */}
+        <div className="w-8 flex-shrink-0"> {/* Spacer for loading icon or trigger */}
           {isLoading && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
         </div>
       </header>
-      <div className="flex-grow overflow-y-auto p-4 space-y-0"> {/* Reduced space-y for tighter message packing */}
+      <div className="flex-grow overflow-y-auto p-4 space-y-0">
         {messages.map((msg) => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
