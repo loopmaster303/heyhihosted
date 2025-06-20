@@ -7,7 +7,7 @@ import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
-import GPTImageTool from '@/components/tools/GPTImageTool'; 
+import GPTImageTool from '@/components/tools/GPTImageTool';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,8 @@ import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
-import { useTypingEffect } from '@/hooks/useTypingEffect'; // Import the new hook
-import { cn } from '@/lib/utils'; // For potential conditional classNames
+import { useTypingEffect } from '@/hooks/useTypingEffect';
+import { cn } from '@/lib/utils';
 
 import {
   AlertDialog,
@@ -47,21 +47,23 @@ const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
 const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
 
 const TOOL_LINK_TYPING_SPEED = 75; // ms per character
-const INITIAL_LINK_DELAY = 1200; // Delay after header typing might finish before links start
-const DELAY_BETWEEN_LINKS = 300; // Delay between each tool link typing
+// Adjusted initial delay to account for the new complex header animation
+// Approx header animation: (19*180) + 1500 + (19*40) + (9*120) = 3420 + 1500 + 760 + 1080 = ~6760ms
+const INITIAL_LINK_DELAY = 7000; // Start tool links after ~7 seconds
+const DELAY_BETWEEN_LINKS = 200; // Delay between each tool link typing
 
-// Helper component for animated tool links
 const AnimatedTileLink: React.FC<{
   item: TileItem;
   onSelect: (id: ToolType) => void;
   startDelay: number;
-}> = ({ item, onSelect, startDelay }) => {
+  headerAnimationDone: boolean;
+}> = ({ item, onSelect, startDelay, headerAnimationDone }) => {
   const prefix = item.id === 'personalization' ? '└' : '└run/';
   const fullLinkText = `${prefix}${item.title}`;
   const { text: animatedLinkText, isComplete: linkIsComplete } = useTypingEffect(
     fullLinkText,
     TOOL_LINK_TYPING_SPEED,
-    startDelay
+    headerAnimationDone ? startDelay : 999999 // Effectively disable typing until header is done
   );
 
   return (
@@ -69,9 +71,10 @@ const AnimatedTileLink: React.FC<{
       onClick={() => onSelect(item.id)}
       className="font-code text-3xl sm:text-4xl md:text-5xl text-foreground hover:text-primary transition-colors duration-200 text-left"
       aria-label={`Run ${item.title.replace(/\./g, ' ')}`}
+      disabled={!headerAnimationDone || !linkIsComplete} // Optionally disable click until fully typed
     >
-      <span className={cn(!linkIsComplete && "typing-cursor")}>
-        {animatedLinkText}
+      <span className={cn(headerAnimationDone && !linkIsComplete && "typing-cursor")}>
+        {headerAnimationDone ? animatedLinkText : ""}
       </span>
     </button>
   );
@@ -93,6 +96,8 @@ export default function Home() {
   const [activeToolTypeForView, setActiveToolTypeForView] = useState<ToolType | null>(null);
 
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+  const [headerAnimationComplete, setHeaderAnimationComplete] = useState(false);
+
 
   const [userDisplayName, setUserDisplayName] = useState<string>("User");
   const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
@@ -112,17 +117,17 @@ export default function Home() {
           selectedModelId: conv.selectedModelId || (conv.toolType === 'long language loops' ? DEFAULT_POLLINATIONS_MODEL_ID : undefined),
           selectedResponseStyleName: conv.selectedResponseStyleName || (conv.toolType === 'long language loops' ? DEFAULT_RESPONSE_STYLE_NAME : undefined),
         }));
-        
+
         const activeStoredConversations = parsedConversations.filter(conv => {
           if (conv.toolType === 'long language loops') {
             return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
           }
-          return false; 
+          return false;
         });
         setAllConversations(activeStoredConversations.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       } catch (error) {
         console.error("Failed to parse conversations from localStorage", error);
-        localStorage.removeItem('chatConversations'); 
+        localStorage.removeItem('chatConversations');
       }
     }
 
@@ -141,7 +146,7 @@ export default function Home() {
     const storedActiveToolType = localStorage.getItem(ACTIVE_TOOL_TYPE_KEY) as ToolType | null;
     if (storedActiveToolType && toolTileItems.some(item => item.id === storedActiveToolType)) {
       setActiveToolTypeForView(storedActiveToolType);
-      
+
       if (storedActiveToolType === 'long language loops') {
         const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
         if (storedActiveConvId) {
@@ -151,17 +156,21 @@ export default function Home() {
              setCurrentMessages(conv.messages);
              setCurrentView('chat');
           } else {
-            setCurrentView('tiles'); 
+            setCurrentView('tiles');
+            setHeaderAnimationComplete(true); // Skip animation if not on tiles view initially
           }
         } else {
-            setCurrentView('tiles'); 
+            setCurrentView('tiles');
         }
       } else if (storedActiveToolType === 'nocost imagination') {
         setCurrentView('easyImageLoopTool');
+        setHeaderAnimationComplete(true);
       } else if (storedActiveToolType === 'premium imagination') {
         setCurrentView('replicateImageTool');
+        setHeaderAnimationComplete(true);
       } else if (storedActiveToolType === 'personalization') {
         setCurrentView('personalizationTool');
+        setHeaderAnimationComplete(true);
       } else {
         setCurrentView('tiles');
       }
@@ -171,9 +180,9 @@ export default function Home() {
 
 
     setIsInitialLoadComplete(true);
-  }, []); 
+  }, []);
 
-  
+
   useEffect(() => {
     if (isInitialLoadComplete) {
       if (activeToolTypeForView) {
@@ -205,15 +214,15 @@ export default function Home() {
 
 
   useEffect(() => {
-    if (isInitialLoadComplete) { 
+    if (isInitialLoadComplete) {
         const conversationsToStore = allConversations
-            .filter(conv => { 
+            .filter(conv => {
                 if (conv.toolType === 'long language loops') {
                     return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
                 }
-                return false; 
+                return false;
             })
-            .map(conv => { 
+            .map(conv => {
                 const { uploadedFile: _uploadedFile, ...storableConv } = conv;
                 return storableConv;
             });
@@ -266,9 +275,9 @@ export default function Home() {
     const convToUpdate = allConversations.find(c => c.id === conversationId);
     if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
 
-    const isDefaultTitle = convToUpdate.title === "default.long.language.loop" || 
+    const isDefaultTitle = convToUpdate.title === "default.long.language.loop" ||
                            convToUpdate.title.toLowerCase().startsWith("new ") ||
-                           convToUpdate.title === "Chat"; 
+                           convToUpdate.title === "Chat";
 
 
     if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
@@ -307,7 +316,7 @@ export default function Home() {
             setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== previousActiveConv.id));
         }
     }
-  }, []); 
+  }, []);
 
   const handleGoBackToTilesView = useCallback(() => {
     const prevActive = activeConversation;
@@ -317,6 +326,7 @@ export default function Home() {
     setCurrentMessages([]);
     setIsImageMode(false);
     setActiveToolTypeForView(null);
+    setHeaderAnimationComplete(false); // Reset for next time tiles view is shown
 
     cleanupPreviousEmptyLllChat(prevActive);
   }, [activeConversation, cleanupPreviousEmptyLllChat]);
@@ -327,7 +337,7 @@ export default function Home() {
 
     const newConversationId = crypto.randomUUID();
     const now = new Date();
-    const conversationTitle = "default.long.language.loop"; 
+    const conversationTitle = "default.long.language.loop";
     const newConversation: Conversation = {
       id: newConversationId,
       title: conversationTitle,
@@ -345,6 +355,7 @@ export default function Home() {
     setCurrentMessages([]);
     setActiveToolTypeForView('long language loops');
     setCurrentView('chat');
+    setHeaderAnimationComplete(true); // Don't re-run main animation
   }, [activeConversation, cleanupPreviousEmptyLllChat]);
 
 
@@ -352,12 +363,13 @@ export default function Home() {
     const previousActiveConv = activeConversation;
 
     setActiveToolTypeForView(toolType);
-    setIsImageMode(false); 
+    setIsImageMode(false);
+    setHeaderAnimationComplete(true); // Assume going from tiles to a tool means animation is done or not relevant
 
     if (toolType === 'long language loops') {
       startNewLongLanguageLoopChat();
     } else if (toolType === 'nocost imagination') {
-        setActiveConversation(null); 
+        setActiveConversation(null);
         setCurrentMessages([]);
         setCurrentView('easyImageLoopTool');
     } else if (toolType === 'premium imagination') {
@@ -369,7 +381,7 @@ export default function Home() {
         setCurrentMessages([]);
         setCurrentView('personalizationTool');
     }
-    
+
     if (previousActiveConv && previousActiveConv.toolType === 'long language loops') {
       if (activeConversation?.id !== previousActiveConv.id || toolType !== 'long language loops') {
         cleanupPreviousEmptyLllChat(previousActiveConv);
@@ -383,19 +395,20 @@ export default function Home() {
     if (!conversationToSelect) return;
 
     const previousActiveConv = activeConversation;
+    setHeaderAnimationComplete(true); // Don't re-run main animation
 
     if (conversationToSelect.toolType === 'long language loops') {
       setActiveConversation({
         ...conversationToSelect,
         selectedModelId: conversationToSelect.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID,
         selectedResponseStyleName: conversationToSelect.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME,
-        uploadedFile: null, 
+        uploadedFile: null,
       });
       setCurrentMessages(conversationToSelect.messages);
       setIsImageMode(conversationToSelect.isImageMode || false);
       setActiveToolTypeForView('long language loops');
       setCurrentView('chat');
-    } 
+    }
     if (previousActiveConv && previousActiveConv.id !== conversationId && previousActiveConv.toolType === 'long language loops') {
        cleanupPreviousEmptyLllChat(previousActiveConv);
     }
@@ -411,10 +424,10 @@ export default function Home() {
     if (!activeConversation || activeConversation.toolType !== 'long language loops') {
       return;
     }
-  
-    const currentActiveConv = activeConversation; 
+
+    const currentActiveConv = activeConversation;
     const currentModelId = currentActiveConv.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
-    
+
     let effectiveSystemPrompt: string;
     if (customSystemPrompt && customSystemPrompt.trim() !== "") {
       effectiveSystemPrompt = customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User");
@@ -422,16 +435,16 @@ export default function Home() {
       const currentStyleName = currentActiveConv.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
       effectiveSystemPrompt = AVAILABLE_RESPONSE_STYLES.find(s => s.name === currentStyleName)?.systemPrompt || AVAILABLE_RESPONSE_STYLES.find(s => s.name === DEFAULT_RESPONSE_STYLE_NAME)!.systemPrompt;
     }
-  
+
     setIsAiResponding(true);
     const conversationToUpdateId = currentActiveConv.id;
     const currentToolType = currentActiveConv.toolType;
-  
+
     const isActuallyImagePromptMode = options.isImageModeIntent || false;
     const isActuallyFileUploadMode = !!currentActiveConv.uploadedFile && !isActuallyImagePromptMode;
-  
+
     let userMessageContent: string | ChatMessageContentPart[] = messageText.trim();
-  
+
     if (isActuallyImagePromptMode && messageText.trim()) {
       userMessageContent = `Image prompt: "${messageText.trim()}"`;
     } else if (isActuallyFileUploadMode && currentActiveConv.uploadedFile && currentActiveConv.uploadedFilePreview) {
@@ -446,11 +459,11 @@ export default function Home() {
         setIsAiResponding(false);
         return;
     }
-  
+
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
     };
-    
+
     const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage]
       .filter(msg => msg.role === 'user' || msg.role === 'assistant')
       .map(msg => {
@@ -476,10 +489,10 @@ export default function Home() {
     const updatedMessagesForState = [...(currentActiveConv.messages || []), userMessage];
     updateActiveConversationState({ messages: updatedMessagesForState });
     setCurrentMessages(updatedMessagesForState);
-  
+
     let aiResponseContent: string | ChatMessageContentPart[] | null = null;
     let skipPollinationsChatCall = false;
-  
+
     if (isActuallyImagePromptMode && messageText.trim()) {
       try {
         const result = await generateImageViaPollinations({ prompt: messageText.trim() });
@@ -492,14 +505,14 @@ export default function Home() {
         const errorMessageText = error instanceof Error ? error.message : "Failed to generate image.";
         toast({ title: "Image Generation Error", description: errorMessageText, variant: "destructive" });
         aiResponseContent = `Sorry, I couldn't generate the image. ${errorMessageText}`;
-        skipPollinationsChatCall = true; 
+        skipPollinationsChatCall = true;
       }
     }
-    
+
     if (!skipPollinationsChatCall) {
       try {
         const apiInput: PollinationsChatInput = {
-          messages: messagesForApiSubmission, 
+          messages: messagesForApiSubmission,
           modelId: currentModelId,
           systemPrompt: effectiveSystemPrompt,
         };
@@ -520,12 +533,12 @@ export default function Home() {
       updateActiveConversationState({ messages: finalMessages });
       setCurrentMessages(finalMessages);
     }
-    
+
     if (isActuallyImagePromptMode || isActuallyFileUploadMode) {
-        updateActiveConversationState({ 
-            isImageMode: false, 
-            uploadedFile: null, 
-            uploadedFilePreview: null 
+        updateActiveConversationState({
+            isImageMode: false,
+            uploadedFile: null,
+            uploadedFilePreview: null
         });
     }
 
@@ -537,7 +550,7 @@ export default function Home() {
 
   }, [
     activeConversation,
-    allConversations, 
+    allConversations,
     updateConversationTitle,
     toast,
     updateActiveConversationState,
@@ -583,18 +596,18 @@ export default function Home() {
     if (!chatToDeleteId) return;
 
     const wasActiveConversationDeleted = activeConversation?.id === chatToDeleteId;
-    
+
     setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== chatToDeleteId));
 
     if (wasActiveConversationDeleted) {
-      const nextLllConversation = allConversations 
+      const nextLllConversation = allConversations
         .filter(c => c.id !== chatToDeleteId && c.toolType === 'long language loops')
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
       if (nextLllConversation) {
         handleSelectChatFromHistory(nextLllConversation.id);
       } else {
-        handleGoBackToTilesView(); 
+        handleGoBackToTilesView();
       }
     }
     setIsDeleteDialogOpen(false);
@@ -605,10 +618,10 @@ export default function Home() {
   const handleToggleImageMode = () => {
     if (!activeConversation || activeConversation.toolType !== 'long language loops') return;
 
-    const newImageModeState = !isImageMode; 
-    if (newImageModeState) { 
+    const newImageModeState = !isImageMode;
+    if (newImageModeState) {
       updateActiveConversationState({ isImageMode: newImageModeState, uploadedFile: null, uploadedFilePreview: null });
-    } else { 
+    } else {
       updateActiveConversationState({ isImageMode: newImageModeState });
     }
   };
@@ -620,17 +633,17 @@ export default function Home() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const dataUrl = reader.result as string;
-        updateActiveConversationState({ 
-            isImageMode: false, 
-            uploadedFile: file, 
-            uploadedFilePreview: dataUrl 
+        updateActiveConversationState({
+            isImageMode: false,
+            uploadedFile: file,
+            uploadedFilePreview: dataUrl
         });
       };
       reader.readAsDataURL(file);
-    } else { 
-      updateActiveConversationState({ 
-          uploadedFile: null, 
-          uploadedFilePreview: null 
+    } else {
+      updateActiveConversationState({
+          uploadedFile: null,
+          uploadedFilePreview: null
       });
     }
   };
@@ -649,7 +662,7 @@ export default function Home() {
 
   const clearUploadedImageForLLL = () => {
     if (activeConversation && activeConversation.toolType === 'long language loops') {
-        handleFileSelect(null); 
+        handleFileSelect(null);
     }
   }
 
@@ -658,7 +671,7 @@ export default function Home() {
     <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
       {currentView === 'tiles' ? (
         <>
-          <AppHeader onNavigateToTiles={handleGoBackToTilesView} />
+          <AppHeader onNavigateToTiles={handleGoBackToTilesView} onAnimationComplete={() => setHeaderAnimationComplete(true)} />
           <main className="flex-grow container mx-auto px-4 sm:px-6 py-10 flex flex-col items-start justify-start overflow-y-auto">
             <div className="flex flex-col items-start justify-start space-y-3">
               {toolTileItems.map((item, index) => (
@@ -666,7 +679,8 @@ export default function Home() {
                   key={item.id}
                   item={item}
                   onSelect={handleSelectTile}
-                  startDelay={INITIAL_LINK_DELAY + index * (TOOL_LINK_TYPING_SPEED * item.title.length + DELAY_BETWEEN_LINKS)}
+                  startDelay={index * (TOOL_LINK_TYPING_SPEED * (item.id === 'personalization' ? item.title.length + 1 : item.title.length + 5) + DELAY_BETWEEN_LINKS)}
+                  headerAnimationDone={headerAnimationComplete}
                 />
               ))}
             </div>
@@ -676,11 +690,11 @@ export default function Home() {
         <div className="flex flex-1 overflow-hidden bg-background">
           <aside className="w-80 flex-shrink-0 bg-sidebar-background">
             <SidebarNav
-              toolTileItems={toolTileItems} 
-              onSelectTile={handleSelectTile} 
+              toolTileItems={toolTileItems}
+              onSelectTile={handleSelectTile}
               activeToolType={activeToolTypeForView}
               onSelectNewChat={startNewLongLanguageLoopChat}
-              allConversations={allConversations.filter(c => c.toolType === 'long language loops')} 
+              allConversations={allConversations.filter(c => c.toolType === 'long language loops')}
               activeConversationId={activeConversation?.id || null}
               onSelectChatHistory={handleSelectChatFromHistory}
               onEditTitle={handleRequestEditTitle}
@@ -689,7 +703,7 @@ export default function Home() {
               className="w-full h-full"
             />
           </aside>
-          
+
           <main className="flex-1 flex flex-col overflow-hidden bg-background">
             {currentView === 'chat' && activeConversation && activeConversation.toolType === 'long language loops' && (
               <>
@@ -725,9 +739,9 @@ export default function Home() {
                 <ChatInput
                   onSendMessage={(message, opts) => handleSendMessageGlobal(message, opts)}
                   isLoading={isAiResponding}
-                  isImageModeActive={isImageMode} 
+                  isImageModeActive={isImageMode}
                   onToggleImageMode={handleToggleImageMode}
-                  uploadedFilePreviewUrl={activeConversation.uploadedFilePreview} 
+                  uploadedFilePreviewUrl={activeConversation.uploadedFilePreview}
                   onFileSelect={handleFileSelect}
                   isLongLanguageLoopActive={true}
                   selectedModelId={activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
@@ -740,17 +754,17 @@ export default function Home() {
                 </h1>
               </>
             )}
-            {currentView === 'easyImageLoopTool' && ( 
+            {currentView === 'easyImageLoopTool' && (
               <>
                 <VisualizingLoopsTool />
               </>
             )}
-            {currentView === 'gptImageTool' && ( 
+            {currentView === 'gptImageTool' && (
               <>
                 <GPTImageTool />
               </>
             )}
-            {currentView === 'replicateImageTool' && ( 
+            {currentView === 'replicateImageTool' && (
               <>
                 <ReplicateImageTool />
               </>
