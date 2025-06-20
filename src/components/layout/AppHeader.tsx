@@ -1,26 +1,34 @@
 
 import type React from 'react';
+import { useRouter } from 'next/navigation'; // Corrected import for App Router
 
-const AppHeader: React.FC = () => {
+interface AppHeaderProps {
+  onNavigateToTiles?: () => void; // Optional: if navigation is handled by parent
+}
+
+const AppHeader: React.FC<AppHeaderProps> = ({ onNavigateToTiles }) => {
+  const router = useRouter();
+
+  const handleClick = () => {
+    if (onNavigateToTiles) {
+      onNavigateToTiles();
+    } else {
+      router.push('/'); // Fallback if no specific handler, assuming '/' is tiles view
+    }
+  };
+
   return (
-    <header className="flex justify-center items-center py-8 bg-background sticky top-0 z-10 shadow-sm">
-      <svg 
-        width="260" 
-        height="70" 
-        viewBox="0 0 260 70" 
-        xmlns="http://www.w3.org/2000/svg" 
-        fill="hsl(var(--foreground))" 
-        aria-label="Hey Hi Code Logo"
-      >
-        <style>
-          {`.logo-text { font-family: 'Inter', sans-serif; font-weight: bold; letter-spacing: -0.5px; }`}
-        </style>
-        <text x="10" y="55" className="logo-text" style={{ fontSize: '50px' }}>&lt;</text>
-        <text x="45" y="55" className="logo-text" style={{ fontSize: '50px' }}>/</text>
-        <text x="90" y="42" className="logo-text" style={{ fontSize: '42px' }}>hey</text>
-        <text x="125" y="70" className="logo-text" style={{ fontSize: '34px' }}>hi</text>
-        <text x="200" y="55" className="logo-text" style={{ fontSize: '50px' }}>&gt;</text>
-      </svg>
+    <header 
+      className="flex justify-start items-center py-6 px-4 md:px-8 bg-transparent sticky top-0 z-10 cursor-pointer"
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); }}
+      aria-label="Go to main page"
+    >
+      <span className="font-code text-3xl md:text-4xl text-foreground hover:text-primary transition-colors duration-200">
+        &lt;/hey.hi&gt;
+      </span>
     </header>
   );
 };

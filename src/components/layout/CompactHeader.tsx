@@ -2,26 +2,23 @@
 "use client";
 import type React from 'react';
 
-const CompactHeader: React.FC = () => {
+interface CompactHeaderProps {
+  onNavigateToTiles: () => void;
+}
+
+const CompactHeader: React.FC<CompactHeaderProps> = ({ onNavigateToTiles }) => {
   return (
-    <div className="flex justify-center items-center p-4">
-      <svg 
-        width="130" 
-        height="35" 
-        viewBox="0 0 260 70" 
-        xmlns="http://www.w3.org/2000/svg" 
-        fill="hsl(var(--foreground))" 
-        aria-label="Hey Hi Code Logo"
-      >
-        <style>
-          {`.logo-text { font-family: 'Inter', sans-serif; font-weight: bold; letter-spacing: -0.5px; }`}
-        </style>
-        <text x="10" y="55" className="logo-text" style={{ fontSize: '50px' }}>&lt;</text>
-        <text x="45" y="55" className="logo-text" style={{ fontSize: '50px' }}>/</text>
-        <text x="90" y="42" className="logo-text" style={{ fontSize: '42px' }}>hey</text>
-        <text x="125" y="70" className="logo-text" style={{ fontSize: '34px' }}>hi</text>
-        <text x="200" y="55" className="logo-text" style={{ fontSize: '50px' }}>&gt;</text>
-      </svg>
+    <div 
+      className="flex justify-start items-center p-3 cursor-pointer group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:p-2"
+      onClick={onNavigateToTiles}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onNavigateToTiles(); }}
+      aria-label="Go to main page"
+    >
+      <span className="font-code text-xl text-sidebar-foreground group-hover/sidebar-wrapper:text-sidebar-accent-foreground transition-colors duration-200 group-data-[state=collapsed]:text-2xl">
+        &lt;/hey.hi&gt;
+      </span>
     </div>
   );
 };

@@ -6,7 +6,7 @@ export type ChatMessageContentPart =
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
-  content: string | ChatMessageContentPart[]; // Can be simple string or array of parts
+  content: string | ChatMessageContentPart[]; 
   timestamp: Date;
   toolType?: ToolType;
 }
@@ -24,18 +24,14 @@ export interface Conversation {
   selectedResponseStyleName?: string;
 }
 
+// Updated ToolType names to match new UI
 export type ToolType = 'nocost imagination' | 'premium imagination' | 'long language loops';
 
 export interface TileItem {
   id: ToolType;
-  title: string;
-  icon: React.ElementType; // Icon is still used in SidebarNav
-  description?: string; // Description is optional, not used on new main page
+  title: string; // This will be the "path-like" name e.g., "long languageloops"
+  icon: React.ElementType; // Icon still used in SidebarNav logic if needed, but not on main page
+  description?: string;
 }
 
-// Add a type for the view state
 export type CurrentAppView = 'tiles' | 'chat' | 'easyImageLoopTool' | 'gptImageTool' | 'replicateImageTool';
-
-    
-
-    

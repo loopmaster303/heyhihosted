@@ -33,7 +33,7 @@ body {
     --destructive: 0 84% 60%; /* Standard destructive red */
     --destructive-foreground: 0 0% 98%; /* Light text on destructive */
 
-    --border: 0 0% 18%; /* Dark border */
+    --border: 0 0% 4%; /* Match background to remove borders implicitly */
     --input: 0 0% 10%; /* Dark Grey for input bubble background - Matches screenshot */
     --ring: 0 0% 60%; /* Medium Grey for focus rings */
 
@@ -43,14 +43,14 @@ body {
     --chart-4: 0 0% 40%;
     --chart-5: 0 0% 30%;
 
-    /* Sidebar colors remain largely the same, but ensure they contrast with new background if needed */
-    --sidebar-background: 0 0% 8%; /* Slightly lighter than main bg or same */
+    /* Sidebar colors to match main background */
+    --sidebar-background: 0 0% 4%; /* Match main background */
     --sidebar-foreground: 0 0% 70%; 
     --sidebar-primary: 0 0% 65%; 
     --sidebar-primary-foreground: 0 0% 0%; 
     --sidebar-accent: 0 0% 20%; 
     --sidebar-accent-foreground: 0 0% 90%; 
-    --sidebar-border: 0 0% 15%; 
+    --sidebar-border: 0 0% 4%; /* Match main background to remove border */
     --sidebar-ring: 0 0% 50%; 
   }
 
@@ -79,7 +79,7 @@ body {
     --destructive: 0 70% 50%; /* Adjusted for dark mode visibility */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 18%;
+    --border: 0 0% 4%;
     --input: 0 0% 10%; /* Chat input bubble background */
     --ring: 0 0% 60%;
 
@@ -89,13 +89,13 @@ body {
     --chart-4: 0 0% 40%;
     --chart-5: 0 0% 30%;
 
-    --sidebar-background: 0 0% 8%; 
+    --sidebar-background: 0 0% 4%; 
     --sidebar-foreground: 0 0% 70%; 
     --sidebar-primary: 0 0% 65%; 
     --sidebar-primary-foreground: 0 0% 0%; 
     --sidebar-accent: 0 0% 20%; 
     --sidebar-accent-foreground: 0 0% 90%; 
-    --sidebar-border: 0 0% 15%; 
+    --sidebar-border: 0 0% 4%; 
     --sidebar-ring: 0 0% 50%;
   }
 }
@@ -108,3 +108,4 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
