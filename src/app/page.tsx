@@ -6,7 +6,7 @@ import AppHeader from '@/components/layout/AppHeader';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
-// ToolViewHeader removed as its functionality is now integrated or removed
+// ToolViewHeader removed
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
 import GPTImageTool from '@/components/tools/GPTImageTool';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
@@ -32,11 +32,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Updated toolTileItems as per user request
+
 const toolTileItems: TileItem[] = [
   { id: 'long language loops', title: 'long languageloops', icon: MessageSquare },
-  { id: 'nocost imagination', title: 'low costimagination', icon: ImageIconLucide },
-  { id: 'premium imagination', title: 'premium costimagination', icon: ImagePlus },
+  { id: 'nocost imagination', title: 'nocost imagination', icon: ImageIconLucide },
+  { id: 'premium imagination', title: 'premium imagination', icon: ImagePlus },
 ];
 
 export default function Home() {
@@ -249,28 +249,26 @@ export default function Home() {
     const previousActiveConv = activeConversation;
 
     setActiveToolTypeForView(toolType);
-    setIsImageMode(false); // Reset image mode when switching tools
+    setIsImageMode(false); 
 
     if (toolType === 'long language loops') {
       startNewLongLanguageLoopChat();
     } else if (toolType === 'nocost imagination') {
-        setActiveConversation(null); // No active conversation for this tool directly
+        setActiveConversation(null); 
         setCurrentMessages([]);
-        setIsModelPreSelectionDialogOpen(true); // Open dialog to choose between Pollinations/OpenAI
+        setIsModelPreSelectionDialogOpen(true); 
     } else if (toolType === 'premium imagination') {
         setActiveConversation(null);
         setCurrentMessages([]);
         setCurrentView('replicateImageTool');
     }
     
-    // Cleanup previous LLL chat if it was empty and we're switching away or to a new LLL chat
     if (previousActiveConv && previousActiveConv.toolType === 'long language loops') {
-      // If the new active conv is different or not an LLL chat, cleanup the previous one.
       if (activeConversation?.id !== previousActiveConv.id || toolType !== 'long language loops') {
         cleanupPreviousEmptyLllChat(previousActiveConv);
       }
     }
-  }, [activeConversation, toast, cleanupPreviousEmptyLllChat, startNewLongLanguageLoopChat]);
+  }, [activeConversation, cleanupPreviousEmptyLllChat, startNewLongLanguageLoopChat]);
 
 
   const handleSelectChatFromHistory = useCallback((conversationId: string) => {
@@ -282,17 +280,15 @@ export default function Home() {
     if (conversationToSelect.toolType === 'long language loops') {
       setActiveConversation({
         ...conversationToSelect,
-        // Ensure model/style are set, falling back to defaults if not present
         selectedModelId: conversationToSelect.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID,
         selectedResponseStyleName: conversationToSelect.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME,
-        uploadedFile: null, // Clear any file from previous LLL session on load
+        uploadedFile: null, 
       });
       setCurrentMessages(conversationToSelect.messages);
       setIsImageMode(conversationToSelect.isImageMode || false);
       setActiveToolTypeForView('long language loops');
       setCurrentView('chat');
     } 
-    // Cleanup previous LLL chat if it was empty and we're switching to a different one
     if (previousActiveConv && previousActiveConv.id !== conversationId && previousActiveConv.toolType === 'long language loops') {
        cleanupPreviousEmptyLllChat(previousActiveConv);
     }
@@ -392,7 +388,7 @@ export default function Home() {
     if (!skipPollinationsChatCall) {
       try {
         const apiInput: PollinationsChatInput = {
-          messages: messagesForApiSubmission, // Use the synchronously constructed list
+          messages: messagesForApiSubmission, 
           modelId: currentModelId,
           systemPrompt: currentSystemPrompt,
         };
@@ -422,7 +418,6 @@ export default function Home() {
         });
     }
 
-    // Use the potentially updated messages from state for title generation
     const finalMessagesForTitle = (allConversations.find(c=>c.id === conversationToUpdateId)?.messages || updatedMessagesForState);
     if (finalMessagesForTitle.length > 0) {
       updateConversationTitle(conversationToUpdateId, finalMessagesForTitle);
@@ -551,7 +546,6 @@ export default function Home() {
       {currentView === 'tiles' ? (
         <>
           <AppHeader onNavigateToTiles={handleGoBackToTilesView} />
-          {/* Main content area for tiles view directly uses flex-grow and is inside the main div */}
           <main className="flex-grow container mx-auto px-4 sm:px-6 py-10 flex flex-col items-start justify-start overflow-y-auto">
             <div className="flex flex-col items-start justify-start space-y-3 animate-in fade-in-0 duration-500">
               {toolTileItems.map((item) => (
@@ -569,8 +563,7 @@ export default function Home() {
         </>
       ) : (
         <div className="flex flex-1 overflow-hidden bg-background">
-          {/* Always visible Sidebar */}
-          <aside className="w-72 flex-shrink-0 bg-sidebar-background"> {/* Increased width */}
+          <aside className="w-80 flex-shrink-0 bg-sidebar-background"> {/* Increased width */}
             <SidebarNav
               toolTileItems={toolTileItems} 
               onSelectTile={handleSelectTile} 
@@ -579,15 +572,14 @@ export default function Home() {
               allConversations={allConversations.filter(c => c.toolType === 'long language loops')} 
               activeConversationId={activeConversation?.id || null}
               onSelectChatHistory={handleSelectChatFromHistory}
-              onEditTitle={handleRequestEditTitle} // Kept for potential future use (e.g. context menu)
-              onDeleteChat={handleRequestDeleteChat} // Kept for potential future use
+              onEditTitle={handleRequestEditTitle}
+              onDeleteChat={handleRequestDeleteChat}
               onNavigateToTiles={handleGoBackToTilesView}
               className="w-full h-full"
             />
           </aside>
           
           <main className="flex-1 flex flex-col overflow-hidden bg-background">
-            {/* Top bar elements removed from here as per request */}
             {currentView === 'chat' && activeConversation && activeConversation.toolType === 'long language loops' && (
               <>
                 <ChatView
