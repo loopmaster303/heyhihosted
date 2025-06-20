@@ -3,12 +3,12 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AppHeader from '@/components/layout/AppHeader';
-import TileMenu from '@/components/navigation/TileMenu';
+// TileMenu removed
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
 import ToolViewHeader from '@/components/layout/ToolViewHeader';
-import ImageKontextTool from '@/components/tools/ImageKontextTool';
+// ImageKontextTool removed
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
 import GPTImageTool from '@/components/tools/GPTImageTool';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
@@ -21,7 +21,7 @@ import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
-import { GalleryHorizontal, MessageSquare, BrainCircuit, ImagePlus } from 'lucide-react';
+import { GalleryHorizontal, MessageSquare, ImagePlus } from 'lucide-react'; // BrainCircuit removed
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import {
   AlertDialog,
@@ -37,10 +37,9 @@ import { SidebarProvider, Sidebar, SidebarContent, SidebarInset, SidebarRail } f
 
 
 const toolTileItems: TileItem[] = [
-  { id: 'FLUX Kontext', title: 'FLUX Kontext', icon: BrainCircuit, description: "Engage with contextual AI" },
-  { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images via Pollinations or OpenAI" },
-  { id: 'Replicate Image Tool', title: 'Visualizing Loops 2.0 beta', icon: ImagePlus, description: "Generate images via Replicate API" },
-  { id: 'Long Language Loops', title: 'Long Language Loops', icon: MessageSquare, description: "Chat, generate images, or analyze uploaded pictures." },
+  { id: 'long language loops', title: 'long language loops', icon: MessageSquare },
+  { id: 'nocost imagination', title: 'nocost imagination', icon: GalleryHorizontal },
+  { id: 'premium imagination', title: 'premium imagination', icon: ImagePlus },
 ];
 
 export default function Home() {
@@ -72,16 +71,17 @@ export default function Home() {
             ...msg,
             timestamp: new Date(msg.timestamp)
           })),
-          isImageMode: conv.toolType === 'Long Language Loops' ? (conv.isImageMode || false) : undefined,
-          selectedModelId: conv.selectedModelId || (conv.toolType === 'Long Language Loops' ? DEFAULT_POLLINATIONS_MODEL_ID : undefined),
-          selectedResponseStyleName: conv.selectedResponseStyleName || (conv.toolType === 'Long Language Loops' ? DEFAULT_RESPONSE_STYLE_NAME : undefined),
+          isImageMode: conv.toolType === 'long language loops' ? (conv.isImageMode || false) : undefined,
+          selectedModelId: conv.selectedModelId || (conv.toolType === 'long language loops' ? DEFAULT_POLLINATIONS_MODEL_ID : undefined),
+          selectedResponseStyleName: conv.selectedResponseStyleName || (conv.toolType === 'long language loops' ? DEFAULT_RESPONSE_STYLE_NAME : undefined),
         }));
         
         const activeStoredConversations = parsedConversations.filter(conv => {
-          if (conv.toolType === 'Long Language Loops') {
+          if (conv.toolType === 'long language loops') {
             return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
           }
-          return true;
+          // Filter out removed tool types
+          return toolTileItems.some(item => item.id === conv.toolType);
         });
         setAllConversations(activeStoredConversations.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       } catch (error) {
@@ -96,10 +96,11 @@ export default function Home() {
     if (isInitialLoadComplete) { 
         const conversationsToStore = allConversations
             .filter(conv => { 
-                if (conv.toolType === 'Long Language Loops') {
+                if (conv.toolType === 'long language loops') {
                     return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
                 }
-                return true;
+                // Ensure only existing tool types are stored
+                return toolTileItems.some(item => item.id === conv.toolType);
             })
             .map(conv => { 
                 const { uploadedFile: _uploadedFile, ...storableConv } = conv;
@@ -139,7 +140,7 @@ export default function Home() {
 
   useEffect(() => {
     if (activeConversation) {
-      if (activeConversation.toolType === 'Long Language Loops') {
+      if (activeConversation.toolType === 'long language loops') {
         setIsImageMode(activeConversation.isImageMode || false);
       } else {
         setIsImageMode(false);
@@ -152,12 +153,13 @@ export default function Home() {
 
   const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]) => {
     const convToUpdate = allConversations.find(c => c.id === conversationId);
-    if (!convToUpdate || convToUpdate.toolType !== 'Long Language Loops') return;
+    if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
 
-    const isDefaultTitle = convToUpdate.title === "New Long Language Loop" ||
-                           convToUpdate.title.startsWith("New ") ||
+    const isDefaultTitle = convToUpdate.title === "New Long Language Loop" || // Keep for old chats
+                           convToUpdate.title === `New ${convToUpdate.toolType} Chat` || // Keep for old chats
+                           convToUpdate.title.toLowerCase().startsWith("new ") ||
                            convToUpdate.title === "Chat" ||
-                           convToUpdate.title === `New ${convToUpdate.toolType} Chat`;
+                           convToUpdate.title === "New long language loops";
 
 
     if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
@@ -190,21 +192,21 @@ export default function Home() {
 
 
   const handleSelectPollinationsForLoop = () => {
-    setActiveToolTypeForView('Easy Image Loop');
+    setActiveToolTypeForView('nocost imagination');
     setCurrentView('easyImageLoopTool');
     setActiveConversation(null); 
     setIsModelPreSelectionDialogOpen(false);
   };
 
   const handleSelectOpenAIForLoop = () => {
-    setActiveToolTypeForView('Easy Image Loop'); 
+    setActiveToolTypeForView('nocost imagination'); 
     setCurrentView('gptImageTool');
     setActiveConversation(null); 
     setIsModelPreSelectionDialogOpen(false);
   };
 
   const cleanupPreviousEmptyLllChat = useCallback((previousActiveConv: Conversation | null) => {
-    if (previousActiveConv && previousActiveConv.toolType === 'Long Language Loops') {
+    if (previousActiveConv && previousActiveConv.toolType === 'long language loops') {
         const hasMeaningfulMessages = previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
         if (!hasMeaningfulMessages) {
             setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== previousActiveConv.id));
@@ -230,10 +232,10 @@ export default function Home() {
     setActiveToolTypeForView(toolType);
     setIsImageMode(false);
 
-    if (toolType === 'Long Language Loops') {
+    if (toolType === 'long language loops') {
       const newConversationId = crypto.randomUUID();
       const now = new Date();
-      const conversationTitle = "New Long Language Loop";
+      const conversationTitle = "New long language loops"; // Updated default title
       const newConversation: Conversation = {
         id: newConversationId,
         title: conversationTitle,
@@ -250,30 +252,28 @@ export default function Home() {
       setActiveConversation(newConversation);
       setCurrentMessages([]); 
       setCurrentView('chat');
-    } else {
-      setActiveConversation(null); 
-      setCurrentMessages([]);
-      if (toolType === 'FLUX Kontext') {
-        setCurrentView('fluxKontextTool');
-      } else if (toolType === 'Easy Image Loop') {
+    } else if (toolType === 'nocost imagination') {
+        setActiveConversation(null); 
+        setCurrentMessages([]);
         setIsModelPreSelectionDialogOpen(true);
-      } else if (toolType === 'Replicate Image Tool') {
+    } else if (toolType === 'premium imagination') {
+        setActiveConversation(null);
+        setCurrentMessages([]);
         setCurrentView('replicateImageTool');
+    } else {
+      toast({
+        title: "Tool Selected",
+        description: `${toolType} selected. This tool is not yet fully implemented.`,
+      });
+      if (currentView !== 'tiles') {
+          handleGoBackToTilesView(); 
       } else {
-        toast({
-          title: "Tool Selected",
-          description: `${toolType} selected. This tool is not yet fully implemented.`,
-        });
-        if (currentView !== 'tiles') {
-            handleGoBackToTilesView(); 
-        } else {
-          setActiveToolTypeForView(null);
-        }
+        setActiveToolTypeForView(null);
       }
     }
     
-    if (previousActiveConv && previousActiveConv.toolType === 'Long Language Loops') {
-      if (activeConversation?.id !== previousActiveConv.id || toolType !== 'Long Language Loops') {
+    if (previousActiveConv && previousActiveConv.toolType === 'long language loops') {
+      if (activeConversation?.id !== previousActiveConv.id || toolType !== 'long language loops') {
         cleanupPreviousEmptyLllChat(previousActiveConv);
       }
     }
@@ -287,7 +287,7 @@ export default function Home() {
 
     const previousActiveConv = activeConversation;
 
-    if (conversationToSelect.toolType === 'Long Language Loops') {
+    if (conversationToSelect.toolType === 'long language loops') {
       setActiveConversation({
         ...conversationToSelect,
         selectedModelId: conversationToSelect.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID,
@@ -296,18 +296,18 @@ export default function Home() {
       });
       setCurrentMessages(conversationToSelect.messages);
       setIsImageMode(conversationToSelect.isImageMode || false);
-      setActiveToolTypeForView('Long Language Loops');
+      setActiveToolTypeForView('long language loops');
       setCurrentView('chat');
     } else {
        toast({
-          title: "Error",
-          description: `Cannot open chat for tool type: ${conversationToSelect.toolType}.`,
+          title: "Action Not Allowed",
+          description: `Cannot open this item from history. Select tools from the main menu or sidebar.`,
           variant: "destructive"
       });
       return; 
     }
 
-    if (previousActiveConv && previousActiveConv.id !== conversationId && previousActiveConv.toolType === 'Long Language Loops') {
+    if (previousActiveConv && previousActiveConv.id !== conversationId && previousActiveConv.toolType === 'long language loops') {
        cleanupPreviousEmptyLllChat(previousActiveConv);
     }
   }, [allConversations, activeConversation, toast, cleanupPreviousEmptyLllChat]);
@@ -319,12 +319,12 @@ export default function Home() {
       isImageModeIntent?: boolean;
     } = {}
   ) => {
-    if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') {
+    if (!activeConversation || activeConversation.toolType !== 'long language loops') {
       console.warn("handleSendMessageGlobal called without active LLL conversation.");
       return;
     }
   
-    const currentActiveConv = activeConversation; // Capture current active conversation
+    const currentActiveConv = activeConversation; 
   
     const currentModelId = currentActiveConv.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
     const currentStyleName = currentActiveConv.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
@@ -359,10 +359,8 @@ export default function Home() {
       id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
     };
     
-    // Build messagesForApiSubmission synchronously
     const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage];
   
-    // Optimistic UI update for user message
     updateActiveConversationState({ messages: messagesForApiSubmission });
     setCurrentMessages(messagesForApiSubmission);
   
@@ -388,7 +386,7 @@ export default function Home() {
     
     if (!skipPollinationsChatCall) {
       try {
-        const messagesForApi = messagesForApiSubmission // Use the synchronously constructed list
+        const messagesForApi = messagesForApiSubmission
           .filter(msg => msg.role === 'user' || msg.role === 'assistant') 
           .map(msg => {
             let apiContentString: string;
@@ -461,8 +459,8 @@ export default function Home() {
     const conversation = allConversations.find(c => c.id === conversationId);
     if (!conversation) return;
 
-    if (conversation.toolType !== 'Long Language Loops') {
-        toast({ title: "Action Not Allowed", description: "Title editing is only available for 'Long Language Loops' chats.", variant: "destructive"});
+    if (conversation.toolType !== 'long language loops') {
+        toast({ title: "Action Not Allowed", description: "Title editing is only available for 'long language loops' chats.", variant: "destructive"});
         return;
     }
 
@@ -482,8 +480,8 @@ export default function Home() {
 
   const handleRequestDeleteChat = (conversationId: string) => {
     const convToDelete = allConversations.find(c => c.id === conversationId);
-    if (convToDelete && convToDelete.toolType !== 'Long Language Loops') {
-        toast({ title: "Action Not Allowed", description: "Chat deletion is only available for 'Long Language Loops' chats.", variant: "destructive"});
+    if (convToDelete && convToDelete.toolType !== 'long language loops') {
+        toast({ title: "Action Not Allowed", description: "Chat deletion is only available for 'long language loops' chats.", variant: "destructive"});
         return;
     }
     setChatToDeleteId(conversationId);
@@ -499,7 +497,7 @@ export default function Home() {
 
     if (wasActiveConversationDeleted) {
       const nextLllConversation = allConversations 
-        .filter(c => c.id !== chatToDeleteId && c.toolType === 'Long Language Loops')
+        .filter(c => c.id !== chatToDeleteId && c.toolType === 'long language loops')
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
       if (nextLllConversation) {
@@ -510,11 +508,11 @@ export default function Home() {
     }
     setIsDeleteDialogOpen(false);
     setChatToDeleteId(null);
-    toast({ title: "Chat Deleted", description: "The 'Long Language Loops' conversation has been removed." });
+    toast({ title: "Chat Deleted", description: "The 'long language loops' conversation has been removed." });
   };
 
   const handleToggleImageMode = () => {
-    if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') return;
+    if (!activeConversation || activeConversation.toolType !== 'long language loops') return;
 
     const newImageModeState = !isImageMode; 
     if (newImageModeState) { 
@@ -525,7 +523,7 @@ export default function Home() {
   };
 
   const handleFileSelect = (file: File | null) => {
-    if (!activeConversation || activeConversation.toolType !== 'Long Language Loops') return;
+    if (!activeConversation || activeConversation.toolType !== 'long language loops') return;
 
     if (file) {
       const reader = new FileReader();
@@ -547,19 +545,19 @@ export default function Home() {
   };
 
   const handleModelChange = useCallback((modelId: string) => {
-    if (activeConversation && activeConversation.toolType === 'Long Language Loops') {
+    if (activeConversation && activeConversation.toolType === 'long language loops') {
       updateActiveConversationState({ selectedModelId: modelId });
     }
   }, [activeConversation, updateActiveConversationState]);
 
   const handleStyleChange = useCallback((styleName: string) => {
-     if (activeConversation && activeConversation.toolType === 'Long Language Loops') {
+     if (activeConversation && activeConversation.toolType === 'long language loops') {
       updateActiveConversationState({ selectedResponseStyleName: styleName });
     }
   }, [activeConversation, updateActiveConversationState]);
 
   const clearUploadedImageForLLL = () => {
-    if (activeConversation && activeConversation.toolType === 'Long Language Loops') {
+    if (activeConversation && activeConversation.toolType === 'long language loops') {
         handleFileSelect(null); 
     }
   }
@@ -570,8 +568,19 @@ export default function Home() {
       {currentView === 'tiles' ? (
         <>
           <AppHeader />
-          <main className="flex-grow container mx-auto px-2 sm:px-4 py-6 flex flex-col items-center overflow-y-auto">
-            <TileMenu onSelectTile={handleSelectTile} tileItems={toolTileItems} />
+          <main className="flex-grow container mx-auto px-2 sm:px-4 py-6 flex flex-col items-center justify-center overflow-y-auto">
+            <div className="flex flex-col items-center justify-center space-y-6 animate-in fade-in-0 duration-500">
+              {toolTileItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleSelectTile(item.id)}
+                  className="font-code text-2xl sm:text-3xl md:text-4xl text-foreground hover:text-primary transition-colors duration-200"
+                  aria-label={`Run ${item.title}`}
+                >
+                  run {item.title}
+                </button>
+              ))}
+            </div>
           </main>
         </>
       ) : (
@@ -583,19 +592,19 @@ export default function Home() {
                   tileItems={toolTileItems}
                   activeToolType={activeToolTypeForView}
                   onSelectTile={handleSelectTile}
-                  allConversations={allConversations.filter(c => c.toolType === 'Long Language Loops')} 
+                  allConversations={allConversations.filter(c => c.toolType === 'long language loops')} 
                   activeConversationId={activeConversation?.id || null}
                   onSelectChatHistory={handleSelectChatFromHistory}
                   onEditTitle={handleRequestEditTitle}
                   onDeleteChat={handleRequestDeleteChat}
-                  className="w-full" // Ensure SidebarNav takes full width of its container
+                  className="w-full"
                 />
               </SidebarContent>
               <SidebarRail />
             </Sidebar>
             <SidebarInset>
               <main className="flex-1 flex flex-col overflow-hidden">
-                {currentView === 'chat' && activeConversation && activeConversation.toolType === 'Long Language Loops' && (
+                {currentView === 'chat' && activeConversation && activeConversation.toolType === 'long language loops' && (
                   <>
                     <ChatView
                       conversation={activeConversation}
@@ -605,7 +614,7 @@ export default function Home() {
                       className="flex-grow overflow-y-auto"
                     />
                     {activeConversation.uploadedFilePreview && (
-                      <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
+                       <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
                         <NextImage
                           src={activeConversation.uploadedFilePreview}
                           alt="Uploaded preview"
@@ -642,27 +651,22 @@ export default function Home() {
                     />
                   </>
                 )}
-                {currentView === 'fluxKontextTool' && (
-                  <>
-                    <ToolViewHeader title="FLUX Kontext" onGoBack={handleGoBackToTilesView} />
-                    <ImageKontextTool />
-                  </>
-                )}
+                {/* FLUX Kontext view removed */}
                 {currentView === 'easyImageLoopTool' && ( 
                   <>
-                    <ToolViewHeader title="Visualizing Loops (Pollinations)" onGoBack={handleGoBackToTilesView} />
+                    <ToolViewHeader title="nocost imagination (Pollinations)" onGoBack={handleGoBackToTilesView} />
                     <VisualizingLoopsTool />
                   </>
                 )}
                 {currentView === 'gptImageTool' && ( 
                   <>
-                    <ToolViewHeader title="Visualizing Loops (OpenAI GPT)" onGoBack={handleGoBackToTilesView} />
+                    <ToolViewHeader title="nocost imagination (OpenAI GPT)" onGoBack={handleGoBackToTilesView} />
                     <GPTImageTool />
                   </>
                 )}
                  {currentView === 'replicateImageTool' && ( 
                   <>
-                    <ToolViewHeader title="Visualizing Loops 2.0 (Replicate)" onGoBack={handleGoBackToTilesView} />
+                    <ToolViewHeader title="premium imagination (Replicate)" onGoBack={handleGoBackToTilesView} />
                     <ReplicateImageTool />
                   </>
                 )}
@@ -672,13 +676,13 @@ export default function Home() {
         </SidebarProvider>
       )}
 
-      {isModelPreSelectionDialogOpen && (
+      {isModelPreSelectionDialogOpen && activeToolTypeForView === 'nocost imagination' && (
         <AlertDialog open={isModelPreSelectionDialogOpen} onOpenChange={setIsModelPreSelectionDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Choose Image Generation Engine</AlertDialogTitle>
               <AlertDialogDescription>
-                Select which image generation service you'd like to use for "Visualizing Loops".
+                Select which image generation service you'd like to use for "nocost imagination".
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="flex-col sm:flex-row gap-2">
@@ -688,7 +692,8 @@ export default function Home() {
              <AlertDialogCancel
                 onClick={() => {
                     setIsModelPreSelectionDialogOpen(false);
-                    if (currentView === 'tiles' || activeToolTypeForView === 'Easy Image Loop') { 
+                    // Reset activeToolTypeForView if the dialog was cancelled from the "nocost imagination" flow
+                    if (currentView === 'tiles' || activeToolTypeForView === 'nocost imagination') { 
                         setActiveToolTypeForView(null); 
                     }
                 }}
@@ -706,7 +711,7 @@ export default function Home() {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete this 'Long Language Loops' chat
+                This action cannot be undone. This will permanently delete this 'long language loops' chat
                 and remove its data.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -720,4 +725,6 @@ export default function Home() {
     </div>
   );
 }
+    
+
     

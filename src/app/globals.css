@@ -1,9 +1,10 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: monospace, Menlo, Consolas, "Courier New", serif; /* Updated to monospace */
 }
 
 @layer base {
@@ -106,3 +107,5 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+    

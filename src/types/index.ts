@@ -24,17 +24,18 @@ export interface Conversation {
   selectedResponseStyleName?: string;
 }
 
-// Ensure 'Easy Image Loop' matches the id in toolTileItems for Visualizing Loops tool
-export type ToolType = 'FLUX Kontext' | 'Easy Image Loop' | 'Replicate Image Tool' | 'Long Language Loops';
+export type ToolType = 'nocost imagination' | 'premium imagination' | 'long language loops';
 
 export interface TileItem {
   id: ToolType;
   title: string;
-  icon: React.ElementType;
-  description: string;
+  icon: React.ElementType; // Icon is still used in SidebarNav
+  description?: string; // Description is optional, not used on new main page
 }
 
 // Add a type for the view state
-export type CurrentAppView = 'tiles' | 'chat' | 'fluxKontextTool' | 'easyImageLoopTool' | 'gptImageTool' | 'replicateImageTool';
+export type CurrentAppView = 'tiles' | 'chat' | 'easyImageLoopTool' | 'gptImageTool' | 'replicateImageTool';
+
+    
 
     
