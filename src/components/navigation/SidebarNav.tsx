@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { History, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
+import { useSidebar } from '@/components/ui/sidebar'; // Import useSidebar
 
 interface SidebarNavProps {
-  activeToolType: ToolType | null; // Keep for context if needed, though direct tile selection is removed
+  activeToolType: ToolType | null; 
   onSelectNewChat: () => void;
   allConversations: Conversation[];
   activeConversationId: string | null;
@@ -20,6 +20,7 @@ interface SidebarNavProps {
   onDeleteChat: (conversationId: string) => void;
   onNavigateToTiles: () => void;
   className?: string;
+  // Removed toolsTrigger prop as it's now internal to page.tsx
 }
 
 const SidebarNav: React.FC<SidebarNavProps> = ({
@@ -34,18 +35,33 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
 }) => {
   const [showHistory, setShowHistory] = useState(false);
   const sortedConversations = [...allConversations].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const handleHistoryToggle = () => {
+    setShowHistory(!showHistory);
+    if (isMobile && !showHistory) { // If opening history on mobile, ensure sidebar is open
+        setOpenMobile(true);
+    }
+  }
+  
+  const handleNewChat = () => {
+    onSelectNewChat();
+     if (isMobile) { // If starting new chat on mobile, ensure sidebar is open
+        setOpenMobile(true);
+    }
+  }
+
 
   return (
     <aside className={cn("flex flex-col h-full bg-sidebar-background text-sidebar-foreground", className)}> 
       <CompactHeader onNavigateToTiles={onNavigateToTiles} />
       
-      {/* Spacer to push history/new chat to bottom, content above if any */}
       <div className="flex-grow">
-        {/* Placeholder for any future content above history section */}
+        {/* Future content above history */}
       </div>
 
       {showHistory && (
-        <ScrollArea className="flex-shrink max-h-[40vh] mb-2 group-data-[state=collapsed]:hidden">
+        <ScrollArea className="flex-shrink max-h-[40vh] mb-2 group-data-[state=expanded]:block hidden">
           <div className="px-2 py-1 space-y-1">
             {sortedConversations.length > 0 ? (
               sortedConversations.map(conv => (
@@ -76,7 +92,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => setShowHistory(!showHistory)} 
+            onClick={handleHistoryToggle} 
             className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent group-data-[state=collapsed]:w-7 group-data-[state=collapsed]:h-7"
             aria-label={showHistory ? "Hide history" : "Show history"}
           >
@@ -85,7 +101,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={onSelectNewChat} 
+            onClick={handleNewChat} 
             className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent group-data-[state=collapsed]:w-7 group-data-[state=collapsed]:h-7"
             aria-label="Start new chat"
           >

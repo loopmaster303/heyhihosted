@@ -12,14 +12,14 @@ import GPTImageTool from '@/components/tools/GPTImageTool';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
-import { X, PanelLeft } from 'lucide-react';
+import { X } from 'lucide-react'; // PanelLeft removed
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Image as ImageIconLucide, ImagePlus } from 'lucide-react'; // Renamed Image to ImageIconLucide
+import { MessageSquare, Image as ImageIconLucide, ImagePlus, History as HistoryIcon, Plus as PlusIcon } from 'lucide-react';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import {
   AlertDialog,
@@ -31,13 +31,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarRail, SidebarTrigger } from '@/components/ui/sidebar'; // Removed SidebarInset as it's not used now
+import { SidebarProvider, Sidebar, SidebarContent, SidebarRail, useSidebar } from '@/components/ui/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 
 const toolTileItems: TileItem[] = [
-  { id: 'long language loops', title: 'long languageloops', icon: MessageSquare }, // Note: title changed to remove space for path style
-  { id: 'nocost imagination', title: 'low costimagination', icon: ImageIconLucide }, // Note: title changed
-  { id: "premium imagination", title: "premium costimagination", icon: ImagePlus }, // Note: title changed
+  { id: 'long language loops', title: 'long languageloops', icon: MessageSquare },
+  { id: 'nocost imagination', title: 'low costimagination', icon: ImageIconLucide },
+  { id: "premium imagination", title: "premium costimagination", icon: ImagePlus },
 ];
 
 export default function Home() {
@@ -56,6 +62,7 @@ export default function Home() {
 
   const [isModelPreSelectionDialogOpen, setIsModelPreSelectionDialogOpen] = useState(false);
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+  const [isToolPickerOpen, setIsToolPickerOpen] = useState(false);
 
 
   useEffect(() => {
@@ -78,8 +85,6 @@ export default function Home() {
           if (conv.toolType === 'long language loops') {
             return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
           }
-           // For other tool types, we are not storing separate conversations for them anymore,
-           // so we don't need to filter them here.
           return false; 
         });
         setAllConversations(activeStoredConversations.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
@@ -98,7 +103,7 @@ export default function Home() {
                 if (conv.toolType === 'long language loops') {
                     return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
                 }
-                return false; // Only store LLL conversations
+                return false; 
             })
             .map(conv => { 
                 const { uploadedFile: _uploadedFile, ...storableConv } = conv;
@@ -265,27 +270,15 @@ export default function Home() {
         setActiveConversation(null);
         setCurrentMessages([]);
         setCurrentView('replicateImageTool');
-    } else {
-      // This case should ideally not be reached with the new UI, but kept as a fallback.
-      toast({
-        title: "Tool Selected",
-        description: `${toolType} selected. This tool is not yet fully implemented.`,
-      });
-      if (currentView !== 'tiles') {
-          handleGoBackToTilesView(); 
-      } else {
-        setActiveToolTypeForView(null);
-      }
     }
     
-    // Cleanup logic for previous LLL chat only if the new selection isn't also LLL or is a different LLL chat
     if (previousActiveConv && previousActiveConv.toolType === 'long language loops') {
       if (activeConversation?.id !== previousActiveConv.id || toolType !== 'long language loops') {
         cleanupPreviousEmptyLllChat(previousActiveConv);
       }
     }
-
-  }, [activeConversation, toast, handleGoBackToTilesView, cleanupPreviousEmptyLllChat, currentView, startNewLongLanguageLoopChat]);
+    setIsToolPickerOpen(false); // Close tool picker after selection
+  }, [activeConversation, toast, cleanupPreviousEmptyLllChat, startNewLongLanguageLoopChat]);
 
 
   const handleSelectChatFromHistory = useCallback((conversationId: string) => {
@@ -305,11 +298,7 @@ export default function Home() {
       setIsImageMode(conversationToSelect.isImageMode || false);
       setActiveToolTypeForView('long language loops');
       setCurrentView('chat');
-    } else {
-       // Non-LLL chats are not directly selectable from history in this UI paradigm
-       return; 
-    }
-
+    } 
     if (previousActiveConv && previousActiveConv.id !== conversationId && previousActiveConv.toolType === 'long language loops') {
        cleanupPreviousEmptyLllChat(previousActiveConv);
     }
@@ -323,7 +312,6 @@ export default function Home() {
     } = {}
   ) => {
     if (!activeConversation || activeConversation.toolType !== 'long language loops') {
-      console.warn("handleSendMessageGlobal called without active LLL conversation.");
       return;
     }
   
@@ -351,7 +339,6 @@ export default function Home() {
       };
       userMessageContent = [textPart, imagePart];
     } else if (isActuallyFileUploadMode && (!currentActiveConv.uploadedFile || !currentActiveConv.uploadedFilePreview)){
-        console.error("File selected for LLL, but file data or preview is missing from activeConversation.");
         toast({ title: "File Error", description: "Could not process uploaded file data for sending.", variant: "destructive" });
         setIsAiResponding(false);
         return;
@@ -362,6 +349,7 @@ export default function Home() {
     };
     
     const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage];
+    const previousMessagesForApi = currentActiveConv.messages || []; // Capture before update
   
     updateActiveConversationState({ messages: messagesForApiSubmission });
     setCurrentMessages(messagesForApiSubmission);
@@ -378,7 +366,6 @@ export default function Home() {
         ];
         skipPollinationsChatCall = true;
       } catch (error) {
-        console.error("Error generating image via Pollinations:", error);
         const errorMessageText = error instanceof Error ? error.message : "Failed to generate image.";
         toast({ title: "Image Generation Error", description: errorMessageText, variant: "destructive" });
         aiResponseContent = `Sorry, I couldn't generate the image. ${errorMessageText}`;
@@ -388,7 +375,8 @@ export default function Home() {
     
     if (!skipPollinationsChatCall) {
       try {
-        const messagesForApi = messagesForApiSubmission
+        // Use the synchronously constructed list for the API
+        const messagesForApi = [...previousMessagesForApi, userMessage]
           .filter(msg => msg.role === 'user' || msg.role === 'assistant') 
           .map(msg => {
             let apiContentString: string;
@@ -418,7 +406,6 @@ export default function Home() {
         const result = await getPollinationsChatCompletion(apiInput);
         aiResponseContent = result.responseText;
       } catch (error) {
-        console.error("Error getting chat completion:", error);
         const errorMessageText = error instanceof Error ? error.message : "Failed to get AI response.";
         toast({ title: "AI Error", description: errorMessageText, variant: "destructive" });
         aiResponseContent = `Sorry, I couldn't get a response. ${errorMessageText}`;
@@ -576,7 +563,7 @@ export default function Home() {
                 <button
                   key={item.id}
                   onClick={() => handleSelectTile(item.id)}
-                  className="font-code text-xl sm:text-2xl md:text-3xl text-foreground hover:text-primary transition-colors duration-200 text-left"
+                  className="font-code text-3xl sm:text-4xl md:text-5xl text-foreground hover:text-primary transition-colors duration-200 text-left"
                   aria-label={`Run ${item.title.replace(/\s/g, '')}`}
                 >
                   └run/{item.title.replace(/\s/g, '')}
@@ -588,7 +575,7 @@ export default function Home() {
       ) : (
         <SidebarProvider>
           <div className="flex flex-1 overflow-hidden bg-background">
-            <Sidebar side="left" collapsible="icon" className="border-r-0 bg-sidebar-background"> {/* Removed border-r */}
+            <Sidebar side="left" collapsible="icon" className="border-r-0 bg-sidebar-background group/sidebar-wrapper">
               <SidebarContent>
                 <SidebarNav
                   activeToolType={activeToolTypeForView}
@@ -602,18 +589,32 @@ export default function Home() {
                   className="w-full"
                 />
               </SidebarContent>
-              <SidebarRail className="hidden"/> {/* Hide rail to remove visual line if present */}
+              <SidebarRail className="hidden"/>
             </Sidebar>
-            {/* SidebarInset is removed to allow main content to take full width when sidebar is part of the flow */}
               <main className="flex-1 flex flex-col overflow-hidden bg-background">
                 {currentView === 'chat' && activeConversation && activeConversation.toolType === 'long language loops' && (
                   <>
-                    <div className="p-2 flex items-center justify-between sticky top-0 z-10 bg-transparent flex-shrink-0"> {/* bg-card removed, now transparent */}
-                        <div className="flex items-center gap-1">
-                            <SidebarTrigger className="text-foreground/70 hover:text-foreground" />
-                            {/* Removed back arrow, navigation via sidebar logo now */}
+                    <div className="p-2 flex items-center justify-between sticky top-0 z-10 bg-transparent flex-shrink-0">
+                        <div className="flex items-center gap-2">
+                            <DropdownMenu open={isToolPickerOpen} onOpenChange={setIsToolPickerOpen}>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="text-sm text-foreground/70 hover:text-foreground p-1 h-auto focus-visible:ring-0 focus-visible:ring-offset-0">
+                                        (tools)
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                    {toolTileItems.map((item) => (
+                                        <DropdownMenuItem key={item.id} onClick={() => handleSelectTile(item.id)}>
+                                            {item.title.replace(/\s/g, '')}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                             <Button variant="ghost" size="icon" className="text-foreground/70 hover:text-foreground group-data-[state=expanded]/sidebar-wrapper:hidden" onClick={() => useSidebar().setOpenMobile(true)}>
+                                <HistoryIcon className="h-5 w-5" /> {/* Placeholder for mobile sidebar trigger */}
+                            </Button>
                         </div>
-                         <div className="w-8 flex-shrink-0"> {/* Spacer for loading icon */}
+                         <div className="w-8 flex-shrink-0"> 
                             {isAiResponding && <X className="h-5 w-5 animate-spin text-primary" />}
                         </div>
                     </div>
@@ -659,26 +660,71 @@ export default function Home() {
                       onModelChange={handleModelChange}
                       onStyleChange={handleStyleChange}
                     />
-                     <h1 className="text-3xl md:text-4xl font-code font-semibold text-center py-4 md:py-6 text-foreground tracking-wider select-none">
+                     <h1 className="text-xl font-code font-extralight text-center py-3 md:py-4 text-foreground/80 tracking-normal select-none">
                         {activeConversation.title || "Chat"}
                     </h1>
                   </>
                 )}
                 {currentView === 'easyImageLoopTool' && ( 
                   <>
-                    <ToolViewHeader title="nocost imagination (Pollinations)" onGoBack={handleGoBackToTilesView} />
+                    <ToolViewHeader title="nocost imagination (Pollinations)" onGoBack={handleGoBackToTilesView} toolsTrigger={
+                        <DropdownMenu open={isToolPickerOpen} onOpenChange={setIsToolPickerOpen}>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="text-sm text-foreground/70 hover:text-foreground p-1 h-auto focus-visible:ring-0 focus-visible:ring-offset-0">
+                                    (tools)
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                                {toolTileItems.map((item) => (
+                                    <DropdownMenuItem key={item.id} onClick={() => handleSelectTile(item.id)}>
+                                        {item.title.replace(/\s/g, '')}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    } />
                     <VisualizingLoopsTool />
                   </>
                 )}
                 {currentView === 'gptImageTool' && ( 
                   <>
-                    <ToolViewHeader title="nocost imagination (OpenAI GPT)" onGoBack={handleGoBackToTilesView} />
+                    <ToolViewHeader title="nocost imagination (OpenAI GPT)" onGoBack={handleGoBackToTilesView} toolsTrigger={
+                       <DropdownMenu open={isToolPickerOpen} onOpenChange={setIsToolPickerOpen}>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="text-sm text-foreground/70 hover:text-foreground p-1 h-auto focus-visible:ring-0 focus-visible:ring-offset-0">
+                                    (tools)
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                                {toolTileItems.map((item) => (
+                                    <DropdownMenuItem key={item.id} onClick={() => handleSelectTile(item.id)}>
+                                        {item.title.replace(/\s/g, '')}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    }/>
                     <GPTImageTool />
                   </>
                 )}
                  {currentView === 'replicateImageTool' && ( 
                   <>
-                    <ToolViewHeader title="premium imagination (Replicate)" onGoBack={handleGoBackToTilesView} />
+                    <ToolViewHeader title="premium imagination (Replicate)" onGoBack={handleGoBackToTilesView} toolsTrigger={
+                        <DropdownMenu open={isToolPickerOpen} onOpenChange={setIsToolPickerOpen}>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="text-sm text-foreground/70 hover:text-foreground p-1 h-auto focus-visible:ring-0 focus-visible:ring-offset-0">
+                                    (tools)
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                                {toolTileItems.map((item) => (
+                                    <DropdownMenuItem key={item.id} onClick={() => handleSelectTile(item.id)}>
+                                        {item.title.replace(/\s/g, '')}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    }/>
                     <ReplicateImageTool />
                   </>
                 )}
@@ -735,3 +781,4 @@ export default function Home() {
     </div>
   );
 }
+

@@ -1,9 +1,9 @@
 
 import type React from 'react';
-import { useRouter } from 'next/navigation'; // Corrected import for App Router
+import { useRouter } from 'next/navigation'; 
 
 interface AppHeaderProps {
-  onNavigateToTiles?: () => void; // Optional: if navigation is handled by parent
+  onNavigateToTiles?: () => void; 
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({ onNavigateToTiles }) => {
@@ -13,7 +13,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onNavigateToTiles }) => {
     if (onNavigateToTiles) {
       onNavigateToTiles();
     } else {
-      router.push('/'); // Fallback if no specific handler, assuming '/' is tiles view
+      router.push('/'); 
     }
   };
 
@@ -26,7 +26,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onNavigateToTiles }) => {
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); }}
       aria-label="Go to main page"
     >
-      <span className="font-code text-3xl md:text-4xl text-foreground hover:text-primary transition-colors duration-200">
+      <span className="font-code text-5xl sm:text-6xl md:text-7xl text-foreground hover:text-primary transition-colors duration-200">
         &lt;/hey.hi&gt;
       </span>
     </header>
