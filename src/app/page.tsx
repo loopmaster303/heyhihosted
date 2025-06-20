@@ -6,20 +6,19 @@ import AppHeader from '@/components/layout/AppHeader';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
-// ToolViewHeader removed
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
 import GPTImageTool from '@/components/tools/GPTImageTool';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
+import PersonalizationTool from '@/components/tools/PersonalizationTool'; // New Tool
 import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
-import { X } from 'lucide-react';
+import { X, MessageSquare, Image as ImageIconLucide, ImagePlus, SlidersHorizontal } from 'lucide-react';
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Image as ImageIconLucide, ImagePlus } from 'lucide-react';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import {
   AlertDialog,
@@ -37,7 +36,10 @@ const toolTileItems: TileItem[] = [
   { id: 'long language loops', title: 'long languageloops', icon: MessageSquare },
   { id: 'nocost imagination', title: 'nocost imagination', icon: ImageIconLucide },
   { id: 'premium imagination', title: 'premium imagination', icon: ImagePlus },
+  { id: 'personalization', title: 'personalization', icon: SlidersHorizontal }, // New Tool
 ];
+
+const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<CurrentAppView>('tiles');
@@ -53,8 +55,11 @@ export default function Home() {
   const [isImageMode, setIsImageMode] = useState(false);
   const [activeToolTypeForView, setActiveToolTypeForView] = useState<ToolType | null>(null);
 
-  // isModelPreSelectionDialogOpen removed
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+
+  // Personalization State
+  const [userDisplayName, setUserDisplayName] = useState<string>("User");
+  const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
 
   useEffect(() => {
     const storedConversations = localStorage.getItem('chatConversations');
@@ -84,8 +89,32 @@ export default function Home() {
         localStorage.removeItem('chatConversations'); 
       }
     }
+
+    const storedPersonalization = localStorage.getItem(PERSONALIZATION_SETTINGS_KEY);
+    if (storedPersonalization) {
+      try {
+        const settings = JSON.parse(storedPersonalization);
+        if (settings.userDisplayName) setUserDisplayName(settings.userDisplayName);
+        if (settings.customSystemPrompt) setCustomSystemPrompt(settings.customSystemPrompt);
+      } catch (error) {
+        console.error("Failed to parse personalization settings from localStorage", error);
+        localStorage.removeItem(PERSONALIZATION_SETTINGS_KEY);
+      }
+    }
     setIsInitialLoadComplete(true);
   }, []);
+
+  const savePersonalizationSettings = useCallback(() => {
+    const settings = { userDisplayName, customSystemPrompt };
+    localStorage.setItem(PERSONALIZATION_SETTINGS_KEY, JSON.stringify(settings));
+  }, [userDisplayName, customSystemPrompt]);
+
+  useEffect(() => {
+    if (isInitialLoadComplete) {
+        savePersonalizationSettings();
+    }
+  }, [userDisplayName, customSystemPrompt, isInitialLoadComplete, savePersonalizationSettings]);
+
 
   useEffect(() => {
     if (isInitialLoadComplete) { 
@@ -183,15 +212,6 @@ export default function Home() {
   }, [allConversations, activeConversation?.id]);
 
 
-  const handleSelectPollinationsForLoop = () => {
-    setActiveToolTypeForView('nocost imagination');
-    setCurrentView('easyImageLoopTool');
-    setActiveConversation(null); 
-    // setIsModelPreSelectionDialogOpen(false); // No longer needed
-  };
-
-  // handleSelectOpenAIForLoop removed
-
   const cleanupPreviousEmptyLllChat = useCallback((previousActiveConv: Conversation | null) => {
     if (previousActiveConv && previousActiveConv.toolType === 'long language loops') {
         const hasMeaningfulMessages = previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
@@ -251,11 +271,15 @@ export default function Home() {
     } else if (toolType === 'nocost imagination') {
         setActiveConversation(null); 
         setCurrentMessages([]);
-        handleSelectPollinationsForLoop(); // Directly go to Pollinations tool
+        setCurrentView('easyImageLoopTool');
     } else if (toolType === 'premium imagination') {
         setActiveConversation(null);
         setCurrentMessages([]);
         setCurrentView('replicateImageTool');
+    } else if (toolType === 'personalization') {
+        setActiveConversation(null);
+        setCurrentMessages([]);
+        setCurrentView('personalizationTool');
     }
     
     if (previousActiveConv && previousActiveConv.toolType === 'long language loops') {
@@ -302,8 +326,15 @@ export default function Home() {
   
     const currentActiveConv = activeConversation; 
     const currentModelId = currentActiveConv.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
-    const currentStyleName = currentActiveConv.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
-    const currentSystemPrompt = AVAILABLE_RESPONSE_STYLES.find(s => s.name === currentStyleName)?.systemPrompt || AVAILABLE_RESPONSE_STYLES.find(s => s.name === DEFAULT_RESPONSE_STYLE_NAME)!.systemPrompt;
+    
+    let effectiveSystemPrompt: string;
+    if (customSystemPrompt && customSystemPrompt.trim() !== "") {
+      // Replace {userDisplayName} placeholder if present
+      effectiveSystemPrompt = customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User");
+    } else {
+      const currentStyleName = currentActiveConv.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
+      effectiveSystemPrompt = AVAILABLE_RESPONSE_STYLES.find(s => s.name === currentStyleName)?.systemPrompt || AVAILABLE_RESPONSE_STYLES.find(s => s.name === DEFAULT_RESPONSE_STYLE_NAME)!.systemPrompt;
+    }
   
     setIsAiResponding(true);
     const conversationToUpdateId = currentActiveConv.id;
@@ -333,7 +364,6 @@ export default function Home() {
       id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
     };
     
-    // SYNCHRONOUSLY build messages for API
     const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage]
       .filter(msg => msg.role === 'user' || msg.role === 'assistant')
       .map(msg => {
@@ -356,7 +386,6 @@ export default function Home() {
       return;
     }
 
-    // Update state AFTER preparing messagesForApi
     const updatedMessagesForState = [...(currentActiveConv.messages || []), userMessage];
     updateActiveConversationState({ messages: updatedMessagesForState });
     setCurrentMessages(updatedMessagesForState);
@@ -385,7 +414,7 @@ export default function Home() {
         const apiInput: PollinationsChatInput = {
           messages: messagesForApiSubmission, 
           modelId: currentModelId,
-          systemPrompt: currentSystemPrompt,
+          systemPrompt: effectiveSystemPrompt,
         };
         const result = await getPollinationsChatCompletion(apiInput);
         aiResponseContent = result.responseText;
@@ -425,6 +454,8 @@ export default function Home() {
     updateConversationTitle,
     toast,
     updateActiveConversationState,
+    customSystemPrompt, // Added dependency
+    userDisplayName,   // Added dependency
   ]);
 
 
@@ -558,7 +589,7 @@ export default function Home() {
         </>
       ) : (
         <div className="flex flex-1 overflow-hidden bg-background">
-          <aside className="w-80 flex-shrink-0 bg-sidebar-background"> {/* Increased width */}
+          <aside className="w-80 flex-shrink-0 bg-sidebar-background">
             <SidebarNav
               toolTileItems={toolTileItems} 
               onSelectTile={handleSelectTile} 
@@ -634,16 +665,23 @@ export default function Home() {
                 <GPTImageTool />
               </>
             )}
-              {currentView === 'replicateImageTool' && ( 
+            {currentView === 'replicateImageTool' && ( 
               <>
                 <ReplicateImageTool />
               </>
             )}
+            {currentView === 'personalizationTool' && (
+              <PersonalizationTool
+                userDisplayName={userDisplayName}
+                setUserDisplayName={setUserDisplayName}
+                customSystemPrompt={customSystemPrompt}
+                setCustomSystemPrompt={setCustomSystemPrompt}
+                onSave={savePersonalizationSettings}
+              />
+            )}
           </main>
         </div>
       )}
-
-      {/* AlertDialog for model pre-selection removed */}
 
       {isDeleteDialogOpen && chatToDeleteId && (
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -665,6 +703,3 @@ export default function Home() {
     </div>
   );
 }
-
-
-    

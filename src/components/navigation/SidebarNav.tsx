@@ -1,17 +1,16 @@
 
 "use client";
 import React, { useState } from 'react';
-import type { ToolType, Conversation, TileItem } from '@/types'; // Added TileItem
+import type { ToolType, Conversation, TileItem } from '@/types';
 import CompactHeader from '@/components/layout/CompactHeader';
 import ChatHistoryItem from './ChatHistoryItem';
 import { Button } from '@/components/ui/button';
 import { History, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-// useSidebar import removed as sidebar is now always visible on desktop
 
 interface SidebarNavProps {
-  activeToolType: ToolType | null; 
+  activeToolType: ToolType | null;
   onSelectNewChat: () => void;
   allConversations: Conversation[];
   activeConversationId: string | null;
@@ -20,8 +19,8 @@ interface SidebarNavProps {
   onDeleteChat: (conversationId: string) => void;
   onNavigateToTiles: () => void;
   className?: string;
-  toolTileItems: TileItem[]; // Added prop for tool items
-  onSelectTile: (id: ToolType) => void; // Added prop for selecting a tool
+  toolTileItems: TileItem[];
+  onSelectTile: (id: ToolType) => void;
 }
 
 const SidebarNav: React.FC<SidebarNavProps> = ({
@@ -45,7 +44,6 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   
   const handleNewChat = () => {
     onSelectNewChat();
-    // No need to manage mobile sidebar state here anymore
   }
 
 
@@ -53,7 +51,6 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
     <aside className={cn("flex flex-col h-full bg-sidebar-background text-sidebar-foreground", className)}> 
       <CompactHeader onNavigateToTiles={onNavigateToTiles} />
       
-      {/* Direct Tool Links */}
       <div className="p-3 space-y-2 flex-shrink-0">
         {toolTileItems.map((item) => (
             <button
@@ -68,7 +65,6 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
       </div>
 
       <div className="flex-grow">
-        {/* Future content above history or filler */}
       </div>
 
       {showHistory && (
@@ -81,12 +77,12 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                   conversation={conv}
                   onSelect={onSelectChatHistory}
                   isActive={conv.id === activeConversationId}
-                  onEditTitle={onEditTitle} // Kept for potential future use, but not directly on item
-                  onDeleteChat={onDeleteChat} // Kept for potential future use
+                  onEditTitle={onEditTitle} 
+                  onDeleteChat={onDeleteChat} 
                 />
               ))
             ) : (
-              <p className="p-2 text-xs text-sidebar-foreground/60 text-center">No chat history yet.</p>
+              <p className="p-2 text-xs text-sidebar-foreground/60 text-center font-code">No chat history yet.</p>
             )}
           </div>
         </ScrollArea>
@@ -94,7 +90,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
       
       <div className={cn(
         "p-2.5 mt-auto border-t border-sidebar-border",
-        "flex items-center justify-around" // Simpler layout for bottom icons
+        "flex items-center justify-around" 
       )}>
           <Button 
             variant="ghost" 

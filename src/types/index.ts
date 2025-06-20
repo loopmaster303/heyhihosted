@@ -6,7 +6,7 @@ export type ChatMessageContentPart =
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
-  content: string | ChatMessageContentPart[]; 
+  content: string | ChatMessageContentPart[];
   timestamp: Date;
   toolType?: ToolType;
 }
@@ -22,10 +22,11 @@ export interface Conversation {
   uploadedFilePreview?: string | null;
   selectedModelId?: string;
   selectedResponseStyleName?: string;
+  // customSystemPrompt and userDisplayName will be global, not per-conversation for simplicity
 }
 
 // Updated ToolType names to match new UI
-export type ToolType = 'nocost imagination' | 'premium imagination' | 'long language loops';
+export type ToolType = 'nocost imagination' | 'premium imagination' | 'long language loops' | 'personalization';
 
 export interface TileItem {
   id: ToolType;
@@ -34,4 +35,4 @@ export interface TileItem {
   description?: string;
 }
 
-export type CurrentAppView = 'tiles' | 'chat' | 'easyImageLoopTool' | 'gptImageTool' | 'replicateImageTool';
+export type CurrentAppView = 'tiles' | 'chat' | 'easyImageLoopTool' | 'gptImageTool' | 'replicateImageTool' | 'personalizationTool';
