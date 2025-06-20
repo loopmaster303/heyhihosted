@@ -1,3 +1,4 @@
+
 // src/hooks/useTypingEffect.ts
 'use client';
 
@@ -19,29 +20,32 @@ export const useTypingEffect = (
   const [isTypingComplete, setIsTypingComplete] = useState(false);
 
   useEffect(() => {
-    setDisplayedText(''); // Reset text when fullText or other params change
+    setDisplayedText(''); 
     setIsTypingComplete(false);
     let charIndex = 0;
 
     if (!fullText) {
-      setIsTypingComplete(true); // Nothing to type
+      setIsTypingComplete(true);
       return;
     }
 
     const initialDelayTimer = setTimeout(() => {
       const typingInterval = setInterval(() => {
-        setDisplayedText((prev) => prev + fullText[charIndex]);
-        charIndex++;
-        if (charIndex === fullText.length) {
+        if (charIndex < fullText.length) {
+          setDisplayedText((prev) => prev + fullText[charIndex]);
+          charIndex++;
+        }
+        
+        if (charIndex >= fullText.length) {
           clearInterval(typingInterval);
           setIsTypingComplete(true);
         }
       }, speed);
 
-      return () => clearInterval(typingInterval); // Cleanup interval on unmount or re-run
+      return () => clearInterval(typingInterval); 
     }, startDelay);
 
-    return () => clearTimeout(initialDelayTimer); // Cleanup timeout on unmount or re-run
+    return () => clearTimeout(initialDelayTimer); 
   }, [fullText, speed, startDelay]);
 
   return { text: displayedText, isComplete: isTypingComplete };

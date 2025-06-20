@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 interface AppHeaderProps {
   onNavigateToTiles?: () => void;
-  onAnimationComplete?: () => void; // Optional: To signal page.tsx
+  onAnimationComplete?: () => void; 
 }
 
 const INITIAL_MISSPELLED_TEXT = "just.... </say.hi>";
@@ -97,7 +97,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onNavigateToTiles, onAnimationCom
           showCursor && "typing-cursor"
         )}
       >
-        {animatedTitle || (currentPhase === "backspacing" && animatedTitle.length === 0 ? "" : " ")} {}
+        {animatedTitle || (currentPhase === "backspacing" && animatedTitle.length === 0 ? "" : " ")}
       </span>
     </header>
   );

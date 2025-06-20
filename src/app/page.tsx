@@ -46,11 +46,9 @@ const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
 const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
 const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
 
-const TOOL_LINK_TYPING_SPEED = 75; // ms per character
-// Adjusted initial delay to account for the new complex header animation
-// Approx header animation: (19*180) + 1500 + (19*40) + (9*120) = 3420 + 1500 + 760 + 1080 = ~6760ms
-const INITIAL_LINK_DELAY = 7000; // Start tool links after ~7 seconds
-const DELAY_BETWEEN_LINKS = 200; // Delay between each tool link typing
+const TOOL_LINK_TYPING_SPEED = 75; 
+const INITIAL_LINK_DELAY = 7000; 
+const DELAY_BETWEEN_LINKS = 200; 
 
 const AnimatedTileLink: React.FC<{
   item: TileItem;
@@ -63,7 +61,7 @@ const AnimatedTileLink: React.FC<{
   const { text: animatedLinkText, isComplete: linkIsComplete } = useTypingEffect(
     fullLinkText,
     TOOL_LINK_TYPING_SPEED,
-    headerAnimationDone ? startDelay : 999999 // Effectively disable typing until header is done
+    headerAnimationDone ? startDelay : 999999 
   );
 
   return (
@@ -71,7 +69,7 @@ const AnimatedTileLink: React.FC<{
       onClick={() => onSelect(item.id)}
       className="font-code text-3xl sm:text-4xl md:text-5xl text-foreground hover:text-primary transition-colors duration-200 text-left"
       aria-label={`Run ${item.title.replace(/\./g, ' ')}`}
-      disabled={!headerAnimationDone || !linkIsComplete} // Optionally disable click until fully typed
+      disabled={!headerAnimationDone || !linkIsComplete}
     >
       <span className={cn(headerAnimationDone && !linkIsComplete && "typing-cursor")}>
         {headerAnimationDone ? animatedLinkText : ""}
@@ -157,7 +155,7 @@ export default function Home() {
              setCurrentView('chat');
           } else {
             setCurrentView('tiles');
-            setHeaderAnimationComplete(true); // Skip animation if not on tiles view initially
+            setHeaderAnimationComplete(true); 
           }
         } else {
             setCurrentView('tiles');
@@ -326,7 +324,7 @@ export default function Home() {
     setCurrentMessages([]);
     setIsImageMode(false);
     setActiveToolTypeForView(null);
-    setHeaderAnimationComplete(false); // Reset for next time tiles view is shown
+    setHeaderAnimationComplete(false); 
 
     cleanupPreviousEmptyLllChat(prevActive);
   }, [activeConversation, cleanupPreviousEmptyLllChat]);
@@ -355,7 +353,7 @@ export default function Home() {
     setCurrentMessages([]);
     setActiveToolTypeForView('long language loops');
     setCurrentView('chat');
-    setHeaderAnimationComplete(true); // Don't re-run main animation
+    setHeaderAnimationComplete(true); 
   }, [activeConversation, cleanupPreviousEmptyLllChat]);
 
 
@@ -364,7 +362,7 @@ export default function Home() {
 
     setActiveToolTypeForView(toolType);
     setIsImageMode(false);
-    setHeaderAnimationComplete(true); // Assume going from tiles to a tool means animation is done or not relevant
+    setHeaderAnimationComplete(true); 
 
     if (toolType === 'long language loops') {
       startNewLongLanguageLoopChat();
@@ -395,7 +393,7 @@ export default function Home() {
     if (!conversationToSelect) return;
 
     const previousActiveConv = activeConversation;
-    setHeaderAnimationComplete(true); // Don't re-run main animation
+    setHeaderAnimationComplete(true); 
 
     if (conversationToSelect.toolType === 'long language loops') {
       setActiveConversation({
