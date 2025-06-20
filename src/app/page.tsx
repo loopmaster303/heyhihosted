@@ -6,20 +6,20 @@ import AppHeader from '@/components/layout/AppHeader';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
-import ToolViewHeader from '@/components/layout/ToolViewHeader';
+// ToolViewHeader removed as its functionality is now integrated or removed
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
 import GPTImageTool from '@/components/tools/GPTImageTool';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
-import { X } from 'lucide-react'; // PanelLeft removed
+import { X } from 'lucide-react';
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Image as ImageIconLucide, ImagePlus, History as HistoryIcon, Plus as PlusIcon } from 'lucide-react';
+import { MessageSquare, Image as ImageIconLucide, ImagePlus } from 'lucide-react';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import {
   AlertDialog,
@@ -31,19 +31,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarRail, useSidebar } from '@/components/ui/sidebar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
-
+// Updated toolTileItems as per user request
 const toolTileItems: TileItem[] = [
   { id: 'long language loops', title: 'long languageloops', icon: MessageSquare },
   { id: 'nocost imagination', title: 'low costimagination', icon: ImageIconLucide },
-  { id: "premium imagination", title: "premium costimagination", icon: ImagePlus },
+  { id: 'premium imagination', title: 'premium costimagination', icon: ImagePlus },
 ];
 
 export default function Home() {
@@ -62,8 +55,6 @@ export default function Home() {
 
   const [isModelPreSelectionDialogOpen, setIsModelPreSelectionDialogOpen] = useState(false);
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
-  const [isToolPickerOpen, setIsToolPickerOpen] = useState(false);
-
 
   useEffect(() => {
     const storedConversations = localStorage.getItem('chatConversations');
@@ -233,7 +224,7 @@ export default function Home() {
 
     const newConversationId = crypto.randomUUID();
     const now = new Date();
-    const conversationTitle = "New long language loops";
+    const conversationTitle = "New long language loops"; // Default title
     const newConversation: Conversation = {
       id: newConversationId,
       title: conversationTitle,
@@ -258,26 +249,27 @@ export default function Home() {
     const previousActiveConv = activeConversation;
 
     setActiveToolTypeForView(toolType);
-    setIsImageMode(false);
+    setIsImageMode(false); // Reset image mode when switching tools
 
     if (toolType === 'long language loops') {
       startNewLongLanguageLoopChat();
     } else if (toolType === 'nocost imagination') {
-        setActiveConversation(null); 
+        setActiveConversation(null); // No active conversation for this tool directly
         setCurrentMessages([]);
-        setIsModelPreSelectionDialogOpen(true);
+        setIsModelPreSelectionDialogOpen(true); // Open dialog to choose between Pollinations/OpenAI
     } else if (toolType === 'premium imagination') {
         setActiveConversation(null);
         setCurrentMessages([]);
         setCurrentView('replicateImageTool');
     }
     
+    // Cleanup previous LLL chat if it was empty and we're switching away or to a new LLL chat
     if (previousActiveConv && previousActiveConv.toolType === 'long language loops') {
+      // If the new active conv is different or not an LLL chat, cleanup the previous one.
       if (activeConversation?.id !== previousActiveConv.id || toolType !== 'long language loops') {
         cleanupPreviousEmptyLllChat(previousActiveConv);
       }
     }
-    setIsToolPickerOpen(false); // Close tool picker after selection
   }, [activeConversation, toast, cleanupPreviousEmptyLllChat, startNewLongLanguageLoopChat]);
 
 
@@ -290,15 +282,17 @@ export default function Home() {
     if (conversationToSelect.toolType === 'long language loops') {
       setActiveConversation({
         ...conversationToSelect,
+        // Ensure model/style are set, falling back to defaults if not present
         selectedModelId: conversationToSelect.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID,
         selectedResponseStyleName: conversationToSelect.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME,
-        uploadedFile: null, 
+        uploadedFile: null, // Clear any file from previous LLL session on load
       });
       setCurrentMessages(conversationToSelect.messages);
       setIsImageMode(conversationToSelect.isImageMode || false);
       setActiveToolTypeForView('long language loops');
       setCurrentView('chat');
     } 
+    // Cleanup previous LLL chat if it was empty and we're switching to a different one
     if (previousActiveConv && previousActiveConv.id !== conversationId && previousActiveConv.toolType === 'long language loops') {
        cleanupPreviousEmptyLllChat(previousActiveConv);
     }
@@ -348,11 +342,33 @@ export default function Home() {
       id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
     };
     
-    const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage];
-    const previousMessagesForApi = currentActiveConv.messages || []; // Capture before update
-  
-    updateActiveConversationState({ messages: messagesForApiSubmission });
-    setCurrentMessages(messagesForApiSubmission);
+    // SYNCHRONOUSLY build messages for API
+    const messagesForApi = [...(currentActiveConv.messages || []), userMessage]
+      .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+      .map(msg => {
+        let apiContentString: string;
+        if (typeof msg.content === 'string') {
+          apiContentString = msg.content;
+        } else {
+          const textPart = msg.content.find(part => part.type === 'text');
+          apiContentString = textPart ? textPart.text : "[Image content - text part missing]";
+           if (apiContentString.trim() === "" && msg.content.some(p => p.type === 'image_url') && !textPart) {
+             apiContentString = "[Image content only]";
+           }
+        }
+        return { role: msg.role as 'user' | 'assistant', content: apiContentString };
+      });
+
+    if (messagesForApi.length === 0) {
+      toast({ title: "Cannot send message", description: "The message content appears to be empty after processing.", variant: "destructive" });
+      setIsAiResponding(false);
+      return;
+    }
+
+    // Update state AFTER preparing messagesForApi
+    const updatedMessagesForState = [...(currentActiveConv.messages || []), userMessage];
+    updateActiveConversationState({ messages: updatedMessagesForState });
+    setCurrentMessages(updatedMessagesForState);
   
     let aiResponseContent: string | ChatMessageContentPart[] | null = null;
     let skipPollinationsChatCall = false;
@@ -375,31 +391,8 @@ export default function Home() {
     
     if (!skipPollinationsChatCall) {
       try {
-        // Use the synchronously constructed list for the API
-        const messagesForApi = [...previousMessagesForApi, userMessage]
-          .filter(msg => msg.role === 'user' || msg.role === 'assistant') 
-          .map(msg => {
-            let apiContentString: string;
-            if (typeof msg.content === 'string') {
-              apiContentString = msg.content;
-            } else { 
-              const textPart = msg.content.find(part => part.type === 'text');
-              apiContentString = textPart ? textPart.text : "[Image content - text part missing]";
-              if (apiContentString.trim() === "" && msg.content.some(p => p.type === 'image_url') && !textPart) {
-                apiContentString = "[Image content only]";
-              }
-            }
-            return { role: msg.role as 'user' | 'assistant', content: apiContentString };
-          });
-
-        if (messagesForApi.length === 0) {
-          toast({ title: "Cannot send message", description: "The message content appears to be empty after processing.", variant: "destructive" });
-          setIsAiResponding(false);
-          return;
-        }
-
         const apiInput: PollinationsChatInput = {
-          messages: messagesForApi,
+          messages: messagesForApi, // Use the synchronously constructed list
           modelId: currentModelId,
           systemPrompt: currentSystemPrompt,
         };
@@ -416,7 +409,7 @@ export default function Home() {
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: currentToolType,
       };
-      const finalMessages = [...messagesForApiSubmission, aiMessage];
+      const finalMessages = [...updatedMessagesForState, aiMessage];
       updateActiveConversationState({ messages: finalMessages });
       setCurrentMessages(finalMessages);
     }
@@ -429,7 +422,8 @@ export default function Home() {
         });
     }
 
-    const finalMessagesForTitle = (allConversations.find(c=>c.id === conversationToUpdateId)?.messages || messagesForApiSubmission);
+    // Use the potentially updated messages from state for title generation
+    const finalMessagesForTitle = (allConversations.find(c=>c.id === conversationToUpdateId)?.messages || updatedMessagesForState);
     if (finalMessagesForTitle.length > 0) {
       updateConversationTitle(conversationToUpdateId, finalMessagesForTitle);
     }
@@ -557,6 +551,7 @@ export default function Home() {
       {currentView === 'tiles' ? (
         <>
           <AppHeader onNavigateToTiles={handleGoBackToTilesView} />
+          {/* Main content area for tiles view directly uses flex-grow and is inside the main div */}
           <main className="flex-grow container mx-auto px-4 sm:px-6 py-10 flex flex-col items-start justify-start overflow-y-auto">
             <div className="flex flex-col items-start justify-start space-y-3 animate-in fade-in-0 duration-500">
               {toolTileItems.map((item) => (
@@ -573,164 +568,93 @@ export default function Home() {
           </main>
         </>
       ) : (
-        <SidebarProvider>
-          <div className="flex flex-1 overflow-hidden bg-background">
-            <Sidebar side="left" collapsible="icon" className="border-r-0 bg-sidebar-background group/sidebar-wrapper">
-              <SidebarContent>
-                <SidebarNav
-                  activeToolType={activeToolTypeForView}
-                  onSelectNewChat={startNewLongLanguageLoopChat}
-                  allConversations={allConversations.filter(c => c.toolType === 'long language loops')} 
-                  activeConversationId={activeConversation?.id || null}
-                  onSelectChatHistory={handleSelectChatFromHistory}
-                  onEditTitle={handleRequestEditTitle}
-                  onDeleteChat={handleRequestDeleteChat}
-                  onNavigateToTiles={handleGoBackToTilesView}
-                  className="w-full"
+        <div className="flex flex-1 overflow-hidden bg-background">
+          {/* Always visible Sidebar */}
+          <aside className="w-64 flex-shrink-0 bg-sidebar-background border-r-0"> {/* No border */}
+            <SidebarNav
+              toolTileItems={toolTileItems} // Pass tool items for direct listing
+              onSelectTile={handleSelectTile} // Pass handler for tool selection
+              activeToolType={activeToolTypeForView}
+              onSelectNewChat={startNewLongLanguageLoopChat}
+              allConversations={allConversations.filter(c => c.toolType === 'long language loops')} 
+              activeConversationId={activeConversation?.id || null}
+              onSelectChatHistory={handleSelectChatFromHistory}
+              onEditTitle={handleRequestEditTitle}
+              onDeleteChat={handleRequestDeleteChat}
+              onNavigateToTiles={handleGoBackToTilesView}
+              className="w-full h-full"
+            />
+          </aside>
+          
+          <main className="flex-1 flex flex-col overflow-hidden bg-background">
+            {/* Top bar elements removed from here as per request */}
+            {currentView === 'chat' && activeConversation && activeConversation.toolType === 'long language loops' && (
+              <>
+                <ChatView
+                  conversation={activeConversation}
+                  messages={currentMessages}
+                  isLoading={isAiResponding}
+                  className="flex-grow overflow-y-auto"
                 />
-              </SidebarContent>
-              <SidebarRail className="hidden"/>
-            </Sidebar>
-              <main className="flex-1 flex flex-col overflow-hidden bg-background">
-                {currentView === 'chat' && activeConversation && activeConversation.toolType === 'long language loops' && (
-                  <>
-                    <div className="p-2 flex items-center justify-between sticky top-0 z-10 bg-transparent flex-shrink-0">
-                        <div className="flex items-center gap-2">
-                            <DropdownMenu open={isToolPickerOpen} onOpenChange={setIsToolPickerOpen}>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="text-sm text-foreground/70 hover:text-foreground p-1 h-auto focus-visible:ring-0 focus-visible:ring-offset-0">
-                                        (tools)
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start">
-                                    {toolTileItems.map((item) => (
-                                        <DropdownMenuItem key={item.id} onClick={() => handleSelectTile(item.id)}>
-                                            {item.title.replace(/\s/g, '')}
-                                        </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                             <Button variant="ghost" size="icon" className="text-foreground/70 hover:text-foreground group-data-[state=expanded]/sidebar-wrapper:hidden" onClick={() => useSidebar().setOpenMobile(true)}>
-                                <HistoryIcon className="h-5 w-5" /> {/* Placeholder for mobile sidebar trigger */}
-                            </Button>
-                        </div>
-                         <div className="w-8 flex-shrink-0"> 
-                            {isAiResponding && <X className="h-5 w-5 animate-spin text-primary" />}
-                        </div>
+                {activeConversation.uploadedFilePreview && (
+                    <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
+                    <NextImage
+                        src={activeConversation.uploadedFilePreview}
+                        alt="Uploaded preview"
+                        width={80}
+                        height={80}
+                        style={{ objectFit: "cover" }}
+                        className="rounded-md"
+                        data-ai-hint="upload preview"
+                    />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute -top-1 -right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                        onClick={clearUploadedImageForLLL}
+                        aria-label="Clear uploaded image"
+                    >
+                        <X className="w-4 h-4" />
+                    </Button>
                     </div>
-                    <ChatView
-                      conversation={activeConversation}
-                      messages={currentMessages}
-                      isLoading={isAiResponding}
-                      className="flex-grow overflow-y-auto"
-                    />
-                    {activeConversation.uploadedFilePreview && (
-                       <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
-                        <NextImage
-                          src={activeConversation.uploadedFilePreview}
-                          alt="Uploaded preview"
-                          width={80}
-                          height={80}
-                          style={{ objectFit: "cover" }}
-                          className="rounded-md"
-                          data-ai-hint="upload preview"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute -top-1 -right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
-                          onClick={clearUploadedImageForLLL}
-                          aria-label="Clear uploaded image"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    )}
-                    <ChatInput
-                      onSendMessage={(message, opts) => handleSendMessageGlobal(message, opts)}
-                      isLoading={isAiResponding}
-                      isImageModeActive={isImageMode} 
-                      onToggleImageMode={handleToggleImageMode}
-                      uploadedFilePreviewUrl={activeConversation.uploadedFilePreview} 
-                      onFileSelect={handleFileSelect}
-                      isLongLanguageLoopActive={true}
-                      selectedModelId={activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
-                      selectedResponseStyleName={activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
-                      onModelChange={handleModelChange}
-                      onStyleChange={handleStyleChange}
-                    />
-                     <h1 className="text-xl font-code font-extralight text-center py-3 md:py-4 text-foreground/80 tracking-normal select-none">
-                        {activeConversation.title || "Chat"}
-                    </h1>
-                  </>
                 )}
-                {currentView === 'easyImageLoopTool' && ( 
-                  <>
-                    <ToolViewHeader title="nocost imagination (Pollinations)" onGoBack={handleGoBackToTilesView} toolsTrigger={
-                        <DropdownMenu open={isToolPickerOpen} onOpenChange={setIsToolPickerOpen}>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="text-sm text-foreground/70 hover:text-foreground p-1 h-auto focus-visible:ring-0 focus-visible:ring-offset-0">
-                                    (tools)
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                                {toolTileItems.map((item) => (
-                                    <DropdownMenuItem key={item.id} onClick={() => handleSelectTile(item.id)}>
-                                        {item.title.replace(/\s/g, '')}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    } />
-                    <VisualizingLoopsTool />
-                  </>
-                )}
-                {currentView === 'gptImageTool' && ( 
-                  <>
-                    <ToolViewHeader title="nocost imagination (OpenAI GPT)" onGoBack={handleGoBackToTilesView} toolsTrigger={
-                       <DropdownMenu open={isToolPickerOpen} onOpenChange={setIsToolPickerOpen}>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="text-sm text-foreground/70 hover:text-foreground p-1 h-auto focus-visible:ring-0 focus-visible:ring-offset-0">
-                                    (tools)
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                                {toolTileItems.map((item) => (
-                                    <DropdownMenuItem key={item.id} onClick={() => handleSelectTile(item.id)}>
-                                        {item.title.replace(/\s/g, '')}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    }/>
-                    <GPTImageTool />
-                  </>
-                )}
-                 {currentView === 'replicateImageTool' && ( 
-                  <>
-                    <ToolViewHeader title="premium imagination (Replicate)" onGoBack={handleGoBackToTilesView} toolsTrigger={
-                        <DropdownMenu open={isToolPickerOpen} onOpenChange={setIsToolPickerOpen}>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="text-sm text-foreground/70 hover:text-foreground p-1 h-auto focus-visible:ring-0 focus-visible:ring-offset-0">
-                                    (tools)
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                                {toolTileItems.map((item) => (
-                                    <DropdownMenuItem key={item.id} onClick={() => handleSelectTile(item.id)}>
-                                        {item.title.replace(/\s/g, '')}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    }/>
-                    <ReplicateImageTool />
-                  </>
-                )}
-              </main>
-          </div>
-        </SidebarProvider>
+                <ChatInput
+                  onSendMessage={(message, opts) => handleSendMessageGlobal(message, opts)}
+                  isLoading={isAiResponding}
+                  isImageModeActive={isImageMode} 
+                  onToggleImageMode={handleToggleImageMode}
+                  uploadedFilePreviewUrl={activeConversation.uploadedFilePreview} 
+                  onFileSelect={handleFileSelect}
+                  isLongLanguageLoopActive={true}
+                  selectedModelId={activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
+                  selectedResponseStyleName={activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
+                  onModelChange={handleModelChange}
+                  onStyleChange={handleStyleChange}
+                />
+                <h1 className="text-xl font-code font-extralight text-center py-3 md:py-4 text-foreground/80 tracking-normal select-none">
+                    {activeConversation.title || "Chat"}
+                </h1>
+              </>
+            )}
+            {currentView === 'easyImageLoopTool' && ( 
+              <>
+                {/* ToolViewHeader equivalent elements (title) are now below ChatInput or handled by sidebar */}
+                <VisualizingLoopsTool />
+              </>
+            )}
+            {currentView === 'gptImageTool' && ( 
+              <>
+                <GPTImageTool />
+              </>
+            )}
+              {currentView === 'replicateImageTool' && ( 
+              <>
+                <ReplicateImageTool />
+              </>
+            )}
+          </main>
+        </div>
       )}
 
       {isModelPreSelectionDialogOpen && activeToolTypeForView === 'nocost imagination' && (
@@ -781,4 +705,3 @@ export default function Home() {
     </div>
   );
 }
-

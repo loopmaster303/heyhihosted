@@ -5,7 +5,7 @@ import type React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Brain, Fingerprint, ImageIcon, X } from 'lucide-react'; // SendHorizontal removed
+import { Paperclip, Brain, Fingerprint, ImageIcon, X, SendHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,7 +57,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   useEffect(() => {
     if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'; 
-        const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 40), 130);
+        const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 40), 130); // Max height 130px
         textareaRef.current.style.height = `${newHeight}px`;
     }
   }, [inputValue]);
@@ -82,7 +82,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       );
       setInputValue('');
       if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = 'auto'; // Reset height after send
       }
     }
   };
@@ -114,21 +114,22 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const placeholderText = "provide input and hit return to loop";
+  const placeholderText = "provide input and hit execute to loop"; // Updated placeholder
   const currentSelectedModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
   const currentSelectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0];
 
-  const iconSizeClass = "w-6 h-6";
-  const iconColorClass = "text-foreground/80 hover:text-foreground";
+  const iconSizeClass = "w-6 h-6"; // Slightly larger icons
+  const iconColorClass = "text-foreground/80 hover:text-foreground"; // Lighter icon color
   const iconStrokeWidth = 1.75;
+
 
   return (
     <div className="sticky bottom-0 left-0 right-0 bg-transparent px-2 py-3 md:px-3 md:py-4">
-      <div // Changed from form to div for more flexible internal layout control
-        className="max-w-3xl mx-auto bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]"
+      <div
+        className="max-w-3xl mx-auto bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]" // Increased min-height
       >
         {/* Top part: Textarea and Send button */}
-        <div className="flex items-center">
+        <div className="flex items-center"> {/* items-center for vertical alignment */}
           <Textarea
             ref={textareaRef}
             value={inputValue}
@@ -136,15 +137,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholderText}
             className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-1 m-0 leading-tight resize-none overflow-y-auto"
-            rows={1}
+            rows={1} // Start with 1 row, auto-expands
             disabled={isLoading}
             aria-label="Chat message input"
+            style={{ lineHeight: '1.5rem' }} // To match button height roughly
           />
           <Button
-            type="button" // Changed from submit
+            type="button"
             variant="ghost"
-            size="sm" // Adjusted size for text button
-            className={cn("ml-2 flex-shrink-0 rounded-lg h-auto px-3 py-1.5", iconColorClass)}
+            size="sm" // Using sm, but padding/height adjusted
+            className={cn(
+              "ml-2 flex-shrink-0 rounded-lg h-auto px-3 py-1.5 text-base", // Ensure text size is appropriate
+              iconColorClass, // Reuse for text color
+              "self-center" // Align button itself in the center of its space
+            )}
+            style={{ lineHeight: '1.5rem' }} // Match textarea line height
             disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
             onClick={handleSubmit}
             aria-label="Execute command"

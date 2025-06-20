@@ -1,14 +1,14 @@
 
 "use client";
 import React, { useState } from 'react';
-import type { ToolType, Conversation } from '@/types';
+import type { ToolType, Conversation, TileItem } from '@/types'; // Added TileItem
 import CompactHeader from '@/components/layout/CompactHeader';
 import ChatHistoryItem from './ChatHistoryItem';
 import { Button } from '@/components/ui/button';
 import { History, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useSidebar } from '@/components/ui/sidebar'; // Import useSidebar
+// useSidebar import removed as sidebar is now always visible on desktop
 
 interface SidebarNavProps {
   activeToolType: ToolType | null; 
@@ -20,7 +20,8 @@ interface SidebarNavProps {
   onDeleteChat: (conversationId: string) => void;
   onNavigateToTiles: () => void;
   className?: string;
-  // Removed toolsTrigger prop as it's now internal to page.tsx
+  toolTileItems: TileItem[]; // Added prop for tool items
+  onSelectTile: (id: ToolType) => void; // Added prop for selecting a tool
 }
 
 const SidebarNav: React.FC<SidebarNavProps> = ({
@@ -31,24 +32,20 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   onEditTitle,
   onDeleteChat,
   onNavigateToTiles,
-  className
+  className,
+  toolTileItems,
+  onSelectTile
 }) => {
   const [showHistory, setShowHistory] = useState(false);
   const sortedConversations = [...allConversations].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const { isMobile, setOpenMobile } = useSidebar();
 
   const handleHistoryToggle = () => {
     setShowHistory(!showHistory);
-    if (isMobile && !showHistory) { // If opening history on mobile, ensure sidebar is open
-        setOpenMobile(true);
-    }
   }
   
   const handleNewChat = () => {
     onSelectNewChat();
-     if (isMobile) { // If starting new chat on mobile, ensure sidebar is open
-        setOpenMobile(true);
-    }
+    // No need to manage mobile sidebar state here anymore
   }
 
 
@@ -56,12 +53,26 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
     <aside className={cn("flex flex-col h-full bg-sidebar-background text-sidebar-foreground", className)}> 
       <CompactHeader onNavigateToTiles={onNavigateToTiles} />
       
+      {/* Direct Tool Links */}
+      <div className="p-3 space-y-2 flex-shrink-0">
+        {toolTileItems.map((item) => (
+            <button
+            key={item.id}
+            onClick={() => onSelectTile(item.id)}
+            className="font-code text-lg text-sidebar-foreground/80 hover:text-sidebar-foreground transition-colors duration-150 block w-full text-left py-1"
+            aria-label={`Run ${item.title.replace(/\s/g, '')}`}
+            >
+            └run/{item.title.replace(/\s/g, '')}
+            </button>
+        ))}
+      </div>
+
       <div className="flex-grow">
-        {/* Future content above history */}
+        {/* Future content above history or filler */}
       </div>
 
       {showHistory && (
-        <ScrollArea className="flex-shrink max-h-[40vh] mb-2 group-data-[state=expanded]:block hidden">
+        <ScrollArea className="flex-shrink max-h-[40vh] mb-2">
           <div className="px-2 py-1 space-y-1">
             {sortedConversations.length > 0 ? (
               sortedConversations.map(conv => (
@@ -70,44 +81,39 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                   conversation={conv}
                   onSelect={onSelectChatHistory}
                   isActive={conv.id === activeConversationId}
-                  onEditTitle={onEditTitle}
-                  onDeleteChat={onDeleteChat}
+                  onEditTitle={onEditTitle} // Kept for potential future use, but not directly on item
+                  onDeleteChat={onDeleteChat} // Kept for potential future use
                 />
               ))
             ) : (
-              <p className="p-2 text-xs text-sidebar-foreground/60 text-center group-data-[state=expanded]:block hidden">No chat history yet.</p>
+              <p className="p-2 text-xs text-sidebar-foreground/60 text-center">No chat history yet.</p>
             )}
           </div>
         </ScrollArea>
       )}
       
       <div className={cn(
-        "p-2.5 mt-auto border-t border-sidebar-border group-data-[state=collapsed]:border-t-0",
-        "group-data-[state=collapsed]:flex group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:items-center group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:py-3"
+        "p-2.5 mt-auto border-t border-sidebar-border",
+        "flex items-center justify-around" // Simpler layout for bottom icons
       )}>
-        <div className={cn(
-          "flex items-center justify-around",
-          "group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:space-y-3"
-        )}>
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={handleHistoryToggle} 
-            className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent group-data-[state=collapsed]:w-7 group-data-[state=collapsed]:h-7"
+            className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             aria-label={showHistory ? "Hide history" : "Show history"}
           >
-            <History className="w-5 h-5 group-data-[state=collapsed]:w-6 group-data-[state=collapsed]:h-6" />
+            <History className="w-5 h-5" />
           </Button>
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={handleNewChat} 
-            className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent group-data-[state=collapsed]:w-7 group-data-[state=collapsed]:h-7"
+            className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             aria-label="Start new chat"
           >
-            <Plus className="w-6 h-6 group-data-[state=collapsed]:w-7 group-data-[state=collapsed]:h-7" />
+            <Plus className="w-6 h-6" />
           </Button>
-        </div>
       </div>
     </aside>
   );

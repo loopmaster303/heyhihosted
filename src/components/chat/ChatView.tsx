@@ -23,21 +23,13 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
 
   useEffect(scrollToBottom, [messages]);
 
-  // Determine if the chat is effectively empty (only system messages or truly empty)
-  const isChatEmptyForPlaceholder = messages.length === 0 || 
-                                   (messages.length === 1 && messages[0].role === 'system');
-
   return (
     <div className={cn("w-full h-full flex flex-col bg-background overflow-hidden", className)}>
       <div className="flex-grow overflow-y-auto p-4 space-y-0">
         {messages.map((msg) => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
-        {isChatEmptyForPlaceholder && !isLoading && (
-          <div className="text-center text-foreground/70 py-10">
-            {/* Default "empty chat" message removed as per user request */}
-          </div>
-         )}
+        {/* Placeholder removed: "Just send something and see the AI loop..." */}
         <div ref={messagesEndRef} />
       </div>
     </div>
