@@ -54,7 +54,6 @@ const ReplicateImageTool: React.FC = () => {
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  // Load selectedModelKey on mount
   useEffect(() => {
     const storedData = localStorage.getItem(REPLICATE_TOOL_SETTINGS_KEY);
     if (storedData) {
@@ -63,21 +62,20 @@ const ReplicateImageTool: React.FC = () => {
         if (settings.selectedModelKey && modelKeys.includes(settings.selectedModelKey)) {
           setSelectedModelKey(settings.selectedModelKey);
         } else if (modelKeys.length > 0) {
-          setSelectedModelKey(modelKeys[0]); // Fallback to first if saved is invalid
+          setSelectedModelKey(modelKeys[0]); 
         }
       } catch (e) {
         console.error("Error loading ReplicateImageTool selectedModelKey:", e);
         if (modelKeys.length > 0) setSelectedModelKey(modelKeys[0]);
       }
     } else if (modelKeys.length > 0) {
-      setSelectedModelKey(modelKeys[0]); // Default to first model if no settings
+      setSelectedModelKey(modelKeys[0]); 
     }
     setInitialLoadComplete(true);
-  }, []); // modelKeys are static, so no dependency needed for initial key load.
+  }, []); 
 
-  // Effect to initialize/reset form fields when model changes, and load model-specific settings
   useEffect(() => {
-    if (!initialLoadComplete || !selectedModelKey) return; // Wait for initial key load & ensure key exists
+    if (!initialLoadComplete || !selectedModelKey) return; 
 
     const config = modelConfigs[selectedModelKey];
     if (config) {
@@ -97,25 +95,21 @@ const ReplicateImageTool: React.FC = () => {
         }
       });
       
-      // Try to load saved settings for THIS model
       const storedData = localStorage.getItem(REPLICATE_TOOL_SETTINGS_KEY);
-      let modelSpecificSettingsLoaded = false;
       if (storedData) {
         try {
           const settings = JSON.parse(storedData);
-          if (settings.selectedModelKey === selectedModelKey) { // Ensure settings are for current model
+          if (settings.selectedModelKey === selectedModelKey) { 
             if (settings.mainPromptValue !== undefined) {
               initialMainPrompt = settings.mainPromptValue;
             }
             if (settings.formFields !== undefined) {
-              // Merge saved fields with defaults, preferring saved values
               Object.keys(initialFields).forEach(key => {
                 if (settings.formFields[key] !== undefined) {
                   initialFields[key] = settings.formFields[key];
                 }
               });
             }
-            modelSpecificSettingsLoaded = true;
           }
         } catch (e) { console.error("Error applying ReplicateImageTool model specific settings:", e); }
       }
@@ -123,7 +117,6 @@ const ReplicateImageTool: React.FC = () => {
       setMainPromptValue(initialMainPrompt);
       setFormFields(initialFields);
 
-      // Reset output and errors when model changes
       setOutputUrl(null);
       setError(null);
       setUploadedImageFile(null);
@@ -135,9 +128,8 @@ const ReplicateImageTool: React.FC = () => {
     }
   }, [selectedModelKey, initialLoadComplete]);
 
-  // Save settings to localStorage
   useEffect(() => {
-    if (!initialLoadComplete || !selectedModelKey || !currentModelConfig) return; // Only save if a model is selected and initial load is done
+    if (!initialLoadComplete || !selectedModelKey || !currentModelConfig) return; 
 
     const settingsToSave = {
       selectedModelKey,
@@ -164,9 +156,6 @@ const ReplicateImageTool: React.FC = () => {
         setUploadedImageFile(file);
         setUploadedImagePreview(dataUri);
         if (isFluxModelSelected) { 
-            // The actual data URI for submission will be picked from formFields.input_image or mainPayload.input_image
-            // This just updates the preview and the internal File object.
-            // The formFields.input_image should be set here if this model is selected.
             setFormFields(prev => ({...prev, input_image: dataUri }));
         }
       };
@@ -245,7 +234,6 @@ const ReplicateImageTool: React.FC = () => {
             </div>
         );
       case 'url':
-        // This is handled by dedicated UI for Flux models' input_image
         if (inputConfig.name === "input_image" && isFluxModelSelected) return null; 
         return (
           <div key={inputConfig.name} className="space-y-1.5">
@@ -451,17 +439,10 @@ const ReplicateImageTool: React.FC = () => {
 
   const isVideoOutput = currentModelConfig?.outputType === 'video';
   
-  let dynamicPromptPlaceholder = "Select a model to begin...";
-  if (currentModelConfig) {
-      const promptConfig = currentModelConfig.inputs.find(i => i.isPrompt && i.name === 'prompt');
-      if (promptConfig?.placeholder) {
-        dynamicPromptPlaceholder = promptConfig.placeholder;
-      } else if (isFluxModelSelected) {
-        dynamicPromptPlaceholder = "Enter a text prompt or upload a reference image...";
-      } else {
-        dynamicPromptPlaceholder = `Enter prompt for ${currentModelConfig.name}...`;
-      }
-  }
+  const dynamicPromptPlaceholder = currentModelConfig
+    ? (currentModelConfig.inputs.find(i => i.isPrompt && i.name === 'prompt')?.placeholder || 
+       (isFluxModelSelected ? "Describe image or upload reference..." : `Prompt for ${currentModelConfig.name}...`))
+    : "[import, creativity — prompt] !execute";
 
 
   const canSubmit = !loading && currentModelConfig &&
@@ -562,8 +543,9 @@ const ReplicateImageTool: React.FC = () => {
                       </ScrollArea>
                     </PopoverContent>
                   </Popover>
-                  <Button type="submit" disabled={!canSubmit} size="icon" className="h-8 w-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                  <Button type="submit" disabled={!canSubmit} size="default" className="h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm">
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                    Execute
                   </Button>
                 </div>
               </div>
@@ -630,18 +612,9 @@ const ReplicateImageTool: React.FC = () => {
                 )}
                 </div>
             )}
-            {!loading && !error && !outputUrl && currentModelConfig && (
-                <div className="text-muted-foreground flex flex-col items-center space-y-3">
-                <ImageIcon className="w-12 h-12 sm:w-16 sm:h-16 opacity-50" />
-                <p className="text-sm sm:text-md">
-                    Your {isVideoOutput ? 'video' : 'image'} from {currentModelConfig.name} will appear here.
-                </p>
-                </div>
-            )}
-             {!loading && !error && !outputUrl && !currentModelConfig && (
-                <div className="text-muted-foreground flex flex-col items-center space-y-3">
-                    <ImageIcon className="w-12 h-12 sm:w-16 sm:h-16 opacity-50" />
-                    <p className="text-sm sm:text-md">Select a model to begin.</p>
+            {!loading && !error && !outputUrl && (
+                <div className="text-muted-foreground flex flex-col items-center space-y-2 font-code">
+                   <p className="text-lg">{`</export>`}</p>
                 </div>
             )}
             </CardContent>
@@ -653,5 +626,3 @@ const ReplicateImageTool: React.FC = () => {
 };
 
 export default ReplicateImageTool;
-
-    

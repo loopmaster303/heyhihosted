@@ -22,7 +22,6 @@ export interface Conversation {
   uploadedFilePreview?: string | null;
   selectedModelId?: string;
   selectedResponseStyleName?: string;
-  // customSystemPrompt and userDisplayName will be global, not per-conversation for simplicity
 }
 
 // Updated ToolType names to match new UI
@@ -30,8 +29,9 @@ export type ToolType = 'nocost imagination' | 'premium imagination' | 'long lang
 
 export interface TileItem {
   id: ToolType;
-  title: string; // This will be the "path-like" name e.g., "long languageloops"
-  icon: React.ElementType; // Icon still used in SidebarNav logic if needed, but not on main page
+  title: string; // This will be the "path-like" name e.g., "long.language.loops" or "import/personalization"
+  // icon property is no longer used directly on main page tiles, but kept for potential future use or consistency
+  icon?: React.ElementType; 
   description?: string;
 }
 

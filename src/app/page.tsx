@@ -7,19 +7,19 @@ import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
-import GPTImageTool from '@/components/tools/GPTImageTool';
+import GPTImageTool from '@/components/tools/GPTImageTool'; // Kept for consistency, though not directly linked
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
-import PersonalizationTool from '@/components/tools/PersonalizationTool'; // New Tool
+import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
-import { X, MessageSquare, Image as ImageIconLucide, ImagePlus, SlidersHorizontal } from 'lucide-react';
+import { X } from 'lucide-react';
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
-import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
+import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,13 +33,16 @@ import {
 
 
 const toolTileItems: TileItem[] = [
-  { id: 'long language loops', title: 'long languageloops', icon: MessageSquare },
-  { id: 'nocost imagination', title: 'nocost imagination', icon: ImageIconLucide },
-  { id: 'premium imagination', title: 'premium imagination', icon: ImagePlus },
-  { id: 'personalization', title: 'personalization', icon: SlidersHorizontal }, // New Tool
+  { id: 'long language loops', title: 'long.language.loops' },
+  { id: 'nocost imagination', title: 'nocost.imagination' },
+  { id: 'premium imagination', title: 'premium.imagination' },
+  { id: 'personalization', title: 'import/personalization' },
 ];
 
 const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
+const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
+const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
+
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<CurrentAppView>('tiles');
@@ -57,7 +60,6 @@ export default function Home() {
 
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
-  // Personalization State
   const [userDisplayName, setUserDisplayName] = useState<string>("User");
   const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
 
@@ -101,8 +103,58 @@ export default function Home() {
         localStorage.removeItem(PERSONALIZATION_SETTINGS_KEY);
       }
     }
+
+    const storedActiveToolType = localStorage.getItem(ACTIVE_TOOL_TYPE_KEY) as ToolType | null;
+    if (storedActiveToolType && toolTileItems.some(item => item.id === storedActiveToolType)) {
+      setActiveToolTypeForView(storedActiveToolType);
+      // Determine currentView based on storedActiveToolType
+      if (storedActiveToolType === 'long language loops') {
+        const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
+        if (storedActiveConvId) {
+          const conv = allConversations.find(c => c.id === storedActiveConvId);
+          if (conv) {
+             setActiveConversation(conv);
+             setCurrentMessages(conv.messages);
+             setCurrentView('chat');
+          } else {
+            setCurrentView('tiles'); // Fallback if conversation not found
+          }
+        } else {
+            setCurrentView('tiles'); // Fallback if no active conversation ID
+        }
+      } else if (storedActiveToolType === 'nocost imagination') {
+        setCurrentView('easyImageLoopTool');
+      } else if (storedActiveToolType === 'premium imagination') {
+        setCurrentView('replicateImageTool');
+      } else if (storedActiveToolType === 'personalization') {
+        setCurrentView('personalizationTool');
+      } else {
+        setCurrentView('tiles');
+      }
+    } else {
+        setCurrentView('tiles');
+    }
+
+
     setIsInitialLoadComplete(true);
-  }, []);
+  }, []); // Empty dependency array for initial load
+
+  // Persist activeToolTypeForView and activeConversationId
+  useEffect(() => {
+    if (isInitialLoadComplete) {
+      if (activeToolTypeForView) {
+        localStorage.setItem(ACTIVE_TOOL_TYPE_KEY, activeToolTypeForView);
+      } else {
+        localStorage.removeItem(ACTIVE_TOOL_TYPE_KEY);
+      }
+      if (currentView === 'chat' && activeConversation) {
+        localStorage.setItem(ACTIVE_CONVERSATION_ID_KEY, activeConversation.id);
+      } else {
+        localStorage.removeItem(ACTIVE_CONVERSATION_ID_KEY);
+      }
+    }
+  }, [activeToolTypeForView, activeConversation, currentView, isInitialLoadComplete]);
+
 
   const savePersonalizationSettings = useCallback(() => {
     const settings = { userDisplayName, customSystemPrompt };
@@ -178,7 +230,7 @@ export default function Home() {
     const convToUpdate = allConversations.find(c => c.id === conversationId);
     if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
 
-    const isDefaultTitle = convToUpdate.title === "New long language loops" || 
+    const isDefaultTitle = convToUpdate.title === "New long.language.loops" || 
                            convToUpdate.title.toLowerCase().startsWith("new ") ||
                            convToUpdate.title === "Chat";
 
@@ -239,7 +291,7 @@ export default function Home() {
 
     const newConversationId = crypto.randomUUID();
     const now = new Date();
-    const conversationTitle = "New long language loops"; // Default title
+    const conversationTitle = "New long.language.loops"; 
     const newConversation: Conversation = {
       id: newConversationId,
       title: conversationTitle,
@@ -329,7 +381,6 @@ export default function Home() {
     
     let effectiveSystemPrompt: string;
     if (customSystemPrompt && customSystemPrompt.trim() !== "") {
-      // Replace {userDisplayName} placeholder if present
       effectiveSystemPrompt = customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User");
     } else {
       const currentStyleName = currentActiveConv.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
@@ -454,8 +505,8 @@ export default function Home() {
     updateConversationTitle,
     toast,
     updateActiveConversationState,
-    customSystemPrompt, // Added dependency
-    userDisplayName,   // Added dependency
+    customSystemPrompt,
+    userDisplayName,
   ]);
 
 
@@ -464,7 +515,7 @@ export default function Home() {
     if (!conversation) return;
 
     if (conversation.toolType !== 'long language loops') {
-        toast({ title: "Action Not Allowed", description: "Title editing is only available for 'long language loops' chats.", variant: "destructive"});
+        toast({ title: "Action Not Allowed", description: "Title editing is only available for 'long.language.loops' chats.", variant: "destructive"});
         return;
     }
 
@@ -485,7 +536,7 @@ export default function Home() {
   const handleRequestDeleteChat = (conversationId: string) => {
     const convToDelete = allConversations.find(c => c.id === conversationId);
     if (convToDelete && convToDelete.toolType !== 'long language loops') {
-        toast({ title: "Action Not Allowed", description: "Chat deletion is only available for 'long language loops' chats.", variant: "destructive"});
+        toast({ title: "Action Not Allowed", description: "Chat deletion is only available for 'long.language.loops' chats.", variant: "destructive"});
         return;
     }
     setChatToDeleteId(conversationId);
@@ -512,7 +563,7 @@ export default function Home() {
     }
     setIsDeleteDialogOpen(false);
     setChatToDeleteId(null);
-    toast({ title: "Chat Deleted", description: "The 'long language loops' conversation has been removed." });
+    toast({ title: "Chat Deleted", description: "The 'long.language.loops' conversation has been removed." });
   };
 
   const handleToggleImageMode = () => {
@@ -581,7 +632,7 @@ export default function Home() {
                   className="font-code text-3xl sm:text-4xl md:text-5xl text-foreground hover:text-primary transition-colors duration-200 text-left"
                   aria-label={`Run ${item.title.replace(/\s/g, '')}`}
                 >
-                  └run/{item.title.replace(/\s/g, '')}
+                  └run/{item.id === 'personalization' ? item.title : item.title.replace(/\./g, ' ')}
                 </button>
               ))}
             </div>
@@ -689,7 +740,7 @@ export default function Home() {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete this 'long language loops' chat
+                This action cannot be undone. This will permanently delete this 'long.language.loops' chat
                 and remove its data.
               </AlertDialogDescription>
             </AlertDialogHeader>

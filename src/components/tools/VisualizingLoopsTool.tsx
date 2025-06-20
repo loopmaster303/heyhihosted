@@ -21,7 +21,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import Image from 'next/image';
-import { Loader2, Settings, ImagePlus } from 'lucide-react';
+import { Loader2, Settings } from 'lucide-react'; // Removed ImagePlus
 import { useToast } from "@/hooks/use-toast";
 
 const SUPPORTED_POLLINATIONS_MODELS = ['flux', 'turbo'];
@@ -65,7 +65,6 @@ const VisualizingLoopsTool: FC = () => {
         const availableModels = Array.isArray(data.models) ? data.models : [];
         if (availableModels.length > 0) {
           setImageModels(availableModels);
-          // If loaded model from localStorage is not in newly fetched availableModels, reset to default or first available.
           const currentModelIsValid = availableModels.includes(model);
           if (!currentModelIsValid) {
             setModel(availableModels.includes(DEFAULT_POLLINATIONS_MODEL) ? DEFAULT_POLLINATIONS_MODEL : availableModels[0]);
@@ -81,16 +80,14 @@ const VisualizingLoopsTool: FC = () => {
         setImageModels(SUPPORTED_POLLINATIONS_MODELS);
         setModel(DEFAULT_POLLINATIONS_MODEL);
       });
-  }, []); // Model state is initialized by loadSettingsEffect or defaults
+  }, []); 
 
-  // Load settings from localStorage on mount
   useEffect(() => {
     const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedSettings) {
       try {
         const settings = JSON.parse(storedSettings);
         if (settings.prompt !== undefined) setPrompt(settings.prompt);
-        // Defer setting model until imageModels are loaded, or check against initial SUPPORTED_POLLINATIONS_MODELS
         if (settings.model !== undefined && (imageModels.length === 0 ? SUPPORTED_POLLINATIONS_MODELS : imageModels).includes(settings.model) ) setModel(settings.model);
         if (settings.width !== undefined) setWidth(settings.width);
         if (settings.height !== undefined) setHeight(settings.height);
@@ -102,12 +99,11 @@ const VisualizingLoopsTool: FC = () => {
         if (settings.batchSize !== undefined) setBatchSize(settings.batchSize);
       } catch (e) {
         console.error("Failed to parse VisualizingLoopsTool settings from localStorage", e);
-        localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear corrupted data
+        localStorage.removeItem(LOCAL_STORAGE_KEY); 
       }
     }
-  }, [imageModels]); // Rerun if imageModels changes, to validate loaded model
+  }, [imageModels]); 
 
-  // Save settings to localStorage whenever they change
   useEffect(() => {
     const settingsToSave = {
       prompt,
@@ -258,7 +254,7 @@ const VisualizingLoopsTool: FC = () => {
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="A vibrant landscape (Flux/Turbo)..."
+              placeholder="[import, creativity — prompt] !execute"
               className="bg-input border-border focus-visible:ring-primary h-10"
               aria-label="Image prompt for Pollinations (Flux/Turbo)"
             />
@@ -347,7 +343,7 @@ const VisualizingLoopsTool: FC = () => {
             </PopoverContent>
           </Popover>
           <Button onClick={handleGenerate} disabled={loading} size="default" className="h-10">
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Generate'}
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Execute'}
           </Button>
         </div>
       </div>
@@ -376,9 +372,8 @@ const VisualizingLoopsTool: FC = () => {
             </div>
           )}
           {!loading && !error && imageUrls.length === 0 && (
-            <div className="text-muted-foreground flex flex-col items-center space-y-2">
-                <ImagePlus className="w-12 h-12"/>
-                <p>Your generated images (Flux/Turbo) will appear here.</p>
+            <div className="text-muted-foreground flex flex-col items-center space-y-2 font-code">
+                <p className="text-lg">{`</export>`}</p>
             </div>
           )}
         </CardContent>
@@ -388,5 +383,3 @@ const VisualizingLoopsTool: FC = () => {
 };
 
 export default VisualizingLoopsTool;
-
-    

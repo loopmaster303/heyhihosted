@@ -21,7 +21,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import NextImage from 'next/image';
-import { Loader2, Settings, ImagePlus } from 'lucide-react';
+import { Loader2, Settings } from 'lucide-react'; // Removed ImagePlus
 import { useToast } from "@/hooks/use-toast";
 
 const LOCAL_STORAGE_KEY_GPT = 'gptImageToolSettings';
@@ -43,7 +43,6 @@ const GPTImageTool: FC = () => {
   const [error, setError] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
-  // Load settings from localStorage
   useEffect(() => {
     const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY_GPT);
     if (storedSettings) {
@@ -60,12 +59,11 @@ const GPTImageTool: FC = () => {
         if (settings.transparent !== undefined) setTransparent(settings.transparent);
       } catch (e) {
         console.error("Failed to parse GPTImageTool settings from localStorage", e);
-        localStorage.removeItem(LOCAL_STORAGE_KEY_GPT); // Clear corrupted data
+        localStorage.removeItem(LOCAL_STORAGE_KEY_GPT); 
       }
     }
   }, []);
 
-  // Save settings to localStorage
   useEffect(() => {
     const settingsToSave = {
       prompt,
@@ -213,7 +211,7 @@ const GPTImageTool: FC = () => {
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="A photorealistic image for GPT Image (via Pollinations)..."
+              placeholder="[import, creativity — prompt] !execute"
               className="bg-input border-border focus-visible:ring-primary h-10"
               aria-label="Image prompt for GPT Image (via Pollinations gptimage model)"
             />
@@ -289,7 +287,7 @@ const GPTImageTool: FC = () => {
             </PopoverContent>
           </Popover>
           <Button onClick={handleGenerate} disabled={loading} size="default" className="h-10">
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Generate with GPT Image'}
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Execute'}
           </Button>
         </div>
       </div>
@@ -318,9 +316,8 @@ const GPTImageTool: FC = () => {
             </div>
           )}
           {!loading && !error && imageUrls.length === 0 && (
-            <div className="text-muted-foreground flex flex-col items-center space-y-2">
-                <ImagePlus className="w-12 h-12"/>
-                <p>Your GPT generated images (via Pollinations) will appear here.</p>
+            <div className="text-muted-foreground flex flex-col items-center space-y-2 font-code">
+                <p className="text-lg">{`</export>`}</p>
             </div>
           )}
         </CardContent>
@@ -330,5 +327,3 @@ const GPTImageTool: FC = () => {
 };
 
 export default GPTImageTool;
-
-    
