@@ -53,7 +53,7 @@ export default function Home() {
   const [isImageMode, setIsImageMode] = useState(false);
   const [activeToolTypeForView, setActiveToolTypeForView] = useState<ToolType | null>(null);
 
-  const [isModelPreSelectionDialogOpen, setIsModelPreSelectionDialogOpen] = useState(false);
+  // isModelPreSelectionDialogOpen removed
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
   useEffect(() => {
@@ -187,15 +187,10 @@ export default function Home() {
     setActiveToolTypeForView('nocost imagination');
     setCurrentView('easyImageLoopTool');
     setActiveConversation(null); 
-    setIsModelPreSelectionDialogOpen(false);
+    // setIsModelPreSelectionDialogOpen(false); // No longer needed
   };
 
-  const handleSelectOpenAIForLoop = () => {
-    setActiveToolTypeForView('nocost imagination'); 
-    setCurrentView('gptImageTool');
-    setActiveConversation(null); 
-    setIsModelPreSelectionDialogOpen(false);
-  };
+  // handleSelectOpenAIForLoop removed
 
   const cleanupPreviousEmptyLllChat = useCallback((previousActiveConv: Conversation | null) => {
     if (previousActiveConv && previousActiveConv.toolType === 'long language loops') {
@@ -256,7 +251,7 @@ export default function Home() {
     } else if (toolType === 'nocost imagination') {
         setActiveConversation(null); 
         setCurrentMessages([]);
-        setIsModelPreSelectionDialogOpen(true); 
+        handleSelectPollinationsForLoop(); // Directly go to Pollinations tool
     } else if (toolType === 'premium imagination') {
         setActiveConversation(null);
         setCurrentMessages([]);
@@ -648,33 +643,7 @@ export default function Home() {
         </div>
       )}
 
-      {isModelPreSelectionDialogOpen && activeToolTypeForView === 'nocost imagination' && (
-        <AlertDialog open={isModelPreSelectionDialogOpen} onOpenChange={setIsModelPreSelectionDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Choose Image Generation Engine</AlertDialogTitle>
-              <AlertDialogDescription>
-                Select which image generation service you'd like to use for "nocost imagination".
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-               <Button onClick={handleSelectPollinationsForLoop} className="w-full sm:w-auto">Pollinations (Flux, Turbo)</Button>
-               <Button onClick={handleSelectOpenAIForLoop} className="w-full sm:w-auto">OpenAI (GPT Image)</Button>
-            </AlertDialogFooter>
-             <AlertDialogCancel
-                onClick={() => {
-                    setIsModelPreSelectionDialogOpen(false);
-                    if (currentView === 'tiles' || activeToolTypeForView === 'nocost imagination') { 
-                        setActiveToolTypeForView(null); 
-                    }
-                }}
-                className="mt-2 sm:mt-0 w-full"
-            >
-                Cancel
-            </AlertDialogCancel>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+      {/* AlertDialog for model pre-selection removed */}
 
       {isDeleteDialogOpen && chatToDeleteId && (
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -696,3 +665,6 @@ export default function Home() {
     </div>
   );
 }
+
+
+    
