@@ -12,7 +12,7 @@ import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
-import { X } from 'lucide-react';
+import { X, SlidersHorizontal, Image as ImageIconLucide, Database, UserCog } from 'lucide-react'; // Added icons for personalization
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -274,8 +274,8 @@ export default function Home() {
     if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
 
     const isDefaultTitle = convToUpdate.title === "default.long.language.loop" ||
-                           convToUpdate.title.toLowerCase().startsWith("new ") || // Keep legacy "New Chat" check for a bit
-                           convToUpdate.title === "Chat"; // Keep legacy "Chat" check
+                           convToUpdate.title.toLowerCase().startsWith("new ") ||
+                           convToUpdate.title === "Chat";
 
 
     if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
@@ -664,7 +664,6 @@ export default function Home() {
     }
   }
 
-  // Calculate start delay for the first tool link based on header animation duration
   const headerAnimationDuration =
     (INITIAL_MISSPELLED_TEXT.length * INITIAL_TYPING_SPEED) +
     PAUSE_DURATION +
