@@ -236,9 +236,9 @@ export default function Home() {
     const convToUpdate = allConversations.find(c => c.id === conversationId);
     if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
 
-    const isDefaultTitle = convToUpdate.title === "New long.language.loops" || 
-                           convToUpdate.title.toLowerCase().startsWith("new ") ||
-                           convToUpdate.title === "Chat";
+    const isDefaultTitle = convToUpdate.title === "default.long.language.loop" || 
+                           convToUpdate.title.toLowerCase().startsWith("new ") || // Keep for backward compatibility if old "new..." titles exist
+                           convToUpdate.title === "Chat"; // Another fallback check
 
 
     if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
@@ -297,7 +297,7 @@ export default function Home() {
 
     const newConversationId = crypto.randomUUID();
     const now = new Date();
-    const conversationTitle = "New long.language.loops"; 
+    const conversationTitle = "default.long.language.loop"; 
     const newConversation: Conversation = {
       id: newConversationId,
       title: conversationTitle,
