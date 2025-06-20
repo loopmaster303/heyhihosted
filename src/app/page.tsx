@@ -46,9 +46,8 @@ const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
 const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
 const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
 
-const TOOL_LINK_TYPING_SPEED = 75; 
-const INITIAL_LINK_DELAY = 7000; 
-const DELAY_BETWEEN_LINKS = 200; 
+const TOOL_LINK_TYPING_SPEED = 75;
+const DELAY_BETWEEN_LINKS = 200;
 
 const AnimatedTileLink: React.FC<{
   item: TileItem;
@@ -58,10 +57,11 @@ const AnimatedTileLink: React.FC<{
 }> = ({ item, onSelect, startDelay, headerAnimationDone }) => {
   const prefix = item.id === 'personalization' ? '└' : '└run/';
   const fullLinkText = `${prefix}${item.title}`;
+
   const { text: animatedLinkText, isComplete: linkIsComplete } = useTypingEffect(
     fullLinkText,
     TOOL_LINK_TYPING_SPEED,
-    headerAnimationDone ? startDelay : 999999 
+    headerAnimationDone ? startDelay : 999999 // Large delay if header not done
   );
 
   return (
@@ -153,9 +153,9 @@ export default function Home() {
              setActiveConversation(conv);
              setCurrentMessages(conv.messages);
              setCurrentView('chat');
+             setHeaderAnimationComplete(true); // Skip animation if loading a chat
           } else {
             setCurrentView('tiles');
-            // setHeaderAnimationComplete(true); // Don't skip animation if no chat loaded
           }
         } else {
             setCurrentView('tiles');
@@ -274,8 +274,8 @@ export default function Home() {
     if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
 
     const isDefaultTitle = convToUpdate.title === "default.long.language.loop" ||
-                           convToUpdate.title.toLowerCase().startsWith("new ") ||
-                           convToUpdate.title === "Chat";
+                           convToUpdate.title.toLowerCase().startsWith("new ") || // Keep legacy "New Chat" check for a bit
+                           convToUpdate.title === "Chat"; // Keep legacy "Chat" check
 
 
     if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
@@ -324,7 +324,7 @@ export default function Home() {
     setCurrentMessages([]);
     setIsImageMode(false);
     setActiveToolTypeForView(null);
-    setHeaderAnimationComplete(false); 
+    setHeaderAnimationComplete(false);
 
     cleanupPreviousEmptyLllChat(prevActive);
   }, [activeConversation, cleanupPreviousEmptyLllChat]);
@@ -353,7 +353,7 @@ export default function Home() {
     setCurrentMessages([]);
     setActiveToolTypeForView('long language loops');
     setCurrentView('chat');
-    setHeaderAnimationComplete(true); 
+    setHeaderAnimationComplete(true);
   }, [activeConversation, cleanupPreviousEmptyLllChat]);
 
 
@@ -362,7 +362,7 @@ export default function Home() {
 
     setActiveToolTypeForView(toolType);
     setIsImageMode(false);
-    setHeaderAnimationComplete(true); 
+    setHeaderAnimationComplete(true);
 
     if (toolType === 'long language loops') {
       startNewLongLanguageLoopChat();
@@ -393,7 +393,7 @@ export default function Home() {
     if (!conversationToSelect) return;
 
     const previousActiveConv = activeConversation;
-    setHeaderAnimationComplete(true); 
+    setHeaderAnimationComplete(true);
 
     if (conversationToSelect.toolType === 'long language loops') {
       setActiveConversation({
@@ -632,7 +632,7 @@ export default function Home() {
       reader.onloadend = () => {
         const dataUrl = reader.result as string;
         updateActiveConversationState({
-            isImageMode: false,
+            isImageMode: false, // Turn off image generation prompt mode when a file is uploaded
             uploadedFile: file,
             uploadedFilePreview: dataUrl
         });
@@ -664,6 +664,12 @@ export default function Home() {
     }
   }
 
+  // Calculate start delay for the first tool link based on header animation duration
+  const headerAnimationDuration =
+    (INITIAL_MISSPELLED_TEXT.length * INITIAL_TYPING_SPEED) +
+    PAUSE_DURATION +
+    (INITIAL_MISSPELLED_TEXT.length * BACKSPACE_SPEED) +
+    (CORRECT_TEXT.length * FINAL_TYPING_SPEED);
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
@@ -677,7 +683,7 @@ export default function Home() {
                   key={item.id}
                   item={item}
                   onSelect={handleSelectTile}
-                  startDelay={index * (TOOL_LINK_TYPING_SPEED * (item.id === 'personalization' ? item.title.length + 1 : item.title.length + 5) + DELAY_BETWEEN_LINKS)}
+                  startDelay={headerAnimationComplete ? (index * DELAY_BETWEEN_LINKS) : headerAnimationDuration + (index * DELAY_BETWEEN_LINKS)}
                   headerAnimationDone={headerAnimationComplete}
                 />
               ))}
@@ -800,3 +806,11 @@ export default function Home() {
     </div>
   );
 }
+
+// For AppHeader animation timing
+const INITIAL_MISSPELLED_TEXT = "just.... </say.hi>";
+const CORRECT_TEXT = "</hey.hi>";
+const INITIAL_TYPING_SPEED = 180;
+const BACKSPACE_SPEED = 40;
+const FINAL_TYPING_SPEED = 120;
+const PAUSE_DURATION = 1500;

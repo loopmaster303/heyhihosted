@@ -1,16 +1,7 @@
-
 // src/hooks/useTypingEffect.ts
 'use client';
-
 import { useState, useEffect } from 'react';
 
-/**
- * Custom hook for creating a typing animation effect.
- * @param fullText The full string to be typed out.
- * @param speed The speed of typing in milliseconds per character.
- * @param startDelay The delay in milliseconds before typing starts.
- * @returns An object containing the currently displayed text and a boolean indicating completion.
- */
 export const useTypingEffect = (
   fullText: string,
   speed: number = 100,
@@ -20,34 +11,38 @@ export const useTypingEffect = (
   const [isTypingComplete, setIsTypingComplete] = useState(false);
 
   useEffect(() => {
-    setDisplayedText(''); 
+    // Reset state for new fullText or parameters
+    setDisplayedText('');
     setIsTypingComplete(false);
-    let charIndex = 0; // Current character index to type
+    let currentIndex = 0;
 
-    if (!fullText) {
+    // Handle empty or null fullText immediately
+    if (!fullText || fullText.length === 0) {
       setIsTypingComplete(true);
       return;
     }
 
-    const initialDelayTimer = setTimeout(() => {
-      const typingInterval = setInterval(() => {
-        // If charIndex is less than fullText.length, it's a valid index
-        if (charIndex < fullText.length) {
-          setDisplayedText((prev) => prev + fullText[charIndex]);
-          charIndex++; // Increment *after* using the current charIndex
-        } else { // All characters have been typed
-          clearInterval(typingInterval);
+    const delayTimer = setTimeout(() => {
+      const intervalId = setInterval(() => {
+        if (currentIndex < fullText.length) {
+          // Append the character at the current index
+          setDisplayedText((prevText) => prevText + fullText.charAt(currentIndex));
+          currentIndex++; // Move to the next character
+        } else {
+          // All characters have been typed
+          clearInterval(intervalId);
           setIsTypingComplete(true);
         }
       }, speed);
 
-      // Cleanup function for the interval
-      return () => clearInterval(typingInterval);
+      // Cleanup for interval on unmount or before next effect run
+      return () => clearInterval(intervalId);
     }, startDelay);
 
-    // Cleanup function for the initial delay timer
-    return () => clearTimeout(initialDelayTimer);
-  }, [fullText, speed, startDelay]); // Dependencies for the useEffect
+    // Cleanup for timeout on unmount or before next effect run
+    return () => clearTimeout(delayTimer);
+
+  }, [fullText, speed, startDelay]); // Dependencies for the effect
 
   return { text: displayedText, isComplete: isTypingComplete };
 };
