@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'FluxFlow AI',
-  description: 'Modern, privacy-friendly AI chat web app by Meckis',
+  title: 'HeyHi',
+  description: 'hello? Hi ? Hey dearare you there ? Okay i mean. its so easy. just sayin. when u r ready execute </hey.hi> to run multiple AI.',
 };
 
 export default function RootLayout({
