@@ -5,8 +5,8 @@ import type React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { SendHorizonal, Paperclip, ChevronDown, Brain, Fingerprint, ImagePlay, X } from 'lucide-react'; 
-import Image from 'next/image';
+import { SendHorizonal, Paperclip, ChevronDown, Brain, Fingerprint, ImagePlus, X, Mic, ArrowUp } from 'lucide-react';
+import Image from 'next/image'; // Kept for future use if needed, but preview is removed
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,14 +23,14 @@ interface ChatInputProps {
   onSendMessage: (
     message: string,
     options: {
-      isImageMode?: boolean; 
+      isImageMode?: boolean;
     }
   ) => void;
   isLoading: boolean;
-  isImageModeActive: boolean; 
-  onToggleImageMode: () => void; 
-  uploadedFilePreviewUrl: string | null; 
-  onFileSelect: (file: File | null) => void; 
+  isImageModeActive: boolean;
+  onToggleImageMode: () => void;
+  uploadedFilePreviewUrl: string | null; // Still needed to determine icon state
+  onFileSelect: (file: File | null) => void;
   isLongLanguageLoopActive: boolean;
   selectedModelId: string;
   selectedResponseStyleName: string;
@@ -38,8 +38,8 @@ interface ChatInputProps {
   onStyleChange: (styleName: string) => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ 
-  onSendMessage, 
+const ChatInput: React.FC<ChatInputProps> = ({
+  onSendMessage,
   isLoading,
   isImageModeActive,
   onToggleImageMode,
@@ -57,7 +57,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   useEffect(() => {
     if (isImageModeActive || uploadedFilePreviewUrl) {
-      setInputValue('');
+      // Input value is not cleared here anymore to allow text with image
     }
   }, [isImageModeActive, uploadedFilePreviewUrl]);
 
@@ -65,22 +65,24 @@ const ChatInput: React.FC<ChatInputProps> = ({
     e?.preventDefault();
     if (isLoading) return;
 
-    const canSendMessage = (isLongLanguageLoopActive && isImageModeActive && inputValue.trim() !== '') || 
-                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) || 
-                           (!isImageModeActive && inputValue.trim() !== ''); 
+    const canSendMessage = (isLongLanguageLoopActive && isImageModeActive && inputValue.trim() !== '') ||
+                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) || // Can send if image is uploaded (even with empty text)
+                           (!isImageModeActive && inputValue.trim() !== '');
 
     if (canSendMessage) {
       onSendMessage(
-        inputValue.trim(), 
+        inputValue.trim(),
         {
-          isImageMode: isLongLanguageLoopActive ? isImageModeActive : false, 
+          isImageMode: isLongLanguageLoopActive ? isImageModeActive : false,
         }
       );
-      setInputValue(''); 
-      
+      setInputValue('');
+      // File selection is not cleared here automatically, user needs to explicitly clear it or send.
+      // onFileSelect(null); // This was removed to allow resending same image with different prompt.
+
       if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'; 
-        const newHeight = Math.min(textareaRef.current.scrollHeight, 120); 
+        textareaRef.current.style.height = 'auto';
+        const newHeight = Math.min(textareaRef.current.scrollHeight, 120);
         textareaRef.current.style.height = `${newHeight}px`;
       }
     }
@@ -92,12 +94,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
       handleSubmit();
     }
   };
-  
+
   const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      const maxHeight = isLongLanguageLoopActive && (isImageModeActive || uploadedFilePreviewUrl) ? 120 : 200; 
+      const maxHeight = 120; // Consistent max height
       const newHeight = Math.min(textareaRef.current.scrollHeight, maxHeight);
       textareaRef.current.style.height = `${newHeight}px`;
     }
@@ -113,165 +115,139 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    onFileSelect(file || null); 
+    onFileSelect(file || null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""; 
+      fileInputRef.current.value = "";
     }
   };
 
-  const handleClearUploadPreview = () => {
-    onFileSelect(null); 
-  };
-  
-  const placeholderText = isLongLanguageLoopActive && isImageModeActive 
-    ? "Bild generieren mit Prompt..." 
-    : (isLongLanguageLoopActive && uploadedFilePreviewUrl ? "Optional: Bild beschreiben oder Frage stellen..." : "Nachricht eingeben...");
+  // Icon for the attach/image mode button
+  let AttachIcon = Mic;
+  let attachLabel = "Voice input (not implemented)";
+  let attachAction = () => { /* Placeholder for voice input */ };
+
+  if (isLongLanguageLoopActive) {
+    if (uploadedFilePreviewUrl) {
+      AttachIcon = X; // Show X to clear uploaded image
+      attachLabel = "Clear uploaded image";
+      attachAction = () => onFileSelect(null);
+    } else if (isImageModeActive) {
+      AttachIcon = ImagePlus; // Mode for prompting an image generation
+      attachLabel = "Switch to text input";
+      attachAction = onToggleImageMode;
+    } else {
+      AttachIcon = Paperclip; // Default: attach file or switch to image prompt
+      attachLabel = "Attach file or prompt for image";
+      // This button could open a small menu or directly toggle image prompt mode / open file dialog
+      // For simplicity, let's make it toggle image prompt mode. File dialog is separate.
+      // Or, it could directly open file dialog if we remove onToggleImageMode from it.
+      // Let's make it trigger file input first.
+      attachAction = () => fileInputRef.current?.click();
+    }
+  }
+
+
+  const placeholderText = 
+    isLongLanguageLoopActive && isImageModeActive ? "Describe the image you want to generate..." :
+    isLongLanguageLoopActive && uploadedFilePreviewUrl ? "Describe the uploaded image or ask a question..." :
+    "Wie kann ich helfen?";
 
   const currentSelectedModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
   const currentSelectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0];
 
-
   return (
-    <div className="sticky bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm p-3 md:p-4">
-      {isLongLanguageLoopActive && uploadedFilePreviewUrl && (
-        <div className="max-w-3xl mx-auto mb-2 flex justify-center">
-          <div className="relative w-fit max-w-[200px] group">
-            <Image 
-              src={uploadedFilePreviewUrl} 
-              alt="Upload preview" 
-              width={200} height={150} 
-              style={{ objectFit: "contain" }}
-              className="rounded-md" 
-              data-ai-hint="image user upload"
-            />
-            <Button
-              variant="destructive"
-              size="icon"
-              className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-70 group-hover:opacity-100"
-              onClick={handleClearUploadPreview}
-              aria-label="Clear image upload"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+    <div className="sticky bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm p-2 md:p-3">
+      {/* Removed uploadedFilePreviewUrl display from here */}
       <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
-        <div className="relative bg-input rounded-xl p-3 flex flex-col gap-2 shadow-lg">
-          <div className="relative flex-grow">
-            <Textarea
-              ref={textareaRef}
-              value={inputValue}
-              onChange={handleTextareaInput}
-              onKeyDown={handleKeyDown}
-              placeholder={placeholderText}
-              className="flex-grow resize-none w-full min-h-[60px] max-h-[200px] pr-12 pl-2 py-2 bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none overflow-y-auto"
-              rows={1} 
-              disabled={isLoading}
-              aria-label="Chat message input"
-              style={{ height: 'auto' }} 
+        <div className="relative bg-input rounded-xl p-2.5 flex items-end gap-2 shadow-lg">
+          {/* Left Controls */}
+          <div className="flex items-center gap-1 shrink-0">
+            {isLongLanguageLoopActive && (
+                 <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="w-8 h-8 text-muted-foreground hover:text-foreground rounded-lg"
+                    onClick={attachAction}
+                    aria-label={attachLabel}
+                    title={attachLabel}
+                    disabled={isLoading}
+                  >
+                    <AttachIcon className="w-5 h-5" />
+                  </Button>
+            )}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              className="hidden"
+              disabled={isLoading || (isLongLanguageLoopActive && isImageModeActive)} // Disable file input if in image prompt mode
             />
-            <Button
-              type="submit"
-              size="icon"
-              variant="ghost"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 text-primary hover:text-primary/80 disabled:text-muted-foreground"
-              disabled={isLoading || 
-                (isLongLanguageLoopActive && isImageModeActive && !inputValue.trim()) || 
-                (isLongLanguageLoopActive && !isImageModeActive && !uploadedFilePreviewUrl && !inputValue.trim()) || 
-                (!isLongLanguageLoopActive && !inputValue.trim()) 
-              }
-              aria-label="Send message"
-            >
-              <SendHorizonal className="w-6 h-6" />
-            </Button>
-          </div>
-          
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-1 md:gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground rounded-lg flex items-center gap-1" aria-label="Select AI Model">
-                    <Brain className="w-5 h-5" />
-                    <ChevronDown className="w-3 h-3 opacity-70" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuLabel>Select Model ({currentSelectedModel.name})</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
-                    <DropdownMenuItem key={model.id} onClick={() => handleSelectModel(model)} className={selectedModelId === model.id ? "bg-accent" : ""}>
-                      {model.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground rounded-lg flex items-center gap-1" aria-label="Select Response Style">
-                    <Fingerprint className="w-5 h-5" />
-                    <ChevronDown className="w-3 h-3 opacity-70" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                   <DropdownMenuLabel>Response Style ({currentSelectedStyle.name})</DropdownMenuLabel>
-                   <DropdownMenuSeparator />
-                  {AVAILABLE_RESPONSE_STYLES.map((style) => (
-                    <DropdownMenuItem key={style.name} onClick={() => handleSelectStyle(style)} className={selectedResponseStyleName === style.name ? "bg-accent" : ""}>
-                      {style.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground hover:text-foreground rounded-lg flex items-center gap-1 text-xs" aria-label="Select AI Model">
+                  <Brain className="w-4 h-4" />
+                  <span>{currentSelectedModel.name.substring(0,10)+(currentSelectedModel.name.length > 10 ? '...' : '')}</span>
+                  <ChevronDown className="w-3 h-3 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuLabel>Select Model</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
+                  <DropdownMenuItem key={model.id} onClick={() => handleSelectModel(model)} className={selectedModelId === model.id ? "bg-accent" : ""}>
+                    {model.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-            <div className="flex items-center gap-1 md:gap-2">
-              {isLongLanguageLoopActive && (
-                <>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                        "w-8 h-8 rounded-lg",
-                        isImageModeActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground",
-                        uploadedFilePreviewUrl ? "opacity-50 cursor-not-allowed" : "" 
-                    )}
-                    onClick={onToggleImageMode} 
-                    aria-label={isImageModeActive ? "Switch to text input mode" : "Switch to image prompt mode"}
-                    title={isImageModeActive ? "Textmodus aktivieren" : "Bildmodus aktivieren"}
-                    disabled={!!uploadedFilePreviewUrl || isLoading} 
-                  >
-                    <ImagePlay className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      "w-8 h-8 text-muted-foreground hover:text-foreground rounded-lg",
-                      isImageModeActive ? "opacity-50 cursor-not-allowed" : "" 
-                    )}
-                    onClick={() => fileInputRef.current?.click()}
-                    aria-label="Attach image file"
-                    title="Attach image file"
-                    disabled={isImageModeActive || isLoading} 
-                  >
-                    <Paperclip className="w-5 h-5" />
-                  </Button>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    accept="image/*" 
-                    className="hidden" 
-                    disabled={isImageModeActive || isLoading} 
-                  />
-                </>
-              )}
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground hover:text-foreground rounded-lg flex items-center gap-1 text-xs" aria-label="Select Response Style">
+                  <Fingerprint className="w-4 h-4" />
+                   <span>{currentSelectedStyle.name}</span>
+                  <ChevronDown className="w-3 h-3 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                 <DropdownMenuLabel>Response Style</DropdownMenuLabel>
+                 <DropdownMenuSeparator />
+                {AVAILABLE_RESPONSE_STYLES.map((style) => (
+                  <DropdownMenuItem key={style.name} onClick={() => handleSelectStyle(style)} className={selectedResponseStyleName === style.name ? "bg-accent" : ""}>
+                    {style.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+
+          {/* Textarea */}
+          <Textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={handleTextareaInput}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholderText}
+            className="flex-grow resize-none w-full min-h-[40px] max-h-[120px] bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none overflow-y-auto p-0 m-0 leading-tight"
+            rows={1}
+            disabled={isLoading}
+            aria-label="Chat message input"
+            style={{ height: 'auto' }}
+          />
+
+          {/* Right Controls - Send Button */}
+          <Button
+            type="submit"
+            size="icon"
+            className="w-8 h-8 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg shrink-0"
+            disabled={isLoading || !inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl) }
+            aria-label="Send message"
+          >
+            <ArrowUp className="w-5 h-5" />
+          </Button>
         </div>
       </form>
     </div>

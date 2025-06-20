@@ -8,7 +8,8 @@ import MessageBubble from './MessageBubble';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
+// Model and style imports are removed as they are no longer displayed in the header here
+// import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
 
 interface ChatViewProps {
   conversation: Conversation | null;
@@ -27,11 +28,11 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
 
   useEffect(scrollToBottom, [messages]);
 
-  const modelIdToUse = conversation?.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
-  const styleNameToUse = conversation?.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
-
-  const selectedModelName = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === modelIdToUse)?.name || modelIdToUse;
-  const selectedStyleName = AVAILABLE_RESPONSE_STYLES.find(s => s.name === styleNameToUse)?.name || styleNameToUse;
+  // Model and style name calculation removed as it's not shown in this header anymore
+  // const modelIdToUse = conversation?.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
+  // const styleNameToUse = conversation?.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
+  // const selectedModelName = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === modelIdToUse)?.name || modelIdToUse;
+  // const selectedStyleName = AVAILABLE_RESPONSE_STYLES.find(s => s.name === styleNameToUse)?.name || styleNameToUse;
 
 
   return (
@@ -44,17 +45,19 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
           <h2 className="text-lg font-semibold text-card-foreground truncate max-w-xs sm:max-w-md md:max-w-lg">
             {conversation?.title || 'New Chat'}
           </h2>
+          {/* Model and Style display removed from header
           {conversation?.toolType === 'Long Language Loops' && (
             <p className="text-xs text-muted-foreground">
               Modell: {selectedModelName} &bull; Stil: {selectedStyleName}
             </p>
           )}
+          */}
         </div>
-        <div className="w-8 flex-shrink-0">
+        <div className="w-8 flex-shrink-0"> {/* Spacer for loading icon */}
           {isLoading && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
         </div>
       </header>
-      <div className="flex-grow overflow-y-auto p-4 space-y-2">
+      <div className="flex-grow overflow-y-auto p-4 space-y-0"> {/* Reduced space-y for tighter message packing */}
         {messages.map((msg) => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
