@@ -11,7 +11,7 @@ import ToolViewHeader from '@/components/layout/ToolViewHeader';
 import ImageKontextTool from '@/components/tools/ImageKontextTool';
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
 import GPTImageTool from '@/components/tools/GPTImageTool';
-import ReplicateImageTool from '@/components/tools/ReplicateImageTool'; // New Tool
+import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import { Button } from "@/components/ui/button";
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
@@ -19,7 +19,7 @@ import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
-import { GalleryHorizontal, MessageSquare, BrainCircuit } from 'lucide-react'; // CodeXml removed, GalleryHorizontal used for new tool
+import { GalleryHorizontal, MessageSquare, BrainCircuit, ImagePlus } from 'lucide-react';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import {
   AlertDialog,
@@ -36,7 +36,7 @@ import {
 const toolTileItems: TileItem[] = [
   { id: 'FLUX Kontext', title: 'FLUX Kontext', icon: BrainCircuit, description: "Engage with contextual AI" },
   { id: 'Easy Image Loop', title: 'Visualizing Loops', icon: GalleryHorizontal, description: "Generate images via Pollinations or OpenAI" },
-  { id: 'Replicate Image Tool', title: 'Visualizing Loops 2.0 beta', icon: GalleryHorizontal, description: "Generate images via Replicate API" }, // Updated Tile
+  { id: 'Replicate Image Tool', title: 'Visualizing Loops 2.0 beta', icon: ImagePlus, description: "Generate images via Replicate API" },
   { id: 'Long Language Loops', title: 'Long Language Loops', icon: MessageSquare, description: "Chat, generate images, or analyze uploaded pictures." },
 ];
 
@@ -76,7 +76,6 @@ export default function Home() {
           selectedResponseStyleName: conv.selectedResponseStyleName || (conv.toolType === 'Long Language Loops' ? DEFAULT_RESPONSE_STYLE_NAME : undefined),
         }));
         
-        // Filter out empty LLL chats on load
         const activeStoredConversations = parsedConversations.filter(conv => {
           if (conv.toolType === 'Long Language Loops') {
             return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
@@ -86,22 +85,22 @@ export default function Home() {
         setAllConversations(activeStoredConversations.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       } catch (error) {
         console.error("Failed to parse conversations from localStorage", error);
-        localStorage.removeItem('chatConversations'); // Clear corrupted data
+        localStorage.removeItem('chatConversations'); 
       }
     }
     setIsInitialLoadComplete(true);
   }, []);
 
   useEffect(() => {
-    if (isInitialLoadComplete) { // Only run after initial load
+    if (isInitialLoadComplete) { 
         const conversationsToStore = allConversations
-            .filter(conv => { // Filter empty LLL chats before saving
+            .filter(conv => { 
                 if (conv.toolType === 'Long Language Loops') {
                     return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
                 }
                 return true;
             })
-            .map(conv => { // Prepare for storage
+            .map(conv => { 
                 const { uploadedFile: _uploadedFile, uploadedFilePreview: _uploadedFilePreview, ...storableConv } = conv;
                 return storableConv;
             });
@@ -109,7 +108,6 @@ export default function Home() {
         if (conversationsToStore.length > 0) {
             localStorage.setItem('chatConversations', JSON.stringify(conversationsToStore));
         } else {
-            // If all conversations were filtered out (e.g., only empty LLL chats existed)
             localStorage.removeItem('chatConversations');
         }
     }
@@ -337,10 +335,8 @@ export default function Home() {
     const currentStyleName = activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
     const currentSystemPrompt = AVAILABLE_RESPONSE_STYLES.find(s => s.name === currentStyleName)?.systemPrompt || AVAILABLE_RESPONSE_STYLES.find(s => s.name === DEFAULT_RESPONSE_STYLE_NAME)!.systemPrompt;
 
-
     setIsAiResponding(true);
     const conversationToUpdateId = activeConversation.id;
-    let currentMessagesForTurn = [...activeConversation.messages]; 
     const currentToolType = activeConversation.toolType;
 
     const isActuallyImagePromptMode = options.isImageModeIntent || false;
@@ -370,13 +366,16 @@ export default function Home() {
       id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
     };
     
+    const currentHistoryMessages = activeConversation.messages || [];
+    const messagesForApiSubmission = [...currentHistoryMessages, userMessage];
+
     setActiveConversation(prevActive => {
       if (!prevActive) return null;
-      const updatedMessages = [...prevActive.messages, userMessage];
+      const updatedMessages = [...(prevActive.messages || []), userMessage];
       setCurrentMessages(updatedMessages); 
       return { ...prevActive, messages: updatedMessages };
     });
-     setAllConversations(prevAll => prevAll.map(c => c.id === conversationToUpdateId ? {...c, messages: [...c.messages, userMessage]} : c));
+     setAllConversations(prevAll => prevAll.map(c => c.id === conversationToUpdateId ? {...c, messages: [...(c.messages || []), userMessage]} : c));
 
 
     if (isActuallyImagePromptMode && messageText.trim()) {
@@ -396,19 +395,30 @@ export default function Home() {
       }
     } else if (!skipPollinationsChatCall) {
       try {
-        const messagesForApi = (allConversations.find(c => c.id === conversationToUpdateId)?.messages || [userMessage])
+        const messagesForApi = messagesForApiSubmission
           .map(msg => {
             if (msg.role === 'system') return null;
-            let apiContentString = "";
+            let apiContentString: string;
             if (typeof msg.content === 'string') {
               apiContentString = msg.content;
             } else {
               const textPart = msg.content.find(part => part.type === 'text');
               apiContentString = textPart ? textPart.text : "[Image content - text part missing]";
+              if (apiContentString.trim() === "" && msg.content.some(p => p.type === 'image_url') && !textPart) {
+                apiContentString = "[Image content only]";
+              }
             }
             return { role: msg.role as 'user' | 'assistant', content: apiContentString };
           })
           .filter(Boolean) as PollinationsChatInput['messages'];
+
+        if (messagesForApi.length === 0) {
+          toast({ title: "Cannot send message", description: "The message content appears to be empty after processing.", variant: "destructive" });
+          setIsAiResponding(false);
+          // Optional: Revert optimistic state updates if necessary, though complex.
+          // For now, we'll let the user see their message and this toast.
+          return;
+        }
 
         const apiInput: PollinationsChatInput = {
           messages: messagesForApi,
@@ -431,14 +441,14 @@ export default function Home() {
       };
       setActiveConversation(prevActive => {
         if (!prevActive) return null;
-        const updatedMessages = [...prevActive.messages, aiMessage];
+        const updatedMessages = [...(prevActive.messages || []), aiMessage]; // Ensure prevActive.messages exists
         setCurrentMessages(updatedMessages);
         return { ...prevActive, messages: updatedMessages };
       });
-      setAllConversations(prevAll => prevAll.map(c => c.id === conversationToUpdateId ? {...c, messages: [...c.messages, aiMessage]} : c));
+      setAllConversations(prevAll => prevAll.map(c => c.id === conversationToUpdateId ? {...c, messages: [...(c.messages || []), aiMessage]} : c));
     }
     
-    const finalIsImageMode = (isActuallyImagePromptMode || isActuallyFileUploadMode) ? false : activeConversation.isImageMode; 
+    const finalIsImageMode = (isActuallyImagePromptMode || isActuallyFileUploadMode) ? false : (activeConversation.isImageMode || false);
     updateActiveConversationState({ isImageMode: finalIsImageMode });
 
 
@@ -449,7 +459,7 @@ export default function Home() {
         updateActiveConversationState({ uploadedFile: null, uploadedFilePreview: null, isImageMode: false}); 
     }
 
-    const finalMessagesForTitle = allConversations.find(c=>c.id === conversationToUpdateId)?.messages || [];
+    const finalMessagesForTitle = (allConversations.find(c=>c.id === conversationToUpdateId)?.messages || messagesForApiSubmission);
     if (finalMessagesForTitle.length > 0) {
       updateConversationTitle(conversationToUpdateId, finalMessagesForTitle);
     }
@@ -603,7 +613,7 @@ export default function Home() {
                   className="flex-grow overflow-y-auto"
                 />
                 <ChatInput
-                  onSendMessage={(message) => handleSendMessageGlobal(message, {isImageModeIntent: isImageMode})}
+                  onSendMessage={(message, opts) => handleSendMessageGlobal(message, opts)}
                   isLoading={isAiResponding}
                   isImageModeActive={isImageMode}
                   onToggleImageMode={handleToggleImageMode}
@@ -693,5 +703,4 @@ export default function Home() {
     </div>
   );
 }
-
     
