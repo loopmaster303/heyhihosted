@@ -5,8 +5,7 @@ import type React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Brain, Fingerprint, Image as ImageIcon, X, SendHorizontal } from 'lucide-react'; // Changed ImagePlus to Image, Send to SendHorizontal
-import NextImage from 'next/image'; // For potential future use, but preview is outside now
+import { Paperclip, Brain, Fingerprint, Image as ImageIcon, X, SendHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +28,7 @@ interface ChatInputProps {
   isLoading: boolean;
   isImageModeActive: boolean;
   onToggleImageMode: () => void;
-  uploadedFilePreviewUrl: string | null; // This prop remains for logic (e.g. showing X on paperclip)
+  uploadedFilePreviewUrl: string | null;
   onFileSelect: (file: File | null) => void;
   isLongLanguageLoopActive: boolean;
   selectedModelId: string;
@@ -43,7 +42,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   isLoading,
   isImageModeActive,
   onToggleImageMode,
-  uploadedFilePreviewUrl, // Used to determine icon for paperclip/X
+  uploadedFilePreviewUrl,
   onFileSelect,
   isLongLanguageLoopActive,
   selectedModelId,
@@ -58,7 +57,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   useEffect(() => {
     if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'; // Reset height
-        const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 40), 120); // Min height 40px, Max 120px
+        // Increased max height slightly to give more room if needed
+        const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 40), 130);
         textareaRef.current.style.height = `${newHeight}px`;
     }
   }, [inputValue]);
@@ -69,8 +69,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
     if (isLoading) return;
 
     const canSendMessage = (isLongLanguageLoopActive && isImageModeActive && inputValue.trim() !== '') ||
-                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl && inputValue.trim() !== '') || // Allow sending text with uploaded image
-                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl && inputValue.trim() === '') || // Allow sending just uploaded image
+                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl && inputValue.trim() !== '') ||
+                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl && inputValue.trim() === '') ||
                            (!isImageModeActive && inputValue.trim() !== '');
 
 
@@ -82,9 +82,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
         }
       );
       setInputValue('');
-      // File selection clearing is handled by parent or if user explicitly clears
       if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'; // Reset height after send
+        textareaRef.current.style.height = 'auto';
       }
     }
   };
@@ -112,22 +111,23 @@ const ChatInput: React.FC<ChatInputProps> = ({
     const file = event.target.files?.[0];
     onFileSelect(file || null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""; // Reset file input to allow re-selection of the same file
+      fileInputRef.current.value = "";
     }
   };
 
-  const placeholderText =
-    isLongLanguageLoopActive && isImageModeActive ? "Describe the image you want to generate..." :
-    isLongLanguageLoopActive && uploadedFilePreviewUrl ? "Describe the uploaded image or ask a question..." :
-    "Was möchtest du wissen?";
-
+  const placeholderText = "Was möchtest du wissen?";
   const currentSelectedModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
   const currentSelectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0];
 
+  const iconSizeClass = "w-6 h-6"; // Increased icon size
+  const iconColorClass = "text-foreground/80 hover:text-foreground"; // Lighter icon color
+  const iconStrokeWidth = 1.75; // Bolder stroke
+
   return (
-    <div className="sticky bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm px-2 py-3 md:px-3 md:py-4">
+    <div className="sticky bottom-0 left-0 right-0 bg-transparent px-2 py-3 md:px-3 md:py-4">
       <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
-        <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[80px]"> {/* Increased min-h for taller bubble */}
+        {/* Main input bubble */}
+        <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]"> {/* Increased min-h */}
           <Textarea
             ref={textareaRef}
             value={inputValue}
@@ -135,20 +135,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholderText}
             className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-1 m-0 leading-tight resize-none overflow-y-auto"
-            rows={1} // Start with 1 row, will auto-grow
+            rows={1}
             disabled={isLoading}
             aria-label="Chat message input"
           />
 
-          <div className="flex justify-between items-center mt-2 pt-1">
+          {/* Controls Row */}
+          <div className="flex justify-between items-end mt-2 pt-1"> {/* items-end for right col alignment */}
             {/* Left Controls */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2"> {/* Increased gap slightly */}
               {isLongLanguageLoopActive && (
                 <>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="w-9 h-9 text-muted-foreground hover:text-foreground rounded-lg" aria-label="Select AI Model">
-                        <Brain className="w-5 h-5" />
+                      <Button variant="ghost" size="icon" className={cn("rounded-lg", iconColorClass)} aria-label="Select AI Model">
+                        <Brain className={iconSizeClass} strokeWidth={iconStrokeWidth}/>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
@@ -164,8 +165,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="w-9 h-9 text-muted-foreground hover:text-foreground rounded-lg" aria-label="Select Response Style">
-                        <Fingerprint className="w-5 h-5" />
+                      <Button variant="ghost" size="icon" className={cn("rounded-lg", iconColorClass)} aria-label="Select Response Style">
+                        <Fingerprint className={iconSizeClass} strokeWidth={iconStrokeWidth} />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
@@ -182,62 +183,66 @@ const ChatInput: React.FC<ChatInputProps> = ({
               )}
             </div>
 
-            {/* Right Controls */}
-            <div className="flex items-center gap-1.5">
-              {isLongLanguageLoopActive && (
-                <>
-                  <Button
-                    type="button"
-                    variant="ghost"
+            {/* Right Controls - now in a column */}
+            <div className="flex flex-col items-end gap-1.5">
+                <Button
+                    type="submit"
                     size="icon"
                     className={cn(
-                        "w-9 h-9 text-muted-foreground hover:text-foreground rounded-lg",
-                        isImageModeActive && "bg-accent text-accent-foreground"
+                        "bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg shrink-0",
+                        iconSizeClass // Apply general icon size to button as well for consistency
                     )}
-                    onClick={onToggleImageMode}
-                    aria-label={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
-                    title={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
-                    disabled={isLoading || !!uploadedFilePreviewUrl} // Disable if file is uploaded or loading
-                  >
-                    <ImageIcon className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="w-9 h-9 text-muted-foreground hover:text-foreground rounded-lg"
-                    onClick={() => {
-                        if (uploadedFilePreviewUrl) {
-                            onFileSelect(null); // Clear the file
-                        } else {
-                            fileInputRef.current?.click(); // Open file dialog
-                        }
-                    }}
-                    title={uploadedFilePreviewUrl ? "Clear uploaded image" : "Attach file"}
-                    disabled={isLoading || isImageModeActive}
-                  >
-                    {uploadedFilePreviewUrl ? <X className="w-5 h-5"/> : <Paperclip className="w-5 h-5" />}
-                  </Button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="hidden"
-                    disabled={isLoading || isImageModeActive}
-                  />
-                </>
-              )}
-              <Button
-                type="submit"
-                size="icon"
-                className="w-9 h-9 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg shrink-0"
-                disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl)) }
-                aria-label="Send message"
-              >
-                <SendHorizontal className="w-5 h-5" />
-              </Button>
+                    disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl)) }
+                    aria-label="Send message"
+                >
+                    <SendHorizontal className={iconSizeClass} strokeWidth={iconStrokeWidth} />
+                </Button>
+                {isLongLanguageLoopActive && (
+                    <div className="flex items-center gap-2"> {/* Horizontal row for bottom two icons */}
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                                "rounded-lg",
+                                iconColorClass,
+                                isImageModeActive && "bg-accent text-accent-foreground"
+                            )}
+                            onClick={onToggleImageMode}
+                            aria-label={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
+                            title={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
+                            disabled={isLoading || !!uploadedFilePreviewUrl}
+                        >
+                            <ImageIcon className={iconSizeClass} strokeWidth={iconStrokeWidth} />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className={cn("rounded-lg", iconColorClass)}
+                            onClick={() => {
+                                if (uploadedFilePreviewUrl) {
+                                    onFileSelect(null);
+                                } else {
+                                    fileInputRef.current?.click();
+                                }
+                            }}
+                            title={uploadedFilePreviewUrl ? "Clear uploaded image" : "Attach file"}
+                            disabled={isLoading || isImageModeActive}
+                        >
+                            {uploadedFilePreviewUrl ? <X className={iconSizeClass} strokeWidth={iconStrokeWidth} /> : <Paperclip className={iconSizeClass} strokeWidth={iconStrokeWidth} />}
+                        </Button>
+                    </div>
+                )}
             </div>
+             <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+                disabled={isLoading || isImageModeActive}
+            />
           </div>
         </div>
       </form>
