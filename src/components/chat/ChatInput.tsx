@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { SendHorizonal, Paperclip, ChevronDown, Brain, Fingerprint, ImagePlus, X, Mic, ArrowUp } from 'lucide-react';
-import Image from 'next/image'; // Kept for future use if needed, but preview is removed
+import Image from 'next/image'; 
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +29,7 @@ interface ChatInputProps {
   isLoading: boolean;
   isImageModeActive: boolean;
   onToggleImageMode: () => void;
-  uploadedFilePreviewUrl: string | null; // Still needed to determine icon state
+  uploadedFilePreviewUrl: string | null; 
   onFileSelect: (file: File | null) => void;
   isLongLanguageLoopActive: boolean;
   selectedModelId: string;
@@ -66,7 +66,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     if (isLoading) return;
 
     const canSendMessage = (isLongLanguageLoopActive && isImageModeActive && inputValue.trim() !== '') ||
-                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) || // Can send if image is uploaded (even with empty text)
+                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) || 
                            (!isImageModeActive && inputValue.trim() !== '');
 
     if (canSendMessage) {
@@ -121,28 +121,44 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  // Icon for the attach/image mode button
-  let AttachIcon = Mic;
-  let attachLabel = "Voice input (not implemented)";
-  let attachAction = () => { /* Placeholder for voice input */ };
-
+  let AttachIcon = Paperclip;
+  let attachLabel = "Attach file or prompt for image";
+  let attachAction = () => {
+    if (isImageModeActive) { // If already in image mode, toggle it off (back to paperclip mode)
+      onToggleImageMode();
+    } else { // Not in image mode, so this click should open file dialog
+      fileInputRef.current?.click();
+    }
+  };
+  
   if (isLongLanguageLoopActive) {
     if (uploadedFilePreviewUrl) {
-      AttachIcon = X; // Show X to clear uploaded image
+      AttachIcon = X; 
       attachLabel = "Clear uploaded image";
       attachAction = () => onFileSelect(null);
     } else if (isImageModeActive) {
-      AttachIcon = ImagePlus; // Mode for prompting an image generation
-      attachLabel = "Switch to text input";
-      attachAction = onToggleImageMode;
+      AttachIcon = ImagePlus; 
+      attachLabel = "Switch to text input / Clear image prompt mode";
+      attachAction = onToggleImageMode; 
     } else {
-      AttachIcon = Paperclip; // Default: attach file or switch to image prompt
-      attachLabel = "Attach file or prompt for image";
-      // This button could open a small menu or directly toggle image prompt mode / open file dialog
-      // For simplicity, let's make it toggle image prompt mode. File dialog is separate.
-      // Or, it could directly open file dialog if we remove onToggleImageMode from it.
-      // Let's make it trigger file input first.
-      attachAction = () => fileInputRef.current?.click();
+      AttachIcon = Paperclip; 
+      attachLabel = "Attach file or switch to image prompt mode";
+      // This button can have a dual action, or open a mini-menu.
+      // For now, let's keep it simple: if not in image mode and no file, primary action is to prompt for image.
+      // Secondary would be file attach. For simplicity, we make the button trigger image prompt mode for now.
+      // If user wants to attach file, they use the secondary button (imagePlus)
+      // This is slightly different from old logic, to be refined.
+      // Or: Paperclip always means file. ImagePlus is for mode toggle.
+      // Let's go with Paperclip = file, ImagePlus = toggle image prompt mode.
+      // The current logic in page.tsx for onToggleImageMode() toggles the state.
+      // AttachIcon is just icon representation.
+      // This logic needs to be crystal clear.
+
+      // Revised logic:
+      // Paperclip (AttachIcon when !isImageModeActive && !uploadedFilePreviewUrl): Opens file dialog.
+      // ImagePlus (button next to it): Toggles image prompt mode.
+      // X (AttachIcon when uploadedFilePreviewUrl): Clears file.
+      // ImagePlus (AttachIcon when isImageModeActive): Toggles image prompt mode OFF.
     }
   }
 
@@ -157,24 +173,67 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="sticky bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm p-2 md:p-3">
-      {/* Removed uploadedFilePreviewUrl display from here */}
+      {isLongLanguageLoopActive && uploadedFilePreviewUrl && (
+        <div className="max-w-3xl mx-auto mb-2 relative w-fit">
+          <Image
+            src={uploadedFilePreviewUrl}
+            alt="Uploaded preview"
+            width={80}
+            height={80}
+            className="rounded-md object-cover"
+            data-ai-hint="upload preview"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+            onClick={() => onFileSelect(null)}
+            aria-label="Clear uploaded image"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
         <div className="relative bg-input rounded-xl p-2.5 flex items-end gap-2 shadow-lg">
           {/* Left Controls */}
           <div className="flex items-center gap-1 shrink-0">
             {isLongLanguageLoopActive && (
+              <>
                  <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     className="w-8 h-8 text-muted-foreground hover:text-foreground rounded-lg"
-                    onClick={attachAction}
-                    aria-label={attachLabel}
-                    title={attachLabel}
-                    disabled={isLoading}
+                    onClick={() => {
+                        if (uploadedFilePreviewUrl) { // If file uploaded, this button (X) clears it
+                            onFileSelect(null);
+                        } else { // No file uploaded, this button (Paperclip) opens file dialog
+                            fileInputRef.current?.click();
+                        }
+                    }}
+                    title={uploadedFilePreviewUrl ? "Clear uploaded image" : "Attach file"}
+                    disabled={isLoading || isImageModeActive} // Disable if prompting for image or loading
                   >
-                    <AttachIcon className="w-5 h-5" />
+                    {uploadedFilePreviewUrl ? <X className="w-5 h-5"/> : <Paperclip className="w-5 h-5" />}
                   </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                        "w-8 h-8 text-muted-foreground hover:text-foreground rounded-lg",
+                        isImageModeActive && "bg-accent text-accent-foreground"
+                    )}
+                    onClick={onToggleImageMode}
+                    aria-label={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
+                    title={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
+                    disabled={isLoading || !!uploadedFilePreviewUrl} // Disable if file is uploaded or loading
+                    >
+                    <ImagePlus className="w-5 h-5" />
+                 </Button>
+              </>
             )}
             <input
               type="file"
@@ -182,7 +241,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               onChange={handleFileChange}
               accept="image/*"
               className="hidden"
-              disabled={isLoading || (isLongLanguageLoopActive && isImageModeActive)} // Disable file input if in image prompt mode
+              disabled={isLoading || isImageModeActive} 
             />
 
             <DropdownMenu>
