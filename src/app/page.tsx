@@ -3,25 +3,23 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AppHeader from '@/components/layout/AppHeader';
-// TileMenu removed
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
 import ToolViewHeader from '@/components/layout/ToolViewHeader';
-// ImageKontextTool removed
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
 import GPTImageTool from '@/components/tools/GPTImageTool';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
-import { X } from 'lucide-react';
+import { X, ArrowLeft, PanelLeft } from 'lucide-react'; // Added ArrowLeft, PanelLeft
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
-import { GalleryHorizontal, MessageSquare, ImagePlus } from 'lucide-react'; // BrainCircuit removed
+import { GalleryHorizontal, MessageSquare, ImagePlus } from 'lucide-react'; 
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import {
   AlertDialog,
@@ -33,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarInset, SidebarRail } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarContent, SidebarInset, SidebarRail, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 
 
 const toolTileItems: TileItem[] = [
@@ -80,7 +78,6 @@ export default function Home() {
           if (conv.toolType === 'long language loops') {
             return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
           }
-          // Filter out removed tool types
           return toolTileItems.some(item => item.id === conv.toolType);
         });
         setAllConversations(activeStoredConversations.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
@@ -99,7 +96,6 @@ export default function Home() {
                 if (conv.toolType === 'long language loops') {
                     return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
                 }
-                // Ensure only existing tool types are stored
                 return toolTileItems.some(item => item.id === conv.toolType);
             })
             .map(conv => { 
@@ -155,8 +151,8 @@ export default function Home() {
     const convToUpdate = allConversations.find(c => c.id === conversationId);
     if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
 
-    const isDefaultTitle = convToUpdate.title === "New Long Language Loop" || // Keep for old chats
-                           convToUpdate.title === `New ${convToUpdate.toolType} Chat` || // Keep for old chats
+    const isDefaultTitle = convToUpdate.title === "New Long Language Loop" || 
+                           convToUpdate.title === `New ${convToUpdate.toolType} Chat` || 
                            convToUpdate.title.toLowerCase().startsWith("new ") ||
                            convToUpdate.title === "Chat" ||
                            convToUpdate.title === "New long language loops";
@@ -235,7 +231,7 @@ export default function Home() {
     if (toolType === 'long language loops') {
       const newConversationId = crypto.randomUUID();
       const now = new Date();
-      const conversationTitle = "New long language loops"; // Updated default title
+      const conversationTitle = "New long language loops"; 
       const newConversation: Conversation = {
         id: newConversationId,
         title: conversationTitle,
@@ -325,7 +321,6 @@ export default function Home() {
     }
   
     const currentActiveConv = activeConversation; 
-  
     const currentModelId = currentActiveConv.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
     const currentStyleName = currentActiveConv.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME;
     const currentSystemPrompt = AVAILABLE_RESPONSE_STYLES.find(s => s.name === currentStyleName)?.systemPrompt || AVAILABLE_RESPONSE_STYLES.find(s => s.name === DEFAULT_RESPONSE_STYLE_NAME)!.systemPrompt;
@@ -359,6 +354,7 @@ export default function Home() {
       id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
     };
     
+    // Construct messages for API submission directly to avoid race conditions with state updates.
     const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage];
   
     updateActiveConversationState({ messages: messagesForApiSubmission });
@@ -386,7 +382,7 @@ export default function Home() {
     
     if (!skipPollinationsChatCall) {
       try {
-        const messagesForApi = messagesForApiSubmission
+        const messagesForApi = messagesForApiSubmission // Use the synchronously constructed list
           .filter(msg => msg.role === 'user' || msg.role === 'assistant') 
           .map(msg => {
             let apiContentString: string;
@@ -471,7 +467,7 @@ export default function Home() {
         prevConvs.map(c => c.id === conversationId ? { ...c, title: updatedTitle } : c)
       );
       if (activeConversation?.id === conversationId) {
-        setActiveConversation(prevActive => prevActive ? { ...prevActive, title: updatedTitle } : null);
+        setActiveConversation(prev => prevActive ? { ...prevActive, title: updatedTitle } : null);
       }
       toast({ title: "Title Updated", description: `Chat title changed to: ${updatedTitle}`});
     }
@@ -585,8 +581,8 @@ export default function Home() {
         </>
       ) : (
         <SidebarProvider>
-          <div className="flex flex-1 overflow-hidden">
-            <Sidebar side="left" collapsible="icon" className="border-r">
+          <div className="flex flex-1 overflow-hidden bg-background"> {/* Ensure main container has bg-background */}
+            <Sidebar side="left" collapsible="icon" className="border-r border-sidebar-border bg-sidebar-background">
               <SidebarContent>
                 <SidebarNav
                   tileItems={toolTileItems}
@@ -603,15 +599,26 @@ export default function Home() {
               <SidebarRail />
             </Sidebar>
             <SidebarInset>
-              <main className="flex-1 flex flex-col overflow-hidden">
+              <main className="flex-1 flex flex-col overflow-hidden bg-background"> {/* Ensure main content area has bg-background */}
                 {currentView === 'chat' && activeConversation && activeConversation.toolType === 'long language loops' && (
                   <>
+                    <div className="p-2 flex items-center justify-between sticky top-0 z-10 bg-background flex-shrink-0">
+                        <div className="flex items-center gap-1">
+                            <SidebarTrigger className="text-foreground/70 hover:text-foreground" />
+                            <Button variant="ghost" size="icon" onClick={handleGoBackToTilesView} aria-label="Go back to tools menu" className="text-foreground/70 hover:text-foreground">
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        {/* Spacer or loading icon if needed */}
+                         <div className="w-8 flex-shrink-0">
+                            {isAiResponding && <X className="h-5 w-5 animate-spin text-primary" />}
+                        </div>
+                    </div>
                     <ChatView
                       conversation={activeConversation}
                       messages={currentMessages}
                       isLoading={isAiResponding}
-                      onGoBack={handleGoBackToTilesView}
-                      className="flex-grow overflow-y-auto"
+                      className="flex-grow overflow-y-auto" // bg-background will be inherited or set explicitly in ChatView
                     />
                     {activeConversation.uploadedFilePreview && (
                        <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
@@ -649,9 +656,11 @@ export default function Home() {
                       onModelChange={handleModelChange}
                       onStyleChange={handleStyleChange}
                     />
+                     <h1 className="text-3xl md:text-4xl font-semibold text-center py-4 md:py-6 text-foreground tracking-wider select-none">
+                        {activeConversation.title || "Chat"}
+                    </h1>
                   </>
                 )}
-                {/* FLUX Kontext view removed */}
                 {currentView === 'easyImageLoopTool' && ( 
                   <>
                     <ToolViewHeader title="nocost imagination (Pollinations)" onGoBack={handleGoBackToTilesView} />
@@ -692,7 +701,6 @@ export default function Home() {
              <AlertDialogCancel
                 onClick={() => {
                     setIsModelPreSelectionDialogOpen(false);
-                    // Reset activeToolTypeForView if the dialog was cancelled from the "nocost imagination" flow
                     if (currentView === 'tiles' || activeToolTypeForView === 'nocost imagination') { 
                         setActiveToolTypeForView(null); 
                     }
@@ -725,6 +733,3 @@ export default function Home() {
     </div>
   );
 }
-    
-
-    

@@ -5,22 +5,19 @@ import type React from 'react';
 import { useEffect, useRef } from 'react';
 import type { ChatMessage, Conversation } from '@/types';
 import MessageBubble from './MessageBubble';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+// Header related imports like Button, ArrowLeft, Loader2, SidebarTrigger, useSidebar are removed
 import { cn } from '@/lib/utils';
-import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 
 interface ChatViewProps {
-  conversation: Conversation | null;
+  conversation: Conversation | null; // Keep conversation for potential future use or context, even if title is not displayed here
   messages: ChatMessage[];
   isLoading: boolean;
-  onGoBack: () => void;
+  // onGoBack prop is removed as header is removed
   className?: string;
 }
 
-const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, onGoBack, className }) => {
+const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, className }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { isMobile } = useSidebar();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -30,23 +27,8 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
 
   return (
     <div className={cn("w-full h-full flex flex-col bg-background overflow-hidden", className)}>
-      <header className="p-4 flex items-center justify-between bg-card sticky top-0 z-10 flex-shrink-0">
-        <div className="flex items-center gap-1">
-          {!isMobile && <SidebarTrigger />}
-          <Button variant="ghost" size="icon" onClick={onGoBack} aria-label="Go back to tools menu">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </div>
-        <div className="flex flex-col items-center text-center">
-          <h2 className="text-lg font-semibold text-card-foreground truncate max-w-xs sm:max-w-md md:max-w-lg">
-            {conversation?.title || 'New Chat'}
-          </h2>
-        </div>
-        <div className="w-8 flex-shrink-0"> {/* Spacer for loading icon or trigger */}
-          {isLoading && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
-        </div>
-      </header>
-      <div className="flex-grow overflow-y-auto p-4 space-y-0">
+      {/* Header is completely removed */}
+      <div className="flex-grow overflow-y-auto p-4 space-y-0"> {/* Ensure bg-background is applied here or by parent */}
         {messages.map((msg) => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
