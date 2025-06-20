@@ -22,7 +22,7 @@ export const useTypingEffect = (
   useEffect(() => {
     setDisplayedText(''); 
     setIsTypingComplete(false);
-    let charIndex = 0;
+    let charIndex = 0; // Current character index to type
 
     if (!fullText) {
       setIsTypingComplete(true);
@@ -31,22 +31,23 @@ export const useTypingEffect = (
 
     const initialDelayTimer = setTimeout(() => {
       const typingInterval = setInterval(() => {
+        // If charIndex is less than fullText.length, it's a valid index
         if (charIndex < fullText.length) {
           setDisplayedText((prev) => prev + fullText[charIndex]);
-          charIndex++;
-        }
-        
-        if (charIndex >= fullText.length) {
+          charIndex++; // Increment *after* using the current charIndex
+        } else { // All characters have been typed
           clearInterval(typingInterval);
           setIsTypingComplete(true);
         }
       }, speed);
 
-      return () => clearInterval(typingInterval); 
+      // Cleanup function for the interval
+      return () => clearInterval(typingInterval);
     }, startDelay);
 
-    return () => clearTimeout(initialDelayTimer); 
-  }, [fullText, speed, startDelay]);
+    // Cleanup function for the initial delay timer
+    return () => clearTimeout(initialDelayTimer);
+  }, [fullText, speed, startDelay]); // Dependencies for the useEffect
 
   return { text: displayedText, isComplete: isTypingComplete };
 };

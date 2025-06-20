@@ -155,7 +155,7 @@ export default function Home() {
              setCurrentView('chat');
           } else {
             setCurrentView('tiles');
-            setHeaderAnimationComplete(true); 
+            // setHeaderAnimationComplete(true); // Don't skip animation if no chat loaded
           }
         } else {
             setCurrentView('tiles');
