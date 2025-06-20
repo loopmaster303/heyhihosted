@@ -343,7 +343,7 @@ export default function Home() {
     };
     
     // SYNCHRONOUSLY build messages for API
-    const messagesForApi = [...(currentActiveConv.messages || []), userMessage]
+    const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage]
       .filter(msg => msg.role === 'user' || msg.role === 'assistant')
       .map(msg => {
         let apiContentString: string;
@@ -359,7 +359,7 @@ export default function Home() {
         return { role: msg.role as 'user' | 'assistant', content: apiContentString };
       });
 
-    if (messagesForApi.length === 0) {
+    if (messagesForApiSubmission.length === 0) {
       toast({ title: "Cannot send message", description: "The message content appears to be empty after processing.", variant: "destructive" });
       setIsAiResponding(false);
       return;
@@ -392,7 +392,7 @@ export default function Home() {
     if (!skipPollinationsChatCall) {
       try {
         const apiInput: PollinationsChatInput = {
-          messages: messagesForApi, // Use the synchronously constructed list
+          messages: messagesForApiSubmission, // Use the synchronously constructed list
           modelId: currentModelId,
           systemPrompt: currentSystemPrompt,
         };
@@ -570,17 +570,17 @@ export default function Home() {
       ) : (
         <div className="flex flex-1 overflow-hidden bg-background">
           {/* Always visible Sidebar */}
-          <aside className="w-64 flex-shrink-0 bg-sidebar-background border-r-0"> {/* No border */}
+          <aside className="w-72 flex-shrink-0 bg-sidebar-background"> {/* Increased width */}
             <SidebarNav
-              toolTileItems={toolTileItems} // Pass tool items for direct listing
-              onSelectTile={handleSelectTile} // Pass handler for tool selection
+              toolTileItems={toolTileItems} 
+              onSelectTile={handleSelectTile} 
               activeToolType={activeToolTypeForView}
               onSelectNewChat={startNewLongLanguageLoopChat}
               allConversations={allConversations.filter(c => c.toolType === 'long language loops')} 
               activeConversationId={activeConversation?.id || null}
               onSelectChatHistory={handleSelectChatFromHistory}
-              onEditTitle={handleRequestEditTitle}
-              onDeleteChat={handleRequestDeleteChat}
+              onEditTitle={handleRequestEditTitle} // Kept for potential future use (e.g. context menu)
+              onDeleteChat={handleRequestDeleteChat} // Kept for potential future use
               onNavigateToTiles={handleGoBackToTilesView}
               className="w-full h-full"
             />
@@ -639,7 +639,6 @@ export default function Home() {
             )}
             {currentView === 'easyImageLoopTool' && ( 
               <>
-                {/* ToolViewHeader equivalent elements (title) are now below ChatInput or handled by sidebar */}
                 <VisualizingLoopsTool />
               </>
             )}
