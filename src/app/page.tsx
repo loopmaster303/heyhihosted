@@ -83,14 +83,21 @@ export default function Home() {
   const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
 
   useEffect(() => {
+    // --- Load Data from LocalStorage ---
+    let loadedConversations: Conversation[] = [];
     const storedConversations = localStorage.getItem('chatConversations');
     if (storedConversations) {
       try {
-        const parsedConversations: Conversation[] = JSON.parse(storedConversations).map((conv: any) => ({
+        const parsedConvsRaw = JSON.parse(storedConversations);
+        if (!Array.isArray(parsedConvsRaw)) throw new Error("Stored conversations is not an array");
+
+        const mappedConversations: Conversation[] = parsedConvsRaw.map((conv: any) => ({
           ...conv,
+          id: conv.id || crypto.randomUUID(),
           createdAt: new Date(conv.createdAt),
-          messages: conv.messages.map((msg: any) => ({
+          messages: (conv.messages || []).map((msg: any) => ({
             ...msg,
+            id: msg.id || crypto.randomUUID(),
             timestamp: new Date(msg.timestamp)
           })),
           isImageMode: conv.toolType === 'long language loops' ? (conv.isImageMode || false) : undefined,
@@ -98,13 +105,14 @@ export default function Home() {
           selectedResponseStyleName: conv.selectedResponseStyleName || (conv.toolType === 'long language loops' ? DEFAULT_RESPONSE_STYLE_NAME : undefined),
         }));
 
-        const activeStoredConversations = parsedConversations.filter(conv => {
-          if (conv.toolType === 'long language loops') {
-            return conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant');
-          }
-          return false; // Only store LLL chats for now
-        });
-        setAllConversations(activeStoredConversations.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        // Filter for valid, storable conversations
+        loadedConversations = mappedConversations.filter(conv => 
+            !isNaN(conv.createdAt.getTime()) &&
+            conv.toolType === 'long language loops' &&
+            conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')
+        );
+        
+        setAllConversations(loadedConversations.sort((a,b) => b.createdAt.getTime() - a.createdAt.getTime()));
       } catch (error) {
         console.error("Failed to parse conversations from localStorage", error);
         localStorage.removeItem('chatConversations');
@@ -123,23 +131,21 @@ export default function Home() {
       }
     }
 
+    // --- Determine Initial View ---
     const storedActiveToolType = localStorage.getItem(ACTIVE_TOOL_TYPE_KEY) as ToolType | null;
     if (storedActiveToolType && toolTileItems.some(item => item.id === storedActiveToolType)) {
       setActiveToolTypeForView(storedActiveToolType);
 
       if (storedActiveToolType === 'long language loops') {
         const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
-        if (storedActiveConvId) {
-          const conv = JSON.parse(storedConversations || '[]').find((c: Conversation) => c.id === storedActiveConvId);
-          if (conv) {
+        // Use the already-loaded conversations instead of re-parsing
+        const conv = storedActiveConvId ? loadedConversations.find(c => c.id === storedActiveConvId) : undefined;
+        if (conv) {
              setActiveConversation(conv);
              setCurrentMessages(conv.messages);
              setCurrentView('chat');
-          } else {
-            setCurrentView('tiles'); 
-          }
         } else {
-            setCurrentView('tiles');
+          setCurrentView('tiles'); 
         }
       } else if (storedActiveToolType === 'nocost imagination') {
         setCurrentView('easyImageLoopTool');
@@ -153,8 +159,9 @@ export default function Home() {
     } else {
         setCurrentView('tiles');
     }
+
     setIsInitialLoadComplete(true);
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
 
   useEffect(() => {
