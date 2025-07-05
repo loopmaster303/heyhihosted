@@ -660,7 +660,7 @@ export default function Home() {
                 />
               ))}
             </div>
-            <footer className="mt-auto pt-10 w-full max-w-4xl">
+            <footer className="mt-20 w-full max-w-4xl text-center">
               <p className="font-code text-sm text-muted-foreground leading-relaxed">
                 {"</hey.hi> is a ai (artificial intelligence) collection to chat with different language models like open ais chatgpt 4o-4.1, mistral, gemini to go on research, general requests. Also for generate images with flux, stable diffusion, imagen 4. Everything accessible for free - for everyone."}
               </p>
