@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -34,10 +35,10 @@ import {
 
 
 const toolTileItems: TileItem[] = [
-  { id: 'long language loops', title: 'long.language.loops' },
-  { id: 'nocost imagination', title: 'nocost.imagination' },
-  { id: 'premium imagination', title: 'premium.imagination' },
-  { id: 'personalization', title: 'import/personalization' },
+  { id: 'long language loops', title: 'chat/long.language.loops' },
+  { id: 'nocost imagination', title: 'generate/images/for/no.cost' },
+  { id: 'premium imagination', title: 'generate/premium.images' },
+  { id: 'personalization', title: 'settings/personalize.chat.experience' },
 ];
 
 const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
@@ -48,8 +49,7 @@ const StaticTileLink: React.FC<{
   item: TileItem;
   onSelect: (id: ToolType) => void;
 }> = ({ item, onSelect }) => {
-  const prefix = item.id === 'personalization' ? '└' : '└run/';
-  const fullLinkText = `${prefix}${item.title}`;
+  const fullLinkText = `└${item.title}`;
 
   return (
     <button
