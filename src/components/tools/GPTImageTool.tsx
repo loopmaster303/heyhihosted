@@ -134,7 +134,9 @@ const GPTImageTool: FC = () => {
           const modelInError = errorData.modelUsed || 'gptimage';
           let displayErrorMsg: string;
 
-          if (status === 402) {
+          if (status >= 500 && status <= 599) {
+            displayErrorMsg = `The image service for the GPT model is temporarily unavailable (Error ${status}). This is likely a problem with the service provider (Pollinations.ai). Please try again in a few minutes.`;
+          } else if (status === 402) {
             let baseUserMessage = `Error 402: Payment Required. Please check your API access or quota for the GPT Image service via Pollinations.`;
             const backendError = errorData.error || '';
             const detailMatch = backendError.match(/402 - (.*)/i);

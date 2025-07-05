@@ -40,9 +40,11 @@ export async function generateImageViaPollinations(
     if (!response.ok) {
       const errorBody = await response.text();
       console.error('Pollinations Image API Error:', response.status, errorBody);
-      throw new Error(
-        `Pollinations Image API request failed with status ${response.status}: ${errorBody}`
-      );
+      let friendlyError = `Pollinations Image API request failed with status ${response.status}: ${errorBody}`;
+      if (response.status >= 500 && response.status <= 599) {
+          friendlyError = `The image service (Pollinations.ai) is temporarily unavailable (Error ${response.status}). This is likely a temporary problem on their side. Please try again in a few minutes.`;
+      }
+      throw new Error(friendlyError);
     }
 
     const contentType = response.headers.get('Content-Type');
