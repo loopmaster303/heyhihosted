@@ -85,51 +85,54 @@ export default function Home() {
   useEffect(() => {
     // --- Load Data from LocalStorage ---
     let loadedConversations: Conversation[] = [];
-    const storedConversations = localStorage.getItem('chatConversations');
-    if (storedConversations) {
-      try {
-        const parsedConvsRaw = JSON.parse(storedConversations);
-        if (!Array.isArray(parsedConvsRaw)) throw new Error("Stored conversations is not an array");
+    try {
+        const storedConversations = localStorage.getItem('chatConversations');
+        if (storedConversations) {
+            const parsedConvsRaw = JSON.parse(storedConversations);
+            if (Array.isArray(parsedConvsRaw)) {
+                const mappedConversations: Conversation[] = parsedConvsRaw.map((conv: any) => ({
+                    ...conv,
+                    id: conv.id || crypto.randomUUID(),
+                    createdAt: new Date(conv.createdAt),
+                    messages: (conv.messages || []).map((msg: any) => ({
+                        ...msg,
+                        id: msg.id || crypto.randomUUID(),
+                        timestamp: new Date(msg.timestamp)
+                    })),
+                    isImageMode: conv.toolType === 'long language loops' ? (conv.isImageMode || false) : undefined,
+                    selectedModelId: conv.selectedModelId || (conv.toolType === 'long language loops' ? DEFAULT_POLLINATIONS_MODEL_ID : undefined),
+                    selectedResponseStyleName: conv.selectedResponseStyleName || (conv.toolType === 'long language loops' ? DEFAULT_RESPONSE_STYLE_NAME : undefined),
+                }));
 
-        const mappedConversations: Conversation[] = parsedConvsRaw.map((conv: any) => ({
-          ...conv,
-          id: conv.id || crypto.randomUUID(),
-          createdAt: new Date(conv.createdAt),
-          messages: (conv.messages || []).map((msg: any) => ({
-            ...msg,
-            id: msg.id || crypto.randomUUID(),
-            timestamp: new Date(msg.timestamp)
-          })),
-          isImageMode: conv.toolType === 'long language loops' ? (conv.isImageMode || false) : undefined,
-          selectedModelId: conv.selectedModelId || (conv.toolType === 'long language loops' ? DEFAULT_POLLINATIONS_MODEL_ID : undefined),
-          selectedResponseStyleName: conv.selectedResponseStyleName || (conv.toolType === 'long language loops' ? DEFAULT_RESPONSE_STYLE_NAME : undefined),
-        }));
-
-        // Filter for valid, storable conversations
-        loadedConversations = mappedConversations.filter(conv => 
-            !isNaN(conv.createdAt.getTime()) &&
-            conv.toolType === 'long language loops' &&
-            conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')
-        );
-        
-        setAllConversations(loadedConversations.sort((a,b) => b.createdAt.getTime() - a.createdAt.getTime()));
-      } catch (error) {
-        console.error("Failed to parse conversations from localStorage", error);
+                loadedConversations = mappedConversations.filter(conv => 
+                    !isNaN(conv.createdAt.getTime()) &&
+                    conv.toolType === 'long language loops' &&
+                    conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')
+                );
+                
+                setAllConversations(loadedConversations.sort((a,b) => b.createdAt.getTime() - a.createdAt.getTime()));
+            } else {
+                console.warn("Stored conversations is not an array, ignoring.");
+                localStorage.removeItem('chatConversations');
+            }
+        }
+    } catch (error) {
+        console.error("Failed to parse conversations from localStorage, clearing it.", error);
         localStorage.removeItem('chatConversations');
-      }
     }
 
-    const storedPersonalization = localStorage.getItem(PERSONALIZATION_SETTINGS_KEY);
-    if (storedPersonalization) {
-      try {
-        const settings = JSON.parse(storedPersonalization);
-        if (settings.userDisplayName) setUserDisplayName(settings.userDisplayName);
-        if (settings.customSystemPrompt) setCustomSystemPrompt(settings.customSystemPrompt);
-      } catch (error) {
-        console.error("Failed to parse personalization settings from localStorage", error);
+    try {
+        const storedPersonalization = localStorage.getItem(PERSONALIZATION_SETTINGS_KEY);
+        if (storedPersonalization) {
+            const settings = JSON.parse(storedPersonalization);
+            if (settings.userDisplayName) setUserDisplayName(settings.userDisplayName);
+            if (settings.customSystemPrompt) setCustomSystemPrompt(settings.customSystemPrompt);
+        }
+    } catch (error) {
+        console.error("Failed to parse personalization settings from localStorage, clearing it.", error);
         localStorage.removeItem(PERSONALIZATION_SETTINGS_KEY);
-      }
     }
+    
 
     // --- Determine Initial View ---
     const storedActiveToolType = localStorage.getItem(ACTIVE_TOOL_TYPE_KEY) as ToolType | null;
@@ -657,6 +660,11 @@ export default function Home() {
                 />
               ))}
             </div>
+            <footer className="mt-auto pt-10 w-full max-w-4xl">
+              <p className="font-code text-sm text-muted-foreground leading-relaxed">
+                {"</hey.hi> is a ai (artificial intelligence) collection to chat with different language models like open ais chatgpt 4o-4.1, mistral, gemini to go on research, general requests. Also for generate images with flux, stable diffusion, imagen 4. Everything accessible for free - for everyone."}
+              </p>
+            </footer>
           </main>
         </>
       ) : (
