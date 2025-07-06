@@ -136,27 +136,17 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     onChange={handleTextareaInput}
                     onKeyDown={handleKeyDown}
                     placeholder={placeholderText}
-                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto pr-10"
+                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
                     rows={1}
                     disabled={isLoading}
                     aria-label="Chat message input"
                     style={{ lineHeight: '1.5rem' }}
                 />
-                <Button
-                    type="submit"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-50"
-                    disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
-                    aria-label="Send message"
-                >
-                    <Send className="h-5 w-5" />
-                </Button>
             </div>
         </form>
 
         {isLongLanguageLoopActive && (
-          <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/10">
+          <div className="flex justify-between items-center mt-2 pt-2">
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -211,6 +201,17 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 disabled={isLoading || !!uploadedFilePreviewUrl}
               >
                 <ImageIcon className={iconSizeClass} strokeWidth={iconStrokeWidth} />
+              </Button>
+              <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={cn("rounded-lg", iconColorClass, "disabled:opacity-50")}
+                  disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
+                  onClick={() => handleSubmit()}
+                  aria-label="Send message"
+                >
+                    <Send className={iconSizeClass} strokeWidth={iconStrokeWidth} />
               </Button>
               <Button
                 type="button"
