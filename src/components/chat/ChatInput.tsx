@@ -128,33 +128,35 @@ const ChatInput: React.FC<ChatInputProps> = ({
       <div
         className="max-w-3xl mx-auto bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]"
       >
-        <form onSubmit={handleSubmit} className="flex items-end gap-2">
-          <Textarea
-            ref={textareaRef}
-            value={inputValue}
-            onChange={handleTextareaInput}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholderText}
-            className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-1 m-0 leading-tight resize-none overflow-y-auto"
-            rows={1}
-            disabled={isLoading}
-            aria-label="Chat message input"
-            style={{ lineHeight: '1.5rem' }}
-          />
-          <Button
-            type="submit"
-            variant="default"
-            size="icon"
-            className="flex-shrink-0 rounded-full"
-            disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
-            aria-label="Send message"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
+        <form onSubmit={handleSubmit} className="w-full">
+            <div className="relative flex w-full items-center">
+                <Textarea
+                    ref={textareaRef}
+                    value={inputValue}
+                    onChange={handleTextareaInput}
+                    onKeyDown={handleKeyDown}
+                    placeholder={placeholderText}
+                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto pr-10"
+                    rows={1}
+                    disabled={isLoading}
+                    aria-label="Chat message input"
+                    style={{ lineHeight: '1.5rem' }}
+                />
+                <Button
+                    type="submit"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
+                    aria-label="Send message"
+                >
+                    <Send className="h-5 w-5" />
+                </Button>
+            </div>
         </form>
 
         {isLongLanguageLoopActive && (
-          <div className="flex justify-between items-center mt-2 pt-1">
+          <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/10">
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
