@@ -34,10 +34,10 @@ import {
 
 
 const toolTileItems: TileItem[] = [
-  { id: 'long language loops', title: 'chat/long.language.loops' },
-  { id: 'nocost imagination', title: 'generate/images/for/no.cost' },
-  { id: 'premium imagination', title: 'generate/premium.images' },
-  { id: 'personalization', title: 'settings/personalize.chat.experience' },
+  { id: 'long language loops', title: 'chat/ai-assistance/free' },
+  { id: 'nocost imagination', title: 'generate/images/free' },
+  { id: 'premium imagination', title: 'generate/images/premium' },
+  { id: 'personalization', title: 'settings/customize/personalize' },
 ];
 
 const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
