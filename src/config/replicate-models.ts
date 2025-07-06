@@ -42,25 +42,6 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min:0, info: "A specific seed to reproduce results. Leave blank for random." },
     ],
   },
-  "flux-kontext-max": {
-    id: "flux-kontext-max",
-    name: "Flux Kontext Max",
-    outputType: "image",
-    description: "Advanced model by Black Forest Labs for contextual image generation, supporting image inputs.",
-    inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: false, placeholder: "Describe your image or modifications...", info:"Text prompt. Can be combined with an input image.", isPrompt: true },
-      { name: "input_image", label: "Input Image", type: "url", info: "Upload an image to use as a reference or base for generation." }, // Type 'url' is for internal data handling; UI handles upload
-      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Cartoonish, simple, ugly", info:"Elements to exclude from the image.", isNegativePrompt: true },
-      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "match_input_image", options: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4"], info: "Desired aspect ratio. 'match_input_image' will use the input image's ratio if provided."},
-      { name: "output_format", label: "Output Format", type: "select", default: "png", options: ["png", "jpg", "webp"], info: "Format for the generated image."},
-      { name: "safety_tolerance", label: "Safety Tolerance", type: "number", default: 2, min:0, max:6, step:1, info: "Adjust safety filter sensitivity (0=strictest, 6=most permissive)."},
-      { name: "width", label: "Width", type: "number", default: 1024, min: 512, max: 1536, step: 64, info:"Width of the output image. May be overridden by aspect_ratio." },
-      { name: "height", label: "Height", type: "number", default: 1024, min: 512, max: 1536, step: 64, info:"Height of the output image. May be overridden by aspect_ratio." },
-      { name: "steps", label: "Steps", type: "number", default: 30, min:10, max:50, step:1, info:"Number of diffusion steps." },
-      { name: "guidance_scale", label: "Guidance Scale", type: "number", default: 7.0, min:1, max:15, step:0.1, info:"Classifier-free guidance scale." },
-      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min:0, info:"Seed for randomization. Blank for random." },
-    ],
-  },
   "flux-kontext-pro": {
     id: "flux-kontext-pro",
     name: "Flux Kontext Pro",
