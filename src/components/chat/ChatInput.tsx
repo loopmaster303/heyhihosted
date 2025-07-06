@@ -5,7 +5,7 @@ import type React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Brain, Fingerprint, ImageIcon, X } from 'lucide-react';
+import { Paperclip, Brain, Fingerprint, ImageIcon, X, Send } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,7 +63,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   }, [inputValue]);
 
 
-  const handleSubmit = (e?: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     if (isLoading) return;
 
@@ -114,7 +114,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const placeholderText = "provide input and hit execute to loop";
+  const placeholderText = "chat with AI";
   const currentSelectedModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
   const currentSelectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0];
 
@@ -128,8 +128,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       <div
         className="max-w-3xl mx-auto bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]"
       >
-        {/* Top part: Textarea and Send button */}
-        <div className="flex items-center"> {/* items-center for vertical alignment */}
+        <form onSubmit={handleSubmit} className="flex items-end gap-2">
           <Textarea
             ref={textareaRef}
             value={inputValue}
@@ -143,27 +142,19 @@ const ChatInput: React.FC<ChatInputProps> = ({
             style={{ lineHeight: '1.5rem' }}
           />
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "ml-2 flex-shrink-0 rounded-lg h-auto px-3 py-1.5 text-base",
-              iconColorClass,
-              "self-center"
-            )}
-            style={{ lineHeight: '1.5rem' }}
+            type="submit"
+            variant="default"
+            size="icon"
+            className="flex-shrink-0 rounded-full"
             disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
-            onClick={handleSubmit}
-            aria-label="Execute command"
+            aria-label="Send message"
           >
-            execute
+            <Send className="h-5 w-5" />
           </Button>
-        </div>
+        </form>
 
-        {/* Bottom Controls Row - Only shown if LLL is active */}
         {isLongLanguageLoopActive && (
           <div className="flex justify-between items-center mt-2 pt-1">
-            {/* Left Controls */}
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -202,7 +193,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
               </DropdownMenu>
             </div>
 
-            {/* Right Controls */}
             <div className="flex items-center gap-2">
               <Button
                 type="button"
