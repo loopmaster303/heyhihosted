@@ -31,13 +31,13 @@ const LOCAL_STORAGE_KEY = 'visualizingLoopsToolSettings';
 const VisualizingLoopsTool: FC = () => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
-  const [imageModels, setImageModels] = useState<string[]>(FALLBACK_MODELS);
+  const [imageModels, setImageModels] = useState<string[]>([]);
   const [model, setModel] = useState<string>(DEFAULT_MODEL);
   
   const [width, setWidth] = useState([1024]);
   const [height, setHeight] = useState([1024]);
   const [seed, setSeed] = useState<string>('');
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(true);
   const [upsampling, setUpsampling] = useState(false);
   const [transparent, setTransparent] = useState(false);
 
@@ -68,7 +68,8 @@ const VisualizingLoopsTool: FC = () => {
         setImageModels(FALLBACK_MODELS);
         setModel(DEFAULT_MODEL);
       });
-  }, []); // Ran once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -325,3 +326,5 @@ const VisualizingLoopsTool: FC = () => {
 };
 
 export default VisualizingLoopsTool;
+
+    
