@@ -27,7 +27,7 @@ import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } fro
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -530,7 +530,7 @@ const ReplicateImageTool: React.FC = () => {
                   align="end"
                   collisionPadding={10}
                 >
-                  <div className="grid gap-4 p-3 overflow-y-auto">
+                  <div className="grid gap-4 p-3 overflow-y-auto max-h-[inherit]">
                       {currentModelConfig && (
                         <>
                           <div className="space-y-1 px-1">
