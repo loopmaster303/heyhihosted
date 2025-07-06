@@ -201,7 +201,7 @@ const VisualizingLoopsTool: FC = () => {
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="[import, creativity — prompt] !execute"
+              placeholder="Describe what you imagine and hit execute."
               className="bg-input border-border focus-visible:ring-primary h-10"
               aria-label="Image prompt for Pollinations models"
             />
@@ -326,5 +326,3 @@ const VisualizingLoopsTool: FC = () => {
 };
 
 export default VisualizingLoopsTool;
-
-    
