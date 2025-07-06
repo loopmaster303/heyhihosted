@@ -23,6 +23,7 @@ import {
 import Image from 'next/image';
 import { Loader2, MoreHorizontal } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { Input } from '@/components/ui/input';
 
 const FALLBACK_MODELS = ['flux', 'turbo', 'gptimage'];
 const DEFAULT_MODEL = 'flux';
