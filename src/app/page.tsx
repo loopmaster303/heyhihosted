@@ -648,7 +648,7 @@ export default function Home() {
       {currentView === 'tiles' ? (
         <>
           <AppHeader onNavigateToTiles={handleGoBackToTilesView} />
-          <main className="flex-grow container mx-auto px-4 sm:px-6 py-10 flex flex-col items-start justify-start overflow-y-auto">
+          <main className="flex-grow container mx-auto px-4 sm:px-6 py-10 flex flex-col items-center justify-start overflow-y-auto">
             <div className="flex flex-col items-start justify-start space-y-3">
               {toolTileItems.map((item) => (
                 <StaticTileLink
