@@ -27,8 +27,6 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   { id: 'sur', name: 'Sur AI Assistant', vision: true },
   { id: 'mirexa', name: 'Mirexa AI Companion', vision: true },
   { id: 'bidara', name: 'BIDARA (NASA)', vision: true },
-  { id: 'midijourney', name: 'MIDIjourney', vision: false },
-  { id: 'rtist', name: 'Rtist', vision: false },
 ];
 
 export const AVAILABLE_RESPONSE_STYLES: ResponseStyle[] = [
@@ -120,4 +118,3 @@ export const getDefaultSystemPrompt = (): string => {
 // Image generation specific model lists
 export const POLLINATIONS_IMAGE_MODELS = ['flux', 'turbo'];
 export const DEFAULT_POLLINATIONS_IMAGE_MODEL = 'flux';
-
