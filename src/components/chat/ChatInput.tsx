@@ -128,20 +128,31 @@ const ChatInput: React.FC<ChatInputProps> = ({
       <div
         className="max-w-3xl mx-auto bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]"
       >
-        <form onSubmit={handleSubmit} className="w-full">
-            <div className="relative flex w-full items-center">
+        <form onSubmit={handleSubmit} className="w-full flex-grow">
+            <div className="relative flex w-full h-full items-start">
                 <Textarea
                     ref={textareaRef}
                     value={inputValue}
                     onChange={handleTextareaInput}
                     onKeyDown={handleKeyDown}
                     placeholder={placeholderText}
-                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 pr-14 m-0 leading-tight resize-none overflow-y-auto"
                     rows={1}
                     disabled={isLoading}
                     aria-label="Chat message input"
                     style={{ lineHeight: '1.5rem' }}
                 />
+                 <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-2 text-foreground/80 hover:text-foreground"
+                    disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
+                    onClick={() => handleSubmit()}
+                    aria-label="Send message"
+                  >
+                      <Send className={iconSizeClass} strokeWidth={iconStrokeWidth} />
+                </Button>
             </div>
         </form>
 
@@ -201,17 +212,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 disabled={isLoading || !!uploadedFilePreviewUrl}
               >
                 <ImageIcon className={iconSizeClass} strokeWidth={iconStrokeWidth} />
-              </Button>
-              <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={cn("rounded-lg", iconColorClass, "disabled:opacity-50")}
-                  disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
-                  onClick={() => handleSubmit()}
-                  aria-label="Send message"
-                >
-                    <Send className={iconSizeClass} strokeWidth={iconStrokeWidth} />
               </Button>
               <Button
                 type="button"
