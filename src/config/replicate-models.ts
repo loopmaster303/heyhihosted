@@ -42,24 +42,6 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min:0, info: "A specific seed to reproduce results. Leave blank for random." },
     ],
   },
-  "flux-schnell": {
-    id: "flux-schnell",
-    name: "Flux Schnell",
-    outputType: "image",
-    description: "Fast text-to-image generation by Black Forest Labs.",
-    inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A majestic eagle soaring through the mountains...", info: "The main text prompt describing the image you want to generate.", isPrompt: true },
-      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Blurry, low quality, text, watermark", info: "Specify elements you want to avoid in the image.", isNegativePrompt: true },
-      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "1:1", options: ["1:1", "16:9", "9:16", "4:3", "3:4"], info: "Aspect ratio of the generated image." },
-      { name: "output_format", label: "Output Format", type: "select", default: "png", options: ["png", "jpg", "webp"], info: "Format for the generated image."},
-      { name: "safety_tolerance", label: "Safety Tolerance", type: "number", default: 2, min:0, max:6, step:1, info: "Adjust safety filter sensitivity (0=strictest, 6=most permissive)."},
-      { name: "width", label: "Width", type: "number", default: 1024, min: 512, max: 1536, step: 64, info:"Width of the output image. May be overridden by aspect_ratio." },
-      { name: "height", label: "Height", type: "number", default: 1024, min: 512, max: 1536, step: 64, info:"Height of the output image. May be overridden by aspect_ratio." },
-      { name: "steps", label: "Steps", type: "number", default: 28, min:10, max:50, step:1, info:"Number of diffusion steps." },
-      { name: "guidance_scale", label: "Guidance Scale", type: "number", default: 6.0, min:1, max:15, step:0.1, info:"Classifier-free guidance scale." },
-      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min:0, info:"Seed for randomization. Blank for random." },
-    ]
-  },
   "flux-kontext-max": {
     id: "flux-kontext-max",
     name: "Flux Kontext Max",
