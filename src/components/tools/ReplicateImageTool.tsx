@@ -519,7 +519,7 @@ const ReplicateImageTool: React.FC = () => {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
-                      <ScrollArea className="max-h-[60vh] sm:max-h-80 pr-3">
+                      <ScrollArea className="max-h-[60vh] sm:max-h-[500px] pr-3">
                         <div className="grid gap-4 p-1">
                           {currentModelConfig && (
                             <>
@@ -574,7 +574,7 @@ const ReplicateImageTool: React.FC = () => {
             {loading && <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />}
             {error && !loading && (
                 <div className="text-destructive flex flex-col items-center space-y-2 max-w-md mx-auto">
-                    <AlertCircle className="w-8 h-8 sm:w-10 sm:h-10 mb-2"/>
+                    <AlertCircle className="w-8 h-8 sm:w-10 sm:w-10 mb-2"/>
                     <p className="font-semibold text-md sm:text-lg">Generation Error</p>
                     <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
                 </div>

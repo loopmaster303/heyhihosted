@@ -5,6 +5,7 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "imagen-4-ultra": "google/imagen-4-ultra",
   "flux-kontext-max": "black-forest-labs/flux-kontext-max",
   "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
+  "flux-schnell": "black-forest-labs/flux.1-schnell",
   "veo-3": "google/veo-3"
 };
 
