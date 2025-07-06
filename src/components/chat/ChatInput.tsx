@@ -129,110 +129,109 @@ const ChatInput: React.FC<ChatInputProps> = ({
         className="max-w-3xl mx-auto bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]"
       >
         <form onSubmit={handleSubmit} className="w-full flex-grow">
-            <div className="relative flex w-full h-full items-start">
+            <div className="flex w-full items-start gap-2">
                 <Textarea
                     ref={textareaRef}
                     value={inputValue}
                     onChange={handleTextareaInput}
                     onKeyDown={handleKeyDown}
                     placeholder={placeholderText}
-                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 pr-14 m-0 leading-tight resize-none overflow-y-auto"
+                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
                     rows={1}
                     disabled={isLoading}
                     aria-label="Chat message input"
                     style={{ lineHeight: '1.5rem' }}
                 />
                  <Button
-                    type="button"
+                    type="submit"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-2 text-foreground/80 hover:text-foreground"
+                    className="text-foreground/80 hover:text-foreground"
                     disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
-                    onClick={() => handleSubmit()}
                     aria-label="Send message"
                   >
                       <Send className={iconSizeClass} strokeWidth={iconStrokeWidth} />
                 </Button>
             </div>
+            
+            {isLongLanguageLoopActive && (
+              <div className="flex justify-between items-center mt-2 pt-2">
+                <div className="flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="Select AI Model">
+                        <Brain className="w-5 h-5 mr-1.5" strokeWidth={iconStrokeWidth}/>
+                        <span className="text-xs font-medium">{currentSelectedModel.name}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel>Select Model</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
+                        <DropdownMenuItem key={model.id} onClick={() => handleSelectModel(model)} className={selectedModelId === model.id ? "bg-accent" : ""}>
+                          {model.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="Select Response Style">
+                        <Fingerprint className="w-5 h-5 mr-1.5" strokeWidth={iconStrokeWidth} />
+                        <span className="text-xs font-medium">{currentSelectedStyle.name}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel>Response Style</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {AVAILABLE_RESPONSE_STYLES.map((style) => (
+                        <DropdownMenuItem key={style.name} onClick={() => handleSelectStyle(style)} className={selectedResponseStyleName === style.name ? "bg-accent" : ""}>
+                          {style.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                        "rounded-lg",
+                        iconColorClass,
+                        isImageModeActive && "bg-accent text-accent-foreground"
+                    )}
+                    onClick={onToggleImageMode}
+                    aria-label={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
+                    title={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
+                    disabled={isLoading || !!uploadedFilePreviewUrl}
+                  >
+                    <ImageIcon className={iconSizeClass} strokeWidth={iconStrokeWidth} />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn("rounded-lg", iconColorClass)}
+                    onClick={() => {
+                        if (uploadedFilePreviewUrl) {
+                            onFileSelect(null);
+                        } else {
+                            fileInputRef.current?.click();
+                        }
+                    }}
+                    title={uploadedFilePreviewUrl ? "Clear uploaded image" : "Attach file"}
+                    disabled={isLoading || isImageModeActive}
+                  >
+                    {uploadedFilePreviewUrl ? <X className={iconSizeClass} strokeWidth={iconStrokeWidth} /> : <Paperclip className={iconSizeClass} strokeWidth={iconStrokeWidth} />}
+                  </Button>
+                </div>
+              </div>
+            )}
         </form>
-
-        {isLongLanguageLoopActive && (
-          <div className="flex justify-between items-center mt-2 pt-2">
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="Select AI Model">
-                    <Brain className="w-5 h-5 mr-1.5" strokeWidth={iconStrokeWidth}/>
-                    <span className="text-xs font-medium">{currentSelectedModel.name}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuLabel>Select Model</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
-                    <DropdownMenuItem key={model.id} onClick={() => handleSelectModel(model)} className={selectedModelId === model.id ? "bg-accent" : ""}>
-                      {model.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="Select Response Style">
-                    <Fingerprint className="w-5 h-5 mr-1.5" strokeWidth={iconStrokeWidth} />
-                    <span className="text-xs font-medium">{currentSelectedStyle.name}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuLabel>Response Style</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {AVAILABLE_RESPONSE_STYLES.map((style) => (
-                    <DropdownMenuItem key={style.name} onClick={() => handleSelectStyle(style)} className={selectedResponseStyleName === style.name ? "bg-accent" : ""}>
-                      {style.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className={cn(
-                    "rounded-lg",
-                    iconColorClass,
-                    isImageModeActive && "bg-accent text-accent-foreground"
-                )}
-                onClick={onToggleImageMode}
-                aria-label={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
-                title={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
-                disabled={isLoading || !!uploadedFilePreviewUrl}
-              >
-                <ImageIcon className={iconSizeClass} strokeWidth={iconStrokeWidth} />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className={cn("rounded-lg", iconColorClass)}
-                onClick={() => {
-                    if (uploadedFilePreviewUrl) {
-                        onFileSelect(null);
-                    } else {
-                        fileInputRef.current?.click();
-                    }
-                }}
-                title={uploadedFilePreviewUrl ? "Clear uploaded image" : "Attach file"}
-                disabled={isLoading || isImageModeActive}
-              >
-                {uploadedFilePreviewUrl ? <X className={iconSizeClass} strokeWidth={iconStrokeWidth} /> : <Paperclip className={iconSizeClass} strokeWidth={iconStrokeWidth} />}
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
        <input
           type="file"
