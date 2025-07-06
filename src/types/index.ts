@@ -1,4 +1,5 @@
 
+
 export type ChatMessageContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean } };
@@ -36,3 +37,14 @@ export interface TileItem {
 }
 
 export type CurrentAppView = 'tiles' | 'chat' | 'easyImageLoopTool' | 'replicateImageTool' | 'personalizationTool';
+
+export interface ImageHistoryItem {
+  id: string;
+  imageUrl: string;
+  prompt: string;
+  model: string;
+  timestamp: string; // ISO string for easy storage/retrieval
+  toolType: 'nocost imagination' | 'premium imagination';
+  // Optional field for video URLs
+  videoUrl?: string;
+}

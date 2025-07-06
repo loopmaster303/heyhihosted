@@ -4,7 +4,7 @@
 import { useState, useEffect, FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -21,13 +21,25 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import Image from 'next/image';
-import { Loader2, MoreHorizontal } from 'lucide-react';
+import { Loader2, MoreHorizontal, AlertCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Input } from '@/components/ui/input';
+import type { ImageHistoryItem } from '@/types';
+import ImageHistoryGallery from './ImageHistoryGallery';
 
 const FALLBACK_MODELS = ['flux', 'turbo', 'gptimage'];
 const DEFAULT_MODEL = 'flux';
 const LOCAL_STORAGE_KEY = 'visualizingLoopsToolSettings';
+const HISTORY_STORAGE_KEY = 'visualizingLoopsHistory';
+
+const blobToDataUrl = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
 
 const VisualizingLoopsTool: FC = () => {
   const { toast } = useToast();
@@ -48,8 +60,10 @@ const VisualizingLoopsTool: FC = () => {
   const [aspectRatio, setAspectRatio] = useState<string>('1:1');
   const [batchSize, setBatchSize] = useState<number>(1);
   
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [history, setHistory] = useState<ImageHistoryItem[]>([]);
+  const [selectedImage, setSelectedImage] = useState<ImageHistoryItem | null>(null);
 
+  // Load models on mount
   useEffect(() => {
     fetch('/api/image/models')
       .then(res => {
@@ -72,10 +86,11 @@ const VisualizingLoopsTool: FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load settings and history from localStorage
   useEffect(() => {
-    const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedSettings) {
-      try {
+    try {
+      const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedSettings) {
         const settings = JSON.parse(storedSettings);
         if (settings.prompt !== undefined) setPrompt(settings.prompt);
         if (settings.model !== undefined && (imageModels.length === 0 ? FALLBACK_MODELS : imageModels).includes(settings.model)) setModel(settings.model);
@@ -87,19 +102,45 @@ const VisualizingLoopsTool: FC = () => {
         if (settings.transparent !== undefined) setTransparent(settings.transparent);
         if (settings.aspectRatio !== undefined) setAspectRatio(settings.aspectRatio);
         if (settings.batchSize !== undefined) setBatchSize(settings.batchSize);
-      } catch (e) {
-        console.error("Failed to parse settings from localStorage", e);
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
       }
+    } catch (e) {
+      console.error("Failed to parse settings from localStorage", e);
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    }
+
+    try {
+        const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
+        if (storedHistory) {
+            const parsedHistory = JSON.parse(storedHistory);
+            if(Array.isArray(parsedHistory)) {
+                setHistory(parsedHistory);
+                if (parsedHistory.length > 0) {
+                    setSelectedImage(parsedHistory[0]);
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to parse history from localStorage", e);
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
     }
   }, [imageModels]);
 
+  // Save settings to localStorage
   useEffect(() => {
     const settingsToSave = {
       prompt, model, width, height, seed, isPrivate, upsampling, transparent, aspectRatio, batchSize,
     };
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settingsToSave));
   }, [prompt, model, width, height, seed, isPrivate, upsampling, transparent, aspectRatio, batchSize]);
+
+  // Save history to localStorage
+  useEffect(() => {
+    if (history.length > 0) {
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+    } else {
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
+    }
+  }, [history]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -108,10 +149,10 @@ const VisualizingLoopsTool: FC = () => {
     }
     setLoading(true);
     setError('');
-    setImageUrls([]);
+    setSelectedImage(null);
     
     const endpoint = model === 'gptimage' ? '/api/openai-image' : '/api/generate';
-    const generatedUrls: string[] = [];
+    const newHistoryItems: ImageHistoryItem[] = [];
 
     for (let i = 0; i < batchSize; i++) {
       let currentSeedForIteration: string | undefined = seed.trim() || undefined;
@@ -157,7 +198,16 @@ const VisualizingLoopsTool: FC = () => {
 
         const blob = await resp.blob();
         if (blob.type.startsWith('image/')) {
-          generatedUrls.push(URL.createObjectURL(blob));
+          const imageUrl = await blobToDataUrl(blob);
+          const newItem: ImageHistoryItem = {
+            id: crypto.randomUUID(),
+            imageUrl,
+            prompt: prompt.trim(),
+            model: model,
+            timestamp: new Date().toISOString(),
+            toolType: 'nocost imagination',
+          };
+          newHistoryItems.push(newItem);
         } else {
           const errorText = await blob.text();
           const displayError = `Received non-image data (Model: ${model}): ${errorText.substring(0, 100)}`;
@@ -172,7 +222,11 @@ const VisualizingLoopsTool: FC = () => {
         break;
       }
     }
-    setImageUrls(generatedUrls);
+
+    if (newHistoryItems.length > 0) {
+      setHistory(prev => [...newHistoryItems, ...prev]);
+      setSelectedImage(newHistoryItems[0]);
+    }
     setLoading(false);
   };
 
@@ -195,6 +249,14 @@ const VisualizingLoopsTool: FC = () => {
     e.preventDefault();
     handleGenerate();
   };
+
+  const handleClearHistory = () => {
+    setHistory([]);
+    setSelectedImage(null);
+    localStorage.removeItem(HISTORY_STORAGE_KEY);
+    toast({ title: "History Cleared", description: "Your image generation history has been removed." });
+  };
+
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
@@ -310,35 +372,47 @@ const VisualizingLoopsTool: FC = () => {
         </form>
       
         <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
-          <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-lg">
-            {loading && <Loader2 className="h-10 w-10 animate-spin text-primary" />}
-            {error && !loading && <p className="text-destructive font-semibold">{error}</p>}
-            {!loading && !error && imageUrls.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4 w-full h-full overflow-y-auto p-1 md:p-2">
-                {imageUrls.map((url, idx) => (
-                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="block relative aspect-square group rounded-md overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-                    <Image 
-                      src={url} 
-                      alt={`Generated image ${idx + 1} for prompt: ${prompt}`} 
-                      fill 
-                      style={{ objectFit: "contain" }}
-                      className="bg-muted/20"
-                      data-ai-hint="digital art wallpaper"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <p className="text-white text-xs p-1 bg-black/70 rounded">View Full Image</p>
-                    </div>
-                  </a>
-                ))}
+          <CardHeader className="py-3 px-4 border-b border-border">
+              <CardTitle className="text-base sm:text-lg">Output</CardTitle>
+          </CardHeader>
+          <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-b-lg">
+             {loading && <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />}
+             {error && !loading && (
+              <div className="text-destructive flex flex-col items-center space-y-2 max-w-md mx-auto">
+                  <AlertCircle className="w-8 h-8 sm:w-10 sm:w-10 mb-2"/>
+                  <p className="font-semibold text-md sm:text-lg">Generation Error</p>
+                  <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
               </div>
+              )}
+            {!loading && !error && selectedImage && (
+              <a href={selectedImage.imageUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
+                <Image
+                  src={selectedImage.imageUrl}
+                  alt={`Generated image for: ${selectedImage.prompt}`}
+                  fill
+                  style={{ objectFit: 'contain' }}
+                  className="rounded-md"
+                  data-ai-hint="ai generated digital art"
+                />
+                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
+                    <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
+                </div>
+              </a>
             )}
-            {!loading && !error && imageUrls.length === 0 && (
+            {!loading && !error && !selectedImage && (
               <div className="text-muted-foreground flex flex-col items-center space-y-2 font-code">
                   <p className="text-lg">{`</export>`}</p>
               </div>
             )}
           </CardContent>
         </Card>
+        
+        <ImageHistoryGallery
+            history={history}
+            onSelectImage={setSelectedImage}
+            onClearHistory={handleClearHistory}
+        />
+
       </div>
     </div>
   );

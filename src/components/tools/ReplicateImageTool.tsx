@@ -30,8 +30,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import type { ImageHistoryItem } from '@/types';
+import ImageHistoryGallery from './ImageHistoryGallery';
+
 
 const REPLICATE_TOOL_SETTINGS_KEY = 'replicateImageToolSettings';
+const HISTORY_STORAGE_KEY = 'replicateToolHistory';
 
 const ReplicateImageTool: React.FC = () => {
   const { toast } = useToast();
@@ -42,20 +46,19 @@ const ReplicateImageTool: React.FC = () => {
   const [formFields, setFormFields] = useState<Record<string, any>>({});
   const [mainPromptValue, setMainPromptValue] = useState('');
 
-  const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // For single-image models like Flux
-  const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
   const singleFileInputRef = useRef<HTMLInputElement>(null);
 
-  // For multi-image models like Runway Gen-4
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [referenceTags, setReferenceTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
   const multiFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [history, setHistory] = useState<ImageHistoryItem[]>([]);
+  const [selectedImage, setSelectedImage] = useState<ImageHistoryItem | null>(null);
 
 
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
@@ -79,6 +82,23 @@ const ReplicateImageTool: React.FC = () => {
     } else if (modelKeys.length > 0) {
       setSelectedModelKey(modelKeys[0]); 
     }
+
+    try {
+        const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
+        if (storedHistory) {
+            const parsedHistory = JSON.parse(storedHistory);
+            if(Array.isArray(parsedHistory)) {
+                setHistory(parsedHistory);
+                if (parsedHistory.length > 0) {
+                    setSelectedImage(parsedHistory[0]);
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to parse history from localStorage", e);
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
+    }
+
     setInitialLoadComplete(true);
   }, []); 
 
@@ -127,9 +147,7 @@ const ReplicateImageTool: React.FC = () => {
       setReferenceImages([]);
       setReferenceTags([]);
 
-      setOutputUrl(null);
       setError(null);
-      setUploadedImageFile(null);
       setUploadedImagePreview(null);
     } else {
       setCurrentModelConfig(null);
@@ -150,6 +168,14 @@ const ReplicateImageTool: React.FC = () => {
   }, [selectedModelKey, mainPromptValue, formFields, currentModelConfig, initialLoadComplete]);
 
 
+  useEffect(() => {
+    if (history.length > 0) {
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+    } else {
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
+    }
+  }, [history]);
+
   const handleInputChange = useCallback((name: string, value: string | number | boolean) => {
     setFormFields(prevFields => ({ ...prevFields, [name]: value }));
   }, []);
@@ -163,7 +189,6 @@ const ReplicateImageTool: React.FC = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const dataUri = reader.result as string;
-        setUploadedImageFile(file);
         setUploadedImagePreview(dataUri);
         if (isFluxModelSelected) { 
             setFormFields(prev => ({...prev, input_image: dataUri }));
@@ -172,7 +197,6 @@ const ReplicateImageTool: React.FC = () => {
       reader.readAsDataURL(file);
     } else if (file) {
       toast({ title: "Invalid File", description: "Please upload an image file.", variant: "destructive" });
-      setUploadedImageFile(null);
       setUploadedImagePreview(null);
       if (isFluxModelSelected) { 
         setFormFields(prev => ({...prev, input_image: undefined }));
@@ -188,7 +212,6 @@ const ReplicateImageTool: React.FC = () => {
   };
   
   const handleClearUploadedImage = () => {
-    setUploadedImageFile(null);
     setUploadedImagePreview(null);
     if (isFluxModelSelected) { 
         setFormFields(prev => ({...prev, input_image: undefined }));
@@ -510,7 +533,7 @@ const ReplicateImageTool: React.FC = () => {
 
     setLoading(true);
     setError(null);
-    setOutputUrl(null);
+    setSelectedImage(null);
 
     try {
       const response = await fetch('/api/replicate', {
@@ -526,9 +549,21 @@ const ReplicateImageTool: React.FC = () => {
       }
 
       if (data.output) {
+        const isVideo = currentModelConfig?.outputType === 'video';
         const resultUrl = Array.isArray(data.output) ? data.output[0] : data.output;
+        
         if (typeof resultUrl === 'string' && resultUrl.trim() !== '') {
-            setOutputUrl(resultUrl);
+            const newHistoryItem: ImageHistoryItem = {
+              id: crypto.randomUUID(),
+              imageUrl: isVideo ? '' : resultUrl,
+              videoUrl: isVideo ? resultUrl : undefined,
+              prompt: mainPromptValue,
+              model: currentModelConfig.name,
+              timestamp: new Date().toISOString(),
+              toolType: 'premium imagination'
+            };
+            setHistory(prev => [newHistoryItem, ...prev]);
+            setSelectedImage(newHistoryItem);
             toast({ title: "Generation Succeeded!", description: `${currentModelConfig.name} finished processing.` });
         } else {
             console.warn("Replicate API returned success but output URL was empty or invalid:", data.output);
@@ -558,7 +593,13 @@ const ReplicateImageTool: React.FC = () => {
     }
   };
 
-  const isVideoOutput = currentModelConfig?.outputType === 'video';
+  const handleClearHistory = () => {
+    setHistory([]);
+    setSelectedImage(null);
+    localStorage.removeItem(HISTORY_STORAGE_KEY);
+    toast({ title: "History Cleared", description: "Your image generation history has been removed." });
+  };
+
   
   const canSubmit = !loading && currentModelConfig &&
     ( (isFluxModelSelected && (mainPromptValue.trim() !== '' || uploadedImagePreview)) ||
@@ -718,27 +759,30 @@ const ReplicateImageTool: React.FC = () => {
                   <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
               </div>
               )}
-          {!loading && !error && outputUrl && (
+          {!loading && !error && selectedImage && (
               <div className={cn(
                   "relative w-full h-full", 
-                  isVideoOutput 
+                  selectedImage.videoUrl
                       ? "aspect-video max-h-[calc(100vh-400px)]" 
                       : "aspect-square max-h-[calc(100vh-400px)]" 
               )}>
-              {isVideoOutput ? (
+              {selectedImage.videoUrl ? (
                   <video
-                      src={outputUrl}
+                      src={selectedImage.videoUrl}
                       controls
+                      autoPlay
+                      muted
+                      loop
                       className="rounded-md w-full h-full object-contain"
                       data-ai-hint="ai generated video"
                   >
                       Your browser does not support the video tag.
                   </video>
               ) : (
-                  <a href={outputUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
+                  <a href={selectedImage.imageUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
                       <NextImage
-                      src={outputUrl}
-                      alt={`Generated using ${currentModelConfig?.name || 'Replicate model'}`}
+                      src={selectedImage.imageUrl}
+                      alt={`Generated using ${selectedImage.model}`}
                       fill
                       style={{ objectFit: "contain" }}
                       className="rounded-md"
@@ -751,13 +795,19 @@ const ReplicateImageTool: React.FC = () => {
               )}
               </div>
           )}
-          {!loading && !error && !outputUrl && (
+          {!loading && !error && !selectedImage && (
               <div className="text-muted-foreground flex flex-col items-center space-y-2 font-code">
                   <p className="text-lg">{`</export>`}</p>
               </div>
           )}
           </CardContent>
         </Card>
+
+         <ImageHistoryGallery
+            history={history}
+            onSelectImage={setSelectedImage}
+            onClearHistory={handleClearHistory}
+        />
       </div>
     </div>
   );
