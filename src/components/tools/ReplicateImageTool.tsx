@@ -516,12 +516,16 @@ const ReplicateImageTool: React.FC = () => {
                     <MoreHorizontal className="h-5 w-5" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
-                  <ScrollArea className="max-h-[60vh] sm:max-h-[500px] pr-3">
-                    <div className="grid gap-4 p-1">
+                <PopoverContent 
+                  className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border max-h-[65vh] overflow-y-auto p-0" 
+                  side="bottom" 
+                  align="end"
+                  collisionPadding={10}
+                >
+                  <div className="grid gap-4 p-3">
                       {currentModelConfig && (
                         <>
-                          <div className="space-y-1">
+                          <div className="space-y-1 px-1">
                             <h4 className="font-medium leading-none">{currentModelConfig.name} Parameters</h4>
                             <p className="text-xs text-muted-foreground">Adjust advanced options for generation.</p>
                           </div>
@@ -536,9 +540,8 @@ const ReplicateImageTool: React.FC = () => {
                           </div>
                         </>
                       )}
-                        {!currentModelConfig && <p className="text-sm text-muted-foreground p-4 text-center">Select a model to see its parameters.</p>}
-                    </div>
-                  </ScrollArea>
+                      {!currentModelConfig && <p className="text-sm text-muted-foreground p-4 text-center">Select a model to see its parameters.</p>}
+                  </div>
                 </PopoverContent>
               </Popover>
               <Button type="submit" disabled={!canSubmit} size="default" className="h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm">
