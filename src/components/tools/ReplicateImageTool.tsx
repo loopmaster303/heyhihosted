@@ -565,22 +565,30 @@ const ReplicateImageTool: React.FC = () => {
 
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground">
-      <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-y-auto">
+      <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
         <form onSubmit={handleSubmit}>
           <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
             <Textarea
               value={mainPromptValue}
               onChange={handleMainPromptChange}
               placeholder="Describe what you imagine (or want to modify) and hit execute!"
-              className="flex-grow min-h-[80px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2"
+              className="flex-grow min-h-[80px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
               rows={3}
               disabled={loading || !currentModelConfig}
               aria-label="Main prompt input"
             />
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              className="absolute top-3 right-3 h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Execute
+            </Button>
             
-            <div className="flex items-center justify-between pt-2 px-1">
-              <div className="flex items-center space-x-1">
+            <div className="flex items-center justify-end pt-2 px-1">
+              <div className="flex items-center space-x-1.5">
                 {isFluxModelSelected && (
                   <TooltipProvider>
                     <Tooltip>
@@ -602,18 +610,6 @@ const ReplicateImageTool: React.FC = () => {
                   </TooltipProvider>
                 )}
                 
-              </div>
-              <div className="flex-grow flex justify-center">
-                  <Button
-                  type="submit"
-                  disabled={!canSubmit}
-                  className="h-8 px-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                  Execute
-                </Button>
-              </div>
-              <div className="flex items-center space-x-1.5">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -658,6 +654,7 @@ const ReplicateImageTool: React.FC = () => {
                             </div>
                             <div className="grid gap-3">
                               {currentModelConfig.inputs
+                                .filter(input => !input.isPrompt)
                                 .map(input => renderInputField(input))}
                             </div>
                           </>
