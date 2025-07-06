@@ -451,7 +451,7 @@ const ReplicateImageTool: React.FC = () => {
 
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background text-foreground">
+    <div className="flex flex-col h-full bg-background text-foreground">
       <ScrollArea className="flex-grow">
         <div className="p-4 md:p-6 space-y-4 md:space-y-6">
           <form onSubmit={handleSubmit}>
