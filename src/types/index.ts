@@ -35,4 +35,4 @@ export interface TileItem {
   description?: string;
 }
 
-export type CurrentAppView = 'tiles' | 'chat' | 'easyImageLoopTool' | 'gptImageTool' | 'replicateImageTool' | 'personalizationTool';
+export type CurrentAppView = 'tiles' | 'chat' | 'easyImageLoopTool' | 'replicateImageTool' | 'personalizationTool';

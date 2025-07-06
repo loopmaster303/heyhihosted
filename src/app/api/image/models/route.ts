@@ -1,12 +1,11 @@
 
 import { NextResponse } from 'next/server';
 
-const SUPPORTED_POLLINATIONS_MODELS = ['flux', 'turbo']; // "gptimage" is now handled by a separate flow
+const SUPPORTED_POLLINATIONS_MODELS = ['flux', 'turbo', 'gptimage']; // "gptimage" is now a selectable option
 
 export async function GET() {
   try {
-    // Pollinations might still list 'gptimage', but we filter it out here
-    // as our app now has a dedicated OpenAI path for it.
+    // We now fetch all models and filter to our supported list, which includes gptimage.
     const resp = await fetch('https://image.pollinations.ai/models', { cache: 'no-store' });
     if (!resp.ok) {
       const text = await resp.text();
@@ -18,9 +17,10 @@ export async function GET() {
     }
     const modelsData = await resp.json(); 
     if (Array.isArray(modelsData) && modelsData.every(item => typeof item === 'string')) {
+      // Filter the fetched models against our explicit list of supported ones.
       const filteredModels = modelsData.filter(model => SUPPORTED_POLLINATIONS_MODELS.includes(model));
       if (filteredModels.length === 0) { 
-        // If API returns empty or only gptimage, fallback to our known good ones
+        // If API returns empty or none of our supported models, fallback to our known good ones
         return NextResponse.json({ models: SUPPORTED_POLLINATIONS_MODELS });
       }
       return NextResponse.json({ models: filteredModels });

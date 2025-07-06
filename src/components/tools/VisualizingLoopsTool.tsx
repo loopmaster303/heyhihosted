@@ -21,25 +21,25 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import Image from 'next/image';
-import { Loader2, Settings } from 'lucide-react'; // Removed ImagePlus
+import { Loader2, Settings } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
-const SUPPORTED_POLLINATIONS_MODELS = ['flux', 'turbo'];
-const DEFAULT_POLLINATIONS_MODEL = 'flux';
+const FALLBACK_MODELS = ['flux', 'turbo', 'gptimage'];
+const DEFAULT_MODEL = 'flux';
 const LOCAL_STORAGE_KEY = 'visualizingLoopsToolSettings';
 
 const VisualizingLoopsTool: FC = () => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
-  const [imageModels, setImageModels] = useState<string[]>(SUPPORTED_POLLINATIONS_MODELS);
-  const [model, setModel] = useState<string>(DEFAULT_POLLINATIONS_MODEL); 
+  const [imageModels, setImageModels] = useState<string[]>(FALLBACK_MODELS);
+  const [model, setModel] = useState<string>(DEFAULT_MODEL);
   
   const [width, setWidth] = useState([1024]);
   const [height, setHeight] = useState([1024]);
   const [seed, setSeed] = useState<string>('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [upsampling, setUpsampling] = useState(false);
-  const [transparentPollinations, setTransparentPollinations] = useState(false);
+  const [transparent, setTransparent] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -50,37 +50,25 @@ const VisualizingLoopsTool: FC = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch('/api/image/models') 
+    fetch('/api/image/models')
       .then(res => {
-        if (!res.ok) {
-          return res.json().then(errData => {
-            throw new Error(errData.error || `HTTP error! status: ${res.status}`);
-          }).catch(() => {
-             throw new Error(`HTTP error! status: ${res.status}, response not JSON.`);
-          });
-        }
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         return res.json();
       })
       .then(data => {
-        const availableModels = Array.isArray(data.models) ? data.models : [];
-        if (availableModels.length > 0) {
-          setImageModels(availableModels);
-          const currentModelIsValid = availableModels.includes(model);
-          if (!currentModelIsValid) {
-            setModel(availableModels.includes(DEFAULT_POLLINATIONS_MODEL) ? DEFAULT_POLLINATIONS_MODEL : availableModels[0]);
-          }
-        } else {
-          setImageModels(SUPPORTED_POLLINATIONS_MODELS);
-          setModel(DEFAULT_POLLINATIONS_MODEL);
+        const availableModels = Array.isArray(data.models) && data.models.length > 0 ? data.models : FALLBACK_MODELS;
+        setImageModels(availableModels);
+        if (!availableModels.includes(model)) {
+          setModel(availableModels.includes(DEFAULT_MODEL) ? DEFAULT_MODEL : availableModels[0]);
         }
       })
       .catch(err => {
-        console.error('Error loading Pollinations models for VisualizingLoopsTool:', err);
-        toast({ title: "Model Loading Error", description: err.message || "Could not fetch Pollinations models. Using defaults.", variant: "destructive" });
-        setImageModels(SUPPORTED_POLLINATIONS_MODELS);
-        setModel(DEFAULT_POLLINATIONS_MODEL);
+        console.error('Error loading image models:', err);
+        toast({ title: "Model Loading Error", description: "Could not fetch models. Using defaults.", variant: "destructive" });
+        setImageModels(FALLBACK_MODELS);
+        setModel(DEFAULT_MODEL);
       });
-  }, []); 
+  }, []); // Ran once on mount
 
   useEffect(() => {
     const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -88,144 +76,101 @@ const VisualizingLoopsTool: FC = () => {
       try {
         const settings = JSON.parse(storedSettings);
         if (settings.prompt !== undefined) setPrompt(settings.prompt);
-        if (settings.model !== undefined && (imageModels.length === 0 ? SUPPORTED_POLLINATIONS_MODELS : imageModels).includes(settings.model) ) setModel(settings.model);
+        if (settings.model !== undefined && (imageModels.length === 0 ? FALLBACK_MODELS : imageModels).includes(settings.model)) setModel(settings.model);
         if (settings.width !== undefined) setWidth(settings.width);
         if (settings.height !== undefined) setHeight(settings.height);
         if (settings.seed !== undefined) setSeed(settings.seed);
         if (settings.isPrivate !== undefined) setIsPrivate(settings.isPrivate);
         if (settings.upsampling !== undefined) setUpsampling(settings.upsampling);
-        if (settings.transparentPollinations !== undefined) setTransparentPollinations(settings.transparentPollinations);
+        if (settings.transparent !== undefined) setTransparent(settings.transparent);
         if (settings.aspectRatio !== undefined) setAspectRatio(settings.aspectRatio);
         if (settings.batchSize !== undefined) setBatchSize(settings.batchSize);
       } catch (e) {
-        console.error("Failed to parse VisualizingLoopsTool settings from localStorage", e);
-        localStorage.removeItem(LOCAL_STORAGE_KEY); 
+        console.error("Failed to parse settings from localStorage", e);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
       }
     }
-  }, [imageModels]); 
+  }, [imageModels]);
 
   useEffect(() => {
     const settingsToSave = {
-      prompt,
-      model,
-      width,
-      height,
-      seed,
-      isPrivate,
-      upsampling,
-      transparentPollinations,
-      aspectRatio,
-      batchSize,
+      prompt, model, width, height, seed, isPrivate, upsampling, transparent, aspectRatio, batchSize,
     };
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settingsToSave));
-  }, [prompt, model, width, height, seed, isPrivate, upsampling, transparentPollinations, aspectRatio, batchSize]);
-
+  }, [prompt, model, width, height, seed, isPrivate, upsampling, transparent, aspectRatio, batchSize]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      toast({ title: "Prompt Missing", description: "Please enter a prompt.", variant: "destructive"});
+      toast({ title: "Prompt Missing", description: "Please enter a prompt.", variant: "destructive" });
       return;
     }
     setLoading(true);
     setError('');
     setImageUrls([]);
     
-    const urls: string[] = [];
+    const endpoint = model === 'gptimage' ? '/api/openai-image' : '/api/generate';
+    const generatedUrls: string[] = [];
+
     for (let i = 0; i < batchSize; i++) {
       let currentSeedForIteration: string | undefined = seed.trim() || undefined;
       if (currentSeedForIteration && batchSize > 1) {
         const baseSeed = Number(currentSeedForIteration);
-        if (!isNaN(baseSeed)) {
-          currentSeedForIteration = String(baseSeed + i);
-        }
+        if (!isNaN(baseSeed)) currentSeedForIteration = String(baseSeed + i);
       } else if (batchSize > 1 && !currentSeedForIteration) {
-         currentSeedForIteration = String(Math.floor(Math.random() * 99999999));
+        currentSeedForIteration = String(Math.floor(Math.random() * 99999999));
       }
-      
+
       const payload: Record<string, any> = {
         prompt: prompt.trim(),
         model,
         width: width[0],
         height: height[0],
-        nologo: true, 
+        nologo: true,
         private: isPrivate,
         enhance: upsampling,
-        transparent: transparentPollinations, 
+        transparent: model === 'gptimage' ? transparent : undefined,
       };
       if (currentSeedForIteration) {
         const seedNum = parseInt(currentSeedForIteration, 10);
-        if (!isNaN(seedNum)) {
-            payload.seed = seedNum;
-        }
+        if (!isNaN(seedNum)) payload.seed = seedNum;
       }
-      
+
       try {
-        const resp = await fetch('/api/generate', { 
+        const resp = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
 
         if (!resp.ok) {
-          const errorData = await resp.json().catch(() => ({ 
+          const errorData = await resp.json().catch(() => ({
             error: `Image generation failed with status ${resp.status}. Response not JSON.`,
-            modelUsed: model 
+            modelUsed: model
           }));
-          console.error('API-Generate Error (client-side, VisualizingLoopsTool):', resp.status, errorData);
-
-          const status = resp.status;
-          const modelInError = errorData.modelUsed || model;
-          let displayErrorMsg: string;
-
-          if (status >= 500 && status <= 599) {
-            displayErrorMsg = `The image service for model '${modelInError}' is temporarily unavailable (Error ${status}). This is likely a problem with the service provider (Pollinations.ai). Please try again in a few minutes.`;
-          } else if (status === 402) {
-            let baseUserMessage = `Error 402: Payment Required. Please check your API access or quota for the '${modelInError}' model via Pollinations.`;
-            const backendError = errorData.error || '';
-            const detailMatch = backendError.match(/402 - (.*)/i);
-            const specificApiDetail = detailMatch && detailMatch[1] ? detailMatch[1].trim() : '';
-            if (specificApiDetail && specificApiDetail.toLowerCase() !== "payment required") {
-                displayErrorMsg = `${baseUserMessage} API Detail: ${specificApiDetail}`;
-            } else {
-                displayErrorMsg = baseUserMessage;
-            }
-          } else if (status === 403) {
-            let baseUserMessage = `Error 403: Forbidden. Access to the '${modelInError}' model via Pollinations is denied. This might be due to API key requirements, regional restrictions, or model-specific policies.`;
-            const backendError = errorData.error || '';
-            const detailMatch = backendError.match(/403 - (.*)/i);
-            const specificApiDetail = detailMatch && detailMatch[1] ? detailMatch[1].trim() : '';
-            if (specificApiDetail && specificApiDetail.toLowerCase() !== "forbidden") {
-                displayErrorMsg = `${baseUserMessage} API Detail: ${specificApiDetail}`;
-            } else {
-                displayErrorMsg = baseUserMessage;
-            }
-          } else {
-             displayErrorMsg = errorData.error || `Error generating image (Model: ${modelInError}, Status: ${status})`;
-          }
-          
-          toast({ title: "Image Generation Error", description: displayErrorMsg, variant: "destructive", duration: 7000});
+          const displayErrorMsg = errorData.error || `Error generating image (Model: ${model}, Status: ${resp.status})`;
+          toast({ title: "Image Generation Error", description: displayErrorMsg, variant: "destructive", duration: 7000 });
           setError(displayErrorMsg);
-          break; 
+          break;
         }
+
         const blob = await resp.blob();
         if (blob.type.startsWith('image/')) {
-          const objectUrl = URL.createObjectURL(blob);
-          urls.push(objectUrl);
+          generatedUrls.push(URL.createObjectURL(blob));
         } else {
           const errorText = await blob.text();
-          const displayError =`Received non-image data (Model: ${model}): ${errorText.substring(0,100)}`;
+          const displayError = `Received non-image data (Model: ${model}): ${errorText.substring(0, 100)}`;
           setError(displayError);
-          toast({ title: "Image Data Error", description: displayError, variant: "destructive"});
+          toast({ title: "Image Data Error", description: displayError, variant: "destructive" });
           break;
         }
       } catch (err: any) {
         const displayError = err.message || `Network error during image request for model ${model}.`;
         setError(displayError);
-        toast({ title: "Network Error", description: displayError, variant: "destructive"});
+        toast({ title: "Network Error", description: displayError, variant: "destructive" });
         break;
       }
     }
-    setImageUrls(urls);
+    setImageUrls(generatedUrls);
     setLoading(false);
   };
 
@@ -237,7 +182,7 @@ const VisualizingLoopsTool: FC = () => {
     if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
       const currentWidthVal = width[0];
       let newHeight = Math.round((currentWidthVal * hRatio) / wRatio);
-      newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64)); 
+      newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64));
       let newWidth = Math.max(256, Math.min(2048, Math.round(currentWidthVal / 64) * 64));
       setWidth([newWidth]);
       setHeight([newHeight]);
@@ -246,7 +191,6 @@ const VisualizingLoopsTool: FC = () => {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground p-4 md:p-6 space-y-4 md:space-y-6">
-      
       <div className="bg-card p-3 rounded-lg shadow-md flex flex-col space-y-3">
         <div className="flex items-end space-x-2">
           <div className="flex-grow space-y-1">
@@ -258,28 +202,26 @@ const VisualizingLoopsTool: FC = () => {
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="[import, creativity — prompt] !execute"
               className="bg-input border-border focus-visible:ring-primary h-10"
-              aria-label="Image prompt for Pollinations (Flux/Turbo)"
+              aria-label="Image prompt for Pollinations models"
             />
           </div>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Pollinations Settings" className="h-10 w-10">
+              <Button variant="ghost" size="icon" aria-label="Image Generation Settings" className="h-10 w-10">
                 <Settings className="h-5 w-5" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Pollinations Settings</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Adjust parameters for Pollinations.ai models (Flux, Turbo).
-                  </p>
+                  <h4 className="font-medium leading-none">Image Settings</h4>
+                  <p className="text-xs text-muted-foreground">Adjust parameters for image generation.</p>
                 </div>
                 <div className="grid gap-3">
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="model-select-pollinations-tool" className="col-span-1 text-xs">Model</Label>
+                    <Label htmlFor="model-select-tool" className="col-span-1 text-xs">Model</Label>
                     <Select value={model} onValueChange={setModel}>
-                      <SelectTrigger id="model-select-pollinations-tool" className="col-span-2 h-8 bg-input border-border text-xs">
+                      <SelectTrigger id="model-select-tool" className="col-span-2 h-8 bg-input border-border text-xs">
                         <SelectValue placeholder="Select model" />
                       </SelectTrigger>
                       <SelectContent>
@@ -290,56 +232,54 @@ const VisualizingLoopsTool: FC = () => {
                     </Select>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="width-slider-pollinations-tool" className="col-span-1 text-xs">Width</Label>
-                    <Slider id="width-slider-pollinations-tool" value={width} onValueChange={setWidth} min={256} max={2048} step={64} className="col-span-2" />
+                    <Label htmlFor="width-slider-tool" className="col-span-1 text-xs">Width</Label>
+                    <Slider id="width-slider-tool" value={width} onValueChange={setWidth} min={256} max={2048} step={64} className="col-span-2" />
                     <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width[0]}px</span>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="height-slider-pollinations-tool" className="col-span-1 text-xs">Height</Label>
-                    <Slider id="height-slider-pollinations-tool" value={height} onValueChange={setHeight} min={256} max={2048} step={64} className="col-span-2" />
+                    <Label htmlFor="height-slider-tool" className="col-span-1 text-xs">Height</Label>
+                    <Slider id="height-slider-tool" value={height} onValueChange={setHeight} min={256} max={2048} step={64} className="col-span-2" />
                     <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height[0]}px</span>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="aspect-ratio-pollinations-tool" className="col-span-1 text-xs">Aspect Ratio</Label>
+                    <Label htmlFor="aspect-ratio-tool" className="col-span-1 text-xs">Aspect Ratio</Label>
                     <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
-                      <SelectTrigger id="aspect-ratio-pollinations-tool" className="col-span-2 h-8 bg-input border-border text-xs">
+                      <SelectTrigger id="aspect-ratio-tool" className="col-span-2 h-8 bg-input border-border text-xs">
                         <SelectValue placeholder="Aspect Ratio" />
                       </SelectTrigger>
                       <SelectContent>
-                        {['1:1','4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
+                        {['1:1', '4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
                           <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="batch-size-pollinations-tool" className="col-span-1 text-xs">Batch Size</Label>
-                    <Slider id="batch-size-pollinations-tool" value={[batchSize]} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} className="col-span-2" />
-                     <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
+                    <Label htmlFor="batch-size-tool" className="col-span-1 text-xs">Batch Size</Label>
+                    <Slider id="batch-size-tool" value={[batchSize]} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} className="col-span-2" />
+                    <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="seed-input-pollinations-tool" className="col-span-1 text-xs">Seed</Label>
-                    <Input id="seed-input-pollinations-tool" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
+                    <Label htmlFor="seed-input-tool" className="col-span-1 text-xs">Seed</Label>
+                    <Input id="seed-input-tool" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random()*99999999)))} className="text-xs h-8 w-full">
+                  <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random() * 99999999)))} className="text-xs h-8 w-full">
                     Random Seed
                   </Button>
                   <div className="flex items-center justify-between pt-1">
-                    <Label htmlFor="private-check-pollinations-tool" className="text-xs cursor-pointer">Private</Label>
-                    <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-pollinations-tool" />
+                    <Label htmlFor="private-check-tool" className="text-xs cursor-pointer">Private</Label>
+                    <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-tool" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="upsampling-check-pollinations-tool" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
-                    <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-pollinations-tool" />
+                    <Label htmlFor="upsampling-check-tool" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
+                    <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-tool" />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="transparent-check-pollinations-tool" className="text-xs cursor-pointer">Transparent (Pollinations)</Label>
-                    <Checkbox 
-                        checked={transparentPollinations} 
-                        onCheckedChange={(checked) => setTransparentPollinations(!!checked)} 
-                        id="transparent-check-pollinations-tool" 
-                    />
-                  </div>
+                  {model === 'gptimage' && (
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="transparent-check-tool" className="text-xs cursor-pointer">Transparent BG (gptimage only)</Label>
+                      <Checkbox checked={transparent} onCheckedChange={(checked) => setTransparent(!!checked)} id="transparent-check-tool" />
+                    </div>
+                  )}
                 </div>
               </div>
             </PopoverContent>

@@ -7,7 +7,6 @@ import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import SidebarNav from '@/components/navigation/SidebarNav';
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
-import GPTImageTool from '@/components/tools/GPTImageTool';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import { Button } from "@/components/ui/button";
@@ -737,11 +736,6 @@ export default function Home() {
             {currentView === 'easyImageLoopTool' && (
               <>
                 <VisualizingLoopsTool />
-              </>
-            )}
-            {currentView === 'gptImageTool' && ( 
-              <>
-                <GPTImageTool />
               </>
             )}
             {currentView === 'replicateImageTool' && (
