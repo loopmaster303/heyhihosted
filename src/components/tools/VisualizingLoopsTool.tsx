@@ -3,7 +3,7 @@
 
 import { useState, useEffect, FC } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -21,7 +21,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import Image from 'next/image';
-import { Loader2, Settings } from 'lucide-react';
+import { Loader2, MoreHorizontal } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 const FALLBACK_MODELS = ['flux', 'turbo', 'gptimage'];
@@ -189,107 +189,121 @@ const VisualizingLoopsTool: FC = () => {
       setHeight([newHeight]);
     }
   };
+  
+  const handleGenerateEvent = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleGenerate();
+  };
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground p-4 md:p-6 space-y-4 md:space-y-6">
-      <div className="bg-card p-3 rounded-lg shadow-md flex flex-col space-y-3">
-        <div className="flex items-end space-x-2">
-          <div className="flex-grow space-y-1">
-            <Label htmlFor="prompt-pollinations-tool" className="text-xs font-medium sr-only">Prompt</Label>
-            <Input
+    <div className="flex flex-col h-full bg-background text-foreground p-4 md:p-6 space-y-4 md:space-y-6">
+      <form onSubmit={handleGenerateEvent}>
+        <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
+            <Textarea
               id="prompt-pollinations-tool"
-              type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe what you imagine and hit execute."
-              className="bg-input border-border focus-visible:ring-primary h-10"
+              className="flex-grow min-h-[80px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
+              rows={3}
+              disabled={loading}
               aria-label="Image prompt for Pollinations models"
             />
-          </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Image Generation Settings" className="h-10 w-10">
-                <Settings className="h-5 w-5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Image Settings</h4>
-                  <p className="text-xs text-muted-foreground">Adjust parameters for image generation.</p>
-                </div>
-                <div className="grid gap-3">
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="model-select-tool" className="col-span-1 text-xs">Model</Label>
-                    <Select value={model} onValueChange={setModel}>
-                      <SelectTrigger id="model-select-tool" className="col-span-2 h-8 bg-input border-border text-xs">
-                        <SelectValue placeholder="Select model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {imageModels.map(m => (
-                          <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="width-slider-tool" className="col-span-1 text-xs">Width</Label>
-                    <Slider id="width-slider-tool" value={width} onValueChange={setWidth} min={256} max={2048} step={64} className="col-span-2" />
-                    <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width[0]}px</span>
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="height-slider-tool" className="col-span-1 text-xs">Height</Label>
-                    <Slider id="height-slider-tool" value={height} onValueChange={setHeight} min={256} max={2048} step={64} className="col-span-2" />
-                    <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height[0]}px</span>
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="aspect-ratio-tool" className="col-span-1 text-xs">Aspect Ratio</Label>
-                    <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
-                      <SelectTrigger id="aspect-ratio-tool" className="col-span-2 h-8 bg-input border-border text-xs">
-                        <SelectValue placeholder="Aspect Ratio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {['1:1', '4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
-                          <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="batch-size-tool" className="col-span-1 text-xs">Batch Size</Label>
-                    <Slider id="batch-size-tool" value={[batchSize]} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} className="col-span-2" />
-                    <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="seed-input-tool" className="col-span-1 text-xs">Seed</Label>
-                    <Input id="seed-input-tool" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random() * 99999999)))} className="text-xs h-8 w-full">
-                    Random Seed
-                  </Button>
-                  <div className="flex items-center justify-between pt-1">
-                    <Label htmlFor="private-check-tool" className="text-xs cursor-pointer">Private</Label>
-                    <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-tool" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="upsampling-check-tool" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
-                    <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-tool" />
-                  </div>
-                  {model === 'gptimage' && (
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="transparent-check-tool" className="text-xs cursor-pointer">Transparent BG (gptimage only)</Label>
-                      <Checkbox checked={transparent} onCheckedChange={(checked) => setTransparent(!!checked)} id="transparent-check-tool" />
-                    </div>
-                  )}
-                </div>
+            <Button
+              type="submit"
+              disabled={loading || !prompt.trim()}
+              className="absolute top-3 right-3 h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+              Execute
+            </Button>
+
+            <div className="flex items-center justify-between pt-2 px-1">
+              <div className="flex items-center space-x-1">
+                {/* Left-aligned controls can go here in the future */}
               </div>
-            </PopoverContent>
-          </Popover>
-          <Button onClick={handleGenerate} disabled={loading} size="default" className="h-10">
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Execute'}
-          </Button>
+              <div className="flex items-center space-x-1.5">
+                <Select value={model} onValueChange={setModel} disabled={loading}>
+                  <SelectTrigger className="h-8 px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {imageModels.map(m => (
+                      <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label="Advanced Settings" type="button" disabled={loading} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                      <MoreHorizontal className="h-5 w-5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium leading-none">Image Settings</h4>
+                        <p className="text-xs text-muted-foreground">Adjust parameters for image generation.</p>
+                      </div>
+                      <div className="grid gap-3">
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label htmlFor="width-slider-tool" className="col-span-1 text-xs">Width</Label>
+                          <Slider id="width-slider-tool" value={width} onValueChange={setWidth} min={256} max={2048} step={64} className="col-span-2" />
+                          <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width[0]}px</span>
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label htmlFor="height-slider-tool" className="col-span-1 text-xs">Height</Label>
+                          <Slider id="height-slider-tool" value={height} onValueChange={setHeight} min={256} max={2048} step={64} className="col-span-2" />
+                          <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height[0]}px</span>
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label htmlFor="aspect-ratio-tool" className="col-span-1 text-xs">Aspect Ratio</Label>
+                          <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
+                            <SelectTrigger id="aspect-ratio-tool" className="col-span-2 h-8 bg-input border-border text-xs">
+                              <SelectValue placeholder="Aspect Ratio" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {['1:1', '4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
+                                <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label htmlFor="batch-size-tool" className="col-span-1 text-xs">Batch Size</Label>
+                          <Slider id="batch-size-tool" value={[batchSize]} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} className="col-span-2" />
+                          <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label htmlFor="seed-input-tool" className="col-span-1 text-xs">Seed</Label>
+                          <Input id="seed-input-tool" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random() * 99999999)))} className="text-xs h-8 w-full">
+                          Random Seed
+                        </Button>
+                        <div className="flex items-center justify-between pt-1">
+                          <Label htmlFor="private-check-tool" className="text-xs cursor-pointer">Private</Label>
+                          <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-tool" />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="upsampling-check-tool" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
+                          <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-tool" />
+                        </div>
+                        {model === 'gptimage' && (
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="transparent-check-tool" className="text-xs cursor-pointer">Transparent BG (gptimage only)</Label>
+                            <Checkbox checked={transparent} onCheckedChange={(checked) => setTransparent(!!checked)} id="transparent-check-tool" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
         </div>
-      </div>
+      </form>
       
       <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
         <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-lg">
