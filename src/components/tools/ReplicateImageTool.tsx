@@ -445,7 +445,7 @@ const ReplicateImageTool: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
         <form onSubmit={handleSubmit}>
           <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
             <Textarea
@@ -460,7 +460,7 @@ const ReplicateImageTool: React.FC = () => {
             <Button
               type="submit"
               disabled={!canSubmit}
-              className="absolute top-3 right-3 h-8 px-4 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+              className="absolute top-3 right-3 h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
               Execute
@@ -523,6 +523,7 @@ const ReplicateImageTool: React.FC = () => {
                     className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border p-0" 
                     side="bottom" 
                     align="end"
+                    collisionPadding={10} 
                   >
                     <div className="grid gap-4 p-3 max-h-[65vh] overflow-y-auto">
                         {currentModelConfig && (
@@ -624,5 +625,3 @@ const ReplicateImageTool: React.FC = () => {
 };
 
 export default ReplicateImageTool;
-
-    
