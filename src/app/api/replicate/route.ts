@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -5,8 +6,7 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "imagen-4-ultra": "google/imagen-4-ultra",
   "flux-kontext-max": "black-forest-labs/flux-kontext-max",
   "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
-  "flux-schnell": "black-forest-labs/flux.1-schnell",
-  "veo-3": "google/veo-3"
+  "runway-gen4-image": "runwayml/gen4-image"
 };
 
 export async function POST(request: NextRequest) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const value = inputParams[key];
     if (typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value) && !isNaN(parseFloat(value))) {
       sanitizedInput[key] = parseFloat(value);
-    } else if (typeof value === 'number' || typeof value === 'boolean') {
+    } else if (typeof value === 'number' || typeof value === 'boolean' || Array.isArray(value)) {
       sanitizedInput[key] = value;
     } else if (typeof value === 'string') {
       sanitizedInput[key] = value;

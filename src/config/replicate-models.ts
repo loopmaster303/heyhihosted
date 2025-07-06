@@ -2,7 +2,7 @@
 export interface ReplicateModelInput {
   name: string; // Internal name for the parameter
   label: string; // User-facing label
-  type: "text" | "number" | "boolean" | "select" | "url";
+  type: "text" | "number" | "boolean" | "select" | "url" | "files" | "tags";
   required?: boolean;
   default?: string | number | boolean;
   placeholder?: string;
@@ -78,6 +78,20 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "steps", label: "Steps", type: "number", default: 28, min:10, max:50, step:1, info:"Number of generation steps." },
       { name: "guidance_scale", label: "Guidance Scale", type: "number", default: 6.5, min:1, max:15, step:0.1, info:"Strength of prompt guidance." },
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min:0, info:"Random seed. Blank for random." },
+    ],
+  },
+  "runway-gen4-image": {
+    id: "runway-gen4-image",
+    name: "Runway Gen4-image",
+    outputType: "image",
+    description: "Runway's Gen-4 model for image generation with reference images.",
+    inputs: [
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A close up portrait of @woman...", isPrompt: true, info: "Text prompt for image generation. You can reference uploaded images using @tag_name." },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation." },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "16:9", options: ["16:9", "9:16", "4:3", "3:4", "1:1"], info: "Image aspect ratio." },
+      { name: "resolution", label: "Resolution", type: "select", default: "1080p", options: ["1080p", "720p", "540p", "360p"], info: "Image resolution." },
+      { name: "reference_images", label: "Reference Images", type: "files", info: "Up to 3 reference images. Images must be between 0.5 and 2 aspect ratio." },
+      { name: "reference_tags", label: "Reference Tags", type: "tags", info: "An optional tag for each of your reference images. Tags must be alphanumeric and start with a letter. You can reference them in your prompt using @tag_name. Tags must be between 3 and 15 characters." }
     ],
   },
 };

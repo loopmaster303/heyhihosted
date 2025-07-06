@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Info, ImageIcon, X, MoreHorizontal, ChevronDown } from 'lucide-react';
+import { Loader2, AlertCircle, Info, ImageIcon, X, MoreHorizontal, ChevronDown, FileImage, Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import NextImage from 'next/image';
 import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
@@ -46,11 +46,20 @@ const ReplicateImageTool: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // For single-image models like Flux
   const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const singleFileInputRef = useRef<HTMLInputElement>(null);
+
+  // For multi-image models like Runway Gen-4
+  const [referenceImages, setReferenceImages] = useState<string[]>([]);
+  const [referenceTags, setReferenceTags] = useState<string[]>([]);
+  const [currentTag, setCurrentTag] = useState('');
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
+
 
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
+  const isRunwayModelSelected = currentModelConfig?.id === 'runway-gen4-image';
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useEffect(() => {
@@ -86,12 +95,12 @@ const ReplicateImageTool: React.FC = () => {
       initialMainPrompt = String(promptInputConfig?.default ?? '');
       
       config.inputs.forEach(input => {
-        if (!((input.isPrompt && input.name === 'prompt') || (config.id.startsWith("flux-kontext") && input.name === 'input_image'))) {
-            initialFields[input.name] = input.default ?? 
-                                        (input.type === 'number' ? (input.min ?? 0) : 
-                                        (input.type === 'boolean' ? false : 
-                                        (input.type === 'select' ? (typeof input.options?.[0] === 'object' ? input.options?.[0].value : input.options?.[0]) : '')));
-        }
+          if (!input.isPrompt && input.name !== 'input_image' && input.type !== 'files' && input.type !== 'tags') {
+              initialFields[input.name] = input.default ?? 
+                                          (input.type === 'number' ? (input.min ?? 0) : 
+                                          (input.type === 'boolean' ? false : 
+                                          (input.type === 'select' ? (typeof input.options?.[0] === 'object' ? input.options?.[0].value : input.options?.[0]) : '')));
+          }
       });
       
       const storedData = localStorage.getItem(REPLICATE_TOOL_SETTINGS_KEY);
@@ -115,6 +124,8 @@ const ReplicateImageTool: React.FC = () => {
       
       setMainPromptValue(initialMainPrompt);
       setFormFields(initialFields);
+      setReferenceImages([]);
+      setReferenceTags([]);
 
       setOutputUrl(null);
       setError(null);
@@ -146,8 +157,8 @@ const ReplicateImageTool: React.FC = () => {
   const handleMainPromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMainPromptValue(e.target.value);
   };
-
-  const handleFileSelectAndConvert = (file: File | null) => {
+  
+  const handleSingleFileSelectAndConvert = (file: File | null) => {
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -169,22 +180,64 @@ const ReplicateImageTool: React.FC = () => {
     }
   };
 
-  const handleReplicateFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    handleFileSelectAndConvert(event.target.files?.[0] || null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+  const handleSingleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    handleSingleFileSelectAndConvert(event.target.files?.[0] || null);
+    if (singleFileInputRef.current) {
+      singleFileInputRef.current.value = "";
     }
   };
-
+  
   const handleClearUploadedImage = () => {
     setUploadedImageFile(null);
     setUploadedImagePreview(null);
     if (isFluxModelSelected) { 
         setFormFields(prev => ({...prev, input_image: undefined }));
     }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    if (singleFileInputRef.current) {
+      singleFileInputRef.current.value = "";
     }
+  };
+  
+  const handleMultipleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    if (referenceImages.length + files.length > 3) {
+        toast({ title: "Upload Limit Exceeded", description: "You can upload a maximum of 3 reference images.", variant: "destructive" });
+        return;
+    }
+
+    Array.from(files).forEach(file => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setReferenceImages(prev => [...prev, reader.result as string]);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    if (multiFileInputRef.current) {
+        multiFileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveReferenceImage = (index: number) => {
+    setReferenceImages(prev => prev.filter((_, i) => i !== index));
+    setReferenceTags(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const handleAddTag = () => {
+    if (currentTag.trim() && referenceTags.length < referenceImages.length) {
+        setReferenceTags(prev => [...prev, currentTag.trim()]);
+        setCurrentTag('');
+    } else if (referenceTags.length >= referenceImages.length) {
+        toast({ title: "Tag Limit Reached", description: "You can only add as many tags as you have reference images.", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveTag = (index: number) => {
+    setReferenceTags(prev => prev.filter((_, i) => i !== index));
   };
 
 
@@ -326,6 +379,60 @@ const ReplicateImageTool: React.FC = () => {
                 </Select>
             </div>
         );
+      case 'files':
+        return (
+            <div key={inputConfig.name} className="space-y-2">
+                {label}
+                <Button type="button" variant="outline" className="w-full" onClick={() => multiFileInputRef.current?.click()} disabled={loading || referenceImages.length >= 3}>
+                    <FileImage className="mr-2 h-4 w-4" /> Add multiple files...
+                </Button>
+                <div className="flex flex-wrap gap-2 mt-2">
+                    {referenceImages.map((src, index) => (
+                        <div key={index} className="relative w-16 h-16 group">
+                            <NextImage src={src} alt={`Reference ${index + 1}`} fill style={{ objectFit: 'cover' }} className="rounded-md border" />
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute -top-1 -right-1 w-5 h-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                onClick={() => handleRemoveReferenceImage(index)}
+                            >
+                                <X className="h-3 w-3" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+      case 'tags':
+        return (
+            <div key={inputConfig.name} className="space-y-2">
+                {label}
+                <div className="flex gap-2">
+                    <Input
+                        type="text"
+                        value={currentTag}
+                        onChange={(e) => setCurrentTag(e.target.value)}
+                        placeholder="Add a tag..."
+                        disabled={loading || referenceTags.length >= referenceImages.length}
+                        className="bg-input border-border"
+                    />
+                    <Button type="button" onClick={handleAddTag} disabled={loading || !currentTag.trim() || referenceTags.length >= referenceImages.length}>
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-2">
+                    {referenceTags.map((tag, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                            {tag}
+                            <button type="button" onClick={() => handleRemoveTag(index)} className="rounded-full hover:bg-destructive/20 p-0.5">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    ))}
+                </div>
+            </div>
+        );
       default:
         return null;
     }
@@ -360,9 +467,23 @@ const ReplicateImageTool: React.FC = () => {
         return;
     }
 
+    if (isRunwayModelSelected) {
+        if (referenceImages.length > 0) {
+            currentPayload.reference_images = referenceImages;
+        }
+        if (referenceTags.length > 0) {
+            currentPayload.reference_tags = referenceTags;
+        }
+        if (referenceImages.length > 0 && referenceTags.length !== referenceImages.length) {
+            toast({ title: "Tag Mismatch", description: "You must provide a tag for each reference image.", variant: "destructive"});
+            return;
+        }
+    }
+
 
     for (const input of currentModelConfig.inputs) {
       if ((input.isPrompt && input.name === 'prompt')) continue; 
+      if (input.type === 'files' || input.type === 'tags') continue;
       if (isFluxModelSelected && input.name === "input_image") continue;
 
       const valueToUse = formFields[input.name];
@@ -445,27 +566,19 @@ const ReplicateImageTool: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
-      <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
             <Textarea
               value={mainPromptValue}
               onChange={handleMainPromptChange}
               placeholder="Describe what you imagine (or want to modify) and hit execute!"
-              className="flex-grow min-h-[80px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
+              className="flex-grow min-h-[80px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2"
               rows={3}
               disabled={loading || !currentModelConfig}
               aria-label="Main prompt input"
             />
-            <Button
-              type="submit"
-              disabled={!canSubmit}
-              className="absolute top-3 right-3 h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              Execute
-            </Button>
-
+            
             <div className="flex items-center justify-between pt-2 px-1">
               <div className="flex items-center space-x-1">
                 {isFluxModelSelected && (
@@ -475,7 +588,7 @@ const ReplicateImageTool: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => fileInputRef.current?.click()}
+                          onClick={() => singleFileInputRef.current?.click()}
                           type="button"
                           disabled={loading}
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
@@ -488,6 +601,17 @@ const ReplicateImageTool: React.FC = () => {
                     </Tooltip>
                   </TooltipProvider>
                 )}
+                
+              </div>
+              <div className="flex-grow flex justify-center">
+                  <Button
+                  type="submit"
+                  disabled={!canSubmit}
+                  className="h-8 px-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                  Execute
+                </Button>
               </div>
               <div className="flex items-center space-x-1.5">
                 <DropdownMenu>
@@ -525,7 +649,7 @@ const ReplicateImageTool: React.FC = () => {
                     align="end"
                     collisionPadding={10} 
                   >
-                    <div className="grid gap-4 p-3 max-h-[65vh] overflow-y-auto">
+                     <div className="grid gap-4 p-3 max-h-[65vh] overflow-y-auto">
                         {currentModelConfig && (
                           <>
                             <div className="space-y-1 px-1">
@@ -534,11 +658,6 @@ const ReplicateImageTool: React.FC = () => {
                             </div>
                             <div className="grid gap-3">
                               {currentModelConfig.inputs
-                                .filter(input => {
-                                  if (input.isPrompt && input.name === 'prompt') return false;
-                                  if (isFluxModelSelected && input.name === "input_image") return false;
-                                  return true;
-                                })
                                 .map(input => renderInputField(input))}
                             </div>
                           </>
@@ -550,7 +669,8 @@ const ReplicateImageTool: React.FC = () => {
               </div>
             </div>
           </div>
-          <input type="file" ref={fileInputRef} onChange={handleReplicateFileChange} accept="image/*" className="hidden" />
+          <input type="file" ref={singleFileInputRef} onChange={handleSingleFileChange} accept="image/*" className="hidden" />
+          <input type="file" ref={multiFileInputRef} onChange={handleMultipleFileChange} accept="image/*" multiple className="hidden" />
         </form>
 
         {isFluxModelSelected && uploadedImagePreview && (
