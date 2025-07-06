@@ -37,7 +37,7 @@ const toolTileItems: TileItem[] = [
   { id: 'long language loops', title: 'chat/ai-assistance/free' },
   { id: 'nocost imagination', title: 'generate/images/free' },
   { id: 'premium imagination', title: 'generate/images/premium' },
-  { id: 'personalization', title: 'settings/customize/personalize' },
+  { id: 'personalization', title: 'settings/personalize' },
 ];
 
 const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
