@@ -27,8 +27,7 @@ import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } fro
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -451,19 +450,28 @@ const ReplicateImageTool: React.FC = () => {
 
 
   return (
-    <div className="bg-background text-foreground p-4 md:p-6 space-y-4 md:space-y-6">
+    <div className="flex flex-col h-full bg-background text-foreground p-4 md:p-6 space-y-4 md:space-y-6">
       <form onSubmit={handleSubmit}>
-        <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2">
+        <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
           <Textarea
             value={mainPromptValue}
             onChange={handleMainPromptChange}
             placeholder={dynamicPromptPlaceholder}
-            className="flex-grow min-h-[56px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2"
-            rows={2}
+            className="flex-grow min-h-[80px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
+            rows={3}
             disabled={loading || !currentModelConfig}
             aria-label="Main prompt input"
           />
-          <div className="flex items-center justify-between pt-1 px-1">
+          <Button
+            type="submit"
+            disabled={!canSubmit}
+            className="absolute top-3 right-3 h-8 px-4 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+            Execute
+          </Button>
+
+          <div className="flex items-center justify-between pt-2 px-1">
             <div className="flex items-center space-x-1">
               {isFluxModelSelected && (
                 <TooltipProvider>
@@ -492,7 +500,7 @@ const ReplicateImageTool: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 px-3 rounded-full text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border"
+                    className="h-8 px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border"
                     disabled={loading}
                     aria-label={`Selected model: ${currentModelConfig ? currentModelConfig.name : "Select Model"}`}
                   >
@@ -517,12 +525,12 @@ const ReplicateImageTool: React.FC = () => {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent 
-                  className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border max-h-[65vh] overflow-y-auto p-0" 
+                  className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border max-h-[65vh] p-0" 
                   side="bottom" 
                   align="end"
                   collisionPadding={10}
                 >
-                  <div className="grid gap-4 p-3">
+                  <div className="grid gap-4 p-3 overflow-y-auto">
                       {currentModelConfig && (
                         <>
                           <div className="space-y-1 px-1">
@@ -544,10 +552,6 @@ const ReplicateImageTool: React.FC = () => {
                   </div>
                 </PopoverContent>
               </Popover>
-              <Button type="submit" disabled={!canSubmit} size="default" className="h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                Execute
-              </Button>
             </div>
           </div>
         </div>
