@@ -505,7 +505,7 @@ export default function Home() {
 
     if (isActuallyImagePromptMode || isActuallyFileUploadMode) {
         updateActiveConversationState({
-            // isImageMode is for prompt-to-image, not image analysis. Turn it off.
+            // isImageMode is for prompt-to-image, not for image analysis. Turn it off.
             isImageMode: false, 
             uploadedFile: null, 
             uploadedFilePreview: null
@@ -683,7 +683,7 @@ export default function Home() {
             />
           </aside>
 
-          <main className="flex-1 flex flex-col overflow-hidden bg-background">
+          <main className="flex-1 flex flex-col bg-background overflow-y-auto">
             {currentView === 'chat' && activeConversation && activeConversation.toolType === 'long language loops' && (
               <>
                 <ChatView

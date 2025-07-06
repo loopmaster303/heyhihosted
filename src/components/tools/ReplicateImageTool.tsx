@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Info, ImageIcon, X, MoreHorizontal, ArrowRight, ChevronDown } from 'lucide-react';
+import { Loader2, AlertCircle, Info, ImageIcon, X, MoreHorizontal, ChevronDown } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import NextImage from 'next/image';
 import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
@@ -451,176 +451,172 @@ const ReplicateImageTool: React.FC = () => {
 
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground">
-      <ScrollArea className="flex-grow">
-        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-          <form onSubmit={handleSubmit}>
-            <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2">
-              <Textarea
-                value={mainPromptValue}
-                onChange={handleMainPromptChange}
-                placeholder={dynamicPromptPlaceholder}
-                className="flex-grow min-h-[56px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2"
-                rows={2}
-                disabled={loading || !currentModelConfig}
-                aria-label="Main prompt input"
-              />
-              <div className="flex items-center justify-between pt-1 px-1">
-                <div className="flex items-center space-x-1">
-                  {isFluxModelSelected && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => fileInputRef.current?.click()}
-                            type="button"
-                            disabled={loading}
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            aria-label="Upload reference image for Flux model"
-                          >
-                            <ImageIcon className="h-5 w-5" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom"><p>Upload Reference Image</p></TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </div>
-                <div className="flex items-center space-x-1.5">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+    <div className="bg-background text-foreground p-4 md:p-6 space-y-4 md:space-y-6">
+      <form onSubmit={handleSubmit}>
+        <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2">
+          <Textarea
+            value={mainPromptValue}
+            onChange={handleMainPromptChange}
+            placeholder={dynamicPromptPlaceholder}
+            className="flex-grow min-h-[56px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2"
+            rows={2}
+            disabled={loading || !currentModelConfig}
+            aria-label="Main prompt input"
+          />
+          <div className="flex items-center justify-between pt-1 px-1">
+            <div className="flex items-center space-x-1">
+              {isFluxModelSelected && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-3 rounded-full text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => fileInputRef.current?.click()}
+                        type="button"
                         disabled={loading}
-                        aria-label={`Selected model: ${currentModelConfig ? currentModelConfig.name : "Select Model"}`}
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        aria-label="Upload reference image for Flux model"
                       >
-                        {currentModelConfig ? currentModelConfig.name : "Select Model"}
-                        <ChevronDown className="ml-1.5 h-3 w-3 opacity-70" /> 
+                        <ImageIcon className="h-5 w-5" />
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
-                      {modelKeys.map(key => (
-                        <DropdownMenuItem key={key} onSelect={() => setSelectedModelKey(key)} disabled={loading}>
-                          {modelConfigs[key].name}
-                           {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-xs">Video</Badge>}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" aria-label={`${currentModelConfig?.name || 'Model'} Settings`} type="button" disabled={loading || !currentModelConfig} className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                        <MoreHorizontal className="h-5 w-5" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
-                      <ScrollArea className="max-h-[60vh] sm:max-h-[500px] pr-3">
-                        <div className="grid gap-4 p-1">
-                          {currentModelConfig && (
-                            <>
-                              <div className="space-y-1">
-                                <h4 className="font-medium leading-none">{currentModelConfig.name} Parameters</h4>
-                                <p className="text-xs text-muted-foreground">Adjust advanced options for generation.</p>
-                              </div>
-                              <div className="grid gap-3">
-                                {currentModelConfig.inputs
-                                  .filter(input => {
-                                    if (input.isPrompt && input.name === 'prompt') return false;
-                                    if (isFluxModelSelected && input.name === "input_image") return false;
-                                    return true;
-                                  })
-                                  .map(input => renderInputField(input))}
-                              </div>
-                            </>
-                          )}
-                           {!currentModelConfig && <p className="text-sm text-muted-foreground p-4 text-center">Select a model to see its parameters.</p>}
-                        </div>
-                      </ScrollArea>
-                    </PopoverContent>
-                  </Popover>
-                  <Button type="submit" disabled={!canSubmit} size="default" className="h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                    Execute
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom"><p>Upload Reference Image</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-3 rounded-full text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border"
+                    disabled={loading}
+                    aria-label={`Selected model: ${currentModelConfig ? currentModelConfig.name : "Select Model"}`}
+                  >
+                    {currentModelConfig ? currentModelConfig.name : "Select Model"}
+                    <ChevronDown className="ml-1.5 h-3 w-3 opacity-70" /> 
                   </Button>
-                </div>
-              </div>
-            </div>
-            <input type="file" ref={fileInputRef} onChange={handleReplicateFileChange} accept="image/*" className="hidden" />
-          </form>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
+                  {modelKeys.map(key => (
+                    <DropdownMenuItem key={key} onSelect={() => setSelectedModelKey(key)} disabled={loading}>
+                      {modelConfigs[key].name}
+                        {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-xs">Video</Badge>}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          {isFluxModelSelected && uploadedImagePreview && (
-            <div className="mt-3 flex justify-center">
-                <div className="relative w-32 h-32 group">
-                    <NextImage src={uploadedImagePreview} alt="Upload preview" fill style={{ objectFit: "cover" }} className="rounded-md border" data-ai-hint="upload image content"/>
-                    <Button
-                    variant="destructive" size="icon"
-                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-70 group-hover:opacity-100 transition-opacity z-10"
-                    onClick={handleClearUploadedImage} aria-label="Remove image" type="button"
-                    > <X className="w-4 h-4" /> </Button>
-                </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label={`${currentModelConfig?.name || 'Model'} Settings`} type="button" disabled={loading || !currentModelConfig} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                    <MoreHorizontal className="h-5 w-5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
+                  <ScrollArea className="max-h-[60vh] sm:max-h-[500px] pr-3">
+                    <div className="grid gap-4 p-1">
+                      {currentModelConfig && (
+                        <>
+                          <div className="space-y-1">
+                            <h4 className="font-medium leading-none">{currentModelConfig.name} Parameters</h4>
+                            <p className="text-xs text-muted-foreground">Adjust advanced options for generation.</p>
+                          </div>
+                          <div className="grid gap-3">
+                            {currentModelConfig.inputs
+                              .filter(input => {
+                                if (input.isPrompt && input.name === 'prompt') return false;
+                                if (isFluxModelSelected && input.name === "input_image") return false;
+                                return true;
+                              })
+                              .map(input => renderInputField(input))}
+                          </div>
+                        </>
+                      )}
+                        {!currentModelConfig && <p className="text-sm text-muted-foreground p-4 text-center">Select a model to see its parameters.</p>}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+              <Button type="submit" disabled={!canSubmit} size="default" className="h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                Execute
+              </Button>
             </div>
-          )}
-
-          <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
-            <CardHeader className="py-3 px-4 border-b border-border">
-                <CardTitle className="text-base sm:text-lg">Output</CardTitle>
-            </CardHeader>
-            <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-b-lg">
-            {loading && <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />}
-            {error && !loading && (
-                <div className="text-destructive flex flex-col items-center space-y-2 max-w-md mx-auto">
-                    <AlertCircle className="w-8 h-8 sm:w-10 sm:w-10 mb-2"/>
-                    <p className="font-semibold text-md sm:text-lg">Generation Error</p>
-                    <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
-                </div>
-                )}
-            {!loading && !error && outputUrl && (
-                <div className={cn(
-                    "relative w-full h-full", 
-                    isVideoOutput 
-                        ? "aspect-video max-h-[calc(100vh-400px)]" 
-                        : "aspect-square max-h-[calc(100vh-400px)]" 
-                )}>
-                {isVideoOutput ? (
-                    <video
-                        src={outputUrl}
-                        controls
-                        className="rounded-md w-full h-full object-contain"
-                        data-ai-hint="ai generated video"
-                    >
-                        Your browser does not support the video tag.
-                    </video>
-                ) : (
-                    <a href={outputUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
-                        <NextImage
-                        src={outputUrl}
-                        alt={`Generated using ${currentModelConfig?.name || 'Replicate model'}`}
-                        fill
-                        style={{ objectFit: "contain" }}
-                        className="rounded-md"
-                        data-ai-hint="ai generated digital art"
-                        />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
-                            <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
-                        </div>
-                    </a>
-                )}
-                </div>
-            )}
-            {!loading && !error && !outputUrl && (
-                <div className="text-muted-foreground flex flex-col items-center space-y-2 font-code">
-                   <p className="text-lg">{`</export>`}</p>
-                </div>
-            )}
-            </CardContent>
-          </Card>
+          </div>
         </div>
-      </ScrollArea>
+        <input type="file" ref={fileInputRef} onChange={handleReplicateFileChange} accept="image/*" className="hidden" />
+      </form>
+
+      {isFluxModelSelected && uploadedImagePreview && (
+        <div className="mt-3 flex justify-center">
+            <div className="relative w-32 h-32 group">
+                <NextImage src={uploadedImagePreview} alt="Upload preview" fill style={{ objectFit: "cover" }} className="rounded-md border" data-ai-hint="upload image content"/>
+                <Button
+                variant="destructive" size="icon"
+                className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-70 group-hover:opacity-100 transition-opacity z-10"
+                onClick={handleClearUploadedImage} aria-label="Remove image" type="button"
+                > <X className="w-4 h-4" /> </Button>
+            </div>
+        </div>
+      )}
+
+      <Card className="flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
+        <CardHeader className="py-3 px-4 border-b border-border">
+            <CardTitle className="text-base sm:text-lg">Output</CardTitle>
+        </CardHeader>
+        <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-b-lg">
+        {loading && <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />}
+        {error && !loading && (
+            <div className="text-destructive flex flex-col items-center space-y-2 max-w-md mx-auto">
+                <AlertCircle className="w-8 h-8 sm:w-10 sm:w-10 mb-2"/>
+                <p className="font-semibold text-md sm:text-lg">Generation Error</p>
+                <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
+            </div>
+            )}
+        {!loading && !error && outputUrl && (
+            <div className={cn(
+                "relative w-full h-full", 
+                isVideoOutput 
+                    ? "aspect-video max-h-[calc(100vh-400px)]" 
+                    : "aspect-square max-h-[calc(100vh-400px)]" 
+            )}>
+            {isVideoOutput ? (
+                <video
+                    src={outputUrl}
+                    controls
+                    className="rounded-md w-full h-full object-contain"
+                    data-ai-hint="ai generated video"
+                >
+                    Your browser does not support the video tag.
+                </video>
+            ) : (
+                <a href={outputUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
+                    <NextImage
+                    src={outputUrl}
+                    alt={`Generated using ${currentModelConfig?.name || 'Replicate model'}`}
+                    fill
+                    style={{ objectFit: "contain" }}
+                    className="rounded-md"
+                    data-ai-hint="ai generated digital art"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
+                        <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
+                    </div>
+                </a>
+            )}
+            </div>
+        )}
+        {!loading && !error && !outputUrl && (
+            <div className="text-muted-foreground flex flex-col items-center space-y-2 font-code">
+                <p className="text-lg">{`</export>`}</p>
+            </div>
+        )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
