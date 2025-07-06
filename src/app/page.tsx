@@ -19,7 +19,7 @@ import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
-import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
+import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { cn } from '@/lib/utils';
 
 import {
@@ -405,7 +405,9 @@ export default function Home() {
     }
 
     const currentActiveConv = activeConversation; 
-    const currentModelId = currentActiveConv.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID;
+    const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === (currentActiveConv.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID)) || AVAILABLE_POLLINATIONS_MODELS[0];
+    const currentModelId = currentModel.id;
+
 
     let effectiveSystemPrompt: string;
     if (customSystemPrompt && customSystemPrompt.trim() !== "") {
@@ -421,6 +423,12 @@ export default function Home() {
 
     const isActuallyImagePromptMode = options.isImageModeIntent || false;
     const isActuallyFileUploadMode = !!currentActiveConv.uploadedFile && !isActuallyImagePromptMode;
+
+    if (isActuallyFileUploadMode && !currentModel.vision) {
+      toast({ title: "Model Incompatibility", description: `The selected model '${currentModel.name}' does not support image analysis. Please select a vision-capable model.`, variant: "destructive", duration: 6000 });
+      setIsAiResponding(false);
+      return;
+    }
 
     let userMessageContent: string | ChatMessageContentPart[] = messageText.trim();
 
@@ -442,28 +450,11 @@ export default function Home() {
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
     };
+    
+    // This is the array of message objects that will be sent to the backend flow.
+    // We are no longer flattening the content here.
+    const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage];
 
-    const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage]
-      .filter(msg => msg.role === 'user' || msg.role === 'assistant') 
-      .map(msg => {
-        let apiContentString: string;
-        if (typeof msg.content === 'string') {
-          apiContentString = msg.content;
-        } else { 
-          const textPart = msg.content.find(part => part.type === 'text');
-          apiContentString = textPart ? textPart.text : "[Image content - text part missing]";
-           if (apiContentString.trim() === "" && msg.content.some(p => p.type === 'image_url') && !textPart) {
-             apiContentString = "[Image content only]";
-           }
-        }
-        return { role: msg.role as 'user' | 'assistant', content: apiContentString };
-      });
-
-    if (messagesForApiSubmission.length === 0) {
-      toast({ title: "Cannot send message", description: "The message content appears to be empty after processing.", variant: "destructive" });
-      setIsAiResponding(false);
-      return;
-    }
 
     const updatedMessagesForState = [...(currentActiveConv.messages || []), userMessage];
     updateActiveConversationState({ messages: updatedMessagesForState });
@@ -515,6 +506,7 @@ export default function Home() {
 
     if (isActuallyImagePromptMode || isActuallyFileUploadMode) {
         updateActiveConversationState({
+            // isImageMode is for prompt-to-image, not image analysis. Turn it off.
             isImageMode: false, 
             uploadedFile: null, 
             uploadedFilePreview: null
@@ -629,9 +621,16 @@ export default function Home() {
 
   const handleModelChange = useCallback((modelId: string) => {
     if (activeConversation && activeConversation.toolType === 'long language loops') {
-      updateActiveConversationState({ selectedModelId: modelId });
+      const newModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === modelId);
+      // If switching to a non-vision model, clear any uploaded image
+      if (newModel && !newModel.vision && activeConversation.uploadedFile) {
+        toast({ title: "Image Cleared", description: `Switched to non-vision model '${newModel.name}'. Uploaded image has been removed.`, variant: "default" });
+        updateActiveConversationState({ selectedModelId: modelId, uploadedFile: null, uploadedFilePreview: null });
+      } else {
+        updateActiveConversationState({ selectedModelId: modelId });
+      }
     }
-  }, [activeConversation, updateActiveConversationState]);
+  }, [activeConversation, updateActiveConversationState, toast]);
 
   const handleStyleChange = useCallback((styleName: string) => {
      if (activeConversation && activeConversation.toolType === 'long language loops') {

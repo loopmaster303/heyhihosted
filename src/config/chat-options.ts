@@ -1,8 +1,9 @@
 
 export interface PollinationsModel {
-  id: string; // This will be the 'value' from the user's example
-  name: string; // This will be the 'label' from the user's example
+  id: string; // The 'name' field from the API, e.g., "openai"
+  name: string; // The 'description' field from the API, e.g., "OpenAI GPT-4o Mini"
   description?: string;
+  vision?: boolean; // Flag if model supports vision
 }
 
 export interface ResponseStyle {
@@ -10,17 +11,24 @@ export interface ResponseStyle {
   systemPrompt: string;
 }
 
-// Updated to match the user's provided 'staticAvailableModels'
-// These are for the Long Language Loop chat tool, not image generation models.
+// Updated based on the new model list from Pollinations, excluding reasoning/coder models.
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-  { id: 'openai', name: 'OpenAI GPT-4.1-nano' },
-  { id: 'openai-large', name: 'OpenAI GPT-4.1-mini' },
-  { id: 'openai-reasoning', name: 'OpenAI o4-mini' },
-  { id: 'qwen-coder', name: 'Qwen 2.5 Coder 32B' },
-  { id: 'llama', name: 'Llama 3.3 70B' },
-  { id: 'llamascout', name: 'Llama 4 Scout 17B' },
-  { id: 'mistral', name: 'Mistral Small 3' },
-  { id: 'unity', name: 'Unity Mistral Large' },
+  { id: 'openai', name: 'OpenAI GPT-4o Mini', vision: true },
+  { id: 'openai-large', name: 'OpenAI GPT-4.1', vision: true },
+  { id: 'openai-fast', name: 'OpenAI GPT-4.1 Nano', vision: true },
+  { id: 'mistral', name: 'Mistral Small 3.1 24B', vision: true },
+  { id: 'llamascout', name: 'Llama 4 Scout 17B', vision: false },
+  { id: 'grok', name: 'xAI Grok-3 Mini', vision: false },
+  { id: 'deepseek', name: 'DeepSeek V3', vision: false },
+  { id: 'phi', name: 'Phi-4 Mini Instruct', vision: true },
+  { id: 'openai-roblox', name: 'OpenAI GPT-4.1 Mini (Roblox)', vision: true },
+  { id: 'unity', name: 'Unity Unrestricted Agent', vision: true },
+  { id: 'evil', name: 'Evil', vision: true },
+  { id: 'sur', name: 'Sur AI Assistant', vision: true },
+  { id: 'mirexa', name: 'Mirexa AI Companion', vision: true },
+  { id: 'bidara', name: 'BIDARA (NASA)', vision: true },
+  { id: 'midijourney', name: 'MIDIjourney', vision: false },
+  { id: 'rtist', name: 'Rtist', vision: false },
 ];
 
 export const AVAILABLE_RESPONSE_STYLES: ResponseStyle[] = [
@@ -101,7 +109,7 @@ export const AVAILABLE_RESPONSE_STYLES: ResponseStyle[] = [
   },
 ];
 
-export const DEFAULT_POLLINATIONS_MODEL_ID = "openai"; // Corresponds to 'OpenAI GPT-4.1-nano'
+export const DEFAULT_POLLINATIONS_MODEL_ID = "openai";
 export const DEFAULT_RESPONSE_STYLE_NAME = "Normal";
 
 export const getDefaultSystemPrompt = (): string => {
@@ -112,5 +120,4 @@ export const getDefaultSystemPrompt = (): string => {
 // Image generation specific model lists
 export const POLLINATIONS_IMAGE_MODELS = ['flux', 'turbo'];
 export const DEFAULT_POLLINATIONS_IMAGE_MODEL = 'flux';
-// GPTImageTool is hardcoded to use 'gpt-image-1' via OpenAI API
 

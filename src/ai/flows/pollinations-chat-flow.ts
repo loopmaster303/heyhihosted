@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview Interacts with the Pollinations AI API for chat completions.
- * Supports text and limited multimodal inputs (text part of image uploads).
+ * Supports text and multimodal inputs (text part of image uploads).
  *
  * Exports:
  * - getPollinationsChatCompletion - Fetches a chat completion from Pollinations AI.
@@ -11,19 +11,23 @@
  */
 
 import { z } from 'zod';
-import type { ChatMessageContentPart } from '@/types'; // Import for structured content
+import type { ChatMessageContentPart, ChatMessage } from '@/types'; // Import for structured content
 
-// Internal Zod schema for input validation - simplified as content is processed to string
+// This schema defines a single message part, which can be text or an image URL.
+// The image_url object is simplified to just the URL, which is what the API needs.
+const ApiContentPartSchema = z.union([
+  z.object({ type: z.literal('text'), text: z.string() }),
+  z.object({ type: z.literal('image_url'), image_url: z.object({ url: z.string() }) })
+]);
+
+// This schema defines a single message in the conversation.
+// The 'content' can be a simple string (for text-only messages) or an array of parts (for multimodal messages).
 const PollinationsApiChatMessageSchemaInternal = z.object({
   role: z.enum(['system', 'user', 'assistant']),
-  // content will be processed to string before API call.
-  content: z.union([z.string(), z.array(z.union([
-    z.object({ type: z.literal('text'), text: z.string() }),
-    z.object({ type: z.literal('image_url'), image_url: z.object({ url: z.string(), altText: z.string().optional(), isGenerated: z.boolean().optional(), isUploaded: z.boolean().optional() }) })
-  ]))]),
+  content: z.union([z.string(), z.array(ApiContentPartSchema)]),
 });
 
-
+// This is the schema for the entire input to our main function.
 const PollinationsChatInputSchemaInternal = z.object({
   messages: z.array(PollinationsApiChatMessageSchemaInternal).min(1).describe('Array of message objects.'),
   modelId: z.string().describe('The Pollinations model ID to use (e.g., openai, mistral).'),
@@ -39,20 +43,27 @@ export interface PollinationsChatOutput {
 }
 
 const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
-const API_TOKEN = process.env.POLLINATIONS_API_TOKEN || 'uI8ZTSLs84zigEv2'; 
+const API_TOKEN = process.env.POLLINATIONS_API_TOKEN;
 
 let tokenWarningLogged = false;
-if (API_TOKEN === 'uI8ZTSLs84zigEv2' && !process.env.POLLINATIONS_API_TOKEN && !tokenWarningLogged) {
-    console.warn('\nPOLLINATIONS_API_TOKEN is hardcoded in pollinations-chat-flow.ts. ' +
-                 'Please move it to your .env file (e.g., POLLINATIONS_API_TOKEN=YOUR_REAL_TOKEN) for security and to ensure it is being used properly.\n' +
+if (!API_TOKEN && !tokenWarningLogged) {
+    console.warn('\nPOLLINATIONS_API_TOKEN is not set in your .env file. ' +
+                 'Certain models may not be available or requests might be rate-limited.\n' +
+                 'Please create a .env file and add POLLINATIONS_API_TOKEN=YOUR_REAL_TOKEN.\n' +
                  'Make sure to restart your development server after updating the .env file.\n');
     tokenWarningLogged = true;
 }
 
-
+/**
+ * Main function to get a chat completion from Pollinations.
+ * It now correctly handles multimodal inputs (text and images).
+ * @param input - The structured input containing messages, model ID, and system prompt.
+ * @returns A promise that resolves to the AI's response text.
+ */
 export async function getPollinationsChatCompletion(
   input: PollinationsChatInput
 ): Promise<PollinationsChatOutput> {
+  // 1. Validate the input against our Zod schema
   const validationResult = PollinationsChatInputSchemaInternal.safeParse(input);
   if (!validationResult.success) {
     console.error("Invalid input to getPollinationsChatCompletion:", validationResult.error.issues);
@@ -62,73 +73,63 @@ export async function getPollinationsChatCompletion(
 
   const { messages: historyMessages, modelId, systemPrompt: systemPromptText } = validationResult.data;
 
-  const apiMessagesToSend: Array<{role: 'system' | 'user' | 'assistant'; content: string}> = [];
+  // 2. Construct the messages array for the API payload
+  const apiMessagesToSend: Array<{
+    role: 'system' | 'user' | 'assistant';
+    content: string | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
+  }> = [];
 
   // Add system prompt first if it exists
   if (systemPromptText && systemPromptText.trim() !== "") {
     apiMessagesToSend.push({ role: 'system', content: systemPromptText });
   }
 
-  // Process history messages
+  // Process and format the history messages
   for (const msg of historyMessages) {
-    let messageContentString: string;
+    if (msg.role === 'system' && apiMessagesToSend.length > 0) {
+      // Avoid adding multiple system messages if one is already present
+      continue;
+    }
 
+    let contentForApi: typeof msg.content;
     if (typeof msg.content === 'string') {
-      messageContentString = msg.content;
+      if (msg.content.trim() === '') continue; // Skip empty text messages
+      contentForApi = msg.content;
     } else {
-      // msg.content is ChatMessageContentPart[]
-      // For Pollinations /openai endpoint, it seems to expect only string content per message.
-      // We will concatenate text parts and warn if image parts are present, as they'll be omitted.
-      const textParts = msg.content
-        .filter(part => part.type === 'text')
-        .map(part => (part as { type: 'text'; text: string }).text);
-      messageContentString = textParts.join('\n');
-
-      const imageParts = msg.content.filter(part => part.type === 'image_url');
-      if (imageParts.length > 0) {
-        console.warn(`Pollinations API (model: ${modelId}): Message (role: ${msg.role}) contained image parts. These are being omitted as the /openai endpoint expects string content. Text sent: "${messageContentString}"`);
-      }
-      // If only image parts were present and no text, provide a placeholder.
-      if (!messageContentString && imageParts.length > 0) {
-          messageContentString = "[User uploaded an image or image content was present but could not be sent as text to this model via Pollinations /openai endpoint]";
-      }
+      // For multimodal content, filter out empty text parts and format for the API
+      const processedParts = msg.content
+        .map(part => {
+          if (part.type === 'text') {
+            return { type: 'text' as const, text: part.text };
+          }
+          if (part.type === 'image_url' && part.image_url.url) {
+            // Simplify the image_url object to what the API expects
+            return { type: 'image_url' as const, image_url: { url: part.image_url.url } };
+          }
+          return null;
+        })
+        .filter(part => part !== null && (part.type !== 'text' || part.text.trim() !== ''));
+      
+      if (processedParts.length === 0) continue; // Skip if no valid parts remain
+      contentForApi = processedParts as typeof ApiContentPartSchema._def.options[1]['_def']['type'];
     }
 
-    // Add to API payload if role is user or assistant
-    if (msg.role === 'user' || msg.role === 'assistant') {
-      // Ensure content is not empty after processing, especially if only an image was "sent"
-      if (messageContentString.trim() === "" && msg.content !== "" && typeof msg.content !== 'string' && msg.content.some(p => p.type === 'image_url')) {
-        apiMessagesToSend.push({
-          role: msg.role,
-          content: "[User uploaded an image]" 
-        });
-      } else if (messageContentString.trim() !== "") {
-         apiMessagesToSend.push({
-          role: msg.role,
-          content: messageContentString
-        });
-      }
-    } else if (msg.role === 'system' && apiMessagesToSend.length === 0 && (!systemPromptText || systemPromptText.trim() === "")) {
-      // This handles if the first message in history is 'system' and no systemPromptText was directly provided.
-      if (messageContentString.trim() !== "") {
-        apiMessagesToSend.push({ role: 'system', content: messageContentString });
-      }
-    }
-  }
-
-  if (apiMessagesToSend.length === 0 || (apiMessagesToSend.length === 1 && apiMessagesToSend[0].role === 'system' && apiMessagesToSend[0].content.trim() === "")) {
-    console.warn("getPollinationsChatCompletion: No meaningful messages to send after processing. Aborting API call.");
-    return { responseText: "[No actionable content to send to AI after processing input.]" };
+    apiMessagesToSend.push({ role: msg.role, content: contentForApi });
   }
 
 
+  if (apiMessagesToSend.length === 0 || (apiMessagesToSend.length === 1 && apiMessagesToSend[0].role === 'system')) {
+    console.warn("getPollinationsChatCompletion: No meaningful user/assistant messages to send. Aborting API call.");
+    return { responseText: "[No actionable content was provided to the AI.]" };
+  }
+
+
+  // 3. Construct the final payload for the API
   const payload: Record<string, any> = {
     model: modelId,
     messages: apiMessagesToSend,
     temperature: 1.0, 
-    max_tokens: 500, // Aligned with user's working example
-    // stream: false, // Removed to align with user's working example (rely on Pollinations default)
-    // private: true, // Already removed in previous steps
+    max_tokens: 2048, // Increased max tokens for potentially detailed image descriptions
   };
 
   const headers: Record<string, string> = {
@@ -137,10 +138,9 @@ export async function getPollinationsChatCompletion(
 
   if (API_TOKEN) {
     headers['Authorization'] = `Bearer ${API_TOKEN}`;
-  } else {
-    console.warn('POLLINATIONS_API_TOKEN not set. API requests might be rate-limited or restricted.');
   }
 
+  // 4. Make the API call
   let fullApiResponseForLogging: any = null; 
 
   try {
@@ -170,63 +170,23 @@ export async function getPollinationsChatCompletion(
     const result = JSON.parse(responseText);
     fullApiResponseForLogging = result; 
 
-    let replyText: string | null = null;
-
-    if (result.choices && Array.isArray(result.choices) && result.choices.length > 0) {
-      const choice = result.choices[0];
-      if (choice && typeof choice === 'object') {
-        if (choice.message && typeof choice.message === 'object' && choice.message.hasOwnProperty('content')) {
-          if (typeof choice.message.content === 'string') {
-            replyText = choice.message.content;
-          } else if (choice.message.content === null) {
-            console.warn('Pollinations API: choices[0].message.content is null. Interpreting as empty reply. Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
-            replyText = ""; 
-          } else {
-            console.warn(`Pollinations API: choices[0].message.content is not a string or null (it's ${typeof choice.message.content}). This flow expects a text reply. Full API Response:`, JSON.stringify(result, null, 2));
-          }
-        } else if (typeof choice.text === 'string') { // Fallback for some models
-          replyText = choice.text;
-          console.log("Extracted reply from choice.text. Full API Response:", JSON.stringify(result, null, 2));
-        } else {
-          console.warn('Pollinations API: choices[0] exists but lacks expected message.content or text structure for a text reply. Full API Response:', JSON.stringify(result, null, 2));
-        }
-      } else {
-        console.warn('Pollinations API: choices[0] is not a valid object or is missing. Full API Response:', JSON.stringify(result, null, 2));
-      }
-    }
-    
-    // Additional fallbacks based on observed Pollinations structures and user's example
-    if (replyText === null && result && typeof result === 'object') {
-        if (typeof result.reply === 'string') { // Common for some models
-            replyText = result.reply;
-            console.log("Extracted reply from result.reply. Full API Response:", JSON.stringify(result, null, 2));
-        } else if (typeof result.content === 'string') { // Less common but possible
-            replyText = result.content;
-            console.log("Extracted reply from result.content. Full API Response:", JSON.stringify(result, null, 2));
-        }
-    }
-    
-    if (replyText !== null) {
-      const trimmedReply = replyText.trim();
-      if (trimmedReply === "" && replyText.length > 0) { 
-         console.warn('Pollinations API: Successfully parsed response, content was only whitespace. Original content: "' + replyText + '". Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
-      } else if (trimmedReply === "") { 
-         console.warn('Pollinations API: Successfully parsed response, but content is an empty string. Request Payload:', JSON.stringify(payload, null, 2), 'Full API Response:', JSON.stringify(result, null, 2));
-      }
-      return { responseText: trimmedReply };
+    // 5. Extract the response text from the API result
+    if (result.choices && result.choices.length > 0 && result.choices[0].message?.content) {
+      const replyText = result.choices[0].message.content;
+      return { responseText: typeof replyText === 'string' ? replyText.trim() : "" };
     } else {
-      console.error('Pollinations API - Successful response (200 OK), but the reply content could not be extracted from the JSON structure. Full API Response:', JSON.stringify(result, null, 2), 'Request Payload:', JSON.stringify(payload, null, 2));
+      console.error('Pollinations API - Unexpected response structure:', JSON.stringify(result, null, 2));
       throw new Error(
-        'Pollinations API returned a 200 OK but the reply content could not be extracted from the JSON structure.'
+        'Pollinations API returned a 200 OK but the reply content could not be extracted.'
       );
     }
   } catch (error) {
-    if (error instanceof Error && !(error.message.startsWith('Pollinations API request failed') || error.message.startsWith('Pollinations API returned a 200 OK but the reply content could not be extracted'))) {
+    // Log detailed error information
+    if (error instanceof Error && !(error.message.startsWith('Pollinations API'))) {
       console.error('Error calling Pollinations API or processing its response:', error, 'Request Payload:', JSON.stringify(payload, null, 2), 'Raw API Response (if available):', fullApiResponseForLogging);
-    } else if (!(error instanceof Error)) {
-      console.error('Unknown error calling Pollinations API or processing its response:', error, 'Request Payload:', JSON.stringify(payload, null, 2), 'Raw API Response (if available):', fullApiResponseForLogging);
     }
     
+    // Rethrow a user-friendly error
     if (error instanceof Error) {
         throw new Error(`Failed to get completion from Pollinations API: ${error.message}`);
     }
