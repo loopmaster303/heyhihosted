@@ -167,12 +167,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className={cn("rounded-lg", iconColorClass)} aria-label="Select AI Model">
-                    <Brain className={iconSizeClass} strokeWidth={iconStrokeWidth}/>
+                  <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="Select AI Model">
+                    <Brain className="w-5 h-5 mr-1.5" strokeWidth={iconStrokeWidth}/>
+                    <span className="text-xs font-medium">{currentSelectedModel.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  <DropdownMenuLabel>Select Model ({currentSelectedModel.name})</DropdownMenuLabel>
+                  <DropdownMenuLabel>Select Model</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
                     <DropdownMenuItem key={model.id} onClick={() => handleSelectModel(model)} className={selectedModelId === model.id ? "bg-accent" : ""}>
@@ -184,12 +185,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className={cn("rounded-lg", iconColorClass)} aria-label="Select Response Style">
-                    <Fingerprint className={iconSizeClass} strokeWidth={iconStrokeWidth} />
+                  <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="Select Response Style">
+                    <Fingerprint className="w-5 h-5 mr-1.5" strokeWidth={iconStrokeWidth} />
+                    <span className="text-xs font-medium">{currentSelectedStyle.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  <DropdownMenuLabel>Response Style ({currentSelectedStyle.name})</DropdownMenuLabel>
+                  <DropdownMenuLabel>Response Style</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {AVAILABLE_RESPONSE_STYLES.map((style) => (
                     <DropdownMenuItem key={style.name} onClick={() => handleSelectStyle(style)} className={selectedResponseStyleName === style.name ? "bg-accent" : ""}>
