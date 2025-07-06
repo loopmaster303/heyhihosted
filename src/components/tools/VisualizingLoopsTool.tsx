@@ -197,9 +197,10 @@ const VisualizingLoopsTool: FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground p-4 md:p-6 space-y-4 md:space-y-6">
-      <form onSubmit={handleGenerateEvent}>
-        <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
+    <div className="flex flex-col h-full bg-background text-foreground">
+      <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
+        <form onSubmit={handleGenerateEvent}>
+          <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
             <Textarea
               id="prompt-pollinations-tool"
               value={prompt}
@@ -219,10 +220,7 @@ const VisualizingLoopsTool: FC = () => {
               Execute
             </Button>
 
-            <div className="flex items-center justify-between pt-2 px-1">
-              <div className="flex items-center space-x-1">
-                {/* Left-aligned controls can go here in the future */}
-              </div>
+            <div className="flex items-center justify-end pt-2 px-1">
               <div className="flex items-center space-x-1.5">
                 <Select value={model} onValueChange={setModel} disabled={loading}>
                   <SelectTrigger className="h-8 px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
@@ -241,9 +239,14 @@ const VisualizingLoopsTool: FC = () => {
                       <MoreHorizontal className="h-5 w-5" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 bg-popover text-popover-foreground shadow-xl border-border" side="bottom" align="end">
-                    <div className="grid gap-4">
-                      <div className="space-y-2">
+                  <PopoverContent 
+                    className="w-80 bg-popover text-popover-foreground shadow-xl border-border p-0" 
+                    side="bottom" 
+                    align="end"
+                    collisionPadding={10}
+                  >
+                    <div className="p-3 grid gap-4 max-h-[65vh] overflow-y-auto">
+                      <div className="space-y-1 px-1">
                         <h4 className="font-medium leading-none">Image Settings</h4>
                         <p className="text-xs text-muted-foreground">Adjust parameters for image generation.</p>
                       </div>
@@ -303,39 +306,40 @@ const VisualizingLoopsTool: FC = () => {
                 </Popover>
               </div>
             </div>
-        </div>
-      </form>
+          </div>
+        </form>
       
-      <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
-        <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-lg">
-          {loading && <Loader2 className="h-10 w-10 animate-spin text-primary" />}
-          {error && !loading && <p className="text-destructive font-semibold">{error}</p>}
-          {!loading && !error && imageUrls.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4 w-full h-full overflow-y-auto p-1 md:p-2">
-              {imageUrls.map((url, idx) => (
-                <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="block relative aspect-square group rounded-md overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-                   <Image 
-                    src={url} 
-                    alt={`Generated image ${idx + 1} for prompt: ${prompt}`} 
-                    fill 
-                    style={{ objectFit: "contain" }}
-                    className="bg-muted/20"
-                    data-ai-hint="digital art wallpaper"
-                  />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <p className="text-white text-xs p-1 bg-black/70 rounded">View Full Image</p>
-                  </div>
-                </a>
-              ))}
-            </div>
-          )}
-          {!loading && !error && imageUrls.length === 0 && (
-            <div className="text-muted-foreground flex flex-col items-center space-y-2 font-code">
-                <p className="text-lg">{`</export>`}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
+          <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-lg">
+            {loading && <Loader2 className="h-10 w-10 animate-spin text-primary" />}
+            {error && !loading && <p className="text-destructive font-semibold">{error}</p>}
+            {!loading && !error && imageUrls.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4 w-full h-full overflow-y-auto p-1 md:p-2">
+                {imageUrls.map((url, idx) => (
+                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="block relative aspect-square group rounded-md overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+                    <Image 
+                      src={url} 
+                      alt={`Generated image ${idx + 1} for prompt: ${prompt}`} 
+                      fill 
+                      style={{ objectFit: "contain" }}
+                      className="bg-muted/20"
+                      data-ai-hint="digital art wallpaper"
+                    />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <p className="text-white text-xs p-1 bg-black/70 rounded">View Full Image</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+            {!loading && !error && imageUrls.length === 0 && (
+              <div className="text-muted-foreground flex flex-col items-center space-y-2 font-code">
+                  <p className="text-lg">{`</export>`}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
