@@ -4,7 +4,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
-import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,6 @@ import {
 
 const toolTileItems: TileItem[] = [
   { id: 'long language loops', title: 'chat/assistance' },
-  { id: 'nocost imagination', title: 'gen/images/free' },
   { id: 'premium imagination', title: 'gen/images/premium' },
   { id: 'personalization', title: 'settings' },
 ];
@@ -185,7 +183,6 @@ export default function Home() {
   const getViewForTool = (toolType: ToolType): CurrentAppView => {
     switch(toolType) {
         case 'long language loops': return 'chat';
-        case 'nocost imagination': return 'easyImageLoopTool';
         case 'premium imagination': return 'replicateImageTool';
         case 'personalization': return 'personalizationTool';
         default: return 'chat';
@@ -514,13 +511,13 @@ export default function Home() {
           <div className="flex flex-col h-full">
             <SimpleHeader
                 onGoHome={() => setCurrentView('tiles')}
-                isFixed={true}
+                isFixed={false}
             />
             <ChatView
               conversation={activeConversation}
               messages={currentMessages}
               isLoading={isAiResponding}
-              className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-24 pb-4"
+              className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-4"
             />
             <div className="px-4 pt-2 pb-4 shrink-0">
               {activeConversation.uploadedFilePreview && (
@@ -554,7 +551,6 @@ export default function Home() {
             </div>
           </div>
         );
-      case 'easyImageLoopTool':
       case 'replicateImageTool':
       case 'personalizationTool':
         return (
@@ -563,7 +559,6 @@ export default function Home() {
                     onGoHome={() => setCurrentView('tiles')}
                 />
                 <div className="flex-grow overflow-y-auto">
-                    {currentView === 'easyImageLoopTool' && <VisualizingLoopsTool />}
                     {currentView === 'replicateImageTool' && <ReplicateImageTool />}
                     {currentView === 'personalizationTool' && (
                         <PersonalizationTool

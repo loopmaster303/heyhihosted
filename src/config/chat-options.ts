@@ -114,7 +114,3 @@ export const getDefaultSystemPrompt = (): string => {
   const defaultStyle = AVAILABLE_RESPONSE_STYLES.find(style => style.name === DEFAULT_RESPONSE_STYLE_NAME);
   return defaultStyle ? defaultStyle.systemPrompt : 'Du bist ein hilfreicher Assistent.'; // Fallback
 };
-
-// Image generation specific model lists
-export const POLLINATIONS_IMAGE_MODELS = ['flux', 'turbo'];
-export const DEFAULT_POLLINATIONS_IMAGE_MODEL = 'flux';

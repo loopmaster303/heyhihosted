@@ -26,7 +26,7 @@ export interface Conversation {
 }
 
 // Updated ToolType names to match new UI
-export type ToolType = 'nocost imagination' | 'premium imagination' | 'long language loops' | 'personalization';
+export type ToolType = 'premium imagination' | 'long language loops' | 'personalization';
 
 export interface TileItem {
   id: ToolType;
@@ -36,7 +36,7 @@ export interface TileItem {
   description?: string;
 }
 
-export type CurrentAppView = 'tiles' | 'chat' | 'easyImageLoopTool' | 'replicateImageTool' | 'personalizationTool';
+export type CurrentAppView = 'tiles' | 'chat' | 'replicateImageTool' | 'personalizationTool';
 
 export interface ImageHistoryItem {
   id: string;
@@ -44,7 +44,7 @@ export interface ImageHistoryItem {
   prompt: string;
   model: string;
   timestamp: string; // ISO string for easy storage/retrieval
-  toolType: 'nocost imagination' | 'premium imagination';
+  toolType: 'premium imagination';
   // Optional field for video URLs
   videoUrl?: string;
 }
