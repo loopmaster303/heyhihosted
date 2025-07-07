@@ -116,14 +116,14 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const currentSelectedModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
   const currentSelectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0];
 
-  const iconSizeClass = "w-6 h-6";
+  const iconSizeClass = "w-5 h-5";
   const iconColorClass = "text-foreground/80 hover:text-foreground";
   const iconStrokeWidth = 1.75;
 
   return (
-    <div className="sticky bottom-0 left-0 right-0 bg-transparent px-2 py-3 md:px-3 md:py-4">
+    <div className="max-w-3xl mx-auto">
       <div
-        className="max-w-3xl mx-auto bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]"
+        className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]"
       >
         <form onSubmit={handleSubmit} className="w-full flex-grow">
             <div className="flex w-full items-start gap-2">
@@ -147,7 +147,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
                     aria-label="Send message"
                   >
-                      <Send className={iconSizeClass} strokeWidth={iconStrokeWidth} />
+                      <Send className="w-6 h-6" strokeWidth={iconStrokeWidth} />
                 </Button>
             </div>
             
@@ -157,7 +157,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="Select AI Model">
-                        <Brain className="w-5 h-5 mr-1.5" strokeWidth={iconStrokeWidth}/>
+                        <Brain className="w-4 h-4 mr-1.5" strokeWidth={iconStrokeWidth}/>
                         <span className="text-xs font-medium">{currentSelectedModel.name}</span>
                       </Button>
                     </DropdownMenuTrigger>
@@ -175,7 +175,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="Select Response Style">
-                        <Fingerprint className="w-5 h-5 mr-1.5" strokeWidth={iconStrokeWidth} />
+                        <Fingerprint className="w-4 h-4 mr-1.5" strokeWidth={iconStrokeWidth} />
                         <span className="text-xs font-medium">{currentSelectedStyle.name}</span>
                       </Button>
                     </DropdownMenuTrigger>
@@ -197,7 +197,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     variant="ghost"
                     size="icon"
                     className={cn(
-                        "rounded-lg",
+                        "rounded-lg h-8 w-8",
                         iconColorClass,
                         isImageModeActive && "bg-accent text-accent-foreground"
                     )}
@@ -212,7 +212,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className={cn("rounded-lg", iconColorClass)}
+                    className={cn("rounded-lg h-8 w-8", iconColorClass)}
                     onClick={() => {
                         if (uploadedFilePreviewUrl) {
                             onFileSelect(null);
