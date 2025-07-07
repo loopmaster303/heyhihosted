@@ -13,6 +13,7 @@ import { X, Pencil, Trash2, Check, Plus, RefreshCw, History, MessageSquareText }
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from 'date-fns';
 
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
@@ -610,8 +611,13 @@ export default function Home() {
                   )}
                   title={conv.title}
                 >
-                  <MessageSquareText className="w-4 h-4 shrink-0" />
-                  <span className="truncate flex-grow">{conv.title}</span>
+                  <MessageSquareText className="w-4 h-4 shrink-0 self-start mt-1" />
+                  <div className="flex-grow overflow-hidden">
+                    <p className="truncate font-medium">{conv.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(conv.createdAt, { addSuffix: true })}
+                    </p>
+                  </div>
                 </button>
               ))}
               {allConversations.filter(c => c.toolType === 'long language loops' && c.messages.length > 0).length === 0 && (
