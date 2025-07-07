@@ -57,14 +57,32 @@ export async function POST(request: Request) {
     }
 
     const encodedPrompt = encodeURIComponent(prompt.trim());
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
+    const constructedUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
 
-    console.log(`📡 Pollinations image request (via openai-image route):`, imageUrl);
+    console.log(`📡 Proxying Pollinations image request (via openai-image route):`, constructedUrl);
     
-    // Return the constructed URL to the client instead of proxying the image.
-    // This fixes the localStorage quota issue by allowing the client to store a small URL
-    // instead of a large Base64 data URI. The client is responsible for handling potential
-    // fetch errors (e.g., 403 Forbidden) from this URL.
+    // Fetch the image from the constructed URL on the backend
+    const imageResponse = await fetch(constructedUrl, {
+        headers: {
+            'Authorization': `Bearer ${POLLINATIONS_API_TOKEN}`
+        }
+    });
+
+    if (!imageResponse.ok) {
+        const errorText = await imageResponse.text();
+        console.error(`❌ Pollinations API returned an error: ${imageResponse.status}`, errorText);
+        throw new Error(`Failed to fetch image from Pollinations. Status: ${imageResponse.status}. Details: ${errorText.substring(0, 150)}`);
+    }
+
+    // Get the image data as a buffer, then convert to a base64 data URI
+    const imageBuffer = await imageResponse.arrayBuffer();
+    const base64Image = Buffer.from(imageBuffer).toString('base64');
+    
+    const mimeType = imageResponse.headers.get('content-type') || 'image/png';
+    
+    const imageUrl = `data:${mimeType};base64,${base64Image}`;
+
+    // Return the data URI to the client for robust display
     return NextResponse.json({ imageUrl });
 
   } catch (error: any) {

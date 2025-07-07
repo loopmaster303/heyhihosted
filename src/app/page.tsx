@@ -444,17 +444,21 @@ export default function Home() {
     }
 
     const userMessage: ChatMessage = {
-      id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
+        id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: currentToolType,
     };
     
-    // This is the array of message objects that will be sent to the backend flow.
-    // We are no longer flattening the content here.
+    // For API submission for text models, we need the full history including the new user message.
     const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage];
 
-
-    const updatedMessagesForState = [...(currentActiveConv.messages || []), userMessage];
+    // For UI display, we only add the user message bubble if it's NOT an image prompt.
+    let updatedMessagesForState = [...(currentActiveConv.messages || [])];
+    if (!isActuallyImagePromptMode) {
+        updatedMessagesForState.push(userMessage);
+    }
+    
     updateActiveConversationState({ messages: updatedMessagesForState });
     setCurrentMessages(updatedMessagesForState); 
+
 
     let aiResponseContent: string | ChatMessageContentPart[] | null = null;
     let skipPollinationsChatCall = false;
@@ -512,7 +516,6 @@ export default function Home() {
 
     if (isActuallyImagePromptMode || isActuallyFileUploadMode) {
         updateActiveConversationState({
-            // isImageMode is for prompt-to-image, not for image analysis. Turn it off.
             isImageMode: false, 
             uploadedFile: null, 
             uploadedFilePreview: null
