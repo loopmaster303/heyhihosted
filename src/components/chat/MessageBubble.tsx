@@ -65,7 +65,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             ? 'bg-primary text-primary-foreground p-3 rounded-xl'
             : isImageResponse
             ? 'p-0 bg-transparent'
-            : 'bg-secondary text-secondary-foreground p-3 rounded-xl'
+            : 'bg-transparent text-secondary-foreground p-3 rounded-xl'
         )}
       >
         {renderContent(message.content)}
