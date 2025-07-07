@@ -431,9 +431,7 @@ export default function Home() {
 
     let userMessageContent: string | ChatMessageContentPart[] = messageText.trim();
 
-    if (isActuallyImagePromptMode && messageText.trim()) {
-      userMessageContent = `Image prompt: "${messageText.trim()}"`;
-    } else if (isActuallyFileUploadMode && currentActiveConv.uploadedFile && currentActiveConv.uploadedFilePreview) {
+    if (isActuallyFileUploadMode && currentActiveConv.uploadedFile && currentActiveConv.uploadedFilePreview) {
       const textPart: ChatMessageContentPart = { type: 'text', text: messageText.trim() || "Describe this image." }; 
       const imagePart: ChatMessageContentPart = {
         type: 'image_url',

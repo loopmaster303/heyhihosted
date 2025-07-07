@@ -13,6 +13,11 @@ interface MessageBubbleProps {
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const isUser = message.role === 'user';
 
+  const isImageResponse =
+    message.role === 'assistant' &&
+    Array.isArray(message.content) &&
+    message.content.some((part) => part.type === 'image_url');
+
   const renderContent = (content: string | ChatMessageContentPart[]) => {
     if (typeof content === 'string') {
       let displayContent = content;
@@ -24,7 +29,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
     return content.map((part, index) => {
       if (part.type === 'text') {
-        return <p key={index} className="text-sm whitespace-pre-wrap">{part.text}</p>;
+        return <p key={index} className="text-sm whitespace-pre-wrap mb-2">{part.text}</p>;
       }
       if (part.type === 'image_url') {
         const altText = part.image_url.altText || (part.image_url.isGenerated ? "Generated image" : (part.image_url.isUploaded ? "Uploaded image" : "Image"));
@@ -55,10 +60,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     >
       <div
         className={cn(
-          'max-w-[85%] p-3 rounded-xl', 
+          'max-w-[85%]', 
           isUser
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-secondary text-secondary-foreground'
+            ? 'bg-primary text-primary-foreground p-3 rounded-xl'
+            : isImageResponse
+            ? 'p-0 bg-transparent'
+            : 'bg-secondary text-secondary-foreground p-3 rounded-xl'
         )}
       >
         {renderContent(message.content)}
