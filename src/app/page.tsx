@@ -132,22 +132,35 @@ export default function Home() {
 
     const storedActiveToolType = localStorage.getItem(ACTIVE_TOOL_TYPE_KEY) as ToolType | null;
     if (storedActiveToolType && toolTileItems.some(item => item.id === storedActiveToolType)) {
-      setActiveToolTypeForView(storedActiveToolType);
       const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
-      const conv = storedActiveToolType === 'long language loops' && storedActiveConvId ? loadedConversations.find(c => c.id === storedActiveConvId) : undefined;
       
-      if (conv) {
-         setActiveConversation(conv);
-         setCurrentMessages(conv.messages);
-         setCurrentView('chat');
+      if (storedActiveToolType === 'long language loops') {
+        const conv = storedActiveConvId ? loadedConversations.find(c => c.id === storedActiveConvId) : undefined;
+        if (conv) {
+           setActiveConversation(conv);
+           setCurrentMessages(conv.messages);
+           setActiveToolTypeForView('long language loops');
+           setCurrentView('chat');
+        } else {
+           // Invalid state (e.g., deleted chat was active). Fallback to tiles.
+           setCurrentView('tiles');
+           setActiveToolTypeForView(null);
+           localStorage.removeItem(ACTIVE_TOOL_TYPE_KEY);
+           localStorage.removeItem(ACTIVE_CONVERSATION_ID_KEY);
+        }
       } else {
-         setCurrentView(getViewForTool(storedActiveToolType));
+        // Handle other tool views
+        setActiveToolTypeForView(storedActiveToolType);
+        setCurrentView(getViewForTool(storedActiveToolType));
+        setActiveConversation(null); 
       }
     } else {
+        // No active tool stored, default to tiles
         setCurrentView('tiles');
     }
 
     setIsInitialLoadComplete(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -274,6 +287,16 @@ export default function Home() {
     setCurrentView('chat');
   }, [activeConversation, cleanupPreviousEmptyLllChat]);
 
+  const handleSelectChatFromHistory = useCallback((conversationId: string) => {
+    const conversationToSelect = allConversations.find(c => c.id === conversationId);
+    if (!conversationToSelect) return;
+    cleanupPreviousEmptyLllChat(activeConversation);
+    setActiveConversation({ ...conversationToSelect, uploadedFile: null });
+    setCurrentMessages(conversationToSelect.messages);
+    setIsImageMode(conversationToSelect.isImageMode || false);
+    setActiveToolTypeForView('long language loops');
+    setCurrentView('chat');
+  }, [allConversations, activeConversation, cleanupPreviousEmptyLllChat]);
 
   const handleSelectTile = useCallback((toolType: ToolType) => {
     cleanupPreviousEmptyLllChat(activeConversation);
@@ -287,18 +310,7 @@ export default function Home() {
         setCurrentMessages([]);
         setCurrentView(getViewForTool(toolType));
     }
-  }, [activeConversation, cleanupPreviousEmptyLllChat, startNewLongLanguageLoopChat, allConversations]);
-
-  const handleSelectChatFromHistory = useCallback((conversationId: string) => {
-    const conversationToSelect = allConversations.find(c => c.id === conversationId);
-    if (!conversationToSelect) return;
-    cleanupPreviousEmptyLllChat(activeConversation);
-    setActiveConversation({ ...conversationToSelect, uploadedFile: null });
-    setCurrentMessages(conversationToSelect.messages);
-    setIsImageMode(conversationToSelect.isImageMode || false);
-    setActiveToolTypeForView('long language loops');
-    setCurrentView('chat');
-  }, [allConversations, activeConversation, cleanupPreviousEmptyLllChat]);
+  }, [activeConversation, allConversations, cleanupPreviousEmptyLllChat, startNewLongLanguageLoopChat, handleSelectChatFromHistory]);
 
 
   const handleSendMessageGlobal = useCallback(async (
