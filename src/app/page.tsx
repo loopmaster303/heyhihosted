@@ -9,8 +9,11 @@ import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
-import { X, Pencil, Trash2, Check, Plus, RefreshCw } from 'lucide-react';
+import { X, Pencil, Trash2, Check, Plus, RefreshCw, History, MessageSquareText } from 'lucide-react';
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -87,9 +90,13 @@ const ChatControls: React.FC<{
     onNewChat: () => void;
     onRequestEditTitle: (id: string) => void;
     onRequestDeleteChat: (id: string) => void;
-}> = ({ conversation, onNewChat, onRequestEditTitle, onRequestDeleteChat }) => {
+    onToggleHistory: () => void;
+}> = ({ conversation, onNewChat, onRequestEditTitle, onRequestDeleteChat, onToggleHistory }) => {
     return (
         <div className="flex items-center justify-center text-center py-2 px-2 bg-transparent space-x-2">
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={onToggleHistory}>
+              <History className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={onNewChat}>
               <Plus className="w-4 h-4" />
             </Button>
@@ -129,6 +136,9 @@ export default function Home() {
 
   const [userDisplayName, setUserDisplayName] = useState<string>("User");
   const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
+
+  const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
+  const toggleHistoryPanel = () => setIsHistoryPanelOpen(prev => !prev);
   
   const handleSelectChatFromHistory = useCallback((conversationId: string) => {
     const conversationToSelect = allConversations.find(c => c.id === conversationId);
@@ -541,6 +551,7 @@ export default function Home() {
                     onNewChat={startNewLongLanguageLoopChat}
                     onRequestEditTitle={handleRequestEditTitle}
                     onRequestDeleteChat={handleRequestDeleteChat}
+                    onToggleHistory={toggleHistoryPanel}
                 />
             </div>
           </div>
@@ -576,8 +587,40 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+    <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
       {renderContent()}
+
+      {isHistoryPanelOpen && currentView === 'chat' && (
+        <div className="absolute bottom-24 left-4 w-72 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 max-h-80 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
+          <h3 className="text-sm font-semibold px-2 pt-1 pb-2 text-foreground">Chat History</h3>
+          <ScrollArea className="h-full max-h-72">
+            <div className="flex flex-col space-y-1 pr-2">
+              {allConversations
+                .filter(c => c.toolType === 'long language loops' && c.messages.length > 0)
+                .map(conv => (
+                <button
+                  key={conv.id}
+                  onClick={() => {
+                    handleSelectChatFromHistory(conv.id);
+                    setIsHistoryPanelOpen(false);
+                  }}
+                  className={cn(
+                    "w-full text-left p-2 rounded-md hover:bg-accent text-sm flex items-center gap-3",
+                    activeConversation?.id === conv.id && "bg-accent"
+                  )}
+                  title={conv.title}
+                >
+                  <MessageSquareText className="w-4 h-4 shrink-0" />
+                  <span className="truncate flex-grow">{conv.title}</span>
+                </button>
+              ))}
+              {allConversations.filter(c => c.toolType === 'long language loops' && c.messages.length > 0).length === 0 && (
+                <p className="text-xs text-muted-foreground p-2 text-center">No history yet.</p>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
 
       {isDeleteDialogOpen && chatToDeleteId && (
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -603,7 +646,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
