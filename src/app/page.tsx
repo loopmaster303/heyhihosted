@@ -53,7 +53,7 @@ const StaticTileLink: React.FC<{
   return (
     <button
       onClick={() => onSelect(item.id)}
-      className="font-code text-3xl sm:text-4xl md:text-5xl text-foreground hover:text-primary transition-colors duration-200 text-left"
+      className="font-code text-2xl sm:text-4xl text-foreground hover:text-primary transition-colors duration-200 text-left"
       aria-label={`Run ${item.title.replace(/\./g, ' ')}`}
     >
       {fullLinkText}
@@ -672,9 +672,9 @@ export default function Home() {
     <div className="flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
       {currentView === 'tiles' ? (
         <>
-          <AppHeader onNavigateToTiles={handleGoBackToTilesView} />
-          <main className="flex-grow container mx-auto px-4 sm:px-6 py-10 flex flex-col items-center justify-start overflow-y-auto">
-            <div className="flex flex-col items-start justify-start space-y-3">
+          <main className="flex-grow container mx-auto px-4 sm:px-6 py-10 flex flex-col items-center justify-center overflow-y-auto">
+            <AppHeader onNavigateToTiles={handleGoBackToTilesView} />
+            <div className="flex flex-col items-start justify-start space-y-3 mt-10">
               {toolTileItems.map((item) => (
                 <StaticTileLink
                   key={item.id}
@@ -684,7 +684,7 @@ export default function Home() {
               ))}
             </div>
             <footer className="mt-20 w-full max-w-4xl text-center">
-              <p className="font-code text-sm text-muted-foreground leading-relaxed">
+              <p className="font-code text-xs sm:text-sm text-muted-foreground leading-relaxed text-center">
                 {"Say hi to </hey.hi> – chat with Artificial Intelligence or create stunning images with it, all for free. Try different models, generate images, and personalize your experience. No paywall, no limits, for everyone."}
               </p>
             </footer>
