@@ -56,7 +56,7 @@ const ToolHeader: React.FC<{
             <div onClick={onGoHome} className="cursor-pointer py-1 px-4 rounded-t-xl">
                  <h1 className="text-2xl font-code">{"</hey.hi>"}</h1>
             </div>
-            <nav className="absolute top-full left-1/2 -translate-x-1/2 w-auto origin-top transform-gpu scale-95 opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto flex flex-col items-center gap-2 mt-2 z-50">
+            <nav className="absolute top-full left-1/2 -translate-x-1/2 w-auto origin-top transform-gpu scale-95 opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto flex flex-col items-center gap-2 z-50">
                 <div className="flex items-center space-x-1 bg-input p-1.5 rounded-xl shadow-lg border border-border">
                     {toolTileItems.map((item) => (
                     <Button key={item.id} variant="ghost" size="sm" onClick={() => onSelectTile(item.id)} className="font-code text-xs px-2 h-7">
@@ -80,7 +80,7 @@ const ChatHeader: React.FC<{
             <div onClick={onGoHome} className="cursor-pointer py-1 bg-background px-4 rounded-t-xl">
                  <h1 className="text-2xl font-code">{"</hey.hi>"}</h1>
             </div>
-            <nav className="absolute top-full left-1/2 -translate-x-1/2 w-auto origin-top transform-gpu scale-95 opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto flex flex-col items-center gap-2 mt-2">
+            <nav className="absolute top-full left-1/2 -translate-x-1/2 w-auto origin-top transform-gpu scale-95 opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto flex flex-col items-center gap-2">
                 <div className="flex items-center space-x-1 bg-input p-1.5 rounded-xl shadow-lg border border-border">
                     {toolTileItems.map((item) => (
                     <Button key={item.id} variant="ghost" size="sm" onClick={() => onSelectTile(item.id)} className="font-code text-xs px-2 h-7">
