@@ -61,9 +61,31 @@ const TopMenu: React.FC<{ onSelectTile: (id: ToolType) => void; onNewChat: () =>
     );
 };
 
+const FloatingMenu: React.FC<{ onSelectTile: (id: ToolType) => void; onNewChat: () => void }> = ({ onSelectTile, onNewChat }) => {
+  return (
+    <div className="group relative flex flex-col items-center mb-2">
+      <div className="cursor-pointer py-1">
+        <h1 className="text-lg font-code">{"</hey.hi>"}</h1>
+      </div>
+      <nav className="absolute bottom-full mb-1 w-auto origin-bottom transform-gpu scale-90 opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
+        <div className="flex items-center space-x-1 bg-input p-1.5 rounded-xl shadow-lg border border-border">
+          {toolTileItems.map((item) => (
+            <Button key={item.id} variant="ghost" size="sm" onClick={() => onSelectTile(item.id)} className="font-code text-xs px-2 h-7">
+              {item.title.split('/')[1] || item.title}
+            </Button>
+          ))}
+          <Button variant="ghost" size="sm" onClick={onNewChat} className="font-code text-xs px-2 h-7">
+            new/chat
+          </Button>
+        </div>
+      </nav>
+    </div>
+  );
+};
+
 
 export default function Home() {
-  const [currentView, setCurrentView] = useState<CurrentAppView>('chat');
+  const [currentView, setCurrentView] = useState<CurrentAppView>('tiles');
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [allConversations, setAllConversations] = useState<Conversation[]>([]);
   const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
@@ -126,6 +148,34 @@ export default function Home() {
     setCurrentView('chat');
   }, [allConversations, activeConversation, startNewLongLanguageLoopChat]);
 
+  const getViewForTool = (toolType: ToolType): CurrentAppView => {
+    switch(toolType) {
+        case 'long language loops': return 'chat';
+        case 'nocost imagination': return 'easyImageLoopTool';
+        case 'premium imagination': return 'replicateImageTool';
+        case 'personalization': return 'personalizationTool';
+        default: return 'chat';
+    }
+  };
+  
+  const handleSelectTile = useCallback((toolType: ToolType) => {
+    const previousActiveConv = activeConversation;
+    if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
+        setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== previousActiveConv.id));
+    }
+
+    setActiveToolTypeForView(toolType);
+    if (toolType === 'long language loops') {
+      const latestChat = allConversations.find(c => c.toolType === 'long language loops' && c.messages.length > 0);
+      if (latestChat) handleSelectChatFromHistory(latestChat.id);
+      else startNewLongLanguageLoopChat();
+    } else {
+        setActiveConversation(null); 
+        setCurrentMessages([]);
+        setCurrentView(getViewForTool(toolType));
+    }
+  }, [activeConversation, allConversations, handleSelectChatFromHistory, startNewLongLanguageLoopChat]);
+
   useEffect(() => {
     let loadedConversations: Conversation[] = [];
     try {
@@ -161,43 +211,14 @@ export default function Home() {
 
     const storedActiveToolType = localStorage.getItem(ACTIVE_TOOL_TYPE_KEY) as ToolType | null;
     if (storedActiveToolType && toolTileItems.some(item => item.id === storedActiveToolType)) {
-      const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
-      
-      if (storedActiveToolType === 'long language loops') {
-        const conv = storedActiveConvId ? loadedConversations.find(c => c.id === storedActiveConvId) : loadedConversations[0];
-        if (conv) {
-           handleSelectChatFromHistory(conv.id);
-        } else {
-           startNewLongLanguageLoopChat();
-        }
-      } else {
-        setActiveToolTypeForView(storedActiveToolType);
-        setCurrentView(getViewForTool(storedActiveToolType));
-        setActiveConversation(null); 
-      }
+      handleSelectTile(storedActiveToolType);
     } else {
-        const latestChat = loadedConversations.find(c => c.toolType === 'long language loops');
-        if(latestChat) {
-            handleSelectChatFromHistory(latestChat.id);
-        } else {
-            startNewLongLanguageLoopChat();
-        }
+        setCurrentView('tiles');
     }
 
     setIsInitialLoadComplete(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-
-  const getViewForTool = (toolType: ToolType): CurrentAppView => {
-    switch(toolType) {
-        case 'long language loops': return 'chat';
-        case 'nocost imagination': return 'easyImageLoopTool';
-        case 'premium imagination': return 'replicateImageTool';
-        case 'personalization': return 'personalizationTool';
-        default: return 'chat';
-    }
-  };
 
 
   useEffect(() => {
@@ -283,24 +304,6 @@ export default function Home() {
       }
     }
   }, [allConversations, activeConversation?.id]);
-
-  const handleSelectTile = useCallback((toolType: ToolType) => {
-    const previousActiveConv = activeConversation;
-    if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
-        setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== previousActiveConv.id));
-    }
-
-    setActiveToolTypeForView(toolType);
-    if (toolType === 'long language loops') {
-      const latestChat = allConversations.find(c => c.toolType === 'long language loops');
-      if (latestChat) handleSelectChatFromHistory(latestChat.id);
-      else startNewLongLanguageLoopChat();
-    } else {
-        setActiveConversation(null); 
-        setCurrentMessages([]);
-        setCurrentView(getViewForTool(toolType));
-    }
-  }, [activeConversation, allConversations, handleSelectChatFromHistory, startNewLongLanguageLoopChat]);
 
 
   const handleSendMessageGlobal = useCallback(async (
@@ -455,7 +458,7 @@ export default function Home() {
 
   const renderContent = () => {
     if (!isInitialLoadComplete) {
-        return <div className="flex-grow flex items-center justify-center"><RefreshCw className="w-8 h-8 animate-spin" /></div>; // or a better loading state
+        return <div className="flex-grow flex items-center justify-center"><RefreshCw className="w-8 h-8 animate-spin" /></div>;
     }
 
     switch (currentView) {
@@ -463,7 +466,6 @@ export default function Home() {
         if (!activeConversation) return null;
         return (
           <div className="flex flex-col h-full">
-            <TopMenu onSelectTile={handleSelectTile} onNewChat={startNewLongLanguageLoopChat} />
             <ChatView
               conversation={activeConversation}
               messages={currentMessages}
@@ -479,6 +481,7 @@ export default function Home() {
                   </Button>
                   </div>
               )}
+              <FloatingMenu onSelectTile={handleSelectTile} onNewChat={startNewLongLanguageLoopChat} />
               <ChatInput
                 onSendMessage={handleSendMessageGlobal}
                 isLoading={isAiResponding}
@@ -530,8 +533,12 @@ export default function Home() {
                 </div>
             </div>
         );
-      default:
-        return null;
+      default: // 'tiles'
+        return (
+            <div className="flex flex-col h-full items-center justify-center">
+                <TopMenu onSelectTile={handleSelectTile} onNewChat={startNewLongLanguageLoopChat} />
+            </div>
+        );
     }
   };
 
