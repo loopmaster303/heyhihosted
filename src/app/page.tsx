@@ -11,7 +11,7 @@ import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
-import { X } from 'lucide-react';
+import { X, Pencil, Trash2 } from 'lucide-react';
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -555,7 +555,7 @@ export default function Home() {
         prevConvs.map(c => c.id === conversationId ? { ...c, title: updatedTitle } : c)
       );
       if (activeConversation?.id === conversationId) {
-        setActiveConversation(prev => prevActive ? { ...prevActive, title: updatedTitle } : null);
+        setActiveConversation(prev => prev ? { ...prev, title: updatedTitle } : null);
       }
       toast({ title: "Title Updated", description: `Chat title changed to: ${updatedTitle}`});
     }
@@ -576,12 +576,13 @@ export default function Home() {
     if (!chatToDeleteId) return;
 
     const wasActiveConversationDeleted = activeConversation?.id === chatToDeleteId;
-
-    setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== chatToDeleteId));
+    
+    const updatedConversations = allConversations.filter(c => c.id !== chatToDeleteId);
+    setAllConversations(updatedConversations);
 
     if (wasActiveConversationDeleted) {
-      const nextLllConversation = allConversations 
-        .filter(c => c.id !== chatToDeleteId && c.toolType === 'long language loops')
+      const nextLllConversation = updatedConversations
+        .filter(c => c.toolType === 'long language loops')
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
       if (nextLllConversation) {
@@ -738,9 +739,17 @@ export default function Home() {
                   onModelChange={handleModelChange}
                   onStyleChange={handleStyleChange}
                 />
-                <h1 className="text-xl font-code font-extralight text-center py-3 md:py-4 text-foreground/80 tracking-normal select-none">
-                    {activeConversation.title || "Chat"}
-                </h1>
+                <div className="flex items-center justify-center text-center py-2 px-4 space-x-2">
+                    <h1 className="text-xl font-code font-extralight text-foreground/80 tracking-normal select-none">
+                        {activeConversation.title || "Chat"}
+                    </h1>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => handleRequestEditTitle(activeConversation.id)}>
+                        <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleRequestDeleteChat(activeConversation.id)}>
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
+                </div>
               </>
             )}
             {currentView === 'easyImageLoopTool' && (
