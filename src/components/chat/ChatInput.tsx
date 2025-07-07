@@ -22,7 +22,7 @@ interface ChatInputProps {
   onSendMessage: (
     message: string,
     options: {
-      isImageMode?: boolean;
+      isImageModeIntent?: boolean;
     }
   ) => void;
   isLoading: boolean;
@@ -77,7 +77,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       onSendMessage(
         inputValue.trim(),
         {
-          isImageMode: isLongLanguageLoopActive ? isImageModeActive : undefined,
+          isImageModeIntent: isLongLanguageLoopActive ? isImageModeActive : undefined,
         }
       );
       setInputValue('');
