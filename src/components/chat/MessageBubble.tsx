@@ -1,13 +1,10 @@
 
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, ChatMessageContentPart } from '@/types';
 import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { Loader2, Square, Volume2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -15,70 +12,6 @@ interface MessageBubbleProps {
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const isUser = message.role === 'user';
-  const { toast } = useToast();
-
-  const [isHovered, setIsHovered] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const textContent = Array.isArray(message.content)
-    ? message.content.filter(p => p.type === 'text').map(p => p.text).join(' ')
-    : typeof message.content === 'string' ? message.content : '';
-
-  const hasText = textContent.trim().length > 0;
-
-  const handlePlayAudio = async () => {
-    if (isPlaying && audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsPlaying(false);
-      return;
-    }
-    if (!hasText) return;
-
-    setIsLoadingAudio(true);
-    try {
-      const response = await fetch('/api/text-to-speech', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: textContent, voice: 'alloy' })
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch audio from the server.');
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      
-      if (audioRef.current) {
-        audioRef.current.src = url;
-      } else {
-        audioRef.current = new Audio(url);
-      }
-      
-      const newAudio = audioRef.current;
-      newAudio.play();
-      setIsPlaying(true);
-      
-      newAudio.onended = () => {
-        setIsPlaying(false);
-        URL.revokeObjectURL(url);
-      };
-      newAudio.onerror = () => {
-        toast({ title: "Audio Error", description: "Could not play the audio file.", variant: "destructive" });
-        setIsPlaying(false);
-        setIsLoadingAudio(false);
-        URL.revokeObjectURL(url);
-      }
-
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "An unknown error occurred.";
-      toast({ title: "Text-to-Speech Error", description: msg, variant: "destructive" });
-    } finally {
-      setIsLoadingAudio(false);
-    }
-  };
 
   const renderContent = (content: string | ChatMessageContentPart[]) => {
     if (typeof content === 'string') {
@@ -119,8 +52,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         'flex items-start gap-3 my-1 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out w-full',
         isUser ? 'justify-end' : 'justify-start'
       )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div
         className={cn(
@@ -131,26 +62,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         )}
       >
         {renderContent(message.content)}
-        
-        {!isUser && hasText && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className={cn(
-              "absolute -bottom-2 -right-3 h-7 w-7 rounded-full bg-accent/80 text-accent-foreground transition-opacity",
-              (isHovered || isPlaying || isLoadingAudio) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-            )}
-            onClick={handlePlayAudio}
-            disabled={isLoadingAudio}
-          >
-            {isLoadingAudio 
-              ? <Loader2 className="h-4 w-4 animate-spin" /> 
-              : isPlaying 
-              ? <Square className="h-4 w-4" /> 
-              : <Volume2 className="h-4 w-4" />
-            }
-          </Button>
-        )}
       </div>
     </div>
   );
