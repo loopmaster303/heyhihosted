@@ -4,12 +4,27 @@ import { NextResponse } from 'next/server';
 const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
 const API_TOKEN = process.env.POLLINATIONS_API_TOKEN;
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// Handle OPTIONS preflight requests
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
+
 export async function POST(request: Request) {
   try {
     const { text, voice = 'alloy' } = await request.json();
 
     if (!text || typeof text !== 'string' || text.trim() === '') {
-      return NextResponse.json({ error: 'Text prompt is required and cannot be empty.' }, { status: 400 });
+      return NextResponse.json({ error: 'Text prompt is required and cannot be empty.' }, { status: 400, headers: corsHeaders });
     }
 
     const payload = {
@@ -44,7 +59,7 @@ export async function POST(request: Request) {
       } catch (e) {
         details = errorText.substring(0, 200); 
       }
-      return NextResponse.json({ error: 'Failed to generate speech from Pollinations API.', details }, { status: ttsResponse.status });
+      return NextResponse.json({ error: 'Failed to generate speech from Pollinations API.', details }, { status: ttsResponse.status, headers: corsHeaders });
     }
 
     // The API returns a JSON response containing the audio data.
@@ -59,16 +74,17 @@ export async function POST(request: Request) {
         return new NextResponse(audioBuffer, {
             status: 200,
             headers: {
+                ...corsHeaders,
                 'Content-Type': 'audio/mpeg',
             },
         });
     } else {
         console.error('Pollinations TTS API - Unexpected response structure:', result);
-        return NextResponse.json({ error: 'Could not extract audio data from API response.' }, { status: 500 });
+        return NextResponse.json({ error: 'Could not extract audio data from API response.' }, { status: 500, headers: corsHeaders });
     }
 
   } catch (error: any) {
     console.error('Error in TTS route:', error);
-    return NextResponse.json({ error: 'Internal server error.', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error.', details: error.message }, { status: 500, headers: corsHeaders });
   }
 }
