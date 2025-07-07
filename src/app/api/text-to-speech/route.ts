@@ -1,33 +1,38 @@
 
 import { NextResponse } from 'next/server';
 
-// This is the documented base URL for TTS GET requests
-const POLLINATIONS_TTS_API_URL = 'https://text.pollinations.ai';
+// This is the OpenAI-compatible endpoint that supports more complex requests via POST.
+const POLLINATIONS_TTS_API_URL = 'https://text.pollinations.ai/openai';
 
 export async function POST(request: Request) {
   try {
-    // We receive a POST from our frontend to hide the text from browser history and avoid GET limits there
+    // We receive a POST from our frontend
     const { text, voice = 'alloy' } = await request.json();
 
     if (!text || typeof text !== 'string' || text.trim() === '') {
       return NextResponse.json({ error: 'Text prompt is required and cannot be empty.' }, { status: 400 });
     }
 
-    const encodedText = encodeURIComponent(text.trim());
-    const queryParams = new URLSearchParams({
-      model: 'openai-audio',
-      voice: voice,
-    });
+    // This payload structure is inferred to be compatible with OpenAI's native TTS API,
+    // which the Pollinations endpoint likely proxies. This avoids URL length limits.
+    const payload = {
+      model: 'openai-audio', // The model designated for audio tasks
+      input: text.trim(),    // The text to be synthesized
+      voice: voice,          // The desired voice
+    };
     
-    // Construct the URL according to the documentation: https://text.pollinations.ai/{prompt}?params
-    const fullUrl = `${POLLINATIONS_TTS_API_URL}/${encodedText}?${queryParams.toString()}`;
-
-    // The API documentation specifies a GET request for TTS
-    const ttsResponse = await fetch(fullUrl, { method: 'GET' });
+    // We now use a POST request to the /openai endpoint
+    const ttsResponse = await fetch(POLLINATIONS_TTS_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
     if (!ttsResponse.ok) {
       const errorText = await ttsResponse.text();
-      console.error('Pollinations TTS API Error (GET):', errorText, 'URL:', fullUrl.substring(0, 500)); // Log truncated URL
+      console.error('Pollinations TTS API Error (POST):', errorText, 'Payload:', JSON.stringify(payload));
       let details = `API responded with status ${ttsResponse.status}.`;
       try {
         const errorJson = JSON.parse(errorText);
@@ -56,10 +61,6 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('Error in TTS route:', error);
-    // This catches errors in my own backend route, like network issues to Pollinations or URL length errors
-    if (error instanceof TypeError && error.message.includes('URI malformed')) {
-        return NextResponse.json({ error: 'The text is too long to convert to speech with the current API.', details: error.message }, { status: 414 });
-    }
     return NextResponse.json({ error: 'Internal server error.', details: error.message }, { status: 500 });
   }
 }
