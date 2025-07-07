@@ -600,6 +600,10 @@ const ReplicateImageTool: React.FC = () => {
     toast({ title: "History Cleared", description: "Your image generation history has been removed." });
   };
 
+  const handleSelectHistoryItem = (item: ImageHistoryItem) => {
+    setSelectedImage(item);
+    setMainPromptValue(item.prompt);
+  };
   
   const canSubmit = !loading && currentModelConfig &&
     ( (isFluxModelSelected && (mainPromptValue.trim() !== '' || uploadedImagePreview)) ||
@@ -615,77 +619,67 @@ const ReplicateImageTool: React.FC = () => {
               value={mainPromptValue}
               onChange={handleMainPromptChange}
               placeholder="Describe what you imagine (or want to modify) and hit execute!"
-              className="flex-grow min-h-[80px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
+              className="flex-grow min-h-[80px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2"
               rows={3}
               disabled={loading || !currentModelConfig}
               aria-label="Main prompt input"
             />
-            <Button
-              type="submit"
-              disabled={!canSubmit}
-              className="absolute top-3 right-3 h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              Execute
-            </Button>
-            
-            <div className="flex items-center justify-end pt-2 px-1">
-              <div className="flex items-center space-x-1.5">
-                {isFluxModelSelected && (
-                  <>
-                    {uploadedImagePreview ? (
-                      <TooltipProvider>
+            <div className="flex items-center justify-between pt-2 px-1">
+                 {isFluxModelSelected && (
+                    <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               type="button"
                               className="relative h-8 w-8 cursor-pointer group flex-shrink-0"
-                              onClick={handleClearUploadedImage}
-                              aria-label="Clear reference image"
+                              onClick={() => {
+                                  if (uploadedImagePreview) {
+                                      handleClearUploadedImage();
+                                  } else {
+                                      singleFileInputRef.current?.click()
+                                  }
+                              }}
+                              aria-label={uploadedImagePreview ? "Clear reference image" : "Upload reference image"}
                             >
-                              <NextImage
-                                src={uploadedImagePreview}
-                                alt="Reference preview"
-                                fill
-                                style={{ objectFit: 'cover' }}
-                                className="rounded-sm"
-                                data-ai-hint="reference thumbnail"
-                              />
-                              <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-sm">
-                                <X className="h-4 w-4 text-white" />
-                              </div>
+                                {uploadedImagePreview ? (
+                                    <>
+                                        <NextImage
+                                            src={uploadedImagePreview}
+                                            alt="Reference preview"
+                                            fill
+                                            style={{ objectFit: 'cover' }}
+                                            className="rounded-sm"
+                                            data-ai-hint="reference thumbnail"
+                                        />
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-sm">
+                                            <X className="h-4 w-4 text-white" />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="h-8 w-8 rounded-sm border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                                        <ImageIcon className="h-4 w-4" />
+                                    </div>
+                                )}
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="bottom">
-                            <p>Clear Reference Image</p>
+                            <p>{uploadedImagePreview ? "Clear Reference Image" : "Upload Reference Image"}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                    ) : (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => singleFileInputRef.current?.click()}
-                              type="button"
-                              disabled={loading}
-                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                              aria-label="Upload reference image for Flux model"
-                            >
-                              <ImageIcon className="h-5 w-5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="bottom">
-                            <p>Upload Reference Image</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </>
-                )}
-                
+                 )}
+                 {!isFluxModelSelected && <div className="w-8"></div>}
+
+                <Button
+                type="submit"
+                disabled={!canSubmit}
+                className="rounded-full h-9 px-6 bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-semibold"
+                >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                Execute
+                </Button>
+              
+              <div className="flex items-center space-x-1.5">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -805,7 +799,7 @@ const ReplicateImageTool: React.FC = () => {
 
          <ImageHistoryGallery
             history={history}
-            onSelectImage={setSelectedImage}
+            onSelectImage={handleSelectHistoryItem}
             onClearHistory={handleClearHistory}
         />
       </div>

@@ -253,6 +253,10 @@ const VisualizingLoopsTool: FC = () => {
     toast({ title: "History Cleared", description: "Your image generation history has been removed." });
   };
 
+  const handleSelectHistoryItem = (item: ImageHistoryItem) => {
+    setSelectedImage(item);
+    setPrompt(item.prompt);
+  };
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground overflow-y-auto">
@@ -405,7 +409,7 @@ const VisualizingLoopsTool: FC = () => {
         
         <ImageHistoryGallery
             history={history}
-            onSelectImage={setSelectedImage}
+            onSelectImage={handleSelectHistoryItem}
             onClearHistory={handleClearHistory}
         />
 
