@@ -467,7 +467,7 @@ export default function Home() {
         const result = await generateImageViaPollinations({ prompt: messageText.trim() });
         aiResponseContent = [
           { type: 'text', text: `Generated image for: "${result.promptUsed}"` },
-          { type: 'image_url', image_url: { url: result.imageDataUri, altText: `Generated image for ${result.promptUsed}`, isGenerated: true } }
+          { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${result.promptUsed}`, isGenerated: true } }
         ];
         skipPollinationsChatCall = true;
       } catch (error) {
