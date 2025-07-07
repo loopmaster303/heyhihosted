@@ -19,12 +19,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       if (message.role === 'assistant' && (!content || content.trim() === '')) {
         displayContent = "[AI response was empty]";
       }
-      return <p className="text-sm">{displayContent}</p>; // Removed whitespace-pre-wrap
+      return <p className="text-sm whitespace-pre-wrap">{displayContent}</p>;
     }
 
     return content.map((part, index) => {
       if (part.type === 'text') {
-        return <p key={index} className="text-sm">{part.text}</p>; // Removed whitespace-pre-wrap
+        return <p key={index} className="text-sm whitespace-pre-wrap">{part.text}</p>;
       }
       if (part.type === 'image_url') {
         const altText = part.image_url.altText || (part.image_url.isGenerated ? "Generated image" : (part.image_url.isUploaded ? "Uploaded image" : "Image"));
@@ -55,10 +55,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     >
       <div
         className={cn(
-          'max-w-[85%] p-3', 
+          'max-w-[85%] p-3 rounded-xl', 
           isUser
-            ? 'bg-primary text-primary-foreground rounded-xl' // User bubble: uses new primary for light grey bg
-            : 'bg-transparent text-foreground rounded-none' // AI message: transparent background
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-secondary text-secondary-foreground'
         )}
       >
         {renderContent(message.content)}
