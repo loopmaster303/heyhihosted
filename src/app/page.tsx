@@ -31,10 +31,10 @@ import {
 
 
 const toolTileItems: TileItem[] = [
-  { id: 'long language loops', title: 'chat/ai-assistance/free' },
-  { id: 'nocost imagination', title: 'generate/images/free' },
-  { id: 'premium imagination', title: 'generate/images/premium' },
-  { id: 'personalization', title: 'settings/personalize' },
+  { id: 'long language loops', title: 'chat/assistance' },
+  { id: 'nocost imagination', title: 'gen/images/free' },
+  { id: 'premium imagination', title: 'gen/images/premium' },
+  { id: 'personalization', title: 'settings' },
 ];
 
 const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
@@ -72,7 +72,7 @@ const ChatHeader: React.FC<{
                 <div className="flex items-center space-x-1 bg-input p-1.5 rounded-xl shadow-lg border border-border">
                     {toolTileItems.map((item) => (
                     <Button key={item.id} variant="ghost" size="sm" onClick={() => onSelectTile(item.id)} className="font-code text-xs px-2 h-7">
-                        {item.title.split('/')[1] || item.title}
+                        {item.title}
                     </Button>
                     ))}
                 </div>
@@ -603,5 +603,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
