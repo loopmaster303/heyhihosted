@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, FC, FormEvent } from 'react';
+import { useState, useEffect, useMemo, FC, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,6 +53,11 @@ const VisualizingLoopsTool: FC = () => {
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+
+  // Memoize slider value arrays to prevent unstable references
+  const widthValue = useMemo(() => [width], [width]);
+  const heightValue = useMemo(() => [height], [height]);
+  const batchSizeValue = useMemo(() => [batchSize], [batchSize]);
 
   // Load models on mount
   useEffect(() => {
@@ -138,7 +143,7 @@ const VisualizingLoopsTool: FC = () => {
             title: "Could Not Save History",
             description: "Browser storage is full. Please clear some history or site data.",
             variant: "destructive"
-        })
+        });
     }
   }, [history, toast]);
 
@@ -166,8 +171,8 @@ const VisualizingLoopsTool: FC = () => {
       const payload: Record<string, any> = {
         prompt: prompt.trim(),
         model,
-        width: width,
-        height: height,
+        width,
+        height,
         nologo: true,
         private: isPrivate,
         enhance: upsampling,
@@ -199,7 +204,7 @@ const VisualizingLoopsTool: FC = () => {
             id: crypto.randomUUID(),
             imageUrl: data.imageUrl,
             prompt: prompt.trim(),
-            model: model,
+            model,
             timestamp: new Date().toISOString(),
             toolType: 'nocost imagination',
           };
@@ -304,9 +309,7 @@ const VisualizingLoopsTool: FC = () => {
                   <PopoverContent 
                     className="w-80 bg-popover text-popover-foreground shadow-xl border-border p-0" 
                     side="bottom" 
-                    align="end"
-                    collisionPadding={10}
-                  >
+                    align="end">
                     <div className="p-3 grid gap-4 max-h-[65vh] overflow-y-auto">
                       <div className="space-y-1 px-1">
                         <h4 className="font-medium leading-none">Image Settings</h4>
@@ -315,12 +318,12 @@ const VisualizingLoopsTool: FC = () => {
                       <div className="grid gap-3">
                         <div className="grid grid-cols-3 items-center gap-4">
                           <Label htmlFor="width-slider-tool" className="col-span-1 text-xs">Width</Label>
-                          <Slider id="width-slider-tool" value={[width]} onValueChange={(val) => setWidth(val[0])} min={256} max={2048} step={64} className="col-span-2" />
+                          <Slider id="width-slider-tool" value={widthValue} onValueChange={(val) => setWidth(val[0])} min={256} max={2048} step={64} className="col-span-2" />
                           <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width}px</span>
                         </div>
                         <div className="grid grid-cols-3 items-center gap-4">
                           <Label htmlFor="height-slider-tool" className="col-span-1 text-xs">Height</Label>
-                          <Slider id="height-slider-tool" value={[height]} onValueChange={(val) => setHeight(val[0])} min={256} max={2048} step={64} className="col-span-2" />
+                          <Slider id="height-slider-tool" value={heightValue} onValueChange={(val) => setHeight(val[0])} min={256} max={2048} step={64} className="col-span-2" />
                           <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height}px</span>
                         </div>
                         <div className="grid grid-cols-3 items-center gap-4">
@@ -338,7 +341,7 @@ const VisualizingLoopsTool: FC = () => {
                         </div>
                         <div className="grid grid-cols-3 items-center gap-4">
                           <Label htmlFor="batch-size-tool" className="col-span-1 text-xs">Batch Size</Label>
-                          <Slider id="batch-size-tool" value={[batchSize]} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} className="col-span-2" />
+                          <Slider id="batch-size-tool" value={batchSizeValue} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} className="col-span-2" />
                           <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
                         </div>
                         <div className="grid grid-cols-3 items-center gap-4">
@@ -349,7 +352,7 @@ const VisualizingLoopsTool: FC = () => {
                           Random Seed
                         </Button>
                         <div className="flex items-center justify-between pt-1">
-                          <Label htmlFor="private-check-tool" className="text-xs cursor-pointer">Private</Label>
+                          <Label htmlFor="private-check-tool" className="text-xs	cursor-pointer">Private</Label>
                           <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-tool" />
                         </div>
                         <div className="flex items-center justify-between">
@@ -419,3 +422,5 @@ const VisualizingLoopsTool: FC = () => {
 };
 
 export default VisualizingLoopsTool;
+
+    
