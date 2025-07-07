@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const payload = {
       model: "openai-audio",
       messages: [
-        { "role": "user", "content": `Just read this: ${text.trim()}` }
+        { "role": "user", "content": text.trim() }
       ],
       voice: voice,
     };
