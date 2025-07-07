@@ -11,7 +11,8 @@ import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
-import { X, Pencil, Trash2 } from 'lucide-react';
+import { X, Pencil, Trash2, Check } from 'lucide-react';
+import { Input } from "@/components/ui/input";
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -71,6 +72,10 @@ export default function Home() {
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [chatToDeleteId, setChatToDeleteId] = useState<string | null>(null);
+
+  const [isEditTitleDialogOpen, setIsEditTitleDialogOpen] = useState(false);
+  const [chatToEditId, setChatToEditId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
 
   const [isImageMode, setIsImageMode] = useState(false);
   const [activeToolTypeForView, setActiveToolTypeForView] = useState<ToolType | null>(null);
@@ -539,39 +544,37 @@ export default function Home() {
 
 
   const handleRequestEditTitle = (conversationId: string) => {
-    // The edit button is only visible for the active conversation, so we can use it directly.
-    // This is more robust than re-finding it in the `allConversations` array.
-    if (!activeConversation || activeConversation.id !== conversationId) {
-        toast({ title: "Error", description: "Could not find the active chat to edit.", variant: "destructive" });
-        return;
-    }
-
-    if (activeConversation.toolType !== 'long language loops') {
+    const convToEdit = allConversations.find(c => c.id === conversationId);
+    if (!convToEdit || convToEdit.toolType !== 'long language loops') {
         toast({ title: "Action Not Allowed", description: "Title editing is only available for 'long.language.loops' chats.", variant: "destructive"});
         return;
     }
 
-    const newTitle = window.prompt("Enter new chat title:", activeConversation.title);
-
-    // Check if the user provided a new title (and didn't just click cancel)
-    if (newTitle && newTitle.trim() !== "") {
-      const updatedTitle = newTitle.trim();
-      
-      // Create the updated conversation object once
-      const updatedConversation = { ...activeConversation, title: updatedTitle };
-
-      // Update the active conversation in state
-      setActiveConversation(updatedConversation);
-
-      // Update the conversation in the master list
-      setAllConversations(prevConvs =>
-        prevConvs.map(c => (c.id === conversationId ? updatedConversation : c))
-      );
-
-      toast({ title: "Title Updated", description: `Chat title changed to: ${updatedTitle}`});
-    }
+    setChatToEditId(conversationId);
+    setEditingTitle(convToEdit.title);
+    setIsEditTitleDialogOpen(true);
   };
+  
+  const handleConfirmEditTitle = () => {
+    if (!chatToEditId || !editingTitle.trim()) {
+      toast({ title: "Invalid Title", description: "Title cannot be empty.", variant: "destructive" });
+      return;
+    }
+    const updatedTitle = editingTitle.trim();
 
+    setAllConversations(prevConvs =>
+      prevConvs.map(c => (c.id === chatToEditId ? { ...c, title: updatedTitle } : c))
+    );
+
+    if (activeConversation?.id === chatToEditId) {
+      setActiveConversation(prev => (prev ? { ...prev, title: updatedTitle } : null));
+    }
+    
+    toast({ title: "Title Updated", description: `Chat title changed to: ${updatedTitle}`});
+    setIsEditTitleDialogOpen(false);
+    setChatToEditId(null);
+    setEditingTitle('');
+  };
 
   const handleRequestDeleteChat = (conversationId: string) => {
     const convToDelete = allConversations.find(c => c.id === conversationId);
@@ -799,6 +802,37 @@ export default function Home() {
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => { setIsDeleteDialogOpen(false); setChatToDeleteId(null); }}>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleConfirmDeleteChat}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {isEditTitleDialogOpen && (
+        <AlertDialog open={isEditTitleDialogOpen} onOpenChange={setIsEditTitleDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Edit Chat Title</AlertDialogTitle>
+              <AlertDialogDescription>
+                Enter a new title for this chat. This will be updated in your history.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Input
+              value={editingTitle}
+              onChange={(e) => setEditingTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleConfirmEditTitle(); } }}
+              placeholder="Your new chat title"
+              className="my-4"
+              autoFocus
+            />
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => { setIsEditTitleDialogOpen(false); setChatToEditId(null); }}>
+                <X className="h-4 w-4" />
+                <span className="ml-2">Cancel</span>
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmEditTitle}>
+                <Check className="h-4 w-4" />
+                <span className="ml-2">Save</span>
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
