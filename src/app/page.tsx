@@ -51,7 +51,7 @@ const ToolHeader: React.FC<{
   onGoHome: () => void;
 }> = ({ onSelectTile, onGoHome }) => {
   return (
-    <header className="group relative flex justify-center pt-6 mb-2 shrink-0 transition-all duration-300 bg-background z-10">
+    <header className="group relative flex justify-center pt-6 mb-2 shrink-0 transition-all duration-300 bg-background z-50">
         <div className="relative">
             <div onClick={onGoHome} className="cursor-pointer py-1 px-4 rounded-t-xl">
                  <h1 className="text-2xl font-code">{"</hey.hi>"}</h1>
