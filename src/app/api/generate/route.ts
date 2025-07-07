@@ -58,46 +58,12 @@ export async function POST(request: Request) {
 
     console.log(`Requesting image from Pollinations (model: ${model}):`, imageUrl);
 
-    const response = await fetch(imageUrl, { method: 'GET', cache: 'no-store' });
+    // Instead of fetching the image on the backend, we return the URL to the client.
+    // This allows the client to handle the image and avoids server bandwidth for proxying.
+    // It also solves the localStorage quota issue by allowing the client to store the URL
+    // instead of a large base64 data URI.
+    return NextResponse.json({ imageUrl });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Pollinations API Error (model: ${model}, status: ${response.status}): RAW TEXT:`, errorText);
-
-      let errorDetail = errorText.substring(0, 500);
-      try {
-        const parsedError = JSON.parse(errorText);
-        if (parsedError && parsedError.error) {
-          errorDetail = typeof parsedError.error === 'string' ? parsedError.error : JSON.stringify(parsedError.error);
-        } else if (parsedError && parsedError.message) {
-          errorDetail = typeof parsedError.message === 'string' ? parsedError.message : JSON.stringify(parsedError.message);
-        }
-      } catch (e) {
-        // Error response was not JSON
-      }
-
-      return NextResponse.json({
-        error: `Pollinations API request failed for model ${model}: ${response.status} - ${errorDetail.substring(0,200)}`,
-        modelUsed: model
-      }, { status: response.status });
-    }
-
-    const contentTypeHeader = response.headers.get('content-type');
-    if (!contentTypeHeader || !contentTypeHeader.startsWith('image/')) {
-        const responseText = await response.text();
-        console.error(`Pollinations API (model: ${model}) did not return an image. Content-Type:`, contentTypeHeader, 'Body (limited):', responseText.substring(0, 200));
-        return NextResponse.json({ error: `Pollinations API (model: ${model}) did not return an image. Received: ${contentTypeHeader}`, modelUsed: model }, { status: 502 });
-    }
-
-    const imageBuffer = await response.arrayBuffer();
-
-    return new NextResponse(imageBuffer, {
-      status: 200,
-      headers: {
-        'Content-Type': contentTypeHeader,
-        'Content-Length': String(imageBuffer.byteLength),
-      },
-    });
 
   } catch (error: any) {
     console.error('Error in /api/generate (Pollinations handler):', error);

@@ -59,65 +59,13 @@ export async function POST(request: Request) {
     const encodedPrompt = encodeURIComponent(prompt.trim());
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
 
-    console.log(`📡 Pollinations image request:`, imageUrl);
-
-    const response = await fetch(imageUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${POLLINATIONS_API_TOKEN}`,
-      },
-      cache: 'no-store',
-    });
-
-    // 🔐 TOKEN ACCESS CHECK
-    if (response.status === 403) {
-      const text = await response.text();
-      console.warn('🚫 403 Forbidden from Pollinations:', text);
-      return NextResponse.json({
-        error: 'Access denied – your token may not be authorized for gptimage. Try contacting Pollinations support or test with model=flux.',
-        modelUsed: 'gptimage',
-      }, { status: 403 });
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorDetail = errorText.substring(0, 500);
-      try {
-        const parsedError = JSON.parse(errorText);
-        if (parsedError?.error) {
-          errorDetail = typeof parsedError.error === 'string' ? parsedError.error : JSON.stringify(parsedError.error);
-        } else if (parsedError?.message) {
-          errorDetail = typeof parsedError.message === 'string' ? parsedError.message : JSON.stringify(parsedError.message);
-        }
-      } catch (e) {
-        // Non-JSON error body
-      }
-      console.error(`❌ Pollinations API error (${response.status}): ${errorDetail}`);
-      return NextResponse.json({
-        error: `Pollinations API request failed: ${response.status} - ${errorDetail}`,
-        modelUsed: 'gptimage',
-      }, { status: response.status });
-    }
-
-    const contentTypeHeader = response.headers.get('content-type');
-    if (!contentTypeHeader?.startsWith('image/')) {
-      const fallbackText = await response.text();
-      return NextResponse.json({
-        error: `Pollinations API did not return an image. Content-Type: ${contentTypeHeader}, Body: ${fallbackText.substring(0, 200)}`,
-        modelUsed: 'gptimage'
-      }, { status: 502 });
-    }
-
-    const imageBuffer = await response.arrayBuffer();
-
-    return new NextResponse(imageBuffer, {
-      status: 200,
-      headers: {
-        'Content-Type': contentTypeHeader,
-        'Content-Length': String(imageBuffer.byteLength),
-        'Cache-Control': 'no-store',
-      },
-    });
+    console.log(`📡 Pollinations image request (via openai-image route):`, imageUrl);
+    
+    // Return the constructed URL to the client instead of proxying the image.
+    // This fixes the localStorage quota issue by allowing the client to store a small URL
+    // instead of a large Base64 data URI. The client is responsible for handling potential
+    // fetch errors (e.g., 403 Forbidden) from this URL.
+    return NextResponse.json({ imageUrl });
 
   } catch (error: any) {
     console.error('❌ Server error in /api/openai-image:', error);

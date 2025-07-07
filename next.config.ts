@@ -21,6 +21,12 @@ const nextConfig: NextConfig = {
         hostname: 'replicate.delivery',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'image.pollinations.ai',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

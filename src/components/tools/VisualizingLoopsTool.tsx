@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, FC } from 'react';
+import { useState, useEffect, FC, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,18 +32,9 @@ const DEFAULT_MODEL = 'flux';
 const LOCAL_STORAGE_KEY = 'visualizingLoopsToolSettings';
 const HISTORY_STORAGE_KEY = 'visualizingLoopsHistory';
 
-const blobToDataUrl = (blob: Blob): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};
-
 const VisualizingLoopsTool: FC = () => {
   const { toast } = useToast();
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState('A beautiful landscape painting, trending on artstation');
   const [imageModels, setImageModels] = useState<string[]>([]);
   const [model, setModel] = useState<string>(DEFAULT_MODEL);
   
@@ -135,12 +126,21 @@ const VisualizingLoopsTool: FC = () => {
 
   // Save history to localStorage
   useEffect(() => {
-    if (history.length > 0) {
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
-    } else {
-        localStorage.removeItem(HISTORY_STORAGE_KEY);
+    try {
+        if (history.length > 0) {
+            localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+        } else {
+            localStorage.removeItem(HISTORY_STORAGE_KEY);
+        }
+    } catch (e) {
+        console.error("Failed to save history to localStorage. It might be full.", e);
+        toast({
+            title: "Could Not Save History",
+            description: "Browser storage is full. Please clear some history or site data.",
+            variant: "destructive"
+        })
     }
-  }, [history]);
+  }, [history, toast]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -185,23 +185,19 @@ const VisualizingLoopsTool: FC = () => {
           body: JSON.stringify(payload),
         });
 
+        const data = await resp.json();
+
         if (!resp.ok) {
-          const errorData = await resp.json().catch(() => ({
-            error: `Image generation failed with status ${resp.status}. Response not JSON.`,
-            modelUsed: model
-          }));
-          const displayErrorMsg = errorData.error || `Error generating image (Model: ${model}, Status: ${resp.status})`;
+          const displayErrorMsg = data.error || `Error generating image (Model: ${model}, Status: ${resp.status})`;
           toast({ title: "Image Generation Error", description: displayErrorMsg, variant: "destructive", duration: 7000 });
           setError(displayErrorMsg);
           break;
         }
 
-        const blob = await resp.blob();
-        if (blob.type.startsWith('image/')) {
-          const imageUrl = await blobToDataUrl(blob);
+        if (data.imageUrl) {
           const newItem: ImageHistoryItem = {
             id: crypto.randomUUID(),
-            imageUrl,
+            imageUrl: data.imageUrl,
             prompt: prompt.trim(),
             model: model,
             timestamp: new Date().toISOString(),
@@ -209,12 +205,12 @@ const VisualizingLoopsTool: FC = () => {
           };
           newHistoryItems.push(newItem);
         } else {
-          const errorText = await blob.text();
-          const displayError = `Received non-image data (Model: ${model}): ${errorText.substring(0, 100)}`;
+          const displayError = `API returned no image URL (Model: ${model})`;
           setError(displayError);
-          toast({ title: "Image Data Error", description: displayError, variant: "destructive" });
+          toast({ title: "API Response Error", description: displayError, variant: "destructive" });
           break;
         }
+
       } catch (err: any) {
         const displayError = err.message || `Network error during image request for model ${model}.`;
         setError(displayError);
@@ -245,7 +241,7 @@ const VisualizingLoopsTool: FC = () => {
     }
   };
   
-  const handleGenerateEvent = (e: React.FormEvent) => {
+  const handleGenerateEvent = (e: FormEvent) => {
     e.preventDefault();
     handleGenerate();
   };
@@ -259,7 +255,7 @@ const VisualizingLoopsTool: FC = () => {
 
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-y-auto">
       <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
         <form onSubmit={handleGenerateEvent}>
           <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
@@ -267,7 +263,7 @@ const VisualizingLoopsTool: FC = () => {
               id="prompt-pollinations-tool"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe what you imagine and hit execute."
+              placeholder="Describe what you imagine (or want to modify) and hit execute!"
               className="flex-grow min-h-[80px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
               rows={3}
               disabled={loading}
