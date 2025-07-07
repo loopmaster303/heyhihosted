@@ -55,9 +55,9 @@ const SimpleHeader: React.FC<{
         isFixed && 'fixed top-0 left-0 right-0 z-10'
       )}
     >
-      <div onClick={onGoHome} className="cursor-pointer py-1 px-4">
-        <h1 className="text-2xl font-code">{"</hey.hi>"}</h1>
-      </div>
+      <button onClick={onGoHome} className="bg-transparent border-none cursor-pointer py-1 px-4">
+        <span className="text-2xl font-code font-bold text-foreground">{"</hey.hi>"}</span>
+      </button>
     </header>
   );
 };
