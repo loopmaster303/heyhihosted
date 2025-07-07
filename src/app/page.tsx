@@ -450,7 +450,6 @@ export default function Home() {
     // For API submission for text models, we need the full history including the new user message.
     const messagesForApiSubmission = [...(currentActiveConv.messages || []), userMessage];
 
-    // For UI display, we only add the user message bubble if it's NOT an image prompt.
     let updatedMessagesForState = [...(currentActiveConv.messages || [])];
     if (!isActuallyImagePromptMode) {
         updatedMessagesForState.push(userMessage);
@@ -540,23 +539,35 @@ export default function Home() {
 
 
   const handleRequestEditTitle = (conversationId: string) => {
-    const conversation = allConversations.find(c => c.id === conversationId);
-    if (!conversation) return;
+    // The edit button is only visible for the active conversation, so we can use it directly.
+    // This is more robust than re-finding it in the `allConversations` array.
+    if (!activeConversation || activeConversation.id !== conversationId) {
+        toast({ title: "Error", description: "Could not find the active chat to edit.", variant: "destructive" });
+        return;
+    }
 
-    if (conversation.toolType !== 'long language loops') {
+    if (activeConversation.toolType !== 'long language loops') {
         toast({ title: "Action Not Allowed", description: "Title editing is only available for 'long.language.loops' chats.", variant: "destructive"});
         return;
     }
 
-    const newTitle = window.prompt("Enter new chat title:", conversation.title);
+    const newTitle = window.prompt("Enter new chat title:", activeConversation.title);
+
+    // Check if the user provided a new title (and didn't just click cancel)
     if (newTitle && newTitle.trim() !== "") {
       const updatedTitle = newTitle.trim();
+      
+      // Create the updated conversation object once
+      const updatedConversation = { ...activeConversation, title: updatedTitle };
+
+      // Update the active conversation in state
+      setActiveConversation(updatedConversation);
+
+      // Update the conversation in the master list
       setAllConversations(prevConvs =>
-        prevConvs.map(c => c.id === conversationId ? { ...c, title: updatedTitle } : c)
+        prevConvs.map(c => (c.id === conversationId ? updatedConversation : c))
       );
-      if (activeConversation?.id === conversationId) {
-        setActiveConversation(prev => prev ? { ...prev, title: updatedTitle } : null);
-      }
+
       toast({ title: "Title Updated", description: `Chat title changed to: ${updatedTitle}`});
     }
   };
