@@ -51,6 +51,9 @@ const VisualizingLoopsTool: FC = () => {
   const [history, setHistory] = useState<ImageHistoryItem[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageHistoryItem | null>(null);
 
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+
   // Load models on mount
   useEffect(() => {
     fetch('/api/image/models')
@@ -82,8 +85,8 @@ const VisualizingLoopsTool: FC = () => {
         const settings = JSON.parse(storedSettings);
         if (settings.prompt !== undefined) setPrompt(settings.prompt);
         if (settings.model !== undefined && (imageModels.length === 0 ? FALLBACK_MODELS : imageModels).includes(settings.model)) setModel(settings.model);
-        if (settings.width !== undefined) setWidth(Array.isArray(settings.width) ? settings.width[0] : settings.width);
-        if (settings.height !== undefined) setHeight(Array.isArray(settings.height) ? settings.height[0] : settings.height);
+        if (settings.width !== undefined) setWidth(settings.width);
+        if (settings.height !== undefined) setHeight(settings.height);
         if (settings.seed !== undefined) setSeed(settings.seed);
         if (settings.isPrivate !== undefined) setIsPrivate(settings.isPrivate);
         if (settings.upsampling !== undefined) setUpsampling(settings.upsampling);
@@ -416,3 +419,5 @@ const VisualizingLoopsTool: FC = () => {
 };
 
 export default VisualizingLoopsTool;
+
+    
