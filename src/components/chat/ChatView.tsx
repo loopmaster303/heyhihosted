@@ -29,7 +29,9 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
         {messages.map((msg) => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
-        {/* Placeholder removed: "Just send something and see the AI loop..." */}
+        {isLoading && messages.length > 0 && (
+            <MessageBubble message={{ id: 'loading', role: 'assistant', content: '...', timestamp: new Date() }} />
+        )}
         <div ref={messagesEndRef} />
       </div>
     </div>
@@ -37,3 +39,5 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
 };
 
 export default ChatView;
+
+    

@@ -53,42 +53,47 @@ const TopMenu: React.FC<{ onSelectTile: (id: ToolType) => void; onNewChat: () =>
                         {`└${item.title}`}
                     </button>
                 ))}
-                 <button onClick={onNewChat} className="block w-full text-foreground/80 hover:text-foreground transition-colors pt-2">
-                    └new/chat
-                </button>
             </nav>
         </header>
     );
 };
 
 const ChatHeader: React.FC<{
-  conversation: Conversation;
   onSelectTile: (id: ToolType) => void;
-  onNewChat: () => void;
-  onRequestEditTitle: (id: string) => void;
-  onRequestDeleteChat: (id: string) => void;
-}> = ({ conversation, onSelectTile, onNewChat, onRequestEditTitle, onRequestDeleteChat }) => {
+  onGoHome: () => void;
+}> = ({ onSelectTile, onGoHome }) => {
   return (
-    <header className="group relative flex flex-col items-center pt-6 pb-2 shrink-0">
-      <div className="cursor-pointer py-1">
-        <h1 className="text-2xl font-code">{"</hey.hi>"}</h1>
-      </div>
-      <div className="absolute top-full w-auto origin-top transform-gpu scale-95 opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
-        <div className="flex flex-col items-center gap-2 mt-2">
-          {/* Tool Navigation */}
-          <nav className="flex items-center space-x-1 bg-input p-1.5 rounded-xl shadow-lg border border-border">
-            {toolTileItems.map((item) => (
-              <Button key={item.id} variant="ghost" size="sm" onClick={() => onSelectTile(item.id)} className="font-code text-xs px-2 h-7">
-                {item.title.split('/')[1] || item.title}
-              </Button>
-            ))}
-            <Button variant="ghost" size="sm" onClick={onNewChat} className="font-code text-xs px-2 h-7">
-              new/chat
+    <header className="group fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 pb-2 shrink-0 transition-all duration-300">
+        <div className="relative">
+            <div onClick={onGoHome} className="cursor-pointer py-1 bg-background px-4 rounded-t-xl">
+                 <h1 className="text-2xl font-code">{"</hey.hi>"}</h1>
+            </div>
+            <nav className="absolute top-full left-1/2 -translate-x-1/2 w-auto origin-top transform-gpu scale-95 opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto flex flex-col items-center gap-2 mt-2">
+                <div className="flex items-center space-x-1 bg-input p-1.5 rounded-xl shadow-lg border border-border">
+                    {toolTileItems.map((item) => (
+                    <Button key={item.id} variant="ghost" size="sm" onClick={() => onSelectTile(item.id)} className="font-code text-xs px-2 h-7">
+                        {item.title.split('/')[1] || item.title}
+                    </Button>
+                    ))}
+                </div>
+            </nav>
+        </div>
+    </header>
+  );
+};
+
+const ChatControls: React.FC<{
+    conversation: Conversation;
+    onNewChat: () => void;
+    onRequestEditTitle: (id: string) => void;
+    onRequestDeleteChat: (id: string) => void;
+}> = ({ conversation, onNewChat, onRequestEditTitle, onRequestDeleteChat }) => {
+    return (
+        <div className="flex items-center justify-center text-center py-2 px-2 bg-transparent space-x-2">
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={onNewChat}>
+              <Plus className="w-4 h-4" />
             </Button>
-          </nav>
-          {/* Chat Controls */}
-          <div className="flex items-center justify-center text-center py-1 px-2 bg-input rounded-xl shadow-lg border border-border space-x-1">
-            <span className="text-sm font-code font-extralight text-foreground/80 tracking-normal select-none px-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+            <span className="text-sm font-code font-extralight text-foreground/80 tracking-normal select-none px-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px] sm:max-w-xs">
               {conversation.title || "Chat"}
             </span>
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => onRequestEditTitle(conversation.id)}>
@@ -97,11 +102,8 @@ const ChatHeader: React.FC<{
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => onRequestDeleteChat(conversation.id)}>
               <Trash2 className="w-3 h-3" />
             </Button>
-          </div>
         </div>
-      </div>
-    </header>
-  );
+    );
 };
 
 
@@ -127,24 +129,11 @@ export default function Home() {
 
   const [userDisplayName, setUserDisplayName] = useState<string>("User");
   const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
-
+  
   const handleSelectChatFromHistory = useCallback((conversationId: string) => {
     const conversationToSelect = allConversations.find(c => c.id === conversationId);
     if (!conversationToSelect) {
-      // This case should be handled gracefully, maybe by starting a new chat
-      // For now, we assume it's found.
-      const newConv: Conversation = {
-        id: crypto.randomUUID(),
-        title: "default.long.language.loop",
-        messages: [],
-        createdAt: new Date(),
-        toolType: 'long language loops',
-      };
-      setAllConversations(prev => [newConv, ...prev].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
-      setActiveConversation(newConv);
-      setCurrentMessages([]);
-      setActiveToolTypeForView('long language loops');
-      setCurrentView('chat');
+      startNewLongLanguageLoopChat();
       return;
     };
     const previousActiveConv = activeConversation;
@@ -246,8 +235,21 @@ export default function Home() {
     }
 
     const storedActiveToolType = localStorage.getItem(ACTIVE_TOOL_TYPE_KEY) as ToolType | null;
+    const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
+
     if (storedActiveToolType && toolTileItems.some(item => item.id === storedActiveToolType)) {
-      handleSelectTile(storedActiveToolType);
+      if (storedActiveToolType === 'long language loops') {
+        const convToLoad = loadedConversations.find(c => c.id === storedActiveConvId);
+        if (convToLoad) {
+            handleSelectChatFromHistory(convToLoad.id);
+        } else {
+            const latestChat = loadedConversations.find(c => c.toolType === 'long language loops');
+            if(latestChat) handleSelectChatFromHistory(latestChat.id);
+            else startNewLongLanguageLoopChat();
+        }
+      } else {
+          handleSelectTile(storedActiveToolType);
+      }
     } else {
         setCurrentView('tiles');
     }
@@ -503,19 +505,16 @@ export default function Home() {
         return (
           <div className="flex flex-col h-full">
             <ChatHeader
-                conversation={activeConversation}
                 onSelectTile={handleSelectTile}
-                onNewChat={startNewLongLanguageLoopChat}
-                onRequestEditTitle={handleRequestEditTitle}
-                onRequestDeleteChat={handleRequestDeleteChat}
+                onGoHome={() => setCurrentView('tiles')}
             />
             <ChatView
               conversation={activeConversation}
               messages={currentMessages}
               isLoading={isAiResponding}
-              className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto"
+              className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-24 pb-4"
             />
-            <div className="px-4 pt-3 pb-2 shrink-0">
+            <div className="px-4 pt-2 pb-4 shrink-0">
               {activeConversation.uploadedFilePreview && (
                   <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
                   <NextImage src={activeConversation.uploadedFilePreview} alt="Uploaded preview" width={80} height={80} style={{ objectFit: "cover" }} className="rounded-md" data-ai-hint="upload preview" />
@@ -537,6 +536,12 @@ export default function Home() {
                 onModelChange={handleModelChange}
                 onStyleChange={handleStyleChange}
               />
+               <ChatControls
+                    conversation={activeConversation}
+                    onNewChat={startNewLongLanguageLoopChat}
+                    onRequestEditTitle={handleRequestEditTitle}
+                    onRequestDeleteChat={handleRequestDeleteChat}
+                />
             </div>
           </div>
         );
@@ -598,3 +603,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

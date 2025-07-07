@@ -5,6 +5,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, ChatMessageContentPart } from '@/types';
 import Image from 'next/image';
+import { Loader2 } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -14,6 +15,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const isUser = message.role === 'user';
 
   const renderContent = (content: string | ChatMessageContentPart[]) => {
+    if (message.id === 'loading') {
+      return (
+        <div className="flex items-center justify-center p-2">
+            <Loader2 className="w-5 h-5 animate-spin" />
+        </div>
+      );
+    }
+    
     if (typeof content === 'string') {
       let displayContent = content;
       if (message.role === 'assistant' && (!content || content.trim() === '')) {
@@ -68,3 +77,5 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 };
 
 export default MessageBubble;
+
+    
