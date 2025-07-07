@@ -38,15 +38,12 @@ const VisualizingLoopsTool: FC = () => {
   const [imageModels, setImageModels] = useState<string[]>([]);
   const [model, setModel] = useState<string>(DEFAULT_MODEL);
   
-  const [width, setWidth] = useState([1024]);
-  const [height, setHeight] = useState([1024]);
+  const [width, setWidth] = useState<number>(1024);
+  const [height, setHeight] = useState<number>(1024);
   const [seed, setSeed] = useState<string>('');
   const [isPrivate, setIsPrivate] = useState(true);
   const [upsampling, setUpsampling] = useState(false);
   const [transparent, setTransparent] = useState(false);
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const [aspectRatio, setAspectRatio] = useState<string>('1:1');
   const [batchSize, setBatchSize] = useState<number>(1);
@@ -85,8 +82,8 @@ const VisualizingLoopsTool: FC = () => {
         const settings = JSON.parse(storedSettings);
         if (settings.prompt !== undefined) setPrompt(settings.prompt);
         if (settings.model !== undefined && (imageModels.length === 0 ? FALLBACK_MODELS : imageModels).includes(settings.model)) setModel(settings.model);
-        if (settings.width !== undefined) setWidth(settings.width);
-        if (settings.height !== undefined) setHeight(settings.height);
+        if (settings.width !== undefined) setWidth(Array.isArray(settings.width) ? settings.width[0] : settings.width);
+        if (settings.height !== undefined) setHeight(Array.isArray(settings.height) ? settings.height[0] : settings.height);
         if (settings.seed !== undefined) setSeed(settings.seed);
         if (settings.isPrivate !== undefined) setIsPrivate(settings.isPrivate);
         if (settings.upsampling !== undefined) setUpsampling(settings.upsampling);
@@ -166,8 +163,8 @@ const VisualizingLoopsTool: FC = () => {
       const payload: Record<string, any> = {
         prompt: prompt.trim(),
         model,
-        width: width[0],
-        height: height[0],
+        width: width,
+        height: height,
         nologo: true,
         private: isPrivate,
         enhance: upsampling,
@@ -232,12 +229,12 @@ const VisualizingLoopsTool: FC = () => {
     const wRatio = Number(wStr);
     const hRatio = Number(hStr);
     if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
-      const currentWidthVal = width[0];
+      const currentWidthVal = width;
       let newHeight = Math.round((currentWidthVal * hRatio) / wRatio);
       newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64));
       let newWidth = Math.max(256, Math.min(2048, Math.round(currentWidthVal / 64) * 64));
-      setWidth([newWidth]);
-      setHeight([newHeight]);
+      setWidth(newWidth);
+      setHeight(newHeight);
     }
   };
   
@@ -315,13 +312,13 @@ const VisualizingLoopsTool: FC = () => {
                       <div className="grid gap-3">
                         <div className="grid grid-cols-3 items-center gap-4">
                           <Label htmlFor="width-slider-tool" className="col-span-1 text-xs">Width</Label>
-                          <Slider id="width-slider-tool" value={width} onValueChange={setWidth} min={256} max={2048} step={64} className="col-span-2" />
-                          <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width[0]}px</span>
+                          <Slider id="width-slider-tool" value={[width]} onValueChange={(val) => setWidth(val[0])} min={256} max={2048} step={64} className="col-span-2" />
+                          <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width}px</span>
                         </div>
                         <div className="grid grid-cols-3 items-center gap-4">
                           <Label htmlFor="height-slider-tool" className="col-span-1 text-xs">Height</Label>
-                          <Slider id="height-slider-tool" value={height} onValueChange={setHeight} min={256} max={2048} step={64} className="col-span-2" />
-                          <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height[0]}px</span>
+                          <Slider id="height-slider-tool" value={[height]} onValueChange={(val) => setHeight(val[0])} min={256} max={2048} step={64} className="col-span-2" />
+                          <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height}px</span>
                         </div>
                         <div className="grid grid-cols-3 items-center gap-4">
                           <Label htmlFor="aspect-ratio-tool" className="col-span-1 text-xs">Aspect Ratio</Label>
