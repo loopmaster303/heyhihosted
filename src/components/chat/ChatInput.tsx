@@ -5,7 +5,7 @@ import type React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Brain, Fingerprint, ImageIcon, X, Send } from 'lucide-react';
+import { Paperclip, Brain, Fingerprint, ImageIcon, X, Send, Mic, Square, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,7 @@ import {
 import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
 import type { PollinationsModel, ResponseStyle } from '@/config/chat-options';
 import { cn } from '@/lib/utils';
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatInputProps {
   onSendMessage: (
@@ -53,6 +54,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const [inputValue, setInputValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -62,16 +69,14 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, [inputValue]);
 
-
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    if (isLoading) return;
+    if (isLoading || isRecording || isTranscribing) return;
 
     const canSendMessage = (isLongLanguageLoopActive && isImageModeActive && inputValue.trim() !== '') ||
                            (isLongLanguageLoopActive && !!uploadedFilePreviewUrl && inputValue.trim() !== '') ||
                            (isLongLanguageLoopActive && !!uploadedFilePreviewUrl && inputValue.trim() === '') ||
                            (!isImageModeActive && inputValue.trim() !== '');
-
 
     if (canSendMessage) {
       onSendMessage(
@@ -114,14 +119,76 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const placeholderText = "chat with AI";
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        stream.getTracks().forEach(track => track.stop()); // Stop mic access
+        
+        setIsTranscribing(true);
+        try {
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = async () => {
+            const base64Audio = (reader.result as string).split(',')[1];
+            const response = await fetch('/api/speech-to-text', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audioData: base64Audio, format: 'wav' }),
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+              throw new Error(result.error || 'Failed to transcribe audio.');
+            }
+            setInputValue(prev => (prev ? prev + ' ' : '') + result.transcription);
+          };
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : "Could not transcribe audio.";
+          toast({ title: "Transcription Error", description: msg, variant: "destructive" });
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      toast({ title: "Microphone Access Denied", description: "Please enable microphone permissions in your browser settings.", variant: "destructive" });
+      console.error("Error accessing microphone:", error);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handleMicClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const placeholderText = "chat with AI, or record your voice...";
   const currentSelectedModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
   const currentSelectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0];
 
   const iconSizeClass = "w-6 h-6";
   const iconColorClass = "text-foreground/80 hover:text-foreground";
   const iconStrokeWidth = 1.75;
-
 
   return (
     <div className="sticky bottom-0 left-0 right-0 bg-transparent px-2 py-3 md:px-3 md:py-4">
@@ -138,7 +205,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     placeholder={placeholderText}
                     className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
                     rows={1}
-                    disabled={isLoading}
+                    disabled={isLoading || isRecording || isTranscribing}
                     aria-label="Chat message input"
                     style={{ lineHeight: '1.5rem' }}
                 />
@@ -147,10 +214,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     variant="ghost"
                     size="icon"
                     className="text-foreground/80 hover:text-foreground"
-                    disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
+                    disabled={isLoading || isRecording || isTranscribing || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
                     aria-label="Send message"
                   >
-                      <Send className={iconSizeClass} strokeWidth={iconStrokeWidth} />
+                      {isTranscribing ? <Loader2 className={cn(iconSizeClass, "animate-spin")} /> : <Send className={iconSizeClass} strokeWidth={iconStrokeWidth} />}
                 </Button>
             </div>
             
@@ -194,7 +261,22 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   </DropdownMenu>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                   <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                        "rounded-lg",
+                        iconColorClass,
+                        isRecording && "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    )}
+                    onClick={handleMicClick}
+                    title={isRecording ? "Stop recording" : "Start recording"}
+                    disabled={isLoading || isTranscribing || isImageModeActive}
+                  >
+                    {isRecording ? <Square className={iconSizeClass} /> : <Mic className={iconSizeClass} strokeWidth={iconStrokeWidth} />}
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
@@ -207,7 +289,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     onClick={onToggleImageMode}
                     aria-label={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
                     title={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
-                    disabled={isLoading || !!uploadedFilePreviewUrl}
+                    disabled={isLoading || !!uploadedFilePreviewUrl || isRecording}
                   >
                     <ImageIcon className={iconSizeClass} strokeWidth={iconStrokeWidth} />
                   </Button>
@@ -224,7 +306,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         }
                     }}
                     title={uploadedFilePreviewUrl ? "Clear uploaded image" : "Attach file"}
-                    disabled={isLoading || isImageModeActive}
+                    disabled={isLoading || isImageModeActive || isRecording}
                   >
                     {uploadedFilePreviewUrl ? <X className={iconSizeClass} strokeWidth={iconStrokeWidth} /> : <Paperclip className={iconSizeClass} strokeWidth={iconStrokeWidth} />}
                   </Button>
