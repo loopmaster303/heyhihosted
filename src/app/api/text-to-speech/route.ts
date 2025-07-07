@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 
+const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
 const API_TOKEN = process.env.POLLINATIONS_API_TOKEN;
 
 export async function POST(request: Request) {
@@ -11,33 +12,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Text prompt is required and cannot be empty.' }, { status: 400 });
     }
 
-    const trimmedText = text.trim();
-    const encodedText = encodeURIComponent(trimmedText);
+    const payload = {
+      model: "openai-audio",
+      messages: [
+        { "role": "user", "content": `Just read this: ${text.trim()}` }
+      ],
+      voice: voice,
+    };
 
-    // Per documentation, the endpoint is GET https://text.pollinations.ai/{prompt}
-    const ttsUrl = new URL(`https://text.pollinations.ai/${encodedText}`);
-    ttsUrl.searchParams.append('model', 'openai-audio');
-    ttsUrl.searchParams.append('voice', voice);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
 
-    // If a token exists, add it as a query parameter for authentication on GET requests
     if (API_TOKEN) {
-      // Note: The docs are not explicit about token auth for this GET endpoint,
-      // but it's a standard way to pass tokens if supported.
-      // We are adding it for potential higher rate limits.
-    }
-    
-    // Log a warning if the URL is getting very long, as this is a known limitation of the GET method.
-    if (ttsUrl.toString().length > 4000) {
-        console.warn(`TTS URL length is ${ttsUrl.toString().length}, which may exceed server limits.`);
+      headers['Authorization'] = `Bearer ${API_TOKEN}`;
     }
 
-    const ttsResponse = await fetch(ttsUrl.toString(), {
-      method: 'GET',
+    const ttsResponse = await fetch(POLLINATIONS_API_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(payload),
     });
 
     if (!ttsResponse.ok) {
       const errorText = await ttsResponse.text();
-      console.error('Pollinations TTS API Error (GET):', errorText, 'URL:', ttsUrl.toString());
+      console.error('Pollinations TTS API Error (POST):', errorText, 'Payload:', JSON.stringify(payload));
       let details = `API responded with status ${ttsResponse.status}.`;
       try {
         const errorJson = JSON.parse(errorText);
@@ -48,20 +47,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to generate speech from Pollinations API.', details }, { status: ttsResponse.status });
     }
 
-    const contentType = ttsResponse.headers.get('content-type');
-    if (!contentType || !contentType.startsWith('audio/')) {
-        const responseText = await ttsResponse.text();
-        console.error('Pollinations TTS API - Unexpected content type:', contentType, 'Response body:', responseText.substring(0, 500));
-        return NextResponse.json({ error: 'API returned an unexpected response format instead of audio.' }, { status: 500 });
-    }
+    // The API returns a JSON response containing the audio data.
+    const result = await ttsResponse.json();
 
-    const audioBlob = await ttsResponse.blob();
-    return new NextResponse(audioBlob, {
-      status: 200,
-      headers: {
-        'Content-Type': 'audio/mpeg',
-      },
-    });
+    // According to the docs, the response contains base64 audio.
+    // We look for it in the standard chat completion path.
+    const audioBase64 = result?.choices?.[0]?.message?.content;
+    
+    if (typeof audioBase64 === 'string' && audioBase64.length > 0) {
+        const audioBuffer = Buffer.from(audioBase64, 'base64');
+        return new NextResponse(audioBuffer, {
+            status: 200,
+            headers: {
+                'Content-Type': 'audio/mpeg',
+            },
+        });
+    } else {
+        console.error('Pollinations TTS API - Unexpected response structure:', result);
+        return NextResponse.json({ error: 'Could not extract audio data from API response.' }, { status: 500 });
+    }
 
   } catch (error: any) {
     console.error('Error in TTS route:', error);
