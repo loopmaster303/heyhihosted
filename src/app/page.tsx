@@ -16,7 +16,6 @@ import { X } from 'lucide-react';
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
-import { generateImageViaPollinations } from '@/ai/flows/generate-image-flow';
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { cn } from '@/lib/utils';
@@ -462,10 +461,20 @@ export default function Home() {
 
     if (isActuallyImagePromptMode && messageText.trim()) {
       try {
-        const result = await generateImageViaPollinations({ prompt: messageText.trim() });
+        const response = await fetch('/api/openai-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: messageText.trim(), model: 'gptimage', private: true }),
+        });
+        
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to generate image via API.');
+        }
+
         aiResponseContent = [
-          { type: 'text', text: `Generated image for: "${result.promptUsed}"` },
-          { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${result.promptUsed}`, isGenerated: true } }
+          { type: 'text', text: `Generated image for: "${messageText.trim()}"` },
+          { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${messageText.trim()}`, isGenerated: true } }
         ];
         skipPollinationsChatCall = true;
       } catch (error) {
