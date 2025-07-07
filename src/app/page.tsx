@@ -46,53 +46,24 @@ const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
 const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
 
 
-const ToolHeader: React.FC<{
-  onSelectTile: (id: ToolType) => void;
+const SimpleHeader: React.FC<{
   onGoHome: () => void;
-}> = ({ onSelectTile, onGoHome }) => {
+  isFixed?: boolean;
+}> = ({ onGoHome, isFixed = false }) => {
   return (
-    <header className="group relative flex justify-center pt-6 mb-2 shrink-0 transition-all duration-300 bg-background z-50">
-        <div className="relative">
-            <div onClick={onGoHome} className="cursor-pointer py-1 px-4 rounded-t-xl">
-                 <h1 className="text-2xl font-code">{"</hey.hi>"}</h1>
-            </div>
-            <nav className="absolute top-full left-1/2 -translate-x-1/2 w-auto origin-top transform-gpu scale-95 opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto flex flex-col items-center z-50">
-                <div className="flex items-center space-x-1 bg-input p-1.5 rounded-xl shadow-lg border border-border">
-                    {toolTileItems.map((item) => (
-                    <Button key={item.id} variant="ghost" size="sm" onClick={() => onSelectTile(item.id)} className="font-code text-xs px-2 h-7">
-                        {item.title}
-                    </Button>
-                    ))}
-                </div>
-            </nav>
-        </div>
+    <header
+      className={cn(
+        'flex justify-center pt-6 mb-2 shrink-0 bg-background',
+        isFixed && 'fixed top-0 left-0 right-0 z-10'
+      )}
+    >
+      <div onClick={onGoHome} className="cursor-pointer py-1 px-4">
+        <h1 className="text-2xl font-code">{"</hey.hi>"}</h1>
+      </div>
     </header>
   );
 };
 
-const ChatHeader: React.FC<{
-  onSelectTile: (id: ToolType) => void;
-  onGoHome: () => void;
-}> = ({ onSelectTile, onGoHome }) => {
-  return (
-    <header className="group fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 mb-2 shrink-0 transition-all duration-300">
-        <div className="relative">
-            <div onClick={onGoHome} className="cursor-pointer py-1 bg-background px-4 rounded-t-xl">
-                 <h1 className="text-2xl font-code">{"</hey.hi>"}</h1>
-            </div>
-            <nav className="absolute top-full left-1/2 -translate-x-1/2 w-auto origin-top transform-gpu scale-95 opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto flex flex-col items-center">
-                <div className="flex items-center space-x-1 bg-input p-1.5 rounded-xl shadow-lg border border-border">
-                    {toolTileItems.map((item) => (
-                    <Button key={item.id} variant="ghost" size="sm" onClick={() => onSelectTile(item.id)} className="font-code text-xs px-2 h-7">
-                        {item.title}
-                    </Button>
-                    ))}
-                </div>
-            </nav>
-        </div>
-    </header>
-  );
-};
 
 const ChatControls: React.FC<{
     conversation: Conversation;
@@ -541,9 +512,9 @@ export default function Home() {
         if (!activeConversation) return null;
         return (
           <div className="flex flex-col h-full">
-            <ChatHeader
-                onSelectTile={handleSelectTile}
+            <SimpleHeader
                 onGoHome={() => setCurrentView('tiles')}
+                isFixed={true}
             />
             <ChatView
               conversation={activeConversation}
@@ -588,8 +559,7 @@ export default function Home() {
       case 'personalizationTool':
         return (
             <div className="flex flex-col h-full">
-                <ToolHeader 
-                    onSelectTile={handleSelectTile}
+                <SimpleHeader
                     onGoHome={() => setCurrentView('tiles')}
                 />
                 <div className="flex-grow overflow-y-auto">
