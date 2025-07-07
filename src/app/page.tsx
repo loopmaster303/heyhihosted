@@ -9,7 +9,7 @@ import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import { Button } from "@/components/ui/button";
 import NextImage from 'next/image';
-import { X, Pencil, Trash2, Check, Plus } from 'lucide-react';
+import { X, Pencil, Trash2, Check, Plus, RefreshCw } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 
 import type { ChatMessage, Conversation, ToolType, TileItem, ChatMessageContentPart, CurrentAppView } from '@/types';
@@ -42,40 +42,28 @@ const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
 const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
 
 
-const FloatingToolMenu: React.FC<{
-    onSelectTile: (id: ToolType) => void;
-    onNewChat: () => void;
-    className?: string;
-}> = ({ onSelectTile, onNewChat, className }) => {
+const TopMenu: React.FC<{ onSelectTile: (id: ToolType) => void; onNewChat: () => void }> = ({ onSelectTile, onNewChat }) => {
     return (
-        <div className={`group relative flex flex-col items-center ${className}`}>
-            <div className="absolute bottom-full mb-4 w-full max-w-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center space-y-2 z-10">
+        <header className="py-6 text-center shrink-0">
+            <h1 className="text-4xl font-code">{"</hey.hi>"}</h1>
+            <p className="text-muted-foreground text-sm mt-1">everyone can say hi to ai.</p>
+            <nav className="mt-4 space-y-1 font-code text-lg w-auto inline-block text-left">
                 {toolTileItems.map((item) => (
-                    <button
-                        key={item.id}
-                        onClick={() => onSelectTile(item.id)}
-                        className="font-code text-lg text-foreground/80 hover:text-foreground transition-colors duration-150 block w-full text-center py-1.5 bg-background/50 backdrop-blur-md rounded-md shadow-lg"
-                    >
+                    <button key={item.id} onClick={() => onSelectTile(item.id)} className="block w-full text-foreground/80 hover:text-foreground transition-colors">
                         {`└${item.title}`}
                     </button>
                 ))}
-                 <button
-                    onClick={onNewChat}
-                    className="font-code text-lg text-foreground/80 hover:text-foreground transition-colors duration-150 block w-full text-center py-1.5 bg-background/50 backdrop-blur-md rounded-md shadow-lg flex items-center justify-center gap-2"
-                >
-                    <Plus className="w-4 h-4" /> New Chat
+                 <button onClick={onNewChat} className="block w-full text-foreground/80 hover:text-foreground transition-colors pt-2">
+                    └new/chat
                 </button>
-            </div>
-            <div className="font-code text-lg cursor-pointer text-muted-foreground hover:text-foreground">
-                {"</hey.hi>"}
-            </div>
-        </div>
+            </nav>
+        </header>
     );
 };
 
 
 export default function Home() {
-  const [currentView, setCurrentView] = useState<CurrentAppView>('tiles');
+  const [currentView, setCurrentView] = useState<CurrentAppView>('chat');
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [allConversations, setAllConversations] = useState<Conversation[]>([]);
   const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
@@ -96,6 +84,47 @@ export default function Home() {
 
   const [userDisplayName, setUserDisplayName] = useState<string>("User");
   const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
+
+  const startNewLongLanguageLoopChat = useCallback(() => {
+    const previousActiveConv = activeConversation;
+    if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
+        setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== previousActiveConv.id));
+    }
+
+    const newConversation: Conversation = {
+      id: crypto.randomUUID(),
+      title: "default.long.language.loop",
+      messages: [],
+      createdAt: new Date(),
+      toolType: 'long language loops',
+      isImageMode: false, 
+      selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID, 
+      selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
+    };
+    setAllConversations(prev => [newConversation, ...prev].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+    setActiveConversation(newConversation);
+    setCurrentMessages([]);
+    setActiveToolTypeForView('long language loops');
+    setCurrentView('chat');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConversation]);
+
+  const handleSelectChatFromHistory = useCallback((conversationId: string) => {
+    const conversationToSelect = allConversations.find(c => c.id === conversationId);
+    if (!conversationToSelect) {
+      startNewLongLanguageLoopChat();
+      return;
+    };
+    const previousActiveConv = activeConversation;
+    if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
+        setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== previousActiveConv.id));
+    }
+    setActiveConversation({ ...conversationToSelect, uploadedFile: null });
+    setCurrentMessages(conversationToSelect.messages);
+    setIsImageMode(conversationToSelect.isImageMode || false);
+    setActiveToolTypeForView('long language loops');
+    setCurrentView('chat');
+  }, [allConversations, activeConversation, startNewLongLanguageLoopChat]);
 
   useEffect(() => {
     let loadedConversations: Conversation[] = [];
@@ -135,28 +164,24 @@ export default function Home() {
       const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
       
       if (storedActiveToolType === 'long language loops') {
-        const conv = storedActiveConvId ? loadedConversations.find(c => c.id === storedActiveConvId) : undefined;
+        const conv = storedActiveConvId ? loadedConversations.find(c => c.id === storedActiveConvId) : loadedConversations[0];
         if (conv) {
-           setActiveConversation(conv);
-           setCurrentMessages(conv.messages);
-           setActiveToolTypeForView('long language loops');
-           setCurrentView('chat');
+           handleSelectChatFromHistory(conv.id);
         } else {
-           // Invalid state (e.g., deleted chat was active). Fallback to tiles.
-           setCurrentView('tiles');
-           setActiveToolTypeForView(null);
-           localStorage.removeItem(ACTIVE_TOOL_TYPE_KEY);
-           localStorage.removeItem(ACTIVE_CONVERSATION_ID_KEY);
+           startNewLongLanguageLoopChat();
         }
       } else {
-        // Handle other tool views
         setActiveToolTypeForView(storedActiveToolType);
         setCurrentView(getViewForTool(storedActiveToolType));
         setActiveConversation(null); 
       }
     } else {
-        // No active tool stored, default to tiles
-        setCurrentView('tiles');
+        const latestChat = loadedConversations.find(c => c.toolType === 'long language loops');
+        if(latestChat) {
+            handleSelectChatFromHistory(latestChat.id);
+        } else {
+            startNewLongLanguageLoopChat();
+        }
     }
 
     setIsInitialLoadComplete(true);
@@ -170,7 +195,7 @@ export default function Home() {
         case 'nocost imagination': return 'easyImageLoopTool';
         case 'premium imagination': return 'replicateImageTool';
         case 'personalization': return 'personalizationTool';
-        default: return 'tiles';
+        default: return 'chat';
     }
   };
 
@@ -259,47 +284,12 @@ export default function Home() {
     }
   }, [allConversations, activeConversation?.id]);
 
-
-  const cleanupPreviousEmptyLllChat = useCallback((previousActiveConv: Conversation | null) => {
+  const handleSelectTile = useCallback((toolType: ToolType) => {
+    const previousActiveConv = activeConversation;
     if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
         setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== previousActiveConv.id));
     }
-  }, []);
 
-  const startNewLongLanguageLoopChat = useCallback(() => {
-    const previousActiveConv = activeConversation;
-    cleanupPreviousEmptyLllChat(previousActiveConv); 
-
-    const newConversation: Conversation = {
-      id: crypto.randomUUID(),
-      title: "default.long.language.loop",
-      messages: [],
-      createdAt: new Date(),
-      toolType: 'long language loops',
-      isImageMode: false, 
-      selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID, 
-      selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
-    };
-    setAllConversations(prev => [newConversation, ...prev].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
-    setActiveConversation(newConversation);
-    setCurrentMessages([]);
-    setActiveToolTypeForView('long language loops');
-    setCurrentView('chat');
-  }, [activeConversation, cleanupPreviousEmptyLllChat]);
-
-  const handleSelectChatFromHistory = useCallback((conversationId: string) => {
-    const conversationToSelect = allConversations.find(c => c.id === conversationId);
-    if (!conversationToSelect) return;
-    cleanupPreviousEmptyLllChat(activeConversation);
-    setActiveConversation({ ...conversationToSelect, uploadedFile: null });
-    setCurrentMessages(conversationToSelect.messages);
-    setIsImageMode(conversationToSelect.isImageMode || false);
-    setActiveToolTypeForView('long language loops');
-    setCurrentView('chat');
-  }, [allConversations, activeConversation, cleanupPreviousEmptyLllChat]);
-
-  const handleSelectTile = useCallback((toolType: ToolType) => {
-    cleanupPreviousEmptyLllChat(activeConversation);
     setActiveToolTypeForView(toolType);
     if (toolType === 'long language loops') {
       const latestChat = allConversations.find(c => c.toolType === 'long language loops');
@@ -310,7 +300,7 @@ export default function Home() {
         setCurrentMessages([]);
         setCurrentView(getViewForTool(toolType));
     }
-  }, [activeConversation, allConversations, cleanupPreviousEmptyLllChat, startNewLongLanguageLoopChat, handleSelectChatFromHistory]);
+  }, [activeConversation, allConversations, handleSelectChatFromHistory, startNewLongLanguageLoopChat]);
 
 
   const handleSendMessageGlobal = useCallback(async (
@@ -426,7 +416,7 @@ export default function Home() {
     if (wasActive) {
       const nextChat = updatedConversations.find(c => c.toolType === 'long language loops');
       if (nextChat) handleSelectChatFromHistory(nextChat.id);
-      else setCurrentView('tiles');
+      else startNewLongLanguageLoopChat();
     }
     setIsDeleteDialogOpen(false);
     toast({ title: "Chat Deleted" });
@@ -464,19 +454,23 @@ export default function Home() {
   }
 
   const renderContent = () => {
+    if (!isInitialLoadComplete) {
+        return <div className="flex-grow flex items-center justify-center"><RefreshCw className="w-8 h-8 animate-spin" /></div>; // or a better loading state
+    }
+
     switch (currentView) {
       case 'chat':
-        if (!activeConversation) return null; // Or some fallback UI
+        if (!activeConversation) return null;
         return (
-          <>
+          <div className="flex flex-col h-full">
+            <TopMenu onSelectTile={handleSelectTile} onNewChat={startNewLongLanguageLoopChat} />
             <ChatView
               conversation={activeConversation}
               messages={currentMessages}
               isLoading={isAiResponding}
-              className="flex-grow overflow-y-auto"
+              className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto"
             />
-            <div className="px-4 pt-3 pb-2">
-              <FloatingToolMenu onSelectTile={handleSelectTile} onNewChat={startNewLongLanguageLoopChat} className="mb-2"/>
+            <div className="px-4 pt-3 pb-2 shrink-0">
               {activeConversation.uploadedFilePreview && (
                   <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
                   <NextImage src={activeConversation.uploadedFilePreview} alt="Uploaded preview" width={80} height={80} style={{ objectFit: "cover" }} className="rounded-md" data-ai-hint="upload preview" />
@@ -499,6 +493,9 @@ export default function Home() {
                 onStyleChange={handleStyleChange}
               />
               <div className="flex items-center justify-center text-center py-2 px-4 space-x-2">
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => startNewLongLanguageLoopChat()}>
+                      <Plus className="w-3 h-3" />
+                  </Button>
                   <h1 className="text-sm font-code font-extralight text-foreground/60 tracking-normal select-none">
                       {activeConversation.title || "Chat"}
                   </h1>
@@ -510,16 +507,14 @@ export default function Home() {
                   </Button>
               </div>
             </div>
-          </>
+          </div>
         );
       case 'easyImageLoopTool':
       case 'replicateImageTool':
       case 'personalizationTool':
         return (
             <div className="flex flex-col h-full">
-                <div className="p-4 border-b border-border">
-                   <FloatingToolMenu onSelectTile={handleSelectTile} onNewChat={startNewLongLanguageLoopChat} />
-                </div>
+                <TopMenu onSelectTile={handleSelectTile} onNewChat={startNewLongLanguageLoopChat} />
                 <div className="flex-grow overflow-y-auto">
                     {currentView === 'easyImageLoopTool' && <VisualizingLoopsTool />}
                     {currentView === 'replicateImageTool' && <ReplicateImageTool />}
@@ -535,18 +530,8 @@ export default function Home() {
                 </div>
             </div>
         );
-      case 'tiles':
       default:
-        return (
-          <main className="flex-grow container mx-auto px-4 sm:px-6 py-10 flex flex-col items-center justify-center overflow-y-auto">
-              <FloatingToolMenu onSelectTile={handleSelectTile} onNewChat={startNewLongLanguageLoopChat} />
-              <footer className="absolute bottom-10 w-full max-w-4xl text-center">
-                <p className="font-code text-xs sm:text-sm text-muted-foreground leading-relaxed text-center">
-                  {"Say hi to </hey.hi> – chat with Artificial Intelligence or create stunning images with it, all for free. Try different models, generate images, and personalize your experience. No paywall, no limits, for everyone."}
-                </p>
-              </footer>
-          </main>
-        );
+        return null;
     }
   };
 
@@ -578,3 +563,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
