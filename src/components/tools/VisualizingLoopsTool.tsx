@@ -32,34 +32,68 @@ const DEFAULT_MODEL = 'flux';
 const LOCAL_STORAGE_KEY = 'visualizingLoopsToolSettings';
 const HISTORY_STORAGE_KEY = 'visualizingLoopsHistory';
 
+// Helper function to safely get initial settings from localStorage
+const getInitialSettings = () => {
+  try {
+    const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedSettings) {
+      return JSON.parse(storedSettings);
+    }
+  } catch (e) {
+    console.error("Failed to parse settings from localStorage", e);
+    // If parsing fails, remove the corrupted item
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+  }
+  return {}; // Return empty object if nothing is found or on error
+};
+
+
 const VisualizingLoopsTool: FC = () => {
   const { toast } = useToast();
-  const [prompt, setPrompt] = useState('A beautiful landscape painting, trending on artstation');
-  const [imageModels, setImageModels] = useState<string[]>([]);
-  const [model, setModel] = useState<string>(DEFAULT_MODEL);
-  
-  const [width, setWidth] = useState<number>(1024);
-  const [height, setHeight] = useState<number>(1024);
-  const [seed, setSeed] = useState<string>('');
-  const [isPrivate, setIsPrivate] = useState(true);
-  const [upsampling, setUpsampling] = useState(false);
-  const [transparent, setTransparent] = useState(false);
 
-  const [aspectRatio, setAspectRatio] = useState<string>('1:1');
-  const [batchSize, setBatchSize] = useState<number>(1);
+  // === LAZY STATE INITIALIZATION ===
+  // State is initialized only once by reading from localStorage.
+  // This avoids useEffect-based loading which caused the infinite loop.
+  const [prompt, setPrompt] = useState<string>(() => getInitialSettings().prompt || 'A beautiful landscape painting, trending on artstation');
+  const [model, setModel] = useState<string>(() => getInitialSettings().model || DEFAULT_MODEL);
+  const [width, setWidth] = useState<number>(() => getInitialSettings().width || 1024);
+  const [height, setHeight] = useState<number>(() => getInitialSettings().height || 1024);
+  const [seed, setSeed] = useState<string>(() => getInitialSettings().seed || '');
+  const [isPrivate, setIsPrivate] = useState<boolean>(() => getInitialSettings().isPrivate !== undefined ? getInitialSettings().isPrivate : true);
+  const [upsampling, setUpsampling] = useState<boolean>(() => getInitialSettings().upsampling || false);
+  const [transparent, setTransparent] = useState<boolean>(() => getInitialSettings().transparent || false);
+  const [aspectRatio, setAspectRatio] = useState<string>(() => getInitialSettings().aspectRatio || '1:1');
+  const [batchSize, setBatchSize] = useState<number>(() => getInitialSettings().batchSize || 1);
+
+  const [imageModels, setImageModels] = useState<string[]>([]);
   
-  const [history, setHistory] = useState<ImageHistoryItem[]>([]);
-  const [selectedImage, setSelectedImage] = useState<ImageHistoryItem | null>(null);
+  const [history, setHistory] = useState<ImageHistoryItem[]>(() => {
+    try {
+      const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
+      return storedHistory ? JSON.parse(storedHistory) : [];
+    } catch (e) {
+      console.error("Failed to parse history from localStorage", e);
+      localStorage.removeItem(HISTORY_STORAGE_KEY);
+      return [];
+    }
+  });
+
+  const [selectedImage, setSelectedImage] = useState<ImageHistoryItem | null>(() => {
+      if (history.length > 0) {
+        return history[0];
+      }
+      return null;
+  });
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
-  // Memoize slider value arrays to prevent unstable references
+  // Memoize slider values to prevent unnecessary re-renders of the slider component.
   const widthValue = useMemo(() => [width], [width]);
   const heightValue = useMemo(() => [height], [height]);
   const batchSizeValue = useMemo(() => [batchSize], [batchSize]);
 
-  // Load models on mount
+  // Effect to load image models from API (runs only once on mount)
   useEffect(() => {
     fetch('/api/image/models')
       .then(res => {
@@ -69,6 +103,7 @@ const VisualizingLoopsTool: FC = () => {
       .then(data => {
         const availableModels = Array.isArray(data.models) && data.models.length > 0 ? data.models : FALLBACK_MODELS;
         setImageModels(availableModels);
+        // After fetching models, validate the current model. If it's not in the list, reset it.
         if (!availableModels.includes(model)) {
           setModel(availableModels.includes(DEFAULT_MODEL) ? DEFAULT_MODEL : availableModels[0]);
         }
@@ -77,51 +112,13 @@ const VisualizingLoopsTool: FC = () => {
         console.error('Error loading image models:', err);
         toast({ title: "Model Loading Error", description: "Could not fetch models. Using defaults.", variant: "destructive" });
         setImageModels(FALLBACK_MODELS);
-        setModel(DEFAULT_MODEL);
       });
+  // We want this to run only once. `model` is validated inside. `toast` is stable.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load settings and history from localStorage
-  useEffect(() => {
-    try {
-      const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedSettings) {
-        const settings = JSON.parse(storedSettings);
-        if (settings.prompt !== undefined) setPrompt(settings.prompt);
-        if (settings.model !== undefined && (imageModels.length === 0 ? FALLBACK_MODELS : imageModels).includes(settings.model)) setModel(settings.model);
-        if (settings.width !== undefined) setWidth(Array.isArray(settings.width) ? settings.width[0] : settings.width);
-        if (settings.height !== undefined) setHeight(Array.isArray(settings.height) ? settings.height[0] : settings.height);
-        if (settings.seed !== undefined) setSeed(settings.seed);
-        if (settings.isPrivate !== undefined) setIsPrivate(settings.isPrivate);
-        if (settings.upsampling !== undefined) setUpsampling(settings.upsampling);
-        if (settings.transparent !== undefined) setTransparent(settings.transparent);
-        if (settings.aspectRatio !== undefined) setAspectRatio(settings.aspectRatio);
-        if (settings.batchSize !== undefined) setBatchSize(Array.isArray(settings.batchSize) ? settings.batchSize[0] : settings.batchSize);
-      }
-    } catch (e) {
-      console.error("Failed to parse settings from localStorage", e);
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-    }
-
-    try {
-        const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
-        if (storedHistory) {
-            const parsedHistory = JSON.parse(storedHistory);
-            if(Array.isArray(parsedHistory)) {
-                setHistory(parsedHistory);
-                if (parsedHistory.length > 0) {
-                    setSelectedImage(parsedHistory[0]);
-                }
-            }
-        }
-    } catch (e) {
-        console.error("Failed to parse history from localStorage", e);
-        localStorage.removeItem(HISTORY_STORAGE_KEY);
-    }
-  }, [imageModels]);
-
-  // Save settings to localStorage
+  // === CLEAN SAVING EFFECTS ===
+  // This effect now ONLY saves settings when they change. It's decoupled from loading.
   useEffect(() => {
     const settingsToSave = {
       prompt, model, width, height, seed, isPrivate, upsampling, transparent, aspectRatio, batchSize,
@@ -129,7 +126,7 @@ const VisualizingLoopsTool: FC = () => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settingsToSave));
   }, [prompt, model, width, height, seed, isPrivate, upsampling, transparent, aspectRatio, batchSize]);
 
-  // Save history to localStorage
+  // This effect ONLY saves history when it changes.
   useEffect(() => {
     try {
         if (history.length > 0) {
@@ -146,6 +143,7 @@ const VisualizingLoopsTool: FC = () => {
         });
     }
   }, [history, toast]);
+
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -421,6 +419,5 @@ const VisualizingLoopsTool: FC = () => {
   );
 };
 
-export default VisualizingLoopsTool;
 
-    
+export default VisualizingLoopsTool;
