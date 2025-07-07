@@ -61,25 +61,46 @@ const TopMenu: React.FC<{ onSelectTile: (id: ToolType) => void; onNewChat: () =>
     );
 };
 
-const FloatingMenu: React.FC<{ onSelectTile: (id: ToolType) => void; onNewChat: () => void }> = ({ onSelectTile, onNewChat }) => {
+const ChatHeader: React.FC<{
+  conversation: Conversation;
+  onSelectTile: (id: ToolType) => void;
+  onNewChat: () => void;
+  onRequestEditTitle: (id: string) => void;
+  onRequestDeleteChat: (id: string) => void;
+}> = ({ conversation, onSelectTile, onNewChat, onRequestEditTitle, onRequestDeleteChat }) => {
   return (
-    <div className="group relative flex flex-col items-center mb-2">
+    <header className="group relative flex flex-col items-center pt-6 pb-2 shrink-0">
       <div className="cursor-pointer py-1">
-        <h1 className="text-lg font-code">{"</hey.hi>"}</h1>
+        <h1 className="text-2xl font-code">{"</hey.hi>"}</h1>
       </div>
-      <nav className="absolute bottom-full mb-1 w-auto origin-bottom transform-gpu scale-90 opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
-        <div className="flex items-center space-x-1 bg-input p-1.5 rounded-xl shadow-lg border border-border">
-          {toolTileItems.map((item) => (
-            <Button key={item.id} variant="ghost" size="sm" onClick={() => onSelectTile(item.id)} className="font-code text-xs px-2 h-7">
-              {item.title.split('/')[1] || item.title}
+      <div className="absolute top-full w-auto origin-top transform-gpu scale-95 opacity-0 transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
+        <div className="flex flex-col items-center gap-2 mt-2">
+          {/* Tool Navigation */}
+          <nav className="flex items-center space-x-1 bg-input p-1.5 rounded-xl shadow-lg border border-border">
+            {toolTileItems.map((item) => (
+              <Button key={item.id} variant="ghost" size="sm" onClick={() => onSelectTile(item.id)} className="font-code text-xs px-2 h-7">
+                {item.title.split('/')[1] || item.title}
+              </Button>
+            ))}
+            <Button variant="ghost" size="sm" onClick={onNewChat} className="font-code text-xs px-2 h-7">
+              new/chat
             </Button>
-          ))}
-          <Button variant="ghost" size="sm" onClick={onNewChat} className="font-code text-xs px-2 h-7">
-            new/chat
-          </Button>
+          </nav>
+          {/* Chat Controls */}
+          <div className="flex items-center justify-center text-center py-1 px-2 bg-input rounded-xl shadow-lg border border-border space-x-1">
+            <span className="text-sm font-code font-extralight text-foreground/80 tracking-normal select-none px-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+              {conversation.title || "Chat"}
+            </span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => onRequestEditTitle(conversation.id)}>
+              <Pencil className="w-3 h-3" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => onRequestDeleteChat(conversation.id)}>
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
         </div>
-      </nav>
-    </div>
+      </div>
+    </header>
   );
 };
 
@@ -107,6 +128,37 @@ export default function Home() {
   const [userDisplayName, setUserDisplayName] = useState<string>("User");
   const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
 
+  const handleSelectChatFromHistory = useCallback((conversationId: string) => {
+    const conversationToSelect = allConversations.find(c => c.id === conversationId);
+    if (!conversationToSelect) {
+      // This case should be handled gracefully, maybe by starting a new chat
+      // For now, we assume it's found.
+      const newConv: Conversation = {
+        id: crypto.randomUUID(),
+        title: "default.long.language.loop",
+        messages: [],
+        createdAt: new Date(),
+        toolType: 'long language loops',
+      };
+      setAllConversations(prev => [newConv, ...prev].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+      setActiveConversation(newConv);
+      setCurrentMessages([]);
+      setActiveToolTypeForView('long language loops');
+      setCurrentView('chat');
+      return;
+    };
+    const previousActiveConv = activeConversation;
+    if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
+        setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== previousActiveConv.id));
+    }
+    setActiveConversation({ ...conversationToSelect, uploadedFile: null });
+    setCurrentMessages(conversationToSelect.messages);
+    setIsImageMode(conversationToSelect.isImageMode || false);
+    setActiveToolTypeForView('long language loops');
+    setCurrentView('chat');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allConversations, activeConversation]);
+
   const startNewLongLanguageLoopChat = useCallback(() => {
     const previousActiveConv = activeConversation;
     if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
@@ -131,22 +183,6 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversation]);
 
-  const handleSelectChatFromHistory = useCallback((conversationId: string) => {
-    const conversationToSelect = allConversations.find(c => c.id === conversationId);
-    if (!conversationToSelect) {
-      startNewLongLanguageLoopChat();
-      return;
-    };
-    const previousActiveConv = activeConversation;
-    if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
-        setAllConversations(prevAllConvs => prevAllConvs.filter(c => c.id !== previousActiveConv.id));
-    }
-    setActiveConversation({ ...conversationToSelect, uploadedFile: null });
-    setCurrentMessages(conversationToSelect.messages);
-    setIsImageMode(conversationToSelect.isImageMode || false);
-    setActiveToolTypeForView('long language loops');
-    setCurrentView('chat');
-  }, [allConversations, activeConversation, startNewLongLanguageLoopChat]);
 
   const getViewForTool = (toolType: ToolType): CurrentAppView => {
     switch(toolType) {
@@ -466,6 +502,13 @@ export default function Home() {
         if (!activeConversation) return null;
         return (
           <div className="flex flex-col h-full">
+            <ChatHeader
+                conversation={activeConversation}
+                onSelectTile={handleSelectTile}
+                onNewChat={startNewLongLanguageLoopChat}
+                onRequestEditTitle={handleRequestEditTitle}
+                onRequestDeleteChat={handleRequestDeleteChat}
+            />
             <ChatView
               conversation={activeConversation}
               messages={currentMessages}
@@ -481,7 +524,6 @@ export default function Home() {
                   </Button>
                   </div>
               )}
-              <FloatingMenu onSelectTile={handleSelectTile} onNewChat={startNewLongLanguageLoopChat} />
               <ChatInput
                 onSendMessage={handleSendMessageGlobal}
                 isLoading={isAiResponding}
@@ -495,20 +537,6 @@ export default function Home() {
                 onModelChange={handleModelChange}
                 onStyleChange={handleStyleChange}
               />
-              <div className="flex items-center justify-center text-center py-2 px-4 space-x-2">
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => startNewLongLanguageLoopChat()}>
-                      <Plus className="w-3 h-3" />
-                  </Button>
-                  <h1 className="text-sm font-code font-extralight text-foreground/60 tracking-normal select-none">
-                      {activeConversation.title || "Chat"}
-                  </h1>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleRequestEditTitle(activeConversation.id)}>
-                      <Pencil className="w-3 h-3" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleRequestDeleteChat(activeConversation.id)}>
-                      <Trash2 className="w-3 h-3" />
-                  </Button>
-              </div>
             </div>
           </div>
         );
@@ -570,5 +598,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
