@@ -51,12 +51,12 @@ const SimpleHeader: React.FC<{
   return (
     <header
       className={cn(
-        'flex justify-center pt-6 mb-2 shrink-0 bg-background',
-        isFixed && 'fixed top-0 left-0 right-0 z-10'
+        'relative z-10 flex justify-center pt-6 mb-2 shrink-0 bg-background',
+        isFixed && 'fixed top-0 left-0 right-0'
       )}
     >
       <button onClick={onGoHome} className="bg-transparent border-none cursor-pointer py-1 px-4">
-        <span className="text-2xl font-code font-bold text-foreground">{"</hey.hi>"}</span>
+        <span className="text-2xl font-code font-bold text-foreground">&lt;/hey.hi&gt;</span>
       </button>
     </header>
   );
@@ -95,7 +95,7 @@ const HomePage: React.FC<{ onSelectTile: (id: ToolType) => void }> = ({ onSelect
     return (
         <div className="flex flex-col items-center justify-center h-full text-center p-4">
             <header className="shrink-0 mb-12">
-                <h1 className="text-7xl font-code">{"</hey.hi>"}</h1>
+                <h1 className="text-7xl font-code">&lt;/hey.hi&gt;</h1>
                 <p className="text-muted-foreground text-lg mt-2">everyone can say hi to ai.</p>
                 <nav className="mt-6 space-y-2 font-code text-2xl w-auto inline-block text-left">
                     {toolTileItems.map((item) => (
