@@ -11,10 +11,10 @@ interface HomePageProps {
 const HomePage: React.FC<HomePageProps> = ({ onSelectTile, toolTileItems }) => {
     return (
         <div className="flex flex-col items-center justify-center h-full text-center p-4">
-            <header className="shrink-0">
-                <h1 className="text-7xl font-code">&lt;/hey.hi&gt;</h1>
+            <header className="shrink-0 mb-16">
+                <h1 className="text-9xl font-code">&lt;/hey.hi&gt;</h1>
                 <p className="text-muted-foreground text-lg mt-2">everyone can say hi to ai.</p>
-                <nav className="mt-8 mb-16 space-y-2 font-code text-2xl w-auto inline-block text-left">
+                <nav className="mt-8 space-y-2 font-code text-2xl w-auto inline-block text-left">
                     {toolTileItems.map((item) => (
                         <button key={item.id} onClick={() => onSelectTile(item.id)} className="block w-full text-foreground/80 hover:text-foreground transition-colors">
                             {`└${item.title}`}
