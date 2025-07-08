@@ -18,10 +18,15 @@ const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
 if (serviceAccountKey) {
     try {
-        // Ensure the service account key is parsed correctly as an object.
-        const serviceAccount: ServiceAccount = typeof serviceAccountKey === 'string' 
-            ? JSON.parse(serviceAccountKey) 
-            : serviceAccountKey;
+        // Parse the service account key from the environment variable.
+        const serviceAccount: ServiceAccount = JSON.parse(serviceAccountKey);
+
+        // This is the critical fix: The private_key from a .env file often has its newlines escaped (as "\\n").
+        // The firebase-admin SDK expects actual newline characters ('\n').
+        // This line replaces the escaped newlines with actual newlines.
+        if (serviceAccount.private_key) {
+            serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
 
         if (!admin.apps.length) {
             admin.initializeApp({
