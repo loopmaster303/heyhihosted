@@ -184,7 +184,11 @@ export async function getPollinationsChatCompletion(
       // Standard OpenAI format
       if (choice.message && typeof choice.message.content === 'string') {
         replyText = choice.message.content;
-      } 
+      }
+      // NEW: Check for the special 'reasoning_content' field from DeepSeek based on user feedback
+      else if (choice.message && typeof (choice.message as any).reasoning_content === 'string') {
+        replyText = (choice.message as any).reasoning_content;
+      }
       // Some models might have a 'text' property directly on the choice
       else if (typeof choice.text === 'string') {
         replyText = choice.text;
