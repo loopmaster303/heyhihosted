@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
 import type { TileItem, ToolType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -24,25 +22,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDi
   return (
     <>
       <header className={cn("fixed top-0 left-0 right-0 z-50 flex justify-center items-center p-4", className)}>
-        <div className="relative flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="w-8 h-8"
-            aria-label="Toggle navigation menu"
-          >
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-
-          <div className="flex items-baseline gap-2">
-              <h1 className="text-xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
-              {userDisplayName && userDisplayName !== "User" && (
-                  <span className="text-xl font-code text-foreground/80 select-none">
-                      {userDisplayName}
-                  </span>
-              )}
-          </div>
+        <div className="relative flex items-center">
+            <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="flex items-baseline gap-2 text-left hover:opacity-80 transition-opacity"
+                aria-label="Toggle navigation menu"
+            >
+                <h1 className="text-3xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
+                {userDisplayName && userDisplayName !== "User" && (
+                    <span className="text-3xl font-code text-foreground/80 select-none">
+                        {userDisplayName}
+                    </span>
+                )}
+            </button>
         </div>
       </header>
       
