@@ -1,7 +1,6 @@
 
 "use client";
 
-import type React from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +29,27 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
       <div className="space-y-2 mb-4">
         <h1 className="text-2xl font-code font-semibold text-foreground">Conversational Personalization</h1>
         <p className="text-sm text-muted-foreground font-code">
-          Here you can personalize your conversational experience. Like how the AI has to call you.
+          Here you can personalize your conversational experience. Like how the ai has to call you.
+        </p>
+      </div>
+      
+      <div className="space-y-3 bg-card p-4 rounded-lg shadow">
+        <div className="flex items-center space-x-2">
+          <UserCog className="h-5 w-5 text-muted-foreground" />
+          <Label htmlFor="displayName" className="text-lg font-code text-foreground/90">
+            Display Name
+          </Label>
+        </div>
+        <Input
+          id="displayName"
+          type="text"
+          value={userDisplayName}
+          onChange={(e) => setUserDisplayName(e.target.value)}
+          placeholder="E.g., Captain Jack"
+          className="bg-input border-border focus-visible:ring-primary text-base font-code"
+        />
+        <p className="text-xs text-muted-foreground font-code">
+          This name can be used by the AI if you reference it in your custom prompt (e.g., "Call me {'{userDisplayName}'}").
         </p>
       </div>
 
@@ -60,26 +79,6 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
             </p>
         </div>
       </div>
-      
-      <div className="space-y-3 bg-card p-4 rounded-lg shadow">
-        <div className="flex items-center space-x-2">
-          <UserCog className="h-5 w-5 text-muted-foreground" />
-          <Label htmlFor="displayName" className="text-lg font-code text-foreground/90">
-            Display Name
-          </Label>
-        </div>
-        <Input
-          id="displayName"
-          type="text"
-          value={userDisplayName}
-          onChange={(e) => setUserDisplayName(e.target.value)}
-          placeholder="E.g., Captain Jack"
-          className="bg-input border-border focus-visible:ring-primary text-base font-code"
-        />
-        <p className="text-xs text-muted-foreground font-code">
-          This name can be used by the AI if you reference it in your custom prompt (e.g., "Call me {'{userDisplayName}'}").
-        </p>
-      </div>
 
       {setReplicateToolPassword && (
          <div className="space-y-3 bg-card p-4 rounded-lg shadow">
@@ -92,7 +91,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
           <Input
             id="replicatePassword"
             type="password"
-            value={replicateToolPassword}
+            value={replicateToolPassword || ''}
             onChange={(e) => setReplicateToolPassword(e.target.value)}
             placeholder="Enter password for premium tools"
             className="bg-input border-border focus-visible:ring-primary text-base font-code"
