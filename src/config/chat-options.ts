@@ -21,12 +21,8 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     { id: 'grok', name: 'xAI Grok-3 Mini', vision: false },
     { id: 'deepseek', name: 'DeepSeek V3', vision: false },
     { id: 'phi', name: 'Phi-4 Mini Instruct', vision: true },
-    { id: 'openai-roblox', name: 'OpenAI GPT-4.1 Mini (Roblox)', vision: true },
     { id: 'unity', name: 'Unity Unrestricted Agent', vision: true },
     { id: 'evil', name: 'Evil', vision: true },
-    { id: 'sur', name: 'Sur AI Assistant', vision: true },
-    { id: 'mirexa', name: 'Mirexa AI Companion', vision: true },
-    { id: 'bidara', name: 'BIDARA (NASA)', vision: true },
 ];
 
 export const AVAILABLE_RESPONSE_STYLES: ResponseStyle[] = [
