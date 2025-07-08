@@ -9,19 +9,8 @@ import ChatInput from '@/components/chat/ChatInput';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from '@/components/ui/button';
-import { Check, X, RefreshCw } from 'lucide-react';
+import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
+import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import AppHeader from '@/components/page/AppHeader';
 
 // Modular components and hooks
@@ -33,6 +22,7 @@ import HistoryPanel from '@/components/chat/HistoryPanel';
 import type { ToolType, CurrentAppView, TileItem } from '@/types';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
 import { cn } from '@/lib/utils';
+import { RefreshCw, X } from 'lucide-react';
 
 const toolTileItems: TileItem[] = [
   { id: 'long language loops', title: 'chat/conversational/assistance' },
@@ -317,27 +307,21 @@ export default function Home() {
         {renderContent()}
       </div>
 
-      {chat.isDeleteDialogOpen && (
-        <AlertDialog open={chat.isDeleteDialogOpen} onOpenChange={chat.cancelDeleteChat}>
-          <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete this chat.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel onClick={chat.cancelDeleteChat}>Cancel</AlertDialogCancel><AlertDialogAction onClick={chat.confirmDeleteChat}>Delete</AlertDialogAction></AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-
-      {chat.isEditTitleDialogOpen && (
-        <AlertDialog open={chat.isEditTitleDialogOpen} onOpenChange={chat.cancelEditTitle}>
-          <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Edit Chat Title</AlertDialogTitle><AlertDialogDescription>Enter a new title for this chat.</AlertDialogDescription></AlertDialogHeader>
-            <Input value={chat.editingTitle} onChange={(e) => chat.setEditingTitle(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') chat.confirmEditTitle(); }} placeholder="New chat title" autoFocus />
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={chat.cancelEditTitle}><X className="h-4 w-4 mr-2" />Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={chat.confirmEditTitle}><Check className="h-4 w-4 mr-2" />Save</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+      <DeleteChatDialog
+        isOpen={chat.isDeleteDialogOpen}
+        onOpenChange={chat.cancelDeleteChat}
+        onConfirm={chat.confirmDeleteChat}
+        onCancel={chat.cancelDeleteChat}
+      />
+      
+      <EditTitleDialog
+        isOpen={chat.isEditTitleDialogOpen}
+        onOpenChange={chat.cancelEditTitle}
+        onConfirm={chat.confirmEditTitle}
+        onCancel={chat.cancelEditTitle}
+        title={chat.editingTitle}
+        setTitle={chat.setEditingTitle}
+      />
     </div>
   );
 }
