@@ -9,10 +9,11 @@ import { cn } from '@/lib/utils';
 interface AppHeaderProps {
   toolTileItems: TileItem[];
   onNavigate: (toolType: ToolType | 'home') => void;
+  userDisplayName?: string;
   className?: string;
 }
 
-const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, className }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDisplayName, className }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +62,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, classN
             </div>
           )}
         </div>
-        <h1 className="text-xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
+        <div className="flex items-baseline gap-2">
+            <h1 className="text-xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
+            {userDisplayName && userDisplayName !== "User" && (
+                <span className="text-xl font-code text-foreground/80 select-none">
+                    / {userDisplayName}
+                </span>
+            )}
+        </div>
       </div>
     </header>
   );

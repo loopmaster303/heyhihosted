@@ -205,7 +205,7 @@ export default function Home() {
               conversation={chat.activeConversation}
               messages={chat.currentMessages}
               isLoading={chat.isAiResponding}
-              className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-4"
+              className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-4 no-scrollbar"
             />
             <div className="px-4 pt-2 pb-4 shrink-0">
               {chat.activeConversation.uploadedFilePreview && (
@@ -268,7 +268,11 @@ export default function Home() {
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
 
       {currentView !== 'tiles' && (
-        <AppHeader toolTileItems={toolTileItems} onNavigate={handleNavigation} />
+        <AppHeader
+          toolTileItems={toolTileItems}
+          onNavigate={handleNavigation}
+          userDisplayName={userDisplayName}
+        />
       )}
 
       <div className={`flex flex-col h-full ${currentView !== 'tiles' ? 'pt-16' : ''}`}>
