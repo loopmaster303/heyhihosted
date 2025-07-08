@@ -71,21 +71,21 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
       </div>
 
       {setReplicateToolPassword && (
-         <div className="space-y-2">
-          <Label htmlFor="replicatePassword" className="text-sm font-code text-muted-foreground">
-            Premium Tool Password
-          </Label>
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <h1 className="text-xl font-code text-foreground">image-gen/raw access key</h1>
+            <p className="text-xs text-muted-foreground font-code">
+              Enter a key to generate with the image/gen/raw tool. A key may be required for full access. Provided by the developer.
+            </p>
+          </div>
           <Input
             id="replicatePassword"
             type="password"
             value={replicateToolPassword || ''}
             onChange={(e) => setReplicateToolPassword(e.target.value)}
-            placeholder="Enter password for premium tools"
+            placeholder="Enter access key..."
             className="bg-input border-border focus-visible:ring-primary text-base font-code"
           />
-          <p className="text-xs text-muted-foreground font-code pt-1">
-            A password may be required to use the 'premium imagination' tool. Provided by the developer.
-          </p>
         </div>
       )}
       
