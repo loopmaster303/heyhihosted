@@ -16,7 +16,7 @@ const HomePage: React.FC<HomePageProps> = ({ onSelectTile, toolTileItems }) => {
                 <p className="text-muted-foreground text-lg mt-2">everyone can say hi to ai.</p>
                 <nav className="mt-8 space-y-4 font-code text-3xl w-auto inline-block text-left">
                     {toolTileItems.map((item) => (
-                        <button key={item.id} onClick={() => onSelectTile(item.id)} className="block w-full text-foreground/80 hover:text-foreground transition-colors">
+                        <button key={item.id} onClick={() => onSelectTile(item.id)} className="block w-full text-left text-foreground/80 hover:text-foreground transition-colors">
                             {`└${item.title}`}
                         </button>
                     ))}
