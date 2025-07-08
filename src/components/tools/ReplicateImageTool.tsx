@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
+import useUsageToken from '@/hooks/useUsageToken';
 
 
 const REPLICATE_TOOL_SETTINGS_KEY = 'replicateImageToolSettings';
@@ -39,6 +40,8 @@ const HISTORY_STORAGE_KEY = 'replicateToolHistory';
 
 const ReplicateImageTool: React.FC = () => {
   const { toast } = useToast();
+  const { token: usageToken, isValid: isTokenValid, remainingUses, validateToken } = useUsageToken();
+
   const modelKeys = Object.keys(modelConfigs);
   const [selectedModelKey, setSelectedModelKey] = useState<string>(""); 
   const [currentModelConfig, setCurrentModelConfig] = useState<ReplicateModelConfig | null>(null);
@@ -468,8 +471,17 @@ const ReplicateImageTool: React.FC = () => {
         toast({ title: "No Model Selected", description: "Please select a model first.", variant: "destructive" });
         return;
     }
+    
+    if (!isTokenValid || remainingUses <= 0) {
+      toast({
+        title: "Token Required",
+        description: "A valid usage token with remaining uses is required. Please add one in the settings.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const currentPayload: Record<string, any> = { model: selectedModelKey };
+    const currentPayload: Record<string, any> = { model: selectedModelKey, usageToken };
 
     const effectivePrompt = mainPromptValue.trim();
     const promptConfig = currentModelConfig.inputs.find(i => i.name === 'prompt' && i.isPrompt);
@@ -564,6 +576,7 @@ const ReplicateImageTool: React.FC = () => {
             };
             setHistory(prev => [newHistoryItem, ...prev]);
             setSelectedImage(newHistoryItem);
+            validateToken(); // Refresh remaining uses
             toast({ title: "Generation Succeeded!", description: `${currentModelConfig.name} finished processing.` });
         } else {
             console.warn("Replicate API returned success but output URL was empty or invalid:", data.output);
