@@ -1,91 +1,79 @@
-
 'use server';
 
 /**
  * @fileOverview Automatically generates a title for a chat conversation based on the first few messages,
- * using the Pollinations AI API.
+ * using the Genkit AI framework.
  *
  * - generateChatTitle - A function that generates the chat title.
  * - GenerateChatTitleInput - The input type for the generateChatTitle function.
  * - GenerateChatTitleOutput - The return type for the generateChatTitle function.
  */
 
-// Define the Zod schema for input, but do not export it directly
-export interface GenerateChatTitleInput {
-  messages: string; // The first few messages of the chat conversation, formatted as a single string.
-}
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
-// Define the Zod schema for output, but do not export it directly
-export interface GenerateChatTitleOutput {
-  title: string; // The generated title for the chat conversation, concise and under 5 words.
-}
+// Input schema for the title generation flow
+const GenerateChatTitleInputSchema = z.object({
+  messages: z.string().describe('The first few messages of the chat conversation, formatted as a single string.'),
+});
+export type GenerateChatTitleInput = z.infer<typeof GenerateChatTitleInputSchema>;
 
-const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
+// Output schema for the title generation flow
+const GenerateChatTitleOutputSchema = z.object({
+  title: z.string().describe('The generated title for the chat conversation, concise and under 5 words.'),
+});
+export type GenerateChatTitleOutput = z.infer<typeof GenerateChatTitleOutputSchema>;
+
 const DEFAULT_FALLBACK_TITLE = "Chat";
 
+// Exported wrapper function that calls the Genkit flow
 export async function generateChatTitle(input: GenerateChatTitleInput): Promise<GenerateChatTitleOutput> {
+  // Add a simple check for empty input to avoid unnecessary API calls
   if (!input || !input.messages || input.messages.trim() === "") {
     console.warn("generateChatTitle called with empty messages, returning fallback title.");
     return { title: DEFAULT_FALLBACK_TITLE };
   }
-
-  const systemPromptForTitle = `You are an expert at creating concise chat titles. Based on the following messages, generate a very short title (ideally 2-4 words, maximum 5 words) that captures the main topic or question. Only return the title itself, with no prefixes like "Title:", no explanations, and no quotation marks. Just the plain text title.`;
-
-  const userMessagesContent = `Conversation messages:\n\n${input.messages}\n\nConcise Title:`;
-
-  const payload = {
-    model: "openai-fast", // Use a fast and capable model for this simple task
-    messages: [
-      { role: "system", content: systemPromptForTitle },
-      { role: "user", content: userMessagesContent }
-    ],
-    temperature: 0.4, // Lower temperature for more deterministic and focused titles
-    max_tokens: 20,   // Sufficient for a short title, includes some buffer
-    n: 1,             // We only need one title candidate
-    private: true,    // Keep title generation requests private
-  };
-
+  
   try {
-    const response = await fetch(POLLINATIONS_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error('Pollinations API Error (generateChatTitle):', response.status, errorBody);
-      return { title: DEFAULT_FALLBACK_TITLE };
+    const output = await generateChatTitleFlow(input);
+    // Basic cleanup in case the model doesn't perfectly follow instructions
+    let title = output.title.replace(/^title:\s*/i, '').replace(/^"|"$/g, '').trim();
+    if (title.split(' ').length > 6) {
+        title = title.split(' ').slice(0, 5).join(' ') + '...';
     }
-
-    const result = await response.json();
-
-    if (result.choices && result.choices.length > 0 && result.choices[0].message && result.choices[0].message.content) {
-      let title = result.choices[0].message.content.trim();
-      
-      // Clean up common prefixes or extra text the model might add despite instructions
-      title = title.replace(/^title:\s*/i, ''); // Remove "Title: "
-      title = title.replace(/^concise title:\s*/i, ''); // Remove "Concise Title: "
-      title = title.replace(/^"|"$/g, ''); // Remove surrounding quotes
-
-      // Ensure it's not too long and is sensible
-      const words = title.split(' ').filter(Boolean);
-      if (words.length === 0) {
-        return { title: DEFAULT_FALLBACK_TITLE };
-      }
-      if (words.length > 6) { // Slightly more lenient on word count for flexibility
-        title = words.slice(0, 5).join(' ') + '...';
-      }
-      
-      return { title };
-    } else {
-      console.error('Pollinations API - Unexpected response structure (generateChatTitle):', result);
-      return { title: DEFAULT_FALLBACK_TITLE };
-    }
+    return { title: title || DEFAULT_FALLBACK_TITLE };
   } catch (error) {
-    console.error('Error calling Pollinations API for title generation:', error);
+    console.error("Error in generateChatTitleFlow:", error);
     return { title: DEFAULT_FALLBACK_TITLE };
   }
 }
+
+// Genkit prompt definition
+const titleGenerationPrompt = ai.definePrompt({
+  name: 'generateChatTitlePrompt',
+  input: { schema: GenerateChatTitleInputSchema },
+  output: { schema: GenerateChatTitleOutputSchema },
+  prompt: `You are an expert at creating concise chat titles. Based on the following messages, generate a very short title (ideally 2-4 words, maximum 5 words) that captures the main topic or question. Only return the title itself, with no prefixes like "Title:", no explanations, and no quotation marks. Just the plain text title.
+
+Conversation messages:
+{{{messages}}}
+
+Concise Title:`,
+  config: {
+      temperature: 0.4, // Keep the temperature low for more focused titles
+  }
+});
+
+// Genkit flow definition
+const generateChatTitleFlow = ai.defineFlow(
+  {
+    name: 'generateChatTitleFlow',
+    inputSchema: GenerateChatTitleInputSchema,
+    outputSchema: GenerateChatTitleOutputSchema,
+  },
+  async (input) => {
+    const { output } = await titleGenerationPrompt(input);
+    // Genkit will throw if the output doesn't match the schema, so we can assert non-null.
+    return output!;
+  }
+);
