@@ -19,13 +19,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { Check, X, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Check, X, RefreshCw, History } from 'lucide-react';
 import AppHeader from '@/components/page/AppHeader';
 
 // Modular components and hooks
 import { useChat } from '@/hooks/useChat';
 import HomePage from '@/components/page/HomePage';
-import ChatControls from '@/components/page/ChatControls';
 import HistoryPanel from '@/components/chat/HistoryPanel';
 
 // Types & Config
@@ -208,34 +208,52 @@ export default function Home() {
               className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-4 no-scrollbar"
             />
             <div className="px-4 pt-2 pb-4 shrink-0">
-              {chat.activeConversation.uploadedFilePreview && (
-                  <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
-                  <img src={chat.activeConversation.uploadedFilePreview} alt="Uploaded preview" width={80} height={80} style={{ objectFit: "cover" }} className="rounded-md" />
-                  <button type="button" className="absolute -top-1 -right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 flex items-center justify-center" onClick={chat.clearUploadedImage} aria-label="Clear uploaded image">
-                      <X className="w-4 h-4" />
-                  </button>
-                  </div>
-              )}
-              <ChatInput
-                onSendMessage={chat.sendMessage}
-                isLoading={chat.isAiResponding}
-                isImageModeActive={chat.isImageMode}
-                onToggleImageMode={chat.toggleImageMode}
-                uploadedFilePreviewUrl={chat.activeConversation.uploadedFilePreview}
-                onFileSelect={chat.handleFileSelect}
-                isLongLanguageLoopActive={true} 
-                selectedModelId={chat.activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
-                selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
-                onModelChange={chat.handleModelChange}
-                onStyleChange={chat.handleStyleChange}
-              />
-               <ChatControls
-                    conversation={chat.activeConversation}
-                    onNewChat={chat.startNewChat}
-                    onRequestEditTitle={chat.requestEditTitle}
-                    onRequestDeleteChat={chat.requestDeleteChat}
-                    onToggleHistory={chat.toggleHistoryPanel}
-                />
+                <div className="max-w-3xl mx-auto relative">
+                    <Button variant="ghost" size="icon" className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full h-8 w-8 text-muted-foreground hover:text-foreground" onClick={chat.toggleHistoryPanel}>
+                        <History className="w-4 h-4" />
+                    </Button>
+                    
+                    {chat.activeConversation.uploadedFilePreview && (
+                        <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
+                        <img src={chat.activeConversation.uploadedFilePreview} alt="Uploaded preview" width={80} height={80} style={{ objectFit: "cover" }} className="rounded-md" />
+                        <button type="button" className="absolute -top-1 -right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 flex items-center justify-center" onClick={chat.clearUploadedImage} aria-label="Clear uploaded image">
+                            <X className="w-4 h-4" />
+                        </button>
+                        </div>
+                    )}
+                    
+                    <ChatInput
+                        onSendMessage={chat.sendMessage}
+                        isLoading={chat.isAiResponding}
+                        isImageModeActive={chat.isImageMode}
+                        onToggleImageMode={chat.toggleImageMode}
+                        uploadedFilePreviewUrl={chat.activeConversation.uploadedFilePreview}
+                        onFileSelect={chat.handleFileSelect}
+                        isLongLanguageLoopActive={true} 
+                        selectedModelId={chat.activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
+                        selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
+                        onModelChange={chat.handleModelChange}
+                        onStyleChange={chat.handleStyleChange}
+                        onNewChat={chat.startNewChat}
+                    />
+                    
+                    {chat.isHistoryPanelOpen && currentView === 'chat' && (
+                        <HistoryPanel
+                            allConversations={chat.allConversations}
+                            activeConversation={chat.activeConversation}
+                            onSelectChat={chat.selectChat}
+                            onClose={chat.closeHistoryPanel}
+                            onRequestEditTitle={chat.requestEditTitle}
+                            onRequestDeleteChat={chat.requestDeleteChat}
+                        />
+                    )}
+                </div>
+
+                {chat.activeConversation.title && (
+                    <p className="text-center text-muted-foreground/80 text-base mt-3 font-code select-none">
+                        {chat.activeConversation.title.replace('default.long.language.loop', 'New Chat')}
+                    </p>
+                )}
             </div>
           </div>
         );
@@ -278,15 +296,6 @@ export default function Home() {
       <div className={`flex flex-col h-full ${currentView !== 'tiles' ? 'pt-16' : ''}`}>
         {renderContent()}
       </div>
-
-      {chat.isHistoryPanelOpen && currentView === 'chat' && (
-        <HistoryPanel
-          allConversations={chat.allConversations}
-          activeConversation={chat.activeConversation}
-          onSelectChat={chat.selectChat}
-          onClose={chat.closeHistoryPanel}
-        />
-      )}
 
       {chat.isDeleteDialogOpen && (
         <AlertDialog open={chat.isDeleteDialogOpen} onOpenChange={chat.cancelDeleteChat}>

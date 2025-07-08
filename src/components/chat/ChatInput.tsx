@@ -5,7 +5,7 @@ import type React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Brain, Fingerprint, ImageIcon, X, Send } from 'lucide-react';
+import { Paperclip, Brain, Fingerprint, ImageIcon, X, Send, Plus } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +35,7 @@ interface ChatInputProps {
   selectedResponseStyleName: string;
   onModelChange: (modelId: string) => void;
   onStyleChange: (styleName: string) => void;
+  onNewChat: () => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -49,6 +50,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   selectedResponseStyleName,
   onModelChange,
   onStyleChange,
+  onNewChat,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,6 +155,19 @@ const ChatInput: React.FC<ChatInputProps> = ({
             
             {isLongLanguageLoopActive && (
               <div className="flex justify-between items-center mt-2 pt-2">
+                 <div className="flex items-center gap-1">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className={cn("rounded-lg h-8 w-8", iconColorClass)}
+                        onClick={onNewChat}
+                        aria-label="Start new chat"
+                        title="Start new chat"
+                    >
+                        <Plus className={iconSizeClass} strokeWidth={iconStrokeWidth} />
+                    </Button>
+                 </div>
                 <div className="flex items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
