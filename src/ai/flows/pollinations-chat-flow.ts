@@ -111,7 +111,7 @@ export async function getPollinationsChatCompletion(
         .filter(part => part !== null && (part.type !== 'text' || part.text.trim() !== ''));
       
       if (processedParts.length === 0) continue; // Skip if no valid parts remain
-      contentForApi = processedParts as typeof ApiContentPartSchema._def.options[1]['_def']['type'];
+      contentForApi = processedParts;
     }
 
     apiMessagesToSend.push({ role: msg.role, content: contentForApi });
