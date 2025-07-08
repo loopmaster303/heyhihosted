@@ -2,5 +2,6 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/pollinations-chat-flow.ts';
-import '@/ai/flows/generate-chat-title.ts';
+// This file is used to register Genkit flows with the dev server.
+// Currently, there are no Genkit flows defined in this project.
+// The file is kept for future use.
