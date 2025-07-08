@@ -5,16 +5,13 @@ import type React from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { SlidersHorizontal, UserCog, Database, Save } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
+import { SlidersHorizontal, UserCog, Database } from 'lucide-react';
 
 interface PersonalizationToolProps {
   userDisplayName: string;
   setUserDisplayName: (name: string) => void;
   customSystemPrompt: string;
   setCustomSystemPrompt: (prompt: string) => void;
-  onSave: () => void; // Callback to trigger saving to localStorage from page.tsx
 }
 
 const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
@@ -22,17 +19,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   setUserDisplayName,
   customSystemPrompt,
   setCustomSystemPrompt,
-  onSave
 }) => {
-  const { toast } = useToast();
-
-  const handleSaveSettings = () => {
-    onSave(); // This will trigger the useEffect in page.tsx to save to localStorage
-    toast({
-      title: "Settings Saved",
-      description: "Your personalization settings have been updated.",
-    });
-  };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground p-4 md:p-6 space-y-6 md:space-y-8">
@@ -90,12 +77,6 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
         </div>
       </div>
       
-      <div className="mt-6 flex justify-end">
-        <Button onClick={handleSaveSettings} className="font-code text-base px-6 py-3">
-          <Save className="mr-2 h-5 w-5" />
-          Save Settings
-        </Button>
-      </div>
     </div>
   );
 };

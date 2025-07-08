@@ -13,6 +13,7 @@ import ChatInterface from '@/components/page/ChatInterface';
 
 // Modular components and hooks
 import { useChat } from '@/hooks/useChat';
+import useLocalStorageState from '@/hooks/useLocalStorageState';
 import HomePage from '@/components/page/HomePage';
 
 // Types & Config
@@ -27,7 +28,6 @@ const toolTileItems: TileItem[] = [
   { id: 'about', title: 'about/hey.hi/readme' },
 ];
 
-const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
 const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
 const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
 
@@ -37,8 +37,8 @@ export default function Home() {
   const [activeToolTypeForView, setActiveToolTypeForView] = useState<ToolType | null>(null);
   
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
-  const [userDisplayName, setUserDisplayName] = useState<string>("User");
-  const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
+  const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
+  const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
 
   const chat = useChat({
     userDisplayName,
@@ -47,11 +47,6 @@ export default function Home() {
       setCurrentView('chat');
     }
   });
-
-  const savePersonalizationSettings = useCallback(() => {
-    const settings = { userDisplayName, customSystemPrompt };
-    localStorage.setItem(PERSONALIZATION_SETTINGS_KEY, JSON.stringify(settings));
-  }, [userDisplayName, customSystemPrompt]);
 
   const getViewForTool = (toolType: ToolType): CurrentAppView => {
     switch(toolType) {
@@ -115,18 +110,6 @@ export default function Home() {
 
     const loadedConvsList = chat.loadConversations(loadedConversations);
 
-    try {
-        const storedPersonalization = localStorage.getItem(PERSONALIZATION_SETTINGS_KEY);
-        if (storedPersonalization) {
-            const settings = JSON.parse(storedPersonalization);
-            if (settings.userDisplayName) setUserDisplayName(settings.userDisplayName);
-            if (settings.customSystemPrompt) setCustomSystemPrompt(settings.customSystemPrompt);
-        }
-    } catch (error) {
-        console.error("Failed to parse personalization settings.", error);
-        localStorage.removeItem(PERSONALIZATION_SETTINGS_KEY);
-    }
-
     const storedActiveToolType = localStorage.getItem(ACTIVE_TOOL_TYPE_KEY) as ToolType | null;
     const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
     
@@ -174,12 +157,6 @@ export default function Home() {
   }, [activeToolTypeForView, chat.activeConversation, currentView, isInitialLoadComplete]);
 
 
-  useEffect(() => {
-    if (isInitialLoadComplete) { 
-        savePersonalizationSettings();
-    }
-  }, [userDisplayName, customSystemPrompt, isInitialLoadComplete, savePersonalizationSettings]);
-
   const renderContent = () => {
     if (!isInitialLoadComplete) {
         return <div className="flex-grow flex items-center justify-center"><RefreshCw className="w-8 h-8 animate-spin" /></div>;
@@ -208,7 +185,6 @@ export default function Home() {
                 setUserDisplayName={setUserDisplayName}
                 customSystemPrompt={customSystemPrompt}
                 setCustomSystemPrompt={setCustomSystemPrompt}
-                onSave={savePersonalizationSettings}
               />
             </div>
           </div>
