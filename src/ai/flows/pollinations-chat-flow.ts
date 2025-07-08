@@ -170,21 +170,43 @@ export async function getPollinationsChatCompletion(
     const result = JSON.parse(responseText);
     fullApiResponseForLogging = result;
 
-    // **FIX**: Check for an error field in the response body even with 200 OK
     if (result.error) {
         console.error('Pollinations API Error (in 200 OK response):', result.error);
         const detail = typeof result.error === 'string' ? result.error : (result.error.message || JSON.stringify(result.error));
         throw new Error(`Pollinations API returned an error: ${detail}`);
     }
 
-    // 5. Extract the response text from the API result
-    if (result.choices && result.choices.length > 0 && result.choices[0].message?.content) {
-      const replyText = result.choices[0].message.content;
-      return { responseText: typeof replyText === 'string' ? replyText.trim() : "" };
+    // 5. Extract the response text from the API result, trying various common structures
+    let replyText: string | null = null;
+
+    if (result.choices && Array.isArray(result.choices) && result.choices.length > 0) {
+      const choice = result.choices[0];
+      // Standard OpenAI format
+      if (choice.message && typeof choice.message.content === 'string') {
+        replyText = choice.message.content;
+      } 
+      // Some models might have a 'text' property directly on the choice
+      else if (typeof choice.text === 'string') {
+        replyText = choice.text;
+      }
+      // Or maybe the whole message object is the text
+      else if (typeof choice.message === 'string') {
+        replyText = choice.message;
+      }
+    }
+    // Fallback for non-standard APIs that might return a top-level 'text' or 'data'
+    else if (typeof result.text === 'string') {
+        replyText = result.text;
+    } else if (typeof result.data === 'string') {
+        replyText = result.data;
+    }
+
+    if (replyText !== null) {
+      return { responseText: replyText.trim() };
     } else {
       console.error('Pollinations API - Unexpected response structure:', JSON.stringify(result, null, 2));
       throw new Error(
-        'Pollinations API returned a 200 OK but the reply content could not be extracted.'
+        'Pollinations API returned a 200 OK but the reply content could not be extracted. Please check the model compatibility or API response format.'
       );
     }
   } catch (error) {
