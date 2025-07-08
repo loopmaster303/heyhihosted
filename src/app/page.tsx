@@ -1,28 +1,23 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
 
 // UI Components
-import ChatView from '@/components/chat/ChatView';
-import ChatInput from '@/components/chat/ChatInput';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
 import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import AppHeader from '@/components/page/AppHeader';
+import ChatInterface from '@/components/page/ChatInterface';
 
 // Modular components and hooks
 import { useChat } from '@/hooks/useChat';
 import HomePage from '@/components/page/HomePage';
-import HistoryPanel from '@/components/chat/HistoryPanel';
 
 // Types & Config
 import type { ToolType, CurrentAppView, TileItem } from '@/types';
-import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
-import { cn } from '@/lib/utils';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 const toolTileItems: TileItem[] = [
   { id: 'long language loops', title: 'chat/conversational/assistance' },
@@ -193,67 +188,7 @@ export default function Home() {
     switch (currentView) {
       case 'chat':
         if (!chat.activeConversation) return null;
-        return (
-          <div className="flex flex-col h-full">
-            <ChatView
-              conversation={chat.activeConversation}
-              messages={chat.currentMessages}
-              isLoading={chat.isAiResponding}
-              className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-4 no-scrollbar"
-            />
-            <div className="px-4 pt-2 pb-4 shrink-0">
-                <div className="max-w-3xl mx-auto relative">
-                    {chat.activeConversation.uploadedFilePreview && (
-                        <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
-                        <img src={chat.activeConversation.uploadedFilePreview} alt="Uploaded preview" width={80} height={80} style={{ objectFit: "cover" }} className="rounded-md" />
-                        <button type="button" className="absolute -top-1 -right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 flex items-center justify-center" onClick={chat.clearUploadedImage} aria-label="Clear uploaded image">
-                            <X className="w-4 h-4" />
-                        </button>
-                        </div>
-                    )}
-                    
-                    <ChatInput
-                        onSendMessage={chat.sendMessage}
-                        isLoading={chat.isAiResponding}
-                        isImageModeActive={chat.isImageMode}
-                        onToggleImageMode={chat.toggleImageMode}
-                        uploadedFilePreviewUrl={chat.activeConversation.uploadedFilePreview}
-                        onFileSelect={chat.handleFileSelect}
-                        isLongLanguageLoopActive={true} 
-                        selectedModelId={chat.activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
-                        selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
-                        onModelChange={chat.handleModelChange}
-                        onStyleChange={chat.handleStyleChange}
-                    />
-                    
-                    {chat.isHistoryPanelOpen && currentView === 'chat' && (
-                        <HistoryPanel
-                            allConversations={chat.allConversations}
-                            activeConversation={chat.activeConversation}
-                            onSelectChat={chat.selectChat}
-                            onClose={chat.closeHistoryPanel}
-                            onRequestEditTitle={chat.requestEditTitle}
-                            onRequestDeleteChat={chat.requestDeleteChat}
-                            onStartNewChat={chat.startNewChat}
-                        />
-                    )}
-                </div>
-
-                {chat.activeConversation.title && (
-                    <button 
-                      onClick={chat.toggleHistoryPanel}
-                      className={cn(
-                        "text-center text-muted-foreground/80 text-base mt-3 font-code select-none w-full truncate",
-                        "hover:text-foreground transition-colors duration-200"
-                      )}
-                      aria-label="Open chat history"
-                    >
-                        {chat.activeConversation.title.replace('default.long.language.loop', 'New Chat')}
-                    </button>
-                )}
-            </div>
-          </div>
-        );
+        return <ChatInterface chat={chat} />;
       case 'nocostImageTool':
         return <VisualizingLoopsTool />;
       case 'replicateImageTool':
