@@ -48,7 +48,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDi
       
       {isMenuOpen && (
         <div 
-          className="fixed inset-0 bg-background z-40 flex items-center justify-center animate-in fade-in-0 duration-300"
+          className="fixed inset-0 bg-background z-40 flex items-start justify-center pt-24 animate-in fade-in-0 duration-300"
         >
           <nav className="flex flex-col space-y-4 font-code text-3xl w-auto text-left">
             <button onClick={() => handleNavigation('home')} className="text-left text-foreground/80 hover:text-foreground transition-colors w-full">
