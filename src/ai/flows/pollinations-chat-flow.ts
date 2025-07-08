@@ -161,14 +161,21 @@ export async function getPollinationsChatCompletion(
         errorData = responseText; 
       }
       console.error('Pollinations API Error (non-200 status):', response.status, errorData, 'Request Payload:', JSON.stringify(payload, null, 2));
-      const detail = typeof errorData === 'string' ? errorData : JSON.stringify(errorData);
+      const detail = typeof errorData === 'string' ? errorData : (errorData.error?.message || JSON.stringify(errorData));
       throw new Error(
         `Pollinations API request failed with status ${response.status}: ${detail}`
       );
     }
 
     const result = JSON.parse(responseText);
-    fullApiResponseForLogging = result; 
+    fullApiResponseForLogging = result;
+
+    // **FIX**: Check for an error field in the response body even with 200 OK
+    if (result.error) {
+        console.error('Pollinations API Error (in 200 OK response):', result.error);
+        const detail = typeof result.error === 'string' ? result.error : (result.error.message || JSON.stringify(result.error));
+        throw new Error(`Pollinations API returned an error: ${detail}`);
+    }
 
     // 5. Extract the response text from the API result
     if (result.choices && result.choices.length > 0 && result.choices[0].message?.content) {
@@ -188,7 +195,11 @@ export async function getPollinationsChatCompletion(
     
     // Rethrow a user-friendly error
     if (error instanceof Error) {
-        throw new Error(`Failed to get completion from Pollinations API: ${error.message}`);
+        // Prevent ugly "Failed to get completion from Pollinations API: Pollinations API..." message
+        const finalErrorMessage = error.message.startsWith('Pollinations API') 
+          ? error.message 
+          : `Failed to get completion from Pollinations API: ${error.message}`;
+        throw new Error(finalErrorMessage);
     }
     throw new Error('An unknown error occurred while contacting the Pollinations API.');
   }
