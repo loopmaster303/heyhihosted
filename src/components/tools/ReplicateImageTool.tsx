@@ -33,11 +33,14 @@ import { Badge } from '@/components/ui/badge';
 import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
 
+interface ReplicateImageToolProps {
+  password?: string;
+}
 
 const REPLICATE_TOOL_SETTINGS_KEY = 'replicateImageToolSettings';
 const HISTORY_STORAGE_KEY = 'replicateToolHistory';
 
-const ReplicateImageTool: React.FC = () => {
+const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => {
   const { toast } = useToast();
 
   const modelKeys = Object.keys(modelConfigs);
@@ -470,7 +473,7 @@ const ReplicateImageTool: React.FC = () => {
         return;
     }
 
-    const currentPayload: Record<string, any> = { model: selectedModelKey };
+    const currentPayload: Record<string, any> = { model: selectedModelKey, password: password };
 
     const effectivePrompt = mainPromptValue.trim();
     const promptConfig = currentModelConfig.inputs.find(i => i.name === 'prompt' && i.isPrompt);

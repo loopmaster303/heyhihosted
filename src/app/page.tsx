@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -39,6 +40,8 @@ export default function Home() {
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
+  const [replicateToolPassword, setReplicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
+
 
   const chat = useChat({
     userDisplayName,
@@ -172,7 +175,7 @@ export default function Home() {
         return (
           <div className="flex flex-col h-full">
             <div className="flex-grow overflow-y-auto">
-              <ReplicateImageTool />
+              <ReplicateImageTool password={replicateToolPassword} />
             </div>
           </div>
         );
@@ -185,6 +188,8 @@ export default function Home() {
                 setUserDisplayName={setUserDisplayName}
                 customSystemPrompt={customSystemPrompt}
                 setCustomSystemPrompt={setCustomSystemPrompt}
+                replicateToolPassword={replicateToolPassword}
+                setReplicateToolPassword={setReplicateToolPassword}
               />
             </div>
           </div>

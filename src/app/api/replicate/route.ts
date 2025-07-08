@@ -10,19 +10,30 @@ const MODEL_ENDPOINTS: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
-  const replicateApiToken = process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY;
-  if (!replicateApiToken) {
-    return NextResponse.json({ error: 'Server configuration error: REPLICATE_API_TOKEN is missing.' }, { status: 500 });
-  }
-
+  // --- Simple Password Check ---
+  const masterPassword = process.env.REPLICATE_TOOL_PASSWORD;
+  
   let body;
   try {
     body = await request.json();
   } catch (e) {
     return NextResponse.json({ error: 'Invalid JSON in request body.' }, { status: 400 });
   }
+  
+  // If a master password is set in the environment, we must validate it.
+  if (masterPassword) {
+    const { password: userPassword } = body;
+    if (userPassword !== masterPassword) {
+      return NextResponse.json({ error: 'Invalid or missing password. Please provide the correct password in the settings.' }, { status: 401 });
+    }
+  }
 
-  const { model: modelKey, ...inputParams } = body;
+  const replicateApiToken = process.env.REPLICATE_API_TOKEN;
+  if (!replicateApiToken) {
+    return NextResponse.json({ error: 'Server configuration error: REPLICATE_API_TOKEN is missing.' }, { status: 500 });
+  }
+  
+  const { model: modelKey, password, ...inputParams } = body;
 
   if (!modelKey || typeof modelKey !== 'string' || !MODEL_ENDPOINTS[modelKey]) {
     return NextResponse.json({
@@ -35,14 +46,8 @@ export async function POST(request: NextRequest) {
   const sanitizedInput: Record<string, any> = {};
   for (const key in inputParams) {
     const value = inputParams[key];
-    if (typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value) && !isNaN(parseFloat(value))) {
-      sanitizedInput[key] = parseFloat(value);
-    } else if (typeof value === 'number' || typeof value === 'boolean' || Array.isArray(value)) {
-      sanitizedInput[key] = value;
-    } else if (typeof value === 'string') {
-      sanitizedInput[key] = value;
-    } else if (value !== null && value !== undefined) {
-      sanitizedInput[key] = value;
+    if (value !== null && value !== undefined) {
+       sanitizedInput[key] = value;
     }
   }
 

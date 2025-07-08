@@ -5,13 +5,15 @@ import type React from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { SlidersHorizontal, UserCog, Database } from 'lucide-react';
+import { SlidersHorizontal, UserCog, Database, KeyRound } from 'lucide-react';
 
 interface PersonalizationToolProps {
   userDisplayName: string;
   setUserDisplayName: (name: string) => void;
   customSystemPrompt: string;
   setCustomSystemPrompt: (prompt: string) => void;
+  replicateToolPassword?: string;
+  setReplicateToolPassword?: (password: string) => void;
 }
 
 const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
@@ -19,6 +21,8 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   setUserDisplayName,
   customSystemPrompt,
   setCustomSystemPrompt,
+  replicateToolPassword,
+  setReplicateToolPassword,
 }) => {
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground p-4 md:p-6 space-y-6 md:space-y-8">
@@ -26,6 +30,28 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
         <SlidersHorizontal className="h-7 w-7 text-foreground/80" />
         <h1 className="text-3xl font-code font-semibold text-foreground">Personalization</h1>
       </div>
+
+      {setReplicateToolPassword && (
+         <div className="space-y-3 bg-card p-4 rounded-lg shadow">
+          <div className="flex items-center space-x-2">
+            <KeyRound className="h-5 w-5 text-muted-foreground" />
+            <Label htmlFor="replicatePassword" className="text-lg font-code text-foreground/90">
+              Premium Tool Password
+            </Label>
+          </div>
+          <Input
+            id="replicatePassword"
+            type="password"
+            value={replicateToolPassword}
+            onChange={(e) => setReplicateToolPassword(e.target.value)}
+            placeholder="Enter password for premium tools"
+            className="bg-input border-border focus-visible:ring-primary text-base font-code"
+          />
+          <p className="text-xs text-muted-foreground font-code">
+            A password may be required to use the 'premium imagination' tool. Provided by the developer.
+          </p>
+        </div>
+      )}
       
       <div className="space-y-3 bg-card p-4 rounded-lg shadow">
         <div className="flex items-center space-x-2">
