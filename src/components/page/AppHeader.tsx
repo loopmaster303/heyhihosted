@@ -37,7 +37,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, classN
   return (
     <header className={cn("fixed top-0 left-0 right-0 z-40 flex justify-center items-center p-4", className)}>
       <div className="relative flex items-center gap-4" ref={menuRef}>
-        <h1 className="text-xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
         <div className="relative">
           <Button
             variant="ghost"
@@ -62,6 +61,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, classN
             </div>
           )}
         </div>
+        <h1 className="text-xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
       </div>
     </header>
   );
