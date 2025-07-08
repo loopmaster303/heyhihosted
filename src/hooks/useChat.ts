@@ -21,6 +21,8 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
   const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
   const [isAiResponding, setIsAiResponding] = useState(false);
   
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [chatToDeleteId, setChatToDeleteId] = useState<string | null>(null);
   
@@ -48,10 +50,14 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
             console.error("Failed to parse conversations", e);
         }
     }
+    setIsInitialLoadComplete(true);
     return loadedConversations;
   }, []);
 
   useEffect(() => {
+    if (!isInitialLoadComplete) {
+      return;
+    }
     const conversationsToStore = allConversations
         .filter(conv => conv.toolType === 'long language loops' && conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant'))
         .map(conv => {
@@ -63,7 +69,7 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
     } else {
         localStorage.removeItem('chatConversations');
     }
-  }, [allConversations]);
+  }, [allConversations, isInitialLoadComplete]);
 
   const updateActiveConversationState = useCallback((updates: Partial<Conversation>) => {
     setActiveConversation(prevActive => {
