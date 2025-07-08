@@ -13,7 +13,7 @@ const HomePage: React.FC<HomePageProps> = ({ onSelectTile, toolTileItems }) => {
         <div className="flex flex-col items-center justify-center h-full text-center p-4">
             <header className="shrink-0 mb-12">
                 <h1 className="text-7xl font-code">&lt;/hey.hi&gt;</h1>
-                <p className="text-muted-foreground text-lg mt-2">everyone can say hi to ai.</p>
+                <p className="text-muted-foreground text-lg mt-2">Say hi to &lt;/hey.hi&gt; and artificial intelligence.</p>
                 <nav className="mt-6 space-y-2 font-code text-2xl w-auto inline-block text-left">
                     {toolTileItems.map((item) => (
                         <button key={item.id} onClick={() => onSelectTile(item.id)} className="block w-full text-foreground/80 hover:text-foreground transition-colors">
@@ -22,9 +22,18 @@ const HomePage: React.FC<HomePageProps> = ({ onSelectTile, toolTileItems }) => {
                     ))}
                 </nav>
             </header>
-            <p className="text-muted-foreground text-sm max-w-md leading-relaxed">
-                Say hi to &lt;/hey.hi&gt; – chat with Artificial Intelligence or create stunning images with it, all for free. Try different models, generate images, and personalize your experience. No paywall, no limits, for everyone.
-            </p>
+            <div className="text-muted-foreground text-sm max-w-md leading-relaxed space-y-4">
+                <p>
+                    These machines can chat with you like a real person, answer your questions, or help with your ideas.
+                </p>
+                <p>
+                    In this space, you can chat, get assistant help, have an AI companion, or bring your imagination to life – just like ChatGPT, but with more options. You choose the brain behind it.
+                </p>
+                <p className="font-medium text-foreground/90">
+                    No registration, no hidden costs, no limits. <br />
+                    AI for everyone accessible.
+                </p>
+            </div>
         </div>
     );
 };
