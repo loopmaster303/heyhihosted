@@ -2,7 +2,6 @@
 "use client";
 
 import type { FC } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import NextImage from 'next/image';
