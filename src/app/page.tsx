@@ -44,25 +44,6 @@ const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
 const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
 
 
-const SimpleHeader: React.FC<{
-  onGoHome: () => void;
-  isFixed?: boolean;
-}> = ({ onGoHome, isFixed = false }) => {
-  return (
-    <header
-      className={cn(
-        'relative z-10 flex justify-center pt-6 mb-2 shrink-0 bg-background',
-        isFixed && 'fixed top-0 left-0 right-0'
-      )}
-    >
-      <button onClick={onGoHome} className="bg-transparent border-none cursor-pointer py-1 px-4">
-        <span className="text-2xl font-code font-bold text-foreground">&lt;/hey.hi&gt;</span>
-      </button>
-    </header>
-  );
-};
-
-
 const ChatControls: React.FC<{
     conversation: Conversation;
     onNewChat: () => void;
@@ -509,10 +490,6 @@ export default function Home() {
         if (!activeConversation) return null;
         return (
           <div className="flex flex-col h-full">
-            <SimpleHeader
-                onGoHome={() => setCurrentView('tiles')}
-                isFixed={false}
-            />
             <ChatView
               conversation={activeConversation}
               messages={currentMessages}
@@ -555,9 +532,6 @@ export default function Home() {
       case 'personalizationTool':
         return (
             <div className="flex flex-col h-full">
-                <SimpleHeader
-                    onGoHome={() => setCurrentView('tiles')}
-                />
                 <div className="flex-grow overflow-y-auto">
                     {currentView === 'replicateImageTool' && <ReplicateImageTool />}
                     {currentView === 'personalizationTool' && (
