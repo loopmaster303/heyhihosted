@@ -48,7 +48,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, classN
             <Menu className="h-5 w-5" />
           </Button>
           {isMenuOpen && (
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-foreground text-background rounded-lg shadow-xl border border-border p-2 min-w-[200px] z-50">
+            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-input text-foreground rounded-lg shadow-xl border border-border p-2 min-w-[200px] z-50">
               <nav className="flex flex-col space-y-1 font-code">
                 <button onClick={() => handleNavigation('home')} className="text-left p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors w-full">
                   home/page
