@@ -25,7 +25,7 @@ const TITLE_GENERATION_SYSTEM_PROMPT = `You are an expert at creating concise ch
 
 
 export async function generateChatTitle(input: GenerateChatTitleInput): Promise<GenerateChatTitleOutput> {
-  if (!input || !input.messages || !input.messages.trim() === "") {
+  if (!input || !input.messages || input.messages.trim() === "") {
     console.warn("generateChatTitle called with empty messages, returning fallback title.");
     return { title: DEFAULT_FALLBACK_TITLE };
   }
