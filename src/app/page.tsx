@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from '@/components/ui/button';
-import { Check, X, RefreshCw, History } from 'lucide-react';
+import { Check, X, RefreshCw, History, Plus } from 'lucide-react';
 import AppHeader from '@/components/page/AppHeader';
 
 // Modular components and hooks
@@ -209,9 +209,14 @@ export default function Home() {
             />
             <div className="px-4 pt-2 pb-4 shrink-0">
                 <div className="max-w-3xl mx-auto relative">
-                    <Button variant="ghost" size="icon" className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full h-8 w-8 text-muted-foreground hover:text-foreground" onClick={chat.toggleHistoryPanel}>
-                        <History className="w-4 h-4" />
-                    </Button>
+                    <div className="absolute left-0 bottom-3 -translate-x-full flex flex-col-reverse gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={chat.startNewChat}>
+                            <Plus className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={chat.toggleHistoryPanel}>
+                            <History className="w-4 h-4" />
+                        </Button>
+                    </div>
                     
                     {chat.activeConversation.uploadedFilePreview && (
                         <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
@@ -234,7 +239,6 @@ export default function Home() {
                         selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
                         onModelChange={chat.handleModelChange}
                         onStyleChange={chat.handleStyleChange}
-                        onNewChat={chat.startNewChat}
                     />
                     
                     {chat.isHistoryPanelOpen && currentView === 'chat' && (
