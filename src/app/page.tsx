@@ -7,11 +7,7 @@ import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
-import { Button } from "@/components/ui/button";
-import NextImage from 'next/image';
-import { RefreshCw, X, Check } from 'lucide-react';
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,9 +18,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Check, X, RefreshCw } from 'lucide-react';
 import AppHeader from '@/components/page/AppHeader';
 
-// New modular components and hooks
+// Modular components and hooks
 import { useChat } from '@/hooks/useChat';
 import HomePage from '@/components/page/HomePage';
 import ChatControls from '@/components/page/ChatControls';
@@ -32,11 +30,11 @@ import HistoryPanel from '@/components/chat/HistoryPanel';
 
 // Types & Config
 import type { ToolType, CurrentAppView, TileItem } from '@/types';
-import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
 
 const toolTileItems: TileItem[] = [
   { id: 'long language loops', title: 'chat/assistance' },
+  { id: 'nocost imagination', title: 'gen/images/free' },
   { id: 'premium imagination', title: 'gen/images/premium' },
   { id: 'personalization', title: 'settings' },
 ];
@@ -54,8 +52,6 @@ export default function Home() {
   const [userDisplayName, setUserDisplayName] = useState<string>("User");
   const [customSystemPrompt, setCustomSystemPrompt] = useState<string>("");
 
-  const { toast } = useToast();
-
   const chat = useChat({
     userDisplayName,
     customSystemPrompt,
@@ -72,6 +68,7 @@ export default function Home() {
   const getViewForTool = (toolType: ToolType): CurrentAppView => {
     switch(toolType) {
         case 'long language loops': return 'chat';
+        case 'nocost imagination': return 'nocostImageTool';
         case 'premium imagination': return 'replicateImageTool';
         case 'personalization': return 'personalizationTool';
         default: return 'chat';
@@ -169,7 +166,7 @@ export default function Home() {
 
     setIsInitialLoadComplete(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Runs only once on initial load
+  }, []); 
 
 
   useEffect(() => {
@@ -213,10 +210,10 @@ export default function Home() {
             <div className="px-4 pt-2 pb-4 shrink-0">
               {chat.activeConversation.uploadedFilePreview && (
                   <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
-                  <NextImage src={chat.activeConversation.uploadedFilePreview} alt="Uploaded preview" width={80} height={80} style={{ objectFit: "cover" }} className="rounded-md" data-ai-hint="upload preview" />
-                  <Button type="button" variant="ghost" size="icon" className="absolute -top-1 -right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90" onClick={chat.clearUploadedImage} aria-label="Clear uploaded image">
+                  <img src={chat.activeConversation.uploadedFilePreview} alt="Uploaded preview" width={80} height={80} style={{ objectFit: "cover" }} className="rounded-md" />
+                  <button type="button" className="absolute -top-1 -right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 flex items-center justify-center" onClick={chat.clearUploadedImage} aria-label="Clear uploaded image">
                       <X className="w-4 h-4" />
-                  </Button>
+                  </button>
                   </div>
               )}
               <ChatInput
@@ -242,6 +239,8 @@ export default function Home() {
             </div>
           </div>
         );
+      case 'nocostImageTool':
+        return <VisualizingLoopsTool />;
       case 'replicateImageTool':
       case 'personalizationTool':
         return (
