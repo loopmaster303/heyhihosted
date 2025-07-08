@@ -49,12 +49,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDi
         <div 
           className="fixed inset-0 bg-background/95 backdrop-blur-sm z-40 flex items-start justify-center pt-32 animate-in fade-in-0 duration-300"
         >
-          <nav className="flex flex-col space-y-2 md:space-y-4 font-code w-auto text-left">
-            <button onClick={() => handleNavigation('home')} className="text-left text-foreground/80 hover:text-foreground transition-colors w-full text-2xl md:text-3xl">
+          <nav className="flex flex-col space-y-1 md:space-y-4 font-code w-auto text-left">
+            <button onClick={() => handleNavigation('home')} className="text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl">
               {`└home/page`}
             </button>
             {toolTileItems.map((item) => (
-              <button key={item.id} onClick={() => handleNavigation(item.id)} className="text-left text-foreground/80 hover:text-foreground transition-colors w-full text-2xl md:text-3xl">
+              <button key={item.id} onClick={() => handleNavigation(item.id)} className="text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl">
                 {`└${item.title}`}
               </button>
             ))}
