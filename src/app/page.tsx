@@ -22,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import AppHeader from '@/components/page/AppHeader';
 
 // New modular components and hooks
 import { useChat } from '@/hooks/useChat';
@@ -59,7 +60,6 @@ export default function Home() {
     userDisplayName,
     customSystemPrompt,
     onConversationStarted: () => {
-      setActiveToolTypeForView('long language loops');
       setCurrentView('chat');
     }
   });
@@ -87,8 +87,11 @@ export default function Home() {
     setActiveToolTypeForView(toolType);
     if (toolType === 'long language loops') {
       const latestChat = chat.allConversations.find(c => c.toolType === 'long language loops' && c.messages.length > 0);
-      if (latestChat) chat.selectChat(latestChat.id);
-      else chat.startNewChat();
+      if (latestChat) {
+        chat.selectChat(latestChat.id);
+      } else {
+        chat.startNewChat();
+      }
     } else {
         chat.selectChat(null);
         setCurrentView(getViewForTool(toolType));
@@ -96,8 +99,24 @@ export default function Home() {
   }, [chat]);
 
 
+  const handleNavigation = (toolOrView: ToolType | 'home') => {
+    const previousActiveConv = chat.activeConversation;
+    if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
+        chat.deleteChat(previousActiveConv.id, true);
+    }
+
+    if (toolOrView === 'home') {
+        setActiveToolTypeForView(null);
+        setCurrentView('tiles');
+        chat.selectChat(null);
+    } else {
+        handleSelectTile(toolOrView);
+    }
+  };
+
+
   useEffect(() => {
-    let loadedConversations: any = null; // Used to pass to chat hook initializer
+    let loadedConversations: any = null;
     try {
         const storedConversations = localStorage.getItem('chatConversations');
         if (storedConversations) {
@@ -108,8 +127,7 @@ export default function Home() {
         localStorage.removeItem('chatConversations');
     }
 
-    // Initialize chat hook with loaded data
-    chat.loadConversations(loadedConversations);
+    const loadedConvsList = chat.loadConversations(loadedConversations);
 
     try {
         const storedPersonalization = localStorage.getItem(PERSONALIZATION_SETTINGS_KEY);
@@ -127,17 +145,23 @@ export default function Home() {
     const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
     
     if (storedActiveToolType && toolTileItems.some(item => item.id === storedActiveToolType)) {
+      setActiveToolTypeForView(storedActiveToolType);
       if (storedActiveToolType === 'long language loops') {
-        const convToLoad = chat.allConversations.find(c => c.id === storedActiveConvId);
+        const convToLoad = loadedConvsList.find(c => c.id === storedActiveConvId);
         if (convToLoad) {
             chat.selectChat(convToLoad.id);
         } else {
-            const latestChat = chat.allConversations.find(c => c.toolType === 'long language loops');
-            if(latestChat) chat.selectChat(latestChat.id);
-            else chat.startNewChat();
+            const latestChat = loadedConvsList.find(c => c.toolType === 'long language loops');
+            if(latestChat) {
+              chat.selectChat(latestChat.id);
+            } else {
+              setCurrentView('tiles');
+              setActiveToolTypeForView(null);
+            }
         }
       } else {
-          handleSelectTile(storedActiveToolType);
+          setCurrentView(getViewForTool(storedActiveToolType));
+          chat.selectChat(null);
       }
     } else {
         setCurrentView('tiles');
@@ -244,7 +268,13 @@ export default function Home() {
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
 
-      {renderContent()}
+      {currentView !== 'tiles' && (
+        <AppHeader toolTileItems={toolTileItems} onNavigate={handleNavigation} />
+      )}
+
+      <div className={`flex flex-col h-full ${currentView !== 'tiles' ? 'pt-16' : ''}`}>
+        {renderContent()}
+      </div>
 
       {chat.isHistoryPanelOpen && currentView === 'chat' && (
         <HistoryPanel
