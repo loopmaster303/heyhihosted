@@ -49,7 +49,7 @@ body {
     --sidebar-primary-foreground: 0 0% 0%; 
     --sidebar-accent: 0 0% 20%; 
     --sidebar-accent-foreground: 0 0% 90%; 
-    --sidebar-border: 0 0% 4%; /* Match main background to remove border */
+    --sidebar-border: 0 0% 4%; /* Match background to remove border */
     --sidebar-ring: 0 0% 50%; 
   }
 
@@ -105,5 +105,15 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
 }
