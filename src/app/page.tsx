@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from '@/components/ui/button';
-import { Check, X, RefreshCw, History, Plus } from 'lucide-react';
+import { Check, X, RefreshCw } from 'lucide-react';
 import AppHeader from '@/components/page/AppHeader';
 
 // Modular components and hooks
@@ -31,6 +31,7 @@ import HistoryPanel from '@/components/chat/HistoryPanel';
 // Types & Config
 import type { ToolType, CurrentAppView, TileItem } from '@/types';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
+import { cn } from '@/lib/utils';
 
 const toolTileItems: TileItem[] = [
   { id: 'long language loops', title: 'chat/assistance' },
@@ -209,15 +210,6 @@ export default function Home() {
             />
             <div className="px-4 pt-2 pb-4 shrink-0">
                 <div className="max-w-3xl mx-auto relative">
-                    <div className="absolute left-0 bottom-3 -translate-x-full flex flex-col-reverse gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={chat.startNewChat}>
-                            <Plus className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={chat.toggleHistoryPanel}>
-                            <History className="w-4 h-4" />
-                        </Button>
-                    </div>
-                    
                     {chat.activeConversation.uploadedFilePreview && (
                         <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
                         <img src={chat.activeConversation.uploadedFilePreview} alt="Uploaded preview" width={80} height={80} style={{ objectFit: "cover" }} className="rounded-md" />
@@ -249,14 +241,22 @@ export default function Home() {
                             onClose={chat.closeHistoryPanel}
                             onRequestEditTitle={chat.requestEditTitle}
                             onRequestDeleteChat={chat.requestDeleteChat}
+                            onStartNewChat={chat.startNewChat}
                         />
                     )}
                 </div>
 
                 {chat.activeConversation.title && (
-                    <p className="text-center text-muted-foreground/80 text-base mt-3 font-code select-none">
+                    <button 
+                      onClick={chat.toggleHistoryPanel}
+                      className={cn(
+                        "text-center text-muted-foreground/80 text-base mt-3 font-code select-none w-full truncate",
+                        "hover:text-foreground transition-colors duration-200"
+                      )}
+                      aria-label="Open chat history"
+                    >
                         {chat.activeConversation.title.replace('default.long.language.loop', 'New Chat')}
-                    </p>
+                    </button>
                 )}
             </div>
           </div>
