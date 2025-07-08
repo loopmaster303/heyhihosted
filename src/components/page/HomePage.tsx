@@ -10,8 +10,8 @@ interface HomePageProps {
 
 const HomePage: React.FC<HomePageProps> = ({ onSelectTile, toolTileItems }) => {
     return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-4">
-            <header className="shrink-0 mb-16">
+        <div className="flex flex-col items-center justify-center h-full p-4">
+            <header className="shrink-0 mb-16 text-center">
                 <h1 className="text-9xl font-code">&lt;/hey.hi&gt;</h1>
                 <p className="text-muted-foreground text-lg mt-2">everyone can say hi to ai.</p>
                 <nav className="mt-8 space-y-4 font-code text-3xl w-auto inline-block text-left">
@@ -22,7 +22,7 @@ const HomePage: React.FC<HomePageProps> = ({ onSelectTile, toolTileItems }) => {
                     ))}
                 </nav>
             </header>
-            <div className="text-muted-foreground/30 text-xs max-w-lg leading-relaxed space-y-2">
+            <div className="text-muted-foreground/50 text-xs max-w-lg leading-relaxed space-y-2 text-justify">
                 <p>
                     Say hi to &lt;/hey.hi&gt; and artificial intelligence. These machines can chat with you like a real person, answer your questions, or help with your ideas.
                 </p>
