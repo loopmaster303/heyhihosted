@@ -27,12 +27,11 @@ import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } fro
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
-import useUsageToken from '@/hooks/useUsageToken';
 
 
 const REPLICATE_TOOL_SETTINGS_KEY = 'replicateImageToolSettings';
@@ -40,7 +39,6 @@ const HISTORY_STORAGE_KEY = 'replicateToolHistory';
 
 const ReplicateImageTool: React.FC = () => {
   const { toast } = useToast();
-  const { token: usageToken, isValid: isTokenValid, remainingUses, validateToken } = useUsageToken();
 
   const modelKeys = Object.keys(modelConfigs);
   const [selectedModelKey, setSelectedModelKey] = useState<string>(""); 
@@ -471,17 +469,8 @@ const ReplicateImageTool: React.FC = () => {
         toast({ title: "No Model Selected", description: "Please select a model first.", variant: "destructive" });
         return;
     }
-    
-    if (!isTokenValid || remainingUses <= 0) {
-      toast({
-        title: "Token Required",
-        description: "A valid usage token with remaining uses is required. Please add one in the settings.",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    const currentPayload: Record<string, any> = { model: selectedModelKey, usageToken };
+    const currentPayload: Record<string, any> = { model: selectedModelKey };
 
     const effectivePrompt = mainPromptValue.trim();
     const promptConfig = currentModelConfig.inputs.find(i => i.name === 'prompt' && i.isPrompt);
@@ -576,7 +565,6 @@ const ReplicateImageTool: React.FC = () => {
             };
             setHistory(prev => [newHistoryItem, ...prev]);
             setSelectedImage(newHistoryItem);
-            validateToken(); // Refresh remaining uses
             toast({ title: "Generation Succeeded!", description: `${currentModelConfig.name} finished processing.` });
         } else {
             console.warn("Replicate API returned success but output URL was empty or invalid:", data.output);

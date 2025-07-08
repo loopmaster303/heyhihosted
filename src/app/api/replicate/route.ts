@@ -1,8 +1,6 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { firestore, isFirebaseInitialized } from '@/lib/firebase';
-import { FieldValue } from 'firebase-admin/firestore';
 
 const MODEL_ENDPOINTS: Record<string, string> = {
   "imagen-4-ultra": "google/imagen-4-ultra",
@@ -12,11 +10,6 @@ const MODEL_ENDPOINTS: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
-  if (!isFirebaseInitialized) {
-    console.error("API Error: /api/replicate was called, but Firebase is not initialized.");
-    return NextResponse.json({ error: 'Server configuration error: Could not connect to the database to validate token.' }, { status: 500 });
-  }
-
   const replicateApiToken = process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY;
   if (!replicateApiToken) {
     return NextResponse.json({ error: 'Server configuration error: REPLICATE_API_TOKEN is missing.' }, { status: 500 });
@@ -29,38 +22,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON in request body.' }, { status: 400 });
   }
 
-  const { model: modelKey, usageToken, ...inputParams } = body;
-
-  // --- Usage Token Validation ---
-  if (!usageToken || typeof usageToken !== 'string') {
-    return NextResponse.json({ error: 'A valid usage token is required for this tool.' }, { status: 401 });
-  }
-
-  const tokenRef = firestore.collection('usage_tokens').doc(usageToken);
-
-  try {
-    const doc = await tokenRef.get();
-    if (!doc.exists) {
-      return NextResponse.json({ error: 'Invalid usage token.' }, { status: 403 });
-    }
-    
-    const tokenData = doc.data();
-    if (!tokenData || typeof tokenData.totalUses !== 'number' || typeof tokenData.currentUses !== 'number') {
-        return NextResponse.json({ error: 'Token data is malformed.' }, { status: 500 });
-    }
-    
-    if (tokenData.currentUses >= tokenData.totalUses) {
-      return NextResponse.json({ error: 'Usage token has no remaining uses.' }, { status: 403 });
-    }
-    
-    // Increment usage *before* starting the generation
-    await tokenRef.update({ currentUses: FieldValue.increment(1) });
-
-  } catch (dbError) {
-    console.error("Firestore error during token validation/update:", dbError);
-    return NextResponse.json({ error: 'Internal server error while validating token.' }, { status: 500 });
-  }
-  // --- End Usage Token Validation ---
+  const { model: modelKey, ...inputParams } = body;
 
   if (!modelKey || typeof modelKey !== 'string' || !MODEL_ENDPOINTS[modelKey]) {
     return NextResponse.json({
