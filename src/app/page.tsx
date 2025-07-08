@@ -35,7 +35,7 @@ import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/co
 import { cn } from '@/lib/utils';
 
 const toolTileItems: TileItem[] = [
-  { id: 'long language loops', title: 'chat/conversational/assisistance' },
+  { id: 'long language loops', title: 'chat/conversational/assistance' },
   { id: 'nocost imagination', title: 'generate/visualize/image-gen/fast' },
   { id: 'premium imagination', title: 'generate/visualize/image-gen/raw' },
   { id: 'personalization', title: 'settings/personalization' },

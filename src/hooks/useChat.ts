@@ -123,7 +123,19 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
     const { selectedModelId, selectedResponseStyleName, messages, uploadedFile, uploadedFilePreview } = activeConversation;
     const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
     
-    let effectiveSystemPrompt = customSystemPrompt && customSystemPrompt.trim() ? customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User") : (AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0]).systemPrompt;
+    let effectiveSystemPrompt = '';
+    const basicStylePrompt = (AVAILABLE_RESPONSE_STYLES.find(s => s.name === 'Basic') || AVAILABLE_RESPONSE_STYLES[0]).systemPrompt;
+
+    if (selectedResponseStyleName === "User's Default") {
+        if (customSystemPrompt && customSystemPrompt.trim()) {
+            effectiveSystemPrompt = customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User");
+        } else {
+            effectiveSystemPrompt = basicStylePrompt;
+        }
+    } else {
+        const selectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName);
+        effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
+    }
 
     setIsAiResponding(true);
     const convId = activeConversation.id;
