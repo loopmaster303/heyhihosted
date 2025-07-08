@@ -66,7 +66,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDi
             <h1 className="text-xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
             {userDisplayName && userDisplayName !== "User" && (
                 <span className="text-xl font-code text-foreground/80 select-none">
-                    / {userDisplayName}
+                    {userDisplayName}
                 </span>
             )}
         </div>
