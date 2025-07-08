@@ -1,9 +1,14 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { firestore } from '@/lib/firebase';
+import { firestore, isFirebaseInitialized } from '@/lib/firebase';
 
 export async function POST(request: NextRequest) {
+  if (!isFirebaseInitialized) {
+    console.error("API Error: /api/validate-token was called, but Firebase is not initialized.");
+    return NextResponse.json({ isValid: false, error: 'Server configuration error: Could not connect to the database.' }, { status: 500 });
+  }
+
   let body;
   try {
     body = await request.json();

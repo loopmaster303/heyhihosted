@@ -2,6 +2,8 @@
 import admin from 'firebase-admin';
 import type { ServiceAccount } from 'firebase-admin';
 
+let isFirebaseInitialized = false;
+
 // Provide a mock/dummy firestore object as a fallback.
 // This allows the app to build and run without a database connection,
 // but API calls requiring the database will throw a clear error.
@@ -28,6 +30,7 @@ if (serviceAccountKey) {
         }
         // If initialization is successful, overwrite the mock with the real instance.
         firestore = admin.firestore();
+        isFirebaseInitialized = true;
     } catch (error)
     {
         console.error('CRITICAL: Error initializing Firebase Admin SDK. Check FIREBASE_SERVICE_ACCOUNT_KEY in your .env file. It might be malformed JSON or have incorrect permissions.');
@@ -41,4 +44,4 @@ if (serviceAccountKey) {
   }
 }
 
-export { firestore };
+export { firestore, isFirebaseInitialized };

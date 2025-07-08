@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { firestore } from '@/lib/firebase';
+import { firestore, isFirebaseInitialized } from '@/lib/firebase';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const MODEL_ENDPOINTS: Record<string, string> = {
@@ -12,6 +12,11 @@ const MODEL_ENDPOINTS: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
+  if (!isFirebaseInitialized) {
+    console.error("API Error: /api/replicate was called, but Firebase is not initialized.");
+    return NextResponse.json({ error: 'Server configuration error: Could not connect to the database to validate token.' }, { status: 500 });
+  }
+
   const replicateApiToken = process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY;
   if (!replicateApiToken) {
     return NextResponse.json({ error: 'Server configuration error: REPLICATE_API_TOKEN is missing.' }, { status: 500 });
