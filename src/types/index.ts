@@ -25,7 +25,7 @@ export interface Conversation {
   selectedResponseStyleName?: string;
 }
 
-export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination';
+export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about';
 
 export interface TileItem {
   id: ToolType;
@@ -34,7 +34,7 @@ export interface TileItem {
   description?: string;
 }
 
-export type CurrentAppView = 'tiles' | 'chat' | 'replicateImageTool' | 'personalizationTool' | 'nocostImageTool';
+export type CurrentAppView = 'tiles' | 'chat' | 'replicateImageTool' | 'personalizationTool' | 'nocostImageTool' | 'aboutView';
 
 export interface ImageHistoryItem {
   id: string;

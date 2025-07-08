@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -34,10 +35,11 @@ import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/co
 import { cn } from '@/lib/utils';
 
 const toolTileItems: TileItem[] = [
-  { id: 'long language loops', title: 'chat/assistance' },
-  { id: 'nocost imagination', title: 'gen/images/free' },
-  { id: 'premium imagination', title: 'gen/images/premium' },
-  { id: 'personalization', title: 'settings' },
+  { id: 'long language loops', title: 'chat/conversational/assisistance' },
+  { id: 'nocost imagination', title: 'generate/visualize/image-gen/fast' },
+  { id: 'premium imagination', title: 'generate/visualize/image-gen/raw' },
+  { id: 'personalization', title: 'settings/personalization' },
+  { id: 'about', title: 'about/hey.hi/readme' },
 ];
 
 const PERSONALIZATION_SETTINGS_KEY = 'personalizationSettings';
@@ -72,6 +74,7 @@ export default function Home() {
         case 'nocost imagination': return 'nocostImageTool';
         case 'premium imagination': return 'replicateImageTool';
         case 'personalization': return 'personalizationTool';
+        case 'about': return 'aboutView';
         default: return 'chat';
     }
   };
@@ -264,22 +267,35 @@ export default function Home() {
       case 'nocostImageTool':
         return <VisualizingLoopsTool />;
       case 'replicateImageTool':
+        return (
+          <div className="flex flex-col h-full">
+            <div className="flex-grow overflow-y-auto">
+              <ReplicateImageTool />
+            </div>
+          </div>
+        );
       case 'personalizationTool':
         return (
-            <div className="flex flex-col h-full">
-                <div className="flex-grow overflow-y-auto">
-                    {currentView === 'replicateImageTool' && <ReplicateImageTool />}
-                    {currentView === 'personalizationTool' && (
-                        <PersonalizationTool
-                            userDisplayName={userDisplayName}
-                            setUserDisplayName={setUserDisplayName}
-                            customSystemPrompt={customSystemPrompt}
-                            setCustomSystemPrompt={setCustomSystemPrompt}
-                            onSave={savePersonalizationSettings}
-                        />
-                    )}
-                </div>
+          <div className="flex flex-col h-full">
+            <div className="flex-grow overflow-y-auto">
+              <PersonalizationTool
+                userDisplayName={userDisplayName}
+                setUserDisplayName={setUserDisplayName}
+                customSystemPrompt={customSystemPrompt}
+                setCustomSystemPrompt={setCustomSystemPrompt}
+                onSave={savePersonalizationSettings}
+              />
             </div>
+          </div>
+        );
+      case 'aboutView':
+        return (
+          <div className="flex flex-col h-full items-center justify-center p-4 text-center">
+            <h2 className="text-3xl font-code text-foreground">about/hey.hi/readme</h2>
+            <p className="text-muted-foreground mt-4 max-w-md">
+              This section is under construction. Come back soon to learn more about the project!
+            </p>
+          </div>
         );
       default: // 'tiles'
         return <HomePage onSelectTile={handleSelectTile} toolTileItems={toolTileItems} />;
