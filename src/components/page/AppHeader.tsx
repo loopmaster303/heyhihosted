@@ -28,12 +28,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDi
                 className="flex items-baseline gap-2 text-left hover:opacity-80 transition-opacity"
                 aria-label="Toggle navigation menu"
             >
-                <h1 className="text-3xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
-                {userDisplayName && userDisplayName !== "User" && (
-                    <span className="text-3xl font-code text-foreground/80 select-none">
-                        {userDisplayName}
-                    </span>
-                )}
+                <h1 className="text-4xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
             </button>
         </div>
       </header>
@@ -42,7 +37,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDi
         <div 
           className="fixed inset-0 bg-background z-40 flex items-start justify-center pt-24 animate-in fade-in-0 duration-300"
         >
-          <nav className="flex flex-col space-y-4 font-code text-3xl w-auto text-left">
+          <nav className="flex flex-col space-y-4 font-code text-2xl md:text-3xl w-auto text-left">
             <button onClick={() => handleNavigation('home')} className="text-left text-foreground/80 hover:text-foreground transition-colors w-full">
               {`└home/page`}
             </button>
