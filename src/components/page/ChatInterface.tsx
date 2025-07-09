@@ -1,8 +1,7 @@
-
 "use client";
 
 import React from 'react';
-import type { useChat } from '@/hooks/useChat';
+import { useChat } from '@/components/ChatProvider';
 
 // UI Components
 import ChatView from '@/components/chat/ChatView';
@@ -59,7 +58,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chat }) => {
           <ChatInput
             onSendMessage={chat.sendMessage}
             isLoading={chat.isAiResponding}
-            isImageModeActive={chat.isImageMode}
+            isImageMode={chat.isImageMode}
             onToggleImageMode={chat.toggleImageMode}
             uploadedFilePreviewUrl={chat.activeConversation.uploadedFilePreview ?? null}
             onFileSelect={chat.handleFileSelect}

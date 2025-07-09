@@ -13,7 +13,7 @@ import AppHeader from '@/components/page/AppHeader';
 import ChatInterface from '@/components/page/ChatInterface';
 
 // Modular components and hooks
-import { useChat } from '@/hooks/useChat';
+import { ChatProvider, useChat } from '@/components/ChatProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import HomePage from '@/components/page/HomePage';
 
@@ -33,7 +33,7 @@ const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
 const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
 
 
-export default function Home() {
+function AppContent() {
   const [currentView, setCurrentView] = useState<CurrentAppView>('tiles');
   const [activeToolTypeForView, setActiveToolTypeForView] = useState<ToolType | null>(null);
   
@@ -42,14 +42,14 @@ export default function Home() {
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
   const [replicateToolPassword, setReplicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
 
+  const chat = useChat();
 
-  const chat = useChat({
-    userDisplayName,
-    customSystemPrompt,
-    onConversationStarted: () => {
+  useEffect(() => {
+    // When a chat is selected or a new one starts, switch to the chat view.
+    if (chat.activeConversation) {
       setCurrentView('chat');
     }
-  });
+  }, [chat.activeConversation]);
 
   const getViewForTool = (toolType: ToolType): CurrentAppView => {
     switch(toolType) {
@@ -239,5 +239,19 @@ export default function Home() {
         setTitle={chat.setEditingTitle}
       />
     </div>
+  );
+}
+
+export default function Home() {
+  const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
+  const [customSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
+
+  return (
+    <ChatProvider
+      userDisplayName={userDisplayName}
+      customSystemPrompt={customSystemPrompt}
+    >
+      <AppContent />
+    </ChatProvider>
   );
 }
