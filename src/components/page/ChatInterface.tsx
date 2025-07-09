@@ -13,11 +13,9 @@ import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/co
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 
-interface ChatInterfaceProps {
-  chat: ReturnType<typeof useChat>;
-}
+export default function ChatInterface() {
+  const chat = useChat();
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ chat }) => {
   if (!chat.activeConversation) {
     return null; 
   }
@@ -58,7 +56,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chat }) => {
           <ChatInput
             onSendMessage={chat.sendMessage}
             isLoading={chat.isAiResponding}
-            isImageMode={chat.isImageMode}
+            isImageModeActive={chat.isImageMode}
             onToggleImageMode={chat.toggleImageMode}
             uploadedFilePreviewUrl={chat.activeConversation.uploadedFilePreview ?? null}
             onFileSelect={chat.handleFileSelect}
@@ -102,5 +100,3 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chat }) => {
     </div>
   );
 };
-
-export default ChatInterface;
