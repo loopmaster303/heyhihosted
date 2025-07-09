@@ -398,7 +398,7 @@ const VisualizingLoopsTool: FC = () => {
               </div>
               )}
             {!loading && !error && selectedImage && (
-              <div className="relative w-full h-full">
+              <div className="relative w-full aspect-square max-h-[calc(100vh-450px)]">
                 <a href={selectedImage.imageUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
                   <Image
                     src={selectedImage.imageUrl}
