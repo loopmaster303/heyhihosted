@@ -398,19 +398,21 @@ const VisualizingLoopsTool: FC = () => {
               </div>
               )}
             {!loading && !error && selectedImage && (
-              <a href={selectedImage.imageUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
-                <Image
-                  src={selectedImage.imageUrl}
-                  alt={`Generated image for: ${selectedImage.prompt}`}
-                  fill
-                  style={{ objectFit: 'contain' }}
-                  className="rounded-md"
-                  data-ai-hint="ai generated digital art"
-                />
-                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
-                    <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
-                </div>
-              </a>
+              <div className="relative w-full h-full">
+                <a href={selectedImage.imageUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
+                  <Image
+                    src={selectedImage.imageUrl}
+                    alt={`Generated image for: ${selectedImage.prompt}`}
+                    fill
+                    style={{ objectFit: 'contain' }}
+                    className="rounded-md"
+                    data-ai-hint="ai generated digital art"
+                  />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
+                      <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
+                  </div>
+                </a>
+              </div>
             )}
             {!loading && !error && !selectedImage && (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground font-code">
