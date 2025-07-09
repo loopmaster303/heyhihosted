@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect, useMemo, FC, FormEvent } from 'react';
+import { useState, useEffect, useMemo, FC, FormEvent, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +54,17 @@ const VisualizingLoopsTool: FC = () => {
   const [error, setError] = useState<string>('');
   
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Dynamically adjust textarea height
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'; // Reset height
+      // The min-h is 80px. We use scrollHeight for the new height.
+      const newHeight = Math.max(textareaRef.current.scrollHeight, 80);
+      textareaRef.current.style.height = `${newHeight}px`;
+    }
+  }, [prompt]);
 
   // Memoize slider value arrays to prevent unstable references
   const widthValue = useMemo(() => [width], [width]);
@@ -164,7 +174,6 @@ const VisualizingLoopsTool: FC = () => {
     }
     setLoading(true);
     setError('');
-    setSelectedImage(null);
     
     const endpoint = model === 'gptimage' ? '/api/openai-image' : '/api/generate';
     const newHistoryItems: ImageHistoryItem[] = [];
@@ -275,11 +284,12 @@ const VisualizingLoopsTool: FC = () => {
         <form onSubmit={handleGenerateEvent}>
           <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
             <Textarea
+              ref={textareaRef}
               id="prompt-pollinations-tool"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe what you imagine and hit execute!"
-              className="flex-grow min-h-[80px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
+              className="flex-grow min-h-[80px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
               rows={3}
               disabled={loading}
               aria-label="Image prompt for Pollinations models"
