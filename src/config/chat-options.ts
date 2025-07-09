@@ -132,17 +132,25 @@ User zum Nachdenken bringen, provozieren, motivieren, aber auch entertainen – 
   },
 ];
 
-// Text-to-Speech (TTS) Voices
+// Text-to-Speech (TTS) Voices - Official Google Cloud TTS Voices
 export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
-  { id: "Echo", name: "Echo (Male)" },
-  { id: "Alto", name: "Alto (Female)" },
-  { id: "Granite", name: "Granite (Male)" },
-  { id: "Onyx", name: "Onyx (Male)" },
-  { id: "Sandstone", name: "Sandstone (Female)" },
-  { id: "Obsidian", name: "Obsidian (Male)" },
-  { id: "Algenib", name: "Algenib (Female)" },
-  { id: "Achernar", name: "Achernar (Male)" },
+  // German Voices (WaveNet)
+  { id: 'de-DE-Wavenet-F', name: 'German (Female, WaveNet)' },
+  { id: 'de-DE-Wavenet-A', name: 'German (Male, WaveNet)' },
+  { id: 'de-DE-Wavenet-C', name: 'German (Female 2, WaveNet)' },
+  { id: 'de-DE-Wavenet-D', name: 'German (Male 2, WaveNet)' },
+
+  // English (US) Voices (WaveNet)
+  { id: 'en-US-Wavenet-F', name: 'English, US (Female, WaveNet)' },
+  { id: 'en-US-Wavenet-A', name: 'English, US (Male, WaveNet)' },
+  { id: 'en-US-Wavenet-J', name: 'English, US (Female 2, WaveNet)' },
+  { id: 'en-US-Wavenet-D', name: 'English, US (Male 2, WaveNet)' },
+  
+  // English (GB) Voices (WaveNet)
+  { id: 'en-GB-Wavenet-A', name: 'English, UK (Female, WaveNet)' },
+  { id: 'en-GB-Wavenet-B', name: 'English, UK (Male, WaveNet)' },
 ];
+
 
 // WICHTIG: Die Defaults müssen zu den IDs oben passen!
 export const DEFAULT_POLLINATIONS_MODEL_ID = "openai-large";
