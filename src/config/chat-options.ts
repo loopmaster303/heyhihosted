@@ -134,21 +134,21 @@ User zum Nachdenken bringen, provozieren, motivieren, aber auch entertainen – 
 
 // Text-to-Speech (TTS) Voices - Official Google Cloud TTS Voices
 export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
-  // German Voices (WaveNet)
-  { id: 'de-DE-Wavenet-F', name: 'German (Female, WaveNet)' },
-  { id: 'de-DE-Wavenet-A', name: 'German (Male, WaveNet)' },
-  { id: 'de-DE-Wavenet-C', name: 'German (Female 2, WaveNet)' },
-  { id: 'de-DE-Wavenet-D', name: 'German (Male 2, WaveNet)' },
+  // German Voices (Neural2 for natural intonation)
+  { id: 'de-DE-Neural2-C', name: 'German (Female, Natural)' },
+  { id: 'de-DE-Neural2-B', name: 'German (Male, Natural)' },
+  { id: 'de-DE-Neural2-F', name: 'German (Female 2, Natural)' },
+  { id: 'de-DE-Neural2-D', name: 'German (Male 2, Natural)' },
 
-  // English (US) Voices (WaveNet)
-  { id: 'en-US-Wavenet-F', name: 'English, US (Female, WaveNet)' },
-  { id: 'en-US-Wavenet-A', name: 'English, US (Male, WaveNet)' },
-  { id: 'en-US-Wavenet-J', name: 'English, US (Female 2, WaveNet)' },
-  { id: 'en-US-Wavenet-D', name: 'English, US (Male 2, WaveNet)' },
+  // English (US) Voices (Neural2 for natural intonation)
+  { id: 'en-US-Neural2-A', name: 'English, US (Male, Natural)' },
+  { id: 'en-US-Neural2-C', name: 'English, US (Female, Natural)' },
+  { id: 'en-US-Neural2-H', name: 'English, US (Female 2, Natural)' },
+  { id: 'en-US-Neural2-J', name: 'English, US (Male 2, Natural)' },
   
-  // English (GB) Voices (WaveNet)
-  { id: 'en-GB-Wavenet-A', name: 'English, UK (Female, WaveNet)' },
-  { id: 'en-GB-Wavenet-B', name: 'English, UK (Male, WaveNet)' },
+  // English (GB) Voices (Neural2 for natural intonation)
+  { id: 'en-GB-Neural2-A', name: 'English, UK (Female, Natural)' },
+  { id: 'en-GB-Neural2-B', name: 'English, UK (Male, Natural)' },
 ];
 
 
