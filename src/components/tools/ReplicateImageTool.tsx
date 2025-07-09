@@ -747,10 +747,14 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
           <CardHeader className="py-3 px-4 border-b border-border">
               <CardTitle className="text-base sm:text-lg">Output</CardTitle>
           </CardHeader>
-          <CardContent className="p-2 md:p-4 flex-grow flex items-center justify-center text-center bg-card rounded-b-lg">
-          {loading && <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />}
+          <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg">
+          {loading && (
+            <div className="w-full h-full flex items-center justify-center">
+                <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />
+            </div>
+           )}
           {error && !loading && (
-              <div className="text-destructive flex flex-col items-center space-y-2 max-w-md mx-auto">
+              <div className="w-full h-full flex flex-col items-center justify-center text-destructive space-y-2 max-w-md mx-auto text-center">
                   <AlertCircle className="w-8 h-8 sm:w-10 sm:w-10 mb-2"/>
                   <p className="font-semibold text-md sm:text-lg">Generation Error</p>
                   <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
@@ -793,9 +797,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
               </div>
           )}
           {!loading && !error && !selectedImage && (
-              <div className="text-muted-foreground flex flex-col items-center space-y-2 font-code">
-                  <p className="text-lg">{`</export>`}</p>
-              </div>
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground font-code">
+                <p className="text-lg">{`</export>`}</p>
+            </div>
           )}
           </CardContent>
         </Card>
