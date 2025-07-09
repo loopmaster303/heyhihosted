@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import type { ChatMessage, ChatMessageContentPart } from '@/types';
 import Image from 'next/image';
 import { Loader2, Volume2 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -61,7 +61,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isA
     return content.map((part, index) => {
       if (part.type === 'text') {
         return <p key={index} className="text-sm whitespace-pre-wrap mb-2">{part.text}</p>;
-      }
+      } 
       if (part.type === 'image_url') {
         const altText = part.image_url.altText || (part.image_url.isGenerated ? "Generated image" : (part.image_url.isUploaded ? "Uploaded image" : "Image"));
         return (
@@ -97,23 +97,25 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isA
             : 'bg-transparent text-secondary-foreground p-3 rounded-xl'
         )}
       >
-        {renderContent(message.content)}
-        {hasAudioContent && (
-             <Button 
-                variant="ghost"
-                size="icon"
-                onClick={handlePlayClick}
-                className="absolute -bottom-2 -right-2 h-7 w-7 rounded-full bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                aria-label="Play audio"
-                disabled={isAudioPlayingForId === message.id}
-             >
-                {isAudioPlayingForId === message.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin"/>
-                ) : (
-                    <Volume2 className="h-4 w-4"/>
-                )}
-             </Button>
-         )}
+        <div className="flex flex-col">
+          {renderContent(message.content)}
+          {hasAudioContent && (
+               <Button 
+                  variant="ghost"
+                  size="icon"
+                  onClick={handlePlayClick}
+                  className="self-end h-7 w-7 rounded-full bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 transition-colors duration-200 mt-1 mr-1" // Adjusted positioning and visibility
+                  aria-label="Play audio"
+                  disabled={isAudioPlayingForId === message.id}
+               >
+                  {isAudioPlayingForId === message.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin"/>
+                  ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 10v4M7 6v12M11 2v20M15 6v12M19 10v4"/></svg> // Waveform icon
+                  )}
+               </Button>
+           )}
+        </div>
       </div>
     </div>
   );

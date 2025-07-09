@@ -48,6 +48,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
   const [currentModelConfig, setCurrentModelConfig] = useState<ReplicateModelConfig | null>(null);
   
   const [formFields, setFormFields] = useState<Record<string, any>>({});
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [mainPromptValue, setMainPromptValue] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -159,6 +160,18 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
       setMainPromptValue('');
     }
   }, [selectedModelKey, initialLoadComplete]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // Reset height to auto to calculate the correct scrollHeight
+      textarea.style.height = 'auto';
+      // Set the height to the scrollHeight, but cap it at the max-height
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
+      // Maintain a minimum height
+      textarea.style.minHeight = '80px';
+    }
+  }, [mainPromptValue]);
 
   useEffect(() => {
     if (!initialLoadComplete || !selectedModelKey || !currentModelConfig) return; 
@@ -620,13 +633,14 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
         <form onSubmit={handleSubmit}>
           <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
             <Textarea
+              ref={textareaRef}
               value={mainPromptValue}
               onChange={handleMainPromptChange}
               placeholder="Describe what you imagine (or want to modify) and hit execute!"
-              className="flex-grow min-h-[80px] max-h-[150px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
+              className="flex-grow bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24 overflow-hidden"
               rows={3}
               disabled={loading || !currentModelConfig}
-              aria-label="Main prompt input"
+              aria-label="Main prompt input with dynamic height"
             />
              <Button
                 type="submit"
@@ -743,8 +757,8 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
           <input type="file" ref={multiFileInputRef} onChange={handleMultipleFileChange} accept="image/*" multiple className="hidden" />
         </form>
 
-        <Card className="flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
-          <CardHeader className="py-3 px-4 border-b border-border">
+        <Card className="flex flex-col min-h-[300px] md:min-h-[400px] border-0 shadow-none">
+          <CardHeader className="py-3 px-4">
               <CardTitle className="text-base sm:text-lg">Output</CardTitle>
           </CardHeader>
           <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg">

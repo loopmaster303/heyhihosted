@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, FC, FormEvent, useRef } from 'react';
@@ -289,8 +290,7 @@ const VisualizingLoopsTool: FC = () => {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe what you imagine and hit execute!"
-              className="flex-grow min-h-[80px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
-              rows={3}
+              className="flex-grow min-h-[80px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24 overflow-hidden"
               disabled={loading}
               aria-label="Image prompt for Pollinations models"
             />
@@ -390,8 +390,8 @@ const VisualizingLoopsTool: FC = () => {
           </div>
         </form>
       
-        <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-border shadow-md rounded-lg">
-          <CardHeader className="py-3 px-4 border-b border-border">
+        <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-0 shadow-none">
+          <CardHeader className="py-3 px-4">
               <CardTitle className="text-base sm:text-lg">Output</CardTitle>
           </CardHeader>
           <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg">
