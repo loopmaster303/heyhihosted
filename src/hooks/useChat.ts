@@ -16,33 +16,26 @@ export interface UseChatLogicProps {
   onConversationStarted?: () => void;
 }
 
-// This function contains the entire logic of the original useChat hook
 export function useChatLogic({ userDisplayName, customSystemPrompt, onConversationStarted }: UseChatLogicProps) {
     const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
     const [allConversations, setAllConversations] = useState<Conversation[]>([]);
     const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
     const [isAiResponding, setIsAiResponding] = useState(false);
-    
     const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
-  
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [chatToDeleteId, setChatToDeleteId] = useState<string | null>(null);
-    
     const [isEditTitleDialogOpen, setIsEditTitleDialogOpen] = useState(false);
     const [chatToEditId, setChatToEditId] = useState<string | null>(null);
     const [editingTitle, setEditingTitle] = useState('');
-    
     const [isImageMode, setIsImageMode] = useState(false);
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
-  
     const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
     const [isRecording, setIsRecording] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
     const [chatInputValue, setChatInputValue] = useState('');
-  
     const { toast } = useToast();
-  
+
     const loadConversations = useCallback((loadedConversationsRaw: any) => {
       let loadedConversations: Conversation[] = [];
       if (Array.isArray(loadedConversationsRaw)) {
@@ -52,7 +45,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
                   id: conv.id || crypto.randomUUID(),
                   createdAt: new Date(conv.createdAt),
                   messages: (conv.messages || []).map((msg: any) => ({ ...msg, id: msg.id || crypto.randomUUID(), timestamp: new Date(msg.timestamp) })),
-              })).filter((conv: Conversation) => !isNaN(conv.createdAt.getTime()) && conv.toolType === 'long language loops' && conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant'));
+              })).filter((conv: Conversation) => !isNaN(conv.createdAt.getTime()) && conv.toolType && (conv.messages || []).length > 0); // Filter out conversations without a toolType and empty message arrays
               setAllConversations(loadedConversations.sort((a,b) => b.createdAt.getTime() - a.createdAt.getTime()));
           } catch(e) {
               console.error("Failed to parse conversations", e);
@@ -61,13 +54,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       setIsInitialLoadComplete(true);
       return loadedConversations;
     }, []);
-  
+
     useEffect(() => {
       if (!isInitialLoadComplete) {
         return;
       }
       const conversationsToStore = allConversations
-          .filter(conv => conv.toolType === 'long language loops' && conv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant'))
+          .filter(conv => conv.toolType && (conv.messages || []).some(msg => msg.role === 'user' || msg.role === 'assistant')) // Ensure toolType exists and filter by messages
           .map(conv => {
               const { uploadedFile, ...storableConv } = conv;
               return storableConv;
@@ -78,7 +71,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           localStorage.removeItem('chatConversations');
       }
     }, [allConversations, isInitialLoadComplete]);
-  
+
     const updateActiveConversationState = useCallback((updates: Partial<Conversation>) => {
       setActiveConversation(prevActive => {
         if (!prevActive) return null;
@@ -86,12 +79,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         setAllConversations(prevAllConvs => prevAllConvs.map(c => (c.id === prevActive.id ? updatedConv : c)));
         return updatedConv;
       });
-  
-      if (updates.hasOwnProperty('isImageMode')) { 
+
+      if (updates.hasOwnProperty('isImageMode')) {
           setIsImageMode(updates.isImageMode || false);
       }
     }, []);
-  
+
     useEffect(() => {
       if (activeConversation) {
         setCurrentMessages(activeConversation.messages);
@@ -101,13 +94,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         setIsImageMode(false);
       }
     }, [activeConversation]);
-  
+
     const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]) => {
       const convToUpdate = allConversations.find(c => c.id === conversationId);
-      if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
-  
+      if (!convToUpdate || !convToUpdate.toolType) return; // Ensure toolType exists
+
       const isDefaultTitle = convToUpdate.title === "default.long.language.loop" || convToUpdate.title.toLowerCase().startsWith("new ") || convToUpdate.title === "Chat";
-  
+
       if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
         const relevantText = messagesForTitleGen.map(msg => typeof msg.content === 'string' ? `${msg.role}: ${msg.content}` : `${msg.role}: ${msg.content.find(p => p.type === 'text')?.text || ''}`).filter(Boolean).slice(0, 3).join('\n\n');
         if (relevantText) {
@@ -121,20 +114,20 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         }
       }
     }, [allConversations, activeConversation?.id]);
-    
+
     const sendMessage = useCallback(async (
       _messageText: string,
       options: { isImageModeIntent?: boolean; } = {}
     ) => {
       const messageText = chatInputValue.trim();
-      if (!activeConversation || activeConversation.toolType !== 'long language loops' || (!messageText && !activeConversation.uploadedFile)) return;
-  
+      if (!activeConversation || !activeConversation.toolType || (!messageText && !activeConversation.uploadedFile)) return; // Ensure toolType exists
+
       const { selectedModelId, selectedResponseStyleName, messages, uploadedFile, uploadedFilePreview } = activeConversation;
       const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
-      
+
       let effectiveSystemPrompt = '';
       const basicStylePrompt = (AVAILABLE_RESPONSE_STYLES.find(s => s.name === 'Basic') || AVAILABLE_RESPONSE_STYLES[0]).systemPrompt;
-  
+
       if (selectedResponseStyleName === "User's Default") {
           if (customSystemPrompt && customSystemPrompt.trim()) {
               effectiveSystemPrompt = customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User");
@@ -145,19 +138,19 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           const selectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName);
           effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
       }
-  
+
       setIsAiResponding(true);
       setChatInputValue('');
       const convId = activeConversation.id;
       const isImagePrompt = options.isImageModeIntent || false;
       const isFileUpload = !!uploadedFile && !isImagePrompt;
-  
+
       if (isFileUpload && !currentModel.vision) {
         toast({ title: "Model Incompatibility", description: `Model '${currentModel.name}' doesn't support images.`, variant: "destructive" });
         setIsAiResponding(false);
         return;
       }
-  
+
       let userMessageContent: string | ChatMessageContentPart[] = messageText;
       if (isFileUpload && uploadedFilePreview) {
         userMessageContent = [
@@ -165,13 +158,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           { type: 'image_url', image_url: { url: uploadedFilePreview, altText: uploadedFile.name, isUploaded: true } }
         ];
       }
-  
-      const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: 'long language loops' };
+
+      const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: activeConversation.toolType }; // Use activeConversation.toolType
       const messagesForApi = [...messages, userMessage];
       const updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
-      
+
       updateActiveConversationState({ messages: updatedMessagesForState });
-  
+
       let aiResponseContent: string | ChatMessageContentPart[] | null = null;
       try {
           if (isImagePrompt && messageText) {
@@ -196,20 +189,20 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
           aiResponseContent = `Sorry, an error occurred: ${errorMessage}`;
       }
-  
+
       if (aiResponseContent !== null) {
-        const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: 'long language loops' };
+        const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: activeConversation.toolType }; // Use activeConversation.toolType
         const finalMessages = [...updatedMessagesForState, aiMessage];
         updateActiveConversationState({ messages: finalMessages });
         updateConversationTitle(convId, finalMessages);
       }
-      
+
       if (isImagePrompt || isFileUpload) {
           updateActiveConversationState({ isImageMode: false, uploadedFile: null, uploadedFilePreview: null });
       }
       setIsAiResponding(false);
     }, [activeConversation, customSystemPrompt, userDisplayName, toast, updateActiveConversationState, updateConversationTitle, chatInputValue]);
-  
+
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
           setActiveConversation(null);
@@ -217,27 +210,27 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       }
       const conversationToSelect = allConversations.find(c => c.id === conversationId);
       if (!conversationToSelect) return;
-  
+
       setActiveConversation({ ...conversationToSelect, uploadedFile: null });
       onConversationStarted?.();
     }, [allConversations, onConversationStarted]);
-    
+
     const startNewChat = useCallback(() => {
       const newConversation: Conversation = {
         id: crypto.randomUUID(),
         title: "default.long.language.loop",
         messages: [],
         createdAt: new Date(),
-        toolType: 'long language loops',
-        isImageMode: false, 
-        selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID, 
+        toolType: 'long language loops', // Keep this for now, but consider making it dynamic
+        isImageMode: false,
+        selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
         selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
       };
       setAllConversations(prev => [newConversation, ...prev].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
       setActiveConversation(newConversation);
       onConversationStarted?.();
     }, [onConversationStarted]);
-    
+
     const requestEditTitle = (conversationId: string) => {
       const convToEdit = allConversations.find(c => c.id === conversationId);
       if (!convToEdit) return;
@@ -245,7 +238,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       setEditingTitle(convToEdit.title);
       setIsEditTitleDialogOpen(true);
     };
-    
+
     const confirmEditTitle = () => {
       if (!chatToEditId || !editingTitle.trim()) {
         toast({ title: "Invalid Title", description: "Title cannot be empty.", variant: "destructive" });
@@ -259,21 +252,21 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       toast({ title: "Title Updated" });
       setIsEditTitleDialogOpen(false);
     };
-  
+
     const cancelEditTitle = () => setIsEditTitleDialogOpen(false);
-  
+
     const requestDeleteChat = (conversationId: string) => {
       setChatToDeleteId(conversationId);
       setIsDeleteDialogOpen(true);
     };
-    
+
     const deleteChat = (conversationId: string, silent = false) => {
         const wasActive = activeConversation?.id === conversationId;
         const updatedConversations = allConversations.filter(c => c.id !== conversationId);
         setAllConversations(updatedConversations);
-  
+
         if (wasActive) {
-          const nextChat = updatedConversations.find(c => c.toolType === 'long language loops');
+          const nextChat = updatedConversations.find(c => c.toolType); // Find the next chat with any toolType
           if (nextChat) selectChat(nextChat.id);
           else startNewChat();
         }
@@ -281,21 +274,21 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           toast({ title: "Chat Deleted" });
         }
     }
-  
+
     const confirmDeleteChat = () => {
       if (!chatToDeleteId) return;
       deleteChat(chatToDeleteId);
       setIsDeleteDialogOpen(false);
     };
-  
+
     const cancelDeleteChat = () => setIsDeleteDialogOpen(false);
-  
+
     const toggleImageMode = () => {
       if (!activeConversation) return;
-      const newImageModeState = !isImageMode; 
+      const newImageModeState = !isImageMode;
       updateActiveConversationState({ isImageMode: newImageModeState, uploadedFile: null, uploadedFilePreview: null });
     };
-  
+
     const handleFileSelect = (file: File | null) => {
       if (!activeConversation) return;
       if (file) {
@@ -308,27 +301,29 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         updateActiveConversationState({ uploadedFile: null, uploadedFilePreview: null });
       }
     };
-  
+
     const clearUploadedImage = () => {
-      if (activeConversation) handleFileSelect(null); 
+      if (activeConversation) handleFileSelect(null);
     }
-  
+
     const handleModelChange = useCallback((modelId: string) => {
       if (activeConversation) updateActiveConversationState({ selectedModelId: modelId });
     }, [activeConversation, updateActiveConversationState]);
-  
+
     const handleStyleChange = useCallback((styleName: string) => {
        if (activeConversation) updateActiveConversationState({ selectedResponseStyleName: styleName });
     }, [activeConversation, updateActiveConversationState]);
-  
+
     const toggleHistoryPanel = () => setIsHistoryPanelOpen(prev => !prev);
     const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
-  
+
+    // ---- HIER IST DER EINZIGE GEÄNDERTE TEIL: ----
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
       if (playingMessageId) return;
       setPlayingMessageId(messageId);
       try {
-        const { audioDataUri } = await textToSpeech(text);
+        // Zweites Argument z.B. "alloy", "echo", "nova" etc.
+        const { audioDataUri } = await textToSpeech(text, "alloy");
         const audio = new Audio(audioDataUri);
         audio.play();
         audio.onended = () => {
@@ -337,25 +332,24 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         audio.onerror = () => {
           toast({ title: "Audio Playback Error", description: "Could not play the generated audio.", variant: "destructive" });
           setPlayingMessageId(null);
-        }
+        };
       } catch (error) {
         console.error("TTS Error:", error);
         toast({ title: "Text-to-Speech Error", description: "Could not generate audio.", variant: "destructive" });
         setPlayingMessageId(null);
       }
     }, [playingMessageId, toast]);
-  
+    // -----------------------------------------------
+
     const handleStartRecording = useCallback(async () => {
       if (isRecording) return;
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorderRef.current = new MediaRecorder(stream);
         audioChunksRef.current = [];
-  
         mediaRecorderRef.current.ondataavailable = (event) => {
           audioChunksRef.current.push(event.data);
         };
-  
         mediaRecorderRef.current.onstop = async () => {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           const reader = new FileReader();
@@ -375,23 +369,25 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
               }
           };
         };
-  
         mediaRecorderRef.current.start();
         setIsRecording(true);
       } catch (error) {
         console.error("Microphone access error:", error);
         toast({ title: "Microphone Access Denied", description: "Please enable microphone permissions in your browser.", variant: "destructive" });
       }
-    }, [isRecording, toast]);
-  
+    }, [isRecording, toast, setChatInputValue, setIsAiResponding]);
+
     const handleStopRecording = useCallback(() => {
       if (mediaRecorderRef.current && isRecording) {
         mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        // Stop all tracks in the stream to release the microphone
+        if (mediaRecorderRef.current.stream) {
+            mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        }
         setIsRecording(false);
       }
     }, [isRecording]);
-  
+
     const handleToggleRecording = useCallback(() => {
       if (isRecording) {
         handleStopRecording();
@@ -399,8 +395,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         handleStartRecording();
       }
     }, [isRecording, handleStartRecording, handleStopRecording]);
-  
-  
+
     return {
       activeConversation, allConversations, currentMessages, isAiResponding, isImageMode,
       isHistoryPanelOpen, isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,

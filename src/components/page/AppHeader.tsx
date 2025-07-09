@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -22,6 +23,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDi
   };
   
   const toggleMenu = () => setIsMenuOpen(prev => !prev);
+  
+  const showUserName = userDisplayName && userDisplayName.trim() !== '' && userDisplayName !== 'User';
 
   return (
     <>
@@ -30,13 +33,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDi
         <div className="flex-1 flex justify-center">
             <button
                 onClick={toggleMenu}
-                className="flex items-baseline gap-2 text-left hover:opacity-80 transition-opacity"
+                className="flex items-baseline gap-4 text-left hover:opacity-80 transition-opacity"
                 aria-label="Toggle navigation menu"
             >
               {isMenuOpen ? (
                  <X className="h-10 w-10 text-foreground" />
               ) : (
-                 <h1 className="text-5xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
+                <div className="flex items-baseline gap-4">
+                    <h1 className="text-5xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
+                    {showUserName && (
+                        <span className="text-5xl font-code text-foreground select-none">{userDisplayName}</span>
+                    )}
+                </div>
               )}
             </button>
         </div>
