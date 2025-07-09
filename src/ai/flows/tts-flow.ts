@@ -6,6 +6,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import {googleAI} from '@genkit-ai/googleai';
 import {z} from 'zod';
 import wav from 'wav';
 
@@ -39,23 +40,26 @@ async function toWav(
 const textToSpeechFlow = ai.defineFlow(
   {
     name: 'textToSpeechFlow',
-    inputSchema: z.string(),
+    inputSchema: z.object({
+      text: z.string(),
+      voice: z.string(),
+    }),
     outputSchema: z.object({
       audioDataUri: z.string(),
     }),
   },
-  async (text) => {
+  async ({ text, voice }) => {
     if (!text) {
       throw new Error('Input text cannot be empty.');
     }
 
     const {media} = await ai.generate({
-      model: 'googleai/gemini-2.5-flash-preview-tts',
+      model: googleAI.model('gemini-2.5-flash-preview-tts'),
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: {voiceName: 'Algenib'},
+            prebuiltVoiceConfig: { voiceName: voice },
           },
         },
       },
@@ -79,6 +83,6 @@ const textToSpeechFlow = ai.defineFlow(
   }
 );
 
-export async function textToSpeech(text: string): Promise<{ audioDataUri: string }> {
-    return textToSpeechFlow(text);
+export async function textToSpeech(text: string, voice: string): Promise<{ audioDataUri: string }> {
+ return textToSpeechFlow({ text, voice });
 }

@@ -12,9 +12,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuLabel,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
-import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import type { PollinationsModel, ResponseStyle } from '@/config/chat-options';
 import { cn } from '@/lib/utils';
 
@@ -39,6 +39,8 @@ interface ChatInputProps {
   onToggleRecording: () => void;
   inputValue: string;
   onInputChange: (value: string) => void;
+  selectedVoice: string;
+  onVoiceChange: (voice: string) => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -57,6 +59,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   onToggleRecording,
   inputValue,
   onInputChange,
+  selectedVoice,
+  onVoiceChange,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -111,6 +115,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
     onStyleChange(style.name);
   };
 
+  const handleSelectVoice = (voiceValue: string) => {
+    onVoiceChange(voiceValue);
+  };
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     onFileSelect(file || null);
@@ -122,7 +130,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const placeholderText = isRecording ? "Listening..." : "chat with AI...";
   const currentSelectedModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
   const currentSelectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0];
-
+  const currentSelectedVoice = AVAILABLE_TTS_VOICES.find(v => v.id === selectedVoice);
+  
   const iconSizeClass = "w-5 h-5";
   const iconColorClass = "text-foreground/80 hover:text-foreground";
   const iconStrokeWidth = 1.75;
@@ -157,7 +166,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     placeholder={placeholderText}
                     className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
                     rows={1}
-                    disabled={isLoading}
+                    disabled={isLoading || isRecording}
                     aria-label="Chat message input"
                     style={{ lineHeight: '1.5rem' }}
                 />
@@ -173,7 +182,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 </Button>
             </div>
             
-            {isLongLanguageLoopActive && (
+            {isLongLanguageLoopActive && !isRecording && (
               <div className="flex justify-between items-center mt-2 pt-2">
                  <div className="flex items-center gap-1">
                  </div>
@@ -196,11 +205,34 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     </DropdownMenuContent>
                   </DropdownMenu>
 
+                  {/* Voice Selection Dropdown */}
                   <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="Select Voice">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                        <span className="text-xs font-medium">{currentSelectedVoice?.name || 'Voice'}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Select Voice</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {AVAILABLE_TTS_VOICES.map((voice) => (
+                        <DropdownMenuItem 
+                          key={voice.id}
+                          onClick={() => handleSelectVoice(voice.id)}
+                          className={selectedVoice === voice.id ? "bg-accent" : ""}
+                        >
+                          {voice.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="Select Response Style">
                         <Fingerprint className="w-4 h-4 mr-1.5" strokeWidth={iconStrokeWidth} />
-                        <span className="text-xs font-medium">{currentSelectedStyle.name}</span>
+                        <span className="text-xs font-medium">{currentSelectedStyle?.name}</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
@@ -208,11 +240,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       <DropdownMenuSeparator />
                       {AVAILABLE_RESPONSE_STYLES.map((style) => (
                         <DropdownMenuItem key={style.name} onClick={() => handleSelectStyle(style)} className={selectedResponseStyleName === style.name ? "bg-accent" : ""}>
-                          {style.name}
+                          {style?.name}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
+
                 </div>
 
                 <div className="flex items-center gap-1">

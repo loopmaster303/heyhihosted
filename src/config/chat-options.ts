@@ -144,7 +144,7 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
   { id: "capella", name: "Capella", icon: "speaker" },
   { id: "deneb", name: "Deneb", icon: "speaker" },
   { id: "sirius", name: "Sirius", icon: "speaker" },
-  { id: "almach", name: "Almach", icon: "speaker" },
+  { id: "mirach", name: "Mirach", icon: "speaker" },
 ];
 
 // WICHTIG: Die Defaults müssen zu den IDs oben passen!

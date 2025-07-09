@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -65,6 +66,8 @@ export default function ChatInterface() {
             selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
             onModelChange={chat.handleModelChange}
             onStyleChange={chat.handleStyleChange}
+            selectedVoice={chat.selectedVoice}
+            onVoiceChange={chat.handleVoiceChange}
             isRecording={chat.isRecording}
             onToggleRecording={chat.handleToggleRecording}
             inputValue={chat.chatInputValue}
