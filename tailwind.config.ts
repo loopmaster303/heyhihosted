@@ -1,4 +1,3 @@
-
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -11,10 +10,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'], // Keep Inter for potential sans-serif needs
-        body: ['monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
-        headline: ['monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
-        code: ['monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
+        sans: ['Inter', 'sans-serif'],
+        body: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
+        headline: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
+        code: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -99,5 +98,3 @@ export default {
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;
-
-    

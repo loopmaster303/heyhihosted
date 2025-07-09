@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: monospace, Menlo, Consolas, "Courier New", serif; /* Updated to monospace */
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -81,14 +77,14 @@ body {
     --sidebar-border: 0 0% 4%; 
     --sidebar-ring: 0 0% 50%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-weight: 250; /* Default font-weight for other text elements */
   }
 }
 
@@ -100,4 +96,25 @@ body {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
+}
+
+/* Specific font weights */
+
+/* Font-weight for elements containing the text "< /hey.hi >" */
+/* This requires targeting the element containing the text. A class or specific selector is recommended. */
+/* Example using a class 'heyhi-logo' */
+.heyhi-logo {
+  font-weight: 700;
+}
+
+/* Font-weight for all header elements */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+}
+
+/* Font-weight for all subheading elements */
+/* This requires targeting subheading elements. A class or specific selector is recommended. */
+/* Example using a class 'subheading' */
+.subheading {
+  font-weight: 500;
 }
