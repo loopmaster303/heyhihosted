@@ -478,6 +478,64 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       }
     }, [isRecording, handleStartRecording, handleStopRecording]);
   
+    const handleCopyToClipboard = useCallback((text: string) => {
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        toast({ title: "Copied to Clipboard" });
+      }).catch(err => {
+        console.error("Failed to copy text: ", err);
+        toast({ title: "Copy Failed", variant: "destructive" });
+      });
+    }, [toast]);
+  
+    const regenerateLastResponse = useCallback(async () => {
+      if (isAiResponding || !activeConversation) return;
+  
+      const lastMessageIndex = activeConversation.messages.length - 1;
+      const lastMessage = activeConversation.messages[lastMessageIndex];
+  
+      if (!lastMessage || lastMessage.role !== 'assistant') {
+        toast({ title: "Action Not Available", description: "You can only regenerate the AI's most recent response.", variant: "destructive" });
+        return;
+      }
+  
+      setIsAiResponding(true);
+      const historyForApi = activeConversation.messages.slice(0, lastMessageIndex);
+      updateActiveConversationState({ messages: historyForApi });
+  
+      let aiResponseContent: string | ChatMessageContentPart[] | null = null;
+      try {
+        const { selectedModelId, selectedResponseStyleName } = activeConversation;
+        const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
+        let effectiveSystemPrompt = '';
+        const basicStylePrompt = (AVAILABLE_RESPONSE_STYLES.find(s => s.name === 'Basic') || AVAILABLE_RESPONSE_STYLES[0]).systemPrompt;
+        if (selectedResponseStyleName === "User's Default") {
+          effectiveSystemPrompt = (customSystemPrompt && customSystemPrompt.trim()) ? customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User") : basicStylePrompt;
+        } else {
+          const selectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName);
+          effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
+        }
+  
+        const apiInput: PollinationsChatInput = { messages: historyForApi, modelId: currentModel.id, systemPrompt: effectiveSystemPrompt };
+        const result = await getPollinationsChatCompletion(apiInput);
+        aiResponseContent = result.responseText;
+  
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
+        aiResponseContent = `Sorry, an error occurred: ${errorMessage}`;
+        updateActiveConversationState({ messages: [...historyForApi, lastMessage] }); // Restore original message on error
+      }
+  
+      if (aiResponseContent !== null) {
+        const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: 'long language loops' };
+        const finalMessages = [...historyForApi, aiMessage];
+        updateActiveConversationState({ messages: finalMessages });
+      }
+      
+      setIsAiResponding(false);
+    }, [isAiResponding, activeConversation, updateActiveConversationState, customSystemPrompt, userDisplayName, toast]);
+  
   
     return {
       activeConversation, allConversations, currentMessages, isAiResponding, isImageMode,
@@ -491,6 +549,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       handleVoiceChange,
       toggleHistoryPanel, closeHistoryPanel, handlePlayAudio, handleToggleRecording,
       setChatInputValue,
+      handleCopyToClipboard,
+      regenerateLastResponse,
     };
 }
 
@@ -519,3 +579,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    

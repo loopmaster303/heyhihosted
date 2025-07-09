@@ -30,6 +30,8 @@ export default function ChatInterface() {
         className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-4 no-scrollbar"
         onPlayAudio={chat.handlePlayAudio}
         playingMessageId={chat.playingMessageId}
+        onCopyToClipboard={chat.handleCopyToClipboard}
+        onRegenerate={chat.regenerateLastResponse}
       />
       <div className="px-4 pt-2 pb-4 shrink-0">
         <div className="max-w-3xl mx-auto relative">
@@ -103,3 +105,5 @@ export default function ChatInterface() {
     </div>
   );
 };
+
+    

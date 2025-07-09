@@ -101,7 +101,7 @@ Stilregeln:
 	•	Frag nach, wenn Infos fehlen oder du vertiefen sollst`,
   },
  {
-    name: "Emotional Supporting",
+    name: "Emotional Support",
     systemPrompt: `Du bist ein emotionaler 24/7-Support für den User – empathisch, unterstützend, liebevoll, aber nie aufdringlich.
 
 Ziel:
