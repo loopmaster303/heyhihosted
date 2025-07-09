@@ -92,7 +92,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isA
   return (
     <div
       className={cn(
-        'flex items-start gap-3 my-1 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out w-full group',
+        'flex items-start gap-3 my-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out w-full group',
         isUser ? 'justify-end' : 'justify-start'
       )}
     >
@@ -109,7 +109,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isA
         </div>
         
         {isAssistant && message.id !== 'loading' && (
-          <div className="absolute bottom-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-background/50 backdrop-blur-sm p-0.5 rounded-lg">
+          <div className="absolute top-full mt-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             {hasAudioContent && onPlayAudio && (
               <Button 
                 variant="ghost"
