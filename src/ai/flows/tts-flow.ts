@@ -6,7 +6,6 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {googleAI} from '@genkit-ai/googleai';
 import {z} from 'zod';
 import wav from 'wav';
 
@@ -49,12 +48,12 @@ const textToSpeechFlow = ai.defineFlow(
     }),
   },
   async ({ text, voice }) => {
-    if (!text) {
+    if (!text || text.trim() === '') {
       throw new Error('Input text cannot be empty.');
     }
 
     const {media} = await ai.generate({
-      model: googleAI.model('gemini-2.5-flash-preview-tts'),
+      model: 'googleai/gemini-2.5-flash-preview-tts',
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {

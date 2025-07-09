@@ -374,6 +374,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
   
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
       if (playingMessageId) return;
+      if (!text || !text.trim()) return; // Safeguard against empty text
+      
       setPlayingMessageId(messageId);
       try {
         const { audioDataUri } = await textToSpeech(text, selectedVoice);
