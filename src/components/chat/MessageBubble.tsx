@@ -5,7 +5,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, ChatMessageContentPart } from '@/types';
 import Image from 'next/image';
-import { Loader2, Volume2 } from 'lucide-react';
+import { Loader2, StopCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MessageBubbleProps {
@@ -39,6 +39,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isA
   }
 
   const hasAudioContent = isAssistant && !!getTextContent();
+  const isThisMessagePlaying = isAudioPlayingForId === message.id;
 
 
   const renderContent = (content: string | ChatMessageContentPart[]) => {
@@ -104,12 +105,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isA
                   variant="ghost"
                   size="icon"
                   onClick={handlePlayClick}
-                  className="self-end h-7 w-7 rounded-full bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 transition-colors duration-200 mt-1 mr-1" // Adjusted positioning and visibility
-                  aria-label="Play audio"
-                  disabled={isAudioPlayingForId === message.id}
+                  className="self-end h-7 w-7 rounded-full bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 transition-colors duration-200 mt-1 mr-1"
+                  aria-label={isThisMessagePlaying ? "Stop audio" : "Play audio"}
                >
-                  {isAudioPlayingForId === message.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin"/>
+                  {isThisMessagePlaying ? (
+                      <StopCircle className="h-4 w-4"/>
                   ) : (
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 10v4M7 6v12M11 2v20M15 6v12M19 10v4"/></svg> // Waveform icon
                   )}

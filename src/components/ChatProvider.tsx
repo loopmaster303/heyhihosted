@@ -38,6 +38,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   
     const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isRecording, setIsRecording] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
@@ -373,24 +374,51 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
   
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
-      if (playingMessageId) return;
-      if (!text || !text.trim()) return; // Safeguard against empty text
+      // If the user clicks the button of the currently playing audio, stop it.
+      if (audioRef.current && playingMessageId === messageId) {
+        audioRef.current.pause();
+        audioRef.current = null;
+        setPlayingMessageId(null);
+        return;
+      }
+  
+      // If another audio is playing, stop it before starting the new one.
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+  
+      if (!text || !text.trim()) {
+        setPlayingMessageId(null); // Ensure state is reset if there's nothing to play
+        return;
+      }
       
-      setPlayingMessageId(messageId);
+      setPlayingMessageId(messageId); // Indicate that we are loading/playing this message
+      
       try {
         const { audioDataUri } = await textToSpeech(text, selectedVoice);
         const audio = new Audio(audioDataUri);
+        audioRef.current = audio;
         audio.play();
+  
         audio.onended = () => {
-          setPlayingMessageId(null);
+          // Only clear state if this is the audio that just finished
+          if (audioRef.current === audio) {
+            audioRef.current = null;
+            setPlayingMessageId(null);
+          }
         };
         audio.onerror = () => {
           toast({ title: "Audio Playback Error", description: "Could not play the generated audio.", variant: "destructive" });
-          setPlayingMessageId(null);
+          if (audioRef.current === audio) {
+            audioRef.current = null;
+            setPlayingMessageId(null);
+          }
         }
       } catch (error) {
         console.error("TTS Error:", error);
         toast({ title: "Text-to-Speech Error", description: "Could not generate audio.", variant: "destructive" });
+        audioRef.current = null; // Clean up on error
         setPlayingMessageId(null);
       }
     }, [playingMessageId, toast, selectedVoice]);
