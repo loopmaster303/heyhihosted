@@ -1,13 +1,15 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
-import type { ChatMessage, Conversation, ToolType, ChatMessageContentPart } from '@/types';
+import type { ChatMessage, Conversation, ChatMessageContentPart } from '@/types';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
+import { textToSpeech } from '@/ai/flows/tts-flow';
+import { speechToText } from '@/ai/flows/stt-flow';
 
 interface UseChatProps {
   userDisplayName?: string;
@@ -32,6 +34,12 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
   
   const [isImageMode, setIsImageMode] = useState(false);
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
+
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const [chatInputValue, setChatInputValue] = useState('');
 
   const { toast } = useToast();
 
@@ -115,10 +123,11 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
   }, [allConversations, activeConversation?.id]);
   
   const sendMessage = useCallback(async (
-    messageText: string,
+    _messageText: string,
     options: { isImageModeIntent?: boolean; } = {}
   ) => {
-    if (!activeConversation || activeConversation.toolType !== 'long language loops') return;
+    const messageText = chatInputValue.trim();
+    if (!activeConversation || activeConversation.toolType !== 'long language loops' || (!messageText && !activeConversation.uploadedFile)) return;
 
     const { selectedModelId, selectedResponseStyleName, messages, uploadedFile, uploadedFilePreview } = activeConversation;
     const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
@@ -138,6 +147,7 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
     }
 
     setIsAiResponding(true);
+    setChatInputValue('');
     const convId = activeConversation.id;
     const isImagePrompt = options.isImageModeIntent || false;
     const isFileUpload = !!uploadedFile && !isImagePrompt;
@@ -148,10 +158,10 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
       return;
     }
 
-    let userMessageContent: string | ChatMessageContentPart[] = messageText.trim();
+    let userMessageContent: string | ChatMessageContentPart[] = messageText;
     if (isFileUpload && uploadedFilePreview) {
       userMessageContent = [
-        { type: 'text', text: messageText.trim() || "Describe this image." },
+        { type: 'text', text: messageText || "Describe this image." },
         { type: 'image_url', image_url: { url: uploadedFilePreview, altText: uploadedFile.name, isUploaded: true } }
       ];
     }
@@ -164,17 +174,17 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
 
     let aiResponseContent: string | ChatMessageContentPart[] | null = null;
     try {
-        if (isImagePrompt && messageText.trim()) {
+        if (isImagePrompt && messageText) {
             const response = await fetch('/api/openai-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: messageText.trim(), model: 'gptimage', private: true }),
+                body: JSON.stringify({ prompt: messageText, model: 'gptimage', private: true }),
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'Failed to generate image.');
             aiResponseContent = [
-                { type: 'text', text: `Generated image for: "${messageText.trim()}"` },
-                { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${messageText.trim()}`, isGenerated: true } }
+                { type: 'text', text: `Generated image for: "${messageText}"` },
+                { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${messageText}`, isGenerated: true } }
             ];
         } else {
             const apiInput: PollinationsChatInput = { messages: messagesForApi, modelId: currentModel.id, systemPrompt: effectiveSystemPrompt };
@@ -198,7 +208,7 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
         updateActiveConversationState({ isImageMode: false, uploadedFile: null, uploadedFilePreview: null });
     }
     setIsAiResponding(false);
-  }, [activeConversation, customSystemPrompt, userDisplayName, toast, updateActiveConversationState, updateConversationTitle]);
+  }, [activeConversation, customSystemPrompt, userDisplayName, toast, updateActiveConversationState, updateConversationTitle, chatInputValue]);
 
   const selectChat = useCallback((conversationId: string | null) => {
     if (conversationId === null) {
@@ -314,6 +324,83 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
   const toggleHistoryPanel = () => setIsHistoryPanelOpen(prev => !prev);
   const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
 
+  const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
+    if (playingMessageId) return;
+    setPlayingMessageId(messageId);
+    try {
+      const { audioDataUri } = await textToSpeech(text);
+      const audio = new Audio(audioDataUri);
+      audio.play();
+      audio.onended = () => {
+        setPlayingMessageId(null);
+      };
+      audio.onerror = () => {
+        toast({ title: "Audio Playback Error", description: "Could not play the generated audio.", variant: "destructive" });
+        setPlayingMessageId(null);
+      }
+    } catch (error) {
+      console.error("TTS Error:", error);
+      toast({ title: "Text-to-Speech Error", description: "Could not generate audio.", variant: "destructive" });
+      setPlayingMessageId(null);
+    }
+  }, [playingMessageId, toast]);
+
+  const handleStartRecording = useCallback(async () => {
+    if (isRecording) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+            const base64Audio = reader.result as string;
+            if(!base64Audio) return;
+            setIsAiResponding(true);
+            try {
+                const { transcription } = await speechToText({ audioDataUri: base64Audio });
+                setChatInputValue(prev => (prev ? prev + ' ' : '') + transcription);
+            } catch (error) {
+                console.error("STT Error:", error);
+                toast({ title: "Speech-to-Text Error", description: "Could not transcribe audio.", variant: "destructive" });
+            } finally {
+                setIsAiResponding(false);
+            }
+        };
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Microphone access error:", error);
+      toast({ title: "Microphone Access Denied", description: "Please enable microphone permissions in your browser.", variant: "destructive" });
+    }
+  }, [isRecording, toast]);
+
+  const handleStopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+    }
+  }, [isRecording]);
+
+  const handleToggleRecording = useCallback(() => {
+    if (isRecording) {
+      handleStopRecording();
+    } else {
+      handleStartRecording();
+    }
+  }, [isRecording, handleStartRecording, handleStopRecording]);
+
+
   return {
     // State
     activeConversation,
@@ -325,6 +412,9 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
     isDeleteDialogOpen,
     isEditTitleDialogOpen,
     editingTitle,
+    isRecording,
+    playingMessageId,
+    chatInputValue,
 
     // Methods
     loadConversations,
@@ -346,5 +436,8 @@ export function useChat({ userDisplayName, customSystemPrompt, onConversationSta
     handleStyleChange,
     toggleHistoryPanel,
     closeHistoryPanel,
+    handlePlayAudio,
+    handleToggleRecording,
+    setChatInputValue,
   };
 }

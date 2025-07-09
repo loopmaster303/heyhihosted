@@ -2,10 +2,10 @@
 "use client";
 
 import type React from 'react';
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Brain, Fingerprint, ImageIcon, X, Send } from 'lucide-react';
+import { Paperclip, Brain, Fingerprint, ImageIcon, X, Send, Mic, MicOff } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +35,10 @@ interface ChatInputProps {
   selectedResponseStyleName: string;
   onModelChange: (modelId: string) => void;
   onStyleChange: (styleName: string) => void;
+  isRecording: boolean;
+  onToggleRecording: () => void;
+  inputValue: string;
+  onInputChange: (value: string) => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -49,15 +53,18 @@ const ChatInput: React.FC<ChatInputProps> = ({
   selectedResponseStyleName,
   onModelChange,
   onStyleChange,
+  isRecording,
+  onToggleRecording,
+  inputValue,
+  onInputChange,
 }) => {
-  const [inputValue, setInputValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
-        const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 40), 130); // Max height 130px
+        const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 40), 130);
         textareaRef.current.style.height = `${newHeight}px`;
     }
   }, [inputValue]);
@@ -78,9 +85,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
           isImageModeIntent: isLongLanguageLoopActive ? isImageModeActive : undefined,
         }
       );
-      setInputValue('');
+      onInputChange('');
       if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'; // Reset height after send
+        textareaRef.current.style.height = 'auto';
       }
     }
   };
@@ -93,7 +100,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
+    onInputChange(e.target.value);
   };
 
   const handleSelectModel = (model: PollinationsModel) => {
@@ -112,7 +119,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const placeholderText = "chat with AI...";
+  const placeholderText = isRecording ? "Listening..." : "chat with AI...";
   const currentSelectedModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
   const currentSelectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0];
 
@@ -127,6 +134,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
       >
         <form onSubmit={handleSubmit} className="w-full flex-grow">
             <div className="flex w-full items-start gap-2">
+                 <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={onToggleRecording}
+                    className={cn(
+                        "text-red-500 hover:text-red-600",
+                        isRecording && "animate-pulse"
+                    )}
+                    disabled={isLoading}
+                    aria-label={isRecording ? "Stop recording" : "Start recording"}
+                >
+                    <Mic className={cn("w-6 h-6", isRecording && "hidden")} strokeWidth={iconStrokeWidth} />
+                    <MicOff className={cn("w-6 h-6", !isRecording && "hidden")} strokeWidth={iconStrokeWidth} />
+                </Button>
                 <Textarea
                     ref={textareaRef}
                     value={inputValue}

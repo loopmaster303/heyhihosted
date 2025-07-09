@@ -5,14 +5,41 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, ChatMessageContentPart } from '@/types';
 import Image from 'next/image';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Volume2 } from 'lucide-react';
+import { Button } from '../ui/button';
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  onPlayAudio?: (text: string, messageId: string) => void;
+  isAudioPlayingForId?: string | null;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isAudioPlayingForId }) => {
   const isUser = message.role === 'user';
+  const isAssistant = message.role === 'assistant';
+
+  const handlePlayClick = () => {
+    if (typeof message.content === 'string' && onPlayAudio) {
+      onPlayAudio(message.content, message.id);
+    } else if (Array.isArray(message.content)) {
+      const textPart = message.content.find(p => p.type === 'text');
+      if (textPart && textPart.text && onPlayAudio) {
+        onPlayAudio(textPart.text, message.id);
+      }
+    }
+  }
+
+  const getTextContent = (): string | null => {
+      if (typeof message.content === 'string') return message.content;
+      if (Array.isArray(message.content)) {
+          const textPart = message.content.find(p => p.type === 'text');
+          return textPart?.text || null;
+      }
+      return null;
+  }
+
+  const hasAudioContent = isAssistant && !!getTextContent();
+
 
   const renderContent = (content: string | ChatMessageContentPart[]) => {
     if (message.id === 'loading') {
@@ -71,11 +98,25 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         )}
       >
         {renderContent(message.content)}
+        {hasAudioContent && (
+             <Button 
+                variant="ghost"
+                size="icon"
+                onClick={handlePlayClick}
+                className="absolute -bottom-2 -right-2 h-7 w-7 rounded-full bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                aria-label="Play audio"
+                disabled={isAudioPlayingForId === message.id}
+             >
+                {isAudioPlayingForId === message.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin"/>
+                ) : (
+                    <Volume2 className="h-4 w-4"/>
+                )}
+             </Button>
+         )}
       </div>
     </div>
   );
 };
 
 export default MessageBubble;
-
-    

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -29,6 +30,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chat }) => {
         messages={chat.currentMessages}
         isLoading={chat.isAiResponding}
         className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-4 no-scrollbar"
+        onPlayAudio={chat.handlePlayAudio}
+        playingMessageId={chat.playingMessageId}
       />
       <div className="px-4 pt-2 pb-4 shrink-0">
         <div className="max-w-3xl mx-auto relative">
@@ -65,6 +68,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chat }) => {
             selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
             onModelChange={chat.handleModelChange}
             onStyleChange={chat.handleStyleChange}
+            isRecording={chat.isRecording}
+            onToggleRecording={chat.handleToggleRecording}
+            inputValue={chat.chatInputValue}
+            onInputChange={chat.setChatInputValue}
           />
 
           {chat.isHistoryPanelOpen && (
