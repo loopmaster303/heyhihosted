@@ -5,7 +5,7 @@ import type React from 'react';
 import { useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Brain, Fingerprint, ImageIcon, X, Send, Mic, MicOff } from 'lucide-react';
+import { Paperclip, Brain, Fingerprint, ImageIcon, X, Send, Mic, MicOff, Speech } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -229,7 +229,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="select Machines Voice">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-1.5"><path d="M3 10v4M7 6v12M11 2v20M15 6v12M19 10v4"/></svg>
+                        <Speech className="w-4 h-4 mr-1.5" strokeWidth={iconStrokeWidth} />
                         <span className="text-xs font-medium">{currentSelectedVoice?.name || 'Voice'}</span>
                       </Button>
                     </DropdownMenuTrigger>
@@ -301,5 +301,3 @@ const ChatInput: React.FC<ChatInputProps> = ({
 };
 
 export default ChatInput;
-
-    

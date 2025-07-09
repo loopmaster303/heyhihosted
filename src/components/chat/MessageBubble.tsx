@@ -158,5 +158,3 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isA
 };
 
 export default MessageBubble;
-
-    
