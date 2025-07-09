@@ -235,8 +235,8 @@ const VisualizingLoopsTool: FC = () => {
     }
 
     if (newHistoryItems.length > 0) {
+      setSelectedImage(newHistoryItems[0]);
       setHistory(prev => [...newHistoryItems, ...prev]);
-      handleSelectHistoryItem(newHistoryItems[0]);
     }
     setLoading(false);
   };
@@ -427,3 +427,5 @@ const VisualizingLoopsTool: FC = () => {
 };
 
 export default VisualizingLoopsTool;
+
+    
