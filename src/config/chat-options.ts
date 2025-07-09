@@ -13,9 +13,8 @@ export interface ResponseStyle {
 }
 
 export interface VoiceOption {
-  id: string; // ID for API, e.g., "antares"
-  name: string; // Display name, e.g., "Antares"
-  icon?: string; // Optional icon name or path
+  id: string; // ID for API, e.g., "Echo"
+  name: string; // Display name, e.g., "Echo (Male)"
 }
 
 // Model-Liste auf Basis deiner aktuellen Datenstruktur:
@@ -135,16 +134,14 @@ User zum Nachdenken bringen, provozieren, motivieren, aber auch entertainen – 
 
 // Text-to-Speech (TTS) Voices
 export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
-  { id: "antares", name: "Antares", icon: "speaker" },
-  { id: "arcturus", name: "Arcturus", icon: "speaker" },
-  { id: "canopus", name: "Canopus", icon: "speaker" },
-  { id: "procyon", name: "Procyon", icon: "speaker" },
-  { id: "regulus", name: "Regulus", icon: "speaker" },
-  { id: "vega", name: "Vega", icon: "speaker" },
-  { id: "capella", name: "Capella", icon: "speaker" },
-  { id: "deneb", name: "Deneb", icon: "speaker" },
-  { id: "sirius", name: "Sirius", icon: "speaker" },
-  { id: "mirach", name: "Mirach", icon: "speaker" },
+  { id: "Echo", name: "Echo (Male)" },
+  { id: "Alto", name: "Alto (Female)" },
+  { id: "Granite", name: "Granite (Male)" },
+  { id: "Onyx", name: "Onyx (Male)" },
+  { id: "Sandstone", name: "Sandstone (Female)" },
+  { id: "Obsidian", name: "Obsidian (Male)" },
+  { id: "Algenib", name: "Algenib (Female)" },
+  { id: "Achernar", name: "Achernar (Male)" },
 ];
 
 // WICHTIG: Die Defaults müssen zu den IDs oben passen!
