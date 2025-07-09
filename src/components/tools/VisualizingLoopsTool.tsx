@@ -290,7 +290,7 @@ const VisualizingLoopsTool: FC = () => {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe what you imagine and hit execute!"
-              className="flex-grow min-h-[80px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24 overflow-hidden"
+              className="flex-grow min-h-[80px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
               disabled={loading}
               aria-label="Image prompt for Pollinations models"
             />
@@ -444,3 +444,5 @@ const VisualizingLoopsTool: FC = () => {
 };
 
 export default VisualizingLoopsTool;
+
+    

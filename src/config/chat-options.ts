@@ -12,6 +12,12 @@ export interface ResponseStyle {
   systemPrompt: string;
 }
 
+export interface VoiceOption {
+  id: string; // ID for API, e.g., "antares"
+  name: string; // Display name, e.g., "Antares"
+  icon?: string; // Optional icon name or path
+}
+
 // Model-Liste auf Basis deiner aktuellen Datenstruktur:
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   { id: "openai",         name: "OpenAI GPT-4o Mini",         vision: true },
@@ -125,6 +131,20 @@ User zum Nachdenken bringen, provozieren, motivieren, aber auch entertainen – 
     name: "User's Default",
     systemPrompt: "", // Placeholder, eigentliche Logik ggf. in useChat.ts
   },
+];
+
+// Text-to-Speech (TTS) Voices
+export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
+  { id: "antares", name: "Antares", icon: "speaker" },
+  { id: "arcturus", name: "Arcturus", icon: "speaker" },
+  { id: "canopus", name: "Canopus", icon: "speaker" },
+  { id: "procyon", name: "Procyon", icon: "speaker" },
+  { id: "regulus", name: "Regulus", icon: "speaker" },
+  { id: "vega", name: "Vega", icon: "speaker" },
+  { id: "capella", name: "Capella", icon: "speaker" },
+  { id: "deneb", name: "Deneb", icon: "speaker" },
+  { id: "sirius", name: "Sirius", icon: "speaker" },
+  { id: "almach", name: "Almach", icon: "speaker" },
 ];
 
 // WICHTIG: Die Defaults müssen zu den IDs oben passen!
