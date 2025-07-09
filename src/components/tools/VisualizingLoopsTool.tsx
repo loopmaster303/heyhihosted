@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, FC, FormEvent } from 'react';
@@ -150,6 +151,11 @@ const VisualizingLoopsTool: FC = () => {
         });
     }
   }, [history, toast, isInitialLoadComplete]);
+  
+  const handleSelectHistoryItem = (item: ImageHistoryItem) => {
+    setSelectedImage(item);
+    setPrompt(item.prompt);
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -230,7 +236,7 @@ const VisualizingLoopsTool: FC = () => {
 
     if (newHistoryItems.length > 0) {
       setHistory(prev => [...newHistoryItems, ...prev]);
-      setSelectedImage(newHistoryItems[0]);
+      handleSelectHistoryItem(newHistoryItems[0]);
     }
     setLoading(false);
   };
@@ -260,11 +266,6 @@ const VisualizingLoopsTool: FC = () => {
     setSelectedImage(null);
     localStorage.removeItem(HISTORY_STORAGE_KEY);
     toast({ title: "History Cleared", description: "Your image generation history has been removed." });
-  };
-
-  const handleSelectHistoryItem = (item: ImageHistoryItem) => {
-    setSelectedImage(item);
-    setPrompt(item.prompt);
   };
 
   return (
