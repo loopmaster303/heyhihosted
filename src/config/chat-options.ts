@@ -1,8 +1,8 @@
 // src/config/chat-options.ts
 
 export interface PollinationsModel {
-  id: string; // modelId für die API, z.B. "openai-large"
-  name: string; // Klarname für die UI, z.B. "OpenAI GPT-4.1"
+  id: string; // The model ID for the API, e.g., "openai"
+  name: string; // The display name for the UI, e.g., "OpenAI GPT-4o Mini"
   description?: string;
   vision?: boolean;
 }
@@ -13,11 +13,11 @@ export interface ResponseStyle {
 }
 
 export interface VoiceOption {
-  id: string; // ID for API, e.g., "Echo"
-  name: string; // Display name, e.g., "Echo (Male)"
+  id: string; // ID for API, e.g., "de-DE-Neural2-C"
+  name: string; // Display name, e.g., "German (Female, Natural)"
 }
 
-// Model-Liste auf Basis deiner aktuellen Datenstruktur:
+// Updated model list based on the provided official JSON data
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   { id: "openai",         name: "OpenAI GPT-4o Mini",         vision: true },
   { id: "openai-large",   name: "OpenAI GPT-4.1",             vision: true },
@@ -168,7 +168,7 @@ Stilregeln:
   },
   {
     name: "User's Default",
-    systemPrompt: "", // Placeholder, eigentliche Logik ggf. in useChat.ts
+    systemPrompt: "", // Placeholder, the actual logic is in ChatProvider
   },
 ];
 
@@ -185,7 +185,7 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
   { id: 'en-US-Neural2-A', name: 'English, US (Male, Natural)' },
   { id: 'en-US-Neural2-C', name: 'English, US (Female, Natural)' },
   { id: 'en-US-Neural2-H', name: 'English, US (Female 2, Natural)' },
-  { id: 'en-US-Neural2-J', name: 'English, US (Male 2, Natural)' },
+  { id: "en-US-Neural2-J", name: "English, US (Male 2, Natural)" },
 
   // English (GB) Voices (Neural2 for natural intonation)
   { id: 'en-GB-Neural2-A', name: 'English, UK (Female, Natural)' },
