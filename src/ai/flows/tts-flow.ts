@@ -23,7 +23,7 @@ export async function textToSpeech(text: string, voice: string): Promise<{ audio
     text: text.trim(),
     voice_id: voice,
     emotion: "auto",
-    language_boost: "auto",
+    language_boost: "Automatic",
     english_normalization: false,
   };
 
