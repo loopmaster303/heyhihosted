@@ -1,14 +1,16 @@
 import { renderHook, act } from '@testing-library/react';
-import { useChatLogic } from '../ChatProvider';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
 import { textToSpeech } from '@/ai/flows/tts-flow';
 
 // Mock AI flows to prevent actual API calls during tests
-jest.mock('@/ai/flows/generate-chat-title');
-jest.mock('@/ai/flows/pollinations-chat-flow');
-jest.mock('@/ai/flows/tts-flow');
-jest.mock('@/ai/flows/stt-flow');
+jest.mock('@/ai/flows/generate-chat-title', () => ({ generateChatTitle: jest.fn() }));
+jest.mock('@/ai/flows/pollinations-chat-flow', () => ({ getPollinationsChatCompletion: jest.fn() }));
+jest.mock('@/ai/flows/tts-flow', () => ({ textToSpeech: jest.fn() }));
+jest.mock('@/ai/flows/stt-flow', () => ({ speechToText: jest.fn() }));
+jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: jest.fn() }) }));
+
+import { useChatLogic } from '../ChatProvider';
 
 const mockGenerateChatTitle = generateChatTitle as jest.Mock;
 const mockGetPollinationsChatCompletion = getPollinationsChatCompletion as jest.Mock;
@@ -16,13 +18,8 @@ const mockTextToSpeech = textToSpeech as jest.Mock;
 
 describe('useChatLogic Hook', () => {
   beforeEach(() => {
-    // Reset mocks before each test
     jest.clearAllMocks();
     localStorage.clear();
-    // Mock the toast hook
-    jest.spyOn(require('@/hooks/use-toast'), 'useToast').mockReturnValue({
-      toast: jest.fn(),
-    });
   });
 
   it('should start a new chat', () => {

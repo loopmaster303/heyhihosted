@@ -16,6 +16,7 @@ const config: Config = {
     // Handle module aliases (this will be automatically configured for you soon)
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  transformIgnorePatterns: [],
   // Automatically clear mock calls, instances, contexts and results before every test
   clearMocks: true,
 };

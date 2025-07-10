@@ -3,6 +3,17 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import AppContent from '../page/AppContent';
 import { ChatProvider } from '../ChatProvider';
+import { generateChatTitle } from '@/ai/flows/generate-chat-title';
+import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
+import { textToSpeech } from '@/ai/flows/tts-flow';
+
+jest.mock('@/ai/flows/generate-chat-title', () => ({ generateChatTitle: jest.fn() }));
+jest.mock('@/ai/flows/pollinations-chat-flow', () => ({ getPollinationsChatCompletion: jest.fn() }));
+jest.mock('@/ai/flows/tts-flow', () => ({ textToSpeech: jest.fn() }));
+jest.mock('@/ai/flows/stt-flow', () => ({ speechToText: jest.fn() }));
+jest.mock('lucide-react', () => ({ RefreshCw: () => <svg /> }));
+jest.mock('../dialogs/EditTitleDialog', () => () => <div>EditTitleDialog</div>);
+jest.mock('../page/AppHeader', () => () => <div>AppHeader</div>);
 
 // Mock child components to isolate AppContent
 jest.mock('../page/HomePage', () => ({ onSelectTile }: { onSelectTile: (id: string) => void }) => (
