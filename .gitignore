@@ -22,3 +22,4 @@ out/
 gcp-credentials.json
 .env
 .env
+tsconfig.tsbuildinfo
