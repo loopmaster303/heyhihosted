@@ -19,8 +19,10 @@ const ApiContentPartSchema = z.union([
 ]);
 
 // This schema defines a single message in the conversation.
+// NOTE: We only expect 'user' and 'assistant' roles from our ChatProvider history.
+// The 'system' role is handled separately as a top-level parameter for broad compatibility.
 const PollinationsApiChatMessageSchemaInternal = z.object({
-  role: z.enum(['system', 'user', 'assistant']),
+  role: z.enum(['user', 'assistant']),
   content: z.union([z.string(), z.array(ApiContentPartSchema)]),
 });
 
@@ -58,27 +60,19 @@ export async function getPollinationsChatCompletion(
 ): Promise<PollinationsChatOutput> {
   const { messages: historyMessages, modelId, systemPrompt } = input;
 
-  // 1. Construct the messages array for the API payload
-  const apiMessages: Array<{
-    role: 'system' | 'user' | 'assistant';
-    content: string | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
-  }> = [];
-
-  // Add system prompt first if it exists and is not empty
-  if (systemPrompt && systemPrompt.trim() !== "") {
-    apiMessages.push({ role: 'system', content: systemPrompt });
-  }
-
-  // Add the rest of the messages from history
-  apiMessages.push(...historyMessages);
-
-  // 2. Construct the final payload for the API
+  // 1. Construct the final payload for the API
   const payload: Record<string, any> = {
     model: modelId,
-    messages: apiMessages,
+    messages: historyMessages, // Directly use the history messages
     temperature: 1.0,
     max_tokens: 2048,
   };
+
+  // Add system prompt as a top-level parameter if it exists and is not empty
+  // This is more compatible across different Pollinations models than using role: 'system'
+  if (systemPrompt && systemPrompt.trim() !== "") {
+    payload.system = systemPrompt;
+  }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -88,7 +82,7 @@ export async function getPollinationsChatCompletion(
     headers['Authorization'] = `Bearer ${API_TOKEN}`;
   }
 
-  // 3. Make the API call
+  // 2. Make the API call
   try {
     const response = await fetch(POLLINATIONS_API_URL, {
       method: 'POST',
@@ -122,7 +116,7 @@ export async function getPollinationsChatCompletion(
       throw new Error(`Pollinations API returned an error: ${detail}`);
     }
 
-    // 4. Extract the response text from the API result
+    // 3. Extract the response text from the API result
     let replyText: string | null = null;
     if (result.choices && Array.isArray(result.choices) && result.choices.length > 0) {
       const choice = result.choices[0];
