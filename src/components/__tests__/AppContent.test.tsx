@@ -16,6 +16,16 @@ jest.mock('../page/ChatInterface', () => () => <div>ChatInterface</div>);
 jest.mock('../tools/VisualizingLoopsTool', () => () => <div>VisualizingLoopsTool</div>);
 jest.mock('../tools/ReplicateImageTool', () => () => <div>ReplicateImageTool</div>);
 jest.mock('../tools/PersonalizationTool', () => () => <div>PersonalizationTool</div>);
+jest.mock('../dialogs/EditTitleDialog', () => () => <div>EditTitleDialog</div>);
+jest.mock('../dialogs/DeleteChatDialog', () => () => <div>DeleteChatDialog</div>);
+jest.mock('../page/AppHeader', () => () => <div>AppHeader</div>);
+jest.mock('lucide-react', () => ({ RefreshCw: () => <svg /> }));
+// Mock AI flows and toast hook to avoid loading ESM modules
+jest.mock('@/ai/flows/generate-chat-title', () => ({ generateChatTitle: jest.fn() }));
+jest.mock('@/ai/flows/pollinations-chat-flow', () => ({ getPollinationsChatCompletion: jest.fn() }));
+jest.mock('@/ai/flows/tts-flow', () => ({ textToSpeech: jest.fn() }));
+jest.mock('@/ai/flows/stt-flow', () => ({ speechToText: jest.fn() }));
+jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: jest.fn() }) }));
 
 describe('AppContent Navigation', () => {
   beforeEach(() => {
