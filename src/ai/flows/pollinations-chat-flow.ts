@@ -64,8 +64,6 @@ export async function getPollinationsChatCompletion(
   const payload: Record<string, any> = {
     model: modelId,
     messages: historyMessages, // Directly use the history messages
-    temperature: 1.0,
-    max_tokens: 2048,
   };
 
   // Add system prompt as a top-level parameter if it exists and is not empty
