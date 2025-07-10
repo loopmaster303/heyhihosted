@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Interacts with the Pollinations AI API for chat completions.
@@ -10,7 +11,6 @@
  */
 
 import { z } from 'zod';
-import type { ChatMessageContentPart, ChatMessage } from '@/types'; // Import for structured content
 
 // This schema defines a single message part, which can be text or an image URL.
 const ApiContentPartSchema = z.union([
@@ -56,76 +56,26 @@ if (!API_TOKEN && !tokenWarningLogged) {
 export async function getPollinationsChatCompletion(
   input: PollinationsChatInput
 ): Promise<PollinationsChatOutput> {
-  // 1. Validate the input against our Zod schema
-  const validationResult = PollinationsChatInputSchemaInternal.safeParse(input);
-  if (!validationResult.success) {
-    console.error("Invalid input to getPollinationsChatCompletion:", validationResult.error.issues);
-    const errorMessage = `Invalid input: ${validationResult.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')}`;
-    throw new Error(errorMessage);
-  }
+  const { messages: historyMessages, modelId, systemPrompt } = input;
 
-  const { messages: historyMessages, modelId, systemPrompt: systemPromptText } = validationResult.data;
-
-  // 2. Construct the messages array for the API payload
-  const apiMessagesToSend: Array<{
+  // 1. Construct the messages array for the API payload
+  const apiMessages: Array<{
     role: 'system' | 'user' | 'assistant';
     content: string | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
   }> = [];
 
-  // Add system prompt first if it exists
-  if (systemPromptText && systemPromptText.trim() !== "") {
-    apiMessagesToSend.push({ role: 'system', content: systemPromptText });
+  // Add system prompt first if it exists and is not empty
+  if (systemPrompt && systemPrompt.trim() !== "") {
+    apiMessages.push({ role: 'system', content: systemPrompt });
   }
 
-  // Process and format the history messages
-  for (const msg of historyMessages) {
-    if (msg.role === 'system' && apiMessagesToSend.length > 0) {
-      // Avoid adding multiple system messages if one is already present
-      continue;
-    }
+  // Add the rest of the messages from history
+  apiMessages.push(...historyMessages);
 
-    // Fix: expliziter Typ
-    let contentForApi: string | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
-
-    if (typeof msg.content === 'string') {
-      if (msg.content.trim() === '') continue; // Skip empty text messages
-      contentForApi = msg.content;
-    } else {
-      // For multimodal content, filter out empty text parts and format for the API
-      const processedParts = msg.content
-        .map(part => {
-          if (part.type === 'text') {
-            return { type: 'text' as const, text: part.text };
-          }
-          if (part.type === 'image_url' && part.image_url.url) {
-            return { type: 'image_url' as const, image_url: { url: part.image_url.url } };
-          }
-          return null;
-        })
-        .filter(
-          (part): part is { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } } =>
-            part !== null && (part.type !== 'text' || part.text.trim() !== '')
-        );
-
-      if (processedParts.length === 0) continue; // Skip if no valid parts remain
-      contentForApi = processedParts;
-    }
-
-    apiMessagesToSend.push({ role: msg.role, content: contentForApi });
-  }
-
-  if (
-    apiMessagesToSend.length === 0 ||
-    (apiMessagesToSend.length === 1 && apiMessagesToSend[0].role === 'system')
-  ) {
-    console.warn("getPollinationsChatCompletion: No meaningful user/assistant messages to send. Aborting API call.");
-    return { responseText: "[No actionable content was provided to the AI.]" };
-  }
-
-  // 3. Construct the final payload for the API
+  // 2. Construct the final payload for the API
   const payload: Record<string, any> = {
     model: modelId,
-    messages: apiMessagesToSend,
+    messages: apiMessages,
     temperature: 1.0,
     max_tokens: 2048,
   };
@@ -138,9 +88,7 @@ export async function getPollinationsChatCompletion(
     headers['Authorization'] = `Bearer ${API_TOKEN}`;
   }
 
-  // 4. Make the API call
-  let fullApiResponseForLogging: any = null;
-
+  // 3. Make the API call
   try {
     const response = await fetch(POLLINATIONS_API_URL, {
       method: 'POST',
@@ -149,7 +97,6 @@ export async function getPollinationsChatCompletion(
     });
 
     const responseText = await response.text();
-    fullApiResponseForLogging = responseText;
 
     if (!response.ok) {
       let errorData;
@@ -158,88 +105,43 @@ export async function getPollinationsChatCompletion(
       } catch (e) {
         errorData = responseText;
       }
-      console.error(
-        'Pollinations API Error (non-200 status):',
-        response.status,
-        errorData,
-        'Request Payload:',
-        JSON.stringify(payload, null, 2)
-      );
-      const detail =
-        typeof errorData === 'string'
+      const detail = typeof errorData === 'string'
           ? errorData
           : errorData.error?.message || JSON.stringify(errorData);
-      throw new Error(
-        `Pollinations API request failed with status ${response.status}: ${detail}`
-      );
+
+      // Pass the specific error message from the API back to the caller
+      throw new Error(`Pollinations API request failed with status ${response.status}: ${detail}`);
     }
 
     const result = JSON.parse(responseText);
-    fullApiResponseForLogging = result;
 
     if (result.error) {
-      console.error('Pollinations API Error (in 200 OK response):', result.error);
-      const detail =
-        typeof result.error === 'string'
+      const detail = typeof result.error === 'string'
           ? result.error
           : result.error.message || JSON.stringify(result.error);
       throw new Error(`Pollinations API returned an error: ${detail}`);
     }
 
-    // 5. Extract the response text from the API result, trying various common structures
+    // 4. Extract the response text from the API result
     let replyText: string | null = null;
-
     if (result.choices && Array.isArray(result.choices) && result.choices.length > 0) {
       const choice = result.choices[0];
       if (choice.message && typeof choice.message.content === 'string') {
         replyText = choice.message.content;
-      } else if (
-        choice.message &&
-        typeof (choice.message as any).reasoning_content === 'string'
-      ) {
-        replyText = (choice.message as any).reasoning_content;
-      } else if (typeof choice.text === 'string') {
-        replyText = choice.text;
-      } else if (typeof choice.message === 'string') {
-        replyText = choice.message;
       }
-    } else if (typeof result.text === 'string') {
-      replyText = result.text;
-    } else if (typeof result.data === 'string') {
-      replyText = result.data;
     }
 
     if (replyText !== null) {
       return { responseText: replyText.trim() };
     } else {
-      console.error(
-        'Pollinations API - Unexpected response structure:',
-        JSON.stringify(result, null, 2)
-      );
-      throw new Error(
-        'Pollinations API returned a 200 OK but the reply content could not be extracted. Please check the model compatibility or API response format.'
-      );
+      console.error('Pollinations API - Unexpected response structure:', JSON.stringify(result, null, 2));
+      throw new Error('Pollinations API returned a 200 OK but the reply content could not be extracted.');
     }
   } catch (error) {
-    if (error instanceof Error && !(error.message.startsWith('Pollinations API'))) {
-      console.error(
-        'Error calling Pollinations API or processing its response:',
-        error,
-        'Request Payload:',
-        JSON.stringify(payload, null, 2),
-        'Raw API Response (if available):',
-        fullApiResponseForLogging
-      );
-    }
-
     if (error instanceof Error) {
-      const finalErrorMessage = error.message.startsWith('Pollinations API')
-        ? error.message
-        : `Failed to get completion from Pollinations API: ${error.message}`;
-      throw new Error(finalErrorMessage);
+        // Re-throw the original error, which now contains specific API details
+        throw error;
     }
-    throw new Error(
-      'An unknown error occurred while contacting the Pollinations API.'
-    );
+    throw new Error('An unknown error occurred while contacting the Pollinations API.');
   }
 }
