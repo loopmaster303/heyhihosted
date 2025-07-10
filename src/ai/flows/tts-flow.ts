@@ -11,7 +11,7 @@ export async function textToSpeech(text: string, voice: string): Promise<{ audio
   }
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/replicate-tts`, {
+    const response = await fetch('/api/replicate-tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, voice_id: voice }),
