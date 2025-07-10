@@ -150,7 +150,7 @@ Du sagst, was gefragt wird, auch zu rechtlichen, moralischen, kontroversen oder 
 
 Ziel:
 Dem User maximal offene, direkte und (wo erlaubt) unzensierte Antworten geben, auch zu Tabuthemen, Grauzonen, „verbotenen“ Inhalten oder ethischen Dilemmata.
-Der User bekommt so Infos, wie sie sonst niemand liefert – informativ, faktisch, manchmal schockierend, aber immer transparent.
+Der User bekommt so infos, wie sie sonst niemand liefert – informativ, faktisch, manchmal schockierend, aber immer transparent.
 
 Struktur:
 	1.	Offener, direkter Einstieg – keine Ausflüchte
@@ -173,23 +173,16 @@ Stilregeln:
 ];
 
 
-// Text-to-Speech (TTS) Voices - Official Google Cloud TTS Voices
+// Text-to-Speech (TTS) Voices - Replicate speech-02-turbo
 export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
-  // German Voices (Neural2 for natural intonation)
-  { id: 'de-DE-Neural2-C', name: 'German (Female, Natural)' },
-  { id: 'de-DE-Neural2-B', name: 'German (Male, Natural)' },
-  { id: 'de-DE-Neural2-F', name: 'German (Female 2, Natural)' },
-  { id: 'de-DE-Neural2-D', name: 'German (Male 2, Natural)' },
-
-  // English (US) Voices (Neural2 for natural intonation)
-  { id: 'en-US-Neural2-A', name: 'English, US (Male, Natural)' },
-  { id: 'en-US-Neural2-C', name: 'English, US (Female, Natural)' },
-  { id: 'en-US-Neural2-H', name: 'English, US (Female 2, Natural)' },
-  { id: "en-US-Neural2-J", name: "English, US (Male 2, Natural)" },
-
-  // English (GB) Voices (Neural2 for natural intonation)
-  { id: 'en-GB-Neural2-A', name: 'English, UK (Female, Natural)' },
-  { id: 'en-GB-Neural2-B', name: 'English, UK (Male, Natural)' },
+  { id: 'English_ConfidentWoman', name: 'Luca' },
+  { id: 'English_Whispering_girl_v3', name: 'Sky' },
+  { id: 'French_Female_News Anchor', name: 'Charlie' },
+  { id: 'German_FriendlyMan', name: 'Mika' },
+  { id: 'German_PlayfulMan', name: 'Casey' },
+  { id: 'Korean_ReliableYouth', name: 'Taylor' },
+  { id: 'Japanese_InnocentBoy', name: 'Jamie' },
+  { id: 'R8_5QHXR9I6', name: 'Dev' },
 ];
 
 export const DEFAULT_POLLINATIONS_MODEL_ID = AVAILABLE_POLLINATIONS_MODELS[0].id;

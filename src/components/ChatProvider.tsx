@@ -417,7 +417,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         }
       } catch (error) {
         console.error("TTS Error:", error);
-        toast({ title: "Text-to-Speech Error", description: "Could not generate audio.", variant: "destructive" });
+        toast({ title: "Text-to-Speech Error", description: error instanceof Error ? error.message : "Could not generate audio.", variant: "destructive" });
         audioRef.current = null; // Clean up on error
         setPlayingMessageId(null);
       }
@@ -579,5 +579,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    
