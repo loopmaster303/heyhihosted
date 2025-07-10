@@ -2,11 +2,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 
 // UI Components
-import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import PersonalizationTool from '@/components/tools/PersonalizationTool';
-import VisualizingLoopsTool from '@/components/tools/VisualizingLoopsTool';
 import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import AppHeader from '@/components/page/AppHeader';
@@ -20,6 +19,24 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 // Types & Config
 import type { ToolType, CurrentAppView, TileItem } from '@/types';
 import { RefreshCw } from 'lucide-react';
+
+// Dynamically import heavy components
+const LoadingSpinner = () => (
+    <div className="flex-grow flex items-center justify-center h-full">
+      <RefreshCw className="w-8 h-8 animate-spin" />
+    </div>
+);
+
+const ReplicateImageTool = dynamic(() => import('@/components/tools/ReplicateImageTool'), {
+  loading: () => <LoadingSpinner />,
+  ssr: false, // These tools are client-side only
+});
+
+const VisualizingLoopsTool = dynamic(() => import('@/components/tools/VisualizingLoopsTool'), {
+  loading: () => <LoadingSpinner />,
+  ssr: false, // These tools are client-side only
+});
+
 
 const toolTileItems: TileItem[] = [
   { id: 'long language loops', title: 'chat/conversational/assistance' },
@@ -162,7 +179,7 @@ export default function AppContent() {
 
   const renderContent = () => {
     if (!isInitialLoadComplete) {
-        return <div className="flex-grow flex items-center justify-center"><RefreshCw className="w-8 h-8 animate-spin" /></div>;
+        return <LoadingSpinner />;
     }
 
     switch (currentView) {
