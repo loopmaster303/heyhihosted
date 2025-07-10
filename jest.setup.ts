@@ -1,6 +1,5 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
-import 'whatwg-fetch'; // Polyfill for fetch
 
 // Mock TextEncoder & TextDecoder which are used by genkit but not available in JSDOM
 import { TextEncoder, TextDecoder } from 'util';

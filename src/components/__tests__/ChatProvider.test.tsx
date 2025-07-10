@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { useChatLogic } from '../ChatProvider';
+import { useChatLogic } from '@/hooks/useChat';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
 import { textToSpeech } from '@/ai/flows/tts-flow';
