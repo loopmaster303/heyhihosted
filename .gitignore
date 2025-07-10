@@ -1,45 +1,24 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Firebase
+.firebase/
+*-debug.log
+.runtimeconfig.json
 
 # Dependencies
-/node_modules
-/.pnp
+node_modules/
+.pnp
 .pnp.js
 
-# Testing
-/coverage
+# Build files
+.next/
+out/
 
-# Next.js build output
-/.next
-/out
+# Env files
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
 
-# Production
-/build
-
-# Vercel
-.vercel
-
-# Static
-/public/static
-
-# Local Environment Variables
-.env*.local
-.env
-
-# Credentials - IMPORTANT
+# Credentials
 gcp-credentials.json
-*credentials*.json
-
-# Log files
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Editor directories and files
-.vscode
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+.env
+.env
