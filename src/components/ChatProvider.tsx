@@ -212,7 +212,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       }
   
       const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: 'long language loops' };
-      const messagesForApi = [...messages, userMessage];
+      
+      // Filter out 'system' messages for the API
+      const messagesForApi = [...messages, userMessage].filter(
+        (msg): msg is ChatMessage & { role: 'user' | 'assistant' } => msg.role === 'user' || msg.role === 'assistant'
+      );
+      
       const updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
       
       updateActiveConversationState({ messages: updatedMessagesForState });
@@ -516,7 +521,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
         }
   
-        const apiInput: PollinationsChatInput = { messages: historyForApi, modelId: currentModel.id, systemPrompt: effectiveSystemPrompt };
+        // Filter out 'system' messages for the API when regenerating
+        const historyForApiFiltered = historyForApi.filter(
+          (msg): msg is ChatMessage & { role: 'user' | 'assistant' } => msg.role === 'user' || msg.role === 'assistant'
+        );
+        
+        const apiInput: PollinationsChatInput = { messages: historyForApiFiltered, modelId: currentModel.id, systemPrompt: effectiveSystemPrompt };
+        
         const result = await getPollinationsChatCompletion(apiInput);
         aiResponseContent = result.responseText;
   

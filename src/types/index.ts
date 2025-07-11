@@ -9,6 +9,14 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string | ChatMessageContentPart[];
   timestamp: Date;
+ toolType?: ToolType;
+}
+
+// Represents a message format compatible with APIs that only accept user/assistant roles
+export interface ApiChatMessage {
+ id: string;
+  role: 'user' | 'assistant';
+ content: string | ChatMessageContentPart[];
   toolType?: ToolType;
 }
 
