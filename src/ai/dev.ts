@@ -8,6 +8,4 @@ config();
 import './flows/agent-chat-flow';
 
 // Existing flows (will be phased out)
-import './flows/generate-chat-title';
-import './flows/pollinations-chat-flow';
 import './flows/stt-flow';
