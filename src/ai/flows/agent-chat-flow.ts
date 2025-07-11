@@ -87,14 +87,14 @@ const agentPrompt = ai.definePrompt({
 
     Here is the chat history, with the most recent message at the end:
     {{#each chatHistory}}
-    {{role}}: {{content}}
+    {{role}}: {{#if (Array.isArray content)}}{{#each content}}{{#if (eq type "text")}}{{text}}{{/if}}{{#if (eq type "image_url")}}(Image: {{image_url.altText}}){{/if}}{{/each}}{{else}}{{content}}{{/if}}
     {{/each}}
     `,
 });
 
 
 /**
- * The main agent flow. It takes the chat input, calls the LLM with the defined prompt
+ * The main agent flow. It take's the chat input, calls the LLM with the defined prompt
  * and tools, and returns the AI's response, which can be text or a tool call result.
  */
 const agentChatFlow = ai.defineFlow(
@@ -106,21 +106,19 @@ const agentChatFlow = ai.defineFlow(
     async (input) => {
         const { messages, modelId, systemPrompt } = input;
 
-        // The Pollinations text models don't support system prompts as a message role.
-        // Instead, we inject it into our Handlebars prompt template.
+        // Step 1: Use a smart model to decide if a tool should be used.
         const llmResponse = await ai.generate({
-            model: `googleai/gemini-2.0-flash`, // Using a smart model to decide when to use tools
+            model: `googleai/gemini-2.0-flash`, // A smart model for tool orchestration
             prompt: await agentPrompt({ systemPrompt: systemPrompt || "You are a helpful assistant.", chatHistory: messages }),
-            config: {
-                // We use a Google model for tool orchestration, but can use Pollinations for the final text response.
-            },
             tools: [generateImageTool],
         });
 
         const output = llmResponse.output();
 
+        // Step 2: Check if the model decided to call a tool.
         if (output?.choices[0].finishReason === 'toolCode' && output.choices[0].message.toolCode) {
             const toolCode = output.choices[0].message.toolCode;
+            // Handle the specific 'generateImage' tool call
             if (toolCode.tool.name === 'generateImage') {
                 const toolOutput = toolCode.output as { imageUrl: string };
                 return {
@@ -132,7 +130,8 @@ const agentChatFlow = ai.defineFlow(
             }
         }
 
-        // If no tool was called, fall back to a standard text generation call to Pollinations
+        // Step 3: If NO tool was called, perform a standard text chat completion using Pollinations.
+        // This is a separate, clean API call.
         const payload: Record<string, any> = { model: modelId, messages };
         if (systemPrompt && systemPrompt.trim() !== '') {
             payload.system = systemPrompt;
@@ -160,7 +159,7 @@ const agentChatFlow = ai.defineFlow(
         }
 
         if (replyText !== null) {
-            // FIX: Ensure we return the correct, simple format.
+            // Ensure we return the correct, simple format.
             return { response: [{ type: 'text', text: replyText.trim() }] };
         } else {
             throw new Error('Pollinations API returned a 200 OK but the reply content could not be extracted.');
@@ -174,3 +173,5 @@ const agentChatFlow = ai.defineFlow(
 export async function agentChat(input: AgentChatInput): Promise<AgentChatOutput> {
   return await agentChatFlow(input);
 }
+
+    
