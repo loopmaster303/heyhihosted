@@ -1,6 +1,4 @@
 
-
-
 export type ChatMessageContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean } };
@@ -25,7 +23,6 @@ export interface Conversation {
   messages: ChatMessage[];
   createdAt: Date;
   toolType: ToolType;
-  isImageMode?: boolean;
   uploadedFile?: File | null;
   uploadedFilePreview?: string | null;
   selectedModelId?: string;
@@ -52,3 +49,5 @@ export interface ImageHistoryItem {
   toolType: 'premium imagination' | 'nocost imagination';
   videoUrl?: string;
 }
+
+    

@@ -59,8 +59,6 @@ export default function ChatInterface() {
           <ChatInput
             onSendMessage={chat.sendMessage}
             isLoading={chat.isAiResponding}
-            isImageModeActive={chat.isImageMode}
-            onToggleImageMode={chat.toggleImageMode}
             uploadedFilePreviewUrl={chat.activeConversation.uploadedFilePreview ?? null}
             onFileSelect={chat.handleFileSelect}
             isLongLanguageLoopActive={true}
@@ -105,5 +103,7 @@ export default function ChatInterface() {
     </div>
   );
 };
+
+    
 
     

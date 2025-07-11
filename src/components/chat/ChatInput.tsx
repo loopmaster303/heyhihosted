@@ -5,7 +5,7 @@ import type React from 'react';
 import { useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Brain, Fingerprint, ImageIcon, X, Send, Mic, MicOff, Speech } from 'lucide-react';
+import { Paperclip, Brain, Fingerprint, X, Send, Mic, MicOff, Speech } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,15 +19,8 @@ import type { PollinationsModel, ResponseStyle } from '@/config/chat-options';
 import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
-  onSendMessage: (
-    message: string,
-    options: {
-      isImageModeIntent?: boolean;
-    }
-  ) => void;
+  onSendMessage: (message: string) => void;
   isLoading: boolean;
-  isImageModeActive: boolean;
-  onToggleImageMode: () => void;
   uploadedFilePreviewUrl: string | null;
   onFileSelect: (file: File | null) => void;
   isLongLanguageLoopActive: boolean;
@@ -46,8 +39,6 @@ interface ChatInputProps {
 const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading,
-  isImageModeActive,
-  onToggleImageMode,
   uploadedFilePreviewUrl,
   onFileSelect,
   isLongLanguageLoopActive,
@@ -77,18 +68,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
     e?.preventDefault();
     if (isLoading) return;
 
-    const canSendMessage = (isLongLanguageLoopActive && isImageModeActive && inputValue.trim() !== '') ||
-                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl && inputValue.trim() !== '') ||
-                           (isLongLanguageLoopActive && !!uploadedFilePreviewUrl && inputValue.trim() === '') ||
-                           (!isImageModeActive && inputValue.trim() !== '');
+    const canSendMessage = (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) || (inputValue.trim() !== '');
 
     if (canSendMessage) {
-      onSendMessage(
-        inputValue.trim(),
-        {
-          isImageModeIntent: isLongLanguageLoopActive ? isImageModeActive : undefined,
-        }
-      );
+      onSendMessage(inputValue.trim());
       onInputChange('');
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
@@ -132,7 +115,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const currentSelectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0];
   const currentSelectedVoice = AVAILABLE_TTS_VOICES.find(v => v.id === selectedVoice);
   
-  const iconSizeClass = "w-5 h-5";
   const iconColorClass = "text-foreground/80 hover:text-foreground";
   const iconStrokeWidth = 1.75;
 
@@ -254,22 +236,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className={cn(
-                        "rounded-lg h-8 w-8",
-                        iconColorClass,
-                        isImageModeActive && "bg-accent text-accent-foreground"
-                    )}
-                    onClick={onToggleImageMode}
-                    aria-label={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
-                    title={isImageModeActive ? "Switch to text input" : "Switch to image generation prompt"}
-                    disabled={isLoading || !!uploadedFilePreviewUrl}
-                  >
-                    <ImageIcon className={iconSizeClass} strokeWidth={iconStrokeWidth} />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
                     className={cn("rounded-lg h-8 w-8", iconColorClass)}
                     onClick={() => {
                         if (uploadedFilePreviewUrl) {
@@ -279,9 +245,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         }
                     }}
                     title={uploadedFilePreviewUrl ? "Clear uploaded image" : "Attach file"}
-                    disabled={isLoading || isImageModeActive}
+                    disabled={isLoading}
                   >
-                    {uploadedFilePreviewUrl ? <X className={iconSizeClass} strokeWidth={iconStrokeWidth} /> : <Paperclip className={iconSizeClass} strokeWidth={iconStrokeWidth} />}
+                    {uploadedFilePreviewUrl ? <X className="w-5 h-5" strokeWidth={iconStrokeWidth} /> : <Paperclip className="w-5 h-5" strokeWidth={iconStrokeWidth} />}
                   </Button>
                 </div>
               </div>
@@ -294,10 +260,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
           onChange={handleFileChange}
           accept="image/*"
           className="hidden"
-          disabled={isLoading || isImageModeActive || !isLongLanguageLoopActive}
+          disabled={isLoading || !isLongLanguageLoopActive}
       />
     </div>
   );
 };
 
 export default ChatInput;
+
+    

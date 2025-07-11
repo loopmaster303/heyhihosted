@@ -10,6 +10,7 @@ import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_R
 import { textToSpeech } from '@/ai/flows/tts-flow';
 import { speechToText } from '@/ai/flows/stt-flow';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
+import type { AgentChatOutput } from '@/types/agent-chat';
 
 export interface UseChatLogicProps {
   userDisplayName?: string;
@@ -37,7 +38,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     const [chatToEditId, setChatToEditId] = useState<string | null>(null);
     const [editingTitle, setEditingTitle] = useState('');
     
-    const [isImageMode, setIsImageMode] = useState(false);
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   
     const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
@@ -122,8 +122,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         }
       } catch (error) {
           console.error("Error saving conversations to localStorage (might be full):", error);
-          // Don't toast here as it can be annoying, but the error is logged.
-          // The user already sees the crash boundary if this fails during a write operation.
       }
     }, [allConversations, isInitialLoadComplete]);
   
@@ -134,19 +132,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         setAllConversations(prevAllConvs => prevAllConvs.map(c => (c.id === prevActive.id ? updatedConv : c)));
         return updatedConv;
       });
-  
-      if (updates.hasOwnProperty('isImageMode')) { 
-          setIsImageMode(updates.isImageMode || false);
-      }
     }, []);
   
     useEffect(() => {
       if (activeConversation) {
         setCurrentMessages(activeConversation.messages);
-        setIsImageMode(activeConversation.isImageMode || false);
       } else {
         setCurrentMessages([]);
-        setIsImageMode(false);
       }
     }, [activeConversation]);
   
@@ -171,11 +163,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
                 content: `Conversation messages:\n\n${relevantText}\n\nConcise Title:`
             }];
 
-            const { responseText } = await agentChat({
+            const result = await agentChat({
               messages: messagesForApi,
               modelId: 'openai-fast', // Use a fast and cheap model for this task
               systemPrompt: TITLE_GENERATION_SYSTEM_PROMPT,
             });
+
+            const responseText = result.response.find(p => p.type === 'text')?.text || '';
             
             let title = responseText.replace(/^"|"$/g, '').trim();
             if (title.split(' ').length > 6) {
@@ -195,8 +189,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     }, [allConversations, activeConversation?.id]);
     
     const sendMessage = useCallback(async (
-      _messageText: string,
-      options: { isImageModeIntent?: boolean; } = {}
+      _messageText: string
     ) => {
       const messageText = chatInputValue.trim();
       if (!activeConversation || activeConversation.toolType !== 'long language loops' || (!messageText && !activeConversation.uploadedFile)) return;
@@ -221,8 +214,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       setIsAiResponding(true);
       setChatInputValue('');
       const convId = activeConversation.id;
-      const isImagePrompt = options.isImageModeIntent || false;
-      const isFileUpload = !!uploadedFile && !isImagePrompt;
+      const isFileUpload = !!uploadedFile;
   
       if (isFileUpload && !currentModel.vision) {
         toast({ title: "Model Incompatibility", description: `Model '${currentModel.name}' doesn't support images.`, variant: "destructive" });
@@ -244,36 +236,23 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         (msg): msg is ApiChatMessage => msg.role === 'user' || msg.role === 'assistant'
       );
       
-      const updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
+      const updatedMessagesForState = [...messages, userMessage];
       
-      updateActiveConversationState({ messages: updatedMessagesForState });
-  
-      let aiResponseContent: string | ChatMessageContentPart[] | null = null;
+      updateActiveConversationState({ messages: updatedMessagesForState, uploadedFile: null, uploadedFilePreview: null });
+
+      let aiResponseContent: ChatMessageContentPart[] | null = null;
+
       try {
-          if (isImagePrompt && messageText) {
-              const response = await fetch('/api/openai-image', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ prompt: messageText, model: 'gptimage', private: true }),
-              });
-              const result = await response.json();
-              if (!response.ok) throw new Error(result.error || 'Failed to generate image.');
-              aiResponseContent = [
-                  { type: 'text', text: `Generated image for: "${messageText}"` },
-                  { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${messageText}`, isGenerated: true } }
-              ];
-          } else {
-              const result = await agentChat({
-                messages: messagesForApi,
-                modelId: currentModel.id,
-                systemPrompt: effectiveSystemPrompt
-              });
-              aiResponseContent = result.responseText;
-          }
+        const result: AgentChatOutput = await agentChat({
+          messages: messagesForApi,
+          modelId: currentModel.id,
+          systemPrompt: effectiveSystemPrompt
+        });
+        aiResponseContent = result.response;
       } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-          toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
-          aiResponseContent = `Sorry, an error occurred: ${errorMessage}`;
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
+        aiResponseContent = [{ type: 'text', text: `Sorry, an error occurred: ${errorMessage}` }];
       }
   
       if (aiResponseContent !== null) {
@@ -283,9 +262,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         updateConversationTitle(convId, finalMessages);
       }
       
-      if (isImagePrompt || isFileUpload) {
-          updateActiveConversationState({ isImageMode: false, uploadedFile: null, uploadedFilePreview: null });
-      }
       setIsAiResponding(false);
     }, [activeConversation, customSystemPrompt, userDisplayName, toast, updateActiveConversationState, updateConversationTitle, chatInputValue]);
   
@@ -297,7 +273,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       const conversationToSelect = allConversations.find(c => c.id === conversationId);
       if (!conversationToSelect) return;
   
-      setActiveConversation({ ...conversationToSelect, uploadedFile: null });
+      setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null });
       onConversationStarted?.();
     }, [allConversations, onConversationStarted]);
     
@@ -308,7 +284,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         messages: [],
         createdAt: new Date(),
         toolType: 'long language loops',
-        isImageMode: false, 
         selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID, 
         selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
       };
@@ -369,18 +344,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
   
     const cancelDeleteChat = () => setIsDeleteDialogOpen(false);
   
-    const toggleImageMode = () => {
-      if (!activeConversation) return;
-      const newImageModeState = !isImageMode; 
-      updateActiveConversationState({ isImageMode: newImageModeState, uploadedFile: null, uploadedFilePreview: null });
-    };
-  
     const handleFileSelect = (file: File | null) => {
       if (!activeConversation) return;
       if (file) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          updateActiveConversationState({ isImageMode: false, uploadedFile: file, uploadedFilePreview: reader.result as string });
+          updateActiveConversationState({ uploadedFile: file, uploadedFilePreview: reader.result as string });
         };
         reader.readAsDataURL(file);
       } else {
@@ -430,8 +399,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       setPlayingMessageId(messageId); // Indicate that we are loading/playing this message
       
       try {
-        const { audioDataUri } = await textToSpeech(text, selectedVoice);
-        const audio = new Audio(audioDataUri);
+        const result = await textToSpeech({ text, voice: selectedVoice });
+        const audio = new Audio(result.audioDataUri);
         audioRef.current = audio;
         audio.play();
   
@@ -537,7 +506,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       const historyForApi = activeConversation.messages.slice(0, lastMessageIndex);
       updateActiveConversationState({ messages: historyForApi });
   
-      let aiResponseContent: string | ChatMessageContentPart[] | null = null;
+      let aiResponseContent: ChatMessageContentPart[] | null = null;
       try {
         const { selectedModelId, selectedResponseStyleName } = activeConversation;
         const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
@@ -559,12 +528,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           modelId: currentModel.id,
           systemPrompt: effectiveSystemPrompt
         });
-        aiResponseContent = result.responseText;
+        aiResponseContent = result.response;
   
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
-        aiResponseContent = `Sorry, an error occurred: ${errorMessage}`;
+        aiResponseContent = [{ type: 'text', text: `Sorry, an error occurred: ${errorMessage}` }];
         updateActiveConversationState({ messages: [...historyForApi, lastMessage] }); // Restore original message on error
       }
   
@@ -579,13 +548,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
   
   
     return {
-      activeConversation, allConversations, currentMessages, isAiResponding, isImageMode,
+      activeConversation, allConversations, currentMessages, isAiResponding,
       isHistoryPanelOpen, isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,
       isRecording, playingMessageId, chatInputValue,
       selectedVoice,
       loadConversations, selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
-      requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
+      requestDeleteChat, confirmDeleteChat, cancelDeleteChat,
       handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
       handleVoiceChange,
       toggleHistoryPanel, closeHistoryPanel, handlePlayAudio, handleToggleRecording,
@@ -620,3 +589,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    
