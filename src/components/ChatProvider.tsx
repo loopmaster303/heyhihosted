@@ -4,9 +4,8 @@
 import React, { useState, useEffect, useCallback, useRef, useContext, createContext } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
-import type { ChatMessage, Conversation, ChatMessageContentPart } from '@/types';
-import { generateChatTitle } from '@/ai/flows/generate-chat-title';
-import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/flows/pollinations-chat-flow';
+import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
+import { agentChat } from '@/ai/flows/agent-chat-flow';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import { textToSpeech } from '@/ai/flows/tts-flow';
 import { speechToText } from '@/ai/flows/stt-flow';
@@ -17,6 +16,10 @@ export interface UseChatLogicProps {
   customSystemPrompt?: string;
   onConversationStarted?: () => void;
 }
+
+const DEFAULT_FALLBACK_TITLE = "Chat";
+const TITLE_GENERATION_SYSTEM_PROMPT = `You are an expert at creating concise chat titles. Based on the following messages, generate a very short title (ideally 2-4 words, maximum 5 words). Only return the title itself, with no prefixes like "Title:", no explanations, and no quotation marks. Just the plain text title.`;
+
 
 // This function contains the entire logic of the original useChat hook
 export function useChatLogic({ userDisplayName, customSystemPrompt, onConversationStarted }: UseChatLogicProps) {
@@ -150,19 +153,43 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]) => {
       const convToUpdate = allConversations.find(c => c.id === conversationId);
       if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
-  
+    
       const isDefaultTitle = convToUpdate.title === "default.long.language.loop" || convToUpdate.title.toLowerCase().startsWith("new ") || convToUpdate.title === "Chat";
-  
+    
       if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
-        const relevantText = messagesForTitleGen.map(msg => typeof msg.content === 'string' ? `${msg.role}: ${msg.content}` : `${msg.role}: ${msg.content.find(p => p.type === 'text')?.text || ''}`).filter(Boolean).slice(0, 3).join('\n\n');
+        const relevantText = messagesForTitleGen
+          .map(msg => {
+              const textContent = typeof msg.content === 'string' ? msg.content : (msg.content.find(p => p.type === 'text')?.text || '');
+              return `${msg.role}: ${textContent}`;
+          })
+          .filter(Boolean).slice(0, 3).join('\n\n');
+        
         if (relevantText) {
           try {
-            const { title } = await generateChatTitle({ messages: relevantText });
-            setAllConversations(prev => prev.map(c => (c.id === conversationId ? { ...c, title } : c)));
-            if (activeConversation?.id === conversationId) {
-              setActiveConversation(prev => (prev ? { ...prev, title } : null));
+            const messagesForApi: ApiChatMessage[] = [{
+                role: 'user',
+                content: `Conversation messages:\n\n${relevantText}\n\nConcise Title:`
+            }];
+
+            const { responseText } = await agentChat({
+              messages: messagesForApi,
+              modelId: 'openai-fast', // Use a fast and cheap model for this task
+              systemPrompt: TITLE_GENERATION_SYSTEM_PROMPT,
+            });
+            
+            let title = responseText.replace(/^"|"$/g, '').trim();
+            if (title.split(' ').length > 6) {
+              title = title.split(' ').slice(0, 5).join(' ') + '...';
             }
-          } catch (error) { console.error("Failed to generate chat title:", error); }
+            const finalTitle = title || DEFAULT_FALLBACK_TITLE;
+
+            setAllConversations(prev => prev.map(c => (c.id === conversationId ? { ...c, title: finalTitle } : c)));
+            if (activeConversation?.id === conversationId) {
+              setActiveConversation(prev => (prev ? { ...prev, title: finalTitle } : null));
+            }
+          } catch (error) { 
+            console.error("Failed to generate chat title with agent:", error); 
+          }
         }
       }
     }, [allConversations, activeConversation?.id]);
@@ -213,9 +240,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
   
       const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: 'long language loops' };
       
-      // Filter out 'system' messages for the API
       const messagesForApi = [...messages, userMessage].filter(
-        (msg): msg is ChatMessage & { role: 'user' | 'assistant' } => msg.role === 'user' || msg.role === 'assistant'
+        (msg): msg is ApiChatMessage => msg.role === 'user' || msg.role === 'assistant'
       );
       
       const updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
@@ -237,8 +263,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
                   { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${messageText}`, isGenerated: true } }
               ];
           } else {
-              const apiInput: PollinationsChatInput = { messages: messagesForApi, modelId: currentModel.id, systemPrompt: effectiveSystemPrompt };
-              const result = await getPollinationsChatCompletion(apiInput);
+              const result = await agentChat({
+                messages: messagesForApi,
+                modelId: currentModel.id,
+                systemPrompt: effectiveSystemPrompt
+              });
               aiResponseContent = result.responseText;
           }
       } catch (error) {
@@ -521,14 +550,15 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
         }
   
-        // Filter out 'system' messages for the API when regenerating
         const historyForApiFiltered = historyForApi.filter(
-          (msg): msg is ChatMessage & { role: 'user' | 'assistant' } => msg.role === 'user' || msg.role === 'assistant'
+          (msg): msg is ApiChatMessage => msg.role === 'user' || msg.role === 'assistant'
         );
         
-        const apiInput: PollinationsChatInput = { messages: historyForApiFiltered, modelId: currentModel.id, systemPrompt: effectiveSystemPrompt };
-        
-        const result = await getPollinationsChatCompletion(apiInput);
+        const result = await agentChat({
+          messages: historyForApiFiltered,
+          modelId: currentModel.id,
+          systemPrompt: effectiveSystemPrompt
+        });
         aiResponseContent = result.responseText;
   
       } catch (error) {
@@ -590,3 +620,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    

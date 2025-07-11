@@ -6,43 +6,9 @@
  *
  * Exports:
  * - agentChat - The primary function to call for a chat response.
- * - AgentChatInput - The Zod schema for the input.
- * - AgentChatOutput - The Zod schema for the output.
  */
 
-import { z } from 'zod';
-
-// Re-defining schemas here to make this flow self-contained.
-// This is based on the schemas from the original pollinations-chat-flow.
-const ApiChatMessageSchema = z.object({
-  role: z.enum(['user', 'assistant']),
-  content: z.union([
-    z.string(),
-    z.array(
-      z.union([
-        z.object({ type: z.literal('text'), text: z.string() }),
-        z.object({
-          type: z.literal('image_url'),
-          image_url: z.object({ url: z.string() }),
-        }),
-      ])
-    ),
-  ]),
-});
-
-export const AgentChatInputSchema = z.object({
-  messages: z.array(ApiChatMessageSchema).min(1).describe('Array of user/assistant message objects.'),
-  modelId: z.string().describe('The model ID to use (e.g., openai, mistral).'),
-  systemPrompt: z.string().optional().describe('An optional system prompt to guide the AI.'),
-});
-export type AgentChatInput = z.infer<typeof AgentChatInputSchema>;
-
-
-export const AgentChatOutputSchema = z.object({
-  responseText: z.string(),
-});
-export type AgentChatOutput = z.infer<typeof AgentChatOutputSchema>;
-
+import type { AgentChatInput, AgentChatOutput } from '@/types/agent-chat';
 
 const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
 const API_TOKEN = process.env.POLLINATIONS_API_TOKEN;
