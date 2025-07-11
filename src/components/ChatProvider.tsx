@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef, useContext, createContext } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
-import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
+import type { ChatMessage, Conversation, ChatMessageContentPart } from '@/types';
 import { agentChat } from '@/ai/flows/agent-chat-flow';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import { textToSpeech } from '@/ai/flows/tts-flow';
