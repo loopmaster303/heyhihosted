@@ -7,31 +7,9 @@
 import { z } from 'zod';
 import type { ChatMessageContentPart } from '.';
 
-// This schema defines a single message part, which can be text or an image URL.
-const ApiContentPartSchema = z.union([
-  z.object({ type: z.literal('text'), text: z.string() }),
-  z.object({
-    type: z.literal('image_url'),
-    image_url: z.object({ 
-      url: z.string(),
-      altText: z.string().optional(),
-      isGenerated: z.boolean().optional(),
-      isUploaded: z.boolean().optional(),
-    }),
-  }),
-]);
-
-// This schema defines a single message in the conversation.
-// The roles 'user' and 'assistant' are expected by the API.
-const ApiChatMessageSchema = z.object({
-  role: z.enum(['user', 'assistant']),
-  content: z.union([z.string(), z.array(ApiContentPartSchema)]),
-});
-export type ApiChatMessage = z.infer<typeof ApiChatMessageSchema>;
-
-
 export const AgentChatInputSchema = z.object({
-  messages: z.array(ApiChatMessageSchema).min(1).describe('Array of user/assistant message objects.'),
+  // The history is now passed as a single pre-formatted string.
+  chatHistory: z.string().describe('The entire chat history, pre-formatted as a single string.'),
   modelId: z.string().describe('The model ID to use (e.g., openai, mistral).'),
   systemPrompt: z.string().optional().describe('An optional system prompt to guide the AI.'),
 });

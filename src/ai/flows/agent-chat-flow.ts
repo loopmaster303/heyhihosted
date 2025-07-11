@@ -11,7 +11,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { AgentChatInput, AgentChatOutput, ApiChatMessage } from '@/types/agent-chat';
+import type { AgentChatInput, AgentChatOutput } from '@/types/agent-chat';
 
 const POLLINATIONS_TEXT_API_URL = 'https://text.pollinations.ai/openai';
 const POLLINATIONS_IMAGE_API_URL = 'https://image.pollinations.ai/prompt';
@@ -80,15 +80,13 @@ const agentPrompt = ai.definePrompt({
     input: {
         schema: z.object({
             systemPrompt: z.string(),
-            chatHistory: z.array(z.custom<ApiChatMessage>()),
+            chatHistory: z.string(), // The history is now a simple pre-formatted string
         }),
     },
     prompt: `{{systemPrompt}}
 
     Here is the chat history, with the most recent message at the end:
-    {{#each chatHistory}}
-    {{role}}: {{#if (Array.isArray content)}}{{#each content}}{{#if (eq type "text")}}{{text}}{{/if}}{{#if (eq type "image_url")}}(Image: {{image_url.altText}}){{/if}}{{/each}}{{else}}{{content}}{{/if}}
-    {{/each}}
+    {{chatHistory}}
     `,
 });
 
@@ -104,12 +102,12 @@ const agentChatFlow = ai.defineFlow(
         outputSchema: z.custom<AgentChatOutput>(),
     },
     async (input) => {
-        const { messages, modelId, systemPrompt } = input;
+        const { chatHistory, modelId, systemPrompt } = input;
 
         // Step 1: Use a smart model to decide if a tool should be used.
         const llmResponse = await ai.generate({
             model: `googleai/gemini-2.0-flash`, // A smart model for tool orchestration
-            prompt: await agentPrompt({ systemPrompt: systemPrompt || "You are a helpful assistant.", chatHistory: messages }),
+            prompt: await agentPrompt({ systemPrompt: systemPrompt || "You are a helpful assistant.", chatHistory }),
             tools: [generateImageTool],
         });
 
@@ -132,7 +130,11 @@ const agentChatFlow = ai.defineFlow(
 
         // Step 3: If NO tool was called, perform a standard text chat completion using Pollinations.
         // This is a separate, clean API call.
-        const payload: Record<string, any> = { model: modelId, messages };
+        const userMessages = chatHistory.split('\n').filter(line => line.startsWith('user:')).map(line => ({ role: 'user', content: line.replace('user: ', '') }));
+        const lastUserMessage = userMessages.pop() || { role: 'user', content: '' };
+
+        const payload: Record<string, any> = { model: modelId, messages: [lastUserMessage] };
+
         if (systemPrompt && systemPrompt.trim() !== '') {
             payload.system = systemPrompt;
         }
@@ -173,5 +175,3 @@ const agentChatFlow = ai.defineFlow(
 export async function agentChat(input: AgentChatInput): Promise<AgentChatOutput> {
   return await agentChatFlow(input);
 }
-
-    

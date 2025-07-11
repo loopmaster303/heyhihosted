@@ -158,13 +158,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         
         if (relevantText) {
           try {
-            const messagesForApi: ApiChatMessage[] = [{
-                role: 'user',
-                content: `Conversation messages:\n\n${relevantText}\n\nConcise Title:`
-            }];
-
             const result = await agentChat({
-              messages: messagesForApi,
+              chatHistory: relevantText,
               modelId: 'openai-fast', // Use a fast and cheap model for this task
               systemPrompt: TITLE_GENERATION_SYSTEM_PROMPT,
             });
@@ -232,19 +227,30 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
   
       const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: 'long language loops' };
       
-      const messagesForApi = [...messages, userMessage].filter(
-        (msg): msg is ApiChatMessage => msg.role === 'user' || msg.role === 'assistant'
-      );
-      
       const updatedMessagesForState = [...messages, userMessage];
       
       updateActiveConversationState({ messages: updatedMessagesForState, uploadedFile: null, uploadedFilePreview: null });
+      
+      // Convert complex message history into a simple string for the AI
+      const chatHistoryString = updatedMessagesForState.map(msg => {
+          let contentString = '';
+          if (typeof msg.content === 'string') {
+              contentString = msg.content;
+          } else if (Array.isArray(msg.content)) {
+              contentString = msg.content.map(part => {
+                  if (part.type === 'text') return part.text;
+                  if (part.type === 'image_url') return `(Image: ${part.image_url.altText || 'Uploaded image'})`;
+                  return '';
+              }).join(' ');
+          }
+          return `${msg.role}: ${contentString}`;
+      }).join('\n');
 
       let aiResponseContent: ChatMessageContentPart[] | null = null;
 
       try {
         const result: AgentChatOutput = await agentChat({
-          messages: messagesForApi,
+          chatHistory: chatHistoryString,
           modelId: currentModel.id,
           systemPrompt: effectiveSystemPrompt
         });
@@ -505,6 +511,20 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       setIsAiResponding(true);
       const historyForApi = activeConversation.messages.slice(0, lastMessageIndex);
       updateActiveConversationState({ messages: historyForApi });
+      
+      const chatHistoryString = historyForApi.map(msg => {
+          let contentString = '';
+          if (typeof msg.content === 'string') {
+              contentString = msg.content;
+          } else if (Array.isArray(msg.content)) {
+              contentString = msg.content.map(part => {
+                  if (part.type === 'text') return part.text;
+                  if (part.type === 'image_url') return `(Image: ${part.image_url.altText || 'Uploaded image'})`;
+                  return '';
+              }).join(' ');
+          }
+          return `${msg.role}: ${contentString}`;
+      }).join('\n');
   
       let aiResponseContent: ChatMessageContentPart[] | null = null;
       try {
@@ -518,13 +538,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           const selectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName);
           effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
         }
-  
-        const historyForApiFiltered = historyForApi.filter(
-          (msg): msg is ApiChatMessage => msg.role === 'user' || msg.role === 'assistant'
-        );
         
         const result = await agentChat({
-          messages: historyForApiFiltered,
+          chatHistory: chatHistoryString,
           modelId: currentModel.id,
           systemPrompt: effectiveSystemPrompt
         });
@@ -589,7 +605,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    
-
-    
