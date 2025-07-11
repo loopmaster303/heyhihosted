@@ -512,6 +512,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       const historyForApi = activeConversation.messages.slice(0, lastMessageIndex);
       updateActiveConversationState({ messages: historyForApi });
       
+      // Correctly rebuild the chatHistoryString from the clean history
       const chatHistoryString = historyForApi.map(msg => {
           let contentString = '';
           if (typeof msg.content === 'string') {
@@ -539,6 +540,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
         }
         
+        // Pass the clean, rebuilt history string
         const result = await agentChat({
           chatHistory: chatHistoryString,
           modelId: currentModel.id,
@@ -550,7 +552,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
         aiResponseContent = [{ type: 'text', text: `Sorry, an error occurred: ${errorMessage}` }];
-        updateActiveConversationState({ messages: [...historyForApi, lastMessage] }); // Restore original message on error
+        // Restore original message on error to not lose context
+        updateActiveConversationState({ messages: [...historyForApi, lastMessage] }); 
       }
   
       if (aiResponseContent !== null) {
