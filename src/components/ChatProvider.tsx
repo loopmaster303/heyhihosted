@@ -9,6 +9,7 @@ import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
+import { textToSpeech } from '@/ai/flows/tts-flow';
 
 export interface UseChatLogicProps {
   userDisplayName?: string;
@@ -32,6 +33,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     const [chatToEditId, setChatToEditId] = useState<string | null>(null);
     const [editingTitle, setEditingTitle] = useState('');
     
+    const [isImageMode, setIsImageMode] = useState(false);
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   
     const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
@@ -126,13 +128,19 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         setAllConversations(prevAllConvs => prevAllConvs.map(c => (c.id === prevActive.id ? updatedConv : c)));
         return updatedConv;
       });
+      
+      if (updates.hasOwnProperty('isImageMode')) { 
+          setIsImageMode(updates.isImageMode || false);
+      }
     }, []);
   
     useEffect(() => {
       if (activeConversation) {
         setCurrentMessages(activeConversation.messages);
+        setIsImageMode(activeConversation.isImageMode || false);
       } else {
         setCurrentMessages([]);
+        setIsImageMode(false);
       }
     }, [activeConversation]);
   
@@ -165,7 +173,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     }, [allConversations, activeConversation?.id]);
     
     const sendMessage = useCallback(async (
-      _messageText: string
+      _messageText: string,
+      options: { isImageModeIntent?: boolean; } = {}
     ) => {
       const messageText = chatInputValue.trim();
       if (!activeConversation || activeConversation.toolType !== 'long language loops' || (!messageText && !activeConversation.uploadedFile)) return;
@@ -190,7 +199,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       setIsAiResponding(true);
       setChatInputValue('');
       const convId = activeConversation.id;
-      const isFileUpload = !!uploadedFile;
+      const isImagePrompt = options.isImageModeIntent || false;
+      const isFileUpload = !!uploadedFile && !isImagePrompt;
   
       if (isFileUpload && !currentModel.vision) {
         toast({ title: "Model Incompatibility", description: `Model '${currentModel.name}' doesn't support images.`, variant: "destructive" });
@@ -208,9 +218,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
   
       const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: 'long language loops' };
       
-      const updatedMessagesForState = [...messages, userMessage];
-      
-      updateActiveConversationState({ messages: updatedMessagesForState, uploadedFile: null, uploadedFilePreview: null });
+      const updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
+      updateActiveConversationState({ messages: updatedMessagesForState });
 
       // Convert to API-compatible format
       const historyForApi: ApiChatMessage[] = updatedMessagesForState
@@ -221,27 +230,45 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           content: msg.content,
         }));
       
-      let aiResponseText: string | null = null;
+      let aiResponseContent: string | ChatMessageContentPart[] | null = null;
       try {
-        const result = await getPollinationsChatCompletion({
-          messages: historyForApi,
-          modelId: currentModel.id,
-          systemPrompt: effectiveSystemPrompt
-        });
-        aiResponseText = result.responseText;
+          if (isImagePrompt && messageText) {
+              const response = await fetch('/api/openai-image', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ prompt: messageText, model: 'gptimage', private: true }),
+              });
+              const result = await response.json();
+              if (!response.ok) throw new Error(result.error || 'Failed to generate image.');
+              aiResponseContent = [
+                  { type: 'text', text: `Generated image for: "${messageText}"` },
+                  { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${messageText}`, isGenerated: true } }
+              ];
+          } else {
+              const result = await getPollinationsChatCompletion({
+                messages: historyForApi,
+                modelId: currentModel.id,
+                systemPrompt: effectiveSystemPrompt
+              });
+              aiResponseContent = result.responseText;
+          }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
-        aiResponseText = `Sorry, an error occurred: ${errorMessage}`;
+        aiResponseContent = `Sorry, an error occurred: ${errorMessage}`;
       }
   
-      if (aiResponseText !== null) {
-        const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date(), toolType: 'long language loops' };
+      if (aiResponseContent !== null) {
+        const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: 'long language loops' };
         const finalMessages = [...updatedMessagesForState, aiMessage];
         updateActiveConversationState({ messages: finalMessages });
         updateConversationTitle(convId, finalMessages);
       }
       
+      if (isImagePrompt || isFileUpload) {
+          updateActiveConversationState({ isImageMode: false, uploadedFile: null, uploadedFilePreview: null });
+      }
+
       setIsAiResponding(false);
     }, [activeConversation, customSystemPrompt, userDisplayName, toast, updateActiveConversationState, updateConversationTitle, chatInputValue]);
   
@@ -264,6 +291,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         messages: [],
         createdAt: new Date(),
         toolType: 'long language loops',
+        isImageMode: false,
         selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID, 
         selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
       };
@@ -323,13 +351,19 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     };
   
     const cancelDeleteChat = () => setIsDeleteDialogOpen(false);
-  
+    
+    const toggleImageMode = () => {
+      if (!activeConversation) return;
+      const newImageModeState = !isImageMode; 
+      updateActiveConversationState({ isImageMode: newImageModeState, uploadedFile: null, uploadedFilePreview: null });
+    };
+
     const handleFileSelect = (file: File | null) => {
       if (!activeConversation) return;
       if (file) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          updateActiveConversationState({ uploadedFile: file, uploadedFilePreview: reader.result as string });
+          updateActiveConversationState({ isImageMode: false, uploadedFile: file, uploadedFilePreview: reader.result as string });
         };
         reader.readAsDataURL(file);
       } else {
@@ -357,8 +391,46 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
   
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
-      toast({ title: "Not Implemented", description: "Text-to-speech has been temporarily disabled." });
-    }, [toast]);
+      if (audioRef.current && playingMessageId === messageId) {
+        audioRef.current.pause();
+        audioRef.current = null;
+        setPlayingMessageId(null);
+        return;
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      if (!text || !text.trim()) {
+        setPlayingMessageId(null);
+        return;
+      }
+      setPlayingMessageId(messageId);
+      try {
+        const { audioDataUri } = await textToSpeech(text, selectedVoice);
+        const audio = new Audio(audioDataUri);
+        audioRef.current = audio;
+        audio.play();
+        audio.onended = () => {
+          if (audioRef.current === audio) {
+            audioRef.current = null;
+            setPlayingMessageId(null);
+          }
+        };
+        audio.onerror = () => {
+          toast({ title: "Audio Playback Error", variant: "destructive" });
+          if (audioRef.current === audio) {
+            audioRef.current = null;
+            setPlayingMessageId(null);
+          }
+        }
+      } catch (error) {
+        console.error("TTS Error:", error);
+        toast({ title: "Text-to-Speech Error", description: error instanceof Error ? error.message : "Could not generate audio.", variant: "destructive" });
+        audioRef.current = null;
+        setPlayingMessageId(null);
+      }
+    }, [playingMessageId, toast, selectedVoice]);
   
     const handleStartRecording = useCallback(async () => {
       toast({ title: "Not Implemented", description: "Speech-to-text has been temporarily disabled." });
@@ -448,13 +520,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
   
   
     return {
-      activeConversation, allConversations, currentMessages, isAiResponding,
+      activeConversation, allConversations, currentMessages, isAiResponding, isImageMode,
       isHistoryPanelOpen, isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,
       isRecording, playingMessageId, chatInputValue,
       selectedVoice,
       loadConversations, selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
-      requestDeleteChat, confirmDeleteChat, cancelDeleteChat,
+      requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
       handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
       handleVoiceChange,
       toggleHistoryPanel, closeHistoryPanel, handlePlayAudio, handleToggleRecording,

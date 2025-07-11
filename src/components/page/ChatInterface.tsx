@@ -35,7 +35,7 @@ export default function ChatInterface() {
       />
       <div className="px-4 pt-2 pb-4 shrink-0">
         <div className="max-w-3xl mx-auto relative">
-          {chat.activeConversation.uploadedFilePreview && (
+          {chat.activeConversation.uploadedFilePreview && !chat.isImageMode && (
             <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
               <img
                 src={chat.activeConversation.uploadedFilePreview}
@@ -72,6 +72,8 @@ export default function ChatInterface() {
             onToggleRecording={chat.handleToggleRecording}
             inputValue={chat.chatInputValue}
             onInputChange={chat.setChatInputValue}
+            isImageMode={chat.isImageMode}
+            onToggleImageMode={chat.toggleImageMode}
           />
 
           {chat.isHistoryPanelOpen && (
@@ -103,7 +105,3 @@ export default function ChatInterface() {
     </div>
   );
 };
-
-    
-
-    
