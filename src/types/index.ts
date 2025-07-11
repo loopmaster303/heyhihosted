@@ -1,5 +1,6 @@
 
 
+
 export type ChatMessageContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean } };
@@ -14,10 +15,8 @@ export interface ChatMessage {
 
 // Represents a message format compatible with APIs that only accept user/assistant roles
 export interface ApiChatMessage {
- id: string;
   role: 'user' | 'assistant';
- content: string | ChatMessageContentPart[];
-  toolType?: ToolType;
+  content: string | ChatMessageContentPart[];
 }
 
 export interface Conversation {
