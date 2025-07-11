@@ -87,14 +87,7 @@ const agentPrompt = ai.definePrompt({
 
     Here is the chat history, with the most recent message at the end:
     {{#each chatHistory}}
-    {{role}}:
-    {{#if (Array.isArray content)}}
-        {{#each content}}
-            {{#if (eq type 'text')}}{{text}}{{/if}}
-        {{/each}}
-    {{else}}
-        {{{content}}}
-    {{/if}}
+    {{role}}: {{content}}
     {{/each}}
     `,
 });
