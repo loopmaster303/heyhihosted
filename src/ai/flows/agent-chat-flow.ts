@@ -132,8 +132,7 @@ const agentChatFlow = ai.defineFlow(
             }
         }
 
-        // If no tool was called, we fall back to a standard text generation call to Pollinations
-        // This keeps the user's preferred text models in play.
+        // If no tool was called, fall back to a standard text generation call to Pollinations
         const payload: Record<string, any> = { model: modelId, messages };
         if (systemPrompt && systemPrompt.trim() !== '') {
             payload.system = systemPrompt;
@@ -161,6 +160,7 @@ const agentChatFlow = ai.defineFlow(
         }
 
         if (replyText !== null) {
+            // FIX: Ensure we return the correct, simple format.
             return { response: [{ type: 'text', text: replyText.trim() }] };
         } else {
             throw new Error('Pollinations API returned a 200 OK but the reply content could not be extracted.');
