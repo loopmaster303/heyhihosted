@@ -13,8 +13,10 @@ export interface ChatMessage {
 
 // Represents a message format compatible with APIs that only accept user/assistant roles
 export interface ApiChatMessage {
+ id: string;
   role: 'user' | 'assistant';
-  content: string | ChatMessageContentPart[];
+ content: string | ChatMessageContentPart[];
+  toolType?: ToolType;
 }
 
 export interface Conversation {
@@ -23,6 +25,7 @@ export interface Conversation {
   messages: ChatMessage[];
   createdAt: Date;
   toolType: ToolType;
+  isImageMode?: boolean;
   uploadedFile?: File | null;
   uploadedFilePreview?: string | null;
   selectedModelId?: string;
@@ -49,5 +52,3 @@ export interface ImageHistoryItem {
   toolType: 'premium imagination' | 'nocost imagination';
   videoUrl?: string;
 }
-
-    

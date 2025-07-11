@@ -4,23 +4,17 @@
 import React, { useState, useEffect, useCallback, useRef, useContext, createContext } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
-import type { ChatMessage, Conversation, ChatMessageContentPart } from '@/types';
-import { agentChat } from '@/ai/flows/agent-chat-flow';
+import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
+import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
+import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
-import { textToSpeech } from '@/ai/flows/tts-flow';
-import { speechToText } from '@/ai/flows/stt-flow';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import type { AgentChatOutput } from '@/types/agent-chat';
 
 export interface UseChatLogicProps {
   userDisplayName?: string;
   customSystemPrompt?: string;
   onConversationStarted?: () => void;
 }
-
-const DEFAULT_FALLBACK_TITLE = "Chat";
-const TITLE_GENERATION_SYSTEM_PROMPT = `You are an expert at creating concise chat titles. Based on the following messages, generate a very short title (ideally 2-4 words, maximum 5 words). Only return the title itself, with no prefixes like "Title:", no explanations, and no quotation marks. Just the plain text title.`;
-
 
 // This function contains the entire logic of the original useChat hook
 export function useChatLogic({ userDisplayName, customSystemPrompt, onConversationStarted }: UseChatLogicProps) {
@@ -145,40 +139,27 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]) => {
       const convToUpdate = allConversations.find(c => c.id === conversationId);
       if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
-    
+  
       const isDefaultTitle = convToUpdate.title === "default.long.language.loop" || convToUpdate.title.toLowerCase().startsWith("new ") || convToUpdate.title === "Chat";
-    
+  
       if (messagesForTitleGen.length >= 1 && messagesForTitleGen.length < 5 && isDefaultTitle) {
-        const relevantText = messagesForTitleGen
-          .map(msg => {
-              const textContent = typeof msg.content === 'string' ? msg.content : (msg.content.find(p => p.type === 'text')?.text || '');
-              return `${msg.role}: ${textContent}`;
-          })
-          .filter(Boolean).slice(0, 3).join('\n\n');
-        
-        if (relevantText) {
-          try {
-            const result = await agentChat({
-              chatHistory: relevantText,
-              modelId: 'openai-fast', // Use a fast and cheap model for this task
-              systemPrompt: TITLE_GENERATION_SYSTEM_PROMPT,
-            });
-
-            const responseText = result.response.find(p => p.type === 'text')?.text || '';
+        const firstUserMessage = messagesForTitleGen.find(msg => msg.role === 'user');
+        if (firstUserMessage) {
+            const textContent = typeof firstUserMessage.content === 'string'
+              ? firstUserMessage.content
+              : firstUserMessage.content.find(p => p.type === 'text')?.text || '';
             
-            let title = responseText.replace(/^"|"$/g, '').trim();
-            if (title.split(' ').length > 6) {
-              title = title.split(' ').slice(0, 5).join(' ') + '...';
+            if (textContent.trim()) {
+                try {
+                  const { title } = await generateChatTitle({ messages: textContent });
+                  setAllConversations(prev => prev.map(c => (c.id === conversationId ? { ...c, title } : c)));
+                  if (activeConversation?.id === conversationId) {
+                      setActiveConversation(prev => (prev ? { ...prev, title } : null));
+                  }
+                } catch (error) { 
+                    console.error("Failed to generate chat title:", error); 
+                }
             }
-            const finalTitle = title || DEFAULT_FALLBACK_TITLE;
-
-            setAllConversations(prev => prev.map(c => (c.id === conversationId ? { ...c, title: finalTitle } : c)));
-            if (activeConversation?.id === conversationId) {
-              setActiveConversation(prev => (prev ? { ...prev, title: finalTitle } : null));
-            }
-          } catch (error) { 
-            console.error("Failed to generate chat title with agent:", error); 
-          }
         }
       }
     }, [allConversations, activeConversation?.id]);
@@ -230,39 +211,32 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       const updatedMessagesForState = [...messages, userMessage];
       
       updateActiveConversationState({ messages: updatedMessagesForState, uploadedFile: null, uploadedFilePreview: null });
+
+      // Convert to API-compatible format
+      const historyForApi: ApiChatMessage[] = updatedMessagesForState
+        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+        .map(msg => ({
+          id: msg.id,
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+        }));
       
-      // Convert complex message history into a simple string for the AI
-      const chatHistoryString = updatedMessagesForState.map(msg => {
-          let contentString = '';
-          if (typeof msg.content === 'string') {
-              contentString = msg.content;
-          } else if (Array.isArray(msg.content)) {
-              contentString = msg.content.map(part => {
-                  if (part.type === 'text') return part.text;
-                  if (part.type === 'image_url') return `(Image: ${part.image_url.altText || 'Uploaded image'})`;
-                  return '';
-              }).join(' ');
-          }
-          return `${msg.role}: ${contentString}`;
-      }).join('\n');
-
-      let aiResponseContent: ChatMessageContentPart[] | null = null;
-
+      let aiResponseText: string | null = null;
       try {
-        const result: AgentChatOutput = await agentChat({
-          chatHistory: chatHistoryString,
+        const result = await getPollinationsChatCompletion({
+          messages: historyForApi,
           modelId: currentModel.id,
           systemPrompt: effectiveSystemPrompt
         });
-        aiResponseContent = result.response;
+        aiResponseText = result.responseText;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
-        aiResponseContent = [{ type: 'text', text: `Sorry, an error occurred: ${errorMessage}` }];
+        aiResponseText = `Sorry, an error occurred: ${errorMessage}`;
       }
   
-      if (aiResponseContent !== null) {
-        const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: 'long language loops' };
+      if (aiResponseText !== null) {
+        const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date(), toolType: 'long language loops' };
         const finalMessages = [...updatedMessagesForState, aiMessage];
         updateActiveConversationState({ messages: finalMessages });
         updateConversationTitle(convId, finalMessages);
@@ -383,101 +357,16 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
   
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
-      // If the user clicks the button of the currently playing audio, stop it.
-      if (audioRef.current && playingMessageId === messageId) {
-        audioRef.current.pause();
-        audioRef.current = null;
-        setPlayingMessageId(null);
-        return;
-      }
-  
-      // If another audio is playing, stop it before starting the new one.
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-  
-      if (!text || !text.trim()) {
-        setPlayingMessageId(null); // Ensure state is reset if there's nothing to play
-        return;
-      }
-      
-      setPlayingMessageId(messageId); // Indicate that we are loading/playing this message
-      
-      try {
-        const result = await textToSpeech({ text, voice: selectedVoice });
-        const audio = new Audio(result.audioDataUri);
-        audioRef.current = audio;
-        audio.play();
-  
-        audio.onended = () => {
-          // Only clear state if this is the audio that just finished
-          if (audioRef.current === audio) {
-            audioRef.current = null;
-            setPlayingMessageId(null);
-          }
-        };
-        audio.onerror = () => {
-          toast({ title: "Audio Playback Error", description: "Could not play the generated audio.", variant: "destructive" });
-          if (audioRef.current === audio) {
-            audioRef.current = null;
-            setPlayingMessageId(null);
-          }
-        }
-      } catch (error) {
-        console.error("TTS Error:", error);
-        toast({ title: "Text-to-Speech Error", description: error instanceof Error ? error.message : "Could not generate audio.", variant: "destructive" });
-        audioRef.current = null; // Clean up on error
-        setPlayingMessageId(null);
-      }
-    }, [playingMessageId, toast, selectedVoice]);
+      toast({ title: "Not Implemented", description: "Text-to-speech has been temporarily disabled." });
+    }, [toast]);
   
     const handleStartRecording = useCallback(async () => {
-      if (isRecording) return;
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorderRef.current = new MediaRecorder(stream);
-        audioChunksRef.current = [];
-  
-        mediaRecorderRef.current.ondataavailable = (event) => {
-          audioChunksRef.current.push(event.data);
-        };
-  
-        mediaRecorderRef.current.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const reader = new FileReader();
-          reader.readAsDataURL(audioBlob);
-          reader.onloadend = async () => {
-              const base64Audio = reader.result as string;
-              if(!base64Audio) return;
-              setIsAiResponding(true);
-              try {
-                  const { transcription } = await speechToText({ audioDataUri: base64Audio });
-                  setChatInputValue(prev => (prev ? prev + ' ' : '') + transcription);
-              } catch (error) {
-                  console.error("STT Error:", error);
-                  toast({ title: "Speech-to-Text Error", description: "Could not transcribe audio.", variant: "destructive" });
-              } finally {
-                  setIsAiResponding(false);
-              }
-          };
-        };
-  
-        mediaRecorderRef.current.start();
-        setIsRecording(true);
-      } catch (error) {
-        console.error("Microphone access error:", error);
-        toast({ title: "Microphone Access Denied", description: "Please enable microphone permissions in your browser.", variant: "destructive" });
-      }
-    }, [isRecording, toast]);
+      toast({ title: "Not Implemented", description: "Speech-to-text has been temporarily disabled." });
+    }, [toast]);
   
     const handleStopRecording = useCallback(() => {
-      if (mediaRecorderRef.current && isRecording) {
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-        setIsRecording(false);
-      }
-    }, [isRecording]);
+      // Dummy function
+    }, []);
   
     const handleToggleRecording = useCallback(() => {
       if (isRecording) {
@@ -512,22 +401,15 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       const historyForApi = activeConversation.messages.slice(0, lastMessageIndex);
       updateActiveConversationState({ messages: historyForApi });
       
-      // Correctly rebuild the chatHistoryString from the clean history
-      const chatHistoryString = historyForApi.map(msg => {
-          let contentString = '';
-          if (typeof msg.content === 'string') {
-              contentString = msg.content;
-          } else if (Array.isArray(msg.content)) {
-              contentString = msg.content.map(part => {
-                  if (part.type === 'text') return part.text;
-                  if (part.type === 'image_url') return `(Image: ${part.image_url.altText || 'Uploaded image'})`;
-                  return '';
-              }).join(' ');
-          }
-          return `${msg.role}: ${contentString}`;
-      }).join('\n');
-  
-      let aiResponseContent: ChatMessageContentPart[] | null = null;
+      const apiMessages: ApiChatMessage[] = historyForApi
+        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+        .map(msg => ({
+          id: msg.id,
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+        }));
+      
+      let aiResponseText: string | null = null;
       try {
         const { selectedModelId, selectedResponseStyleName } = activeConversation;
         const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
@@ -540,24 +422,23 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
         }
         
-        // Pass the clean, rebuilt history string
-        const result = await agentChat({
-          chatHistory: chatHistoryString,
+        const result = await getPollinationsChatCompletion({
+          messages: apiMessages,
           modelId: currentModel.id,
           systemPrompt: effectiveSystemPrompt
         });
-        aiResponseContent = result.response;
+        aiResponseText = result.responseText;
   
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
-        aiResponseContent = [{ type: 'text', text: `Sorry, an error occurred: ${errorMessage}` }];
+        aiResponseText = `Sorry, an error occurred: ${errorMessage}`;
         // Restore original message on error to not lose context
         updateActiveConversationState({ messages: [...historyForApi, lastMessage] }); 
       }
   
-      if (aiResponseContent !== null) {
-        const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: 'long language loops' };
+      if (aiResponseText !== null) {
+        const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date(), toolType: 'long language loops' };
         const finalMessages = [...historyForApi, aiMessage];
         updateActiveConversationState({ messages: finalMessages });
       }
@@ -608,3 +489,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    
