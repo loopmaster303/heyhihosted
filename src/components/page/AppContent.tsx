@@ -8,8 +8,8 @@ import dynamic from 'next/dynamic';
 import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import AppHeader from '@/components/page/AppHeader';
-import ChatInterface from '@/components/page/ChatInterface';
 import HomePage from '@/components/page/HomePage';
+import ChatInterface from '@/components/page/ChatInterface'; // Static import for the most common view
 
 // Modular components and hooks
 import { useChat } from '@/components/ChatProvider';
@@ -19,7 +19,7 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import type { ToolType, TileItem } from '@/types';
 import { RefreshCw } from 'lucide-react';
 
-// Dynamically import heavy components
+// Dynamically import heavy tool components to improve initial load time
 const LoadingSpinner = () => (
     <div className="flex-grow flex items-center justify-center h-full">
       <RefreshCw className="w-8 h-8 animate-spin" />
@@ -66,12 +66,11 @@ export default function AppContent() {
     } else {
         setActiveToolType(toolOrView);
         if (toolOrView === 'long language loops') {
-          // Let the render logic handle showing the chat interface
-          // once the conversation is active.
-          chat.startNewChat();
+            // Start a new chat, the rendering logic will automatically pick it up
+            chat.startNewChat();
         } else {
-          // For other tools, deselect any active chat to hide the chat view
-          chat.selectChat(null);
+            // For other tools, deselect any active chat to hide the chat view
+            chat.selectChat(null);
         }
     }
   };
@@ -83,7 +82,7 @@ export default function AppContent() {
     }
 
     // Priority 2: If there's an active conversation, ALWAYS show the chat interface.
-    // This also implicitly handles the 'long language loops' tool.
+    // This is the primary "source of truth" for the chat view.
     if (chat.activeConversation) {
         return <ChatInterface />;
     }
@@ -115,6 +114,7 @@ export default function AppContent() {
           </div>
         );
       // Fallback: If no tool is active and no chat is active, show the home page.
+      case 'long language loops': // This case can be hit briefly before activeConversation is set
       default:
         return <HomePage onSelectTile={handleNavigation} toolTileItems={toolTileItems} />;
     }
