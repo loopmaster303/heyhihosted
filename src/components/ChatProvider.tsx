@@ -15,6 +15,8 @@ import { getPollinationsTranscription } from '@/ai/flows/pollinations-stt-flow';
 import { db, auth } from '@/lib/firebase';
 import { doc, getDoc, setDoc, collection, query, orderBy, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, type User, signInAnonymously } from 'firebase/auth';
+// @ts-expect-error
+import lamejs from 'lamejs';
 
 
 export interface UseChatLogicProps {
@@ -495,6 +497,43 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       }
     }, [playingMessageId, toast, selectedVoice]);
   
+    const convertToMp3 = async (audioBlob: Blob): Promise<{ dataUri: string, blob: Blob }> => {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const arrayBuffer = await audioBlob.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    
+        const mp3encoder = new lamejs.Mp3Encoder(1, audioBuffer.sampleRate, 128);
+        const pcmData = audioBuffer.getChannelData(0);
+        const samples = new Int16Array(pcmData.length);
+        for (let i = 0; i < pcmData.length; i++) {
+            samples[i] = pcmData[i] * 32767.5;
+        }
+    
+        const mp3Data = [];
+        const sampleBlockSize = 1152;
+        for (let i = 0; i < samples.length; i += sampleBlockSize) {
+            const sampleChunk = samples.subarray(i, i + sampleBlockSize);
+            const mp3buf = mp3encoder.encodeBuffer(sampleChunk);
+            if (mp3buf.length > 0) {
+                mp3Data.push(new Int8Array(mp3buf));
+            }
+        }
+        const mp3buf = mp3encoder.flush();
+        if (mp3buf.length > 0) {
+            mp3Data.push(new Int8Array(mp3buf));
+        }
+    
+        const mp3Blob = new Blob(mp3Data, { type: 'audio/mpeg' });
+        const reader = new FileReader();
+        return new Promise((resolve, reject) => {
+            reader.onloadend = () => {
+                resolve({ dataUri: reader.result as string, blob: mp3Blob });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(mp3Blob);
+        });
+    };
+
     const handleStartRecording = useCallback(async () => {
         if (isRecording) return;
         try {
@@ -511,20 +550,20 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
             recorder.onstop = async () => {
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
-                reader.onloadend = async () => {
-                    const base64data = reader.result as string;
+                
+                try {
+                    toast({ title: "Converting to MP3..." });
+                    const { dataUri: mp3DataUri } = await convertToMp3(audioBlob);
+                    
                     toast({ title: "Transcribing audio..." });
-                    try {
-                        const { transcription } = await getPollinationsTranscription({ audioDataUri: base64data });
-                        setChatInputValue(prev => prev ? `${prev} ${transcription}` : transcription);
-                        toast({ title: "Transcription complete" });
-                    } catch (error) {
-                        console.error("Transcription Error:", error);
-                        toast({ title: "Transcription Failed", description: error instanceof Error ? error.message : "Could not transcribe audio.", variant: "destructive" });
-                    }
-                };
+                    const { transcription } = await getPollinationsTranscription({ audioDataUri: mp3DataUri });
+                    setChatInputValue(prev => prev ? `${prev} ${transcription}`.trim() : transcription);
+                    toast({ title: "Transcription complete" });
+
+                } catch (error) {
+                    console.error("Transcription/Conversion Error:", error);
+                    toast({ title: "Processing Failed", description: error instanceof Error ? error.message : "Could not process audio.", variant: "destructive" });
+                }
 
                 // Clean up stream tracks
                 stream.getTracks().forEach(track => track.stop());
