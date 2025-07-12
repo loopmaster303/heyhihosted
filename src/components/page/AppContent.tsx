@@ -5,7 +5,6 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 
 // UI Components
-import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import AppHeader from '@/components/page/AppHeader';
@@ -26,6 +25,11 @@ const LoadingSpinner = () => (
       <RefreshCw className="w-8 h-8 animate-spin" />
     </div>
 );
+
+const PersonalizationTool = dynamic(() => import('@/components/tools/PersonalizationTool'), {
+  loading: () => <LoadingSpinner />,
+  ssr: false,
+});
 
 const ReplicateImageTool = dynamic(() => import('@/components/tools/ReplicateImageTool'), {
   loading: () => <LoadingSpinner />,
@@ -58,12 +62,15 @@ export default function AppContent() {
   const handleNavigation = (toolOrView: ToolType | 'home') => {
     if (toolOrView === 'home') {
         setActiveToolType(null);
-        chat.selectChat(null);
+        chat.selectChat(null); // Deselect any active chat
     } else {
         setActiveToolType(toolOrView);
         if (toolOrView === 'long language loops') {
+          // Let the render logic handle showing the chat interface
+          // once the conversation is active.
           chat.startNewChat();
         } else {
+          // For other tools, deselect any active chat to hide the chat view
           chat.selectChat(null);
         }
     }
@@ -76,6 +83,7 @@ export default function AppContent() {
     }
 
     // Priority 2: If there's an active conversation, ALWAYS show the chat interface.
+    // This also implicitly handles the 'long language loops' tool.
     if (chat.activeConversation) {
         return <ChatInterface />;
     }
@@ -112,6 +120,8 @@ export default function AppContent() {
     }
   };
 
+  // The header should be shown for any view that is NOT the home page.
+  // This is true if a tool is selected OR a chat is active.
   const shouldShowHeader = activeToolType !== null || chat.activeConversation !== null;
 
   return (
@@ -147,5 +157,3 @@ export default function AppContent() {
     </div>
   );
 }
-
-    
