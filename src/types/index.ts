@@ -1,4 +1,6 @@
 
+import type { Timestamp } from 'firebase/firestore';
+
 export type ChatMessageContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean } };
@@ -7,8 +9,8 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string | ChatMessageContentPart[];
-  timestamp: Date;
- toolType?: ToolType;
+  timestamp: Date | Timestamp;
+  toolType?: ToolType;
 }
 
 // Represents a message format compatible with APIs that only accept user/assistant roles
@@ -23,7 +25,7 @@ export interface Conversation {
   id:string;
   title: string;
   messages: ChatMessage[];
-  createdAt: Date;
+  createdAt: Date | Timestamp;
   toolType: ToolType;
   isImageMode?: boolean;
   uploadedFile?: File | null;

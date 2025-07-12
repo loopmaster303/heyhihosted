@@ -15,6 +15,8 @@ import HomePage from '@/components/page/HomePage';
 // Modular components and hooks
 import { useChat } from '@/components/ChatProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
+import { auth } from '@/lib/firebase';
+import { signInAnonymously, onAuthStateChanged, User } from 'firebase/auth';
 
 // Types & Config
 import type { ToolType, CurrentAppView, TileItem } from '@/types';
@@ -46,15 +48,14 @@ const toolTileItems: TileItem[] = [
   { id: 'about', title: 'about/hey.hi/readme' },
 ];
 
-const ACTIVE_TOOL_TYPE_KEY = 'activeToolTypeForView';
-const ACTIVE_CONVERSATION_ID_KEY = 'activeConversationId';
-
 
 export default function AppContent() {
   const [currentView, setCurrentView] = useState<CurrentAppView>('tiles');
-  const [activeToolTypeForView, setActiveToolTypeForView] = useState<ToolType | null>(null);
+  const [activeToolTypeForView, setActiveToolTypeForView] = useLocalStorageState<ToolType | null>('activeToolTypeForView', null);
   
-  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
+  const [authLoading, setAuthLoading] = useState(true);
+
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
   const [replicateToolPassword, setReplicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
@@ -62,11 +63,36 @@ export default function AppContent() {
   const chat = useChat();
 
   useEffect(() => {
-    // When a chat is selected or a new one starts, switch to the chat view.
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            setCurrentUser(user);
+        } else {
+            try {
+                const userCredential = await signInAnonymously(auth);
+                setCurrentUser(userCredential.user);
+            } catch (error) {
+                console.error("Anonymous sign-in failed:", error);
+                // Handle sign-in failure (e.g., show an error message)
+            }
+        }
+        setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+  
+  // This effect synchronizes the app view based on chat state or persisted tool type
+  useEffect(() => {
+    if (authLoading) return;
+
     if (chat.activeConversation) {
       setCurrentView('chat');
+    } else if (activeToolTypeForView) {
+      setCurrentView(getViewForTool(activeToolTypeForView));
+    } else {
+      setCurrentView('tiles');
     }
-  }, [chat.activeConversation]);
+  }, [chat.activeConversation, activeToolTypeForView, authLoading]);
 
   const getViewForTool = (toolType: ToolType): CurrentAppView => {
     switch(toolType) {
@@ -97,7 +123,7 @@ export default function AppContent() {
         chat.selectChat(null);
         setCurrentView(getViewForTool(toolType));
     }
-  }, [chat]);
+  }, [chat, setActiveToolTypeForView]);
 
 
   const handleNavigation = (toolOrView: ToolType | 'home') => {
@@ -115,76 +141,18 @@ export default function AppContent() {
     }
   };
 
-
-  useEffect(() => {
-    let loadedConversations: any = null;
-    try {
-        const storedConversations = localStorage.getItem('chatConversations');
-        if (storedConversations) {
-            loadedConversations = JSON.parse(storedConversations);
-        }
-    } catch (error) {
-        console.error("Failed to parse conversations from localStorage.", error);
-        localStorage.removeItem('chatConversations');
-    }
-
-    const loadedConvsList = chat.loadConversations(loadedConversations);
-
-    const storedActiveToolType = localStorage.getItem(ACTIVE_TOOL_TYPE_KEY) as ToolType | null;
-    const storedActiveConvId = localStorage.getItem(ACTIVE_CONVERSATION_ID_KEY);
-    
-    if (storedActiveToolType && toolTileItems.some(item => item.id === storedActiveToolType)) {
-      setActiveToolTypeForView(storedActiveToolType);
-      if (storedActiveToolType === 'long language loops') {
-        const convToLoad = loadedConvsList.find(c => c.id === storedActiveConvId);
-        if (convToLoad) {
-            chat.selectChat(convToLoad.id);
-        } else {
-            const latestChat = loadedConvsList.find(c => c.toolType === 'long language loops');
-            if(latestChat) {
-              chat.selectChat(latestChat.id);
-            } else {
-              setCurrentView('tiles');
-              setActiveToolTypeForView(null);
-            }
-        }
-      } else {
-          setCurrentView(getViewForTool(storedActiveToolType));
-          chat.selectChat(null);
-      }
-    } else {
-        setCurrentView('tiles');
-    }
-
-    setIsInitialLoadComplete(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
-
-
-  useEffect(() => {
-    if (isInitialLoadComplete) {
-      if (activeToolTypeForView) {
-        localStorage.setItem(ACTIVE_TOOL_TYPE_KEY, activeToolTypeForView);
-      } else {
-        localStorage.removeItem(ACTIVE_TOOL_TYPE_KEY);
-      }
-      if (currentView === 'chat' && chat.activeConversation) {
-        localStorage.setItem(ACTIVE_CONVERSATION_ID_KEY, chat.activeConversation.id);
-      } else {
-        localStorage.removeItem(ACTIVE_CONVERSATION_ID_KEY);
-      }
-    }
-  }, [activeToolTypeForView, chat.activeConversation, currentView, isInitialLoadComplete]);
-
-
   const renderContent = () => {
-    if (!isInitialLoadComplete) {
+    if (authLoading || (currentView === 'chat' && chat.isInitialLoadComplete === false)) {
         return <LoadingSpinner />;
     }
 
     switch (currentView) {
       case 'chat':
-        if (!chat.activeConversation) return null;
+        if (!chat.activeConversation) {
+            // This case can happen if a chat was deleted and no new one is selected yet.
+            // We can show a loading state or redirect to home.
+            return <LoadingSpinner />;
+        }
         return <ChatInterface />;
       case 'nocostImageTool':
         return <VisualizingLoopsTool />;
