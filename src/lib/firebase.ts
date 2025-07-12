@@ -3,18 +3,16 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// TODO: Add your Firebase project configuration here
-// IMPORTANT: Replace the placeholder values below with your actual Firebase project credentials.
-// You can find these in your Firebase project settings. For security, it's best to
-// store these in environment variables (e.g., process.env.NEXT_PUBLIC_FIREBASE_API_KEY).
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "YOUR_API_KEY",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "YOUR_MESSAGING_SENDER_ID",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "YOUR_APP_ID",
+  apiKey: "AIzaSyBJbcwl1nlafV62VdmDZKP6pVN5bZ_aF3s",
+  authDomain: "fluxflow-ai.firebaseapp.com",
+  projectId: "fluxflow-ai",
+  storageBucket: "fluxflow-ai.appspot.com",
+  messagingSenderId: "647827922675",
+  appId: "1:647827922675:web:52d20dd6a38345b217a186"
 };
+
 
 // Initialize Firebase for server-side rendering (SSR) or when no apps are present.
 // This prevents re-initialization on every hot-reload in development.
