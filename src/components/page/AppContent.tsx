@@ -59,6 +59,17 @@ export default function AppContent() {
 
   const chat = useChat();
 
+  const getViewForTool = useCallback((toolType: ToolType): CurrentAppView => {
+    switch(toolType) {
+        case 'long language loops': return 'chat';
+        case 'nocost imagination': return 'nocostImageTool';
+        case 'premium imagination': return 'replicateImageTool';
+        case 'personalization': return 'personalizationTool';
+        case 'about': return 'aboutView';
+        default: return 'tiles';
+    }
+  }, []);
+
   // This effect synchronizes the app view based on chat state or persisted tool type
   useEffect(() => {
     if (!chat.isInitialLoadComplete) return;
@@ -70,18 +81,7 @@ export default function AppContent() {
     } else {
       setCurrentView('tiles');
     }
-  }, [chat.activeConversation, activeToolTypeForView, chat.isInitialLoadComplete]);
-
-  const getViewForTool = (toolType: ToolType): CurrentAppView => {
-    switch(toolType) {
-        case 'long language loops': return 'chat';
-        case 'nocost imagination': return 'nocostImageTool';
-        case 'premium imagination': return 'replicateImageTool';
-        case 'personalization': return 'personalizationTool';
-        case 'about': return 'aboutView';
-        default: return 'tiles';
-    }
-  };
+  }, [chat.activeConversation, activeToolTypeForView, chat.isInitialLoadComplete, getViewForTool]);
   
   const handleSelectTile = useCallback((toolType: ToolType) => {
     const previousActiveConv = chat.activeConversation;
@@ -100,7 +100,7 @@ export default function AppContent() {
       }
     } else {
         chat.selectChat(null);
-        setCurrentView(getViewForTool(toolType));
+        // The useEffect will handle setting the view
     }
   }, [chat, setActiveToolTypeForView]);
 
@@ -121,13 +121,10 @@ export default function AppContent() {
   };
 
   const renderContent = () => {
-    // This is the main loading condition for the entire app.
-    // We wait until Firebase has identified a user and loaded initial data.
     if (!chat.isInitialLoadComplete || !chat.currentUser) {
         return <LoadingSpinner />;
     }
 
-    // Decide what to render based on the current view state
     switch (currentView) {
       case 'chat':
         return <ChatInterface />;
