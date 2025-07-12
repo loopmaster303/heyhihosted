@@ -65,7 +65,6 @@ export default function AppContent() {
         chat.startNewChat();
       }
     } else {
-      // Ensure no chat is active when switching to other tools
       if (chat.activeConversation) {
         chat.selectChat(null);
       }
@@ -88,10 +87,12 @@ export default function AppContent() {
       return <LoadingSpinner />;
     }
 
+    // Priority 1: If there's an active conversation, ALWAYS show the chat interface.
     if (chat.activeConversation) {
         return <ChatInterface />;
     }
 
+    // Priority 2: If no active conversation, show the selected tool.
     switch (activeToolType) {
       case 'nocost imagination':
         return <VisualizingLoopsTool />;
@@ -127,7 +128,7 @@ export default function AppContent() {
             </p>
           </div>
         );
-      case 'long language loops':
+      // Fallback: If no tool is active, show the home page.
       default:
         return <HomePage onSelectTile={handleSelectTile} toolTileItems={toolTileItems} />;
     }
