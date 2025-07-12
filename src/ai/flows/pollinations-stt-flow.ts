@@ -37,7 +37,7 @@ export async function getPollinationsTranscription(
   if (!matches || matches.length < 3) {
     throw new Error('Invalid audio data URI format.');
   }
-  const format = matches[1].split(';')[0]; // e.g., 'webm' from 'webm;codecs=opus'
+  const format = matches[1].split(';')[0]; // e.g., 'mpeg' from 'mpeg' or 'webm' from 'webm;codecs=opus'
   const base64Data = matches[2];
 
   const payload = {
