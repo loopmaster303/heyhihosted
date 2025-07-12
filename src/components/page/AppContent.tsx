@@ -65,8 +65,7 @@ export default function AppContent() {
 
     if (chat.activeConversation) {
       setCurrentView('chat');
-      // setActiveToolTypeForView('long language loops');
-    } else if (activeToolTypeForView) {
+    } else if (activeToolTypeForView && getViewForTool(activeToolTypeForView) !== 'chat') {
       setCurrentView(getViewForTool(activeToolTypeForView));
     } else {
       setCurrentView('tiles');
@@ -80,7 +79,7 @@ export default function AppContent() {
         case 'premium imagination': return 'replicateImageTool';
         case 'personalization': return 'personalizationTool';
         case 'about': return 'aboutView';
-        default: return 'chat';
+        default: return 'tiles';
     }
   };
   
@@ -89,8 +88,9 @@ export default function AppContent() {
     if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
         chat.deleteChat(previousActiveConv.id, true); // silent delete
     }
+    
+    setActiveToolTypeForView(toolType);
 
-    // setActiveToolTypeForView(toolType);
     if (toolType === 'long language loops') {
       const latestChat = chat.allConversations.find(c => c.toolType === 'long language loops' && c.messages.length > 0);
       if (latestChat) {
@@ -102,7 +102,7 @@ export default function AppContent() {
         chat.selectChat(null);
         setCurrentView(getViewForTool(toolType));
     }
-  }, [chat]);
+  }, [chat, setActiveToolTypeForView]);
 
 
   const handleNavigation = (toolOrView: ToolType | 'home') => {
@@ -112,7 +112,7 @@ export default function AppContent() {
     }
 
     if (toolOrView === 'home') {
-        // setActiveToolTypeForView(null);
+        setActiveToolTypeForView(null);
         setCurrentView('tiles');
         chat.selectChat(null);
     } else {
@@ -121,16 +121,20 @@ export default function AppContent() {
   };
 
   const renderContent = () => {
-    if (!chat.isInitialLoadComplete || (chat.currentUser === null)) {
+    // This is the main loading condition for the entire app.
+    // We wait until Firebase has identified a user (anonymous or otherwise).
+    if (!chat.currentUser) {
         return <LoadingSpinner />;
     }
-
-    switch (currentView) {
-      case 'chat':
-        if (!chat.activeConversation) {
-            return <LoadingSpinner />;
-        }
+    
+    // Once we have a user, we check the view state.
+    // If there's an active conversation, we always show the chat interface.
+    if (chat.activeConversation) {
         return <ChatInterface />;
+    }
+
+    // If no active conversation, decide based on currentView state
+    switch (currentView) {
       case 'nocostImageTool':
         return <VisualizingLoopsTool />;
       case 'replicateImageTool':
@@ -165,15 +169,17 @@ export default function AppContent() {
             </p>
           </div>
         );
-      default: // 'tiles'
+      default: // 'tiles' or 'chat' when activeConversation is null
         return <HomePage onSelectTile={handleSelectTile} toolTileItems={toolTileItems} />;
     }
   };
 
+  const shouldShowHeader = currentView !== 'tiles' || !!chat.activeConversation;
+
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
 
-      {currentView !== 'tiles' && (
+      {shouldShowHeader && (
         <AppHeader
           toolTileItems={toolTileItems}
           onNavigate={handleNavigation}
@@ -181,7 +187,7 @@ export default function AppContent() {
         />
       )}
 
-      <div className={`flex flex-col h-full ${currentView !== 'tiles' ? 'pt-16' : ''}`}>
+      <div className={`flex flex-col h-full ${shouldShowHeader ? 'pt-16' : ''}`}>
         {renderContent()}
       </div>
 
