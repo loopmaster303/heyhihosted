@@ -122,19 +122,15 @@ export default function AppContent() {
 
   const renderContent = () => {
     // This is the main loading condition for the entire app.
-    // We wait until Firebase has identified a user (anonymous or otherwise).
-    if (!chat.currentUser) {
+    // We wait until Firebase has identified a user and loaded initial data.
+    if (!chat.isInitialLoadComplete || !chat.currentUser) {
         return <LoadingSpinner />;
     }
-    
-    // Once we have a user, we check the view state.
-    // If there's an active conversation, we always show the chat interface.
-    if (chat.activeConversation) {
-        return <ChatInterface />;
-    }
 
-    // If no active conversation, decide based on currentView state
+    // Decide what to render based on the current view state
     switch (currentView) {
+      case 'chat':
+        return <ChatInterface />;
       case 'nocostImageTool':
         return <VisualizingLoopsTool />;
       case 'replicateImageTool':
@@ -169,12 +165,12 @@ export default function AppContent() {
             </p>
           </div>
         );
-      default: // 'tiles' or 'chat' when activeConversation is null
+      default: // 'tiles'
         return <HomePage onSelectTile={handleSelectTile} toolTileItems={toolTileItems} />;
     }
   };
 
-  const shouldShowHeader = currentView !== 'tiles' || !!chat.activeConversation;
+  const shouldShowHeader = currentView !== 'tiles';
 
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
