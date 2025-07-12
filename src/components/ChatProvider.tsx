@@ -57,9 +57,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         const unsubscribe = onAuthStateChanged(auth, user => {
             setCurrentUser(user);
             if (!user) {
+                // If user is logged out, clear local state
                 setAllConversations([]);
                 setActiveConversation(null);
-                setIsInitialLoadComplete(true);
+                setIsInitialLoadComplete(true); // Mark as complete since there's nothing to load
             }
         });
         return () => unsubscribe();
@@ -96,10 +97,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     }, [toast]);
     
     useEffect(() => {
-        if (currentUser) {
+        if (currentUser && !isInitialLoadComplete) {
             loadConversations(currentUser);
         }
-    }, [currentUser, loadConversations]);
+    }, [currentUser, isInitialLoadComplete, loadConversations]);
     
     const updateFirestoreConversation = useCallback(async (conversation: Conversation) => {
         if (!currentUser) return;
@@ -111,10 +112,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         delete storableConv.uploadedFile;
         delete storableConv.uploadedFilePreview;
 
+        // Heuristic to avoid storing huge base64 strings in Firestore, which can be costly and slow.
         storableConv.messages = storableConv.messages.map((msg: ChatMessage) => {
           if (Array.isArray(msg.content)) {
             msg.content = msg.content.map(part => {
-              if (part.type === 'image_url' && part.image_url.url.startsWith('data:image') && part.image_url.url.length > 500 * 1024) { // Heuristic for large data URIs
+              if (part.type === 'image_url' && part.image_url.url.startsWith('data:image') && part.image_url.url.length > 500 * 1024) { 
                 return { ...part, image_url: { ...part.image_url, url: 'https://placehold.co/512x512.png?text=Image+History+Disabled' } };
               }
               return part;
@@ -137,18 +139,22 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         if (!prevActive) return null;
         const updatedConv = { ...prevActive, ...updates };
         
+        // Update the conversation in the main list
         setAllConversations(prevAllConvs => {
             const existing = prevAllConvs.find(c => c.id === prevActive.id);
             if (existing) {
                 return prevAllConvs.map(c => (c.id === prevActive.id ? updatedConv : c));
             }
+            // If it's a new conversation that wasn't in the list yet, add it
             return [updatedConv, ...prevAllConvs];
         });
         
+        // Persist the entire updated conversation to Firestore
         updateFirestoreConversation(updatedConv);
         return updatedConv;
       });
       
+      // Also update the transient top-level image mode state
       if (updates.hasOwnProperty('isImageMode')) { 
           setIsImageMode(updates.isImageMode || false);
       }
@@ -159,6 +165,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         // This syncs the transient UI state from the active conversation object
         setIsImageMode(activeConversation.isImageMode || false);
       } else {
+        // Reset when there is no active conversation
         setIsImageMode(false);
       }
     }, [activeConversation]);
@@ -236,6 +243,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       const updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
       updateActiveConversationState({ messages: updatedMessagesForState });
 
+      // Prepare messages for the API, filtering out system messages
       const historyForApi: ApiChatMessage[] = updatedMessagesForState
         .filter(msg => msg.role === 'user' || msg.role === 'assistant')
         .map(msg => ({
@@ -280,6 +288,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       }
       
       if (isImagePrompt || isFileUpload) {
+          // Clear transient file data after sending
           updateActiveConversationState({ isImageMode: false, uploadedFile: null, uploadedFilePreview: null });
       }
 
@@ -294,6 +303,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       const conversationToSelect = allConversations.find(c => c.id === conversationId);
       if (!conversationToSelect) return;
   
+      // Reset transient state when selecting a new chat
       setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null });
       onConversationStarted?.();
     }, [allConversations, onConversationStarted]);
@@ -315,7 +325,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       // Firestore FIFO logic
       if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
           const oldestConversation = allConversations.reduce((oldest, current) => 
-              current.createdAt < oldest.createdAt ? current : oldest
+              new Date(oldest.createdAt.toString()) < new Date(current.createdAt.toString()) ? oldest : current
           );
           try {
               const oldConvRef = doc(db, 'users', currentUser.uid, 'conversations', oldestConversation.id);
@@ -328,7 +338,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversation.id);
       await setDoc(convRef, newConversation);
       
-      setAllConversations(prev => [newConversation, ...prev].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+      setAllConversations(prev => [newConversation, ...prev].sort((a, b) => new Date(b.createdAt.toString()).getTime() - new Date(a.createdAt.toString()).getTime()));
       setActiveConversation(newConversation);
       onConversationStarted?.();
     }, [onConversationStarted, currentUser, allConversations]);
@@ -346,6 +356,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         toast({ title: "Invalid Title", description: "Title cannot be empty.", variant: "destructive" });
         return;
       }
+      // Since `updateActiveConversationState` handles updating both the
+      // `allConversations` list and the Firestore doc, we can just use that.
       updateActiveConversationState({ title: editingTitle.trim() });
       toast({ title: "Title Updated" });
       setIsEditTitleDialogOpen(false);
@@ -369,9 +381,14 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         setAllConversations(updatedConversations);
   
         if (wasActive) {
+          // Find the next most recent chat to select
           const nextChat = updatedConversations.find(c => c.toolType === 'long language loops');
-          if (nextChat) selectChat(nextChat.id);
-          else startNewChat();
+          if (nextChat) {
+            selectChat(nextChat.id);
+          } else {
+            // If no chats are left, start a new one
+            startNewChat();
+          }
         }
         if (!silent) {
           toast({ title: "Chat Deleted" });
@@ -389,7 +406,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     const toggleImageMode = () => {
       if (!activeConversation) return;
       const newImageModeState = !isImageMode; 
-      // Do not save this to Firestore, it's a transient UI state
+      // This is transient UI state, so just update the active conversation object in memory
+      // It does not need to be persisted to Firestore
       setActiveConversation(prev => prev ? {...prev, isImageMode: newImageModeState, uploadedFile: null, uploadedFilePreview: null } : null);
       setIsImageMode(newImageModeState);
     };
@@ -470,11 +488,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     }, [playingMessageId, toast, selectedVoice]);
   
     const handleStartRecording = useCallback(async () => {
+      // Temporarily disabled as per previous requests to remove STT
       toast({ title: "Not Implemented", description: "Speech-to-text has been temporarily disabled." });
     }, [toast]);
   
     const handleStopRecording = useCallback(() => {
-      // Dummy function
+      // Dummy function since STT is disabled
     }, []);
   
     const handleToggleRecording = useCallback(() => {
@@ -532,6 +551,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
         }
 
+        // Add the regeneration instruction to the prompt
         const regenerationPromptSuffix = `\n(Bitte formuliere deine vorherige Antwort um oder biete eine alternative Perspektive an.)`;
         effectiveSystemPrompt += regenerationPromptSuffix;
         
@@ -546,6 +566,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
         aiResponseText = `Sorry, an error occurred: ${errorMessage}`;
+        // Restore the original message on error
         updateActiveConversationState({ messages: [...historyForApi, lastMessage] }); 
       }
   
@@ -578,6 +599,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       setChatInputValue,
       handleCopyToClipboard,
       regenerateLastResponse,
+      setCurrentUser, // Expose setCurrentUser to be called from AppContent
     };
 }
 
@@ -623,5 +645,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    
