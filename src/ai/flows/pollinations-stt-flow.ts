@@ -71,12 +71,13 @@ export async function getPollinationsTranscription(
       body: JSON.stringify(payload),
     });
 
+    const responseText = await response.text();
+
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Pollinations STT API request failed with status ${response.status}: ${errorText}`);
+      throw new Error(`Pollinations STT API request failed with status ${response.status}: ${responseText}`);
     }
 
-    const result = await response.json();
+    const result = JSON.parse(responseText);
 
     if (result.error) {
       throw new Error(`Pollinations STT API returned an error: ${result.error.message || JSON.stringify(result.error)}`);
