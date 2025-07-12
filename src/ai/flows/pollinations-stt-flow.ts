@@ -32,13 +32,18 @@ export async function getPollinationsTranscription(
 ): Promise<PollinationsSttOutput> {
   const { audioDataUri } = input;
 
-  // Extract format and base64 data from the data URI
-  const matches = audioDataUri.match(/^data:audio\/(.+);base64,(.*)$/);
-  if (!matches || matches.length < 3) {
-    throw new Error('Invalid audio data URI format.');
+  // Extract base64 data and determine the format for the API.
+  const base64Data = audioDataUri.substring(audioDataUri.indexOf(',') + 1);
+  let format: string;
+
+  if (audioDataUri.startsWith('data:audio/mpeg')) {
+    format = 'mp3';
+  } else if (audioDataUri.startsWith('data:audio/wav')) {
+    format = 'wav';
+  } else {
+    // The API only supports mp3 and wav.
+    throw new Error('Unsupported audio format. Please provide audio in MP3 or WAV format.');
   }
-  const format = matches[1].split(';')[0]; // e.g., 'mpeg' from 'mpeg' or 'webm' from 'webm;codecs=opus'
-  const base64Data = matches[2];
 
   const payload = {
     model: 'openai-audio',
