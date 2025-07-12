@@ -11,13 +11,24 @@ import { Button } from '@/components/ui/button';
 interface MessageBubbleProps {
   message: ChatMessage;
   onPlayAudio?: (text: string, messageId: string) => void;
-  isAudioPlayingForId?: string | null;
+  isPlaying?: boolean;
+  isLoadingAudio?: boolean;
+  isAnyAudioActive?: boolean;
   onCopy?: (text: string) => void;
   onRegenerate?: () => void;
   isLastMessage?: boolean;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isAudioPlayingForId, onCopy, onRegenerate, isLastMessage }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({
+  message,
+  onPlayAudio,
+  isPlaying,
+  isLoadingAudio,
+  isAnyAudioActive,
+  onCopy,
+  onRegenerate,
+  isLastMessage,
+}) => {
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
 
@@ -45,9 +56,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isA
   }
 
   const hasAudioContent = isAssistant && !!getTextContent();
-  const isThisMessagePlaying = isAudioPlayingForId === message.id;
-
-
+  
   const renderContent = (content: string | ChatMessageContentPart[]) => {
     if (message.id === 'loading') {
       return (
@@ -117,11 +126,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isA
                 onClick={handlePlayClick}
                 className={cn(
                   "h-7 w-7 text-foreground/80 hover:text-foreground",
-                  isThisMessagePlaying && "text-blue-500 hover:text-blue-600"
+                  isPlaying && "text-blue-500 hover:text-blue-600"
                 )}
-                aria-label={isThisMessagePlaying ? "Stop audio" : "Play audio"}
+                aria-label={isPlaying ? "Stop audio" : "Play audio"}
+                disabled={isAnyAudioActive && !isPlaying}
               >
-                {isThisMessagePlaying ? (
+                {isLoadingAudio ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isPlaying ? (
                   <StopCircle className="h-4 w-4"/>
                 ) : (
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 10v4M7 6v12M11 2v20M15 6v12M19 10v4"/></svg>
@@ -158,3 +170,5 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPlayAudio, isA
 };
 
 export default MessageBubble;
+
+    

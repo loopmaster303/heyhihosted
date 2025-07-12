@@ -14,11 +14,22 @@ interface ChatViewProps {
   className?: string;
   onPlayAudio: (text: string, messageId: string) => void;
   playingMessageId: string | null;
+  isTtsLoadingForId: string | null;
   onCopyToClipboard: (text: string) => void;
   onRegenerate: () => void;
 }
 
-const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, className, onPlayAudio, playingMessageId, onCopyToClipboard, onRegenerate }) => {
+const ChatView: React.FC<ChatViewProps> = ({
+  conversation,
+  messages,
+  isLoading,
+  className,
+  onPlayAudio,
+  playingMessageId,
+  isTtsLoadingForId,
+  onCopyToClipboard,
+  onRegenerate,
+}) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -35,7 +46,9 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
             key={msg.id} 
             message={msg}
             onPlayAudio={onPlayAudio}
-            isAudioPlayingForId={playingMessageId}
+            isPlaying={playingMessageId === msg.id}
+            isLoadingAudio={isTtsLoadingForId === msg.id}
+            isAnyAudioActive={playingMessageId !== null || isTtsLoadingForId !== null}
             onCopy={onCopyToClipboard}
             onRegenerate={onRegenerate}
             isLastMessage={index === messages.length - 1}
@@ -51,5 +64,7 @@ const ChatView: React.FC<ChatViewProps> = ({ conversation, messages, isLoading, 
 };
 
 export default ChatView;
+
+    
 
     

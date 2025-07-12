@@ -42,6 +42,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   
     const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+    const [isTtsLoadingForId, setIsTtsLoadingForId] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isRecording, setIsRecording] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -438,44 +439,58 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
   
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
+      // If clicking the button of the currently playing audio, stop it.
       if (audioRef.current && playingMessageId === messageId) {
         audioRef.current.pause();
         audioRef.current = null;
         setPlayingMessageId(null);
         return;
       }
+
+      // If any other audio is playing, stop it before proceeding.
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
+        setPlayingMessageId(null); // Clear the playing state
       }
+      
       if (!text || !text.trim()) {
-        setPlayingMessageId(null);
         return;
       }
-      setPlayingMessageId(messageId);
+      
+      setIsTtsLoadingForId(messageId);
+      
       try {
         const { audioDataUri } = await textToSpeech(text, selectedVoice);
         const audio = new Audio(audioDataUri);
         audioRef.current = audio;
+        
+        setPlayingMessageId(messageId);
+
         audio.play();
+        
         audio.onended = () => {
           if (audioRef.current === audio) {
             audioRef.current = null;
             setPlayingMessageId(null);
           }
         };
-        audio.onerror = () => {
+        
+        audio.onerror = (e) => {
           toast({ title: "Audio Playback Error", variant: "destructive" });
           if (audioRef.current === audio) {
             audioRef.current = null;
             setPlayingMessageId(null);
           }
-        }
+        };
       } catch (error) {
         console.error("TTS Error:", error);
         toast({ title: "Text-to-Speech Error", description: error instanceof Error ? error.message : "Could not generate audio.", variant: "destructive" });
-        audioRef.current = null;
-        setPlayingMessageId(null);
+        if (playingMessageId === messageId) {
+            setPlayingMessageId(null);
+        }
+      } finally {
+        setIsTtsLoadingForId(null);
       }
     }, [playingMessageId, toast, selectedVoice]);
   
@@ -573,7 +588,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       allConversations,
       isAiResponding, isImageMode,
       isHistoryPanelOpen, isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,
-      isRecording, playingMessageId, chatInputValue,
+      isRecording, playingMessageId, isTtsLoadingForId, chatInputValue,
       selectedVoice,
       isInitialLoadComplete,
       selectChat, startNewChat, deleteChat, sendMessage,
@@ -631,5 +646,7 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    
 
     

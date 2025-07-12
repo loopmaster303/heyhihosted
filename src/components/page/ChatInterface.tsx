@@ -30,6 +30,7 @@ export default function ChatInterface() {
         className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-4 no-scrollbar"
         onPlayAudio={chat.handlePlayAudio}
         playingMessageId={chat.playingMessageId}
+        isTtsLoadingForId={chat.isTtsLoadingForId}
         onCopyToClipboard={chat.handleCopyToClipboard}
         onRegenerate={chat.regenerateLastResponse}
       />
@@ -105,3 +106,5 @@ export default function ChatInterface() {
     </div>
   );
 };
+
+    
