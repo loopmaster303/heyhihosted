@@ -15,8 +15,6 @@ import HomePage from '@/components/page/HomePage';
 // Modular components and hooks
 import { useChat } from '@/components/ChatProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { auth } from '@/lib/firebase';
-import { type User } from 'firebase/auth';
 
 // Types & Config
 import type { ToolType, CurrentAppView, TileItem } from '@/types';
@@ -48,6 +46,16 @@ const toolTileItems: TileItem[] = [
   { id: 'about', title: 'about/hey.hi/readme' },
 ];
 
+const getViewForTool = (toolType: ToolType): CurrentAppView => {
+    switch(toolType) {
+        case 'long language loops': return 'chat';
+        case 'nocost imagination': return 'nocostImageTool';
+        case 'premium imagination': return 'replicateImageTool';
+        case 'personalization': return 'personalizationTool';
+        case 'about': return 'aboutView';
+        default: return 'tiles';
+    }
+};
 
 export default function AppContent() {
   const [currentView, setCurrentView] = useState<CurrentAppView>('tiles');
@@ -59,37 +67,23 @@ export default function AppContent() {
 
   const chat = useChat();
 
-  const getViewForTool = useCallback((toolType: ToolType): CurrentAppView => {
-    switch(toolType) {
-        case 'long language loops': return 'chat';
-        case 'nocost imagination': return 'nocostImageTool';
-        case 'premium imagination': return 'replicateImageTool';
-        case 'personalization': return 'personalizationTool';
-        case 'about': return 'aboutView';
-        default: return 'tiles';
-    }
-  }, []);
-
-  // This effect synchronizes the app view based on chat state or persisted tool type
   useEffect(() => {
     if (!chat.isInitialLoadComplete) return;
 
     if (chat.activeConversation) {
-      setCurrentView('chat');
+        setCurrentView('chat');
     } else if (activeToolTypeForView) {
-      setCurrentView(getViewForTool(activeToolTypeForView));
+        setCurrentView(getViewForTool(activeToolTypeForView));
     } else {
-      setCurrentView('tiles');
+        setCurrentView('tiles');
     }
-  }, [chat.activeConversation, activeToolTypeForView, chat.isInitialLoadComplete, getViewForTool]);
-  
-  const handleSelectTile = useCallback((toolType: ToolType) => {
-    const previousActiveConv = chat.activeConversation;
-    if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
-        chat.deleteChat(previousActiveConv.id, true); // silent delete
-    }
-    
+  }, [chat.activeConversation, activeToolTypeForView, chat.isInitialLoadComplete]);
+
+
+  const handleSelectTile = (toolType: ToolType) => {
     setActiveToolTypeForView(toolType);
+    const targetView = getViewForTool(toolType);
+    setCurrentView(targetView);
 
     if (toolType === 'long language loops') {
       const latestChat = chat.allConversations.find(c => c.toolType === 'long language loops' && c.messages.length > 0);
@@ -99,22 +93,20 @@ export default function AppContent() {
         chat.startNewChat();
       }
     } else {
+      // Ensure no chat is active when switching to other tools
+      if (chat.activeConversation) {
         chat.selectChat(null);
-        setCurrentView(getViewForTool(toolType));
+      }
     }
-  }, [chat, setActiveToolTypeForView, getViewForTool]);
-
+  };
 
   const handleNavigation = (toolOrView: ToolType | 'home') => {
-    const previousActiveConv = chat.activeConversation;
-    if (previousActiveConv && previousActiveConv.toolType === 'long language loops' && !previousActiveConv.messages.some(msg => msg.role === 'user' || msg.role === 'assistant')) {
-        chat.deleteChat(previousActiveConv.id, true);
-    }
-
     if (toolOrView === 'home') {
         setActiveToolTypeForView(null);
         setCurrentView('tiles');
-        chat.selectChat(null);
+        if (chat.activeConversation) {
+            chat.selectChat(null);
+        }
     } else {
         handleSelectTile(toolOrView);
     }
@@ -127,7 +119,6 @@ export default function AppContent() {
 
     switch (currentView) {
       case 'chat':
-        // Ensure we only render chat if there's an active conversation
         return chat.activeConversation ? <ChatInterface /> : <HomePage onSelectTile={handleSelectTile} toolTileItems={toolTileItems} />;
       case 'nocostImageTool':
         return <VisualizingLoopsTool />;
@@ -163,7 +154,8 @@ export default function AppContent() {
             </p>
           </div>
         );
-      default: // 'tiles'
+      case 'tiles':
+      default:
         return <HomePage onSelectTile={handleSelectTile} toolTileItems={toolTileItems} />;
     }
   };
@@ -181,9 +173,9 @@ export default function AppContent() {
         />
       )}
 
-      <div className={`flex flex-col h-full ${shouldShowHeader ? 'pt-16' : ''}`}>
+      <main className={`flex flex-col h-full ${shouldShowHeader ? 'pt-16' : ''}`}>
         {renderContent()}
-      </div>
+      </main>
 
       <DeleteChatDialog
         isOpen={chat.isDeleteDialogOpen}
