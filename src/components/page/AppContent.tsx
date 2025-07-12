@@ -16,7 +16,7 @@ import HomePage from '@/components/page/HomePage';
 import { useChat } from '@/components/ChatProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { auth } from '@/lib/firebase';
-import { signInAnonymously, onAuthStateChanged, User } from 'firebase/auth';
+import { type User } from 'firebase/auth';
 
 // Types & Config
 import type { ToolType, CurrentAppView, TileItem } from '@/types';
@@ -53,46 +53,25 @@ export default function AppContent() {
   const [currentView, setCurrentView] = useState<CurrentAppView>('tiles');
   const [activeToolTypeForView, setActiveToolTypeForView] = useLocalStorageState<ToolType | null>('activeToolTypeForView', null);
   
-  const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
-  const [authLoading, setAuthLoading] = useState(true);
-
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
   const [replicateToolPassword, setReplicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
 
   const chat = useChat();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            setCurrentUser(user);
-        } else {
-            try {
-                const userCredential = await signInAnonymously(auth);
-                setCurrentUser(userCredential.user);
-            } catch (error) {
-                console.error("Anonymous sign-in failed:", error);
-                // Handle sign-in failure (e.g., show an error message)
-            }
-        }
-        setAuthLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-  
   // This effect synchronizes the app view based on chat state or persisted tool type
   useEffect(() => {
-    if (authLoading) return;
+    if (!chat.isInitialLoadComplete) return;
 
     if (chat.activeConversation) {
       setCurrentView('chat');
+      // setActiveToolTypeForView('long language loops');
     } else if (activeToolTypeForView) {
       setCurrentView(getViewForTool(activeToolTypeForView));
     } else {
       setCurrentView('tiles');
     }
-  }, [chat.activeConversation, activeToolTypeForView, authLoading]);
+  }, [chat.activeConversation, activeToolTypeForView, chat.isInitialLoadComplete]);
 
   const getViewForTool = (toolType: ToolType): CurrentAppView => {
     switch(toolType) {
@@ -111,7 +90,7 @@ export default function AppContent() {
         chat.deleteChat(previousActiveConv.id, true); // silent delete
     }
 
-    setActiveToolTypeForView(toolType);
+    // setActiveToolTypeForView(toolType);
     if (toolType === 'long language loops') {
       const latestChat = chat.allConversations.find(c => c.toolType === 'long language loops' && c.messages.length > 0);
       if (latestChat) {
@@ -123,7 +102,7 @@ export default function AppContent() {
         chat.selectChat(null);
         setCurrentView(getViewForTool(toolType));
     }
-  }, [chat, setActiveToolTypeForView]);
+  }, [chat]);
 
 
   const handleNavigation = (toolOrView: ToolType | 'home') => {
@@ -133,7 +112,7 @@ export default function AppContent() {
     }
 
     if (toolOrView === 'home') {
-        setActiveToolTypeForView(null);
+        // setActiveToolTypeForView(null);
         setCurrentView('tiles');
         chat.selectChat(null);
     } else {
@@ -142,15 +121,13 @@ export default function AppContent() {
   };
 
   const renderContent = () => {
-    if (authLoading || (currentView === 'chat' && chat.isInitialLoadComplete === false)) {
+    if (!chat.isInitialLoadComplete || (chat.currentUser === null)) {
         return <LoadingSpinner />;
     }
 
     switch (currentView) {
       case 'chat':
         if (!chat.activeConversation) {
-            // This case can happen if a chat was deleted and no new one is selected yet.
-            // We can show a loading state or redirect to home.
             return <LoadingSpinner />;
         }
         return <ChatInterface />;
