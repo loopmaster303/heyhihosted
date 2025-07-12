@@ -313,11 +313,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
       };
 
-      // Optimistically update UI
       setActiveConversation(newConversation);
       setAllConversations(prev => [newConversation, ...prev].sort((a, b) => new Date(b.createdAt.toString()).getTime() - new Date(a.createdAt.toString()).getTime()));
 
-      // Prune old conversations if necessary
       if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
           const oldestConversation = [...allConversations].sort((a, b) => new Date(a.createdAt.toString()).getTime() - new Date(b.createdAt.toString()).getTime())[0];
           try {
@@ -327,15 +325,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               console.error("Error deleting oldest conversation:", error);
           }
       }
-
-      // Persist to Firestore
+      
       const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversation.id);
       try {
         await setDoc(convRef, newConversation);
       } catch (error) {
         console.error("Error creating new conversation in Firestore:", error);
         toast({ title: "Error", description: "Could not create new chat.", variant: "destructive" });
-        // Rollback optimistic update on failure
         setAllConversations(prev => prev.filter(c => c.id !== newConversation.id));
         setActiveConversation(null);
       }
@@ -354,7 +350,15 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         toast({ title: "Invalid Title", description: "Title cannot be empty.", variant: "destructive" });
         return;
       }
-      updateActiveConversationState({ title: editingTitle.trim() });
+      const convToUpdate = allConversations.find(c => c.id === chatToEditId);
+      if (convToUpdate) {
+        const updatedConv = { ...convToUpdate, title: editingTitle.trim() };
+        setAllConversations(allConversations.map(c => c.id === chatToEditId ? updatedConv : c));
+        if (activeConversation?.id === chatToEditId) {
+            setActiveConversation(updatedConv);
+        }
+        updateFirestoreConversation(updatedConv);
+      }
       toast({ title: "Title Updated" });
       setIsEditTitleDialogOpen(false);
     };
@@ -369,9 +373,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const deleteChat = useCallback(async (conversationId: string) => {
         if (!currentUser) return;
         const wasActive = activeConversation?.id === conversationId;
-
-        // Optimistically update UI
         const conversationsBeforeDelete = allConversations;
+        
         const updatedConversations = allConversations.filter(c => c.id !== conversationId);
         setAllConversations(updatedConversations);
   
@@ -382,14 +385,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
         toast({ title: "Chat Deleted" });
         
-        // Persist to Firestore
         const convRef = doc(db, 'users', currentUser.uid, 'conversations', conversationId);
         try {
             await deleteDoc(convRef);
         } catch (error) {
             console.error("Error deleting conversation from Firestore:", error);
             toast({ title: "Delete Error", description: "Could not delete chat from the cloud.", variant: "destructive" });
-            // Rollback on failure
             setAllConversations(conversationsBeforeDelete);
         }
     }, [currentUser, activeConversation?.id, allConversations, selectChat, toast]);
@@ -442,19 +443,15 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
   
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
-      // If clicking the button of the currently playing audio, stop it.
-      if (audioRef.current && playingMessageId === messageId) {
-        audioRef.current.pause();
-        audioRef.current = null;
-        setPlayingMessageId(null);
-        return;
-      }
-
-      // If any other audio is playing, stop it before proceeding.
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
-        setPlayingMessageId(null); // Clear the playing state
+        const previouslyPlayingId = playingMessageId;
+        setPlayingMessageId(null);
+        if (previouslyPlayingId === messageId) {
+          setIsTtsLoadingForId(null);
+          return;
+        }
       }
       
       if (!text || !text.trim()) {
@@ -468,6 +465,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const audio = new Audio(audioDataUri);
         audioRef.current = audio;
         
+        setIsTtsLoadingForId(null);
         setPlayingMessageId(messageId);
 
         audio.play();
@@ -489,11 +487,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       } catch (error) {
         console.error("TTS Error:", error);
         toast({ title: "Text-to-Speech Error", description: error instanceof Error ? error.message : "Could not generate audio.", variant: "destructive" });
+        setIsTtsLoadingForId(null);
         if (playingMessageId === messageId) {
             setPlayingMessageId(null);
         }
-      } finally {
-        setIsTtsLoadingForId(null);
       }
     }, [playingMessageId, toast, selectedVoice]);
   
@@ -565,7 +562,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                     toast({ title: "Processing Failed", description: error instanceof Error ? error.message : "Could not process audio.", variant: "destructive" });
                 }
 
-                // Clean up stream tracks
                 stream.getTracks().forEach(track => track.stop());
             };
 
@@ -731,3 +727,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    

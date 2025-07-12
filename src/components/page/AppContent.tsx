@@ -4,22 +4,18 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 
-// UI Components
 import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import AppHeader from '@/components/page/AppHeader';
 import HomePage from '@/components/page/HomePage';
-import ChatInterface from '@/components/page/ChatInterface'; // Static import for the most common view
+import ChatInterface from '@/components/page/ChatInterface'; 
 
-// Modular components and hooks
 import { useChat } from '@/components/ChatProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 
-// Types & Config
 import type { ToolType, TileItem } from '@/types';
 import { RefreshCw } from 'lucide-react';
 
-// Dynamically import heavy tool components to improve initial load time
 const LoadingSpinner = () => (
     <div className="flex-grow flex items-center justify-center h-full">
       <RefreshCw className="w-8 h-8 animate-spin" />
@@ -51,7 +47,7 @@ const toolTileItems: TileItem[] = [
 ];
 
 export default function AppContent() {
-  const [activeToolType, setActiveToolType] = useLocalStorageState<ToolType | null>('activeToolType', null);
+  const [activeTool, setActiveTool] = useLocalStorageState<ToolType | null>('activeTool', null);
   
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
@@ -61,34 +57,27 @@ export default function AppContent() {
 
   const handleNavigation = (toolOrView: ToolType | 'home') => {
     if (toolOrView === 'home') {
-        setActiveToolType(null);
-        chat.selectChat(null); // Deselect any active chat
+        setActiveTool(null);
+        chat.selectChat(null); 
+    } else if (toolOrView === 'long language loops') {
+        setActiveTool(null); // The chat view is controlled by activeConversation, not a tool state.
+        chat.startNewChat();
     } else {
-        setActiveToolType(toolOrView);
-        if (toolOrView === 'long language loops') {
-            // Start a new chat, the rendering logic will automatically pick it up
-            chat.startNewChat();
-        } else {
-            // For other tools, deselect any active chat to hide the chat view
-            chat.selectChat(null);
-        }
+        chat.selectChat(null); // Deselect chat when switching to a non-chat tool
+        setActiveTool(toolOrView);
     }
   };
 
   const renderContent = () => {
-    // Priority 1: Show loading spinner until Firebase auth is ready.
     if (!chat.isInitialLoadComplete) {
       return <LoadingSpinner />;
     }
 
-    // Priority 2: If there's an active conversation, ALWAYS show the chat interface.
-    // This is the primary "source of truth" for the chat view.
     if (chat.activeConversation) {
         return <ChatInterface />;
     }
 
-    // Priority 3: If no active conversation, show the selected tool.
-    switch (activeToolType) {
+    switch (activeTool) {
       case 'nocost imagination':
         return <VisualizingLoopsTool />;
       case 'premium imagination':
@@ -113,16 +102,12 @@ export default function AppContent() {
             </p>
           </div>
         );
-      // Fallback: If no tool is active and no chat is active, show the home page.
-      case 'long language loops': // This case can be hit briefly before activeConversation is set
       default:
         return <HomePage onSelectTile={handleNavigation} toolTileItems={toolTileItems} />;
     }
   };
 
-  // The header should be shown for any view that is NOT the home page.
-  // This is true if a tool is selected OR a chat is active.
-  const shouldShowHeader = activeToolType !== null || chat.activeConversation !== null;
+  const shouldShowHeader = activeTool !== null || chat.activeConversation !== null;
 
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
@@ -157,3 +142,5 @@ export default function AppContent() {
     </div>
   );
 }
+
+    
