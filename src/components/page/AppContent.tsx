@@ -17,7 +17,7 @@ import { useChat } from '@/components/ChatProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 
 // Types & Config
-import type { ToolType, CurrentAppView, TileItem } from '@/types';
+import type { ToolType, TileItem } from '@/types';
 import { RefreshCw } from 'lucide-react';
 
 // Dynamically import heavy components
@@ -46,20 +46,8 @@ const toolTileItems: TileItem[] = [
   { id: 'about', title: 'about/hey.hi/readme' },
 ];
 
-const getViewForTool = (toolType: ToolType): CurrentAppView => {
-    switch(toolType) {
-        case 'long language loops': return 'chat';
-        case 'nocost imagination': return 'nocostImageTool';
-        case 'premium imagination': return 'replicateImageTool';
-        case 'personalization': return 'personalizationTool';
-        case 'about': return 'aboutView';
-        default: return 'tiles';
-    }
-};
-
 export default function AppContent() {
-  const [currentView, setCurrentView] = useState<CurrentAppView>('tiles');
-  const [activeToolTypeForView, setActiveToolTypeForView] = useLocalStorageState<ToolType | null>('activeToolTypeForView', null);
+  const [activeToolType, setActiveToolType] = useLocalStorageState<ToolType | null>('activeToolType', null);
   
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
@@ -67,24 +55,8 @@ export default function AppContent() {
 
   const chat = useChat();
 
-  useEffect(() => {
-    if (!chat.isInitialLoadComplete) return;
-
-    if (chat.activeConversation) {
-        setCurrentView('chat');
-    } else if (activeToolTypeForView) {
-        setCurrentView(getViewForTool(activeToolTypeForView));
-    } else {
-        setCurrentView('tiles');
-    }
-  }, [chat.activeConversation, activeToolTypeForView, chat.isInitialLoadComplete]);
-
-
   const handleSelectTile = (toolType: ToolType) => {
-    setActiveToolTypeForView(toolType);
-    const targetView = getViewForTool(toolType);
-    setCurrentView(targetView);
-
+    setActiveToolType(toolType);
     if (toolType === 'long language loops') {
       const latestChat = chat.allConversations.find(c => c.toolType === 'long language loops' && c.messages.length > 0);
       if (latestChat) {
@@ -102,8 +74,7 @@ export default function AppContent() {
 
   const handleNavigation = (toolOrView: ToolType | 'home') => {
     if (toolOrView === 'home') {
-        setActiveToolTypeForView(null);
-        setCurrentView('tiles');
+        setActiveToolType(null);
         if (chat.activeConversation) {
             chat.selectChat(null);
         }
@@ -114,15 +85,17 @@ export default function AppContent() {
 
   const renderContent = () => {
     if (!chat.isInitialLoadComplete) {
-        return <LoadingSpinner />;
+      return <LoadingSpinner />;
     }
 
-    switch (currentView) {
-      case 'chat':
-        return chat.activeConversation ? <ChatInterface /> : <HomePage onSelectTile={handleSelectTile} toolTileItems={toolTileItems} />;
-      case 'nocostImageTool':
+    if (chat.activeConversation) {
+        return <ChatInterface />;
+    }
+
+    switch (activeToolType) {
+      case 'nocost imagination':
         return <VisualizingLoopsTool />;
-      case 'replicateImageTool':
+      case 'premium imagination':
         return (
           <div className="flex flex-col h-full">
             <div className="flex-grow overflow-y-auto">
@@ -130,7 +103,7 @@ export default function AppContent() {
             </div>
           </div>
         );
-      case 'personalizationTool':
+      case 'personalization':
         return (
           <div className="flex flex-col h-full">
             <div className="flex-grow overflow-y-auto">
@@ -145,7 +118,7 @@ export default function AppContent() {
             </div>
           </div>
         );
-      case 'aboutView':
+      case 'about':
         return (
           <div className="flex flex-col h-full items-center justify-center p-4 text-center">
             <h2 className="text-3xl font-code text-foreground">about/hey.hi/readme</h2>
@@ -154,13 +127,13 @@ export default function AppContent() {
             </p>
           </div>
         );
-      case 'tiles':
+      case 'long language loops':
       default:
         return <HomePage onSelectTile={handleSelectTile} toolTileItems={toolTileItems} />;
     }
   };
 
-  const shouldShowHeader = currentView !== 'tiles';
+  const shouldShowHeader = activeToolType !== null || chat.activeConversation !== null;
 
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
