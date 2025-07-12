@@ -76,7 +76,7 @@ export default function AppContent() {
 
     if (chat.activeConversation) {
       setCurrentView('chat');
-    } else if (activeToolTypeForView && getViewForTool(activeToolTypeForView) !== 'chat') {
+    } else if (activeToolTypeForView) {
       setCurrentView(getViewForTool(activeToolTypeForView));
     } else {
       setCurrentView('tiles');
@@ -100,9 +100,9 @@ export default function AppContent() {
       }
     } else {
         chat.selectChat(null);
-        // The useEffect will handle setting the view
+        setCurrentView(getViewForTool(toolType));
     }
-  }, [chat, setActiveToolTypeForView]);
+  }, [chat, setActiveToolTypeForView, getViewForTool]);
 
 
   const handleNavigation = (toolOrView: ToolType | 'home') => {
@@ -121,13 +121,14 @@ export default function AppContent() {
   };
 
   const renderContent = () => {
-    if (!chat.isInitialLoadComplete || !chat.currentUser) {
+    if (!chat.isInitialLoadComplete) {
         return <LoadingSpinner />;
     }
 
     switch (currentView) {
       case 'chat':
-        return <ChatInterface />;
+        // Ensure we only render chat if there's an active conversation
+        return chat.activeConversation ? <ChatInterface /> : <HomePage onSelectTile={handleSelectTile} toolTileItems={toolTileItems} />;
       case 'nocostImageTool':
         return <VisualizingLoopsTool />;
       case 'replicateImageTool':

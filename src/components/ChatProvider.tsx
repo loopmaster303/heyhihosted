@@ -52,26 +52,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
     const [selectedVoice, setSelectedVoice] = useState<string>(AVAILABLE_TTS_VOICES[0].id);
   
     const { toast } = useToast();
-  
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                setCurrentUser(user);
-            } else {
-                try {
-                    const userCredential = await signInAnonymously(auth);
-                    setCurrentUser(userCredential.user);
-                } catch (error) {
-                    console.error("Anonymous sign-in failed:", error);
-                    toast({ title: "Authentication Error", description: "Could not connect to the service.", variant: "destructive" });
-                }
-            }
-        });
-        return () => unsubscribe();
-    }, [toast]);
 
     const loadConversations = useCallback(async (user: User) => {
-        setIsInitialLoadComplete(false);
         const conversationsRef = collection(db, 'users', user.uid, 'conversations');
         const q = query(conversationsRef, orderBy('createdAt', 'desc'));
 
@@ -96,20 +78,32 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
             console.error("Error loading conversations from Firestore:", error);
             toast({ title: "Error", description: "Could not load chat history.", variant: "destructive" });
             return [];
-        } finally {
-            setIsInitialLoadComplete(true);
         }
     }, [toast]);
     
     useEffect(() => {
-        if (currentUser) {
-            loadConversations(currentUser);
-        } else {
-            setAllConversations([]);
-            setActiveConversation(null);
-            setIsInitialLoadComplete(true);
-        }
-    }, [currentUser, loadConversations]);
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                setCurrentUser(user);
+                await loadConversations(user);
+                setIsInitialLoadComplete(true);
+            } else {
+                try {
+                    const userCredential = await signInAnonymously(auth);
+                    setCurrentUser(userCredential.user);
+                    // For a new anonymous user, there are no conversations to load.
+                    setAllConversations([]);
+                    setIsInitialLoadComplete(true);
+                } catch (error) {
+                    console.error("Anonymous sign-in failed:", error);
+                    toast({ title: "Authentication Error", description: "Could not connect to the service. Please check your connection and Firebase setup.", variant: "destructive" });
+                    // Still set loading to complete to prevent infinite spinner on auth error
+                    setIsInitialLoadComplete(true);
+                }
+            }
+        });
+        return () => unsubscribe();
+    }, [toast, loadConversations]);
     
     const updateFirestoreConversation = useCallback(async (conversation: Conversation) => {
         if (!currentUser) return;
@@ -364,7 +358,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       setIsDeleteDialogOpen(true);
     };
     
-    const deleteChat = async (conversationId: string, silent = false) => {
+    const deleteChat = useCallback(async (conversationId: string, silent = false) => {
         if (!currentUser) return;
         const wasActive = activeConversation?.id === conversationId;
 
@@ -385,7 +379,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         if (!silent) {
           toast({ title: "Chat Deleted" });
         }
-    }
+    }, [currentUser, activeConversation?.id, allConversations, selectChat, startNewChat, toast]);
   
     const confirmDeleteChat = () => {
       if (!chatToDeleteId) return;
@@ -628,5 +622,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    
