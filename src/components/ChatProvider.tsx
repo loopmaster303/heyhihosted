@@ -19,12 +19,11 @@ import { onAuthStateChanged, type User, signInAnonymously } from 'firebase/auth'
 export interface UseChatLogicProps {
   userDisplayName?: string;
   customSystemPrompt?: string;
-  onConversationStarted?: () => void;
 }
 
 const MAX_STORED_CONVERSATIONS = 50;
 
-export function useChatLogic({ userDisplayName, customSystemPrompt, onConversationStarted }: UseChatLogicProps) {
+export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLogicProps) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
     const [allConversations, setAllConversations] = useState<Conversation[]>([]);
@@ -91,14 +90,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
                 try {
                     const userCredential = await signInAnonymously(auth);
                     setCurrentUser(userCredential.user);
-                    // For a new anonymous user, there are no conversations to load.
                     setAllConversations([]);
                     setIsInitialLoadComplete(true);
                 } catch (error) {
                     console.error("Anonymous sign-in failed:", error);
-                    toast({ title: "Authentication Error", description: "Could not connect to the service. Please check your connection and Firebase setup.", variant: "destructive" });
-                    // Still set loading to complete to prevent infinite spinner on auth error
-                    setIsInitialLoadComplete(true);
+                    toast({ title: "Authentication Error", description: "Could not connect. Please check your Firebase configuration and security rules.", variant: "destructive" });
+                    setIsInitialLoadComplete(true); 
                 }
             }
         });
@@ -293,11 +290,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           return;
       }
       const conversationToSelect = allConversations.find(c => c.id === conversationId);
-      if (!conversationToSelect) return;
-  
-      setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null });
-      onConversationStarted?.();
-    }, [allConversations, onConversationStarted]);
+      if (conversationToSelect) {
+        setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null });
+      }
+    }, [allConversations]);
     
     const startNewChat = useCallback(async () => {
       if (!currentUser) return;
@@ -313,10 +309,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
       };
 
+      // Optimistically update UI
+      setActiveConversation(newConversation);
+      setAllConversations(prev => [newConversation, ...prev].sort((a, b) => new Date(b.createdAt.toString()).getTime() - new Date(a.createdAt.toString()).getTime()));
+
+      // Prune old conversations if necessary
       if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
-          const oldestConversation = allConversations.reduce((oldest, current) => 
-              new Date(oldest.createdAt.toString()) < new Date(current.createdAt.toString()) ? oldest : current
-          );
+          const oldestConversation = [...allConversations].sort((a, b) => new Date(a.createdAt.toString()).getTime() - new Date(b.createdAt.toString()).getTime())[0];
           try {
               const oldConvRef = doc(db, 'users', currentUser.uid, 'conversations', oldestConversation.id);
               await deleteDoc(oldConvRef);
@@ -325,13 +324,18 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
           }
       }
 
+      // Persist to Firestore
       const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversation.id);
-      await setDoc(convRef, newConversation);
-      
-      setAllConversations(prev => [newConversation, ...prev].sort((a, b) => new Date(b.createdAt.toString()).getTime() - new Date(a.createdAt.toString()).getTime()));
-      setActiveConversation(newConversation);
-      onConversationStarted?.();
-    }, [onConversationStarted, currentUser, allConversations]);
+      try {
+        await setDoc(convRef, newConversation);
+      } catch (error) {
+        console.error("Error creating new conversation in Firestore:", error);
+        toast({ title: "Error", description: "Could not create new chat.", variant: "destructive" });
+        // Rollback optimistic update on failure
+        setAllConversations(prev => prev.filter(c => c.id !== newConversation.id));
+        setActiveConversation(null);
+      }
+    }, [currentUser, allConversations, toast]);
     
     const requestEditTitle = (conversationId: string) => {
       const convToEdit = allConversations.find(c => c.id === conversationId);
@@ -358,28 +362,33 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
       setIsDeleteDialogOpen(true);
     };
     
-    const deleteChat = useCallback(async (conversationId: string, silent = false) => {
+    const deleteChat = useCallback(async (conversationId: string) => {
         if (!currentUser) return;
         const wasActive = activeConversation?.id === conversationId;
 
-        const convRef = doc(db, 'users', currentUser.uid, 'conversations', conversationId);
-        await deleteDoc(convRef);
-        
+        // Optimistically update UI
+        const conversationsBeforeDelete = allConversations;
         const updatedConversations = allConversations.filter(c => c.id !== conversationId);
         setAllConversations(updatedConversations);
   
         if (wasActive) {
           const nextChat = updatedConversations.find(c => c.toolType === 'long language loops');
-          if (nextChat) {
-            selectChat(nextChat.id);
-          } else {
-            startNewChat();
-          }
+          selectChat(nextChat ? nextChat.id : null);
         }
-        if (!silent) {
-          toast({ title: "Chat Deleted" });
+
+        toast({ title: "Chat Deleted" });
+        
+        // Persist to Firestore
+        const convRef = doc(db, 'users', currentUser.uid, 'conversations', conversationId);
+        try {
+            await deleteDoc(convRef);
+        } catch (error) {
+            console.error("Error deleting conversation from Firestore:", error);
+            toast({ title: "Delete Error", description: "Could not delete chat from the cloud.", variant: "destructive" });
+            // Rollback on failure
+            setAllConversations(conversationsBeforeDelete);
         }
-    }, [currentUser, activeConversation?.id, allConversations, selectChat, startNewChat, toast]);
+    }, [currentUser, activeConversation?.id, allConversations, selectChat, toast]);
   
     const confirmDeleteChat = () => {
       if (!chatToDeleteId) return;
@@ -622,3 +631,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 
 // UI Components
@@ -29,12 +29,12 @@ const LoadingSpinner = () => (
 
 const ReplicateImageTool = dynamic(() => import('@/components/tools/ReplicateImageTool'), {
   loading: () => <LoadingSpinner />,
-  ssr: false, // These tools are client-side only
+  ssr: false, 
 });
 
 const VisualizingLoopsTool = dynamic(() => import('@/components/tools/VisualizingLoopsTool'), {
   loading: () => <LoadingSpinner />,
-  ssr: false, // These tools are client-side only
+  ssr: false,
 });
 
 
@@ -55,69 +55,47 @@ export default function AppContent() {
 
   const chat = useChat();
 
-  const handleSelectTile = (toolType: ToolType) => {
-    setActiveToolType(toolType);
-    if (toolType === 'long language loops') {
-      const latestChat = chat.allConversations.find(c => c.toolType === 'long language loops' && c.messages.length > 0);
-      if (latestChat) {
-        chat.selectChat(latestChat.id);
-      } else {
-        chat.startNewChat();
-      }
-    } else {
-      if (chat.activeConversation) {
-        chat.selectChat(null);
-      }
-    }
-  };
-
   const handleNavigation = (toolOrView: ToolType | 'home') => {
     if (toolOrView === 'home') {
         setActiveToolType(null);
-        if (chat.activeConversation) {
-            chat.selectChat(null);
-        }
+        chat.selectChat(null);
     } else {
-        handleSelectTile(toolOrView);
+        setActiveToolType(toolOrView);
+        if (toolOrView === 'long language loops') {
+          chat.startNewChat();
+        } else {
+          chat.selectChat(null);
+        }
     }
   };
 
   const renderContent = () => {
+    // Priority 1: Show loading spinner until Firebase auth is ready.
     if (!chat.isInitialLoadComplete) {
       return <LoadingSpinner />;
     }
 
-    // Priority 1: If there's an active conversation, ALWAYS show the chat interface.
+    // Priority 2: If there's an active conversation, ALWAYS show the chat interface.
     if (chat.activeConversation) {
         return <ChatInterface />;
     }
 
-    // Priority 2: If no active conversation, show the selected tool.
+    // Priority 3: If no active conversation, show the selected tool.
     switch (activeToolType) {
       case 'nocost imagination':
         return <VisualizingLoopsTool />;
       case 'premium imagination':
-        return (
-          <div className="flex flex-col h-full">
-            <div className="flex-grow overflow-y-auto">
-              <ReplicateImageTool password={replicateToolPassword} />
-            </div>
-          </div>
-        );
+        return <ReplicateImageTool password={replicateToolPassword} />;
       case 'personalization':
         return (
-          <div className="flex flex-col h-full">
-            <div className="flex-grow overflow-y-auto">
-              <PersonalizationTool
-                userDisplayName={userDisplayName}
-                setUserDisplayName={setUserDisplayName}
-                customSystemPrompt={customSystemPrompt}
-                setCustomSystemPrompt={setCustomSystemPrompt}
-                replicateToolPassword={replicateToolPassword}
-                setReplicateToolPassword={setReplicateToolPassword}
-              />
-            </div>
-          </div>
+          <PersonalizationTool
+            userDisplayName={userDisplayName}
+            setUserDisplayName={setUserDisplayName}
+            customSystemPrompt={customSystemPrompt}
+            setCustomSystemPrompt={setCustomSystemPrompt}
+            replicateToolPassword={replicateToolPassword}
+            setReplicateToolPassword={setReplicateToolPassword}
+          />
         );
       case 'about':
         return (
@@ -128,9 +106,9 @@ export default function AppContent() {
             </p>
           </div>
         );
-      // Fallback: If no tool is active, show the home page.
+      // Fallback: If no tool is active and no chat is active, show the home page.
       default:
-        return <HomePage onSelectTile={handleSelectTile} toolTileItems={toolTileItems} />;
+        return <HomePage onSelectTile={handleNavigation} toolTileItems={toolTileItems} />;
     }
   };
 
@@ -147,7 +125,7 @@ export default function AppContent() {
         />
       )}
 
-      <main className={`flex flex-col h-full ${shouldShowHeader ? 'pt-16' : ''}`}>
+      <main className={`flex flex-col flex-grow ${shouldShowHeader ? 'pt-16' : ''}`}>
         {renderContent()}
       </main>
 
@@ -169,3 +147,5 @@ export default function AppContent() {
     </div>
   );
 }
+
+    
