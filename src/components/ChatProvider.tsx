@@ -10,6 +10,7 @@ import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { textToSpeech } from '@/ai/flows/tts-flow';
+import { getPollinationsTranscription } from '@/ai/flows/pollinations-stt-flow';
 
 import { db, auth } from '@/lib/firebase';
 import { doc, getDoc, setDoc, collection, query, orderBy, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
@@ -495,11 +496,56 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }, [playingMessageId, toast, selectedVoice]);
   
     const handleStartRecording = useCallback(async () => {
-      toast({ title: "Not Implemented", description: "Speech-to-text has been temporarily disabled." });
-    }, [toast]);
-  
+        if (isRecording) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            mediaRecorderRef.current = recorder;
+            audioChunksRef.current = [];
+
+            recorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data);
+                }
+            };
+
+            recorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                reader.onloadend = async () => {
+                    const base64data = reader.result as string;
+                    toast({ title: "Transcribing audio..." });
+                    try {
+                        const { transcription } = await getPollinationsTranscription({ audioDataUri: base64data });
+                        setChatInputValue(prev => prev ? `${prev} ${transcription}` : transcription);
+                        toast({ title: "Transcription complete" });
+                    } catch (error) {
+                        console.error("Transcription Error:", error);
+                        toast({ title: "Transcription Failed", description: error instanceof Error ? error.message : "Could not transcribe audio.", variant: "destructive" });
+                    }
+                };
+
+                // Clean up stream tracks
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            recorder.start();
+            setIsRecording(true);
+            toast({ title: "Recording started..." });
+        } catch (error) {
+            console.error("Error starting recording:", error);
+            toast({ title: "Microphone Access Denied", description: "Please enable microphone permissions in your browser settings.", variant: "destructive" });
+        }
+    }, [isRecording, toast]);
+
     const handleStopRecording = useCallback(() => {
-    }, []);
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            toast({ title: "Recording stopped." });
+        }
+    }, [isRecording, toast]);
   
     const handleToggleRecording = useCallback(() => {
       if (isRecording) {
@@ -646,7 +692,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    
-
-    
