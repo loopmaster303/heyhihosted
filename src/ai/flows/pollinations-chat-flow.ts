@@ -104,8 +104,16 @@ export async function getPollinationsChatCompletion(
       // Pass the specific error message from the API back to the caller
       throw new Error(`Pollinations API request failed with status ${response.status}: ${detail}`);
     }
+    
+    // 3. Try to parse as JSON, but fall back to plain text if that fails.
+    let result;
+    try {
+        result = JSON.parse(responseText);
+    } catch (e) {
+        // If parsing fails, the response is likely plain text. Use it directly.
+        return { responseText: responseText.trim() };
+    }
 
-    const result = JSON.parse(responseText);
 
     if (result.error) {
       const detail = typeof result.error === 'string'
@@ -114,7 +122,7 @@ export async function getPollinationsChatCompletion(
       throw new Error(`Pollinations API returned an error: ${detail}`);
     }
 
-    // 3. Extract the response text from the API result
+    // 4. Extract the response text from the parsed JSON result
     let replyText: string | null = null;
     if (result.choices && Array.isArray(result.choices) && result.choices.length > 0) {
       const choice = result.choices[0];
