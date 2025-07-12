@@ -69,8 +69,6 @@ export default function ChatInterface() {
             onStyleChange={chat.handleStyleChange}
             selectedVoice={chat.selectedVoice}
             onVoiceChange={chat.handleVoiceChange}
-            isRecording={chat.isRecording}
-            onToggleRecording={chat.handleToggleRecording}
             inputValue={chat.chatInputValue}
             onInputChange={chat.setChatInputValue}
             isImageMode={chat.isImageMode}

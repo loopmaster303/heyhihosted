@@ -10,13 +10,10 @@ import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { textToSpeech } from '@/ai/flows/tts-flow';
-import { getPollinationsTranscription } from '@/ai/flows/pollinations-stt-flow';
 
 import { db, auth } from '@/lib/firebase';
 import { doc, getDoc, setDoc, collection, query, orderBy, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, type User, signInAnonymously } from 'firebase/auth';
-// @ts-expect-error
-import lamejs from 'lamejs';
 
 
 export interface UseChatLogicProps {
@@ -47,9 +44,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
     const [isTtsLoadingForId, setIsTtsLoadingForId] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [isRecording, setIsRecording] = useState(false);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const audioChunksRef = useRef<Blob[]>([]);
     const [chatInputValue, setChatInputValue] = useState('');
 
     const [selectedVoice, setSelectedVoice] = useState<string>(AVAILABLE_TTS_VOICES[0].id);
@@ -494,102 +488,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       }
     }, [playingMessageId, toast, selectedVoice]);
   
-    const convertToMp3 = async (audioBlob: Blob): Promise<{ dataUri: string, blob: Blob }> => {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const arrayBuffer = await audioBlob.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    
-        const mp3encoder = new lamejs.Mp3Encoder(1, audioBuffer.sampleRate, 128);
-        const pcmData = audioBuffer.getChannelData(0);
-        const samples = new Int16Array(pcmData.length);
-        for (let i = 0; i < pcmData.length; i++) {
-            samples[i] = pcmData[i] * 32767.5;
-        }
-    
-        const mp3Data = [];
-        const sampleBlockSize = 1152;
-        for (let i = 0; i < samples.length; i += sampleBlockSize) {
-            const sampleChunk = samples.subarray(i, i + sampleBlockSize);
-            const mp3buf = mp3encoder.encodeBuffer(sampleChunk);
-            if (mp3buf.length > 0) {
-                mp3Data.push(new Int8Array(mp3buf));
-            }
-        }
-        const mp3buf = mp3encoder.flush();
-        if (mp3buf.length > 0) {
-            mp3Data.push(new Int8Array(mp3buf));
-        }
-    
-        const mp3Blob = new Blob(mp3Data, { type: 'audio/mpeg' });
-        const reader = new FileReader();
-        return new Promise((resolve, reject) => {
-            reader.onloadend = () => {
-                resolve({ dataUri: reader.result as string, blob: mp3Blob });
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(mp3Blob);
-        });
-    };
-
-    const handleStartRecording = useCallback(async () => {
-        if (isRecording) return;
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-            mediaRecorderRef.current = recorder;
-            audioChunksRef.current = [];
-
-            recorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunksRef.current.push(event.data);
-                }
-            };
-
-            recorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                
-                try {
-                    toast({ title: "Converting to MP3..." });
-                    const { dataUri: mp3DataUri } = await convertToMp3(audioBlob);
-                    
-                    toast({ title: "Transcribing audio..." });
-                    const { transcription } = await getPollinationsTranscription({ audioDataUri: mp3DataUri });
-                    setChatInputValue(prev => prev ? `${prev} ${transcription}`.trim() : transcription);
-                    toast({ title: "Transcription complete" });
-
-                } catch (error) {
-                    console.error("Transcription/Conversion Error:", error);
-                    toast({ title: "Processing Failed", description: error instanceof Error ? error.message : "Could not process audio.", variant: "destructive" });
-                }
-
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            recorder.start();
-            setIsRecording(true);
-            toast({ title: "Recording started..." });
-        } catch (error) {
-            console.error("Error starting recording:", error);
-            toast({ title: "Microphone Access Denied", description: "Please enable microphone permissions in your browser settings.", variant: "destructive" });
-        }
-    }, [isRecording, toast]);
-
-    const handleStopRecording = useCallback(() => {
-        if (mediaRecorderRef.current && isRecording) {
-            mediaRecorderRef.current.stop();
-            setIsRecording(false);
-            toast({ title: "Recording stopped." });
-        }
-    }, [isRecording, toast]);
-  
-    const handleToggleRecording = useCallback(() => {
-      if (isRecording) {
-        handleStopRecording();
-      } else {
-        handleStartRecording();
-      }
-    }, [isRecording, handleStartRecording, handleStopRecording]);
-  
     const handleCopyToClipboard = useCallback((text: string) => {
       if (!text) return;
       navigator.clipboard.writeText(text).then(() => {
@@ -669,7 +567,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       allConversations,
       isAiResponding, isImageMode,
       isHistoryPanelOpen, isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,
-      isRecording, playingMessageId, isTtsLoadingForId, chatInputValue,
+      playingMessageId, isTtsLoadingForId, chatInputValue,
       selectedVoice,
       isInitialLoadComplete,
       selectChat, startNewChat, deleteChat, sendMessage,
@@ -677,7 +575,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
       handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
       handleVoiceChange,
-      toggleHistoryPanel, closeHistoryPanel, handlePlayAudio, handleToggleRecording,
+      toggleHistoryPanel, closeHistoryPanel, handlePlayAudio,
       setChatInputValue,
       handleCopyToClipboard,
       regenerateLastResponse,
