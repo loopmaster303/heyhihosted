@@ -156,10 +156,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
   
     useEffect(() => {
       if (activeConversation) {
-        setCurrentMessages(activeConversation.messages);
+        // This syncs the transient UI state from the active conversation object
         setIsImageMode(activeConversation.isImageMode || false);
       } else {
-        setCurrentMessages([]);
         setIsImageMode(false);
       }
     }, [activeConversation]);
@@ -525,12 +524,16 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
         const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
         let effectiveSystemPrompt = '';
         const basicStylePrompt = (AVAILABLE_RESPONSE_STYLES.find(s => s.name === 'Basic') || AVAILABLE_RESPONSE_STYLES[0]).systemPrompt;
+
         if (selectedResponseStyleName === "User's Default") {
           effectiveSystemPrompt = (customSystemPrompt && customSystemPrompt.trim()) ? customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User") : basicStylePrompt;
         } else {
           const selectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName);
           effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
         }
+
+        const regenerationPromptSuffix = `\n(Bitte formuliere deine vorherige Antwort um oder biete eine alternative Perspektive an.)`;
+        effectiveSystemPrompt += regenerationPromptSuffix;
         
         const result = await getPollinationsChatCompletion({
           messages: apiMessages,
@@ -557,7 +560,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
   
   
     return {
-      activeConversation, allConversations, currentMessages, isAiResponding, isImageMode,
+      activeConversation,
+      allConversations,
+      isAiResponding, isImageMode,
       isHistoryPanelOpen, isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,
       isRecording, playingMessageId, chatInputValue,
       selectedVoice,
@@ -577,7 +582,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, onConversati
 }
 
 
-type ChatContextType = ReturnType<typeof useChatLogic>;
+type ChatContextType = ReturnType<typeof useChatLogic> & {
+    currentMessages: ChatMessage[];
+};
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
@@ -585,10 +592,25 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
     const [customSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
     
-    const chat = useChatLogic({ userDisplayName, customSystemPrompt });
+    const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt });
     
+    const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
+
+    useEffect(() => {
+        if (chatLogic.activeConversation) {
+            setCurrentMessages(chatLogic.activeConversation.messages);
+        } else {
+            setCurrentMessages([]);
+        }
+    }, [chatLogic.activeConversation]);
+
+    const chatContextValue = {
+        ...chatLogic,
+        currentMessages
+    };
+
     return (
-        <ChatContext.Provider value={chat}>
+        <ChatContext.Provider value={chatContextValue}>
             {children}
         </ChatContext.Provider>
     );
@@ -601,3 +623,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    
