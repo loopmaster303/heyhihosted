@@ -163,8 +163,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
         <button
             onClick={onToggleHistoryPanel}
             className={cn(
-              "text-left text-muted-foreground/80 text-xs font-code select-none truncate",
-              "hover:text-foreground transition-colors duration-200"
+              "text-left text-foreground/90 text-sm font-bold font-code select-none truncate",
+              "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
             )}
             aria-label="Open chat history"
           >
@@ -174,8 +174,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
         <button
             onClick={onToggleAdvancedPanel}
             className={cn(
-                "text-right text-muted-foreground/80 text-xs font-code select-none truncate",
-                "hover:text-foreground transition-colors duration-200"
+                "text-right text-foreground/90 text-sm font-bold font-code select-none truncate",
+                "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
             )}
             aria-label="Open advanced settings"
             >
