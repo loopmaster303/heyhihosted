@@ -673,68 +673,66 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
           <form onSubmit={handleSubmit}>
             <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
               <div className="flex w-full items-start gap-2">
-                 <div className="flex items-center gap-2 flex-grow">
-                  <Textarea
-                    ref={textareaRef}
-                    value={mainPromptValue}
-                    onChange={handleMainPromptChange}
-                    placeholder="Describe what you imagine (or want to modify)..."
-                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
-                    rows={1}
-                    disabled={loading || !currentModelConfig}
-                    aria-label="Main prompt input"
-                    style={{ lineHeight: '1.5rem' }}
-                  />
-                  {isFluxModelSelected && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            className="relative h-8 w-8 cursor-pointer group flex-shrink-0"
-                            onClick={() => {
-                              if (uploadedImagePreview) handleClearUploadedImage();
-                              else singleFileInputRef.current?.click();
-                            }}
-                            aria-label={uploadedImagePreview ? "Clear reference image" : "Upload reference image"}
-                          >
-                            {uploadedImagePreview ? (
-                              <>
-                                <NextImage src={uploadedImagePreview} alt="Reference preview" fill style={{ objectFit: 'cover' }} className="rounded-sm" data-ai-hint="reference thumbnail" />
-                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-sm">
-                                  <X className="h-4 w-4 text-white" />
-                                </div>
-                              </>
-                            ) : (
-                              <div className="h-8 w-8 rounded-sm border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
-                                <ImageIcon className="h-4 w-4" />
+                <Textarea
+                  ref={textareaRef}
+                  value={mainPromptValue}
+                  onChange={handleMainPromptChange}
+                  placeholder="Describe what you imagine (or want to modify)..."
+                  className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                  rows={1}
+                  disabled={loading || !currentModelConfig}
+                  aria-label="Main prompt input"
+                  style={{ lineHeight: '1.5rem' }}
+                />
+              </div>
+              <div className="flex w-full items-center justify-end gap-2 mt-2">
+                {isFluxModelSelected && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="relative h-10 w-10 cursor-pointer group flex-shrink-0"
+                          onClick={() => {
+                            if (uploadedImagePreview) handleClearUploadedImage();
+                            else singleFileInputRef.current?.click();
+                          }}
+                          aria-label={uploadedImagePreview ? "Clear reference image" : "Upload reference image"}
+                        >
+                          {uploadedImagePreview ? (
+                            <>
+                              <NextImage src={uploadedImagePreview} alt="Reference preview" fill style={{ objectFit: 'cover' }} className="rounded-md" data-ai-hint="reference thumbnail" />
+                              <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                                <X className="h-5 w-5 text-white" />
                               </div>
-                            )}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top"><p>{uploadedImagePreview ? "Clear Reference Image" : "Upload Reference Image"}</p></TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                   <Select value={selectedModelKey} onValueChange={setSelectedModelKey} disabled={loading}>
-                    <SelectTrigger className="h-10 w-auto px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
-                      <SelectValue placeholder="Select model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {modelKeys.map(key => (
-                        <SelectItem key={key} value={key}>
-                          {modelConfigs[key].name}
-                          {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-xs">Video</Badge>}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
-                  </Button>
-                </div>
+                            </>
+                          ) : (
+                            <div className="h-10 w-10 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                              <ImageIcon className="h-5 w-5" />
+                            </div>
+                          )}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top"><p>{uploadedImagePreview ? "Clear Reference Image" : "Upload Reference Image"}</p></TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                <Select value={selectedModelKey} onValueChange={setSelectedModelKey} disabled={loading}>
+                  <SelectTrigger className="h-10 w-auto px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modelKeys.map(key => (
+                      <SelectItem key={key} value={key}>
+                        {modelConfigs[key].name}
+                        {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-xs">Video</Badge>}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
+                </Button>
               </div>
             </div>
             <input type="file" ref={singleFileInputRef} onChange={handleSingleFileChange} accept="image/*" className="hidden" />

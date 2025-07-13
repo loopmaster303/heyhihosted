@@ -344,21 +344,21 @@ const VisualizingLoopsTool: FC = () => {
                   aria-label="Image prompt for Pollinations models"
                   style={{ lineHeight: '1.5rem' }}
                 />
-                <div className="flex items-center gap-2">
-                   <Select value={model} onValueChange={setModel} disabled={loading}>
-                      <SelectTrigger className="h-10 w-auto px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
-                        <SelectValue placeholder="Select model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {imageModels.map(m => (
-                          <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  <Button type="submit" disabled={loading || !prompt.trim()} className="h-10 px-4 rounded-lg">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
-                  </Button>
-                </div>
+              </div>
+              <div className="flex w-full items-center justify-end gap-2 mt-2">
+                <Select value={model} onValueChange={setModel} disabled={loading}>
+                  <SelectTrigger className="h-10 w-auto px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {imageModels.map(m => (
+                      <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button type="submit" disabled={loading || !prompt.trim()} className="h-10 px-4 rounded-lg">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
+                </Button>
               </div>
             </div>
           </form>
