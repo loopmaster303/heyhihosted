@@ -1,12 +1,14 @@
+
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MessageSquareText, Pencil, Trash2, Plus } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Conversation } from '@/types';
+import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 interface HistoryPanelProps {
   allConversations: Conversation[];
@@ -29,6 +31,9 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
 }) => {
   const filteredConversations = allConversations.filter(c => c.toolType === 'long language loops' && c.messages.length > 0);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useOnClickOutside(panelRef, onClose);
 
   const handleNewChat = () => {
     onStartNewChat();
@@ -36,7 +41,10 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   };
 
   return (
-    <div className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 max-h-80 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
+    <div 
+      ref={panelRef}
+      className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 max-h-80 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
+    >
       <div className="flex justify-between items-center px-2 pt-1 pb-2">
         <h3 className="text-sm font-semibold text-foreground">Chat History</h3>
         <Button variant="ghost" size="sm" onClick={handleNewChat} className="text-foreground/80 hover:text-foreground">
