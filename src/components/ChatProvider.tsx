@@ -40,6 +40,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     
     const [isImageMode, setIsImageMode] = useState(false);
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
+    const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
   
     const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
     const [isTtsLoadingForId, setIsTtsLoadingForId] = useState<string | null>(null);
@@ -435,6 +436,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   
     const toggleHistoryPanel = () => setIsHistoryPanelOpen(prev => !prev);
     const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
+
+    const toggleAdvancedPanel = () => setIsAdvancedPanelOpen(prev => !prev);
+    const closeAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(false), []);
   
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
       if (audioRef.current) {
@@ -566,7 +570,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       activeConversation,
       allConversations,
       isAiResponding, isImageMode,
-      isHistoryPanelOpen, isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,
+      isHistoryPanelOpen, isAdvancedPanelOpen,
+      isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,
       playingMessageId, isTtsLoadingForId, chatInputValue,
       selectedVoice,
       isInitialLoadComplete,
@@ -575,7 +580,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
       handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
       handleVoiceChange,
-      toggleHistoryPanel, closeHistoryPanel, handlePlayAudio,
+      toggleHistoryPanel, closeHistoryPanel, 
+      toggleAdvancedPanel, closeAdvancedPanel,
+      handlePlayAudio,
       setChatInputValue,
       handleCopyToClipboard,
       regenerateLastResponse,

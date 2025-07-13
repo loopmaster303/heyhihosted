@@ -6,20 +6,6 @@ import { useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Paperclip, Brain, Fingerprint, X, Send, Speech, Image as ImageIcon, MessageSquare } from 'lucide-react';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
@@ -28,17 +14,13 @@ interface ChatInputProps {
   uploadedFilePreviewUrl: string | null;
   onFileSelect: (file: File | null) => void;
   isLongLanguageLoopActive: boolean;
-  selectedModelId: string;
-  selectedResponseStyleName: string;
-  onModelChange: (modelId: string) => void;
-  onStyleChange: (styleName: string) => void;
   inputValue: string;
   onInputChange: (value: string) => void;
-  selectedVoice: string;
-  onVoiceChange: (voice: string) => void;
   isImageMode: boolean;
   onToggleImageMode: () => void;
   chatTitle: string;
+  onToggleHistoryPanel: () => void;
+  onToggleAdvancedPanel: () => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -47,17 +29,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
   uploadedFilePreviewUrl,
   onFileSelect,
   isLongLanguageLoopActive,
-  selectedModelId,
-  selectedResponseStyleName,
-  onModelChange,
-  onStyleChange,
   inputValue,
   onInputChange,
-  selectedVoice,
-  onVoiceChange,
   isImageMode,
   onToggleImageMode,
-  chatTitle
+  chatTitle,
+  onToggleHistoryPanel,
+  onToggleAdvancedPanel,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -183,7 +161,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       />
       <div className="mt-3 flex justify-between items-center px-1">
         <button
-            onClick={() => document.getElementById('chat-history-button')?.click()}
+            onClick={onToggleHistoryPanel}
             className={cn(
               "text-left text-muted-foreground/80 text-xs font-code select-none truncate",
               "hover:text-foreground transition-colors duration-200"
@@ -193,62 +171,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
            └ {displayTitle}
         </button>
 
-        <Popover>
-            <PopoverTrigger asChild>
-                <button
-                    className={cn(
-                      "text-right text-muted-foreground/80 text-xs font-code select-none truncate",
-                      "hover:text-foreground transition-colors duration-200"
-                    )}
-                    aria-label="Open advanced settings"
-                  >
-                   └ Advanced
-                </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-4" align="end" side="top">
-                <div className="grid gap-4">
-                    <div className="space-y-2">
-                        <p className="font-medium leading-none text-sm flex items-center gap-2"><Brain className="w-4 h-4" />AI Model</p>
-                        <Select value={selectedModelId} onValueChange={onModelChange}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a model" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
-                                    <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                         <p className="font-medium leading-none text-sm flex items-center gap-2"><Fingerprint className="w-4 h-4" />Response Style</p>
-                         <Select value={selectedResponseStyleName} onValueChange={onStyleChange}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a style" />
-                            </SelectTrigger>
-                            <SelectContent>
-                               {AVAILABLE_RESPONSE_STYLES.map((style) => (
-                                    <SelectItem key={style.name} value={style.name}>{style.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                         <p className="font-medium leading-none text-sm flex items-center gap-2"><Speech className="w-4 h-4" />Voice</p>
-                         <Select value={selectedVoice} onValueChange={onVoiceChange}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a voice" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {AVAILABLE_TTS_VOICES.map((voice) => (
-                                    <SelectItem key={voice.id} value={voice.id}>{voice.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-            </PopoverContent>
-        </Popover>
+        <button
+            onClick={onToggleAdvancedPanel}
+            className={cn(
+                "text-right text-muted-foreground/80 text-xs font-code select-none truncate",
+                "hover:text-foreground transition-colors duration-200"
+            )}
+            aria-label="Open advanced settings"
+            >
+            └ Advanced
+        </button>
 
       </div>
     </div>

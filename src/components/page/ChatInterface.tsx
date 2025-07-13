@@ -8,6 +8,7 @@ import { useChat } from '@/components/ChatProvider';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import HistoryPanel from '@/components/chat/HistoryPanel';
+import AdvancedSettingsPanel from '@/components/chat/AdvancedSettingsPanel';
 
 // Types & Config
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
@@ -63,17 +64,13 @@ export default function ChatInterface() {
             uploadedFilePreviewUrl={chat.activeConversation.uploadedFilePreview ?? null}
             onFileSelect={chat.handleFileSelect}
             isLongLanguageLoopActive={true}
-            selectedModelId={chat.activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
-            selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
-            onModelChange={chat.handleModelChange}
-            onStyleChange={chat.handleStyleChange}
-            selectedVoice={chat.selectedVoice}
-            onVoiceChange={chat.handleVoiceChange}
             inputValue={chat.chatInputValue}
             onInputChange={chat.setChatInputValue}
             isImageMode={chat.isImageMode}
             onToggleImageMode={chat.toggleImageMode}
             chatTitle={chat.activeConversation.title || "New Chat"}
+            onToggleHistoryPanel={chat.toggleHistoryPanel}
+            onToggleAdvancedPanel={chat.toggleAdvancedPanel}
           />
 
           {chat.isHistoryPanelOpen && (
@@ -87,18 +84,19 @@ export default function ChatInterface() {
               onStartNewChat={chat.startNewChat}
             />
           )}
-        </div>
-        
-        {/* Hidden button to be triggered by proxy click from ChatInput */}
-        <button
-            id="chat-history-button"
-            onClick={chat.toggleHistoryPanel}
-            className="hidden"
-            aria-label="Toggle chat history panel"
-          >
-           {/* This button is visually hidden but programmatically clickable */}
-        </button>
 
+          {chat.isAdvancedPanelOpen && (
+            <AdvancedSettingsPanel
+              onClose={chat.closeAdvancedPanel}
+              selectedModelId={chat.activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
+              onModelChange={chat.handleModelChange}
+              selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
+              onStyleChange={chat.handleStyleChange}
+              selectedVoice={chat.selectedVoice}
+              onVoiceChange={chat.handleVoiceChange}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
