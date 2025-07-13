@@ -87,22 +87,18 @@ export default function ChatInterface() {
             />
           )}
         </div>
-
-        {chat.activeConversation.title && (
-          <button
+        
+        {/* Hidden button to be triggered by proxy click from ChatInput */}
+        <button
+            id="chat-history-button"
             onClick={chat.toggleHistoryPanel}
-            className={cn(
-              "text-center text-muted-foreground/80 text-base mt-3 font-code select-none w-full truncate",
-              "hover:text-foreground transition-colors duration-200"
-            )}
-            aria-label="Open chat history"
+            className="hidden"
+            aria-label="Toggle chat history panel"
           >
-            {chat.activeConversation.title.replace('default.long.language.loop', 'New Chat')}
-          </button>
-        )}
+           {/* This button is visually hidden but programmatically clickable */}
+        </button>
+
       </div>
     </div>
   );
 };
-
-    

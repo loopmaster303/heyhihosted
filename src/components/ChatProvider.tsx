@@ -625,5 +625,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    

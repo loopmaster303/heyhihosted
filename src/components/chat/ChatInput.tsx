@@ -5,17 +5,22 @@ import type React from 'react';
 import { useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Brain, Fingerprint, X, Send, Speech, Image as ImageIcon } from 'lucide-react';
+import { Paperclip, Brain, Fingerprint, X, Send, Speech, Image as ImageIcon, MessageSquare } from 'lucide-react';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from '@/components/ui/label';
+
 import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
-import type { PollinationsModel, ResponseStyle } from '@/config/chat-options';
 import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
@@ -89,19 +94,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onInputChange(e.target.value);
   };
-
-  const handleSelectModel = (model: PollinationsModel) => {
-    onModelChange(model.id);
-  };
-
-  const handleSelectStyle = (style: ResponseStyle) => {
-    onStyleChange(style.name);
-  };
-
-  const handleSelectVoice = (voiceValue: string) => {
-    onVoiceChange(voiceValue);
-  };
-
+  
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     onFileSelect(file || null);
@@ -110,10 +103,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const placeholderText = isImageMode ? "describe the image you want to create..." : "chat with AI...";
-  const currentSelectedModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
-  const currentSelectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName) || AVAILABLE_RESPONSE_STYLES[0];
-  const currentSelectedVoice = AVAILABLE_TTS_VOICES.find(v => v.id === selectedVoice);
+  const placeholderText = isImageMode ? "generate stunning images by provide your imagination with natural language" : "chat with AI...";
   
   const iconColorClass = "text-foreground/80 hover:text-foreground";
   const iconStrokeWidth = 1.75;
@@ -125,6 +115,19 @@ const ChatInput: React.FC<ChatInputProps> = ({
       >
         <form onSubmit={handleSubmit} className="w-full flex-grow">
             <div className="flex w-full items-start gap-2">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn("rounded-lg h-10 w-10 flex-shrink-0", iconColorClass, isImageMode && "bg-accent text-accent-foreground")}
+                    onClick={onToggleImageMode}
+                    title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"}
+                    disabled={isLoading}
+                >
+                    {isImageMode ? 
+                      <ImageIcon className="w-6 h-6" strokeWidth={iconStrokeWidth} /> : 
+                      <MessageSquare className="w-6 h-6" strokeWidth={iconStrokeWidth} />}
+                </Button>
                 <Textarea
                     ref={textareaRef}
                     value={inputValue}
@@ -138,101 +141,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     style={{ lineHeight: '1.5rem' }}
                 />
                  <Button
-                    type="submit"
-                    variant="ghost"
-                    size="icon"
-                    className="text-foreground/80 hover:text-foreground"
-                    disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
-                    aria-label="Send message"
-                  >
-                      <Send className="w-6 h-6" strokeWidth={iconStrokeWidth} />
-                </Button>
-            </div>
-            
-            {isLongLanguageLoopActive && (
-              <div className="flex justify-between items-center mt-2 pt-2">
-                 <div className="flex items-center gap-1">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className={cn("rounded-lg h-8 w-8", iconColorClass, isImageMode && "bg-accent text-accent-foreground")}
-                        onClick={onToggleImageMode}
-                        title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"}
-                        disabled={isLoading}
-                    >
-                        <ImageIcon className="w-5 h-5" strokeWidth={iconStrokeWidth} />
-                    </Button>
-                 </div>
-                <div className="flex items-center gap-2">
-                  {/* Model Select Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="select Machines Brain">
-                        <Brain className="w-4 h-4 mr-1.5" strokeWidth={iconStrokeWidth}/>
-                        <span className="text-xs font-medium">{currentSelectedModel.name}</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuLabel>select Machines Brain</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
-                        <DropdownMenuItem key={model.id} onClick={() => handleSelectModel(model)} className={selectedModelId === model.id ? "bg-accent" : ""}>
-                          {model.name}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  {/* Response Style Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="select Machines Role and Behavior">
-                        <Fingerprint className="w-4 h-4 mr-1.5" strokeWidth={iconStrokeWidth} />
-                        <span className="text-xs font-medium">{currentSelectedStyle?.name}</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuLabel>select Machines Role and Behavior</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {AVAILABLE_RESPONSE_STYLES.map((style) => (
-                        <DropdownMenuItem key={style.name} onClick={() => handleSelectStyle(style)} className={selectedResponseStyleName === style.name ? "bg-accent" : ""}>
-                          {style?.name}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  {/* Voice Selection Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className={cn("rounded-lg px-2 py-1 h-auto", iconColorClass)} aria-label="select Machines Voice">
-                        <Speech className="w-4 h-4 mr-1.5" strokeWidth={iconStrokeWidth} />
-                        <span className="text-xs font-medium">{currentSelectedVoice?.name || 'Voice'}</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>select Machines Voice</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {AVAILABLE_TTS_VOICES.map((voice) => (
-                        <DropdownMenuItem
-                          key={voice.id}
-                          onClick={() => handleSelectVoice(voice.id)}
-                          className={selectedVoice === voice.id ? "bg-accent" : ""}
-                        >
-                          {voice.name}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className={cn("rounded-lg h-8 w-8", iconColorClass)}
+                    className={cn("rounded-lg h-10 w-10 flex-shrink-0", iconColorClass)}
                     onClick={() => {
                         if (uploadedFilePreviewUrl) {
                             onFileSelect(null);
@@ -245,9 +157,17 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   >
                     {uploadedFilePreviewUrl ? <X className="w-5 h-5" strokeWidth={iconStrokeWidth} /> : <Paperclip className="w-5 h-5" strokeWidth={iconStrokeWidth} />}
                   </Button>
-                </div>
-              </div>
-            )}
+                 <Button
+                    type="submit"
+                    variant="ghost"
+                    size="icon"
+                    className="text-foreground/80 hover:text-foreground h-10 w-10 flex-shrink-0"
+                    disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
+                    aria-label="Send message"
+                  >
+                      <Send className="w-6 h-6" strokeWidth={iconStrokeWidth} />
+                </Button>
+            </div>
         </form>
       </div>
        <input
@@ -258,6 +178,76 @@ const ChatInput: React.FC<ChatInputProps> = ({
           className="hidden"
           disabled={isLoading || !isLongLanguageLoopActive || isImageMode}
       />
+      <div className="mt-3 flex justify-between items-center px-1">
+        <button
+            onClick={() => document.getElementById('chat-history-button')?.click()}
+            className={cn(
+              "text-left text-muted-foreground/80 text-xs font-code select-none truncate",
+              "hover:text-foreground transition-colors duration-200"
+            )}
+            aria-label="Open chat history"
+          >
+           └ Chat History
+        </button>
+
+        <Popover>
+            <PopoverTrigger asChild>
+                <button
+                    className={cn(
+                      "text-right text-muted-foreground/80 text-xs font-code select-none truncate",
+                      "hover:text-foreground transition-colors duration-200"
+                    )}
+                    aria-label="Open advanced settings"
+                  >
+                   └ Advanced
+                </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4" align="end" side="top">
+                <div className="grid gap-4">
+                    <div className="space-y-2">
+                        <p className="font-medium leading-none text-sm flex items-center gap-2"><Brain className="w-4 h-4" />AI Model</p>
+                        <Select value={selectedModelId} onValueChange={onModelChange}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a model" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
+                                    <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                         <p className="font-medium leading-none text-sm flex items-center gap-2"><Fingerprint className="w-4 h-4" />Response Style</p>
+                         <Select value={selectedResponseStyleName} onValueChange={onStyleChange}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a style" />
+                            </SelectTrigger>
+                            <SelectContent>
+                               {AVAILABLE_RESPONSE_STYLES.map((style) => (
+                                    <SelectItem key={style.name} value={style.name}>{style.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                         <p className="font-medium leading-none text-sm flex items-center gap-2"><Speech className="w-4 h-4" />Voice</p>
+                         <Select value={selectedVoice} onValueChange={onVoiceChange}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a voice" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {AVAILABLE_TTS_VOICES.map((voice) => (
+                                    <SelectItem key={voice.id} value={voice.id}>{voice.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+            </PopoverContent>
+        </Popover>
+
+      </div>
     </div>
   );
 };
