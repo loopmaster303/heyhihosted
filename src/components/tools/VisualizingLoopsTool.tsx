@@ -258,9 +258,16 @@ const VisualizingLoopsTool: FC = () => {
     const hRatio = Number(hStr);
     if (!isNaN(wRatio) && !isNaN(hRatio) && wRatio > 0 && hRatio > 0) {
       const currentWidthVal = width;
+      
       let newHeight = Math.round((currentWidthVal * hRatio) / wRatio);
-      newHeight = Math.max(256, Math.min(2048, Math.round(newHeight / 64) * 64));
-      let newWidth = Math.max(256, Math.min(2048, Math.round(currentWidthVal / 64) * 64));
+      
+      // Ensure dimensions are divisible by 8
+      newHeight = Math.round(newHeight / 8) * 8;
+      let newWidth = Math.round(currentWidthVal / 8) * 8;
+      
+      newWidth = Math.max(256, Math.min(2048, newWidth));
+      newHeight = Math.max(256, Math.min(2048, newHeight));
+      
       setWidth(newWidth);
       setHeight(newHeight);
     }
