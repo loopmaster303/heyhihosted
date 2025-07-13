@@ -21,11 +21,13 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import Image from 'next/image';
-import { Loader2, MoreHorizontal, AlertCircle } from 'lucide-react';
+import { Loader2, MoreHorizontal, AlertCircle, History } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Input } from '@/components/ui/input';
 import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
+import { cn } from '@/lib/utils';
+import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 const FALLBACK_MODELS = ['flux', 'turbo', 'gptimage'];
 const DEFAULT_MODEL = 'flux';
@@ -55,24 +57,24 @@ const VisualizingLoopsTool: FC = () => {
   const [error, setError] = useState<string>('');
   
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+  const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
+  const historyPanelRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Dynamically adjust textarea height
+  useOnClickOutside(historyPanelRef, () => setIsHistoryPanelOpen(false));
+
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'; // Reset height
-      // The min-h is 80px. We use scrollHeight for the new height.
-      const newHeight = Math.max(textareaRef.current.scrollHeight, 80);
+      textareaRef.current.style.height = 'auto';
+      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 40), 130);
       textareaRef.current.style.height = `${newHeight}px`;
     }
   }, [prompt]);
 
-  // Memoize slider value arrays to prevent unstable references
   const widthValue = useMemo(() => [width], [width]);
   const heightValue = useMemo(() => [height], [height]);
   const batchSizeValue = useMemo(() => [batchSize], [batchSize]);
 
-  // Load models on mount
   useEffect(() => {
     fetch('/api/image/models')
       .then(res => {
@@ -83,7 +85,6 @@ const VisualizingLoopsTool: FC = () => {
         const availableModels = Array.isArray(data.models) && data.models.length > 0 ? data.models : FALLBACK_MODELS;
         setImageModels(availableModels);
         
-        // Load settings and history only after models are loaded
         try {
           const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
           if (storedSettings) {
@@ -132,10 +133,8 @@ const VisualizingLoopsTool: FC = () => {
         setModel(DEFAULT_MODEL);
         setIsInitialLoadComplete(true);
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [toast]);
 
-  // Save settings to localStorage
   useEffect(() => {
     if (!isInitialLoadComplete) return;
     const settingsToSave = {
@@ -144,7 +143,6 @@ const VisualizingLoopsTool: FC = () => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settingsToSave));
   }, [prompt, model, width, height, seed, isPrivate, upsampling, transparent, aspectRatio, batchSize, isInitialLoadComplete]);
 
-  // Save history to localStorage
   useEffect(() => {
     if (!isInitialLoadComplete) return;
     try {
@@ -166,6 +164,7 @@ const VisualizingLoopsTool: FC = () => {
   const handleSelectHistoryItem = (item: ImageHistoryItem) => {
     setSelectedImage(item);
     setPrompt(item.prompt);
+    setIsHistoryPanelOpen(false);
   };
 
   const handleGenerate = async () => {
@@ -280,133 +279,21 @@ const VisualizingLoopsTool: FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground overflow-y-auto">
-      <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
-        <form onSubmit={handleGenerateEvent}>
-          <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
-            <Textarea
-              ref={textareaRef}
-              id="prompt-pollinations-tool"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe what you imagine and hit execute!"
-              className="flex-grow min-h-[80px] bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24"
-              disabled={loading}
-              aria-label="Image prompt for Pollinations models"
-            />
-            <Button
-              type="submit"
-              disabled={loading || !prompt.trim()}
-              className="absolute top-3 right-3 h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
-            >
-              {loading && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-              Execute
-            </Button>
-
-            <div className="flex items-center justify-end pt-2 px-1">
-              <div className="flex items-center space-x-1.5">
-                <Select value={model} onValueChange={setModel} disabled={loading}>
-                  <SelectTrigger className="h-8 px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
-                    <SelectValue placeholder="Select model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {imageModels.map(m => (
-                      <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label="Advanced Settings" type="button" disabled={loading} className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                      <MoreHorizontal className="h-5 w-5" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-80 bg-popover text-popover-foreground shadow-xl border-border p-0" 
-                    side="bottom" 
-                    align="end">
-                    <div className="p-3 grid gap-4 max-h-[65vh] overflow-y-auto">
-                      <div className="space-y-1 px-1">
-                        <h4 className="font-medium leading-none">Image Settings</h4>
-                        <p className="text-xs text-muted-foreground">Adjust parameters for image generation.</p>
-                      </div>
-                      <div className="grid gap-3">
-                        <div className="grid grid-cols-3 items-center gap-4">
-                          <Label htmlFor="width-slider-tool" className="col-span-1 text-xs">Width</Label>
-                          <Slider id="width-slider-tool" value={widthValue} onValueChange={(val) => setWidth(val[0])} min={256} max={2048} step={64} className="col-span-2" />
-                          <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width}px</span>
-                        </div>
-                        <div className="grid grid-cols-3 items-center gap-4">
-                          <Label htmlFor="height-slider-tool" className="col-span-1 text-xs">Height</Label>
-                          <Slider id="height-slider-tool" value={heightValue} onValueChange={(val) => setHeight(val[0])} min={256} max={2048} step={64} className="col-span-2" />
-                          <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height}px</span>
-                        </div>
-                        <div className="grid grid-cols-3 items-center gap-4">
-                          <Label htmlFor="aspect-ratio-tool" className="col-span-1 text-xs">Aspect Ratio</Label>
-                          <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
-                            <SelectTrigger id="aspect-ratio-tool" className="col-span-2 h-8 bg-input border-border text-xs">
-                              <SelectValue placeholder="Aspect Ratio" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {['1:1', '4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
-                                <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="grid grid-cols-3 items-center gap-4">
-                          <Label htmlFor="batch-size-tool" className="col-span-1 text-xs">Batch Size</Label>
-                          <Slider id="batch-size-tool" value={batchSizeValue} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} className="col-span-2" />
-                          <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
-                        </div>
-                        <div className="grid grid-cols-3 items-center gap-4">
-                          <Label htmlFor="seed-input-tool" className="col-span-1 text-xs">Seed</Label>
-                          <Input id="seed-input-tool" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random() * 99999999)))} className="text-xs h-8 w-full">
-                          Random Seed
-                        </Button>
-                        <div className="flex items-center justify-between pt-1">
-                          <Label htmlFor="private-check-tool" className="text-xs	cursor-pointer">Private</Label>
-                          <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-tool" />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="upsampling-check-tool" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
-                          <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-tool" />
-                        </div>
-                        {model === 'gptimage' && (
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="transparent-check-tool" className="text-xs cursor-pointer">Transparent BG (gptimage only)</Label>
-                            <Checkbox checked={transparent} onCheckedChange={(checked) => setTransparent(!!checked)} id="transparent-check-tool" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          </div>
-        </form>
-      
-        <Card className="flex-grow flex flex-col min-h-[300px] md:min-h-[400px] border-0 shadow-none">
+    <div className="flex flex-col h-full bg-background text-foreground">
+      <main className="flex-grow flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto no-scrollbar">
+        <Card className="flex-grow flex flex-col border-0 shadow-none">
           <CardHeader className="py-3 px-4">
-              <CardTitle className="text-base sm:text-lg">Output</CardTitle>
+            <CardTitle className="text-base sm:text-lg">Output</CardTitle>
           </CardHeader>
-          <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg">
-             {loading && (
-                <div className="w-full h-full flex items-center justify-center">
-                    <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />
-                </div>
-             )}
-             {error && !loading && (
-              <div className="w-full h-full flex flex-col items-center justify-center text-destructive space-y-2 max-w-md mx-auto text-center">
-                  <AlertCircle className="w-8 h-8 sm:w-10 sm:w-10 mb-2"/>
-                  <p className="font-semibold text-md sm:text-lg">Generation Error</p>
-                  <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
+          <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg flex items-center justify-center">
+            {loading && <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />}
+            {error && !loading && (
+              <div className="w-full flex flex-col items-center justify-center text-destructive space-y-2 max-w-md mx-auto text-center">
+                <AlertCircle className="w-8 h-8 sm:w-10 sm:w-10 mb-2" />
+                <p className="font-semibold text-md sm:text-lg">Generation Error</p>
+                <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
               </div>
-              )}
+            )}
             {!loading && !error && selectedImage && (
               <div className="relative w-full aspect-square max-h-[calc(100vh-450px)]">
                 <a href={selectedImage.imageUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
@@ -419,30 +306,155 @@ const VisualizingLoopsTool: FC = () => {
                     data-ai-hint="ai generated digital art"
                   />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
-                      <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
+                    <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
+
                   </div>
                 </a>
               </div>
             )}
             {!loading && !error && !selectedImage && (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground font-code">
-                  <p className="text-lg">{`</export>`}</p>
+                <p className="text-lg">{`</export>`}</p>
               </div>
             )}
           </CardContent>
         </Card>
-        
-        <ImageHistoryGallery
-            history={history}
-            onSelectImage={handleSelectHistoryItem}
-            onClearHistory={handleClearHistory}
-        />
+      </main>
 
-      </div>
+      <footer className="px-4 pt-2 pb-4 shrink-0">
+        <div className="max-w-3xl mx-auto relative">
+          <form onSubmit={handleGenerateEvent}>
+            <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
+              <div className="flex w-full items-start gap-2">
+                <Textarea
+                  ref={textareaRef}
+                  id="prompt-pollinations-tool"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Describe what you imagine..."
+                  className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                  rows={1}
+                  disabled={loading}
+                  aria-label="Image prompt for Pollinations models"
+                  style={{ lineHeight: '1.5rem' }}
+                />
+                <Button type="submit" disabled={loading || !prompt.trim()} className="h-10 px-4 rounded-lg">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
+                </Button>
+              </div>
+              <div className="flex items-center justify-end pt-2 px-1 mt-1">
+                <div className="flex items-center space-x-1">
+                  <Select value={model} onValueChange={setModel} disabled={loading}>
+                    <SelectTrigger className="h-8 px-2 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
+                      <SelectValue placeholder="Select model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {imageModels.map(m => (
+                        <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" aria-label="Advanced Settings" type="button" disabled={loading} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                        <MoreHorizontal className="h-5 w-5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 bg-popover text-popover-foreground shadow-xl border-border p-0" side="top" align="end" collisionPadding={10}>
+                      <div className="p-3 grid gap-4 max-h-[65vh] overflow-y-auto">
+                        <div className="space-y-1 px-1">
+                          <h4 className="font-medium leading-none">Image Settings</h4>
+                          <p className="text-xs text-muted-foreground">Adjust parameters for image generation.</p>
+                        </div>
+                        <div className="grid gap-3">
+                          <div className="grid grid-cols-3 items-center gap-4">
+                            <Label htmlFor="width-slider-tool" className="col-span-1 text-xs">Width</Label>
+                            <Slider id="width-slider-tool" value={widthValue} onValueChange={(val) => setWidth(val[0])} min={256} max={2048} step={64} className="col-span-2" />
+                            <span className="text-xs text-muted-foreground justify-self-end col-start-3">{width}px</span>
+                          </div>
+                          <div className="grid grid-cols-3 items-center gap-4">
+                            <Label htmlFor="height-slider-tool" className="col-span-1 text-xs">Height</Label>
+                            <Slider id="height-slider-tool" value={heightValue} onValueChange={(val) => setHeight(val[0])} min={256} max={2048} step={64} className="col-span-2" />
+                            <span className="text-xs text-muted-foreground justify-self-end col-start-3">{height}px</span>
+                          </div>
+                          <div className="grid grid-cols-3 items-center gap-4">
+                            <Label htmlFor="aspect-ratio-tool" className="col-span-1 text-xs">Aspect Ratio</Label>
+                            <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
+                              <SelectTrigger id="aspect-ratio-tool" className="col-span-2 h-8 bg-input border-border text-xs">
+                                <SelectValue placeholder="Aspect Ratio" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {['1:1', '4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
+                                  <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="grid grid-cols-3 items-center gap-4">
+                            <Label htmlFor="batch-size-tool" className="col-span-1 text-xs">Batch Size</Label>
+                            <Slider id="batch-size-tool" value={batchSizeValue} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} className="col-span-2" />
+                            <span className="text-xs text-muted-foreground justify-self-end col-start-3">{batchSize}</span>
+                          </div>
+                          <div className="grid grid-cols-3 items-center gap-4">
+                            <Label htmlFor="seed-input-tool" className="col-span-1 text-xs">Seed</Label>
+                            <Input id="seed-input-tool" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="col-span-2 h-8 bg-input border-border text-xs" />
+                          </div>
+                          <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random() * 99999999)))} className="text-xs h-8 w-full">
+                            Random Seed
+                          </Button>
+                          <div className="flex items-center justify-between pt-1">
+                            <Label htmlFor="private-check-tool" className="text-xs cursor-pointer">Private</Label>
+                            <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-tool" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="upsampling-check-tool" className="text-xs cursor-pointer">Upsample (Enhance)</Label>
+                            <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-tool" />
+                          </div>
+                          {model === 'gptimage' && (
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="transparent-check-tool" className="text-xs cursor-pointer">Transparent BG (gptimage only)</Label>
+                              <Checkbox checked={transparent} onCheckedChange={(checked) => setTransparent(!!checked)} id="transparent-check-tool" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <div className="mt-3 flex justify-between items-center px-1">
+            <button
+              onClick={() => setIsHistoryPanelOpen(prev => !prev)}
+              className={cn(
+                "text-left text-foreground/90 text-sm font-bold font-code select-none truncate",
+                "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
+              )}
+              aria-label="Open image generation history"
+            >
+              └ Gallery
+            </button>
+          </div>
+          
+          {isHistoryPanelOpen && (
+            <div 
+              ref={historyPanelRef}
+              className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
+            >
+              <ImageHistoryGallery
+                history={history}
+                onSelectImage={handleSelectHistoryItem}
+                onClearHistory={handleClearHistory}
+              />
+            </div>
+          )}
+        </div>
+      </footer>
     </div>
   );
 };
 
 export default VisualizingLoopsTool;
-
-    

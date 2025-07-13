@@ -9,29 +9,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Info, ImageIcon, X, MoreHorizontal, ChevronDown, FileImage, Plus } from 'lucide-react';
+import { Loader2, AlertCircle, Info, ImageIcon, X, MoreHorizontal, ChevronDown, FileImage, Plus, History } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import NextImage from 'next/image';
-import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
+import { modelConfigs, type ReplicateModelConfig } from '@/config/replicate-models';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
+import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 interface ReplicateImageToolProps {
   password?: string;
@@ -64,7 +59,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
 
   const [history, setHistory] = useState<ImageHistoryItem[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageHistoryItem | null>(null);
-
+  const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
+  const historyPanelRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(historyPanelRef, () => setIsHistoryPanelOpen(false));
 
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
   const isRunwayModelSelected = currentModelConfig?.id === 'runway-gen4-image';
@@ -164,12 +161,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
-      // Reset height to auto to calculate the correct scrollHeight
       textarea.style.height = 'auto';
-      // Set the height to the scrollHeight, but cap it at the max-height
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
-      // Maintain a minimum height
-      textarea.style.minHeight = '80px';
+      const newHeight = Math.min(Math.max(textarea.scrollHeight, 40), 130);
+      textarea.style.height = `${newHeight}px`;
     }
   }, [mainPromptValue]);
 
@@ -620,119 +614,136 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
   const handleSelectHistoryItem = (item: ImageHistoryItem) => {
     setSelectedImage(item);
     setMainPromptValue(item.prompt);
+    setIsHistoryPanelOpen(false);
   };
   
   const canSubmit = !loading && currentModelConfig &&
     ( (isFluxModelSelected && (mainPromptValue.trim() !== '' || uploadedImagePreview)) ||
       (!isFluxModelSelected && mainPromptValue.trim() !== '') );
 
-
   return (
-    <div className="flex flex-col h-full bg-background text-foreground overflow-y-auto">
-      <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
-        <form onSubmit={handleSubmit}>
-          <div className="bg-input rounded-xl p-3 shadow-lg flex flex-col gap-2 relative">
-            <Textarea
-              ref={textareaRef}
-              value={mainPromptValue}
-              onChange={handleMainPromptChange}
-              placeholder="Describe what you imagine (or want to modify) and hit execute!"
-              className="flex-grow bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none text-base p-2 pr-24 overflow-hidden"
-              rows={3}
-              disabled={loading || !currentModelConfig}
-              aria-label="Main prompt input with dynamic height"
-            />
-             <Button
-                type="submit"
-                disabled={!canSubmit}
-                className="absolute top-3 right-3 h-8 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                Execute
-              </Button>
-            <div className="flex items-center justify-between pt-2 px-1">
-                 {isFluxModelSelected && (
-                    <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              className="relative h-8 w-8 cursor-pointer group flex-shrink-0"
-                              onClick={() => {
-                                  if (uploadedImagePreview) {
-                                      handleClearUploadedImage();
-                                  } else {
-                                      singleFileInputRef.current?.click()
-                                  }
-                              }}
-                              aria-label={uploadedImagePreview ? "Clear reference image" : "Upload reference image"}
-                            >
-                                {uploadedImagePreview ? (
-                                    <>
-                                        <NextImage
-                                            src={uploadedImagePreview}
-                                            alt="Reference preview"
-                                            fill
-                                            style={{ objectFit: 'cover' }}
-                                            className="rounded-sm"
-                                            data-ai-hint="reference thumbnail"
-                                        />
-                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-sm">
-                                            <X className="h-4 w-4 text-white" />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="h-8 w-8 rounded-sm border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
-                                        <ImageIcon className="h-4 w-4" />
-                                    </div>
-                                )}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="bottom">
-                            <p>{uploadedImagePreview ? "Clear Reference Image" : "Upload Reference Image"}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                 )}
-                 {!isFluxModelSelected && <div className="w-8"></div>}
-              
-              <div className="flex items-center space-x-1.5">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border"
-                      disabled={loading}
-                      aria-label={`Selected model: ${currentModelConfig ? currentModelConfig.name : "Select Model"}`}
-                    >
-                      {currentModelConfig ? currentModelConfig.name : "Select Model"}
-                      <ChevronDown className="ml-1.5 h-3 w-3 opacity-70" /> 
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
-                    {modelKeys.map(key => (
-                      <DropdownMenuItem key={key} onSelect={() => setSelectedModelKey(key)} disabled={loading}>
-                        {modelConfigs[key].name}
-                          {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-xs">Video</Badge>}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+    <div className="flex flex-col h-full bg-background text-foreground">
+      <main className="flex-grow flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto no-scrollbar">
+        <Card className="flex-grow flex flex-col border-0 shadow-none">
+          <CardHeader className="py-3 px-4">
+            <CardTitle className="text-base sm:text-lg">Output</CardTitle>
+          </CardHeader>
+          <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg flex items-center justify-center">
+            {loading && <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />}
+            {error && !loading && (
+              <div className="w-full flex flex-col items-center justify-center text-destructive space-y-2 max-w-md mx-auto text-center">
+                <AlertCircle className="w-8 h-8 sm:w-10 sm:w-10 mb-2" />
+                <p className="font-semibold text-md sm:text-lg">Generation Error</p>
+                <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
+              </div>
+            )}
+            {!loading && !error && selectedImage && (
+              <div className={cn(
+                "relative w-full h-full",
+                selectedImage.videoUrl ? "aspect-video max-h-[calc(100vh-400px)]" : "aspect-square max-h-[calc(100vh-400px)]"
+              )}>
+                {selectedImage.videoUrl ? (
+                  <video src={selectedImage.videoUrl} controls autoPlay muted loop className="rounded-md w-full h-full object-contain" data-ai-hint="ai generated video">
+                    Your browser does not support the video tag.
+                  </video>
+                ) : (
+                  <a href={selectedImage.imageUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
+                    <NextImage src={selectedImage.imageUrl} alt={`Generated using ${selectedImage.model}`} fill style={{ objectFit: "contain" }} className="rounded-md" data-ai-hint="ai generated digital art" />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
+                      <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
+                    </div>
+                  </a>
+                )}
+              </div>
+            )}
+            {!loading && !error && !selectedImage && (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground font-code">
+                <p className="text-lg">{`</export>`}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </main>
 
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label={`${currentModelConfig?.name || 'Model'} Settings`} type="button" disabled={loading || !currentModelConfig} className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                      <MoreHorizontal className="h-5 w-5" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border p-0" 
-                    side="bottom" 
-                    align="end"
-                    collisionPadding={10} 
-                  >
-                     <div className="grid gap-4 p-3 max-h-[65vh] overflow-y-auto">
+      <footer className="px-4 pt-2 pb-4 shrink-0">
+        <div className="max-w-3xl mx-auto relative">
+          <form onSubmit={handleSubmit}>
+            <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
+              <div className="flex w-full items-start gap-2">
+                <Textarea
+                  ref={textareaRef}
+                  value={mainPromptValue}
+                  onChange={handleMainPromptChange}
+                  placeholder="Describe what you imagine (or want to modify)..."
+                  className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                  rows={1}
+                  disabled={loading || !currentModelConfig}
+                  aria-label="Main prompt input"
+                  style={{ lineHeight: '1.5rem' }}
+                />
+                <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 px-1 mt-1">
+                <div className="flex items-center gap-2">
+                  {isFluxModelSelected && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="relative h-8 w-8 cursor-pointer group flex-shrink-0"
+                            onClick={() => {
+                              if (uploadedImagePreview) handleClearUploadedImage();
+                              else singleFileInputRef.current?.click();
+                            }}
+                            aria-label={uploadedImagePreview ? "Clear reference image" : "Upload reference image"}
+                          >
+                            {uploadedImagePreview ? (
+                              <>
+                                <NextImage src={uploadedImagePreview} alt="Reference preview" fill style={{ objectFit: 'cover' }} className="rounded-sm" data-ai-hint="reference thumbnail" />
+                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-sm">
+                                  <X className="h-4 w-4 text-white" />
+                                </div>
+                              </>
+                            ) : (
+                              <div className="h-8 w-8 rounded-sm border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                                <ImageIcon className="h-4 w-4" />
+                              </div>
+                            )}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top"><p>{uploadedImagePreview ? "Clear Reference Image" : "Upload Reference Image"}</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-1">
+                  <Select value={selectedModelKey} onValueChange={setSelectedModelKey} disabled={loading}>
+                    <SelectTrigger className="h-8 px-2 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
+                      <SelectValue placeholder="Select model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {modelKeys.map(key => (
+                        <SelectItem key={key} value={key}>
+                          {modelConfigs[key].name}
+                          {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-xs">Video</Badge>}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" aria-label="Advanced Settings" type="button" disabled={loading || !currentModelConfig} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                        <MoreHorizontal className="h-5 w-5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border p-0" side="top" align="end" collisionPadding={10}>
+                      <div className="grid gap-4 p-3 max-h-[65vh] overflow-y-auto">
                         {currentModelConfig && (
                           <>
                             <div className="space-y-1 px-1">
@@ -740,90 +751,48 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                               <p className="text-xs text-muted-foreground">Adjust advanced options for generation.</p>
                             </div>
                             <div className="grid gap-3">
-                              {currentModelConfig.inputs
-                                .filter(input => !input.isPrompt)
-                                .map(input => renderInputField(input))}
+                              {currentModelConfig.inputs.filter(input => !input.isPrompt).map(input => renderInputField(input))}
                             </div>
                           </>
                         )}
                         {!currentModelConfig && <p className="text-sm text-muted-foreground p-4 text-center">Select a model to see its parameters.</p>}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          </div>
-          <input type="file" ref={singleFileInputRef} onChange={handleSingleFileChange} accept="image/*" className="hidden" />
-          <input type="file" ref={multiFileInputRef} onChange={handleMultipleFileChange} accept="image/*" multiple className="hidden" />
-        </form>
-
-        <Card className="flex flex-col min-h-[300px] md:min-h-[400px] border-0 shadow-none">
-          <CardHeader className="py-3 px-4">
-              <CardTitle className="text-base sm:text-lg">Output</CardTitle>
-          </CardHeader>
-          <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg">
-          {loading && (
-            <div className="w-full h-full flex items-center justify-center">
-                <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />
-            </div>
-           )}
-          {error && !loading && (
-              <div className="w-full h-full flex flex-col items-center justify-center text-destructive space-y-2 max-w-md mx-auto text-center">
-                  <AlertCircle className="w-8 h-8 sm:w-10 sm:w-10 mb-2"/>
-                  <p className="font-semibold text-md sm:text-lg">Generation Error</p>
-                  <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
-              </div>
-              )}
-          {!loading && !error && selectedImage && (
-              <div className={cn(
-                  "relative w-full h-full", 
-                  selectedImage.videoUrl
-                      ? "aspect-video max-h-[calc(100vh-400px)]" 
-                      : "aspect-square max-h-[calc(100vh-400px)]" 
-              )}>
-              {selectedImage.videoUrl ? (
-                  <video
-                      src={selectedImage.videoUrl}
-                      controls
-                      autoPlay
-                      muted
-                      loop
-                      className="rounded-md w-full h-full object-contain"
-                      data-ai-hint="ai generated video"
-                  >
-                      Your browser does not support the video tag.
-                  </video>
-              ) : (
-                  <a href={selectedImage.imageUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
-                      <NextImage
-                      src={selectedImage.imageUrl}
-                      alt={`Generated using ${selectedImage.model}`}
-                      fill
-                      style={{ objectFit: "contain" }}
-                      className="rounded-md"
-                      data-ai-hint="ai generated digital art"
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
-                          <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
                       </div>
-                  </a>
-              )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
-          )}
-          {!loading && !error && !selectedImage && (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground font-code">
-                <p className="text-lg">{`</export>`}</p>
+            </div>
+            <input type="file" ref={singleFileInputRef} onChange={handleSingleFileChange} accept="image/*" className="hidden" />
+            <input type="file" ref={multiFileInputRef} onChange={handleMultipleFileChange} accept="image/*" multiple className="hidden" />
+          </form>
+
+          <div className="mt-3 flex justify-between items-center px-1">
+            <button
+              onClick={() => setIsHistoryPanelOpen(prev => !prev)}
+              className={cn(
+                "text-left text-foreground/90 text-sm font-bold font-code select-none truncate",
+                "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
+              )}
+              aria-label="Open image generation history"
+            >
+              └ Gallery
+            </button>
+          </div>
+          
+          {isHistoryPanelOpen && (
+            <div 
+              ref={historyPanelRef}
+              className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
+            >
+              <ImageHistoryGallery
+                history={history}
+                onSelectImage={handleSelectHistoryItem}
+                onClearHistory={handleClearHistory}
+              />
             </div>
           )}
-          </CardContent>
-        </Card>
-
-         <ImageHistoryGallery
-            history={history}
-            onSelectImage={handleSelectHistoryItem}
-            onClearHistory={handleClearHistory}
-        />
-      </div>
+        </div>
+      </footer>
     </div>
   );
 };
