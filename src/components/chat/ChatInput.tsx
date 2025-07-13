@@ -82,12 +82,14 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const placeholderText = isImageMode ? "generate stunning images by provide your imagination with natural language" : "chat with AI...";
+  const placeholderText = isImageMode 
+    ? "just provide in natural language your imagination and the machine (gpt image-1) will visualize it directy in chat." 
+    : "just ask/discuss everything. get natural and humanlike support by the machine.";
   
   const iconColorClass = "text-foreground/80 hover:text-foreground";
   const iconStrokeWidth = 1.75;
 
-  const displayTitle = chatTitle === "default.long.language.loop" ? "New Chat" : chatTitle;
+  const displayTitle = chatTitle === "default.long.language.loop" || !chatTitle ? "New Chat" : chatTitle;
 
   return (
     <div className="max-w-3xl mx-auto">
