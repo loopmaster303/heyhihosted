@@ -71,6 +71,8 @@ export default function ChatInterface() {
             chatTitle={chat.activeConversation.title || "New Chat"}
             onToggleHistoryPanel={chat.toggleHistoryPanel}
             onToggleAdvancedPanel={chat.toggleAdvancedPanel}
+            audioRecorder={chat.audioRecorder}
+            isSttLoading={chat.isSttLoading}
           />
 
           {chat.isHistoryPanelOpen && (
