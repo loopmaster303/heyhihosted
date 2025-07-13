@@ -45,6 +45,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     if (timestamp instanceof Date) {
       return timestamp;
     }
+    // This is the important part: converting a Firebase Timestamp to a JS Date
     return timestamp.toDate();
   };
 
