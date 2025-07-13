@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, Info, ImageIcon, X, ChevronDown, FileImage, Plus, History } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import NextImage from 'next/image';
-import { modelConfigs, type ReplicateModelConfig } from '@/config/replicate-models';
+import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -673,24 +673,18 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
           <form onSubmit={handleSubmit}>
             <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
               <div className="flex w-full items-start gap-2">
-                <Textarea
-                  ref={textareaRef}
-                  value={mainPromptValue}
-                  onChange={handleMainPromptChange}
-                  placeholder="Describe what you imagine (or want to modify)..."
-                  className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
-                  rows={1}
-                  disabled={loading || !currentModelConfig}
-                  aria-label="Main prompt input"
-                  style={{ lineHeight: '1.5rem' }}
-                />
-                <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg">
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
-                </Button>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 px-1 mt-1">
-                <div className="flex items-center gap-2">
+                 <div className="flex items-center gap-2 flex-grow">
+                  <Textarea
+                    ref={textareaRef}
+                    value={mainPromptValue}
+                    onChange={handleMainPromptChange}
+                    placeholder="Describe what you imagine (or want to modify)..."
+                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                    rows={1}
+                    disabled={loading || !currentModelConfig}
+                    aria-label="Main prompt input"
+                    style={{ lineHeight: '1.5rem' }}
+                  />
                   {isFluxModelSelected && (
                     <TooltipProvider>
                       <Tooltip>
@@ -723,10 +717,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                     </TooltipProvider>
                   )}
                 </div>
-
-                <div className="flex items-center space-x-1">
-                  <Select value={selectedModelKey} onValueChange={setSelectedModelKey} disabled={loading}>
-                    <SelectTrigger className="h-8 px-2 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
+                <div className="flex items-center gap-2">
+                   <Select value={selectedModelKey} onValueChange={setSelectedModelKey} disabled={loading}>
+                    <SelectTrigger className="h-10 w-auto px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
                       <SelectValue placeholder="Select model" />
                     </SelectTrigger>
                     <SelectContent>
@@ -738,6 +731,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                       ))}
                     </SelectContent>
                   </Select>
+                  <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg">
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
+                  </Button>
                 </div>
               </div>
             </div>
