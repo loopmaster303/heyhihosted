@@ -73,6 +73,7 @@ export default function ChatInterface() {
             onInputChange={chat.setChatInputValue}
             isImageMode={chat.isImageMode}
             onToggleImageMode={chat.toggleImageMode}
+            chatTitle={chat.activeConversation.title || "New Chat"}
           />
 
           {chat.isHistoryPanelOpen && (

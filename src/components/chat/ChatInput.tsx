@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from '@/components/ui/label';
 
 import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import { cn } from '@/lib/utils';
@@ -39,6 +38,7 @@ interface ChatInputProps {
   onVoiceChange: (voice: string) => void;
   isImageMode: boolean;
   onToggleImageMode: () => void;
+  chatTitle: string;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -57,6 +57,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   onVoiceChange,
   isImageMode,
   onToggleImageMode,
+  chatTitle
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -107,6 +108,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   
   const iconColorClass = "text-foreground/80 hover:text-foreground";
   const iconStrokeWidth = 1.75;
+
+  const displayTitle = chatTitle === "default.long.language.loop" ? "New Chat" : chatTitle;
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -187,7 +190,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             )}
             aria-label="Open chat history"
           >
-           └ Chat History
+           └ {displayTitle}
         </button>
 
         <Popover>
