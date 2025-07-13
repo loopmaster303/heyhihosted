@@ -14,19 +14,20 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Info, ImageIcon, X, MoreHorizontal, ChevronDown, FileImage, Plus, History } from 'lucide-react';
+import { Loader2, AlertCircle, Info, ImageIcon, X, ChevronDown, FileImage, Plus, History } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import NextImage from 'next/image';
 import { modelConfigs, type ReplicateModelConfig } from '@/config/replicate-models';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
+import AdvancedImageSettingsPanel from './AdvancedImageSettingsPanel';
+
 
 interface ReplicateImageToolProps {
   password?: string;
@@ -62,6 +63,8 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   const historyPanelRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(historyPanelRef, () => setIsHistoryPanelOpen(false));
+  
+  const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
 
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
   const isRunwayModelSelected = currentModelConfig?.id === 'runway-gen4-image';
@@ -735,30 +738,6 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                       ))}
                     </SelectContent>
                   </Select>
-                  
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" aria-label="Advanced Settings" type="button" disabled={loading || !currentModelConfig} className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                        <MoreHorizontal className="h-5 w-5" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80 sm:w-96 bg-popover text-popover-foreground shadow-xl border-border p-0" side="top" align="end" collisionPadding={10}>
-                      <div className="grid gap-4 p-3 max-h-[65vh] overflow-y-auto">
-                        {currentModelConfig && (
-                          <>
-                            <div className="space-y-1 px-1">
-                              <h4 className="font-medium leading-none">{currentModelConfig.name} Parameters</h4>
-                              <p className="text-xs text-muted-foreground">Adjust advanced options for generation.</p>
-                            </div>
-                            <div className="grid gap-3">
-                              {currentModelConfig.inputs.filter(input => !input.isPrompt).map(input => renderInputField(input))}
-                            </div>
-                          </>
-                        )}
-                        {!currentModelConfig && <p className="text-sm text-muted-foreground p-4 text-center">Select a model to see its parameters.</p>}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
                 </div>
               </div>
             </div>
@@ -777,6 +756,16 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
             >
               └ Gallery
             </button>
+             <button
+              onClick={() => setIsAdvancedPanelOpen(prev => !prev)}
+              className={cn(
+                "text-right text-foreground/90 text-sm font-bold font-code select-none truncate",
+                "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
+              )}
+              aria-label="Open advanced settings"
+            >
+              └ Advanced
+            </button>
           </div>
           
           {isHistoryPanelOpen && (
@@ -791,6 +780,27 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
               />
             </div>
           )}
+
+          {isAdvancedPanelOpen && (
+             <AdvancedImageSettingsPanel onClose={() => setIsAdvancedPanelOpen(false)}>
+                <div className="grid gap-4">
+                  {currentModelConfig ? (
+                    <>
+                      <div className="space-y-1">
+                        <h4 className="font-medium leading-none">{currentModelConfig.name} Parameters</h4>
+                        <p className="text-xs text-muted-foreground">Adjust advanced options for generation.</p>
+                      </div>
+                      <div className="grid gap-3">
+                        {currentModelConfig.inputs.filter(input => !input.isPrompt).map(input => renderInputField(input))}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground p-4 text-center">Select a model to see its parameters.</p>
+                  )}
+                </div>
+            </AdvancedImageSettingsPanel>
+          )}
+
         </div>
       </footer>
     </div>
