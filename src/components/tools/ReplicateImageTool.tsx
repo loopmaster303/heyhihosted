@@ -26,8 +26,6 @@ import { Badge } from '@/components/ui/badge';
 import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
-import AdvancedImageSettingsPanel from './AdvancedImageSettingsPanel';
-
 
 interface ReplicateImageToolProps {
   password?: string;
@@ -670,23 +668,38 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
 
       <footer className="px-4 pt-2 pb-4 shrink-0">
         <div className="max-w-3xl mx-auto relative">
+          
+          {isAdvancedPanelOpen && (
+             <div className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
+                <div className="grid gap-x-6 gap-y-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                  {currentModelConfig ? (
+                    <>
+                      {currentModelConfig.inputs.filter(input => !input.isPrompt).map(input => renderInputField(input))}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground p-4 text-center col-span-full">Select a model to see its parameters.</p>
+                  )}
+                </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
             <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
-              <div className="flex w-full items-start gap-2">
-                <Textarea
-                  ref={textareaRef}
-                  value={mainPromptValue}
-                  onChange={handleMainPromptChange}
-                  placeholder="Describe what you imagine (or want to modify)..."
-                  className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
-                  rows={1}
-                  disabled={loading || !currentModelConfig}
-                  aria-label="Main prompt input"
-                  style={{ lineHeight: '1.5rem' }}
-                />
+              <div className="w-full">
+                  <Textarea
+                    ref={textareaRef}
+                    value={mainPromptValue}
+                    onChange={handleMainPromptChange}
+                    placeholder="Describe what you imagine (or want to modify)..."
+                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                    rows={1}
+                    disabled={loading || !currentModelConfig}
+                    aria-label="Main prompt input"
+                    style={{ lineHeight: '1.5rem' }}
+                  />
               </div>
               <div className="flex w-full items-center justify-end gap-2 mt-2">
-                {isFluxModelSelected && (
+                 {isFluxModelSelected && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -773,26 +786,6 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                 onClearHistory={handleClearHistory}
               />
             </div>
-          )}
-
-          {isAdvancedPanelOpen && (
-             <AdvancedImageSettingsPanel onClose={() => setIsAdvancedPanelOpen(false)}>
-                <div className="grid gap-4">
-                  {currentModelConfig ? (
-                    <>
-                      <div className="space-y-1">
-                        <h4 className="font-medium leading-none">{currentModelConfig.name} Parameters</h4>
-                        <p className="text-xs text-muted-foreground">Adjust advanced options for generation.</p>
-                      </div>
-                      <div className="grid gap-3">
-                        {currentModelConfig.inputs.filter(input => !input.isPrompt).map(input => renderInputField(input))}
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground p-4 text-center">Select a model to see its parameters.</p>
-                  )}
-                </div>
-            </AdvancedImageSettingsPanel>
           )}
 
         </div>
