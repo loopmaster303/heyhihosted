@@ -5,9 +5,8 @@ import type React from 'react';
 import { useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Brain, Fingerprint, X, Send, Speech, Image as ImageIcon, MessageSquare, Mic, Loader2 } from 'lucide-react';
+import { Paperclip, X, Send, Image as ImageIcon, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { UseAudioRecorderControls } from '@/hooks/useAudioRecorder';
 
 interface ChatInputProps {
   onSendMessage: (message: string, options?: { isImageModeIntent?: boolean }) => void;
@@ -22,8 +21,6 @@ interface ChatInputProps {
   chatTitle: string;
   onToggleHistoryPanel: () => void;
   onToggleAdvancedPanel: () => void;
-  audioRecorder: UseAudioRecorderControls;
-  isSttLoading: boolean;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -39,8 +36,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
   chatTitle,
   onToggleHistoryPanel,
   onToggleAdvancedPanel,
-  audioRecorder,
-  isSttLoading
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -55,7 +50,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    if (isLoading || audioRecorder.isRecording) return;
+    if (isLoading) return;
 
     const canSendMessage = (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) || (inputValue.trim() !== '');
 
@@ -87,14 +82,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const handleMicClick = () => {
-    if (audioRecorder.isRecording) {
-      audioRecorder.stopRecording();
-    } else {
-      audioRecorder.startRecording();
-    }
-  };
-
   const placeholderText = isImageMode 
     ? "just provide in natural language your imagination and the machine (gpt image-1) will visualize it directy in chat." 
     : "just ask/discuss everything. get natural and humanlike support by the machine.";
@@ -104,9 +91,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const displayTitle = chatTitle === "default.long.language.loop" || !chatTitle ? "New Chat" : chatTitle;
 
-  const isRecordingActive = audioRecorder.isRecording;
-  const isProcessing = isSttLoading;
-
   return (
     <div className="max-w-3xl mx-auto">
       <div
@@ -114,23 +98,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
       >
         <form onSubmit={handleSubmit} className="w-full flex-grow">
             <div className="flex w-full items-start gap-2">
-                 <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                        "rounded-lg h-10 w-10 flex-shrink-0", 
-                        iconColorClass, 
-                        isRecordingActive && "bg-red-500/20 text-red-500 hover:text-red-600 hover:bg-red-500/30"
-                    )}
-                    onClick={handleMicClick}
-                    title={isRecordingActive ? "Stop recording" : "Start recording"}
-                    disabled={isLoading || isImageMode || isProcessing}
-                >
-                    {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" strokeWidth={iconStrokeWidth} /> :
-                     isRecordingActive ? <Mic className="w-6 h-6 animate-pulse" strokeWidth={iconStrokeWidth} /> :
-                     <Mic className="w-6 h-6" strokeWidth={iconStrokeWidth} />}
-                </Button>
                 <Button
                     type="button"
                     variant="ghost"
@@ -138,7 +105,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     className={cn("rounded-lg h-10 w-10 flex-shrink-0", iconColorClass, isImageMode && "bg-accent text-accent-foreground")}
                     onClick={onToggleImageMode}
                     title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"}
-                    disabled={isLoading || isRecordingActive || isProcessing}
+                    disabled={isLoading}
                 >
                     {isImageMode ? 
                       <ImageIcon className="w-6 h-6" strokeWidth={iconStrokeWidth} /> : 
@@ -152,7 +119,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     placeholder={placeholderText}
                     className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
                     rows={1}
-                    disabled={isLoading || isRecordingActive || isProcessing}
+                    disabled={isLoading}
                     aria-label="Chat message input"
                     style={{ lineHeight: '1.5rem' }}
                 />
@@ -169,7 +136,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         }
                     }}
                     title={uploadedFilePreviewUrl ? "Clear uploaded image" : "Attach file"}
-                    disabled={isLoading || isImageMode || isRecordingActive || isProcessing}
+                    disabled={isLoading || isImageMode}
                   >
                     {uploadedFilePreviewUrl ? <X className="w-5 h-5" strokeWidth={iconStrokeWidth} /> : <Paperclip className="w-5 h-5" strokeWidth={iconStrokeWidth} />}
                   </Button>
@@ -178,7 +145,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     variant="ghost"
                     size="icon"
                     className="text-foreground/80 hover:text-foreground h-10 w-10 flex-shrink-0"
-                    disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl)) || isRecordingActive || isProcessing}
+                    disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
                     aria-label="Send message"
                   >
                       <Send className="w-6 h-6" strokeWidth={iconStrokeWidth} />
@@ -192,7 +159,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           onChange={handleFileChange}
           accept="image/*"
           className="hidden"
-          disabled={isLoading || !isLongLanguageLoopActive || isImageMode || isRecordingActive || isProcessing}
+          disabled={isLoading || !isLongLanguageLoopActive || isImageMode}
       />
       <div className="mt-3 flex justify-between items-center px-1">
         <button

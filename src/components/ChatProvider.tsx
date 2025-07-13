@@ -10,8 +10,6 @@ import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { textToSpeech } from '@/ai/flows/tts-flow';
-import { speechToText } from '@/ai/flows/speech-to-text-flow';
-import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 
 import { db, auth } from '@/lib/firebase';
@@ -52,35 +50,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     const [selectedVoice, setSelectedVoice] = useState<string>(AVAILABLE_TTS_VOICES[0].id);
 
-    const [isSttLoading, setIsSttLoading] = useState(false);
-  
-    const { toast } = useToast();
-
-    const handleSttComplete = useCallback(async (audioBlob: Blob) => {
-      setIsSttLoading(true);
-      try {
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-          const base64Audio = reader.result as string;
-          try {
-            const { transcript } = await speechToText(base64Audio);
-            setChatInputValue(prev => prev ? `${prev} ${transcript}` : transcript);
-          } catch (error) {
-            console.error("Speech-to-text transcription failed:", error);
-            toast({ title: "Transcription Error", description: error instanceof Error ? error.message : "Could not transcribe audio.", variant: "destructive" });
-          } finally {
-            setIsSttLoading(false);
-          }
-        };
-      } catch (error) {
-        console.error("Error processing audio blob:", error);
-        toast({ title: "Audio Error", description: "Failed to process recorded audio.", variant: "destructive" });
-        setIsSttLoading(false);
-      }
-    }, [toast]);
     
-    const audioRecorder = useAudioRecorder(handleSttComplete);
+    const { toast } = useToast();
 
     const loadConversations = useCallback(async (user: User) => {
         const conversationsRef = collection(db, 'users', user.uid, 'conversations');
@@ -606,8 +577,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       playingMessageId, isTtsLoadingForId, chatInputValue,
       selectedVoice,
       isInitialLoadComplete,
-      audioRecorder,
-      isSttLoading,
       selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
       requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
