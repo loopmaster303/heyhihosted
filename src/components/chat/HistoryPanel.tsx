@@ -9,6 +9,7 @@ import { MessageSquareText, Pencil, Trash2, Plus } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Conversation } from '@/types';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
+import type { Timestamp } from 'firebase/firestore';
 
 interface HistoryPanelProps {
   allConversations: Conversation[];
@@ -38,6 +39,13 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   const handleNewChat = () => {
     onStartNewChat();
     onClose();
+  };
+
+  const toDate = (timestamp: Date | Timestamp): Date => {
+    if (timestamp instanceof Date) {
+      return timestamp;
+    }
+    return timestamp.toDate();
   };
 
   return (
@@ -77,7 +85,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 <div className="flex-grow overflow-hidden text-sm">
                   <p className="truncate font-medium text-popover-foreground">{conv.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(conv.createdAt, { addSuffix: true })}
+                    {formatDistanceToNow(toDate(conv.createdAt), { addSuffix: true })}
                   </p>
                 </div>
               </Button>
