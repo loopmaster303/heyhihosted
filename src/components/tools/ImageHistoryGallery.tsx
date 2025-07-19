@@ -5,7 +5,7 @@ import type { FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import NextImage from 'next/image';
-import { Trash2 } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import type { ImageHistoryItem } from '@/types';
 
@@ -13,9 +13,10 @@ interface ImageHistoryGalleryProps {
   history: ImageHistoryItem[];
   onSelectImage: (item: ImageHistoryItem) => void;
   onClearHistory: () => void;
+  onClose: () => void;
 }
 
-const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectImage, onClearHistory }) => {
+const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectImage, onClearHistory, onClose }) => {
   return (
     <div className="h-full">
       <div className="flex items-center justify-between mb-2 px-1">
@@ -23,6 +24,10 @@ const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectIm
         <Button variant="ghost" size="sm" onClick={onClearHistory} aria-label="Clear history" className="text-muted-foreground hover:text-foreground">
           <Trash2 className="w-4 h-4 mr-1.5" />
           Clear
+        </Button>
+         <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="w-4 h-4 mr-1.5" />
+            Close
         </Button>
       </div>
       <ScrollArea className="h-full max-h-64">

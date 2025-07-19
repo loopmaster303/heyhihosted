@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useChat } from '@/components/ChatProvider';
 
 // UI Components
@@ -9,6 +9,7 @@ import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import HistoryPanel from '@/components/chat/HistoryPanel';
 import AdvancedSettingsPanel from '@/components/chat/AdvancedSettingsPanel';
+import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 // Types & Config
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
@@ -18,12 +19,13 @@ import { X } from 'lucide-react';
 export default function ChatInterface() {
   const chat = useChat();
 
-  // The logic to select or start a new chat has been moved to ChatProvider
-  // to ensure it runs correctly after localStorage is loaded.
-  // This component now just displays the UI based on the provider's state.
+  const historyPanelRef = useRef<HTMLDivElement>(null);
+  const advancedPanelRef = useRef<HTMLDivElement>(null);
+  
+  useOnClickOutside([historyPanelRef], chat.closeHistoryPanel);
+  useOnClickOutside([advancedPanelRef], chat.closeAdvancedPanel);
 
   useEffect(() => {
-    // When the component unmounts, close any open panels
     return () => {
       chat.closeAdvancedPanel();
       chat.closeHistoryPanel();
@@ -91,32 +93,38 @@ export default function ChatInterface() {
           />
 
           {chat.isHistoryPanelOpen && (
-            <HistoryPanel
-              allConversations={chat.allConversations}
-              activeConversation={chat.activeConversation}
-              onSelectChat={(id) => {
-                chat.selectChat(id);
-                chat.closeHistoryPanel();
-              }}
-              onRequestEditTitle={chat.requestEditTitle}
-              onRequestDeleteChat={chat.requestDeleteChat}
-              onStartNewChat={() => {
-                chat.startNewChat();
-                chat.closeHistoryPanel();
-              }}
-              toDate={chat.toDate}
-            />
+            <div ref={historyPanelRef}>
+                <HistoryPanel
+                allConversations={chat.allConversations}
+                activeConversation={chat.activeConversation}
+                onSelectChat={(id) => {
+                    chat.selectChat(id);
+                    chat.closeHistoryPanel();
+                }}
+                onRequestEditTitle={chat.requestEditTitle}
+                onRequestDeleteChat={chat.requestDeleteChat}
+                onStartNewChat={() => {
+                    chat.startNewChat();
+                    chat.closeHistoryPanel();
+                }}
+                toDate={chat.toDate}
+                onClose={chat.closeHistoryPanel}
+                />
+            </div>
           )}
 
           {chat.isAdvancedPanelOpen && (
-            <AdvancedSettingsPanel
-              selectedModelId={chat.activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
-              onModelChange={chat.handleModelChange}
-              selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
-              onStyleChange={chat.handleStyleChange}
-              selectedVoice={chat.selectedVoice}
-              onVoiceChange={chat.handleVoiceChange}
-            />
+            <div ref={advancedPanelRef}>
+                <AdvancedSettingsPanel
+                selectedModelId={chat.activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
+                onModelChange={chat.handleModelChange}
+                selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
+                onStyleChange={chat.handleStyleChange}
+                selectedVoice={chat.selectedVoice}
+                onVoiceChange={chat.handleVoiceChange}
+                onClose={chat.closeAdvancedPanel}
+                />
+            </div>
           )}
         </div>
       </div>

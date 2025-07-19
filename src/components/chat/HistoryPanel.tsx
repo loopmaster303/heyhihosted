@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { MessageSquareText, Pencil, Trash2, Plus } from 'lucide-react';
+import { MessageSquareText, Pencil, Trash2, Plus, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Conversation } from '@/types';
 
@@ -17,6 +17,7 @@ interface HistoryPanelProps {
   onRequestDeleteChat: (id: string) => void;
   onStartNewChat: () => void;
   toDate: (timestamp: Date | string | undefined | null) => Date;
+  onClose: () => void;
 }
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({
@@ -27,6 +28,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   onRequestDeleteChat,
   onStartNewChat,
   toDate,
+  onClose
 }) => {
   const filteredConversations = allConversations.filter(c => c.toolType === 'long language loops');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -39,12 +41,20 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     <div 
       className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 max-h-80 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
     >
-      <div className="flex justify-between items-center px-2 pt-1 pb-2">
-        <h3 className="text-sm font-semibold text-foreground">Chat History</h3>
-        <Button variant="ghost" size="sm" onClick={handleNewChat} className="text-foreground/80 hover:text-foreground">
-          <Plus className="w-4 h-4 mr-1.5" />
-          New Chat
-        </Button>
+      <div className="grid grid-cols-3 items-center px-2 pt-1 pb-2">
+        <h3 className="text-sm font-semibold text-foreground text-left">Chat History</h3>
+        <div className="flex justify-center">
+            <Button variant="ghost" size="sm" onClick={handleNewChat} className="text-foreground/80 hover:text-foreground">
+                <Plus className="w-4 h-4 mr-1.5" />
+                New Chat
+            </Button>
+        </div>
+        <div className="flex justify-end">
+            <Button variant="ghost" size="sm" onClick={onClose} className="text-foreground/80 hover:text-foreground">
+                <X className="w-4 h-4 mr-1.5" />
+                Close
+            </Button>
+        </div>
       </div>
       <ScrollArea className="h-full max-h-64">
         {filteredConversations.length === 0 ? (

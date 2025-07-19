@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
+import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 interface ReplicateImageToolProps {
   password?: string;
@@ -60,6 +61,12 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   
   const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
+
+  const historyPanelRef = useRef<HTMLDivElement>(null);
+  const advancedPanelRef = useRef<HTMLDivElement>(null);
+
+  useOnClickOutside([historyPanelRef], () => setIsHistoryPanelOpen(false), 'radix-select-content');
+  useOnClickOutside([advancedPanelRef], () => setIsAdvancedPanelOpen(false), 'radix-select-content');
 
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
   const isRunwayModelSelected = currentModelConfig?.id === 'runway-gen4-image';
@@ -678,7 +685,15 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
           
           {isAdvancedPanelOpen && (
              <div
+              ref={advancedPanelRef}
               className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
+                <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-semibold">Advanced Settings</h3>
+                    <Button variant="ghost" size="sm" onClick={() => setIsAdvancedPanelOpen(false)}>
+                        <X className="w-4 h-4 mr-1.5" />
+                        Close
+                    </Button>
+                </div>
                 <div className="grid gap-x-6 gap-y-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {currentModelConfig ? (
                     <>
@@ -785,12 +800,14 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
           
           {isHistoryPanelOpen && (
             <div 
+              ref={historyPanelRef}
               className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
             >
               <ImageHistoryGallery
                 history={history}
                 onSelectImage={handleSelectHistoryItem}
                 onClearHistory={handleClearHistory}
+                onClose={() => setIsHistoryPanelOpen(false)}
               />
             </div>
           )}

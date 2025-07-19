@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import Image from 'next/image';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, X } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Input } from '@/components/ui/input';
 import type { ImageHistoryItem } from '@/types';
@@ -60,8 +60,8 @@ const VisualizingLoopsTool: FC = () => {
   const advancedPanelRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useOnClickOutside(historyPanelRef, () => setIsHistoryPanelOpen(false));
-  useOnClickOutside(advancedPanelRef, () => setIsAdvancedPanelOpen(false));
+  useOnClickOutside([historyPanelRef], () => setIsHistoryPanelOpen(false), 'radix-select-content');
+  useOnClickOutside([advancedPanelRef], () => setIsAdvancedPanelOpen(false), 'radix-select-content');
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -292,6 +292,17 @@ const VisualizingLoopsTool: FC = () => {
     toast({ title: "History Cleared", description: "Your image generation history has been removed." });
   };
 
+  const toggleAdvancedPanel = () => {
+    if (isHistoryPanelOpen) setIsHistoryPanelOpen(false);
+    setIsAdvancedPanelOpen(prev => !prev);
+  }
+
+  const toggleHistoryPanel = () => {
+    if (isAdvancedPanelOpen) setIsAdvancedPanelOpen(false);
+    setIsHistoryPanelOpen(prev => !prev);
+  }
+
+
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
       <main className="flex-grow flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto no-scrollbar">
@@ -343,6 +354,13 @@ const VisualizingLoopsTool: FC = () => {
             <div 
               ref={advancedPanelRef}
               className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
+                <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-semibold">Advanced Settings</h3>
+                    <Button variant="ghost" size="sm" onClick={() => setIsAdvancedPanelOpen(false)}>
+                        <X className="w-4 h-4 mr-1.5" />
+                        Close
+                    </Button>
+                </div>
               <div className="grid gap-x-6 gap-y-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="width-slider-tool" className="text-xs font-medium">Width ({width}px)</Label>
@@ -434,7 +452,7 @@ const VisualizingLoopsTool: FC = () => {
 
           <div className="mt-3 flex justify-between items-center px-1">
             <button
-              onClick={() => setIsHistoryPanelOpen(prev => !prev)}
+              onClick={toggleHistoryPanel}
               className={cn(
                 "text-left text-foreground/90 text-sm font-bold font-code select-none truncate",
                 "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
@@ -444,7 +462,7 @@ const VisualizingLoopsTool: FC = () => {
               └ Gallery
             </button>
             <button
-              onClick={() => setIsAdvancedPanelOpen(prev => !prev)}
+              onClick={toggleAdvancedPanel}
               className={cn(
                 "text-right text-foreground/90 text-sm font-bold font-code select-none truncate",
                 "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
@@ -464,6 +482,7 @@ const VisualizingLoopsTool: FC = () => {
                 history={history}
                 onSelectImage={handleSelectHistoryItem}
                 onClearHistory={handleClearHistory}
+                onClose={() => setIsHistoryPanelOpen(false)}
               />
             </div>
           )}

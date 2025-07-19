@@ -9,9 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Brain, Fingerprint, Speech } from 'lucide-react';
+import { Brain, Fingerprint, Speech, X } from 'lucide-react';
 import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import { ScrollArea } from '../ui/scroll-area';
+import { Button } from '../ui/button';
 
 interface AdvancedSettingsPanelProps {
   selectedModelId: string;
@@ -20,6 +21,7 @@ interface AdvancedSettingsPanelProps {
   onStyleChange: (styleName: string) => void;
   selectedVoice: string;
   onVoiceChange: (voiceId: string) => void;
+  onClose: () => void;
 }
 
 const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
@@ -29,6 +31,7 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
   onStyleChange,
   selectedVoice,
   onVoiceChange,
+  onClose
 }) => {
   return (
     <div
@@ -36,6 +39,10 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
     >
       <div className="flex justify-between items-center px-2 pt-1 pb-2">
         <h3 className="text-sm font-semibold text-foreground">Advanced Settings</h3>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          <X className="w-4 h-4 mr-1.5" />
+          Close
+        </Button>
       </div>
       <ScrollArea className="h-full max-h-64">
         <div className="grid gap-4 p-2">
