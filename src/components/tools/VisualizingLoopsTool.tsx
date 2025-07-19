@@ -61,7 +61,6 @@ const VisualizingLoopsTool: FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useOnClickOutside([historyPanelRef], () => setIsHistoryPanelOpen(false), 'radix-select-content');
-  useOnClickOutside([advancedPanelRef], () => setIsAdvancedPanelOpen(false), 'radix-select-content');
 
   useEffect(() => {
     if (textareaRef.current) {
