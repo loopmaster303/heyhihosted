@@ -51,7 +51,7 @@ export default function ChatInterface() {
   return (
     <div className="flex flex-col h-full">
       <div className="relative flex-grow overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
         <ChatView
           conversation={chat.activeConversation}
           messages={chat.currentMessages}
