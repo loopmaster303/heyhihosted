@@ -17,10 +17,10 @@ export default function SettingsPage() {
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
   const [replicateToolPassword, setReplicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
-
+  
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-        <AppHeader toolTileItems={toolTileItems} />
+        <AppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName} />
         <main className="flex flex-col flex-grow pt-16">
             <PersonalizationTool
                 userDisplayName={userDisplayName}

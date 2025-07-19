@@ -1,6 +1,6 @@
 
 "use client";
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChatProvider } from '@/components/ChatProvider';
 import ChatInterface from '@/components/page/ChatInterface';
 import AppHeader from '@/components/page/AppHeader';
@@ -8,8 +8,9 @@ import type { TileItem } from '@/types';
 import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import { useChat } from '@/components/ChatProvider';
+import useLocalStorageState from '@/hooks/useLocalStorageState';
+import { Loader2 } from 'lucide-react';
 
-// Minimal version of tool items for the header navigation
 const toolTileItems: TileItem[] = [
     { id: 'long language loops', title: 'chat/conversational/assistance', href: '/chat' },
     { id: 'nocost imagination', title: 'generate/visualize/image-gen/fast', href: '/image-gen/no-cost' },
@@ -20,10 +21,24 @@ const toolTileItems: TileItem[] = [
 
 function ChatPageContent() {
     const chat = useChat();
+    const [isClient, setIsClient] = useState(false);
+    const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
+    
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    if (!isClient) {
+        return (
+            <div className="flex flex-col h-screen items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
 
     return (
         <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-            <AppHeader toolTileItems={toolTileItems} />
+            <AppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName} />
             <main className="flex flex-col flex-grow pt-16">
                 <ChatInterface />
             </main>
@@ -53,5 +68,3 @@ export default function ChatPage() {
     </ChatProvider>
   );
 }
-
-    

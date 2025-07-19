@@ -18,19 +18,9 @@ import { X } from 'lucide-react';
 export default function ChatInterface() {
   const chat = useChat();
 
-  useEffect(() => {
-    // On mount, if no active conversation exists, start a new one.
-    // This handles the initial entry into the chat page.
-    if (chat.isInitialLoadComplete && !chat.activeConversation) {
-        const chatWithLoopType = chat.allConversations.find(c => c.toolType === 'long language loops');
-        if (chatWithLoopType) {
-            chat.selectChat(chatWithLoopType.id);
-        } else {
-            chat.startNewChat();
-        }
-    }
-  }, [chat.isInitialLoadComplete, chat.activeConversation, chat.startNewChat, chat.selectChat, chat.allConversations]);
-
+  // The logic to select or start a new chat has been moved to ChatProvider
+  // to ensure it runs correctly after localStorage is loaded.
+  // This component now just displays the UI based on the provider's state.
 
   if (!chat.isInitialLoadComplete || !chat.activeConversation) {
     return (
@@ -121,5 +111,3 @@ export default function ChatInterface() {
     </div>
   );
 };
-
-    

@@ -1,35 +1,36 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 function useLocalStorageState<T>(
   key: string,
   defaultValue: T
 ): [T, React.Dispatch<React.SetStateAction<T>>] {
-  const [value, setValue] = useState<T>(defaultValue);
-
-  // Effect to read from localStorage on mount
-  useEffect(() => {
-    // This only runs on the client
+  const [value, setValue] = useState<T>(() => {
+    // This function now runs only on the client during initial state creation.
+    // It prevents the server from trying to access localStorage.
+    if (typeof window === 'undefined') {
+      return defaultValue;
+    }
     try {
       const storedValue = localStorage.getItem(key);
-      if (storedValue !== null) {
-        setValue(JSON.parse(storedValue));
-      }
+      return storedValue ? JSON.parse(storedValue) : defaultValue;
     } catch (error) {
       console.error(`Error reading localStorage key “${key}”:`, error);
+      return defaultValue;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]); // Only run once on mount
+  });
 
-  // Effect to write to localStorage on value change
   useEffect(() => {
-    // This only runs on the client
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.error(`Error setting localStorage key “${key}”:`, error);
+    // This effect handles saving the value to localStorage whenever it changes.
+    // It also only runs on the client.
+    if (typeof window !== 'undefined') {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (error) {
+            console.error(`Error setting localStorage key “${key}”:`, error);
+        }
     }
   }, [key, value]);
 

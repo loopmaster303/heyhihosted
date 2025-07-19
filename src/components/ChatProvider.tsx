@@ -51,10 +51,22 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         return timestamp as Date;
     };
     
-    // Initial load from localStorage
+    // Initial load from localStorage is now handled by the useLocalStorageState hook directly.
+    // This effect now focuses on setting the active conversation on first load.
     useEffect(() => {
+        const relevantConversations = allConversations.filter(c => c.toolType === 'long language loops');
+        if (activeConversation === null && relevantConversations.length > 0) {
+            // Sort to get the most recently updated one
+            const sortedConvs = [...relevantConversations].sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
+            setActiveConversation(sortedConvs[0]);
+        } else if (activeConversation === null && relevantConversations.length === 0) {
+            // No chats exist, so create a new one.
+            startNewChat();
+        }
         setIsInitialLoadComplete(true);
-    }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allConversations]); // Dependency on allConversations ensures this runs when data is loaded.
+
 
     // Effect to update the allConversations in localStorage whenever active one changes
     useEffect(() => {
@@ -290,12 +302,18 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setAllConversations(prev => prev.filter(c => c.id !== conversationId));
   
         if (wasActive) {
-          const nextChat = allConversations.find(c => c.id !== conversationId && c.toolType === 'long language loops') ?? null;
-          selectChat(nextChat?.id ?? null);
+          const nextChat = allConversations.filter(c => c.id !== conversationId && c.toolType === 'long language loops')
+            .sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime())[0] ?? null;
+          
+          if(nextChat) {
+            selectChat(nextChat.id);
+          } else {
+            startNewChat();
+          }
         }
 
         toast({ title: "Chat Deleted" });
-    }, [activeConversation?.id, allConversations, selectChat, setAllConversations, toast]);
+    }, [activeConversation?.id, allConversations, selectChat, setAllConversations, toast, startNewChat]);
   
     const confirmDeleteChat = () => {
       if (!chatToDeleteId) return;
@@ -522,5 +540,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    
