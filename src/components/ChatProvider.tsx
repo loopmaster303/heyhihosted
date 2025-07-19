@@ -49,31 +49,34 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     const { toast } = useToast();
 
-    // Helper to convert Firestore Timestamps or JS Dates to JS Dates for UI display ONLY.
     const toDate = (timestamp: Date | Timestamp | undefined | null): Date => {
         if (!timestamp) return new Date();
         return timestamp instanceof Date ? timestamp : timestamp.toDate();
     };
 
-    const updateFirestoreConversation = useCallback(async (conversationId: string, updates: Partial<Omit<Conversation, 'createdAt' | 'updatedAt'>>) => {
+    const updateFirestoreConversation = useCallback(async (conversationId: string, updates: Partial<Omit<Conversation, 'createdAt' | 'updatedAt' | 'id'>>) => {
         if (!currentUser) return;
     
         const cleanedUpdates: Partial<Conversation> & { updatedAt: any } = { ...updates, updatedAt: serverTimestamp() };
+        
+        // Remove client-side only properties before sending to Firestore
         delete cleanedUpdates.uploadedFile;
         delete cleanedUpdates.uploadedFilePreview;
     
         if (cleanedUpdates.messages) {
             cleanedUpdates.messages = cleanedUpdates.messages.map((msg: ChatMessage) => {
                 const messageForStore = { ...msg };
+                
                 // Ensure timestamp is a Firestore Timestamp or a serverTimestamp for new messages
                 if (messageForStore.timestamp instanceof Date) {
                     messageForStore.timestamp = serverTimestamp() as Timestamp;
                 }
 
+                // Prevent storing very large image data URIs in Firestore history
                 if (Array.isArray(messageForStore.content)) {
                     const newContent = messageForStore.content.map(part => {
                         if (part.type === 'image_url' && part.image_url.url.startsWith('data:image') && part.image_url.url.length > 500 * 1024) { 
-                            return { ...part, image_url: { ...part.image_url, url: 'https://placehold.co/512x512.png?text=Image+History+Disabled' } };
+                            return { ...part, image_url: { ...part.image_url, url: 'https://placehold.co/512x512.png?text=Image+Too+Large' } };
                         }
                         return part;
                     });
@@ -155,38 +158,25 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const updateActiveConversationState = useCallback((updates: Partial<Conversation>) => {
       setActiveConversation(prevActive => {
         if (!prevActive) return null;
-        const updatedConv = { ...prevActive, ...updates };
-        
-        setAllConversations(prevAllConvs => {
-            const existingIndex = prevAllConvs.findIndex(c => c.id === prevActive.id);
-            if (existingIndex > -1) {
-                const newAllConvs = [...prevAllConvs];
-                const updatedMetadata = { ...newAllConvs[existingIndex], ...updates };
-                // Keep messages and messagesLoaded from the fully loaded version
-                updatedMetadata.messages = updatedConv.messages;
-                updatedMetadata.messagesLoaded = updatedConv.messagesLoaded;
-                newAllConvs[existingIndex] = updatedMetadata;
-
-                // Sort by updatedAt to move the active chat to the top
-                newAllConvs.sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
-                return newAllConvs;
-            }
-            return [updatedConv, ...prevAllConvs];
-        });
-        
-        if (updates.hasOwnProperty('isImageMode')) { 
-            setIsImageMode(updates.isImageMode || false);
-        }
-        return updatedConv;
+        return { ...prevActive, ...updates };
       });
     }, []);
   
     useEffect(() => {
-      if (activeConversation) {
-        setIsImageMode(activeConversation.isImageMode || false);
-      } else {
-        setIsImageMode(false);
-      }
+        if (activeConversation) {
+            setIsImageMode(activeConversation.isImageMode || false);
+
+            setAllConversations(prevAllConvs => {
+                const existingIndex = prevAllConvs.findIndex(c => c.id === activeConversation.id);
+                if (existingIndex > -1) {
+                    const newAllConvs = [...prevAllConvs];
+                    newAllConvs[existingIndex] = activeConversation;
+                    newAllConvs.sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
+                    return newAllConvs;
+                }
+                return [activeConversation, ...prevAllConvs];
+            });
+        }
     }, [activeConversation]);
   
     const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]) => {
@@ -375,7 +365,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                 messagesLoaded: true,
               };
               setActiveConversation(fullConversation);
-              setAllConversations(prev => prev.map(c => c.id === conversationId ? fullConversation : c));
             } else {
               throw new Error("Conversation document not found.");
             }
@@ -391,41 +380,44 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const startNewChat = useCallback(async (): Promise<Conversation | null> => {
         if (!currentUser) return null;
 
-        const newConversationData = {
+        const newConversationData: Omit<Conversation, 'id' | 'createdAt' | 'updatedAt' | 'messagesLoaded'> = {
             title: "default.long.language.loop",
             messages: [],
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
             toolType: 'long language loops',
             isImageMode: false,
             selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
             selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
         };
-
+        
         const newConversationId = crypto.randomUUID();
-        const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversationId);
+        const newConvForState: Conversation = {
+            id: newConversationId,
+            ...newConversationData,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            messagesLoaded: true,
+        };
+
+        setActiveConversation(newConvForState);
 
         try {
-            await setDoc(convRef, newConversationData);
-
-            const newConvForState: Conversation = {
-                id: newConversationId,
+            const dataForFirestore = {
                 ...newConversationData,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                messagesLoaded: true,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
             };
-
-            setAllConversations(prev => [newConvForState, ...prev].sort((a, b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime()));
-            setActiveConversation(newConvForState);
+            const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversationId);
+            await setDoc(convRef, dataForFirestore);
             
-            // Prune old conversations
+            // Prune old conversations if necessary
             if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
                 const sortedConvs = [...allConversations].sort((a, b) => toDate(a.updatedAt).getTime() - toDate(b.updatedAt).getTime());
                 const oldestConversation = sortedConvs[0];
-                const oldConvRef = doc(db, 'users', currentUser.uid, 'conversations', oldestConversation.id);
-                await deleteDoc(oldConvRef);
-                setAllConversations(prev => prev.filter(c => c.id !== oldestConversation.id));
+                if (oldestConversation) {
+                    const oldConvRef = doc(db, 'users', currentUser.uid, 'conversations', oldestConversation.id);
+                    await deleteDoc(oldConvRef);
+                    setAllConversations(prev => prev.filter(c => c.id !== oldestConversation.id));
+                }
             }
 
             return newConvForState;
@@ -433,6 +425,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         } catch (error) {
             console.error("Error creating new conversation in Firestore:", error);
             toast({ title: "Error", description: "Could not start a new chat.", variant: "destructive" });
+            setActiveConversation(null); // Rollback on error
             return null;
         }
     }, [currentUser, allConversations, toast]);
@@ -454,11 +447,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       
       updateFirestoreConversation(chatToEditId, { title: newTitle });
 
-      const updatedConversations = allConversations.map(c => c.id === chatToEditId ? {...c, title: newTitle} : c);
-      setAllConversations(updatedConversations);
+      setAllConversations(prev => prev.map(c => c.id === chatToEditId ? {...c, title: newTitle} : c));
 
       if (activeConversation?.id === chatToEditId) {
-          setActiveConversation(prev => prev ? { ...prev, title: newTitle } : null);
+          updateActiveConversationState({ title: newTitle });
       }
       
       toast({ title: "Title Updated" });
@@ -508,8 +500,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const toggleImageMode = () => {
       if (!activeConversation) return;
       const newImageModeState = !isImageMode; 
-      setActiveConversation(prev => prev ? {...prev, isImageMode: newImageModeState, uploadedFile: null, uploadedFilePreview: null } : null);
-      setIsImageMode(newImageModeState);
+      updateActiveConversationState({ isImageMode: newImageModeState, uploadedFile: null, uploadedFilePreview: null });
     };
 
     const handleFileSelect = (file: File | null) => {
@@ -517,11 +508,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       if (file) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setActiveConversation(prev => prev ? {...prev, isImageMode: false, uploadedFile: file, uploadedFilePreview: reader.result as string } : null);
+          updateActiveConversationState({ isImageMode: false, uploadedFile: file, uploadedFilePreview: reader.result as string });
         };
         reader.readAsDataURL(file);
       } else {
-        setActiveConversation(prev => prev ? {...prev, uploadedFile: null, uploadedFilePreview: null } : null);
+        updateActiveConversationState({ uploadedFile: null, uploadedFilePreview: null });
       }
     };
   
@@ -731,3 +722,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    
