@@ -93,66 +93,66 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div
-        className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]"
-      >
-        <form onSubmit={handleSubmit} className="w-full flex-grow">
-            <div className="flex w-full items-start gap-2">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={cn("rounded-lg h-10 w-10 flex-shrink-0", iconColorClass, isImageMode && "bg-accent text-accent-foreground")}
-                    onClick={onToggleImageMode}
-                    title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"}
-                    disabled={isLoading}
-                >
-                    {isImageMode ? 
-                      <ImageIcon className="w-6 h-6" strokeWidth={iconStrokeWidth} /> : 
-                      <MessageSquare className="w-6 h-6" strokeWidth={iconStrokeWidth} />}
-                </Button>
-                <Textarea
-                    ref={textareaRef}
-                    value={inputValue}
-                    onChange={handleTextareaInput}
-                    onKeyDown={handleKeyDown}
-                    placeholder={placeholderText}
-                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
-                    rows={1}
-                    disabled={isLoading}
-                    aria-label="Chat message input"
-                    style={{ lineHeight: '1.5rem' }}
-                />
-                 <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={cn("rounded-lg h-10 w-10 flex-shrink-0", iconColorClass)}
-                    onClick={() => {
-                        if (uploadedFilePreviewUrl) {
-                            onFileSelect(null);
-                        } else {
-                            fileInputRef.current?.click();
-                        }
-                    }}
-                    title={uploadedFilePreviewUrl ? "Clear uploaded image" : "Attach file"}
-                    disabled={isLoading || isImageMode}
-                  >
-                    {uploadedFilePreviewUrl ? <X className="w-5 h-5" strokeWidth={iconStrokeWidth} /> : <Paperclip className="w-5 h-5" strokeWidth={iconStrokeWidth} />}
-                  </Button>
-                 <Button
-                    type="submit"
-                    variant="ghost"
-                    size="icon"
-                    className="text-foreground/80 hover:text-foreground h-10 w-10 flex-shrink-0"
-                    disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
-                    aria-label="Send message"
-                  >
-                      <Send className="w-6 h-6" strokeWidth={iconStrokeWidth} />
-                </Button>
-            </div>
-        </form>
-      </div>
+      <form onSubmit={handleSubmit} className="w-full">
+        <div
+          className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]"
+        >
+          <Textarea
+              ref={textareaRef}
+              value={inputValue}
+              onChange={handleTextareaInput}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholderText}
+              className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+              rows={1}
+              disabled={isLoading}
+              aria-label="Chat message input"
+              style={{ lineHeight: '1.5rem' }}
+          />
+          <div className="flex w-full items-center justify-end gap-2 mt-2">
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn("rounded-lg h-10 w-10 flex-shrink-0", iconColorClass, isImageMode && "bg-accent text-accent-foreground")}
+                onClick={onToggleImageMode}
+                title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"}
+                disabled={isLoading}
+            >
+                {isImageMode ? 
+                  <ImageIcon className="w-6 h-6" strokeWidth={iconStrokeWidth} /> : 
+                  <MessageSquare className="w-6 h-6" strokeWidth={iconStrokeWidth} />}
+            </Button>
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn("rounded-lg h-10 w-10 flex-shrink-0", iconColorClass)}
+                onClick={() => {
+                    if (uploadedFilePreviewUrl) {
+                        onFileSelect(null);
+                    } else {
+                        fileInputRef.current?.click();
+                    }
+                }}
+                title={uploadedFilePreviewUrl ? "Clear uploaded image" : "Attach file"}
+                disabled={isLoading || isImageMode}
+              >
+                {uploadedFilePreviewUrl ? <X className="w-5 h-5" strokeWidth={iconStrokeWidth} /> : <Paperclip className="w-5 h-5" strokeWidth={iconStrokeWidth} />}
+              </Button>
+             <Button
+                type="submit"
+                variant="ghost"
+                size="icon"
+                className="text-foreground/80 hover:text-foreground h-10 w-10 flex-shrink-0"
+                disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
+                aria-label="Send message"
+              >
+                  <Send className="w-6 h-6" strokeWidth={iconStrokeWidth} />
+            </Button>
+          </div>
+        </div>
+      </form>
        <input
           type="file"
           ref={fileInputRef}
