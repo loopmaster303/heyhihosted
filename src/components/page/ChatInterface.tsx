@@ -22,8 +22,10 @@ export default function ChatInterface() {
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const advancedPanelRef = useRef<HTMLDivElement>(null);
   
-  useOnClickOutside([historyPanelRef], chat.closeHistoryPanel);
-  useOnClickOutside([advancedPanelRef], chat.closeAdvancedPanel);
+  // Custom hook to handle clicks outside of the panels
+  useOnClickOutside([historyPanelRef], () => chat.isHistoryPanelOpen && chat.closeHistoryPanel(), 'radix-select-content');
+  useOnClickOutside([advancedPanelRef], () => chat.isAdvancedPanelOpen && chat.closeAdvancedPanel(), 'radix-select-content');
+
 
   useEffect(() => {
     return () => {
@@ -43,17 +45,20 @@ export default function ChatInterface() {
   
   return (
     <div className="flex flex-col h-full">
-      <ChatView
-        conversation={chat.activeConversation}
-        messages={chat.currentMessages}
-        isLoading={chat.isAiResponding}
-        className="flex-grow overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-4 no-scrollbar"
-        onPlayAudio={chat.handlePlayAudio}
-        playingMessageId={chat.playingMessageId}
-        isTtsLoadingForId={chat.isTtsLoadingForId}
-        onCopyToClipboard={chat.handleCopyToClipboard}
-        onRegenerate={chat.regenerateLastResponse}
-      />
+      <div className="relative flex-grow overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
+        <ChatView
+          conversation={chat.activeConversation}
+          messages={chat.currentMessages}
+          isLoading={chat.isAiResponding}
+          className="h-full overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-4 no-scrollbar"
+          onPlayAudio={chat.handlePlayAudio}
+          playingMessageId={chat.playingMessageId}
+          isTtsLoadingForId={chat.isTtsLoadingForId}
+          onCopyToClipboard={chat.handleCopyToClipboard}
+          onRegenerate={chat.regenerateLastResponse}
+        />
+      </div>
       <div className="px-4 pt-2 pb-4 shrink-0">
         <div className="max-w-3xl mx-auto relative">
           {chat.activeConversation.uploadedFilePreview && !chat.isImageMode && (
