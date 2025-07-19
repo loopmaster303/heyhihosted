@@ -68,9 +68,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     
         // Explicitly delete properties that should not be stored in Firestore.
         // These properties only exist on the client-side state.
-        delete dataToStore.uploadedFile;
-        delete dataToStore.uploadedFilePreview;
-        delete dataToStore.messagesLoaded; // This is a client-side flag
+        delete (dataToStore as any).uploadedFile;
+        delete (dataToStore as any).uploadedFilePreview;
+        delete (dataToStore as any).messagesLoaded; // This is a client-side flag
     
         if (dataToStore.messages) {
             dataToStore.messages = dataToStore.messages.map((msg: ChatMessage) => {
@@ -400,7 +400,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     
     const startNewChat = useCallback(async (): Promise<Conversation | null> => {
         if (!currentUser) return null;
-
+    
+        const newConversationId = crypto.randomUUID();
         const newConversationData: Omit<Conversation, 'id' | 'createdAt' | 'updatedAt' | 'messagesLoaded'> = {
             title: "default.long.language.loop",
             messages: [],
@@ -409,28 +410,30 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
             selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
         };
-        
-        const newConversationId = crypto.randomUUID();
-        const newConvForState: Conversation = {
-            id: newConversationId,
+    
+        const dataForFirestore = {
             ...newConversationData,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            messagesLoaded: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
         };
-
+    
         try {
-            const dataForFirestore = {
-                ...newConversationData,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-            };
             const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversationId);
             await setDoc(convRef, dataForFirestore);
+    
+            // Create the client-side state AFTER the DB operation is successful
+            const newConvForState: Conversation = {
+                id: newConversationId,
+                ...newConversationData,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                messagesLoaded: true,
+            };
             
             // This is now safe because we set the state *after* successful creation
             setActiveConversation(newConvForState);
-
+    
+            // Prune old conversations if necessary
             if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
                 const sortedConvs = [...allConversations].sort((a, b) => toDate(a.updatedAt).getTime() - toDate(b.updatedAt).getTime());
                 const oldestConversation = sortedConvs[0];
@@ -440,9 +443,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                     setAllConversations(prev => prev.filter(c => c.id !== oldestConversation.id));
                 }
             }
-
+    
             return newConvForState;
-
+    
         } catch (error) {
             console.error("Error creating new conversation in Firestore:", error);
             toast({ title: "Error", description: "Could not start a new chat.", variant: "destructive" });
