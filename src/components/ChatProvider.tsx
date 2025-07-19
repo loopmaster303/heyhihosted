@@ -13,7 +13,7 @@ import { textToSpeech } from '@/ai/flows/tts-flow';
 
 
 import { db, auth } from '@/lib/firebase';
-import { doc, getDoc, setDoc, collection, query, orderBy, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, orderBy, getDocs, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, type User, signInAnonymously } from 'firebase/auth';
 
 
