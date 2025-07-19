@@ -1,20 +1,18 @@
 
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { MessageSquareText, Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
+import { MessageSquareText, Pencil, Trash2, Plus } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Conversation } from '@/types';
-import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 interface HistoryPanelProps {
   allConversations: Conversation[];
   activeConversation: Conversation | null;
   onSelectChat: (id: string) => void;
-  onClose: () => void;
   onRequestEditTitle: (id: string) => void;
   onRequestDeleteChat: (id: string) => void;
   onStartNewChat: () => void;
@@ -25,7 +23,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   allConversations,
   activeConversation,
   onSelectChat,
-  onClose,
   onRequestEditTitle,
   onRequestDeleteChat,
   onStartNewChat,
@@ -33,18 +30,13 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
 }) => {
   const filteredConversations = allConversations.filter(c => c.toolType === 'long language loops');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useOnClickOutside(panelRef, onClose);
 
   const handleNewChat = () => {
     onStartNewChat();
-    onClose();
   };
 
   return (
     <div 
-      ref={panelRef}
       className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 max-h-80 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
     >
       <div className="flex justify-between items-center px-2 pt-1 pb-2">
@@ -68,10 +60,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 >
                 <Button
                     variant="ghost"
-                    onClick={() => {
-                    onSelectChat(conv.id);
-                    onClose();
-                    }}
+                    onClick={() => onSelectChat(conv.id)}
                     className={cn(
                     "w-full h-auto text-left p-2 justify-start items-start gap-3",
                     activeConversation?.id === conv.id && "bg-accent"

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   Select,
   SelectContent,
@@ -11,11 +11,9 @@ import {
 } from "@/components/ui/select";
 import { Brain, Fingerprint, Speech } from 'lucide-react';
 import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
-import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface AdvancedSettingsPanelProps {
-  onClose: () => void;
   selectedModelId: string;
   onModelChange: (modelId: string) => void;
   selectedResponseStyleName: string;
@@ -25,7 +23,6 @@ interface AdvancedSettingsPanelProps {
 }
 
 const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
-  onClose,
   selectedModelId,
   onModelChange,
   selectedResponseStyleName,
@@ -33,12 +30,8 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
   selectedVoice,
   onVoiceChange,
 }) => {
-  const panelRef = useRef<HTMLDivElement>(null);
-  useOnClickOutside(panelRef, onClose);
-
   return (
     <div
-      ref={panelRef}
       className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 max-h-80 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
     >
       <div className="flex justify-between items-center px-2 pt-1 pb-2">

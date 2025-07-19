@@ -22,6 +22,14 @@ export default function ChatInterface() {
   // to ensure it runs correctly after localStorage is loaded.
   // This component now just displays the UI based on the provider's state.
 
+  useEffect(() => {
+    // When the component unmounts, close any open panels
+    return () => {
+      chat.closeAdvancedPanel();
+      chat.closeHistoryPanel();
+    };
+  }, [chat.closeAdvancedPanel, chat.closeHistoryPanel]);
+
   if (!chat.isInitialLoadComplete || !chat.activeConversation) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
@@ -86,18 +94,22 @@ export default function ChatInterface() {
             <HistoryPanel
               allConversations={chat.allConversations}
               activeConversation={chat.activeConversation}
-              onSelectChat={chat.selectChat}
-              onClose={chat.closeHistoryPanel}
+              onSelectChat={(id) => {
+                chat.selectChat(id);
+                chat.closeHistoryPanel();
+              }}
               onRequestEditTitle={chat.requestEditTitle}
               onRequestDeleteChat={chat.requestDeleteChat}
-              onStartNewChat={chat.startNewChat}
+              onStartNewChat={() => {
+                chat.startNewChat();
+                chat.closeHistoryPanel();
+              }}
               toDate={chat.toDate}
             />
           )}
 
           {chat.isAdvancedPanelOpen && (
             <AdvancedSettingsPanel
-              onClose={chat.closeAdvancedPanel}
               selectedModelId={chat.activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
               onModelChange={chat.handleModelChange}
               selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}

@@ -25,7 +25,6 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
-import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 interface ReplicateImageToolProps {
   password?: string;
@@ -59,12 +58,8 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
   const [history, setHistory] = useState<ImageHistoryItem[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageHistoryItem | null>(null);
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
-  const historyPanelRef = useRef<HTMLDivElement>(null);
-  useOnClickOutside(historyPanelRef, () => setIsHistoryPanelOpen(false));
   
   const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
-  const advancedPanelRef = useRef<HTMLDivElement>(null);
-  useOnClickOutside(advancedPanelRef, () => setIsAdvancedPanelOpen(false));
 
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
   const isRunwayModelSelected = currentModelConfig?.id === 'runway-gen4-image';
@@ -624,6 +619,16 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
     ( (isFluxModelSelected && (mainPromptValue.trim() !== '' || uploadedImagePreview)) ||
       (!isFluxModelSelected && mainPromptValue.trim() !== '') );
 
+  const toggleAdvancedPanel = () => {
+    if (isHistoryPanelOpen) setIsHistoryPanelOpen(false);
+    setIsAdvancedPanelOpen(prev => !prev);
+  }
+
+  const toggleHistoryPanel = () => {
+    if (isAdvancedPanelOpen) setIsAdvancedPanelOpen(false);
+    setIsHistoryPanelOpen(prev => !prev);
+  }
+
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
       <main className="flex-grow flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto no-scrollbar">
@@ -672,8 +677,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
         <div className="max-w-3xl mx-auto relative">
           
           {isAdvancedPanelOpen && (
-             <div 
-              ref={advancedPanelRef}
+             <div
               className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
                 <div className="grid gap-x-6 gap-y-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {currentModelConfig ? (
@@ -758,7 +762,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
 
           <div className="mt-3 flex justify-between items-center px-1">
             <button
-              onClick={() => setIsHistoryPanelOpen(prev => !prev)}
+              onClick={toggleHistoryPanel}
               className={cn(
                 "text-left text-foreground/90 text-sm font-bold font-code select-none truncate",
                 "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
@@ -768,7 +772,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
               └ Gallery
             </button>
              <button
-              onClick={() => setIsAdvancedPanelOpen(prev => !prev)}
+              onClick={toggleAdvancedPanel}
               className={cn(
                 "text-right text-foreground/90 text-sm font-bold font-code select-none truncate",
                 "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
@@ -781,7 +785,6 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
           
           {isHistoryPanelOpen && (
             <div 
-              ref={historyPanelRef}
               className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
             >
               <ImageHistoryGallery
