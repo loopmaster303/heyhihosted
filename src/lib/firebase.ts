@@ -1,16 +1,17 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration - UPDATED
 const firebaseConfig = {
-  apiKey: "AIzaSyBJbcwl1nlafV62VdmDZKP6pVN5bZ_aF3s",
-  authDomain: "fluxflow-ai.firebaseapp.com",
-  projectId: "fluxflow-ai",
-  storageBucket: "fluxflow-ai.appspot.com",
-  messagingSenderId: "647827922675",
-  appId: "1:647827922675:web:52d20dd6a38345b217a186"
+  apiKey: "AIzaSyDFN5E2a_jH-a-T5QxY8u7z9b6n4C0o2k",
+  authDomain: "heyhi-chat-app.firebaseapp.com",
+  projectId: "heyhi-chat-app",
+  storageBucket: "heyhi-chat-app.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:a1b2c3d4e5f6a7b8c9d0e1"
 };
 
 
