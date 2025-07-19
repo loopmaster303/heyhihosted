@@ -49,37 +49,38 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     const { toast } = useToast();
 
-    // Helper to convert Firestore Timestamps to JS Dates
-    const toDate = (timestamp: Date | Timestamp): Date => {
+    // Helper to convert Firestore Timestamps or JS Dates to JS Dates
+    const toDate = (timestamp: Date | Timestamp | undefined | null): Date => {
+        if (!timestamp) return new Date();
         return timestamp instanceof Date ? timestamp : timestamp.toDate();
     };
 
-    const updateFirestoreConversation = useCallback(async (conversationId: string, updates: Partial<Conversation>) => {
+    const updateFirestoreConversation = useCallback(async (conversationId: string, updates: Partial<Omit<Conversation, 'createdAt' | 'updatedAt'>>) => {
         if (!currentUser) return;
-
-        // Clean any client-side only properties before saving
-        delete updates.uploadedFile;
-        delete updates.uploadedFilePreview;
-
-        // Prevent storing excessively large image data URIs in Firestore
-        if (updates.messages) {
-            updates.messages = updates.messages.map((msg: ChatMessage) => {
-              if (Array.isArray(msg.content)) {
-                const newContent = msg.content.map(part => {
-                  if (part.type === 'image_url' && part.image_url.url.startsWith('data:image') && part.image_url.url.length > 500 * 1024) { 
-                    return { ...part, image_url: { ...part.image_url, url: 'https://placehold.co/512x512.png?text=Image+History+Disabled' } };
-                  }
-                  return part;
-                });
-                return { ...msg, content: newContent };
-              }
-              return msg;
+    
+        const cleanedUpdates: Partial<Conversation> = { ...updates };
+        delete cleanedUpdates.uploadedFile;
+        delete cleanedUpdates.uploadedFilePreview;
+    
+        if (cleanedUpdates.messages) {
+            cleanedUpdates.messages = cleanedUpdates.messages.map((msg: ChatMessage) => {
+                if (Array.isArray(msg.content)) {
+                    const newContent = msg.content.map(part => {
+                        if (part.type === 'image_url' && part.image_url.url.startsWith('data:image') && part.image_url.url.length > 500 * 1024) { 
+                            return { ...part, image_url: { ...part.image_url, url: 'https://placehold.co/512x512.png?text=Image+History+Disabled' } };
+                        }
+                        return part;
+                    });
+                    return { ...msg, content: newContent };
+                }
+                return msg;
             });
         }
         
         const convRef = doc(db, 'users', currentUser.uid, 'conversations', conversationId);
         try {
-            await setDoc(convRef, { ...updates, updatedAt: serverTimestamp() }, { merge: true });
+            // Always use serverTimestamp for updates to ensure consistency
+            await setDoc(convRef, { ...cleanedUpdates, updatedAt: serverTimestamp() }, { merge: true });
         } catch (error) {
             console.error("Error updating conversation in Firestore:", error);
             toast({ title: "Save Error", description: "Could not save changes to the cloud.", variant: "destructive" });
@@ -113,7 +114,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                     messages: [], // Messages will be loaded on demand
                     messagesLoaded: false, // Flag to indicate messages are not loaded
                 } as Conversation;
-            }).filter((c): c is Conversation => c !== null);
+            }).filter((c): c is Conversation => c !== null && c.messages.length > 0);
 
             setAllConversations(loadedConversations);
         } catch (error) {
@@ -166,7 +167,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                 newAllConvs[existingIndex] = updatedMetadata;
 
                 // Sort by updatedAt to move the active chat to the top
-                newAllConvs.sort((a,b) => toDate(b.updatedAt || b.createdAt).getTime() - toDate(a.updatedAt || a.createdAt).getTime());
+                newAllConvs.sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
                 return newAllConvs;
             }
             return [updatedConv, ...prevAllConvs];
@@ -188,7 +189,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }, [activeConversation]);
   
     const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]) => {
-      const convToUpdate = allConversations.find(c => c.id === conversationId);
+      const convToUpdate = allConversations.find(c => c.id === conversationId) ?? activeConversation;
       if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
   
       const isDefaultTitle = convToUpdate.title === "default.long.language.loop" || convToUpdate.title.toLowerCase().startsWith("new ") || convToUpdate.title === "Chat";
@@ -223,7 +224,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         }
       }
       return convToUpdate.title;
-    }, [allConversations, updateActiveConversationState]);
+    }, [allConversations, activeConversation, updateActiveConversationState]);
     
     const sendMessage = useCallback(async (
       _messageText: string,
@@ -336,7 +337,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       } finally {
         const newUpdatedAt = new Date();
         updateActiveConversationState({ messages: finalMessages, title: finalTitle, updatedAt: newUpdatedAt });
-        updateFirestoreConversation(convId, { messages: finalMessages, title: finalTitle, updatedAt: newUpdatedAt });
+        updateFirestoreConversation(convId, { messages: finalMessages, title: finalTitle });
         setIsAiResponding(false);
         if (isImagePrompt || isFileUpload) {
             updateActiveConversationState({ isImageMode: false, uploadedFile: null, uploadedFilePreview: null });
@@ -368,7 +369,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                 ...conversationToSelect,
                 ...fullConversationData,
                 createdAt: toDate(fullConversationData.createdAt),
-                updatedAt: fullConversationData.updatedAt ? toDate(fullConversationData.updatedAt) : toDate(fullConversationData.createdAt),
+                updatedAt: toDate(fullConversationData.updatedAt),
                 messages: (fullConversationData.messages || []).map((msg: any) => ({
                     ...msg,
                     id: msg.id || crypto.randomUUID(),
@@ -408,24 +409,17 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
       setActiveConversation(newConversation);
       // Don't add to allConversations yet, will be added on first message.
-
+      
       try {
-        // Optimistically create the document shell in firestore
-        const { uploadedFile, uploadedFilePreview, messages, ...storableConvShell } = newConversation;
-        const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversation.id);
-        await setDoc(convRef, { ...storableConvShell, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-
         // Prune old conversations if we exceed the limit
-        if (allConversations.length + 1 > MAX_STORED_CONVERSATIONS) {
+        if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
             const oldestConversation = [...allConversations].sort((a, b) => toDate(a.createdAt).getTime() - toDate(b.createdAt).getTime())[0];
             const oldConvRef = doc(db, 'users', currentUser.uid, 'conversations', oldestConversation.id);
             await deleteDoc(oldConvRef);
             setAllConversations(prev => prev.filter(c => c.id !== oldestConversation.id));
         }
       } catch (error) {
-        console.error("Error creating new conversation in Firestore:", error);
-        toast({ title: "Error", description: "Could not create new chat.", variant: "destructive" });
-        setActiveConversation(null);
+        console.error("Error pruning old conversations:", error);
       }
     }, [currentUser, allConversations, toast]);
     
@@ -443,12 +437,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         return;
       }
       const newTitle = editingTitle.trim();
+      
+      updateFirestoreConversation(chatToEditId, { title: newTitle });
+
       setAllConversations(allConversations.map(c => c.id === chatToEditId ? {...c, title: newTitle} : c));
       if (activeConversation?.id === chatToEditId) {
           setActiveConversation(prev => prev ? { ...prev, title: newTitle } : null);
       }
-      
-      updateFirestoreConversation(chatToEditId, { title: newTitle });
       
       toast({ title: "Title Updated" });
       setIsEditTitleDialogOpen(false);
@@ -721,3 +716,5 @@ export const useChat = (): ChatContextType => {
 };
 
     
+
+      
