@@ -76,64 +76,71 @@ const VisualizingLoopsTool: FC = () => {
   const batchSizeValue = useMemo(() => [batchSize], [batchSize]);
 
   useEffect(() => {
-    fetch('/api/image/models')
-      .then(res => {
+    const fetchModels = async () => {
+      try {
+        const res = await fetch('/api/image/models');
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
+        const data = await res.json();
         const availableModels = Array.isArray(data.models) && data.models.length > 0 ? data.models : FALLBACK_MODELS;
         setImageModels(availableModels);
         
-        try {
-          const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
-          if (storedSettings) {
-            const settings = JSON.parse(storedSettings);
-            if (settings.prompt !== undefined) setPrompt(settings.prompt);
-            if (settings.model !== undefined && availableModels.includes(settings.model)) {
-              setModel(settings.model);
-            } else if (!availableModels.includes(model)) {
-              setModel(availableModels.includes(DEFAULT_MODEL) ? DEFAULT_MODEL : availableModels[0]);
-            }
-            if (settings.width !== undefined) setWidth(settings.width);
-            if (settings.height !== undefined) setHeight(settings.height);
-            if (settings.seed !== undefined) setSeed(settings.seed);
-            if (settings.isPrivate !== undefined) setIsPrivate(settings.isPrivate);
-            if (settings.upsampling !== undefined) setUpsampling(settings.upsampling);
-            if (settings.transparent !== undefined) setTransparent(settings.transparent);
-            if (settings.aspectRatio !== undefined) setAspectRatio(settings.aspectRatio);
-            if (settings.batchSize !== undefined) setBatchSize(settings.batchSize);
+        // Restore settings after getting models
+        const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (storedSettings) {
+          const settings = JSON.parse(storedSettings);
+          if (settings.model !== undefined && availableModels.includes(settings.model)) {
+            setModel(settings.model);
+          } else if (!availableModels.includes(model)) {
+            setModel(availableModels.includes(DEFAULT_MODEL) ? DEFAULT_MODEL : availableModels[0]);
           }
-        } catch (e) {
-          console.error("Failed to parse settings from localStorage", e);
-          localStorage.removeItem(LOCAL_STORAGE_KEY);
         }
-
-        try {
-            const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
-            if (storedHistory) {
-                const parsedHistory = JSON.parse(storedHistory);
-                if(Array.isArray(parsedHistory)) {
-                    setHistory(parsedHistory);
-                    if (parsedHistory.length > 0) {
-                        setSelectedImage(parsedHistory[0]);
-                    }
-                }
-            }
-        } catch (e) {
-            console.error("Failed to parse history from localStorage", e);
-            localStorage.removeItem(HISTORY_STORAGE_KEY);
-        }
-        setIsInitialLoadComplete(true);
-      })
-      .catch(err => {
+      } catch (err) {
         console.error('Error loading image models:', err);
         toast({ title: "Model Loading Error", description: "Could not fetch models. Using defaults.", variant: "destructive" });
         setImageModels(FALLBACK_MODELS);
         setModel(DEFAULT_MODEL);
-        setIsInitialLoadComplete(true);
-      });
-  }, [toast]);
+      }
+    };
+
+    fetchModels();
+
+    try {
+      const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedSettings) {
+        const settings = JSON.parse(storedSettings);
+        if (settings.prompt !== undefined) setPrompt(settings.prompt);
+        if (settings.width !== undefined) setWidth(settings.width);
+        if (settings.height !== undefined) setHeight(settings.height);
+        if (settings.seed !== undefined) setSeed(settings.seed);
+        if (settings.isPrivate !== undefined) setIsPrivate(settings.isPrivate);
+        if (settings.upsampling !== undefined) setUpsampling(settings.upsampling);
+        if (settings.transparent !== undefined) setTransparent(settings.transparent);
+        if (settings.aspectRatio !== undefined) setAspectRatio(settings.aspectRatio);
+        if (settings.batchSize !== undefined) setBatchSize(settings.batchSize);
+      }
+    } catch (e) {
+      console.error("Failed to parse settings from localStorage", e);
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    }
+
+    try {
+        const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
+        if (storedHistory) {
+            const parsedHistory = JSON.parse(storedHistory);
+            if(Array.isArray(parsedHistory)) {
+                setHistory(parsedHistory);
+                if (parsedHistory.length > 0) {
+                    setSelectedImage(parsedHistory[0]);
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to parse history from localStorage", e);
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
+    }
+    setIsInitialLoadComplete(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   useEffect(() => {
     if (!isInitialLoadComplete) return;
@@ -308,7 +315,7 @@ const VisualizingLoopsTool: FC = () => {
                     src={selectedImage.imageUrl}
                     alt={`Generated image for: ${selectedImage.prompt}`}
                     fill
-                    sizes="100vw"
+                    sizes="(max-width: 768px) 90vw, (max-width: 1200px) 50vw, 33vw"
                     style={{ objectFit: 'contain' }}
                     className="rounded-md"
                     data-ai-hint="ai generated digital art"
