@@ -22,19 +22,19 @@ export default function ChatInterface() {
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const advancedPanelRef = useRef<HTMLDivElement>(null);
   
-  // Custom hook to handle clicks outside of the panels
+  // Custom hook to handle clicks outside of the history panel
   useOnClickOutside([historyPanelRef], () => {
     if (chat.isHistoryPanelOpen) chat.closeHistoryPanel();
   }, 'radix-select-content');
-  useOnClickOutside([advancedPanelRef], () => {
-    if (chat.isAdvancedPanelOpen) chat.closeAdvancedPanel();
-  }, 'radix-select-content');
-
+  
+  // NOTE: useOnClickOutside for advancedPanel was removed to prevent premature closing with Radix select menus.
+  // The panel is now only closed by the explicit "Close" button inside it.
 
   useEffect(() => {
     return () => {
-      chat.closeAdvancedPanel();
-      chat.closeHistoryPanel();
+      // Ensure panels are closed on component unmount
+      if (chat.isAdvancedPanelOpen) chat.closeAdvancedPanel();
+      if (chat.isHistoryPanelOpen) chat.closeHistoryPanel();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
