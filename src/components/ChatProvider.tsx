@@ -377,7 +377,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       setActiveConversation(newConversation);
       setAllConversations(prev => [newConversation, ...prev]);
 
-      const { uploadedFile, uploadedFilePreview, messagesLoaded, ...storableConv } = newConversation;
+      const { uploadedFile, uploadedFilePreview, ...storableConv } = newConversation;
       const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversation.id);
       try {
         await setDoc(convRef, storableConv);
@@ -493,7 +493,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }
   
     const handleModelChange = useCallback((modelId: string) => {
-      if (activeConversation) {
+      if (activeConversation && currentUser) {
         setActiveConversation(prev => prev ? { ...prev, selectedModelId: modelId } : null);
         // Persist change immediately
         const convRef = doc(db, 'users', currentUser.uid, 'conversations', activeConversation.id);
@@ -502,7 +502,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }, [activeConversation, currentUser]);
   
     const handleStyleChange = useCallback((styleName: string) => {
-       if (activeConversation) {
+       if (activeConversation && currentUser) {
         setActiveConversation(prev => prev ? { ...prev, selectedResponseStyleName: styleName } : null);
         const convRef = doc(db, 'users', currentUser.uid, 'conversations', activeConversation.id);
         setDoc(convRef, { selectedResponseStyleName: styleName }, { merge: true });
@@ -695,5 +695,7 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    
 
     
