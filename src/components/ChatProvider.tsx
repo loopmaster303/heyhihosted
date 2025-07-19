@@ -246,11 +246,23 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
       const historyForApi: ApiChatMessage[] = updatedMessagesForState
         .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-        .map(msg => ({
-          id: msg.id,
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-        }));
+        .map(msg => {
+          let apiContent: string | ChatMessageContentPart[];
+
+          if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+            // For assistant messages with multiple parts, only send the text part to the API.
+            const textPart = msg.content.find(p => p.type === 'text');
+            apiContent = textPart ? textPart.text : "";
+          } else {
+            apiContent = msg.content;
+          }
+          
+          return {
+            id: msg.id,
+            role: msg.role as 'user' | 'assistant',
+            content: apiContent,
+          };
+        });
       
       let aiResponseContent: string | ChatMessageContentPart[] | null = null;
       try {
@@ -703,3 +715,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    
