@@ -49,7 +49,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     const { toast } = useToast();
 
-    // Helper to convert Firestore Timestamps or JS Dates to JS Dates
+    // Helper to convert Firestore Timestamps or JS Dates to JS Dates for UI display ONLY.
     const toDate = (timestamp: Date | Timestamp | undefined | null): Date => {
         if (!timestamp) return new Date();
         return timestamp instanceof Date ? timestamp : timestamp.toDate();
@@ -58,34 +58,34 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const updateFirestoreConversation = useCallback(async (conversationId: string, updates: Partial<Omit<Conversation, 'createdAt' | 'updatedAt'>>) => {
         if (!currentUser) return;
     
-        const cleanedUpdates: Partial<Conversation> = { ...updates };
+        const cleanedUpdates: Partial<Conversation> & { updatedAt: any } = { ...updates, updatedAt: serverTimestamp() };
         delete cleanedUpdates.uploadedFile;
         delete cleanedUpdates.uploadedFilePreview;
     
         if (cleanedUpdates.messages) {
             cleanedUpdates.messages = cleanedUpdates.messages.map((msg: ChatMessage) => {
-                const messageWithDate = {
-                    ...msg,
-                    timestamp: msg.timestamp instanceof Date ? msg.timestamp : toDate(msg.timestamp)
-                };
+                const messageForStore = { ...msg };
+                // Ensure timestamp is a Firestore Timestamp or a serverTimestamp for new messages
+                if (messageForStore.timestamp instanceof Date) {
+                    messageForStore.timestamp = serverTimestamp() as Timestamp;
+                }
 
-                if (Array.isArray(messageWithDate.content)) {
-                    const newContent = messageWithDate.content.map(part => {
+                if (Array.isArray(messageForStore.content)) {
+                    const newContent = messageForStore.content.map(part => {
                         if (part.type === 'image_url' && part.image_url.url.startsWith('data:image') && part.image_url.url.length > 500 * 1024) { 
                             return { ...part, image_url: { ...part.image_url, url: 'https://placehold.co/512x512.png?text=Image+History+Disabled' } };
                         }
                         return part;
                     });
-                    return { ...messageWithDate, content: newContent };
+                    return { ...messageForStore, content: newContent };
                 }
-                return messageWithDate;
+                return messageForStore;
             });
         }
         
         const convRef = doc(db, 'users', currentUser.uid, 'conversations', conversationId);
         try {
-            // Always use serverTimestamp for updates to ensure consistency
-            await setDoc(convRef, { ...cleanedUpdates, updatedAt: serverTimestamp() }, { merge: true });
+            await setDoc(convRef, cleanedUpdates, { merge: true });
         } catch (error) {
             console.error("Error updating conversation in Firestore:", error);
             toast({ title: "Save Error", description: "Could not save changes to the cloud.", variant: "destructive" });
@@ -97,7 +97,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const loadConversations = useCallback(async (user: User) => {
         setIsHistoryLoading(true);
         const conversationsRef = collection(db, 'users', user.uid, 'conversations');
-        const q = query(conversationsRef, orderBy('createdAt', 'desc'));
+        const q = query(conversationsRef, orderBy('updatedAt', 'desc'));
 
         try {
             const querySnapshot = await getDocs(q);
@@ -336,7 +336,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const errorMsg: ChatMessage = {id: crypto.randomUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date(), toolType: 'long language loops'};
         finalMessages = [...updatedMessagesForState, errorMsg];
       } finally {
-        const newUpdatedAt = new Date();
+        const newUpdatedAt = serverTimestamp() as Timestamp;
         updateActiveConversationState({ messages: finalMessages, title: finalTitle, updatedAt: newUpdatedAt });
         updateFirestoreConversation(convId, { messages: finalMessages, title: finalTitle });
         setIsAiResponding(false);
@@ -358,7 +358,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         if (conversationToSelect.messagesLoaded) {
           setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null });
         } else {
-          // Set a temporary state while loading full messages
           setActiveConversation({ ...conversationToSelect, messages: [], uploadedFile: null, uploadedFilePreview: null });
 
           const convRef = doc(db, 'users', currentUser.uid, 'conversations', conversationId);
@@ -369,17 +368,14 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               const fullConversation: Conversation = {
                 ...conversationToSelect,
                 ...fullConversationData,
-                createdAt: fullConversationData.createdAt,
-                updatedAt: fullConversationData.updatedAt,
                 messages: (fullConversationData.messages || []).map((msg: any) => ({
                     ...msg,
-                    id: msg.id || crypto.randomUUID(),
-                    timestamp: msg.timestamp
+                    id: msg.id || crypto.randomUUID()
                 })),
                 messagesLoaded: true,
               };
               setActiveConversation(fullConversation);
-              setAllConversations(prev => prev.map(c => c.id === conversationId ? { ...c, ...fullConversation} : c));
+              setAllConversations(prev => prev.map(c => c.id === conversationId ? fullConversation : c));
             } else {
               throw new Error("Conversation document not found.");
             }
@@ -395,33 +391,32 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const startNewChat = useCallback(async () => {
       if (!currentUser) return;
 
-      const newConversation: Conversation = {
-        id: crypto.randomUUID(),
+      const newConversationData = {
         title: "default.long.language.loop",
         messages: [],
-        messagesLoaded: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
         toolType: 'long language loops',
         isImageMode: false,
         selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID, 
         selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
       };
 
-      const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversation.id);
+      const newConversationId = crypto.randomUUID();
+      const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversationId);
+      
       try {
-        await setDoc(convRef, {
-            ...newConversation,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-        });
-        const newConvWithTimestamp: Conversation = {
-            ...newConversation,
-            createdAt: new Date(), // Use local date for immediate UI update
+        await setDoc(convRef, newConversationData);
+
+        const newConvForState: Conversation = {
+            id: newConversationId,
+            ...newConversationData,
+            createdAt: new Date(), // Use local date for immediate UI, Firestore has the server one
             updatedAt: new Date(),
+            messagesLoaded: true,
         }
-        setAllConversations(prev => [newConvWithTimestamp, ...prev]);
-        setActiveConversation(newConvWithTimestamp);
+        setAllConversations(prev => [newConvForState, ...prev].sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime()));
+        setActiveConversation(newConvForState);
       } catch (error) {
           console.error("Error creating new conversation in Firestore:", error);
           toast({ title: "Error", description: "Could not start a new chat.", variant: "destructive" });
@@ -429,9 +424,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       }
       
       try {
-        // Prune old conversations if we exceed the limit
         if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
-            const oldestConversation = [...allConversations].sort((a, b) => toDate(a.createdAt).getTime() - toDate(b.createdAt).getTime())[0];
+            const sortedConvs = [...allConversations].sort((a, b) => toDate(a.updatedAt).getTime() - toDate(b.updatedAt).getTime());
+            const oldestConversation = sortedConvs[0];
             const oldConvRef = doc(db, 'users', currentUser.uid, 'conversations', oldestConversation.id);
             await deleteDoc(oldConvRef);
             setAllConversations(prev => prev.filter(c => c.id !== oldestConversation.id));
@@ -458,7 +453,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       
       updateFirestoreConversation(chatToEditId, { title: newTitle });
 
-      setAllConversations(allConversations.map(c => c.id === chatToEditId ? {...c, title: newTitle} : c));
+      const updatedConversations = allConversations.map(c => c.id === chatToEditId ? {...c, title: newTitle} : c);
+      setAllConversations(updatedConversations);
+
       if (activeConversation?.id === chatToEditId) {
           setActiveConversation(prev => prev ? { ...prev, title: newTitle } : null);
       }
@@ -483,8 +480,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setAllConversations(updatedConversations);
   
         if (wasActive) {
-          const nextChat = updatedConversations.find(c => c.toolType === 'long language loops');
-          selectChat(nextChat ? nextChat.id : null);
+          const nextChat = updatedConversations.find(c => c.toolType === 'long language loops') ?? null;
+          selectChat(nextChat?.id ?? null);
         }
 
         toast({ title: "Chat Deleted" });
@@ -686,7 +683,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       handleCopyToClipboard,
       regenerateLastResponse,
       currentUser,
-      toDate, // Expose helper
+      toDate,
     };
 }
 
@@ -707,15 +704,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         if (chatLogic.activeConversation && chatLogic.activeConversation.messagesLoaded) {
-            const messagesWithDate = chatLogic.activeConversation.messages.map(msg => ({
-                ...msg,
-                timestamp: chatLogic.toDate(msg.timestamp)
-            }));
-            setCurrentMessages(messagesWithDate);
+            setCurrentMessages(chatLogic.activeConversation.messages);
         } else {
             setCurrentMessages([]);
         }
-    }, [chatLogic.activeConversation, chatLogic.toDate]);
+    }, [chatLogic.activeConversation]);
 
     const chatContextValue = {
         ...chatLogic,
