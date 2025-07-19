@@ -8,7 +8,9 @@
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 // Using a specific Whisper model version known for good performance.
-const REPLICATE_MODEL_ENDPOINT = "https://api.replicate.com/v1/models/openai/whisper/predictions";
+const REPLICATE_MODEL_ENDPOINT = "https://api.replicate.com/v1/predictions";
+const WHISPER_MODEL_VERSION = "30414d4e44228a0c904332e79d5057a6b7d7b5783307590b50302b1f8352b294";
+
 
 export async function speechToText(audioDataUri: string): Promise<{ transcription: string }> {
   if (!REPLICATE_API_TOKEN) {
@@ -39,7 +41,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
         'Authorization': `Token ${REPLICATE_API_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ input: inputPayload }),
+      body: JSON.stringify({ version: WHISPER_MODEL_VERSION, input: inputPayload }),
     });
 
     if (!startResponse.ok) {
