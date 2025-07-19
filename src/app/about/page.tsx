@@ -1,6 +1,8 @@
 
+"use client";
 import AppHeader from '@/components/page/AppHeader';
 import type { TileItem } from '@/types';
+import useLocalStorageState from '@/hooks/useLocalStorageState';
 
 const toolTileItems: TileItem[] = [
     { id: 'long language loops', title: 'chat/conversational/assistance', href: '/chat' },
@@ -11,9 +13,10 @@ const toolTileItems: TileItem[] = [
 ];
 
 export default function AboutPage() {
+  const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-        <AppHeader toolTileItems={toolTileItems} />
+        <AppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName} />
         <main className="flex flex-col flex-grow pt-16 items-center justify-center p-4 text-center">
             <h2 className="text-3xl font-code text-foreground">about/hey.hi/readme</h2>
             <p className="text-muted-foreground mt-4 max-w-md">
