@@ -7,9 +7,9 @@
  */
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
-// Using a specific Whisper model version known for good performance.
-const REPLICATE_MODEL_ENDPOINT = "https://api.replicate.com/v1/predictions";
+// This is the specific, correct model version for openai/whisper on Replicate
 const WHISPER_MODEL_VERSION = "30414d4e44228a0c904332e79d5057a6b7d7b5783307590b50302b1f8352b294";
+const REPLICATE_API_ENDPOINT = "https://api.replicate.com/v1/predictions";
 
 
 export async function speechToText(audioDataUri: string): Promise<{ transcription: string }> {
@@ -35,7 +35,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
   };
 
   try {
-    const startResponse = await fetch(REPLICATE_MODEL_ENDPOINT, {
+    const startResponse = await fetch(REPLICATE_API_ENDPOINT, {
       method: 'POST',
       headers: {
         'Authorization': `Token ${REPLICATE_API_TOKEN}`,
