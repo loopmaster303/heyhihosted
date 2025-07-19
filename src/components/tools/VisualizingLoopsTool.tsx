@@ -308,6 +308,7 @@ const VisualizingLoopsTool: FC = () => {
                     src={selectedImage.imageUrl}
                     alt={`Generated image for: ${selectedImage.prompt}`}
                     fill
+                    sizes="100vw"
                     style={{ objectFit: 'contain' }}
                     className="rounded-md"
                     data-ai-hint="ai generated digital art"

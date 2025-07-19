@@ -81,12 +81,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       if (part.type === 'image_url') {
         const altText = part.image_url.altText || (part.image_url.isGenerated ? "Generated image" : (part.image_url.isUploaded ? "Uploaded image" : "Image"));
         return (
-          <div key={index} className="mt-2 mb-1">
+          <div key={index} className="mt-2 mb-1 relative" style={{width: '300px', height: '200px'}}>
             <Image
               src={part.image_url.url}
               alt={altText}
-              width={300} 
-              height={200} 
+              fill
+              sizes="(max-width: 768px) 80vw, 300px"
               style={{ objectFit: "contain", maxWidth: "100%", height: "auto" }} 
               className="rounded-md"
               data-ai-hint={part.image_url.isGenerated ? "illustration digital art" : (part.image_url.isUploaded ? "photo object" : "image")}
@@ -170,5 +170,3 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 };
 
 export default MessageBubble;
-
-    

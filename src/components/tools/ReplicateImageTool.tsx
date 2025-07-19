@@ -651,7 +651,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                   </video>
                 ) : (
                   <a href={selectedImage.imageUrl} target="_blank" rel="noopener noreferrer" className="block relative w-full h-full group">
-                    <NextImage src={selectedImage.imageUrl} alt={`Generated using ${selectedImage.model}`} fill style={{ objectFit: "contain" }} className="rounded-md" data-ai-hint="ai generated digital art" />
+                    <NextImage src={selectedImage.imageUrl} alt={`Generated using ${selectedImage.model}`} fill sizes="100vw" style={{ objectFit: "contain" }} className="rounded-md" data-ai-hint="ai generated digital art" />
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
                       <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
                     </div>
@@ -718,7 +718,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                         >
                           {uploadedImagePreview ? (
                             <>
-                              <NextImage src={uploadedImagePreview} alt="Reference preview" fill style={{ objectFit: 'cover' }} className="rounded-md" data-ai-hint="reference thumbnail" />
+                              <NextImage src={uploadedImagePreview} alt="Reference preview" fill sizes="40px" style={{ objectFit: 'cover' }} className="rounded-md" data-ai-hint="reference thumbnail" />
                               <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
                                 <X className="h-5 w-5 text-white" />
                               </div>

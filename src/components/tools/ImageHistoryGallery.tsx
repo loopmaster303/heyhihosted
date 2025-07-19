@@ -42,10 +42,10 @@ const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectIm
                   src={item.videoUrl ? 'https://placehold.co/400x400.png' : item.imageUrl}
                   alt={item.prompt}
                   fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
                   style={{ objectFit: 'cover' }}
                   className="bg-muted/30"
                   data-ai-hint="gallery thumbnail"
-                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
                 />
                 {item.videoUrl && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">
