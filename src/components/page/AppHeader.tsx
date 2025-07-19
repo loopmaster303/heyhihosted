@@ -20,20 +20,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // This effect runs when the path changes, which means navigation is complete.
-    // We can safely close the menu and reset the loading state.
     setLoading(false);
     setIsMenuOpen(false);
   }, [pathname]);
 
   const handleNavigationStart = () => {
-    // When a link is clicked, we immediately show the loading bar.
-    // The menu stays open until the useEffect above detects the path change.
     setLoading(true);
   };
   
   const toggleMenu = () => {
-    // Don't toggle menu if a page is currently loading
     if (loading) return;
     setIsMenuOpen(prev => !prev);
   }
@@ -42,7 +37,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
 
   return (
     <>
-      {/* Loading Bar */}
       <div
         className={cn(
           "fixed top-0 left-0 right-0 h-0.5 z-[99]",
@@ -60,9 +54,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
                 disabled={loading}
             >
               <div className="flex items-baseline gap-4">
-                  <div className="text-xl font-code text-foreground select-none font-bold">&lt;/hey.hi&gt;</div>
+                  <div className="text-2xl md:text-3xl font-code text-foreground select-none font-bold">&lt;/hey.hi&gt;</div>
                   {showUserName && (
-                      <span className="text-xl font-code text-foreground select-none font-bold">{userDisplayName}</span>
+                      <span className="text-2xl md:text-3xl font-code text-foreground select-none font-bold">{userDisplayName}</span>
                   )}
               </div>
             </button>
