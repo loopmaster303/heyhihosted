@@ -41,7 +41,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
                  <X className="h-10 w-10 text-foreground" />
               ) : (
                 <div className="flex items-baseline gap-4">
-                    <Link href="/" className="text-5xl font-code text-foreground select-none">&lt;/hey.hi&gt;</Link>
+                    <div className="text-5xl font-code text-foreground select-none">&lt;/hey.hi&gt;</div>
                     {showUserName && (
                         <span className="text-5xl font-code text-foreground select-none">{userDisplayName}</span>
                     )}
