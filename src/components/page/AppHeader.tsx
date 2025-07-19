@@ -2,23 +2,24 @@
 "use client";
 
 import React, { useState } from 'react';
-import type { TileItem, ToolType } from '@/types';
+import type { TileItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '../ThemeToggle';
 import { X } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface AppHeaderProps {
   toolTileItems: TileItem[];
-  onNavigate: (toolType: ToolType | 'home') => void;
   userDisplayName?: string;
   className?: string;
 }
 
-const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDisplayName, className }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, className }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
 
-  const handleNavigation = (toolType: ToolType | 'home') => {
-    onNavigate(toolType);
+  const handleNavigation = () => {
     setIsMenuOpen(false);
   };
   
@@ -40,7 +41,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDi
                  <X className="h-10 w-10 text-foreground" />
               ) : (
                 <div className="flex items-baseline gap-4">
-                    <h1 className="text-5xl font-code text-foreground select-none">&lt;/hey.hi&gt;</h1>
+                    <Link href="/" className="text-5xl font-code text-foreground select-none">&lt;/hey.hi&gt;</Link>
                     {showUserName && (
                         <span className="text-5xl font-code text-foreground select-none">{userDisplayName}</span>
                     )}
@@ -56,15 +57,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, onNavigate, userDi
       {isMenuOpen && (
         <div 
           className="fixed inset-0 bg-background/95 backdrop-blur-sm z-40 flex items-start justify-center pt-32 animate-in fade-in-0 duration-300"
+          onClick={() => setIsMenuOpen(false)}
         >
           <nav className="flex flex-col space-y-1 md:space-y-4 font-code w-auto text-left">
-            <button onClick={() => handleNavigation('home')} className="text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl">
+            <Link href="/" onClick={handleNavigation} className={cn("text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl", pathname === '/' && 'text-foreground')}>
               {`└home/page`}
-            </button>
+            </Link>
             {toolTileItems.map((item) => (
-              <button key={item.id} onClick={() => handleNavigation(item.id)} className="text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl">
+              <Link key={item.id} href={item.href || '#'} onClick={handleNavigation} className={cn("text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl", pathname === item.href && 'text-foreground')}>
                 {`└${item.title}`}
-              </button>
+              </Link>
             ))}
           </nav>
         </div>

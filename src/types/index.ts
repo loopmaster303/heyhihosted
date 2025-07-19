@@ -9,7 +9,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string | ChatMessageContentPart[];
-  timestamp: Date | Timestamp;
+  timestamp: Date | Timestamp | string; // Allow string for serialization
   toolType?: ToolType;
 }
 
@@ -23,8 +23,8 @@ export interface Conversation {
   id:string;
   title: string;
   messages: ChatMessage[];
-  createdAt: Date | Timestamp;
-  updatedAt: Date | Timestamp;
+  createdAt: Date | Timestamp | string; // Allow string for serialization
+  updatedAt: Date | Timestamp | string; // Allow string for serialization
   toolType: ToolType;
   isImageMode?: boolean;
   uploadedFile?: File | null;
@@ -42,6 +42,7 @@ export interface TileItem {
   title: string;
   icon?: React.ElementType; 
   description?: string;
+  href?: string;
 }
 
 export type CurrentAppView = 'tiles' | 'chat' | 'replicateImageTool' | 'personalizationTool' | 'nocostImageTool' | 'aboutView';
@@ -55,5 +56,3 @@ export interface ImageHistoryItem {
   toolType: 'premium imagination' | 'nocost imagination';
   videoUrl?: string;
 }
-
-    

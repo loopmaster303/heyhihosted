@@ -7,14 +7,14 @@ import dynamic from 'next/dynamic';
 import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import AppHeader from '@/components/page/AppHeader';
-import HomePage from '@/components/page/HomePage';
-
 
 import { useChat } from '@/components/ChatProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 
 import type { ToolType, TileItem } from '@/types';
 import { RefreshCw } from 'lucide-react';
+import HomePage from './HomePage';
+import { useRouter } from 'next/navigation';
 
 const LoadingSpinner = () => (
     <div className="flex-grow flex items-center justify-center h-full">
@@ -45,15 +45,15 @@ const ChatInterface = dynamic(() => import('@/components/page/ChatInterface'), {
 
 
 const toolTileItems: TileItem[] = [
-  { id: 'long language loops', title: 'chat/conversational/assistance' },
-  { id: 'nocost imagination', title: 'generate/visualize/image-gen/fast' },
-  { id: 'premium imagination', title: 'generate/visualize/image-gen/raw' },
-  { id: 'personalization', title: 'settings/personalization' },
-  { id: 'about', title: 'about/hey.hi/readme' },
+  { id: 'long language loops', title: 'chat/conversational/assistance', href: '/chat' },
+  { id: 'nocost imagination', title: 'generate/visualize/image-gen/fast', href: '/image-gen/no-cost' },
+  { id: 'premium imagination', title: 'generate/visualize/image-gen/raw', href: '/image-gen/raw' },
+  { id: 'personalization', title: 'settings/personalization', href: '/settings' },
+  { id: 'about', title: 'about/hey.hi/readme', href: '/about' },
 ];
 
 export default function AppContent() {
-  const [activeTool, setActiveTool] = useLocalStorageState<ToolType | null>('activeTool', null);
+  const router = useRouter();
   
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
@@ -61,75 +61,20 @@ export default function AppContent() {
 
   const chat = useChat();
 
-  const handleNavigation = async (toolOrView: ToolType | 'home') => {
-    if (toolOrView === 'home') {
-        setActiveTool(null);
-        chat.selectChat(null); 
-    } else if (toolOrView === 'long language loops') {
-        setActiveTool(null);
-        // The startNewChat function now correctly sets the active conversation
-        await chat.startNewChat();
-    } else {
-        chat.selectChat(null);
-        setActiveTool(toolOrView);
-    }
+  const handleNavigation = (href: string) => {
+    router.push(href);
   };
 
   const renderContent = () => {
-    // Show a global spinner only during the absolute initial auth check
-    if (!chat.isInitialLoadComplete) {
-      return <LoadingSpinner />;
-    }
-
-    // Once auth is checked, render the appropriate view
-    if (chat.activeConversation) {
-        return <ChatInterface />;
-    }
-
-    switch (activeTool) {
-      case 'nocost imagination':
-        return <VisualizingLoopsTool />;
-      case 'premium imagination':
-        return <ReplicateImageTool password={replicateToolPassword} />;
-      case 'personalization':
-        return (
-          <PersonalizationTool
-            userDisplayName={userDisplayName}
-            setUserDisplayName={setUserDisplayName}
-            customSystemPrompt={customSystemPrompt}
-            setCustomSystemPrompt={setCustomSystemPrompt}
-            replicateToolPassword={replicateToolPassword}
-            setReplicateToolPassword={setReplicateToolPassword}
-          />
-        );
-      case 'about':
-        return (
-          <div className="flex flex-col h-full items-center justify-center p-4 text-center">
-            <h2 className="text-3xl font-code text-foreground">about/hey.hi/readme</h2>
-            <p className="text-muted-foreground mt-4 max-w-md">
-              This section is under construction. Come back soon to learn more about the project!
-            </p>
-          </div>
-        );
-      default:
-        return <HomePage onSelectTile={handleNavigation} toolTileItems={toolTileItems} />;
-    }
+    // This component will be deprecated, but for now, we just render the home page.
+    // The actual routing is handled by Next.js file system.
+    return <HomePage onSelectTile={(item) => handleNavigation(item.href || '/')} toolTileItems={toolTileItems} />;
   };
-
-  const shouldShowHeader = activeTool !== null || chat.activeConversation !== null;
 
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
 
-      {shouldShowHeader && (
-        <AppHeader
-          toolTileItems={toolTileItems}
-          onNavigate={handleNavigation}
-          userDisplayName={userDisplayName}
-        />
-      )}
-
-      <main className={`flex flex-col flex-grow ${shouldShowHeader ? 'pt-16' : ''}`}>
+      <main className={`flex flex-col flex-grow`}>
         {renderContent()}
       </main>
 

@@ -1,11 +1,13 @@
+
 "use client";
 
 import React from 'react';
 import type { TileItem, ToolType } from '@/types';
 import { ThemeToggle } from '../ThemeToggle';
+import Link from 'next/link';
 
 interface HomePageProps {
-    onSelectTile: (id: ToolType) => void;
+    onSelectTile: (item: TileItem) => void;
     toolTileItems: TileItem[];
 }
 
@@ -20,7 +22,7 @@ const HomePage: React.FC<HomePageProps> = ({ onSelectTile, toolTileItems }) => {
                 <p className="text-muted-foreground text-base md:text-lg mt-2">everyone can say hi to ai.</p>
                 <nav className="mt-8 space-y-3 md:space-y-4 font-code text-xl md:text-2xl lg:text-3xl w-auto inline-block text-left">
                     {toolTileItems.map((item) => (
-                        <button key={item.id} onClick={() => onSelectTile(item.id)} className="block w-full text-left text-foreground/80 hover:text-foreground transition-colors">
+                        <button key={item.id} onClick={() => onSelectTile(item)} className="block w-full text-left text-foreground/80 hover:text-foreground transition-colors">
                             {`└${item.title}`}
                         </button>
                     ))}
