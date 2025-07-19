@@ -66,7 +66,6 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
   const advancedPanelRef = useRef<HTMLDivElement>(null);
 
   useOnClickOutside([historyPanelRef], () => setIsHistoryPanelOpen(false), 'radix-select-content');
-  useOnClickOutside([advancedPanelRef], () => setIsAdvancedPanelOpen(false), 'radix-select-content');
 
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
   const isRunwayModelSelected = currentModelConfig?.id === 'runway-gen4-image';
