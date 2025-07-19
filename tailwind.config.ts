@@ -10,9 +10,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
         body: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
-        headline: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
         code: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
       },
       colors: {

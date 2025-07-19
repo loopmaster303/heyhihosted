@@ -100,21 +100,7 @@
 
 /* Specific font weights */
 
-/* Font-weight for elements containing the text "< /hey.hi >" */
-/* This requires targeting the element containing the text. A class or specific selector is recommended. */
-/* Example using a class 'heyhi-logo' */
-.heyhi-logo {
-  font-weight: 700;
-}
-
 /* Font-weight for all header elements */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
-}
-
-/* Font-weight for all subheading elements */
-/* This requires targeting subheading elements. A class or specific selector is recommended. */
-/* Example using a class 'subheading' */
-.subheading {
-  font-weight: 500;
 }
