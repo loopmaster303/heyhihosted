@@ -8,7 +8,7 @@ import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import AppHeader from '@/components/page/AppHeader';
 import HomePage from '@/components/page/HomePage';
-import ChatInterface from '@/components/page/ChatInterface'; 
+
 
 import { useChat } from '@/components/ChatProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -22,6 +22,7 @@ const LoadingSpinner = () => (
     </div>
 );
 
+// Dynamically import heavy components to improve initial load time
 const PersonalizationTool = dynamic(() => import('@/components/tools/PersonalizationTool'), {
   loading: () => <LoadingSpinner />,
   ssr: false,
@@ -33,6 +34,11 @@ const ReplicateImageTool = dynamic(() => import('@/components/tools/ReplicateIma
 });
 
 const VisualizingLoopsTool = dynamic(() => import('@/components/tools/VisualizingLoopsTool'), {
+  loading: () => <LoadingSpinner />,
+  ssr: false,
+});
+
+const ChatInterface = dynamic(() => import('@/components/page/ChatInterface'), {
   loading: () => <LoadingSpinner />,
   ssr: false,
 });
@@ -142,5 +148,3 @@ export default function AppContent() {
     </div>
   );
 }
-
-    
