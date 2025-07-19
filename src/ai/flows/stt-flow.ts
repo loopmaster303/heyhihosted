@@ -20,7 +20,8 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
     throw new Error('Input audio data URI cannot be empty.');
   }
 
-  // The input for this model is simply the audio file.
+  // The input for this model is a data URI or a public URL.
+  // We pass the data URI directly.
   const inputPayload = {
     audio: audioDataUri,
     model: "large-v3",
