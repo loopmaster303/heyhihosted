@@ -75,10 +75,12 @@ export default function AppContent() {
   };
 
   const renderContent = () => {
+    // Show a global spinner only during the absolute initial auth check
     if (!chat.isInitialLoadComplete) {
       return <LoadingSpinner />;
     }
 
+    // Once auth is checked, render the appropriate view
     if (chat.activeConversation) {
         return <ChatInterface />;
     }

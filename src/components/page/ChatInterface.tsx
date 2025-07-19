@@ -13,13 +13,23 @@ import AdvancedSettingsPanel from '@/components/chat/AdvancedSettingsPanel';
 // Types & Config
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
 import { cn } from '@/lib/utils';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 
 export default function ChatInterface() {
   const chat = useChat();
 
   if (!chat.activeConversation) {
     return null; 
+  }
+  
+  // Show a loading spinner if messages for the active conversation are being fetched
+  if (!chat.activeConversation.messagesLoaded) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <p className="mt-4 text-muted-foreground">Loading chat...</p>
+      </div>
+    );
   }
 
   return (
@@ -82,6 +92,7 @@ export default function ChatInterface() {
               onRequestEditTitle={chat.requestEditTitle}
               onRequestDeleteChat={chat.requestDeleteChat}
               onStartNewChat={chat.startNewChat}
+              isHistoryLoading={chat.isHistoryLoading}
             />
           )}
 

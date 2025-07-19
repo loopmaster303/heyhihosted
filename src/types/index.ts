@@ -32,6 +32,8 @@ export interface Conversation {
   uploadedFilePreview?: string | null;
   selectedModelId?: string;
   selectedResponseStyleName?: string;
+  // This flag indicates if the full message history has been loaded
+  messagesLoaded?: boolean;
 }
 
 export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about';
