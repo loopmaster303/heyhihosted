@@ -708,11 +708,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         // Call a slightly modified version of the send logic since we're not using the component's state directly
         // The original sendMessage is too coupled, so we replicate its core logic here.
         // Or better yet, we can simply resubmit the history and let sendMessage handle it.
-        // Let's refactor `sendMessage` to take an optional history.
-
-        // The easiest way is to remove the last message and call sendMessage again with the last user prompt.
-        // However, sendMessage uses the `chatInputValue` state. Let's set it and call sendMessage.
-        
         // Let's simulate another send.
         // We'll set the active conversation to the history *before* the last assistant message.
         setActiveConversation(prev => prev ? { ...prev, messages: historyForApi } : null);
@@ -808,3 +803,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    
