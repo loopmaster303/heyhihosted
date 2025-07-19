@@ -388,52 +388,53 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       }
     }, [allConversations, currentUser, toast]);
     
-    const startNewChat = useCallback(async () => {
-      if (!currentUser) return;
+    const startNewChat = useCallback(async (): Promise<Conversation | null> => {
+        if (!currentUser) return null;
 
-      const newConversationData = {
-        title: "default.long.language.loop",
-        messages: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        toolType: 'long language loops',
-        isImageMode: false,
-        selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID, 
-        selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
-      };
+        const newConversationData = {
+            title: "default.long.language.loop",
+            messages: [],
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            toolType: 'long language loops',
+            isImageMode: false,
+            selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
+            selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
+        };
 
-      const newConversationId = crypto.randomUUID();
-      const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversationId);
-      
-      try {
-        await setDoc(convRef, newConversationData);
+        const newConversationId = crypto.randomUUID();
+        const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversationId);
 
-        const newConvForState: Conversation = {
-            id: newConversationId,
-            ...newConversationData,
-            createdAt: new Date(), // Use local date for immediate UI, Firestore has the server one
-            updatedAt: new Date(),
-            messagesLoaded: true,
+        try {
+            await setDoc(convRef, newConversationData);
+
+            const newConvForState: Conversation = {
+                id: newConversationId,
+                ...newConversationData,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                messagesLoaded: true,
+            };
+
+            setAllConversations(prev => [newConvForState, ...prev].sort((a, b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime()));
+            setActiveConversation(newConvForState);
+            
+            // Prune old conversations
+            if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
+                const sortedConvs = [...allConversations].sort((a, b) => toDate(a.updatedAt).getTime() - toDate(b.updatedAt).getTime());
+                const oldestConversation = sortedConvs[0];
+                const oldConvRef = doc(db, 'users', currentUser.uid, 'conversations', oldestConversation.id);
+                await deleteDoc(oldConvRef);
+                setAllConversations(prev => prev.filter(c => c.id !== oldestConversation.id));
+            }
+
+            return newConvForState;
+
+        } catch (error) {
+            console.error("Error creating new conversation in Firestore:", error);
+            toast({ title: "Error", description: "Could not start a new chat.", variant: "destructive" });
+            return null;
         }
-        setAllConversations(prev => [newConvForState, ...prev].sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime()));
-        setActiveConversation(newConvForState);
-      } catch (error) {
-          console.error("Error creating new conversation in Firestore:", error);
-          toast({ title: "Error", description: "Could not start a new chat.", variant: "destructive" });
-          return;
-      }
-      
-      try {
-        if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
-            const sortedConvs = [...allConversations].sort((a, b) => toDate(a.updatedAt).getTime() - toDate(b.updatedAt).getTime());
-            const oldestConversation = sortedConvs[0];
-            const oldConvRef = doc(db, 'users', currentUser.uid, 'conversations', oldestConversation.id);
-            await deleteDoc(oldConvRef);
-            setAllConversations(prev => prev.filter(c => c.id !== oldestConversation.id));
-        }
-      } catch (error) {
-        console.error("Error pruning old conversations:", error);
-      }
     }, [currentUser, allConversations, toast]);
     
     const requestEditTitle = (conversationId: string) => {
@@ -684,6 +685,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       regenerateLastResponse,
       currentUser,
       toDate,
+      setActiveConversation,
     };
 }
 

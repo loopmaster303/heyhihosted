@@ -61,13 +61,16 @@ export default function AppContent() {
 
   const chat = useChat();
 
-  const handleNavigation = (toolOrView: ToolType | 'home') => {
+  const handleNavigation = async (toolOrView: ToolType | 'home') => {
     if (toolOrView === 'home') {
         setActiveTool(null);
         chat.selectChat(null); 
     } else if (toolOrView === 'long language loops') {
         setActiveTool(null); // The chat view is controlled by activeConversation, not a tool state.
-        chat.startNewChat();
+        const newChat = await chat.startNewChat();
+        if (newChat) {
+            chat.setActiveConversation(newChat);
+        }
     } else {
         chat.selectChat(null); // Deselect chat when switching to a non-chat tool
         setActiveTool(toolOrView);
