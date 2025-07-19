@@ -20,10 +20,11 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
     throw new Error('Input audio data URI cannot be empty.');
   }
 
+  // The input for this model is simply the audio file.
   const inputPayload = {
     audio: audioDataUri,
-    model: "large-v3", // Specify the model version
-    translate: false, // Set to true to translate to English
+    model: "large-v3",
+    translate: false,
     temperature: 0,
     transcription: "plain text",
     suppress_tokens: "-1",
@@ -35,6 +36,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
   };
 
   try {
+    // 1. Start the prediction
     const startResponse = await fetch(REPLICATE_API_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -52,6 +54,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
 
     let prediction = await startResponse.json();
 
+    // 2. Poll for the result
     let retryCount = 0;
     while (
       prediction.status !== "succeeded" &&
@@ -64,11 +67,12 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
       const pollResponse = await fetch(prediction.urls.get, {
         headers: { 'Authorization': `Token ${REPLICATE_API_TOKEN}` }
       });
-      if (!pollResponse.ok) break;
+      if (!pollResponse.ok) break; // Stop polling on error
       prediction = await pollResponse.json();
       retryCount++;
     }
 
+    // 3. Process the final result
     if (prediction.status === "succeeded" && prediction.output?.transcription) {
       return { transcription: prediction.output.transcription };
     } else {
@@ -80,6 +84,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error("Internal server error in speechToText flow:", errorMessage);
+    // Propagate a user-friendly error
     throw new Error(`Failed to transcribe audio with Replicate: ${errorMessage}`);
   }
 }
