@@ -130,13 +130,13 @@ Stilregeln:
 // Text-to-Speech (TTS) Voices - Replicate speech-02-turbo
 export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
   { id: 'English_ConfidentWoman', name: 'Luca' },
-  { id: 'English_Whispering_girl_v3', name: 'Sky' },
+  { id: 'Japanese_CalmLady', name: 'Sky' },
   { id: 'French_Female_News Anchor', name: 'Charlie' },
   { id: 'German_FriendlyMan', name: 'Mika' },
   { id: 'German_PlayfulMan', name: 'Casey' },
   { id: 'Korean_ReliableYouth', name: 'Taylor' },
   { id: 'Japanese_InnocentBoy', name: 'Jamie' },
-  { id: 'R8_5QHXR9I6', name: 'Dev' },
+  { id: 'R8_8CZH4KMY', name: 'Dev' },
 ];
 
 export const DEFAULT_POLLINATIONS_MODEL_ID = AVAILABLE_POLLINATIONS_MODELS[0].id;
