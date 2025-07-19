@@ -107,7 +107,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const updateFirestoreConversation = useCallback(async (conversation: Conversation) => {
         if (!currentUser || !conversation.messagesLoaded) return; // Only save if messages are loaded and modified
         
-        const { uploadedFile, uploadedFilePreview, messagesLoaded, ...storableConv } = conversation;
+        const { uploadedFile, uploadedFilePreview, ...storableConv } = conversation;
 
         storableConv.messages = storableConv.messages.map((msg: ChatMessage) => {
           if (Array.isArray(msg.content)) {
@@ -123,7 +123,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
         const convRef = doc(db, 'users', currentUser.uid, 'conversations', storableConv.id);
         try {
-            await setDoc(convRef, storableConv);
+            await setDoc(convRef, storableConv, { merge: true });
         } catch (error) {
             console.error("Error saving conversation to Firestore:", error);
             toast({ title: "Save Error", description: "Could not save changes to the cloud.", variant: "destructive" });
@@ -184,8 +184,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                   const result = await response.json();
                   if (!response.ok) throw new Error(result.error || 'Failed to generate title.');
                   
-                  setActiveConversation(prev => prev ? {...prev, title: result.title} : null);
-                  setAllConversations(prev => prev.map(c => c.id === conversationId ? {...c, title: result.title} : c));
+                  const newTitle = result.title || "Chat";
+                  const finalTitle = newTitle.replace(/^"|"$/g, '').trim();
+
+                  setActiveConversation(prev => prev ? {...prev, title: finalTitle} : null);
+                  setAllConversations(prev => prev.map(c => c.id === conversationId ? {...c, title: finalTitle} : c));
 
                 } catch (error) { 
                     console.error("Failed to generate chat title:", error); 
@@ -201,7 +204,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     ) => {
         if (!currentUser || !activeConversation || !activeConversation.messagesLoaded || activeConversation.toolType !== 'long language loops' || (!chatInputValue.trim() && !activeConversation.uploadedFile)) return;
     
-        const { selectedModelId, selectedResponseStyleName, messages, uploadedFile, uploadedFilePreview } = activeConversation;
+        const { id: convId, selectedModelId, selectedResponseStyleName, messages, uploadedFile, uploadedFilePreview } = activeConversation;
         const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
         
         let effectiveSystemPrompt = '';
@@ -220,7 +223,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     
         setIsAiResponding(true);
         setChatInputValue('');
-        const convId = activeConversation.id;
         const isImagePrompt = options.isImageModeIntent || false;
         const isFileUpload = !!uploadedFile && !isImagePrompt;
     
@@ -287,8 +289,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                 body: JSON.stringify({
                     messages: historyForApi,
                     modelId: currentModel.id,
-                    systemPrompt: effectiveSystemPrompt,
-                    stream: false
+                    systemPrompt: effectiveSystemPrompt
                 })
               });
               const result = await response.json();
@@ -297,6 +298,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               const aiResponseText = result.choices?.[0]?.message?.content || result.responseText || "Sorry, I couldn't get a response.";
               const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date(), toolType: 'long language loops' };
               const finalMessages = [...updatedMessagesForState, aiMessage];
+              
               updateActiveConversationState({ messages: finalMessages });
               updateConversationTitle(convId, finalMessages);
               updateFirestoreConversation({ ...activeConversation, messages: finalMessages, messagesLoaded: true });
@@ -695,7 +697,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    
-
-    
