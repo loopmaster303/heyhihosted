@@ -84,10 +84,8 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
 
     // 3. Process the final result
     if (prediction.status === "succeeded" && prediction.output) {
-      // The output from this model can be a string or an object with a 'transcription' property.
-      const transcriptionText = typeof prediction.output === 'object' && prediction.output.transcription
-        ? prediction.output.transcription
-        : (Array.isArray(prediction.output) ? prediction.output.join('') : String(prediction.output));
+      // Based on the schema, the output is an object with a 'transcription' property.
+      const transcriptionText = (prediction.output?.transcription ?? '').toString();
       
       return { transcription: transcriptionText.trim() };
     } else {
