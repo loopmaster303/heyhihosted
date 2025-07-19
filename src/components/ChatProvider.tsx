@@ -145,16 +145,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             return [updatedConv, ...prevAllConvs];
         });
         
-        // This condition is moved to the end of streaming/response handling
-        // if (updatedConv.messagesLoaded) {
-        //     updateFirestoreConversation(updatedConv);
-        // }
+        if (updates.hasOwnProperty('isImageMode')) { 
+            setIsImageMode(updates.isImageMode || false);
+        }
         return updatedConv;
       });
       
-      if (updates.hasOwnProperty('isImageMode')) { 
-          setIsImageMode(updates.isImageMode || false);
-      }
     }, []);
   
     useEffect(() => {
@@ -188,7 +184,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                   const result = await response.json();
                   if (!response.ok) throw new Error(result.error || 'Failed to generate title.');
                   
-                  // Use a functional update to ensure we're updating the latest state
                   setActiveConversation(prev => prev ? {...prev, title: result.title} : null);
                   setAllConversations(prev => prev.map(c => c.id === conversationId ? {...c, title: result.title} : c));
 
@@ -245,7 +240,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     
         const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: 'long language loops' };
         
-        // Add user message to state immediately
         const updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
         updateActiveConversationState({ messages: updatedMessagesForState });
 
@@ -255,7 +249,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             let apiContent: string | ChatMessageContentPart[];
 
             if (msg.role === 'assistant' && Array.isArray(msg.content)) {
-                // For assistant messages with multiple parts (like image responses), only send the text part to the API.
                 const textPart = msg.content.find(p => p.type === 'text');
                 apiContent = textPart ? [{ type: 'text', text: textPart.text }] : [];
             } else {
@@ -270,7 +263,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       
       try {
           if (isImagePrompt && chatInputValue.trim()) {
-              // --- Image Generation (Non-streaming) ---
               const response = await fetch('/api/openai-image', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -288,76 +280,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               updateActiveConversationState({ messages: finalMessages });
               updateFirestoreConversation({ ...activeConversation, messages: finalMessages, messagesLoaded: true });
 
-          } else if (currentModel.supportsStreaming) {
-              // --- Streaming Chat Response ---
-              const aiMessageId = crypto.randomUUID();
-              const assistantMessage: ChatMessage = { id: aiMessageId, role: 'assistant', content: '', timestamp: new Date(), toolType: 'long language loops' };
-              updateActiveConversationState({ messages: [...updatedMessagesForState, assistantMessage] });
-
-              const response = await fetch('/api/chat/completion', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: historyForApi,
-                    modelId: currentModel.id,
-                    systemPrompt: effectiveSystemPrompt,
-                    stream: true
-                })
-              });
-
-              if (!response.ok || !response.body) {
-                  const errorText = await response.text();
-                  throw new Error(`API Error: ${errorText}`);
-              }
-              
-              const reader = response.body.getReader();
-              const decoder = new TextDecoder();
-              let fullResponse = '';
-
-              while (true) {
-                  const { done, value } = await reader.read();
-                  if (done) break;
-                  
-                  const chunk = decoder.decode(value);
-                  const lines = chunk.split('\n').filter(line => line.trim() !== '');
-
-                  for (const line of lines) {
-                      if (line.startsWith('data: ')) {
-                          const jsonStr = line.substring(6);
-                          if (jsonStr === '[DONE]') {
-                              break;
-                          }
-                          try {
-                              const parsed = JSON.parse(jsonStr);
-                              const content = parsed.choices?.[0]?.delta?.content || '';
-                              if (content) {
-                                  fullResponse += content;
-                                  setActiveConversation(prev => {
-                                      if (!prev) return null;
-                                      const updatedMsgs = prev.messages.map(msg => 
-                                          msg.id === aiMessageId ? { ...msg, content: fullResponse } : msg
-                                      );
-                                      return { ...prev, messages: updatedMsgs };
-                                  });
-                              }
-                          } catch (e) {
-                              console.warn("Could not parse stream chunk:", jsonStr, e);
-                          }
-                      }
-                  }
-              }
-
-              // Final update after stream ends
-              setActiveConversation(prev => {
-                  if (!prev) return null;
-                  const finalMessages = prev.messages.map(msg => msg.id === aiMessageId ? { ...msg, content: fullResponse } : msg);
-                  updateConversationTitle(convId, finalMessages);
-                  updateFirestoreConversation({ ...prev, messages: finalMessages, messagesLoaded: true });
-                  return { ...prev, messages: finalMessages };
-              });
-
           } else {
-              // --- Non-Streaming Chat Response ---
               const response = await fetch('/api/chat/completion', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -669,7 +592,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const regenerateLastResponse = useCallback(async () => {
       if (!activeConversation || !activeConversation.messagesLoaded) return;
       
-      // Stop if AI is already responding to prevent multiple simultaneous requests
       if (isAiResponding) {
         toast({ title: "Please Wait", description: "The AI is currently responding.", variant: "destructive" });
         return;
@@ -683,50 +605,20 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         return;
       }
   
-      // Slice off the last AI response to resubmit the history
       const historyForApi = activeConversation.messages.slice(0, lastMessageIndex);
-      // Immediately update the UI to remove the old response
       updateActiveConversationState({ messages: historyForApi });
       
-      // Get the last user message to resend. Since we're regenerating, we take the user prompt that led to the assistant's last response.
       const lastUserMessage = historyForApi.filter(msg => msg.role === 'user').slice(-1)[0];
       
       if(lastUserMessage) {
-        // Re-call sendMessage with the last user prompt content.
-        // It will reuse the existing logic for streaming/non-streaming.
         const promptText = typeof lastUserMessage.content === 'string' 
           ? lastUserMessage.content 
           : lastUserMessage.content.find(p => p.type === 'text')?.text || '';
         
-        // This is a bit of a workaround: set the input value temporarily to reuse sendMessage
         setChatInputValue(promptText);
 
-        // We need to pass the active conversation's state to sendMessage as it might not have updated yet.
-        // Create a temporary conversation object with the sliced history.
-        const tempConv = { ...activeConversation, messages: historyForApi };
-
-        // Call a slightly modified version of the send logic since we're not using the component's state directly
-        // The original sendMessage is too coupled, so we replicate its core logic here.
-        // Or better yet, we can simply resubmit the history and let sendMessage handle it.
-        // Let's simulate another send.
-        // We'll set the active conversation to the history *before* the last assistant message.
-        setActiveConversation(prev => prev ? { ...prev, messages: historyForApi } : null);
-        
-        // We need to wait for the state to update before calling sendMessage. A timeout is a simple way.
         setTimeout(() => {
-            const lastUserPrompt = historyForApi.slice(-1)[0]?.content;
-            let textToSend = '';
-            if (typeof lastUserPrompt === 'string') {
-                textToSend = lastUserPrompt;
-            } else if (Array.isArray(lastUserPrompt)) {
-                textToSend = lastUserPrompt.find(p => p.type === 'text')?.text || '';
-            }
-            setChatInputValue(textToSend); // Set the input value for sendMessage
-            
-            // To avoid complexity, we'll directly call the submission logic here again.
-            // This is a simplification to avoid a larger refactor.
-            sendMessage(textToSend);
-
+            sendMessage(promptText);
         }, 0);
 
       } else {
@@ -803,5 +695,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    

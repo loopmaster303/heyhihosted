@@ -5,7 +5,6 @@ export interface PollinationsModel {
   name: string; // The display name for the UI, e.g., "OpenAI GPT-4o Mini"
   description?: string;
   vision?: boolean;
-  supportsStreaming?: boolean;
 }
 
 export interface ResponseStyle {
@@ -20,16 +19,16 @@ export interface VoiceOption {
 
 // Updated model list based on the provided official JSON data
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-  { id: "openai",         name: "OpenAI GPT-4o Mini",         vision: true, supportsStreaming: true },
-  { id: "openai-large",   name: "OpenAI GPT-4.1",             vision: true, supportsStreaming: true },
-  { id: "openai-fast",    name: "OpenAI GPT-4.1 Nano",        vision: true, supportsStreaming: true },
-  { id: "mistral",        name: "Mistral Small 3.1 24B",      vision: true, supportsStreaming: true },
-  { id: "llamascout",     name: "Llama 4 Scout 17B",          vision: false, supportsStreaming: false }, // Assuming false to be safe
-  { id: "grok",           name: "xAI Grok-3 Mini",            vision: false, supportsStreaming: false }, // Assuming false to be safe
-  { id: "deepseek",       name: "DeepSeek V3",                vision: false, supportsStreaming: true },
-  { id: "phi",            name: "Phi-4 Mini Instruct",        vision: true, supportsStreaming: true },
-  { id: "unity",          name: "Unity Unrestricted Agent",   vision: true, supportsStreaming: true },
-  { id: "evil",           name: "Evil",                       vision: true, supportsStreaming: true },
+  { id: "openai",         name: "OpenAI GPT-4o Mini",         vision: true },
+  { id: "openai-large",   name: "OpenAI GPT-4.1",             vision: true },
+  { id: "openai-fast",    name: "OpenAI GPT-4.1 Nano",        vision: true },
+  { id: "mistral",        name: "Mistral Small 3.1 24B",      vision: true },
+  { id: "llamascout",     name: "Llama 4 Scout 17B",          vision: false },
+  { id: "grok",           name: "xAI Grok-3 Mini",            vision: false },
+  { id: "deepseek",       name: "DeepSeek V3",                vision: false },
+  { id: "phi",            name: "Phi-4 Mini Instruct",        vision: true },
+  { id: "unity",          name: "Unity Unrestricted Agent",   vision: true },
+  { id: "evil",           name: "Evil",                       vision: true },
 ];
 
 // Stil-Profile (ResponseStyles)

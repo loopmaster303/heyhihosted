@@ -10,12 +10,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields: messages and modelId' }, { status: 400 });
     }
 
-    const { messages, modelId, systemPrompt, stream } = body;
+    const { messages, modelId, systemPrompt } = body;
 
     const payload: Record<string, any> = {
       model: modelId,
       messages: messages,
-      stream: !!stream, // Ensure stream is a boolean
     };
 
     if (systemPrompt && systemPrompt.trim() !== "") {
@@ -24,7 +23,6 @@ export async function POST(request: Request) {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Accept': 'text/event-stream', // Important for streaming
       'Authorization': `Bearer ${process.env.POLLINATIONS_API_TOKEN}`,
     };
 
@@ -46,27 +44,12 @@ export async function POST(request: Request) {
           ? errorData
           : errorData.error?.message || JSON.stringify(errorData);
 
-      // Return a structured error response
       return NextResponse.json(
         { error: `Pollinations API request failed with status ${response.status}: ${detail}` },
         { status: response.status }
       );
     }
     
-    // If streaming is requested and the response body is available, stream it back.
-    if (stream && response.body) {
-      // The headers from the original response can be piped through, but we set our own for robustness.
-      return new NextResponse(response.body, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/event-stream; charset=utf-8',
-          'Cache-Control': 'no-cache, no-transform',
-          'Connection': 'keep-alive',
-        },
-      });
-    }
-
-    // Handle non-streaming response
     const result = await response.json();
     return NextResponse.json(result);
 
