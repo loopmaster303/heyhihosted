@@ -24,6 +24,7 @@ export async function POST(request: Request) {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'Accept': 'text/event-stream', // Important for streaming
       'Authorization': `Bearer ${process.env.POLLINATIONS_API_TOKEN}`,
     };
 
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
           ? errorData
           : errorData.error?.message || JSON.stringify(errorData);
 
+      // Return a structured error response
       return NextResponse.json(
         { error: `Pollinations API request failed with status ${response.status}: ${detail}` },
         { status: response.status }
@@ -53,10 +55,12 @@ export async function POST(request: Request) {
     
     // If streaming is requested and the response body is available, stream it back.
     if (stream && response.body) {
+      // The headers from the original response can be piped through, but we set our own for robustness.
       return new NextResponse(response.body, {
+        status: 200,
         headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
           'Connection': 'keep-alive',
         },
       });
