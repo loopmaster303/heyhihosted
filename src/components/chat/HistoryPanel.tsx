@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, a,{ useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -123,5 +123,3 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
 };
 
 export default HistoryPanel;
-
-    
