@@ -145,16 +145,17 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             return [updatedConv, ...prevAllConvs];
         });
         
-        if (updatedConv.messagesLoaded) {
-            updateFirestoreConversation(updatedConv);
-        }
+        // This condition is moved to the end of streaming/response handling
+        // if (updatedConv.messagesLoaded) {
+        //     updateFirestoreConversation(updatedConv);
+        // }
         return updatedConv;
       });
       
       if (updates.hasOwnProperty('isImageMode')) { 
           setIsImageMode(updates.isImageMode || false);
       }
-    }, [updateFirestoreConversation]);
+    }, []);
   
     useEffect(() => {
       if (activeConversation) {
@@ -186,87 +187,90 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                   });
                   const result = await response.json();
                   if (!response.ok) throw new Error(result.error || 'Failed to generate title.');
+                  
+                  // Use a functional update to ensure we're updating the latest state
+                  setActiveConversation(prev => prev ? {...prev, title: result.title} : null);
+                  setAllConversations(prev => prev.map(c => c.id === conversationId ? {...c, title: result.title} : c));
 
-                  updateActiveConversationState({ title: result.title });
                 } catch (error) { 
                     console.error("Failed to generate chat title:", error); 
                 }
             }
         }
       }
-    }, [allConversations, updateActiveConversationState]);
+    }, [allConversations]);
     
     const sendMessage = useCallback(async (
       _messageText: string,
       options: { isImageModeIntent?: boolean; } = {}
     ) => {
-      if (!currentUser || !activeConversation || !activeConversation.messagesLoaded || activeConversation.toolType !== 'long language loops' || (!chatInputValue.trim() && !activeConversation.uploadedFile)) return;
-  
-      const { selectedModelId, selectedResponseStyleName, messages, uploadedFile, uploadedFilePreview } = activeConversation;
-      const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
-      
-      let effectiveSystemPrompt = '';
-      const basicStylePrompt = (AVAILABLE_RESPONSE_STYLES.find(s => s.name === 'Basic') || AVAILABLE_RESPONSE_STYLES[0]).systemPrompt;
-  
-      if (selectedResponseStyleName === "User's Default") {
-          if (customSystemPrompt && customSystemPrompt.trim()) {
-              effectiveSystemPrompt = customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User");
-          } else {
-              effectiveSystemPrompt = basicStylePrompt;
-          }
-      } else {
-          const selectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName);
-          effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
-      }
-  
-      setIsAiResponding(true);
-      setChatInputValue('');
-      const convId = activeConversation.id;
-      const isImagePrompt = options.isImageModeIntent || false;
-      const isFileUpload = !!uploadedFile && !isImagePrompt;
-  
-      if (isFileUpload && !currentModel.vision) {
-        toast({ title: "Model Incompatibility", description: `Model '${currentModel.name}' doesn't support images.`, variant: "destructive" });
-        setIsAiResponding(false);
-        return;
-      }
-  
-      let userMessageContent: string | ChatMessageContentPart[] = chatInputValue.trim();
-      if (isFileUpload && uploadedFilePreview) {
-        userMessageContent = [
-          { type: 'text', text: chatInputValue.trim() || "Describe this image." },
-          { type: 'image_url', image_url: { url: uploadedFilePreview, altText: uploadedFile.name, isUploaded: true } }
-        ];
-      }
-  
-      const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: 'long language loops' };
-      
-      const updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
-      updateActiveConversationState({ messages: updatedMessagesForState });
+        if (!currentUser || !activeConversation || !activeConversation.messagesLoaded || activeConversation.toolType !== 'long language loops' || (!chatInputValue.trim() && !activeConversation.uploadedFile)) return;
+    
+        const { selectedModelId, selectedResponseStyleName, messages, uploadedFile, uploadedFilePreview } = activeConversation;
+        const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
+        
+        let effectiveSystemPrompt = '';
+        const basicStylePrompt = (AVAILABLE_RESPONSE_STYLES.find(s => s.name === 'Basic') || AVAILABLE_RESPONSE_STYLES[0]).systemPrompt;
+    
+        if (selectedResponseStyleName === "User's Default") {
+            if (customSystemPrompt && customSystemPrompt.trim()) {
+                effectiveSystemPrompt = customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User");
+            } else {
+                effectiveSystemPrompt = basicStylePrompt;
+            }
+        } else {
+            const selectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName);
+            effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
+        }
+    
+        setIsAiResponding(true);
+        setChatInputValue('');
+        const convId = activeConversation.id;
+        const isImagePrompt = options.isImageModeIntent || false;
+        const isFileUpload = !!uploadedFile && !isImagePrompt;
+    
+        if (isFileUpload && !currentModel.vision) {
+          toast({ title: "Model Incompatibility", description: `Model '${currentModel.name}' doesn't support images.`, variant: "destructive" });
+          setIsAiResponding(false);
+          return;
+        }
+    
+        let userMessageContent: string | ChatMessageContentPart[] = chatInputValue.trim();
+        if (isFileUpload && uploadedFilePreview) {
+          userMessageContent = [
+            { type: 'text', text: chatInputValue.trim() || "Describe this image." },
+            { type: 'image_url', image_url: { url: uploadedFilePreview, altText: uploadedFile.name, isUploaded: true } }
+          ];
+        }
+    
+        const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: 'long language loops' };
+        
+        // Add user message to state immediately
+        const updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
+        updateActiveConversationState({ messages: updatedMessagesForState });
 
-      const historyForApi: ApiChatMessage[] = updatedMessagesForState
-        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-        .map(msg => {
-          let apiContent: string | ChatMessageContentPart[];
+        const historyForApi: ApiChatMessage[] = updatedMessagesForState
+          .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+          .map(msg => {
+            let apiContent: string | ChatMessageContentPart[];
 
-          if (msg.role === 'assistant' && Array.isArray(msg.content)) {
-            // For assistant messages with multiple parts, only send the text part to the API.
-            const textPart = msg.content.find(p => p.type === 'text');
-            apiContent = textPart ? textPart.text : "";
-          } else {
-            apiContent = msg.content;
-          }
-          
-          return {
-            id: msg.id,
-            role: msg.role as 'user' | 'assistant',
-            content: apiContent,
-          };
+            if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+                // For assistant messages with multiple parts (like image responses), only send the text part to the API.
+                const textPart = msg.content.find(p => p.type === 'text');
+                apiContent = textPart ? [{ type: 'text', text: textPart.text }] : [];
+            } else {
+                apiContent = msg.content;
+            }
+            
+            return {
+              role: msg.role as 'user' | 'assistant',
+              content: apiContent,
+            };
         });
       
-      let aiResponseContent: string | ChatMessageContentPart[] | null = null;
       try {
           if (isImagePrompt && chatInputValue.trim()) {
+              // --- Image Generation (Non-streaming) ---
               const response = await fetch('/api/openai-image', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -274,43 +278,119 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               });
               const result = await response.json();
               if (!response.ok) throw new Error(result.error || 'Failed to generate image.');
-              aiResponseContent = [
+              
+              const aiResponseContent: ChatMessageContentPart[] = [
                   { type: 'text', text: `Generated image for: "${chatInputValue.trim()}"` },
                   { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${chatInputValue.trim()}`, isGenerated: true } }
               ];
-          } else {
+              const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: 'long language loops' };
+              const finalMessages = [...updatedMessagesForState, aiMessage];
+              updateActiveConversationState({ messages: finalMessages });
+              updateFirestoreConversation({ ...activeConversation, messages: finalMessages, messagesLoaded: true });
+
+          } else if (currentModel.supportsStreaming) {
+              // --- Streaming Chat Response ---
+              const aiMessageId = crypto.randomUUID();
+              const assistantMessage: ChatMessage = { id: aiMessageId, role: 'assistant', content: '', timestamp: new Date(), toolType: 'long language loops' };
+              updateActiveConversationState({ messages: [...updatedMessagesForState, assistantMessage] });
+
               const response = await fetch('/api/chat/completion', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     messages: historyForApi,
                     modelId: currentModel.id,
-                    systemPrompt: effectiveSystemPrompt
+                    systemPrompt: effectiveSystemPrompt,
+                    stream: true
+                })
+              });
+
+              if (!response.ok || !response.body) {
+                  const errorText = await response.text();
+                  throw new Error(`API Error: ${errorText}`);
+              }
+              
+              const reader = response.body.getReader();
+              const decoder = new TextDecoder();
+              let fullResponse = '';
+
+              while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  
+                  const chunk = decoder.decode(value);
+                  const lines = chunk.split('\n').filter(line => line.trim() !== '');
+
+                  for (const line of lines) {
+                      if (line.startsWith('data: ')) {
+                          const jsonStr = line.substring(6);
+                          if (jsonStr === '[DONE]') {
+                              break;
+                          }
+                          try {
+                              const parsed = JSON.parse(jsonStr);
+                              const content = parsed.choices?.[0]?.delta?.content || '';
+                              if (content) {
+                                  fullResponse += content;
+                                  setActiveConversation(prev => {
+                                      if (!prev) return null;
+                                      const updatedMsgs = prev.messages.map(msg => 
+                                          msg.id === aiMessageId ? { ...msg, content: fullResponse } : msg
+                                      );
+                                      return { ...prev, messages: updatedMsgs };
+                                  });
+                              }
+                          } catch (e) {
+                              console.warn("Could not parse stream chunk:", jsonStr, e);
+                          }
+                      }
+                  }
+              }
+
+              // Final update after stream ends
+              setActiveConversation(prev => {
+                  if (!prev) return null;
+                  const finalMessages = prev.messages.map(msg => msg.id === aiMessageId ? { ...msg, content: fullResponse } : msg);
+                  updateConversationTitle(convId, finalMessages);
+                  updateFirestoreConversation({ ...prev, messages: finalMessages, messagesLoaded: true });
+                  return { ...prev, messages: finalMessages };
+              });
+
+          } else {
+              // --- Non-Streaming Chat Response ---
+              const response = await fetch('/api/chat/completion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: historyForApi,
+                    modelId: currentModel.id,
+                    systemPrompt: effectiveSystemPrompt,
+                    stream: false
                 })
               });
               const result = await response.json();
               if (!response.ok) throw new Error(result.error || 'Failed to get chat completion.');
-              aiResponseContent = result.responseText;
+              
+              const aiResponseText = result.choices?.[0]?.message?.content || result.responseText || "Sorry, I couldn't get a response.";
+              const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date(), toolType: 'long language loops' };
+              const finalMessages = [...updatedMessagesForState, aiMessage];
+              updateActiveConversationState({ messages: finalMessages });
+              updateConversationTitle(convId, finalMessages);
+              updateFirestoreConversation({ ...activeConversation, messages: finalMessages, messagesLoaded: true });
           }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
-        aiResponseContent = `Sorry, an error occurred: ${errorMessage}`;
+        const errorMsg: ChatMessage = {id: crypto.randomUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date(), toolType: 'long language loops'};
+        updateActiveConversationState({ messages: [...updatedMessagesForState, errorMsg]});
       }
   
-      if (aiResponseContent !== null) {
-        const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: 'long language loops' };
-        const finalMessages = [...updatedMessagesForState, aiMessage];
-        updateActiveConversationState({ messages: finalMessages });
-        updateConversationTitle(convId, finalMessages);
-      }
-      
       if (isImagePrompt || isFileUpload) {
           updateActiveConversationState({ isImageMode: false, uploadedFile: null, uploadedFilePreview: null });
       }
 
       setIsAiResponding(false);
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, updateActiveConversationState, updateConversationTitle, chatInputValue, currentUser]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, updateActiveConversationState, updateConversationTitle, chatInputValue, currentUser, updateFirestoreConversation]);
   
     const selectChat = useCallback(async (conversationId: string | null) => {
       if (conversationId === null) {
@@ -374,7 +454,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       setActiveConversation(newConversation);
       setAllConversations(prev => [newConversation, ...prev]);
 
-      const { messages, ...storableConv } = newConversation;
+      const { uploadedFile, uploadedFilePreview, messagesLoaded, ...storableConv } = newConversation;
       const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversation.id);
       try {
         await setDoc(convRef, storableConv);
@@ -490,12 +570,21 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }
   
     const handleModelChange = useCallback((modelId: string) => {
-      if (activeConversation) updateActiveConversationState({ selectedModelId: modelId });
-    }, [activeConversation, updateActiveConversationState]);
+      if (activeConversation) {
+        setActiveConversation(prev => prev ? { ...prev, selectedModelId: modelId } : null);
+        // Persist change immediately
+        const convRef = doc(db, 'users', currentUser.uid, 'conversations', activeConversation.id);
+        setDoc(convRef, { selectedModelId: modelId }, { merge: true });
+      }
+    }, [activeConversation, currentUser]);
   
     const handleStyleChange = useCallback((styleName: string) => {
-       if (activeConversation) updateActiveConversationState({ selectedResponseStyleName: styleName });
-    }, [activeConversation, updateActiveConversationState]);
+       if (activeConversation) {
+        setActiveConversation(prev => prev ? { ...prev, selectedResponseStyleName: styleName } : null);
+        const convRef = doc(db, 'users', currentUser.uid, 'conversations', activeConversation.id);
+        setDoc(convRef, { selectedResponseStyleName: styleName }, { merge: true });
+       }
+    }, [activeConversation, currentUser]);
 
     const handleVoiceChange = (voiceId: string) => {
       setSelectedVoice(voiceId);
@@ -578,8 +667,14 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }, [toast]);
   
     const regenerateLastResponse = useCallback(async () => {
-      if (isAiResponding || !activeConversation || !activeConversation.messagesLoaded) return;
-  
+      if (!activeConversation || !activeConversation.messagesLoaded) return;
+      
+      // Stop if AI is already responding to prevent multiple simultaneous requests
+      if (isAiResponding) {
+        toast({ title: "Please Wait", description: "The AI is currently responding.", variant: "destructive" });
+        return;
+      }
+
       const lastMessageIndex = activeConversation.messages.length - 1;
       const lastMessage = activeConversation.messages[lastMessageIndex];
   
@@ -588,64 +683,62 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         return;
       }
   
-      setIsAiResponding(true);
+      // Slice off the last AI response to resubmit the history
       const historyForApi = activeConversation.messages.slice(0, lastMessageIndex);
+      // Immediately update the UI to remove the old response
       updateActiveConversationState({ messages: historyForApi });
       
-      const apiMessages: ApiChatMessage[] = historyForApi
-        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-        .map(msg => ({
-          id: msg.id,
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-        }));
+      // Get the last user message to resend. Since we're regenerating, we take the user prompt that led to the assistant's last response.
+      const lastUserMessage = historyForApi.filter(msg => msg.role === 'user').slice(-1)[0];
       
-      let aiResponseText: string | null = null;
-      try {
-        const { selectedModelId, selectedResponseStyleName } = activeConversation;
-        const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
-        let effectiveSystemPrompt = '';
-        const basicStylePrompt = (AVAILABLE_RESPONSE_STYLES.find(s => s.name === 'Basic') || AVAILABLE_RESPONSE_STYLES[0]).systemPrompt;
-
-        if (selectedResponseStyleName === "User's Default") {
-          effectiveSystemPrompt = (customSystemPrompt && customSystemPrompt.trim()) ? customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User") : basicStylePrompt;
-        } else {
-          const selectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName);
-          effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
-        }
-
-        const regenerationPromptSuffix = `\n(Bitte formuliere deine vorherige Antwort um oder biete eine alternative Perspektive an.)`;
-        effectiveSystemPrompt += regenerationPromptSuffix;
+      if(lastUserMessage) {
+        // Re-call sendMessage with the last user prompt content.
+        // It will reuse the existing logic for streaming/non-streaming.
+        const promptText = typeof lastUserMessage.content === 'string' 
+          ? lastUserMessage.content 
+          : lastUserMessage.content.find(p => p.type === 'text')?.text || '';
         
-        const response = await fetch('/api/chat/completion', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: apiMessages,
-            modelId: currentModel.id,
-            systemPrompt: effectiveSystemPrompt
-          })
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Failed to regenerate response.');
+        // This is a bit of a workaround: set the input value temporarily to reuse sendMessage
+        setChatInputValue(promptText);
 
-        aiResponseText = result.responseText;
-  
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-        toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
-        aiResponseText = `Sorry, an error occurred: ${errorMessage}`;
-        updateActiveConversationState({ messages: [...historyForApi, lastMessage] }); 
+        // We need to pass the active conversation's state to sendMessage as it might not have updated yet.
+        // Create a temporary conversation object with the sliced history.
+        const tempConv = { ...activeConversation, messages: historyForApi };
+
+        // Call a slightly modified version of the send logic since we're not using the component's state directly
+        // The original sendMessage is too coupled, so we replicate its core logic here.
+        // Or better yet, we can simply resubmit the history and let sendMessage handle it.
+        // Let's refactor `sendMessage` to take an optional history.
+
+        // The easiest way is to remove the last message and call sendMessage again with the last user prompt.
+        // However, sendMessage uses the `chatInputValue` state. Let's set it and call sendMessage.
+        
+        // Let's simulate another send.
+        // We'll set the active conversation to the history *before* the last assistant message.
+        setActiveConversation(prev => prev ? { ...prev, messages: historyForApi } : null);
+        
+        // We need to wait for the state to update before calling sendMessage. A timeout is a simple way.
+        setTimeout(() => {
+            const lastUserPrompt = historyForApi.slice(-1)[0]?.content;
+            let textToSend = '';
+            if (typeof lastUserPrompt === 'string') {
+                textToSend = lastUserPrompt;
+            } else if (Array.isArray(lastUserPrompt)) {
+                textToSend = lastUserPrompt.find(p => p.type === 'text')?.text || '';
+            }
+            setChatInputValue(textToSend); // Set the input value for sendMessage
+            
+            // To avoid complexity, we'll directly call the submission logic here again.
+            // This is a simplification to avoid a larger refactor.
+            sendMessage(textToSend);
+
+        }, 0);
+
+      } else {
+        toast({ title: "Cannot Regenerate", description: "Could not find a previous user prompt.", variant: "destructive"});
       }
-  
-      if (aiResponseText !== null) {
-        const aiMessage: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date(), toolType: 'long language loops' };
-        const finalMessages = [...historyForApi, aiMessage];
-        updateActiveConversationState({ messages: finalMessages });
-      }
-      
-      setIsAiResponding(false);
-    }, [isAiResponding, activeConversation, updateActiveConversationState, customSystemPrompt, userDisplayName, toast]);
+
+    }, [isAiResponding, activeConversation, updateActiveConversationState, sendMessage, toast]);
   
   
     return {
@@ -715,5 +808,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    
