@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, a,{ useState, useRef } from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,6 @@ import { MessageSquareText, Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Conversation } from '@/types';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
-import type { Timestamp } from 'firebase/firestore';
 
 interface HistoryPanelProps {
   allConversations: Conversation[];
@@ -19,8 +18,7 @@ interface HistoryPanelProps {
   onRequestEditTitle: (id: string) => void;
   onRequestDeleteChat: (id: string) => void;
   onStartNewChat: () => void;
-  isHistoryLoading: boolean;
-  toDate: (timestamp: Date | Timestamp | undefined | null) => Date;
+  toDate: (timestamp: Date | string | undefined | null) => Date;
 }
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({
@@ -31,7 +29,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   onRequestEditTitle,
   onRequestDeleteChat,
   onStartNewChat,
-  isHistoryLoading,
   toDate,
 }) => {
   const filteredConversations = allConversations.filter(c => c.toolType === 'long language loops');
@@ -58,10 +55,8 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         </Button>
       </div>
       <ScrollArea className="h-full max-h-64">
-        {isHistoryLoading ? (
-            <div className="flex items-center justify-center p-8">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
+        {filteredConversations.length === 0 ? (
+            <p className="text-xs text-muted-foreground p-2 text-center">No history yet.</p>
         ) : (
             <div className="flex flex-col space-y-1 pr-2">
             {filteredConversations.map(conv => (
@@ -120,9 +115,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 </div>
                 </div>
             ))}
-            {filteredConversations.length === 0 && (
-                <p className="text-xs text-muted-foreground p-2 text-center">No history yet.</p>
-            )}
             </div>
         )}
       </ScrollArea>

@@ -1,9 +1,13 @@
 
+"use client";
+import React from 'react';
 import { ChatProvider } from '@/components/ChatProvider';
 import ChatInterface from '@/components/page/ChatInterface';
 import AppHeader from '@/components/page/AppHeader';
 import type { TileItem } from '@/types';
-import Link from 'next/link';
+import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
+import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
+import { useChat } from '@/components/ChatProvider';
 
 // Minimal version of tool items for the header navigation
 const toolTileItems: TileItem[] = [
@@ -14,15 +18,40 @@ const toolTileItems: TileItem[] = [
     { id: 'about', title: 'about/hey.hi/readme', href: '/about' },
 ];
 
+function ChatPageContent() {
+    const chat = useChat();
+
+    return (
+        <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+            <AppHeader toolTileItems={toolTileItems} />
+            <main className="flex flex-col flex-grow pt-16">
+                <ChatInterface />
+            </main>
+            <DeleteChatDialog
+                isOpen={chat.isDeleteDialogOpen}
+                onOpenChange={chat.cancelDeleteChat}
+                onConfirm={chat.confirmDeleteChat}
+                onCancel={chat.cancelDeleteChat}
+            />
+            <EditTitleDialog
+                isOpen={chat.isEditTitleDialogOpen}
+                onOpenChange={chat.cancelEditTitle}
+                onConfirm={chat.confirmEditTitle}
+                onCancel={chat.cancelEditTitle}
+                title={chat.editingTitle}
+                setTitle={chat.setEditingTitle}
+            />
+        </div>
+    );
+}
+
+
 export default function ChatPage() {
   return (
     <ChatProvider>
-       <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-        <AppHeader toolTileItems={toolTileItems} />
-        <main className="flex flex-col flex-grow pt-16">
-            <ChatInterface />
-        </main>
-      </div>
+        <ChatPageContent />
     </ChatProvider>
   );
 }
+
+    

@@ -3,14 +3,10 @@
 
 import React, { useState, useEffect, useCallback, useRef, useContext, createContext } from 'react';
 import { useToast } from "@/hooks/use-toast";
+import useLocalStorageState from '@/hooks/useLocalStorageState';
 
 import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
-import useLocalStorageState from '@/hooks/useLocalStorageState';
-
-import { db, auth } from '@/lib/firebase';
-import { doc, getDoc, setDoc, collection, query, orderBy, getDocs, deleteDoc, serverTimestamp, type Timestamp } from 'firebase/firestore';
-import { onAuthStateChanged, type User, signInAnonymously } from 'firebase/auth';
 
 
 export interface UseChatLogicProps {
@@ -19,16 +15,15 @@ export interface UseChatLogicProps {
 }
 
 const MAX_STORED_CONVERSATIONS = 50;
+const CHAT_HISTORY_STORAGE_KEY = 'fluxflow-chatHistory';
 
 export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLogicProps) {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [allConversations, setAllConversations] = useLocalStorageState<Conversation[]>(CHAT_HISTORY_STORAGE_KEY, []);
     const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
-    const [allConversations, setAllConversations] = useState<Conversation[]>([]);
+
     const [isAiResponding, setIsAiResponding] = useState(false);
-    
     const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
-    const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-  
+    
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [chatToDeleteId, setChatToDeleteId] = useState<string | null>(null);
     
@@ -49,155 +44,34 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     const { toast } = useToast();
 
-    const toDate = (timestamp: Date | Timestamp | undefined | null): Date => {
+    // Helper to ensure dates are handled correctly
+    const toDate = (timestamp: Date | string | undefined | null): Date => {
         if (!timestamp) return new Date();
-        if (timestamp && typeof (timestamp as Timestamp).toDate === 'function') {
-            return (timestamp as Timestamp).toDate();
-        }
+        if (typeof timestamp === 'string') return new Date(timestamp);
         return timestamp as Date;
     };
-
-    const updateFirestoreConversation = useCallback(async (conversationId: string, updates: Partial<Conversation>) => {
-        if (!currentUser) return;
     
-        // Create a shallow copy to modify for Firestore
-        const dataToStore: Partial<Conversation> & { updatedAt: any } = { 
-            ...updates, 
-            updatedAt: serverTimestamp() 
-        };
-    
-        // Explicitly delete properties that should not be stored in Firestore.
-        // These properties only exist on the client-side state.
-        delete (dataToStore as any).uploadedFile;
-        delete (dataToStore as any).uploadedFilePreview;
-        delete (dataToStore as any).messagesLoaded; // This is a client-side flag
-    
-        if (dataToStore.messages) {
-            dataToStore.messages = dataToStore.messages.map((msg: ChatMessage) => {
-                const messageForStore = { ...msg };
-                
-                // Ensure timestamp is a JS Date object for Firestore to convert
-                if (messageForStore.timestamp && typeof (messageForStore.timestamp as Timestamp).toDate === 'function') {
-                    messageForStore.timestamp = (messageForStore.timestamp as Timestamp).toDate();
-                } else if (!(messageForStore.timestamp instanceof Date)) {
-                    messageForStore.timestamp = new Date();
-                }
-
-                // Sanitize content array to prevent storing large data URIs
-                if (Array.isArray(messageForStore.content)) {
-                    messageForStore.content = messageForStore.content.map(part => {
-                        if (part.type === 'image_url' && part.image_url.url.startsWith('data:image') && part.image_url.url.length > 500 * 1024) { 
-                            return { 
-                                ...part, 
-                                image_url: { 
-                                    ...part.image_url, 
-                                    url: 'https://placehold.co/512x512.png?text=Image+Too+Large+For+History' 
-                                } 
-                            };
-                        }
-                        return part;
-                    });
-                }
-                return messageForStore;
-            });
-        }
-        
-        const convRef = doc(db, 'users', currentUser.uid, 'conversations', conversationId);
-        try {
-            await setDoc(convRef, dataToStore, { merge: true });
-        } catch (error) {
-            console.error("Error updating conversation in Firestore:", error);
-            toast({ title: "Save Error", description: "Could not save changes to the cloud.", variant: "destructive" });
-        }
-    }, [currentUser, toast]);
-
-
-    // Fetch only conversation metadata initially
-    const loadConversations = useCallback(async (user: User) => {
-        setIsHistoryLoading(true);
-        const conversationsRef = collection(db, 'users', user.uid, 'conversations');
-        const q = query(conversationsRef, orderBy('updatedAt', 'desc'));
-
-        try {
-            const querySnapshot = await getDocs(q);
-            const loadedConversations: Conversation[] = querySnapshot.docs
-            .map(docSnap => {
-                const data = docSnap.data();
-                return {
-                    id: docSnap.id,
-                    title: data.title,
-                    createdAt: data.createdAt,
-                    updatedAt: data.updatedAt,
-                    toolType: data.toolType,
-                    selectedModelId: data.selectedModelId,
-                    selectedResponseStyleName: data.selectedResponseStyleName,
-                    messages: [],
-                    messagesLoaded: false,
-                } as Conversation;
-            }).filter(Boolean);
-
-            setAllConversations(loadedConversations);
-        } catch (error) {
-            console.error("Error loading conversations from Firestore:", error);
-            toast({ title: "Error", description: "Could not load chat history.", variant: "destructive" });
-        } finally {
-            setIsHistoryLoading(false);
-        }
-    }, [toast]);
-    
+    // Initial load from localStorage
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                setCurrentUser(user);
-                if (!isInitialLoadComplete) {
-                   await loadConversations(user);
-                   setIsInitialLoadComplete(true);
-                }
-            } else {
-                try {
-                    const userCredential = await signInAnonymously(auth);
-                    setCurrentUser(userCredential.user);
-                    setAllConversations([]);
-                    setIsHistoryLoading(false); 
-                    setIsInitialLoadComplete(true);
-                } catch (error) {
-                    console.error("Anonymous sign-in failed:", error);
-                    toast({ title: "Authentication Error", description: "Could not connect. Please check your Firebase configuration and security rules.", variant: "destructive" });
-                    setIsHistoryLoading(false);
-                    setIsInitialLoadComplete(true); 
-                }
-            }
-        });
-        return () => unsubscribe();
-    }, [toast, loadConversations, isInitialLoadComplete]);
-    
-    const updateActiveConversationState = useCallback((updates: Partial<Conversation> | ((prevState: Conversation | null) => Conversation | null)) => {
-        setActiveConversation(prevActive => {
-            const newState = typeof updates === 'function' ? updates(prevActive) : { ...prevActive, ...updates };
-            // Ensure a null previous state doesn't break the spread operator
-            if (prevActive === null && typeof updates !== 'function') {
-                return updates as Conversation;
-            }
-            return newState as Conversation | null;
-        });
+        setIsInitialLoadComplete(true);
     }, []);
-  
+
+    // Effect to update the allConversations in localStorage whenever active one changes
     useEffect(() => {
         if (activeConversation) {
-            setIsImageMode(activeConversation.isImageMode || false);
-
-            setAllConversations(prevAllConvs => {
-                const existingIndex = prevAllConvs.findIndex(c => c.id === activeConversation.id);
+            setAllConversations(prevAll => {
+                const existingIndex = prevAll.findIndex(c => c.id === activeConversation.id);
                 if (existingIndex > -1) {
-                    const newAllConvs = [...prevAllConvs];
-                    newAllConvs[existingIndex] = activeConversation;
-                    newAllConvs.sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
-                    return newAllConvs;
+                    const newAll = [...prevAll];
+                    newAll[existingIndex] = activeConversation;
+                    return newAll.sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
+                } else {
+                    return [activeConversation, ...prevAll].sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
                 }
-                return [activeConversation, ...prevAllConvs];
             });
         }
-    }, [activeConversation]);
+    }, [activeConversation, setAllConversations]);
+
   
     const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]) => {
       const convToUpdate = allConversations.find(c => c.id === conversationId) ?? activeConversation;
@@ -225,7 +99,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                   const newTitle = result.title || "Chat";
                   const finalTitle = newTitle.replace(/^"|"$/g, '').trim();
 
-                  updateActiveConversationState({ title: finalTitle });
+                  setActiveConversation(prev => prev ? { ...prev, title: finalTitle } : null);
                   return finalTitle;
 
                 } catch (error) { 
@@ -235,13 +109,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         }
       }
       return convToUpdate.title;
-    }, [allConversations, activeConversation, updateActiveConversationState]);
+    }, [allConversations, activeConversation]);
     
     const sendMessage = useCallback(async (
       _messageText: string,
       options: { isImageModeIntent?: boolean; } = {}
     ) => {
-        if (!currentUser || !activeConversation || !activeConversation.messagesLoaded || activeConversation.toolType !== 'long language loops' || (!chatInputValue.trim() && !activeConversation.uploadedFile)) return;
+        if (!activeConversation || activeConversation.toolType !== 'long language loops' || (!chatInputValue.trim() && !activeConversation.uploadedFile)) return;
     
         const { id: convId, selectedModelId, selectedResponseStyleName, messages, uploadedFile, uploadedFilePreview } = activeConversation;
         const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
@@ -279,28 +153,17 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           ];
         }
     
-        const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date(), toolType: 'long language loops' };
+        const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
         
         const updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
-        updateActiveConversationState({ messages: updatedMessagesForState });
+        setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState } : null);
 
         const historyForApi: ApiChatMessage[] = updatedMessagesForState
           .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-          .map(msg => {
-            let apiContent: string | ChatMessageContentPart[];
-
-            if (msg.role === 'assistant' && Array.isArray(msg.content)) {
-                const textPart = msg.content.find(p => p.type === 'text');
-                apiContent = textPart ? [{ type: 'text', text: textPart.text }] : [];
-            } else {
-                apiContent = msg.content;
-            }
-            
-            return {
+          .map(msg => ({
               role: msg.role as 'user' | 'assistant',
-              content: apiContent,
-            };
-        });
+              content: msg.content,
+           }));
       
       let finalMessages = updatedMessagesForState;
       let finalTitle = activeConversation.title;
@@ -320,7 +183,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                   { type: 'text', text: `Generated image for: "${chatInputValue.trim()}"` },
                   { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${chatInputValue.trim()}`, isGenerated: true } }
               ];
-              aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date(), toolType: 'long language loops' };
+              aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
           } else {
               const response = await fetch('/api/chat/completion', {
                 method: 'POST',
@@ -335,7 +198,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               if (!response.ok) throw new Error(result.error || 'Failed to get chat completion.');
               
               const aiResponseText = result.choices?.[0]?.message?.content || result.responseText || "Sorry, I couldn't get a response.";
-              aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date(), toolType: 'long language loops' };
+              aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date().toISOString(), toolType: 'long language loops' };
           }
           finalMessages = [...updatedMessagesForState, aiMessage];
           finalTitle = await updateConversationTitle(convId, finalMessages);
@@ -343,115 +206,55 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
-        const errorMsg: ChatMessage = {id: crypto.randomUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date(), toolType: 'long language loops'};
+        const errorMsg: ChatMessage = {id: crypto.randomUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date().toISOString(), toolType: 'long language loops'};
         finalMessages = [...updatedMessagesForState, errorMsg];
       } finally {
-        const newUpdatedAt = new Date();
-        const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: newUpdatedAt };
-        updateActiveConversationState(finalConversationState);
-        updateFirestoreConversation(convId, finalConversationState);
+        const newUpdatedAt = new Date().toISOString();
+        const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: newUpdatedAt, isImageMode: false, uploadedFile: null, uploadedFilePreview: null };
+        
+        setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
-        if (isImagePrompt || isFileUpload) {
-            updateActiveConversationState({ isImageMode: false, uploadedFile: null, uploadedFilePreview: null });
-        }
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, updateActiveConversationState, updateConversationTitle, chatInputValue, currentUser, updateFirestoreConversation]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle]);
   
-    const selectChat = useCallback(async (conversationId: string | null) => {
+    const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
           setActiveConversation(null);
           return;
       }
-      if (!currentUser) return;
-
       const conversationToSelect = allConversations.find(c => c.id === conversationId);
       if (conversationToSelect) {
-        if (conversationToSelect.messagesLoaded) {
           setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null });
-        } else {
-          setActiveConversation({ ...conversationToSelect, messages: [], uploadedFile: null, uploadedFilePreview: null });
-
-          const convRef = doc(db, 'users', currentUser.uid, 'conversations', conversationId);
-          try {
-            const docSnap = await getDoc(convRef);
-            if (docSnap.exists()) {
-              const fullConversationData = docSnap.data();
-              const fullConversation: Conversation = {
-                ...conversationToSelect,
-                ...fullConversationData,
-                messages: (fullConversationData.messages || []).map((msg: any) => ({
-                    ...msg,
-                    id: msg.id || crypto.randomUUID()
-                })),
-                messagesLoaded: true,
-              };
-              setActiveConversation(fullConversation);
-            } else {
-              throw new Error("Conversation document not found.");
-            }
-          } catch (error) {
-            console.error("Error loading full conversation:", error);
-            toast({ title: "Error", description: "Could not load chat messages.", variant: "destructive" });
-            setActiveConversation(null);
-          }
-        }
       }
-    }, [allConversations, currentUser, toast]);
+    }, [allConversations]);
     
-    const startNewChat = useCallback(async (): Promise<Conversation | null> => {
-        if (!currentUser) return null;
-    
+    const startNewChat = useCallback(() => {
         const newConversationId = crypto.randomUUID();
-        const newConversationData: Omit<Conversation, 'id' | 'createdAt' | 'updatedAt' | 'messagesLoaded'> = {
+        const newConversationData: Conversation = {
+            id: newConversationId,
             title: "default.long.language.loop",
             messages: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
             toolType: 'long language loops',
             isImageMode: false,
             selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
             selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
         };
     
-        const dataForFirestore = {
-            ...newConversationData,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-        };
-    
-        try {
-            const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversationId);
-            await setDoc(convRef, dataForFirestore);
-    
-            // Create the client-side state AFTER the DB operation is successful
-            const newConvForState: Conversation = {
-                id: newConversationId,
-                ...newConversationData,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                messagesLoaded: true,
-            };
-            
-            // This is now safe because we set the state *after* successful creation
-            setActiveConversation(newConvForState);
-    
-            // Prune old conversations if necessary
-            if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
-                const sortedConvs = [...allConversations].sort((a, b) => toDate(a.updatedAt).getTime() - toDate(b.updatedAt).getTime());
-                const oldestConversation = sortedConvs[0];
-                if (oldestConversation) {
-                    const oldConvRef = doc(db, 'users', currentUser.uid, 'conversations', oldestConversation.id);
-                    await deleteDoc(oldConvRef);
-                    setAllConversations(prev => prev.filter(c => c.id !== oldestConversation.id));
-                }
+        // Prune old conversations if necessary
+        if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
+            const sortedConvs = [...allConversations].sort((a, b) => toDate(a.updatedAt).getTime() - toDate(b.updatedAt).getTime());
+            const oldestConversation = sortedConvs[0];
+            if (oldestConversation) {
+                 setAllConversations(prev => prev.filter(c => c.id !== oldestConversation.id));
             }
-    
-            return newConvForState;
-    
-        } catch (error) {
-            console.error("Error creating new conversation in Firestore:", error);
-            toast({ title: "Error", description: "Could not start a new chat.", variant: "destructive" });
-            return null;
         }
-    }, [currentUser, allConversations, toast]);
+        
+        setActiveConversation(newConversationData);
+
+        return newConversationData;
+    }, [allConversations, setAllConversations]);
     
     const requestEditTitle = (conversationId: string) => {
       const convToEdit = allConversations.find(c => c.id === conversationId);
@@ -462,19 +265,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     };
     
     const confirmEditTitle = () => {
-      if (!chatToEditId || !editingTitle.trim() || !currentUser) {
+      if (!chatToEditId || !editingTitle.trim()) {
         toast({ title: "Invalid Title", description: "Title cannot be empty.", variant: "destructive" });
         return;
       }
       const newTitle = editingTitle.trim();
       
-      updateFirestoreConversation(chatToEditId, { title: newTitle });
-
-      setAllConversations(prev => prev.map(c => c.id === chatToEditId ? {...c, title: newTitle} : c));
-
-      if (activeConversation?.id === chatToEditId) {
-          updateActiveConversationState({ title: newTitle });
-      }
+      setActiveConversation(prev => (prev?.id === chatToEditId) ? { ...prev, title: newTitle } : prev);
       
       toast({ title: "Title Updated" });
       setIsEditTitleDialogOpen(false);
@@ -487,30 +284,18 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       setIsDeleteDialogOpen(true);
     };
     
-    const deleteChat = useCallback(async (conversationId: string) => {
-        if (!currentUser) return;
+    const deleteChat = useCallback((conversationId: string) => {
         const wasActive = activeConversation?.id === conversationId;
-        const conversationsBeforeDelete = allConversations;
         
-        const updatedConversations = allConversations.filter(c => c.id !== conversationId);
-        setAllConversations(updatedConversations);
+        setAllConversations(prev => prev.filter(c => c.id !== conversationId));
   
         if (wasActive) {
-          const nextChat = updatedConversations.find(c => c.toolType === 'long language loops') ?? null;
+          const nextChat = allConversations.find(c => c.id !== conversationId && c.toolType === 'long language loops') ?? null;
           selectChat(nextChat?.id ?? null);
         }
 
         toast({ title: "Chat Deleted" });
-        
-        const convRef = doc(db, 'users', currentUser.uid, 'conversations', conversationId);
-        try {
-            await deleteDoc(convRef);
-        } catch (error) {
-            console.error("Error deleting conversation from Firestore:", error);
-            toast({ title: "Delete Error", description: "Could not delete chat from the cloud.", variant: "destructive" });
-            setAllConversations(conversationsBeforeDelete);
-        }
-    }, [currentUser, activeConversation?.id, allConversations, selectChat, toast]);
+    }, [activeConversation?.id, allConversations, selectChat, setAllConversations, toast]);
   
     const confirmDeleteChat = () => {
       if (!chatToDeleteId) return;
@@ -521,9 +306,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const cancelDeleteChat = () => setIsDeleteDialogOpen(false);
     
     const toggleImageMode = () => {
-      if (!activeConversation) return;
-      const newImageModeState = !isImageMode; 
-      updateActiveConversationState({ isImageMode: newImageModeState, uploadedFile: null, uploadedFilePreview: null });
+        if (!activeConversation) return;
+        const newImageModeState = !isImageMode;
+        setIsImageMode(newImageModeState);
+        if(newImageModeState === false) {
+           handleFileSelect(null);
+        }
     };
 
     const handleFileSelect = (file: File | null) => {
@@ -531,11 +319,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       if (file) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          updateActiveConversationState({ isImageMode: false, uploadedFile: file, uploadedFilePreview: reader.result as string });
+            setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: file, uploadedFilePreview: reader.result as string } : null);
         };
         reader.readAsDataURL(file);
       } else {
-        updateActiveConversationState({ uploadedFile: null, uploadedFilePreview: null });
+        setActiveConversation(prev => prev ? { ...prev, uploadedFile: null, uploadedFilePreview: null } : null);
       }
     };
   
@@ -544,18 +332,16 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }
   
     const handleModelChange = useCallback((modelId: string) => {
-      if (activeConversation && currentUser) {
-        updateActiveConversationState({ selectedModelId: modelId });
-        updateFirestoreConversation(activeConversation.id, { selectedModelId: modelId });
+      if (activeConversation) {
+        setActiveConversation(prev => prev ? { ...prev, selectedModelId: modelId } : null);
       }
-    }, [activeConversation, currentUser, updateActiveConversationState, updateFirestoreConversation]);
+    }, [activeConversation]);
   
     const handleStyleChange = useCallback((styleName: string) => {
-       if (activeConversation && currentUser) {
-        updateActiveConversationState({ selectedResponseStyleName: styleName });
-        updateFirestoreConversation(activeConversation.id, { selectedResponseStyleName: styleName });
+       if (activeConversation) {
+        setActiveConversation(prev => prev ? { ...prev, selectedResponseStyleName: styleName } : null);
        }
-    }, [activeConversation, currentUser, updateActiveConversationState, updateFirestoreConversation]);
+    }, [activeConversation]);
 
     const handleVoiceChange = (voiceId: string) => {
       setSelectedVoice(voiceId);
@@ -579,9 +365,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         }
       }
       
-      if (!text || !text.trim()) {
-        return;
-      }
+      if (!text || !text.trim()) return;
       
       setIsTtsLoadingForId(messageId);
       
@@ -638,12 +422,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }, [toast]);
   
     const regenerateLastResponse = useCallback(async () => {
-      if (!activeConversation || !activeConversation.messagesLoaded) return;
-      
-      if (isAiResponding) {
-        toast({ title: "Please Wait", description: "The AI is currently responding.", variant: "destructive" });
-        return;
-      }
+      if (!activeConversation) return;
+      if (isAiResponding) return;
 
       const lastMessageIndex = activeConversation.messages.length - 1;
       const lastMessage = activeConversation.messages[lastMessageIndex];
@@ -654,7 +434,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       }
   
       const historyForApi = activeConversation.messages.slice(0, lastMessageIndex);
-      updateActiveConversationState({ messages: historyForApi });
+      setActiveConversation(prev => prev ? { ...prev, messages: historyForApi } : null);
       
       const lastUserMessage = historyForApi.filter(msg => msg.role === 'user').slice(-1)[0];
       
@@ -673,19 +453,17 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         toast({ title: "Cannot Regenerate", description: "Could not find a previous user prompt.", variant: "destructive"});
       }
 
-    }, [isAiResponding, activeConversation, updateActiveConversationState, sendMessage, toast]);
+    }, [isAiResponding, activeConversation, sendMessage, toast]);
   
   
     return {
-      activeConversation,
-      allConversations,
+      activeConversation, allConversations,
       isAiResponding, isImageMode,
       isHistoryPanelOpen, isAdvancedPanelOpen,
       isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,
       playingMessageId, isTtsLoadingForId, chatInputValue,
       selectedVoice,
       isInitialLoadComplete,
-      isHistoryLoading,
       selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
       requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
@@ -697,7 +475,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       setChatInputValue,
       handleCopyToClipboard,
       regenerateLastResponse,
-      currentUser,
       toDate,
       setActiveConversation,
     };
@@ -719,7 +496,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
 
     useEffect(() => {
-        if (chatLogic.activeConversation && chatLogic.activeConversation.messagesLoaded) {
+        if (chatLogic.activeConversation) {
             setCurrentMessages(chatLogic.activeConversation.messages);
         } else {
             setCurrentMessages([]);
@@ -745,3 +522,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    

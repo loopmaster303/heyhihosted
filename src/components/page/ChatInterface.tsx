@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useChat } from '@/components/ChatProvider';
 
 // UI Components
@@ -12,26 +12,35 @@ import AdvancedSettingsPanel from '@/components/chat/AdvancedSettingsPanel';
 
 // Types & Config
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
-import { cn } from '@/lib/utils';
-import { X, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { X } from 'lucide-react';
 
 export default function ChatInterface() {
   const chat = useChat();
 
-  if (!chat.activeConversation) {
-    return null; 
-  }
-  
-  // Show a loading spinner if messages for the active conversation are being fetched
-  if (!chat.activeConversation.messagesLoaded) {
+  useEffect(() => {
+    // On mount, if no active conversation exists, start a new one.
+    // This handles the initial entry into the chat page.
+    if (chat.isInitialLoadComplete && !chat.activeConversation) {
+        const chatWithLoopType = chat.allConversations.find(c => c.toolType === 'long language loops');
+        if (chatWithLoopType) {
+            chat.selectChat(chatWithLoopType.id);
+        } else {
+            chat.startNewChat();
+        }
+    }
+  }, [chat.isInitialLoadComplete, chat.activeConversation, chat.startNewChat, chat.selectChat, chat.allConversations]);
+
+
+  if (!chat.isInitialLoadComplete || !chat.activeConversation) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-        <p className="mt-4 text-muted-foreground">Loading chat...</p>
+        <p className="mt-4 text-muted-foreground">Initializing Chat...</p>
       </div>
     );
   }
-
+  
   return (
     <div className="flex flex-col h-full">
       <ChatView
@@ -92,7 +101,6 @@ export default function ChatInterface() {
               onRequestEditTitle={chat.requestEditTitle}
               onRequestDeleteChat={chat.requestDeleteChat}
               onStartNewChat={chat.startNewChat}
-              isHistoryLoading={chat.isHistoryLoading}
               toDate={chat.toDate}
             />
           )}

@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import type { TileItem, ToolType } from '@/types';
+import type { TileItem } from '@/types';
 import Link from 'next/link';
 
 const toolTileItems: TileItem[] = [
@@ -45,3 +45,5 @@ export default function HomePage() {
         </div>
     );
 };
+
+    
