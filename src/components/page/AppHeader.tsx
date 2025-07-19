@@ -45,8 +45,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
       {/* Loading Bar */}
       <div
         className={cn(
-          "fixed top-0 left-0 right-0 h-0.5 z-[99] bg-primary transition-all duration-500 ease-in-out",
-          loading ? "w-full" : "w-0"
+          "fixed top-0 left-0 right-0 h-0.5 z-[99]",
+          loading ? "w-full bg-primary" : "w-0"
         )}
       />
       
@@ -60,9 +60,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
                 disabled={loading}
             >
               <div className="flex items-baseline gap-4">
-                  <div className="text-5xl font-code text-foreground select-none font-bold">&lt;/hey.hi&gt;</div>
+                  <div className="text-xl font-code text-foreground select-none font-bold">&lt;/hey.hi&gt;</div>
                   {showUserName && (
-                      <span className="text-5xl font-code text-foreground select-none font-bold">{userDisplayName}</span>
+                      <span className="text-xl font-code text-foreground select-none font-bold">{userDisplayName}</span>
                   )}
               </div>
             </button>
@@ -74,11 +74,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
       
       {isMenuOpen && (
         <div 
-          className="fixed inset-0 bg-background/95 backdrop-blur-sm z-40 flex flex-col items-center justify-start pt-20 animate-in fade-in-0 duration-300"
+          className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] flex flex-col items-center justify-start pt-20 animate-in fade-in-0 duration-300"
         >
           <button 
             onClick={toggleMenu} 
-            className="text-7xl md:text-8xl font-code font-bold text-foreground mb-8 hover:opacity-80 transition-opacity"
+            className="text-5xl md:text-8xl lg:text-9xl font-code font-bold text-foreground mb-8 hover:opacity-80 transition-opacity"
             aria-label="Close navigation menu"
             disabled={loading}
           >
