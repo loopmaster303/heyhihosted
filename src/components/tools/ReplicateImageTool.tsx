@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Info, ImageIcon, X, ChevronDown, FileImage, Plus, History } from 'lucide-react';
+import { Loader2, AlertCircle, Info, ImageIcon, X, FileImage, Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import NextImage from 'next/image';
 import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
@@ -63,6 +63,8 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
   useOnClickOutside(historyPanelRef, () => setIsHistoryPanelOpen(false));
   
   const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
+  const advancedPanelRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(advancedPanelRef, () => setIsAdvancedPanelOpen(false));
 
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
   const isRunwayModelSelected = currentModelConfig?.id === 'runway-gen4-image';
@@ -670,7 +672,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
         <div className="max-w-3xl mx-auto relative">
           
           {isAdvancedPanelOpen && (
-             <div className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
+             <div 
+              ref={advancedPanelRef}
+              className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
                 <div className="grid gap-x-6 gap-y-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {currentModelConfig ? (
                     <>
