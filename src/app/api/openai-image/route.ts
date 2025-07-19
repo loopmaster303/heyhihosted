@@ -1,6 +1,5 @@
-import { NextResponse } from 'next/server';
 
-const POLLINATIONS_API_TOKEN = process.env.POLLINATIONS_API_TOKEN;
+import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   let body;
@@ -13,8 +12,10 @@ export async function POST(request: Request) {
       details: (e instanceof Error ? e.message : String(e)),
     }, { status: 400 });
   }
+  
+  const token = process.env.POLLINATIONS_API_TOKEN;
 
-  if (!POLLINATIONS_API_TOKEN) {
+  if (!token) {
     console.error('❌ Missing POLLINATIONS_API_TOKEN in env');
     return NextResponse.json({
       error: 'API configuration error: Missing Pollinations API token on the server.',
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     // Fetch the image from the constructed URL on the backend
     const imageResponse = await fetch(constructedUrl, {
         headers: {
-            'Authorization': `Bearer ${POLLINATIONS_API_TOKEN}`
+            'Authorization': `Bearer ${token}`
         }
     });
 

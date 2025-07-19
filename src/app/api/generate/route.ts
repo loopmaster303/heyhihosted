@@ -37,6 +37,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Invalid or unsupported model for Pollinations endpoint: ${model}. 'gptimage' should use the OpenAI endpoint.`, modelUsed: model || 'unknown' }, { status: 400 });
     }
 
+    const token = process.env.POLLINATIONS_API_TOKEN;
+    if (!token) {
+        console.warn("POLLINATIONS_API_TOKEN is not set. Image generation might fail.");
+    }
+
     // --- Pollinations.ai API Logic ---
     const params = new URLSearchParams();
     params.append('width', String(width));
@@ -65,7 +70,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ imageUrl });
 
 
-  } catch (error: any) {
+  } catch (error: any)
+ {
     console.error('Error in /api/generate (Pollinations handler):', error);
     const modelInError = body?.model || 'unknown'; 
     return NextResponse.json({

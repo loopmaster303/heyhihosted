@@ -4,14 +4,20 @@ import { getPollinationsChatCompletion, type PollinationsChatInput } from '@/ai/
 
 export async function POST(request: Request) {
   try {
-    const body: PollinationsChatInput = await request.json();
+    const body = await request.json();
 
     // Basic validation
     if (!body.messages || !body.modelId) {
       return NextResponse.json({ error: 'Missing required fields: messages and modelId' }, { status: 400 });
     }
 
-    const result = await getPollinationsChatCompletion(body);
+    // Securely add the API key on the server-side
+    const apiInput: PollinationsChatInput = {
+      ...body,
+      apiKey: process.env.POLLINATIONS_API_TOKEN,
+    };
+
+    const result = await getPollinationsChatCompletion(apiInput);
     return NextResponse.json(result);
 
   } catch (error: any) {

@@ -31,6 +31,8 @@ const PollinationsChatInputSchemaInternal = z.object({
   messages: z.array(PollinationsApiChatMessageSchemaInternal).min(1).describe('Array of message objects.'),
   modelId: z.string().describe('The Pollinations model ID to use (e.g., openai, mistral).'),
   systemPrompt: z.string().optional().describe('An optional system prompt to guide the AI.'),
+  // New field to pass the token securely
+  apiKey: z.string().optional().describe('The API key for authentication.'),
 });
 
 export type PollinationsChatInput = z.infer<typeof PollinationsChatInputSchemaInternal>;
@@ -40,16 +42,6 @@ export interface PollinationsChatOutput {
 }
 
 const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
-const API_TOKEN = process.env.POLLINATIONS_API_TOKEN;
-
-let tokenWarningLogged = false;
-if (!API_TOKEN && !tokenWarningLogged) {
-    console.warn('\nPOLLINATIONS_API_TOKEN is not set in your .env file. ' +
-                 'Certain models may not be available or requests might be rate-limited.\n' +
-                 'Please create a .env file and add POLLINATIONS_API_TOKEN=YOUR_REAL_TOKEN.\n' +
-                 'Make sure to restart your development server after updating the .env file.\n');
-    tokenWarningLogged = true;
-}
 
 /**
  * Main function to get a chat completion from Pollinations.
@@ -58,7 +50,11 @@ if (!API_TOKEN && !tokenWarningLogged) {
 export async function getPollinationsChatCompletion(
   input: PollinationsChatInput
 ): Promise<PollinationsChatOutput> {
-  const { messages: historyMessages, modelId, systemPrompt } = input;
+  const { messages: historyMessages, modelId, systemPrompt, apiKey } = input;
+  
+  if (!apiKey) {
+      console.warn('getPollinationsChatCompletion called without an apiKey. Requests may fail or be rate-limited.');
+  }
 
   // 1. Construct the final payload for the API
   const payload: Record<string, any> = {
@@ -76,8 +72,8 @@ export async function getPollinationsChatCompletion(
     'Content-Type': 'application/json',
   };
 
-  if (API_TOKEN) {
-    headers['Authorization'] = `Bearer ${API_TOKEN}`;
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
   // 2. Make the API call
