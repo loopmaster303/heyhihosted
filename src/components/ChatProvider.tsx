@@ -64,16 +64,21 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     
         if (cleanedUpdates.messages) {
             cleanedUpdates.messages = cleanedUpdates.messages.map((msg: ChatMessage) => {
-                if (Array.isArray(msg.content)) {
-                    const newContent = msg.content.map(part => {
+                const messageWithDate = {
+                    ...msg,
+                    timestamp: msg.timestamp instanceof Date ? msg.timestamp : toDate(msg.timestamp)
+                };
+
+                if (Array.isArray(messageWithDate.content)) {
+                    const newContent = messageWithDate.content.map(part => {
                         if (part.type === 'image_url' && part.image_url.url.startsWith('data:image') && part.image_url.url.length > 500 * 1024) { 
                             return { ...part, image_url: { ...part.image_url, url: 'https://placehold.co/512x512.png?text=Image+History+Disabled' } };
                         }
                         return part;
                     });
-                    return { ...msg, content: newContent };
+                    return { ...messageWithDate, content: newContent };
                 }
-                return msg;
+                return messageWithDate;
             });
         }
         
@@ -92,29 +97,25 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const loadConversations = useCallback(async (user: User) => {
         setIsHistoryLoading(true);
         const conversationsRef = collection(db, 'users', user.uid, 'conversations');
-        const q = query(conversationsRef, orderBy('updatedAt', 'desc'));
+        const q = query(conversationsRef, orderBy('createdAt', 'desc'));
 
         try {
             const querySnapshot = await getDocs(q);
             const loadedConversations: Conversation[] = querySnapshot.docs
             .map(docSnap => {
                 const data = docSnap.data();
-                // If a conversation has no messages and the default title, it's likely empty/unused, so we can ignore it.
-                if ((!data.messages || data.messages.length === 0) && data.title === "default.long.language.loop") {
-                    return null;
-                }
                 return {
                     id: docSnap.id,
                     title: data.title,
-                    createdAt: toDate(data.createdAt),
-                    updatedAt: data.updatedAt ? toDate(data.updatedAt) : toDate(data.createdAt),
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt,
                     toolType: data.toolType,
                     selectedModelId: data.selectedModelId,
                     selectedResponseStyleName: data.selectedResponseStyleName,
-                    messages: [], // Messages will be loaded on demand
-                    messagesLoaded: false, // Flag to indicate messages are not loaded
+                    messages: [],
+                    messagesLoaded: false,
                 } as Conversation;
-            }).filter((c): c is Conversation => c !== null && c.messages.length > 0);
+            }).filter(Boolean);
 
             setAllConversations(loadedConversations);
         } catch (error) {
@@ -368,12 +369,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               const fullConversation: Conversation = {
                 ...conversationToSelect,
                 ...fullConversationData,
-                createdAt: toDate(fullConversationData.createdAt),
-                updatedAt: toDate(fullConversationData.updatedAt),
+                createdAt: fullConversationData.createdAt,
+                updatedAt: fullConversationData.updatedAt,
                 messages: (fullConversationData.messages || []).map((msg: any) => ({
                     ...msg,
                     id: msg.id || crypto.randomUUID(),
-                    timestamp: toDate(msg.timestamp)
+                    timestamp: msg.timestamp
                 })),
                 messagesLoaded: true,
               };
@@ -407,8 +408,25 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
       };
 
-      setActiveConversation(newConversation);
-      // Don't add to allConversations yet, will be added on first message.
+      const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversation.id);
+      try {
+        await setDoc(convRef, {
+            ...newConversation,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
+        const newConvWithTimestamp: Conversation = {
+            ...newConversation,
+            createdAt: new Date(), // Use local date for immediate UI update
+            updatedAt: new Date(),
+        }
+        setAllConversations(prev => [newConvWithTimestamp, ...prev]);
+        setActiveConversation(newConvWithTimestamp);
+      } catch (error) {
+          console.error("Error creating new conversation in Firestore:", error);
+          toast({ title: "Error", description: "Could not start a new chat.", variant: "destructive" });
+          return;
+      }
       
       try {
         // Prune old conversations if we exceed the limit
@@ -689,11 +707,15 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         if (chatLogic.activeConversation && chatLogic.activeConversation.messagesLoaded) {
-            setCurrentMessages(chatLogic.activeConversation.messages);
+            const messagesWithDate = chatLogic.activeConversation.messages.map(msg => ({
+                ...msg,
+                timestamp: chatLogic.toDate(msg.timestamp)
+            }));
+            setCurrentMessages(messagesWithDate);
         } else {
             setCurrentMessages([]);
         }
-    }, [chatLogic.activeConversation]);
+    }, [chatLogic.activeConversation, chatLogic.toDate]);
 
     const chatContextValue = {
         ...chatLogic,
@@ -714,7 +736,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    
-
-      
