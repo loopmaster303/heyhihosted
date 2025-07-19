@@ -54,38 +54,46 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
     }
 
     let prediction = await startResponse.json();
+    const predictionId = prediction.id;
 
-    // 2. Poll for the result
+    if (!prediction.urls?.get) {
+        throw new Error('Failed to get prediction status URL from Replicate.');
+    }
+    
+    // 2. Poll for the result using the correct endpoint
     let retryCount = 0;
     while (
       prediction.status !== "succeeded" &&
       prediction.status !== "failed" &&
       prediction.status !== "canceled" &&
-      retryCount < 40 && // Max ~80 seconds polling
-      prediction.urls?.get
+      retryCount < 40 // Max ~80 seconds polling
     ) {
       await new Promise(resolve => setTimeout(resolve, 2000));
-      const pollResponse = await fetch(prediction.urls.get, {
+      const pollResponse = await fetch(`${REPLICATE_API_ENDPOINT}/${predictionId}`, {
         headers: { 'Authorization': `Token ${REPLICATE_API_TOKEN}` }
       });
-      if (!pollResponse.ok) break; // Stop polling on error
+
+      if (!pollResponse.ok) {
+        console.error(`Polling failed with status: ${pollResponse.status}`);
+        // Optional: you might want to throw an error here or just break the loop
+        break; 
+      }
       prediction = await pollResponse.json();
       retryCount++;
     }
 
     // 3. Process the final result
     if (prediction.status === "succeeded" && prediction.output) {
-      // The output is often directly the string, but can be an object.
-      // Safely access the transcription text.
+      // The output from this model can be a string or an object with a 'transcription' property.
       const transcriptionText = typeof prediction.output === 'object' && prediction.output.transcription
         ? prediction.output.transcription
         : (Array.isArray(prediction.output) ? prediction.output.join('') : String(prediction.output));
       
-      return { transcription: transcriptionText };
+      return { transcription: transcriptionText.trim() };
     } else {
         const finalError = prediction.error || `Prediction ended with status: ${prediction.status}.`;
         console.error("Replicate STT polling/final error:", finalError);
-        throw new Error(finalError);
+        throw new Error(String(finalError));
     }
 
   } catch (err) {
