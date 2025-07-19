@@ -23,8 +23,12 @@ export default function ChatInterface() {
   const advancedPanelRef = useRef<HTMLDivElement>(null);
   
   // Custom hook to handle clicks outside of the panels
-  useOnClickOutside([historyPanelRef], () => chat.isHistoryPanelOpen && chat.closeHistoryPanel(), 'radix-select-content');
-  useOnClickOutside([advancedPanelRef], () => chat.isAdvancedPanelOpen && chat.closeAdvancedPanel(), 'radix-select-content');
+  useOnClickOutside([historyPanelRef], () => {
+    if (chat.isHistoryPanelOpen) chat.closeHistoryPanel();
+  }, 'radix-select-content');
+  useOnClickOutside([advancedPanelRef], () => {
+    if (chat.isAdvancedPanelOpen) chat.closeAdvancedPanel();
+  }, 'radix-select-content');
 
 
   useEffect(() => {
@@ -32,7 +36,8 @@ export default function ChatInterface() {
       chat.closeAdvancedPanel();
       chat.closeHistoryPanel();
     };
-  }, [chat.closeAdvancedPanel, chat.closeHistoryPanel]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!chat.isInitialLoadComplete || !chat.activeConversation) {
     return (
@@ -46,7 +51,7 @@ export default function ChatInterface() {
   return (
     <div className="flex flex-col h-full">
       <div className="relative flex-grow overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
+        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
         <ChatView
           conversation={chat.activeConversation}
           messages={chat.currentMessages}
