@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 import type { TileItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '../ThemeToggle';
-import { X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -20,33 +19,24 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
 
-  // Effect to handle loading indicator on route change
   useEffect(() => {
-    // When the menu is open, we don't want to show a loading bar yet
-    if (isMenuOpen) {
-      setLoading(false);
-      return;
-    }
-
-    // A simple way to handle loading state on path change
-    // This will reset loading to false on re-renders when the path is the same
+    // This effect runs when the path changes, which means navigation is complete.
+    // We can safely close the menu and reset the loading state.
     setLoading(false);
-    
-    // We don't need to track the previous path here. The loading state is managed
-    // by the Link's onClick and this effect's cleanup.
-  }, [pathname, isMenuOpen]);
+    setIsMenuOpen(false);
+  }, [pathname]);
 
-
-  const handleNavigation = () => {
-    // Start loading indicator immediately on click
+  const handleNavigationStart = () => {
+    // When a link is clicked, we immediately show the loading bar.
+    // The menu stays open until the useEffect above detects the path change.
     setLoading(true);
-    // Menu will close after a short delay to allow the loading bar to appear first
-    setTimeout(() => {
-        setIsMenuOpen(false);
-    }, 150);
   };
   
-  const toggleMenu = () => setIsMenuOpen(prev => !prev);
+  const toggleMenu = () => {
+    // Don't toggle menu if a page is currently loading
+    if (loading) return;
+    setIsMenuOpen(prev => !prev);
+  }
   
   const showUserName = userDisplayName && userDisplayName.trim() !== '' && userDisplayName !== 'User';
 
@@ -67,17 +57,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
                 onClick={toggleMenu}
                 className="flex items-baseline gap-4 text-left hover:opacity-80 transition-opacity"
                 aria-label="Toggle navigation menu"
+                disabled={loading}
             >
-              {isMenuOpen ? (
-                 <X className="h-10 w-10 text-foreground" />
-              ) : (
-                <div className="flex items-baseline gap-4">
-                    <div className="text-5xl font-code text-foreground select-none font-bold">&lt;/hey.hi&gt;</div>
-                    {showUserName && (
-                        <span className="text-5xl font-code text-foreground select-none font-bold">{userDisplayName}</span>
-                    )}
-                </div>
-              )}
+              <div className="flex items-baseline gap-4">
+                  <div className="text-5xl font-code text-foreground select-none font-bold">&lt;/hey.hi&gt;</div>
+                  {showUserName && (
+                      <span className="text-5xl font-code text-foreground select-none font-bold">{userDisplayName}</span>
+                  )}
+              </div>
             </button>
         </div>
         <div className="flex-1 flex justify-end">
@@ -87,15 +74,23 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
       
       {isMenuOpen && (
         <div 
-          className="fixed inset-0 bg-background/95 backdrop-blur-sm z-40 flex items-start justify-center pt-32 animate-in fade-in-0 duration-300"
-          onClick={toggleMenu}
+          className="fixed inset-0 bg-background/95 backdrop-blur-sm z-40 flex flex-col items-center justify-start pt-20 animate-in fade-in-0 duration-300"
         >
+          <button 
+            onClick={toggleMenu} 
+            className="text-7xl md:text-8xl font-code font-bold text-foreground mb-8 hover:opacity-80 transition-opacity"
+            aria-label="Close navigation menu"
+            disabled={loading}
+          >
+            &lt;/hey.hi&gt;
+          </button>
+          
           <nav className="flex flex-col space-y-1 md:space-y-4 font-code w-auto text-left">
-            <Link href="/" onClick={handleNavigation} className={cn("text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl", pathname === '/' && 'text-foreground')}>
+            <Link href="/" onClick={handleNavigationStart} className={cn("text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl", pathname === '/' && 'text-foreground')}>
               {`└home/page`}
             </Link>
             {toolTileItems.map((item) => (
-              <Link key={item.id} href={item.href || '#'} onClick={handleNavigation} className={cn("text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl", pathname === item.href && 'text-foreground')}>
+              <Link key={item.id} href={item.href || '#'} onClick={handleNavigationStart} className={cn("text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl", pathname === item.href && 'text-foreground')}>
                 {`└${item.title}`}
               </Link>
             ))}
