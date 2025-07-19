@@ -87,8 +87,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               alt={altText}
               fill
               sizes="(max-width: 768px) 80vw, 300px"
-              style={{ objectFit: "contain", maxWidth: "100%", height: "auto" }} 
-              className="rounded-md"
+              className="rounded-md object-contain"
               data-ai-hint={part.image_url.isGenerated ? "illustration digital art" : (part.image_url.isUploaded ? "photo object" : "image")}
             />
           </div>
