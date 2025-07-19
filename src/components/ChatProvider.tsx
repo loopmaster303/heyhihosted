@@ -5,15 +5,11 @@ import React, { useState, useEffect, useCallback, useRef, useContext, createCont
 import { useToast } from "@/hooks/use-toast";
 
 import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
-import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
-import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { textToSpeech } from '@/ai/flows/tts-flow';
-
 
 import { db, auth } from '@/lib/firebase';
-import { doc, getDoc, setDoc, collection, query, orderBy, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, orderBy, getDocs, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, type User, signInAnonymously } from 'firebase/auth';
 
 
@@ -111,10 +107,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const updateFirestoreConversation = useCallback(async (conversation: Conversation) => {
         if (!currentUser || !conversation.messagesLoaded) return; // Only save if messages are loaded and modified
         
-        // Create a storable version of the conversation, excluding client-side state
         const { uploadedFile, uploadedFilePreview, messagesLoaded, ...storableConv } = conversation;
 
-        // Ensure messages with large data URIs are handled
         storableConv.messages = storableConv.messages.map((msg: ChatMessage) => {
           if (Array.isArray(msg.content)) {
             msg.content = msg.content.map(part => {
@@ -129,7 +123,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
         const convRef = doc(db, 'users', currentUser.uid, 'conversations', storableConv.id);
         try {
-            // We only set the document, as we always have the full conversation object in memory
             await setDoc(convRef, storableConv);
         } catch (error) {
             console.error("Error saving conversation to Firestore:", error);
@@ -145,16 +138,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setAllConversations(prevAllConvs => {
             const existingIndex = prevAllConvs.findIndex(c => c.id === prevActive.id);
             if (existingIndex > -1) {
-                // Create a new array with the updated conversation
                 const newAllConvs = [...prevAllConvs];
-                // Update only relevant fields for the list view to avoid overwriting lazy-loaded messages
                 newAllConvs[existingIndex] = { ...newAllConvs[existingIndex], ...updates, messages: updatedConv.messages, messagesLoaded: updatedConv.messagesLoaded };
                 return newAllConvs;
             }
             return [updatedConv, ...prevAllConvs];
         });
         
-        // Save to Firestore only if messages are loaded
         if (updatedConv.messagesLoaded) {
             updateFirestoreConversation(updatedConv);
         }
@@ -189,8 +179,15 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             
             if (textContent.trim()) {
                 try {
-                  const { title } = await generateChatTitle({ messages: textContent });
-                  updateActiveConversationState({ title });
+                  const response = await fetch('/api/chat/title', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: textContent }),
+                  });
+                  const result = await response.json();
+                  if (!response.ok) throw new Error(result.error || 'Failed to generate title.');
+
+                  updateActiveConversationState({ title: result.title });
                 } catch (error) { 
                     console.error("Failed to generate chat title:", error); 
                 }
@@ -270,11 +267,17 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                   { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${chatInputValue.trim()}`, isGenerated: true } }
               ];
           } else {
-              const result = await getPollinationsChatCompletion({
-                messages: historyForApi,
-                modelId: currentModel.id,
-                systemPrompt: effectiveSystemPrompt
+              const response = await fetch('/api/chat/completion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: historyForApi,
+                    modelId: currentModel.id,
+                    systemPrompt: effectiveSystemPrompt
+                })
               });
+              const result = await response.json();
+              if (!response.ok) throw new Error(result.error || 'Failed to get chat completion.');
               aiResponseContent = result.responseText;
           }
       } catch (error) {
@@ -309,10 +312,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         if (conversationToSelect.messagesLoaded) {
           setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null });
         } else {
-          // Set active conversation immediately for UI responsiveness
           setActiveConversation({ ...conversationToSelect, messages: [], uploadedFile: null, uploadedFilePreview: null });
 
-          // Fetch messages from the full document
           const convRef = doc(db, 'users', currentUser.uid, 'conversations', conversationId);
           try {
             const docSnap = await getDoc(convRef);
@@ -327,9 +328,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                     id: msg.id || crypto.randomUUID(),
                     timestamp: msg.timestamp?.toDate() || new Date()
                 })),
-                messagesLoaded: true, // Mark as loaded
+                messagesLoaded: true,
               };
-              // Update state with the full conversation data
               setActiveConversation(fullConversation);
               setAllConversations(prev => prev.map(c => c.id === conversationId ? fullConversation : c));
             } else {
@@ -338,7 +338,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           } catch (error) {
             console.error("Error loading full conversation:", error);
             toast({ title: "Error", description: "Could not load chat messages.", variant: "destructive" });
-            setActiveConversation(null); // Revert on error
+            setActiveConversation(null);
           }
         }
       }
@@ -351,7 +351,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         id: crypto.randomUUID(),
         title: "default.long.language.loop",
         messages: [],
-        messagesLoaded: true, // New chats start with loaded (empty) messages
+        messagesLoaded: true,
         createdAt: new Date(),
         toolType: 'long language loops',
         isImageMode: false,
@@ -360,16 +360,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       };
 
       setActiveConversation(newConversation);
-      // Add to the top of the list
       setAllConversations(prev => [newConversation, ...prev]);
 
-      // Save the new conversation stub to Firestore
-      const { messages, ...storableConv } = newConversation; // Don't save messages array initially
+      const { messages, ...storableConv } = newConversation;
       const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversation.id);
       try {
         await setDoc(convRef, storableConv);
 
-        // Prune oldest conversation if over limit
         if (allConversations.length + 1 > MAX_STORED_CONVERSATIONS) {
             const oldestConversation = [...allConversations].sort((a, b) => new Date(a.createdAt.toString()).getTime() - new Date(b.createdAt.toString()).getTime())[0];
             const oldConvRef = doc(db, 'users', currentUser.uid, 'conversations', oldestConversation.id);
@@ -405,7 +402,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             setActiveConversation(prev => prev ? { ...prev, title: updatedConv.title } : null);
         }
         
-        // Update only the title in Firestore
         const convRef = doc(db, 'users', currentUser.uid, 'conversations', chatToEditId);
         setDoc(convRef, { title: updatedConv.title }, { merge: true })
           .catch(err => {
@@ -518,7 +514,15 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       setIsTtsLoadingForId(messageId);
       
       try {
-        const { audioDataUri } = await textToSpeech(text, selectedVoice);
+        const response = await fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, voice: selectedVoice }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Failed to generate audio.");
+
+        const { audioDataUri } = result;
         const audio = new Audio(audioDataUri);
         audioRef.current = audio;
         
@@ -601,11 +605,18 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const regenerationPromptSuffix = `\n(Bitte formuliere deine vorherige Antwort um oder biete eine alternative Perspektive an.)`;
         effectiveSystemPrompt += regenerationPromptSuffix;
         
-        const result = await getPollinationsChatCompletion({
-          messages: apiMessages,
-          modelId: currentModel.id,
-          systemPrompt: effectiveSystemPrompt
+        const response = await fetch('/api/chat/completion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: apiMessages,
+            modelId: currentModel.id,
+            systemPrompt: effectiveSystemPrompt
+          })
         });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to regenerate response.');
+
         aiResponseText = result.responseText;
   
       } catch (error) {
