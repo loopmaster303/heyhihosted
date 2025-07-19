@@ -61,6 +61,7 @@ const VisualizingLoopsTool: FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useOnClickOutside([historyPanelRef], () => setIsHistoryPanelOpen(false), 'radix-select-content');
+  useOnClickOutside([advancedPanelRef], () => setIsAdvancedPanelOpen(false), 'radix-select-content');
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -201,8 +202,13 @@ const VisualizingLoopsTool: FC = () => {
         nologo: true,
         private: isPrivate,
         enhance: upsampling,
-        transparent: model === 'gptimage' ? transparent : undefined,
+        transparent: transparent,
       };
+      
+      if (model !== 'gptimage') {
+        payload.transparent = undefined; // only send transparent for gptimage
+      }
+      
       if (currentSeedForIteration) {
         const seedNum = parseInt(currentSeedForIteration, 10);
         if (!isNaN(seedNum)) payload.seed = seedNum;
