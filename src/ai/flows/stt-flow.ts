@@ -8,7 +8,7 @@
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 // This is the specific, correct model version for openai/whisper on Replicate
-const WHISPER_MODEL_VERSION = "30414d4e44228a0c904332e79d5057a6b7d7b5783307590b50302b1f8352b294";
+const WHISPER_MODEL_VERSION = "8099696689d249cf8b122d833c36ac3f75505c666a395ca40ef26f68e7d3d16e";
 const REPLICATE_API_ENDPOINT = "https://api.replicate.com/v1/predictions";
 
 
@@ -74,8 +74,14 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
     }
 
     // 3. Process the final result
-    if (prediction.status === "succeeded" && prediction.output?.transcription) {
-      return { transcription: prediction.output.transcription };
+    if (prediction.status === "succeeded" && prediction.output) {
+      // The output is often directly the string, but can be an object.
+      // Safely access the transcription text.
+      const transcriptionText = typeof prediction.output === 'object' && prediction.output.transcription
+        ? prediction.output.transcription
+        : (Array.isArray(prediction.output) ? prediction.output.join('') : String(prediction.output));
+      
+      return { transcription: transcriptionText };
     } else {
         const finalError = prediction.error || `Prediction ended with status: ${prediction.status}.`;
         console.error("Replicate STT polling/final error:", finalError);
