@@ -54,9 +54,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
                 disabled={loading}
             >
               <div className="flex items-baseline gap-4">
-                  <div className="text-2xl md:text-3xl font-code text-foreground select-none font-bold">&lt;/hey.hi&gt;</div>
+                  <div className="text-3xl md:text-4xl font-code text-foreground select-none font-bold">&lt;/hey.hi&gt;</div>
                   {showUserName && (
-                      <span className="text-2xl md:text-3xl font-code text-foreground select-none font-bold">{userDisplayName}</span>
+                      <span className="text-3xl md:text-4xl font-code text-foreground select-none font-bold">{userDisplayName}</span>
                   )}
               </div>
             </button>
