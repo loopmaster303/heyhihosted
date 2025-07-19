@@ -51,7 +51,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     const toDate = (timestamp: Date | Timestamp | undefined | null): Date => {
         if (!timestamp) return new Date();
-        return timestamp instanceof Date ? timestamp : timestamp.toDate();
+        // Check if it's a Firestore Timestamp and has the toDate method
+        if (timestamp && typeof (timestamp as Timestamp).toDate === 'function') {
+            return (timestamp as Timestamp).toDate();
+        }
+        // Otherwise, assume it's already a Date object
+        return timestamp as Date;
     };
 
     const updateFirestoreConversation = useCallback(async (conversationId: string, updates: Partial<Omit<Conversation, 'createdAt' | 'updatedAt' | 'id'>>) => {
@@ -67,9 +72,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             cleanedUpdates.messages = cleanedUpdates.messages.map((msg: ChatMessage) => {
                 const messageForStore = { ...msg };
                 
-                // Ensure timestamp is a Firestore Timestamp or a serverTimestamp for new messages
-                if (messageForStore.timestamp instanceof Date) {
-                    messageForStore.timestamp = serverTimestamp() as Timestamp;
+                // Firestore can handle JS Date objects directly, converting them to Timestamps.
+                // We no longer need to manually handle serverTimestamp here, which caused errors in arrays.
+                if (!(messageForStore.timestamp instanceof Date) && messageForStore.timestamp) {
+                    messageForStore.timestamp = toDate(messageForStore.timestamp);
                 }
 
                 // Prevent storing very large image data URIs in Firestore history
@@ -155,11 +161,14 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         return () => unsubscribe();
     }, [toast, loadConversations, isInitialLoadComplete]);
     
-    const updateActiveConversationState = useCallback((updates: Partial<Conversation>) => {
-      setActiveConversation(prevActive => {
-        if (!prevActive) return null;
-        return { ...prevActive, ...updates };
-      });
+    const updateActiveConversationState = useCallback((updates: Partial<Conversation> | ((prevState: Conversation | null) => Conversation | null)) => {
+        setActiveConversation(prevActive => {
+            if (typeof updates === 'function') {
+                return updates(prevActive);
+            }
+            if (!prevActive) return null;
+            return { ...prevActive, ...updates };
+        });
     }, []);
   
     useEffect(() => {
@@ -326,7 +335,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const errorMsg: ChatMessage = {id: crypto.randomUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date(), toolType: 'long language loops'};
         finalMessages = [...updatedMessagesForState, errorMsg];
       } finally {
-        const newUpdatedAt = serverTimestamp() as Timestamp;
+        const newUpdatedAt = new Date();
         updateActiveConversationState({ messages: finalMessages, title: finalTitle, updatedAt: newUpdatedAt });
         updateFirestoreConversation(convId, { messages: finalMessages, title: finalTitle });
         setIsAiResponding(false);

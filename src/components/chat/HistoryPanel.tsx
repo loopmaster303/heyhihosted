@@ -20,7 +20,7 @@ interface HistoryPanelProps {
   onRequestDeleteChat: (id: string) => void;
   onStartNewChat: () => void;
   isHistoryLoading: boolean;
-  toDate: (timestamp: Date | Timestamp) => Date;
+  toDate: (timestamp: Date | Timestamp | undefined | null) => Date;
 }
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({
