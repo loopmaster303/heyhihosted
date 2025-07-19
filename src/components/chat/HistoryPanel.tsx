@@ -20,6 +20,7 @@ interface HistoryPanelProps {
   onRequestDeleteChat: (id: string) => void;
   onStartNewChat: () => void;
   isHistoryLoading: boolean;
+  toDate: (timestamp: Date | Timestamp) => Date;
 }
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({
@@ -31,8 +32,9 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   onRequestDeleteChat,
   onStartNewChat,
   isHistoryLoading,
+  toDate,
 }) => {
-  const filteredConversations = allConversations.filter(c => c.toolType === 'long language loops' && (c.messages.length > 0 || c.title !== 'default.long.language.loop'));
+  const filteredConversations = allConversations.filter(c => c.toolType === 'long language loops');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -41,14 +43,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   const handleNewChat = () => {
     onStartNewChat();
     onClose();
-  };
-
-  const toDate = (timestamp: Date | Timestamp): Date => {
-    if (timestamp instanceof Date) {
-      return timestamp;
-    }
-    // This is the important part: converting a Firebase Timestamp to a JS Date
-    return timestamp.toDate();
   };
 
   return (
@@ -93,7 +87,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                     <div className="flex-grow overflow-hidden text-sm">
                     <p className="truncate font-medium text-popover-foreground">{conv.title}</p>
                     <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(toDate(conv.createdAt), { addSuffix: true })}
+                        {formatDistanceToNow(toDate(conv.updatedAt || conv.createdAt), { addSuffix: true })}
                     </p>
                     </div>
                 </Button>
@@ -137,3 +131,5 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
 };
 
 export default HistoryPanel;
+
+    

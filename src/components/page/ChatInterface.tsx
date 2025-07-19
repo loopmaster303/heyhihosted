@@ -93,6 +93,7 @@ export default function ChatInterface() {
               onRequestDeleteChat={chat.requestDeleteChat}
               onStartNewChat={chat.startNewChat}
               isHistoryLoading={chat.isHistoryLoading}
+              toDate={chat.toDate}
             />
           )}
 
@@ -112,3 +113,5 @@ export default function ChatInterface() {
     </div>
   );
 };
+
+    
