@@ -66,13 +66,11 @@ export default function AppContent() {
         setActiveTool(null);
         chat.selectChat(null); 
     } else if (toolOrView === 'long language loops') {
-        setActiveTool(null); // The chat view is controlled by activeConversation, not a tool state.
-        const newChat = await chat.startNewChat();
-        if (newChat) {
-            chat.setActiveConversation(newChat);
-        }
+        setActiveTool(null);
+        // The startNewChat function now correctly sets the active conversation
+        await chat.startNewChat();
     } else {
-        chat.selectChat(null); // Deselect chat when switching to a non-chat tool
+        chat.selectChat(null);
         setActiveTool(toolOrView);
     }
   };

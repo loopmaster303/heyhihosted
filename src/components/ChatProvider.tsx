@@ -51,42 +51,52 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     const toDate = (timestamp: Date | Timestamp | undefined | null): Date => {
         if (!timestamp) return new Date();
-        // Check if it's a Firestore Timestamp and has the toDate method
         if (timestamp && typeof (timestamp as Timestamp).toDate === 'function') {
             return (timestamp as Timestamp).toDate();
         }
-        // Otherwise, assume it's already a Date object
         return timestamp as Date;
     };
 
-    const updateFirestoreConversation = useCallback(async (conversationId: string, updates: Partial<Omit<Conversation, 'createdAt' | 'updatedAt' | 'id'>>) => {
+    const updateFirestoreConversation = useCallback(async (conversationId: string, updates: Partial<Conversation>) => {
         if (!currentUser) return;
     
-        const cleanedUpdates: Partial<Conversation> & { updatedAt: any } = { ...updates, updatedAt: serverTimestamp() };
-        
-        // Remove client-side only properties before sending to Firestore
-        delete cleanedUpdates.uploadedFile;
-        delete cleanedUpdates.uploadedFilePreview;
+        // Create a shallow copy to modify for Firestore
+        const dataToStore: Partial<Conversation> & { updatedAt: any } = { 
+            ...updates, 
+            updatedAt: serverTimestamp() 
+        };
     
-        if (cleanedUpdates.messages) {
-            cleanedUpdates.messages = cleanedUpdates.messages.map((msg: ChatMessage) => {
+        // Explicitly delete properties that should not be stored in Firestore.
+        // These properties only exist on the client-side state.
+        delete dataToStore.uploadedFile;
+        delete dataToStore.uploadedFilePreview;
+        delete dataToStore.messagesLoaded; // This is a client-side flag
+    
+        if (dataToStore.messages) {
+            dataToStore.messages = dataToStore.messages.map((msg: ChatMessage) => {
                 const messageForStore = { ...msg };
                 
-                // Firestore can handle JS Date objects directly, converting them to Timestamps.
-                // We no longer need to manually handle serverTimestamp here, which caused errors in arrays.
-                if (!(messageForStore.timestamp instanceof Date) && messageForStore.timestamp) {
-                    messageForStore.timestamp = toDate(messageForStore.timestamp);
+                // Ensure timestamp is a JS Date object for Firestore to convert
+                if (messageForStore.timestamp && typeof (messageForStore.timestamp as Timestamp).toDate === 'function') {
+                    messageForStore.timestamp = (messageForStore.timestamp as Timestamp).toDate();
+                } else if (!(messageForStore.timestamp instanceof Date)) {
+                    messageForStore.timestamp = new Date();
                 }
 
-                // Prevent storing very large image data URIs in Firestore history
+                // Sanitize content array to prevent storing large data URIs
                 if (Array.isArray(messageForStore.content)) {
-                    const newContent = messageForStore.content.map(part => {
+                    messageForStore.content = messageForStore.content.map(part => {
                         if (part.type === 'image_url' && part.image_url.url.startsWith('data:image') && part.image_url.url.length > 500 * 1024) { 
-                            return { ...part, image_url: { ...part.image_url, url: 'https://placehold.co/512x512.png?text=Image+Too+Large' } };
+                            return { 
+                                ...part, 
+                                image_url: { 
+                                    ...part.image_url, 
+                                    url: 'https://placehold.co/512x512.png?text=Image+Too+Large+For+History' 
+                                } 
+                            };
                         }
                         return part;
                     });
-                    return { ...messageForStore, content: newContent };
                 }
                 return messageForStore;
             });
@@ -94,7 +104,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         
         const convRef = doc(db, 'users', currentUser.uid, 'conversations', conversationId);
         try {
-            await setDoc(convRef, cleanedUpdates, { merge: true });
+            await setDoc(convRef, dataToStore, { merge: true });
         } catch (error) {
             console.error("Error updating conversation in Firestore:", error);
             toast({ title: "Save Error", description: "Could not save changes to the cloud.", variant: "destructive" });
@@ -163,11 +173,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     
     const updateActiveConversationState = useCallback((updates: Partial<Conversation> | ((prevState: Conversation | null) => Conversation | null)) => {
         setActiveConversation(prevActive => {
-            if (typeof updates === 'function') {
-                return updates(prevActive);
+            const newState = typeof updates === 'function' ? updates(prevActive) : { ...prevActive, ...updates };
+            // Ensure a null previous state doesn't break the spread operator
+            if (prevActive === null && typeof updates !== 'function') {
+                return updates as Conversation;
             }
-            if (!prevActive) return null;
-            return { ...prevActive, ...updates };
+            return newState as Conversation | null;
         });
     }, []);
   
@@ -336,8 +347,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         finalMessages = [...updatedMessagesForState, errorMsg];
       } finally {
         const newUpdatedAt = new Date();
-        updateActiveConversationState({ messages: finalMessages, title: finalTitle, updatedAt: newUpdatedAt });
-        updateFirestoreConversation(convId, { messages: finalMessages, title: finalTitle });
+        const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: newUpdatedAt };
+        updateActiveConversationState(finalConversationState);
+        updateFirestoreConversation(convId, finalConversationState);
         setIsAiResponding(false);
         if (isImagePrompt || isFileUpload) {
             updateActiveConversationState({ isImageMode: false, uploadedFile: null, uploadedFilePreview: null });
@@ -407,8 +419,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             messagesLoaded: true,
         };
 
-        setActiveConversation(newConvForState);
-
         try {
             const dataForFirestore = {
                 ...newConversationData,
@@ -418,7 +428,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             const convRef = doc(db, 'users', currentUser.uid, 'conversations', newConversationId);
             await setDoc(convRef, dataForFirestore);
             
-            // Prune old conversations if necessary
+            // This is now safe because we set the state *after* successful creation
+            setActiveConversation(newConvForState);
+
             if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
                 const sortedConvs = [...allConversations].sort((a, b) => toDate(a.updatedAt).getTime() - toDate(b.updatedAt).getTime());
                 const oldestConversation = sortedConvs[0];
@@ -434,7 +446,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         } catch (error) {
             console.error("Error creating new conversation in Firestore:", error);
             toast({ title: "Error", description: "Could not start a new chat.", variant: "destructive" });
-            setActiveConversation(null); // Rollback on error
             return null;
         }
     }, [currentUser, allConversations, toast]);
@@ -731,5 +742,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    
