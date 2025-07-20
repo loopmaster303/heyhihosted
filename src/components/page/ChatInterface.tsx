@@ -7,8 +7,6 @@ import { useChat } from '@/components/ChatProvider';
 // UI Components
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
-import HistoryPanel from '@/components/chat/HistoryPanel';
-import AdvancedSettingsPanel from '@/components/chat/AdvancedSettingsPanel';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 // Types & Config
@@ -21,9 +19,7 @@ export default function ChatInterface() {
 
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const advancedPanelRef = useRef<HTMLDivElement>(null);
-  const [isControlsVisible, setIsControlsVisible] = useState(false);
-  const chatAreaRef = useRef<HTMLDivElement>(null);
-
+  
   // Custom hook to handle clicks outside of the history panel
   useOnClickOutside([historyPanelRef], () => {
     if (chat.isHistoryPanelOpen) chat.closeHistoryPanel();
@@ -42,25 +38,6 @@ export default function ChatInterface() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (chatAreaRef.current) {
-        const rect = chatAreaRef.current.getBoundingClientRect();
-        const hoverZoneHeight = 80; // 80px from the bottom
-        const mouseY = e.clientY;
-
-        if (mouseY > rect.bottom - hoverZoneHeight) {
-            setIsControlsVisible(true);
-        } else {
-            setIsControlsVisible(false);
-        }
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setIsControlsVisible(false);
-  };
-
-
   if (!chat.isInitialLoadComplete || !chat.activeConversation) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
@@ -71,12 +48,7 @@ export default function ChatInterface() {
   }
 
   return (
-    <div 
-        ref={chatAreaRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        className="flex flex-col h-full overflow-hidden" // Added overflow-hidden
-    >
+    <div className="flex flex-col h-full overflow-hidden">
       <div className="relative flex-grow overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
         <ChatView
@@ -146,7 +118,6 @@ export default function ChatInterface() {
             handleStyleChange={chat.handleStyleChange}
             selectedVoice={chat.selectedVoice}
             handleVoiceChange={chat.handleVoiceChange}
-            isControlsVisible={isControlsVisible}
           />
         </div>
       </div>

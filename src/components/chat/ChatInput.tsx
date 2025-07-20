@@ -43,7 +43,6 @@ interface ChatInputProps {
   handleStyleChange: (styleName: string) => void;
   selectedVoice: string;
   handleVoiceChange: (voiceId: string) => void;
-  isControlsVisible: boolean;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -78,10 +77,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
   handleStyleChange,
   selectedVoice,
   handleVoiceChange,
-  isControlsVisible
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showMicButton, setShowMicButton] = useState(false);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -136,10 +135,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="relative">
-      <div className={cn(
-          "relative transition-all duration-300 ease-in-out",
-          isControlsVisible ? '-translate-y-12' : 'translate-y-0'
-      )}>
+      <div className="relative pb-12">
           {isHistoryPanelOpen && (
               <div ref={historyPanelRef}>
                   <HistoryPanel
@@ -212,8 +208,14 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       </Button>
                   </div>
                   
-                  <div className="relative group flex items-center">
-                    <div className="absolute right-full mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+                  <div className="relative group flex items-center"
+                       onMouseEnter={() => setShowMicButton(true)}
+                       onMouseLeave={() => setShowMicButton(false)}
+                  >
+                    <div className={cn(
+                        "absolute right-full mr-2 opacity-0 transition-all duration-300",
+                        showMicButton && "opacity-100 -translate-x-1"
+                    )}>
                         <Button type="button" variant="ghost" disabled={isLoading || isImageMode} className={cn("flex-row items-center h-auto py-2 px-3 text-foreground/60 hover:text-foreground")}>
                             <Mic className="w-6 h-6" />
                             <span className="text-sm font-normal whitespace-nowrap ml-2">yak with ai</span>
@@ -239,10 +241,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           </form>
       </div>
 
-      <div className={cn(
-          "absolute bottom-0 left-0 right-0 flex justify-between items-end px-6 transition-opacity duration-300 ease-in-out pointer-events-none",
-          isControlsVisible ? 'opacity-100' : 'opacity-0'
-      )}>
+      <div className="absolute bottom-0 left-0 right-0 flex justify-between items-end px-6 pointer-events-none">
           <button
               onClick={onToggleHistoryPanel}
               className="bg-black/50 backdrop-blur-sm text-white font-bold text-xl px-6 py-2 rounded-lg pointer-events-auto shadow-lg"
@@ -252,7 +251,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           </button>
           <div className="text-center">
               {showChatTitle && (
-                  <span className="bg-black/20 text-white font-bold text-xl px-6 py-2 rounded-lg pointer-events-none shadow-lg backdrop-blur-sm">
+                  <span className="bg-black/50 backdrop-blur-sm text-white font-bold text-xl px-6 py-2 rounded-lg pointer-events-none shadow-lg opacity-75">
                       {displayTitle}
                   </span>
               )}
