@@ -9,7 +9,7 @@
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const REPLICATE_API_BASE_URL = "https://api.replicate.com/v1";
 
-// Correct, versioned model identifier for GPT-4o
+// Model identifier for GPT-4o Transcribe
 const MODEL_VERSION = "openai/gpt-4o-transcribe";
 
 export async function speechToText(audioDataUri: string): Promise<{ transcription: string }> {
@@ -21,8 +21,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
   }
 
   const inputPayload = {
-    audio: audioDataUri,
-    language: "auto",
+    audio_file: audioDataUri, // Correct parameter name based on documentation
   };
 
   try {
