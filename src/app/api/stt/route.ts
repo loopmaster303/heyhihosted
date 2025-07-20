@@ -1,13 +1,14 @@
 
 import {NextResponse} from 'next/server';
-import {transcribeAudio, type TranscribeAudioInput} from '@/ai/flows/stt-flow';
+import {
+  transcribeAudioPollinations,
+  type TranscribeAudioPollinationsInput,
+} from '@/ai/flows/pollinations-stt-flow';
 
 export async function POST(request: Request) {
   try {
-    // The client now sends a JSON body with the data URI
-    const body: TranscribeAudioInput = await request.json();
+    const body: {audioDataUri: string} = await request.json();
 
-    // The audioDataUri is validated by the Zod schema in the flow
     if (!body.audioDataUri) {
       return NextResponse.json(
         {error: 'Missing required field: audioDataUri'},
@@ -15,17 +16,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Call the Genkit flow with the input object
-    const result = await transcribeAudio(body);
+    const input: TranscribeAudioPollinationsInput = {
+      audioDataUri: body.audioDataUri,
+    };
 
-    // Return the transcription from the flow's output
+    const result = await transcribeAudioPollinations(input);
+
     return NextResponse.json({transcription: result.transcription});
-
   } catch (error) {
-    // Log the full error for server-side debugging
     console.error('STT API Error:', error);
 
-    // Return a generic but helpful error to the client
     return NextResponse.json(
       {
         error:
