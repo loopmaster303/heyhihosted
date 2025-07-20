@@ -109,16 +109,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
       mediaRecorderRef.current.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        const audioFile = new File([audioBlob], "recording.webm", { type: "audio/webm" });
+        const audioFile = new File([audioBlob], "recording.webm", { type: mimeType });
         
         // Stop all tracks to turn off the microphone indicator
         stream.getTracks().forEach(track => track.stop());
 
-        // A tiny delay to ensure the file is ready
-        await new Promise(res => setTimeout(res, 100));
-
-        if (audioFile.size === 0) {
-            toast({ title: "Recording Error", description: "The recording was empty. Please try again for at least one second.", variant: "destructive" });
+        if (audioFile.size < 1000) { // Check if file is reasonably large (e.g., >1KB)
+            toast({ title: "Recording Error", description: "Recording was too short or empty. Please try again for at least one second.", variant: "destructive" });
             return;
         }
 
