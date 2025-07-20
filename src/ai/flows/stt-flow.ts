@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview Converts speech to text using the Replicate API with OpenAI's Whisper model.
+ * @fileOverview Converts speech to text using the Replicate API with OpenAI's gpt-4o-transcribe model.
  *
  * - speechToText - Transcribes an audio file into text.
  */
@@ -10,7 +10,7 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const REPLICATE_API_BASE_URL = "https://api.replicate.com/v1";
 
 // Correct, versioned model identifier
-const WHISPER_MODEL_VERSION = "8099696689d249cf8b122d833c36ac3f75505c666a395ca40ef26f68e7d3d16e";
+const MODEL_VERSION = "openai/gpt-4o-transcribe";
 
 export async function speechToText(audioDataUri: string): Promise<{ transcription: string }> {
   if (!REPLICATE_API_TOKEN) {
@@ -21,10 +21,8 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
   }
 
   const inputPayload = {
-    audio: audioDataUri,
-    model: "large-v3", // Use the latest large model for best accuracy
-    transcription: "plain text",
-    language: "auto", // Correct value for auto-detection
+    audio_file: audioDataUri, // Use the correct parameter name 'audio_file'
+    language: "auto",
   };
 
   try {
@@ -36,15 +34,15 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: WHISPER_MODEL_VERSION,
+        version: MODEL_VERSION,
         input: inputPayload,
       }),
     });
 
     if (!startResponse.ok) {
       const errorBody = await startResponse.json().catch(() => ({ detail: `Replicate API error ${startResponse.status}.` }));
-      console.error("Replicate start error (Whisper):", errorBody);
-      throw new Error(errorBody.detail || 'Failed to start Whisper prediction with Replicate.');
+      console.error("Replicate start error:", errorBody);
+      throw new Error(errorBody.detail || 'Failed to start prediction with Replicate.');
     }
 
     let prediction = await startResponse.json();
@@ -70,11 +68,9 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
         headers: { 'Authorization': `Token ${REPLICATE_API_TOKEN}` }
       });
       if (!pollResponse.ok) {
-        // If polling gives a 404, the resource might not exist anymore or there's an issue.
         if (pollResponse.status === 404) {
              throw new Error("Prediction resource not found. It may have expired or been deleted.");
         }
-        // For other errors, we can break and let the final status check handle it.
         break;
       }
       prediction = await pollResponse.json();
@@ -86,7 +82,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
       return { transcription: prediction.output.transcription.trim() };
     } else {
         const finalError = prediction.error || `Prediction ended with status: ${prediction.status}.`;
-        console.error("Replicate polling/final error (Whisper):", finalError);
+        console.error("Replicate polling/final error:", finalError);
         throw new Error(String(finalError));
     }
 
