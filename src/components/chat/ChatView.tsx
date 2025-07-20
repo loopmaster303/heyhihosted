@@ -55,7 +55,7 @@ const ChatView: React.FC<ChatViewProps> = ({
           />
         ))}
         {isLoading && messages.length > 0 && (
-            <MessageBubble message={{ id: 'loading', role: 'assistant', content: '...', timestamp: new Date() }} />
+            <MessageBubble message={{ id: 'loading', role: 'assistant', content: '...', timestamp: new Date().toISOString() }} />
         )}
         <div ref={messagesEndRef} />
       </div>
