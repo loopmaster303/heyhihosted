@@ -89,10 +89,33 @@ export default function ChatInterface() {
             method: 'POST',
             body: formData,
           });
-          const result = await response.json();
+
+          // Log the raw response status and text
+          console.log("STT API response status:", response.status);
+          const responseText = await response.text();
+          console.log("STT API raw response text:", responseText);
+
+          // Try to parse as JSON
+          let result;
+          try {
+              result = JSON.parse(responseText);
+              console.log("STT API parsed JSON response:", result);
+          } catch (jsonError) {
+              console.error("Failed to parse STT API response as JSON:", jsonError);
+              throw new Error("Invalid response from STT API."); // Throw a new error if JSON parsing fails
+          }
+
+
           if (!response.ok) {
             throw new Error(result.error || "Failed to transcribe audio.");
           }
+
+          // Check if transcription is in the result
+          if (typeof result.transcription !== 'string') {
+               console.error("STT API response missing transcription:", result);
+               throw new Error("Invalid transcription format from STT API.");
+          }
+
 
           // Add the transcription to the input field
           chat.setChatInputValue((prev: string) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());

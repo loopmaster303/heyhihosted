@@ -1,66 +1,57 @@
-// src/ai/flows/stt-flow.ts
+'use server';
 
-import Replicate from "replicate";
+import {SpeechClient} from '@google-cloud/speech';
 
-// Initialize Replicate with your API token
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN || '',
-});
+// Instantiates a client. Assumes Application Default Credentials are set up.
+const speechClient = new SpeechClient();
 
-interface TranscribeAudioInput {
-  audioFile: Blob | File; // Accept Blob or File
-}
-
-interface TranscribeAudioOutput {
-  transcription: string;
-}
-
-export async function transcribeAudio(input: TranscribeAudioInput): Promise<TranscribeAudioOutput> {
-  const { audioFile } = input;
-
+/**
+ * Transcribes an audio file using the Google Cloud Speech-to-Text API.
+ * @param audioFile The audio file object (e.g., from FormData).
+ * @returns An object containing the transcription text.
+ */
+export async function transcribeAudio(audioFile: File): Promise<{transcription: string}> {
   if (!audioFile) {
     throw new Error('No audio file provided for transcription.');
   }
 
   try {
-    console.log("Sending audio to Replicate for transcription:", {
-        type: audioFile.type,
-        size: audioFile.size
-    });
+    const audioBytes = Buffer.from(await audioFile.arrayBuffer());
+    const audio = {
+      content: audioBytes.toString('base64'),
+    };
 
-    // Call the Replicate API
-    const prediction = await replicate.predictions.create({
-      model: "openai/whisper:375283cd38485b259e1cb23877232566f8764ed9fda0e450ba87893688ae9ed0", // gpt-4o-transcribe model ID
-      input: { audio: audioFile },
-    });
+    // The audio file's MIME type from the client is 'audio/webm'.
+    // The corresponding encoding in Google Cloud Speech is 'WEBM_OPUS'.
+    const config = {
+      encoding: 'WEBM_OPUS' as const,
+      sampleRateHertz: 48000, // Common for webm/opus
+      languageCode: 'en-US', // Or make this dynamic
+      model: 'latest_long',
+    };
 
-    // Replicate's API is asynchronous. We need to wait for the prediction to complete.
-    // This polling logic might need to be more robust in a production environment.
-    let currentPrediction = prediction;
-    while (currentPrediction.status !== "succeeded" && currentPrediction.status !== "failed" && currentPrediction.status !== "canceled") {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-        try {
-            currentPrediction = await replicate.predictions.get(currentPrediction.id);
-        } catch (pollError) {
-            console.error("Error polling Replicate prediction status:", pollError);
-            // Optionally handle specific polling errors
-        }
+    const request = {
+      audio: audio,
+      config: config,
+    };
+
+    // Detects speech in the audio file
+    const [response] = await speechClient.recognize(request);
+    const transcription =
+      response.results?.map(result => result.alternatives?.[0].transcript).join('\n') ?? '';
+
+    if (!transcription) {
+      console.warn('Google Cloud STT returned no transcription.');
+      return {transcription: ''};
     }
 
-    if (currentPrediction.status === "failed") {
-        console.error("Replicate prediction failed:", currentPrediction.error);
-        throw new Error(currentPrediction.error || 'Replicate transcription failed.');
-    } else if (currentPrediction.status === "canceled") {
-         console.warn("Replicate prediction was canceled.");
-         throw new Error('Replicate transcription was canceled.');
-    }
-
-    const transcription = (currentPrediction.output as any)?.text || '';
-
-    return { transcription };
-
+    return {transcription};
   } catch (error) {
-    console.error('Error in transcribeAudio flow:', error);
-    throw new Error(`Transcription failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('Error in Google Cloud STT flow:', error);
+    throw new Error(
+      `Google Cloud STT failed: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
+    );
   }
 }
