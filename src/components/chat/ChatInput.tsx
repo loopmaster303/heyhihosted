@@ -94,7 +94,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
@@ -102,35 +102,33 @@ const ChatInput: React.FC<ChatInputProps> = ({
       };
 
       mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm;codecs=opus' });
+        const audioFile = new File([audioBlob], "recording.webm", { type: "audio/webm" });
         
         // Stop all tracks to turn off the microphone indicator
         stream.getTracks().forEach(track => track.stop());
 
         setIsTranscribing(true);
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-          const base64Audio = reader.result as string;
-          try {
-            const response = await fetch('/api/stt', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ audioDataUri: base64Audio }),
-            });
-            const result = await response.json();
-            if (!response.ok) {
-              throw new Error(result.error || "Failed to transcribe audio.");
-            }
-            onInputChange((prev: string) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
+        const formData = new FormData();
+        formData.append('audioFile', audioFile);
 
-          } catch (error) {
-            console.error("Transcription Error:", error);
-            toast({ title: "Transcription Failed", description: error instanceof Error ? error.message : "Could not process audio.", variant: "destructive" });
-          } finally {
-            setIsTranscribing(false);
+        try {
+          const response = await fetch('/api/stt', {
+            method: 'POST',
+            body: formData,
+          });
+          const result = await response.json();
+          if (!response.ok) {
+            throw new Error(result.error || "Failed to transcribe audio.");
           }
-        };
+          onInputChange((prev: string) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
+
+        } catch (error) {
+          console.error("Transcription Error:", error);
+          toast({ title: "Transcription Failed", description: error instanceof Error ? error.message : "Could not process audio.", variant: "destructive" });
+        } finally {
+          setIsTranscribing(false);
+        }
       };
 
       mediaRecorderRef.current.start();

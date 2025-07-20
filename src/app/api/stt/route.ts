@@ -2,19 +2,16 @@
 import { NextResponse } from 'next/server';
 import { speechToText } from '@/ai/flows/stt-flow';
 
-interface SttApiInput {
-  audioDataUri: string;
-}
-
 export async function POST(request: Request) {
   try {
-    const body: SttApiInput = await request.json();
+    const formData = await request.formData();
+    const audioFile = formData.get('audioFile') as File | null;
 
-    if (!body.audioDataUri) {
-      return NextResponse.json({ error: 'Missing required field: audioDataUri' }, { status: 400 });
+    if (!audioFile) {
+      return NextResponse.json({ error: 'Missing required field: audioFile' }, { status: 400 });
     }
 
-    const result = await speechToText(body.audioDataUri);
+    const result = await speechToText(audioFile);
     return NextResponse.json(result);
 
   } catch (error: any) {
