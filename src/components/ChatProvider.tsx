@@ -521,9 +521,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [chatLogic.activeConversation]);
 
+    // This is a bit of a workaround to satisfy TypeScript's strictness
+    // for the setChatInputValue function passed to the input component.
+    const setChatInputValueWrapper = (value: string | ((prev: string) => string)) => {
+        chatLogic.setChatInputValue(value);
+    };
+
     const chatContextValue = {
         ...chatLogic,
-        currentMessages
+        currentMessages,
+        setChatInputValue: setChatInputValueWrapper,
     };
 
     return (

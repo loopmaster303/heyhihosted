@@ -17,7 +17,7 @@ interface ChatInputProps {
   onFileSelect: (file: File | null) => void;
   isLongLanguageLoopActive: boolean;
   inputValue: string;
-  onInputChange: (value: string) => void;
+  onInputChange: (value: string | ((prev: string) => string)) => void;
   isImageMode: boolean;
   onToggleImageMode: () => void;
   chatTitle: string;
@@ -122,7 +122,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             if (!response.ok) {
               throw new Error(result.error || "Failed to transcribe audio.");
             }
-            onInputChange(prev => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
+            onInputChange((prev: string) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
 
           } catch (error) {
             console.error("Transcription Error:", error);
