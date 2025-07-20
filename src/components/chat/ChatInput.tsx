@@ -194,7 +194,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             style={{ lineHeight: '1.5rem' }}
           />
           <div className="flex w-full items-center justify-between gap-2 mt-2 px-1">
-            <div className="flex items-center gap-1">
+            <div className="flex flex-1 items-center justify-between gap-1">
                 <ActionButton onClick={onToggleImageMode} title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"} disabled={isLoading}>
                     {isImageMode ? <ImageIcon className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
                     <ActionLabel text={isImageMode ? "visualize" : "text"} />
@@ -217,7 +217,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               size="icon" 
               className={cn(
                 "h-12 w-12 flex-shrink-0 rounded-lg text-foreground/60 hover:text-foreground",
-                "transition-all duration-200",
+                "transition-all duration-200 ml-4",
                 !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) && "text-blue-400 hover:text-blue-300 shadow-[0_0_15px_2px_rgba(147,197,253,0.4)]"
               )} 
               disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
