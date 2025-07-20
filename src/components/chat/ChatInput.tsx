@@ -90,24 +90,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const startRecording = async () => {
     try {
-      if (!MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
-        throw new Error("audio/webm;codecs=opus not supported by this browser.");
-      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
-        if(event.data.size > 0) audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm;codecs=opus' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const audioFile = new File([audioBlob], "recording.webm", { type: "audio/webm" });
 
         stream.getTracks().forEach(track => track.stop());
         setIsTranscribing(true);
-        
+
         const formData = new FormData();
         formData.append("audioFile", audioFile);
 
@@ -196,34 +193,37 @@ const ChatInput: React.FC<ChatInputProps> = ({
           <div className="flex w-full items-center justify-between gap-2 mt-2 px-1">
             <div className="flex flex-1 items-center justify-between gap-1">
                 <ActionButton onClick={onToggleImageMode} title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"} disabled={isLoading}>
-                    {isImageMode ? <ImageIcon className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
+                    {isImageMode ? <ImageIcon className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
                     <ActionLabel text={isImageMode ? "visualize" : "text"} />
                 </ActionButton>
                 
                 <ActionButton onClick={() => fileInputRef.current?.click()} title="Analyze document" disabled={isLoading || isImageMode}>
-                    <Search className="w-5 h-5" />
+                    <Search className="w-6 h-6" />
                     <ActionLabel text="analyze" />
-                </ActionButton>
-
-                <ActionButton onClick={handleMicClick} title={isRecording ? "Stop recording" : (isTranscribing ? "Transcribing..." : "Start recording")} disabled={isLoading || isImageMode} className={cn(isRecording && "text-red-500 hover:text-red-600", isTranscribing && "text-blue-500")}>
-                    {isTranscribing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mic className="w-5 h-5" />}
-                    <ActionLabel text="yak with ai" />
                 </ActionButton>
             </div>
             
-            <Button 
-              type="submit" 
-              variant="ghost" 
-              size="icon" 
-              className={cn(
-                "h-12 w-12 flex-shrink-0 rounded-lg text-foreground/60 hover:text-foreground",
-                "transition-all duration-200 ml-4",
-                !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) && "text-blue-400 hover:text-blue-300 shadow-[0_0_15px_2px_rgba(147,197,253,0.4)]"
-              )} 
-              disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
-              aria-label="Send message">
-              <Send className="w-6 h-6" strokeWidth={2.5} />
-            </Button>
+            <div className="relative group">
+              <Button 
+                type="submit" 
+                variant="ghost" 
+                size="icon" 
+                className={cn(
+                  "h-14 w-14 flex-shrink-0 rounded-lg text-foreground/60 hover:text-foreground",
+                  "transition-all duration-200 ml-4 group-hover:-translate-y-4",
+                  !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) && "text-blue-400 hover:text-blue-300 shadow-[0_0_15px_2px_rgba(147,197,253,0.4)]"
+                )} 
+                disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
+                aria-label="Send message">
+                <Send className="w-7 h-7" strokeWidth={2.5} />
+              </Button>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+                  <ActionButton onClick={handleMicClick} title={isRecording ? "Stop recording" : (isTranscribing ? "Transcribing..." : "Start recording")} disabled={isLoading || isImageMode} className={cn("flex-col h-auto pt-2", isRecording && "text-red-500 hover:text-red-600", isTranscribing && "text-blue-500")}>
+                      {isTranscribing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Mic className="w-6 h-6" />}
+                      <span className="text-xs font-normal whitespace-nowrap">yak with ai</span>
+                  </ActionButton>
+              </div>
+            </div>
           </div>
         </div>
       </form>
