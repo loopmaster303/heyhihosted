@@ -1,8 +1,8 @@
+'use client';
 
-"use client";
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react'; // Added useState
 import { useChat } from '@/components/ChatProvider';
+import { useToast } from "@/hooks/use-toast"; // Added useToast
 
 // UI Components
 import ChatView from '@/components/chat/ChatView';
@@ -18,17 +18,21 @@ import { X } from 'lucide-react';
 
 export default function ChatInterface() {
   const chat = useChat();
+  const { toast } = useToast(); // Initialize useToast
 
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const advancedPanelRef = useRef<HTMLDivElement>(null);
-  
+
+  // Speech-to-Text state and refs
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
   // Custom hook to handle clicks outside of the history panel
   useOnClickOutside([historyPanelRef], () => {
     if (chat.isHistoryPanelOpen) chat.closeHistoryPanel();
   }, 'radix-select-content');
-  
-  // NOTE: useOnClickOutside for advancedPanel was removed to prevent premature closing with Radix select menus.
-  // The panel is now only closed by the explicit "Close" button inside it.
 
   useEffect(() => {
     return () => {
@@ -39,6 +43,86 @@ export default function ChatInterface() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // STT: Start Recording
+  const startRecording = async () => {
+    try {
+      const mimeType = "audio/webm;codecs=opus";
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        toast({ title: "Browser Not Supported", description: "Your browser does not support the required audio format (WebM/Opus).", variant: "destructive" });
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        const audioFile = new File([audioBlob], "recording.webm", { type: mimeType });
+
+        // Stop all tracks to turn off the microphone indicator
+        stream.getTracks().forEach(track => track.stop());
+
+        if (audioFile.size < 1000) { // Check if file is reasonably large (e.g., >1KB)
+            toast({ title: "Recording Error", description: "Recording was too short or empty. Please try again for at least one second.", variant: "destructive" });
+            return;
+        }
+
+        // Log file details before sending (for debugging)
+        console.log("Recorded audio file details:", {
+            name: audioFile.name,
+            type: audioFile.type,
+            size: audioFile.size
+        });
+
+        setIsTranscribing(true); // Set transcribing state
+
+        const formData = new FormData();
+        formData.append('audioFile', audioFile);
+
+        try {
+          const response = await fetch('/api/stt', {
+            method: 'POST',
+            body: formData,
+          });
+          const result = await response.json();
+          if (!response.ok) {
+            throw new Error(result.error || "Failed to transcribe audio.");
+          }
+
+          // Add the transcription to the input field
+          chat.setChatInputValue((prev: string) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
+          toast({ title: "Transcription Successful", description: "Audio transcribed successfully.", variant: "default" });
+
+        } catch (error) {
+          console.error("Transcription Error:", error);
+          toast({ title: "Transcription Failed", description: error instanceof Error ? error.message : "Could not process audio.", variant: "destructive" });
+        } finally {
+          setIsTranscribing(false); // Reset transcribing state
+        }
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      toast({ title: "Microphone Access Denied", description: "Please enable microphone permissions in your browser.", variant: "destructive"});
+    }
+  };
+
+  // STT: Stop Recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+
   if (!chat.isInitialLoadComplete || !chat.activeConversation) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
@@ -47,7 +131,7 @@ export default function ChatInterface() {
       </div>
     );
   }
-  
+
   return (
     <div className="flex flex-col h-full">
       <div className="relative flex-grow overflow-hidden">
@@ -100,6 +184,11 @@ export default function ChatInterface() {
             chatTitle={chat.activeConversation.title || "New Chat"}
             onToggleHistoryPanel={chat.toggleHistoryPanel}
             onToggleAdvancedPanel={chat.toggleAdvancedPanel}
+            // Pass STT props
+            isRecording={isRecording}
+            isTranscribing={isTranscribing}
+            onStartRecording={startRecording}
+            onStopRecording={stopRecording}
           />
 
           {chat.isHistoryPanelOpen && (

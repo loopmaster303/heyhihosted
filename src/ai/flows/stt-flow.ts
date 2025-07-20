@@ -1,56 +1,66 @@
+// src/ai/flows/stt-flow.ts
 
-'use server';
-/**
- * @fileOverview Converts speech to text using the Replicate HTTP API.
- * This implementation uses the official Replicate SDK which handles polling.
- *
- * - speechToText - Transcribes an audio file into text using openai/gpt-4o-transcribe.
- */
+import Replicate from "replicate";
 
-import Replicate from 'replicate';
-
+// Initialize Replicate with your API token
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
+  auth: process.env.REPLICATE_API_TOKEN || '',
 });
 
+interface TranscribeAudioInput {
+  audioFile: Blob | File; // Accept Blob or File
+}
 
-export async function speechToText(audioFile: File): Promise<{ transcription: string }> {
-  if (!process.env.REPLICATE_API_TOKEN) {
-    throw new Error('Server configuration error: REPLICATE_API_TOKEN is missing.');
-  }
+interface TranscribeAudioOutput {
+  transcription: string;
+}
+
+export async function transcribeAudio(input: TranscribeAudioInput): Promise<TranscribeAudioOutput> {
+  const { audioFile } = input;
+
   if (!audioFile) {
-    throw new Error('A valid audio file must be provided.');
+    throw new Error('No audio file provided for transcription.');
   }
 
   try {
-    const prediction = await replicate.run(
-      "openai/gpt-4o-transcribe",
-      {
-        input: {
-          audio_file: audioFile,
-          temperature: 0
+    console.log("Sending audio to Replicate for transcription:", {
+        type: audioFile.type,
+        size: audioFile.size
+    });
+
+    // Call the Replicate API
+    const prediction = await replicate.predictions.create({
+      model: "openai/whisper:375283cd38485b259e1cb23877232566f8764ed9fda0e450ba87893688ae9ed0", // gpt-4o-transcribe model ID
+      input: { audio: audioFile },
+    });
+
+    // Replicate's API is asynchronous. We need to wait for the prediction to complete.
+    // This polling logic might need to be more robust in a production environment.
+    let currentPrediction = prediction;
+    while (currentPrediction.status !== "succeeded" && currentPrediction.status !== "failed" && currentPrediction.status !== "canceled") {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        try {
+            currentPrediction = await replicate.predictions.get(currentPrediction.id);
+        } catch (pollError) {
+            console.error("Error polling Replicate prediction status:", pollError);
+            // Optionally handle specific polling errors
         }
-      }
-    );
-
-    // The output for this model is documented as an object { transcription: "...", segments: [...] }
-    if (prediction && typeof prediction === 'object' && 'transcription' in prediction) {
-        const result = prediction as { transcription: string };
-        return { transcription: result.transcription.trim() };
     }
 
-    // Fallback for unexpected plain string output
-    if (typeof prediction === 'string') {
-        return { transcription: prediction.trim() };
+    if (currentPrediction.status === "failed") {
+        console.error("Replicate prediction failed:", currentPrediction.error);
+        throw new Error(currentPrediction.error || 'Replicate transcription failed.');
+    } else if (currentPrediction.status === "canceled") {
+         console.warn("Replicate prediction was canceled.");
+         throw new Error('Replicate transcription was canceled.');
     }
 
-    console.error("Replicate STT - Unexpected output format:", prediction);
-    throw new Error("Received an unexpected output format from Replicate.");
+    const transcription = (currentPrediction.output as any)?.text || '';
 
+    return { transcription };
 
-  } catch (err: any) {
-    const message = err?.message || 'Unknown error occurred during transcription.';
-    console.error("Replicate STT error in flow:", message, err);
-    throw new Error(`Failed to transcribe audio with Replicate: ${message}`);
+  } catch (error) {
+    console.error('Error in transcribeAudio flow:', error);
+    throw new Error(`Transcription failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

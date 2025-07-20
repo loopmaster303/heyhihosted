@@ -1,13 +1,12 @@
-
-"use client";
+'use client';
 
 import type React from 'react';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react'; // Removed useState for recording/transcribing
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, X, Send, Image as ImageIcon, MessageSquare, Mic, MicOff, Loader2 } from 'lucide-react';
+import { Paperclip, X, Send, Image as ImageIcon, MessageSquare, Mic, MicOff, Loader2 } from 'lucide-react'; // Keep icons
 import { cn } from '@/lib/utils';
-import { useToast } from "@/hooks/use-toast";
+// Removed useToast
 
 
 interface ChatInputProps {
@@ -23,6 +22,11 @@ interface ChatInputProps {
   chatTitle: string;
   onToggleHistoryPanel: () => void;
   onToggleAdvancedPanel: () => void;
+  // Props for STT (will be managed by parent)
+  isRecording: boolean;
+  isTranscribing: boolean;
+  onStartRecording: () => void;
+  onStopRecording: () => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -38,16 +42,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
   chatTitle,
   onToggleHistoryPanel,
   onToggleAdvancedPanel,
+  // STT Props
+  isRecording,
+  isTranscribing,
+  onStartRecording,
+  onStopRecording,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { toast } = useToast();
+  // Removed mediaRecorderRef and audioChunksRef
 
-  // Speech-to-Text state
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -82,7 +86,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onInputChange(e.target.value);
   };
-  
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     onFileSelect(file || null);
@@ -91,85 +95,20 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const startRecording = async () => {
-    try {
-      const mimeType = "audio/webm;codecs=opus";
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        toast({ title: "Browser Not Supported", description: "Your browser does not support the required audio format (WebM/Opus).", variant: "destructive" });
-        return;
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        const audioFile = new File([audioBlob], "recording.webm", { type: mimeType });
-        
-        // Stop all tracks to turn off the microphone indicator
-        stream.getTracks().forEach(track => track.stop());
-
-        if (audioFile.size < 1000) { // Check if file is reasonably large (e.g., >1KB)
-            toast({ title: "Recording Error", description: "Recording was too short or empty. Please try again for at least one second.", variant: "destructive" });
-            return;
-        }
-
-        setIsTranscribing(true);
-        const formData = new FormData();
-        formData.append('audioFile', audioFile);
-
-        try {
-          const response = await fetch('/api/stt', {
-            method: 'POST',
-            body: formData,
-          });
-          const result = await response.json();
-          if (!response.ok) {
-            throw new Error(result.error || "Failed to transcribe audio.");
-          }
-          onInputChange((prev: string) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
-
-        } catch (error) {
-          console.error("Transcription Error:", error);
-          toast({ title: "Transcription Failed", description: error instanceof Error ? error.message : "Could not process audio.", variant: "destructive" });
-        } finally {
-          setIsTranscribing(false);
-        }
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error("Error accessing microphone:", error);
-      toast({ title: "Microphone Access Denied", description: "Please enable microphone permissions in your browser.", variant: "destructive"});
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
+  // STT Handle Click - simplified to call parent props
   const handleMicClick = () => {
     if (isRecording) {
-      stopRecording();
+      onStopRecording();
     } else {
-      startRecording();
+      onStartRecording();
     }
   };
 
 
-  const placeholderText = isImageMode 
-    ? "just provide in natural language your imagination and the machine (gpt image-1) will visualize it directy in chat." 
+  const placeholderText = isImageMode
+    ? "just provide in natural language your imagination and the machine (gpt image-1) will visualize it directy in chat."
     : "just ask/discuss everything. get natural and humanlike support by the machine.";
-  
+
   const iconColorClass = "text-foreground/80 hover:text-foreground";
   const iconStrokeWidth = 1.75;
 
@@ -189,7 +128,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               placeholder={placeholderText}
               className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
               rows={1}
-              disabled={isLoading || isRecording || isTranscribing}
+              disabled={isLoading || isRecording || isTranscribing} // Disable basierend auf STT states
               aria-label="Chat message input"
               style={{ lineHeight: '1.5rem' }}
           />
@@ -203,8 +142,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"}
                 disabled={isLoading}
             >
-                {isImageMode ? 
-                  <ImageIcon className="w-6 h-6" strokeWidth={iconStrokeWidth} /> : 
+                {isImageMode ?
+                  <ImageIcon className="w-6 h-6" strokeWidth={iconStrokeWidth} /> :
                   <MessageSquare className="w-6 h-6" strokeWidth={iconStrokeWidth} />}
             </Button>
             <Button
@@ -224,6 +163,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               >
                 {uploadedFilePreviewUrl ? <X className="w-5 h-5" strokeWidth={iconStrokeWidth} /> : <Paperclip className="w-5 h-5" strokeWidth={iconStrokeWidth} />}
               </Button>
+              {/* Mikrofon Button */}
               <Button
                 type="button"
                 variant="ghost"
@@ -232,10 +172,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 className={cn(
                     "rounded-lg h-10 w-10 flex-shrink-0",
                     isRecording ? "text-red-500 hover:text-red-600" : iconColorClass,
-                    isTranscribing && "text-blue-500"
+                    isTranscribing && "text-blue-500" // Blaue Farbe während der Transkription
                 )}
                 title={isRecording ? "Stop recording" : (isTranscribing ? "Transcribing..." : "Start recording")}
-                disabled={isLoading || isImageMode}
+                disabled={isLoading || isImageMode || isTranscribing} // Deaktiviere während Laden, Bildmodus oder Transkription
                 >
                 {isTranscribing ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -244,7 +184,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 ) : (
                     <Mic className="w-5 h-5" strokeWidth={iconStrokeWidth} />
                 )}
-                </Button>
+              </Button>
              <Button
                 type="submit"
                 variant="ghost"
