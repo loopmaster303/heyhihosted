@@ -1,9 +1,15 @@
+
 'use server';
 
 import {SpeechClient} from '@google-cloud/speech';
 
-// Instantiates a client. Assumes Application Default Credentials are set up.
-const speechClient = new SpeechClient();
+// Instantiates a client. By explicitly providing the project ID,
+// we can help resolve authentication issues in some environments.
+const speechClient = new SpeechClient({
+  // This helps the client find the correct project, especially when ADC has issues.
+  // The GOOGLE_CLOUD_PROJECT env var is usually set automatically by App Hosting.
+  projectId: process.env.GOOGLE_CLOUD_PROJECT,
+});
 
 /**
  * Transcribes an audio file using the Google Cloud Speech-to-Text API.
