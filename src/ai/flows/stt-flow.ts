@@ -1,17 +1,19 @@
 
 'use server';
 /**
- * @fileOverview Converts speech to text using the Replicate API with OpenAI's gpt-4o-transcribe model.
- * This flow now uses the correct versioned model identifier and payload structure.
+ * @fileOverview Converts speech to text using the official Replicate SDK.
  *
- * - speechToText - Transcribes an audio file into text.
+ * - speechToText - Transcribes an audio file into text using openai/gpt-4o-transcribe.
  */
 
-const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
-const REPLICATE_API_BASE_URL = "https://api.replicate.com/v1";
+import Replicate from 'replicate';
+
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN,
+});
 
 export async function speechToText(audioDataUri: string): Promise<{ transcription: string }> {
-  if (!REPLICATE_API_TOKEN) {
+  if (!process.env.REPLICATE_API_TOKEN) {
     throw new Error('Server configuration error: REPLICATE_API_TOKEN is missing.');
   }
   if (!audioDataUri || !audioDataUri.startsWith('data:audio')) {
@@ -19,75 +21,30 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
   }
 
   try {
-    const inputPayload = {
-      model: "openai/gpt-4o-transcribe",
-      input: {
-        audio_file: audioDataUri,
-        temperature: 0,
-      }
-    };
-
-    // Step 1: Start the prediction with the file URL
-    const startResponse = await fetch(`${REPLICATE_API_BASE_URL}/predictions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(inputPayload),
-    });
-
-    if (!startResponse.ok) {
-      const errorBody = await startResponse.json().catch(() => ({ detail: `Replicate API error ${startResponse.status}.` }));
-      console.error("Replicate start error:", errorBody);
-      throw new Error(errorBody.detail || `Failed to start prediction. Status: ${startResponse.status}`);
-    }
-
-    let prediction = await startResponse.json();
-    const predictionId = prediction.id;
-
-    if (!predictionId) {
-        throw new Error("Failed to get a prediction ID from Replicate.");
-    }
-
-    // Step 2: Poll for the result
-    const pollEndpoint = `${REPLICATE_API_BASE_URL}/predictions/${predictionId}`;
-    let retryCount = 0;
-    const maxRetries = 50; 
-
-    while (
-      prediction.status !== "succeeded" &&
-      prediction.status !== "failed" &&
-      prediction.status !== "canceled" &&
-      retryCount < maxRetries
-    ) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const pollResponse = await fetch(pollEndpoint, {
-        headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` }
-      });
-      
-      if (!pollResponse.ok) {
-        if (pollResponse.status === 404) {
-             throw new Error("Prediction resource not found. It may have expired or been deleted.");
+    const prediction = await replicate.run(
+      "openai/gpt-4o-transcribe",
+      {
+        input: {
+          audio_file: audioDataUri,
+          temperature: 0,
         }
-        break;
       }
-      prediction = await pollResponse.json();
-      retryCount++;
-    }
+    );
 
-    // Step 3: Check final status and return output
-    if (prediction.status === "succeeded" && prediction.output?.transcription) {
-      return { transcription: prediction.output.transcription.trim() };
-    } else {
-        const finalError = prediction.error || `Prediction ended with status: ${prediction.status}.`;
-        console.error("Replicate polling/final error:", finalError);
-        throw new Error(String(finalError));
+    if (!prediction || typeof prediction !== 'object' || !('transcription' in prediction)) {
+      console.error("Unexpected output format from Replicate:", prediction);
+      throw new Error("Unexpected or invalid output from Replicate API.");
     }
+    
+    // The output from the model might have extra properties, so we cast to any first
+    // before accessing the transcription. This is safer than assuming the exact type.
+    const result = prediction as any;
+
+    return { transcription: result.transcription ? result.transcription.trim() : "" };
 
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error("Internal server error in speechToText flow:", errorMessage);
-    throw new Error(`Failed to transcribe audio with Replicate: ${errorMessage}`);
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    console.error("Replicate STT error:", message, err);
+    throw new Error(`Failed to transcribe audio with Replicate: ${message}`);
   }
 }
