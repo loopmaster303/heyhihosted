@@ -12,49 +12,7 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const REPLICATE_API_BASE_URL = "https://api.replicate.com/v1";
 
 // The specific model identifier for GPT-4o Transcribe on Replicate
-const MODEL_VERSION = "openai/gpt-4o-transcribe";
-
-// Helper function to upload a file from a data URI
-async function uploadFile(dataUri: string): Promise<string> {
-  // 1. Request an upload URL from Replicate
-  const uploadUrlResponse = await fetch(`${REPLICATE_API_BASE_URL}/files`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      // Extract MIME type from data URI, e.g., 'audio/webm'
-      mime_type: dataUri.substring(dataUri.indexOf(':') + 1, dataUri.indexOf(';')),
-    }),
-  });
-
-  if (!uploadUrlResponse.ok) {
-    throw new Error('Failed to get an upload URL from Replicate.');
-  }
-  const uploadData = await uploadUrlResponse.json();
-  const { serving_url: servingUrl, upload_url: uploadUrl } = uploadData;
-
-  // 2. Upload the actual file data to the provided URL
-  // Convert data URI to a Buffer
-  const fileBuffer = Buffer.from(dataUri.split(',')[1], 'base64');
-  
-  const uploadResponse = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: {
-      // Use the correct MIME type for the upload
-      'Content-Type': dataUri.substring(dataUri.indexOf(':') + 1, dataUri.indexOf(';')),
-    },
-    body: fileBuffer,
-  });
-
-  if (!uploadResponse.ok) {
-    throw new Error('Failed to upload the file to the provided Replicate URL.');
-  }
-
-  // 3. Return the public URL of the uploaded file
-  return servingUrl;
-}
+const MODEL_IDENTIFIER = "openai/gpt-4o-transcribe";
 
 
 export async function speechToText(audioDataUri: string): Promise<{ transcription: string }> {
@@ -66,15 +24,12 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
   }
 
   try {
-    // Step 1: Upload the file to get a public URL
-    const fileUrl = await uploadFile(audioDataUri);
-
     const inputPayload = {
-      audio_file: fileUrl,
+      audio_file: audioDataUri,
       temperature: 0,
     };
 
-    // Step 2: Start the prediction with the file URL
+    // Step 1: Start the prediction with the file URL
     const startResponse = await fetch(`${REPLICATE_API_BASE_URL}/predictions`, {
       method: 'POST',
       headers: {
@@ -82,7 +37,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: MODEL_VERSION,
+        model: MODEL_IDENTIFIER,
         input: inputPayload,
       }),
     });
@@ -100,7 +55,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
         throw new Error("Failed to get a prediction ID from Replicate.");
     }
 
-    // Step 3: Poll for the result
+    // Step 2: Poll for the result
     const pollEndpoint = `${REPLICATE_API_BASE_URL}/predictions/${predictionId}`;
     let retryCount = 0;
     const maxRetries = 50; 
@@ -126,7 +81,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
       retryCount++;
     }
 
-    // Step 4: Check final status and return output
+    // Step 3: Check final status and return output
     if (prediction.status === "succeeded" && prediction.output?.transcription) {
       return { transcription: prediction.output.transcription.trim() };
     } else {
