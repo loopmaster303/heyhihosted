@@ -10,11 +10,6 @@
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const REPLICATE_API_BASE_URL = "https://api.replicate.com/v1";
 
-// The specific model version for GPT-4o Transcribe on Replicate
-// NOTE: This version might need to be updated if the model is updated on Replicate.
-const GPT4O_TRANSCRIBE_VERSION = "530292025345915574383c2004276776b9f0b5d275743c16b677149303a4663e";
-
-
 export async function speechToText(audioDataUri: string): Promise<{ transcription: string }> {
   if (!REPLICATE_API_TOKEN) {
     throw new Error('Server configuration error: REPLICATE_API_TOKEN is missing.');
@@ -25,8 +20,11 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
 
   try {
     const inputPayload = {
-      audio_file: audioDataUri,
-      temperature: 0,
+      model: "openai/gpt-4o-transcribe",
+      input: {
+        audio_file: audioDataUri,
+        temperature: 0,
+      }
     };
 
     // Step 1: Start the prediction with the file URL
@@ -36,10 +34,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
         'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        version: GPT4O_TRANSCRIBE_VERSION,
-        input: inputPayload,
-      }),
+      body: JSON.stringify(inputPayload),
     });
 
     if (!startResponse.ok) {
