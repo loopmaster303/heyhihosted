@@ -2,8 +2,7 @@
 'use server';
 /**
  * @fileOverview Converts speech to text using the Replicate API with OpenAI's gpt-4o-transcribe model.
- * This flow now uses a two-step process: first uploading the file to Replicate to get a URL,
- * then starting the prediction with that URL.
+ * This flow now uses the correct versioned model identifier and payload structure.
  *
  * - speechToText - Transcribes an audio file into text.
  */
@@ -11,8 +10,9 @@
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const REPLICATE_API_BASE_URL = "https://api.replicate.com/v1";
 
-// The specific model identifier for GPT-4o Transcribe on Replicate
-const MODEL_IDENTIFIER = "openai/gpt-4o-transcribe";
+// The specific model version for GPT-4o Transcribe on Replicate
+// NOTE: This version might need to be updated if the model is updated on Replicate.
+const GPT4O_TRANSCRIBE_VERSION = "530292025345915574383c2004276776b9f0b5d275743c16b677149303a4663e";
 
 
 export async function speechToText(audioDataUri: string): Promise<{ transcription: string }> {
@@ -37,7 +37,7 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: MODEL_IDENTIFIER,
+        version: GPT4O_TRANSCRIBE_VERSION,
         input: inputPayload,
       }),
     });
