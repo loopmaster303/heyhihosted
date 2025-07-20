@@ -93,8 +93,14 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const startRecording = async () => {
     try {
+      const mimeType = "audio/webm;codecs=opus";
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        toast({ title: "Browser Not Supported", description: "Your browser does not support the required audio format (WebM/Opus).", variant: "destructive" });
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
@@ -102,11 +108,19 @@ const ChatInput: React.FC<ChatInputProps> = ({
       };
 
       mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm;codecs=opus' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         const audioFile = new File([audioBlob], "recording.webm", { type: "audio/webm" });
         
         // Stop all tracks to turn off the microphone indicator
         stream.getTracks().forEach(track => track.stop());
+
+        // A tiny delay to ensure the file is ready
+        await new Promise(res => setTimeout(res, 100));
+
+        if (audioFile.size === 0) {
+            toast({ title: "Recording Error", description: "The recording was empty. Please try again for at least one second.", variant: "destructive" });
+            return;
+        }
 
         setIsTranscribing(true);
         const formData = new FormData();
