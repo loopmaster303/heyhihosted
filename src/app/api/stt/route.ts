@@ -1,22 +1,21 @@
-// src/app/api/stt/route.ts
 
 import {NextResponse} from 'next/server';
-import {transcribeAudio} from '@/ai/flows/stt-flow'; // Import the new flow
+import {transcribeAudio} from '@/ai/flows/stt-flow';
 
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
-    const audioFile = formData.get('audioFile') as File | null;
+    const body = await request.json();
+    const audioDataUri = body.audioDataUri as string | undefined;
 
-    if (!audioFile) {
+    if (!audioDataUri) {
       return NextResponse.json(
-        {error: 'No audio file uploaded.'},
+        {error: 'Missing required field: audioDataUri'},
         {status: 400}
       );
     }
 
-    // Call the new STT flow with the file
-    const result = await transcribeAudio(audioFile);
+    // Call the flow with the data URI
+    const result = await transcribeAudio(audioDataUri);
 
     return NextResponse.json({transcription: result.transcription});
   } catch (error) {

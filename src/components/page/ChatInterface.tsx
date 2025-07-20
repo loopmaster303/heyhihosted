@@ -1,8 +1,9 @@
+
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react'; // Added useState
+import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from '@/components/ChatProvider';
-import { useToast } from "@/hooks/use-toast"; // Added useToast
+import { useToast } from "@/hooks/use-toast";
 
 // UI Components
 import ChatView from '@/components/chat/ChatView';
@@ -18,7 +19,7 @@ import { X } from 'lucide-react';
 
 export default function ChatInterface() {
   const chat = useChat();
-  const { toast } = useToast(); // Initialize useToast
+  const { toast } = useToast();
 
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const advancedPanelRef = useRef<HTMLDivElement>(null);
@@ -62,71 +63,57 @@ export default function ChatInterface() {
 
       mediaRecorderRef.current.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        const audioFile = new File([audioBlob], "recording.webm", { type: mimeType });
-
+        
         // Stop all tracks to turn off the microphone indicator
         stream.getTracks().forEach(track => track.stop());
 
-        if (audioFile.size < 1000) { // Check if file is reasonably large (e.g., >1KB)
-            toast({ title: "Recording Error", description: "Recording was too short or empty. Please try again for at least one second.", variant: "destructive" });
+        if (audioBlob.size < 1000) {
+            toast({ title: "Recording Error", description: "Recording was too short or empty. Please try again.", variant: "destructive" });
+            setIsTranscribing(false);
             return;
         }
 
-        // Log file details before sending (for debugging)
-        console.log("Recorded audio file details:", {
-            name: audioFile.name,
-            type: audioFile.type,
-            size: audioFile.size
-        });
+        setIsTranscribing(true);
 
-        setIsTranscribing(true); // Set transcribing state
+        // Convert Blob to Data URI to send to the backend
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+            const audioDataUri = reader.result as string;
 
-        const formData = new FormData();
-        formData.append('audioFile', audioFile);
+            try {
+              const response = await fetch('/api/stt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audioDataUri }),
+              });
 
-        try {
-          const response = await fetch('/api/stt', {
-            method: 'POST',
-            body: formData,
-          });
+              const result = await response.json();
 
-          // Log the raw response status and text
-          console.log("STT API response status:", response.status);
-          const responseText = await response.text();
-          console.log("STT API raw response text:", responseText);
+              if (!response.ok) {
+                throw new Error(result.error || "Failed to transcribe audio.");
+              }
 
-          // Try to parse as JSON
-          let result;
-          try {
-              result = JSON.parse(responseText);
-              console.log("STT API parsed JSON response:", result);
-          } catch (jsonError) {
-              console.error("Failed to parse STT API response as JSON:", jsonError);
-              throw new Error("Invalid response from STT API."); // Throw a new error if JSON parsing fails
-          }
+              if (typeof result.transcription === 'string') {
+                  chat.setChatInputValue((prev: string) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
+                  toast({ title: "Transcription Successful" });
+              } else {
+                  throw new Error("Invalid transcription format from API.");
+              }
 
+            } catch (error) {
+              console.error("Transcription Error:", error);
+              toast({ title: "Transcription Failed", description: error instanceof Error ? error.message : "Could not process audio.", variant: "destructive" });
+            } finally {
+              setIsTranscribing(false);
+            }
+        };
 
-          if (!response.ok) {
-            throw new Error(result.error || "Failed to transcribe audio.");
-          }
-
-          // Check if transcription is in the result
-          if (typeof result.transcription !== 'string') {
-               console.error("STT API response missing transcription:", result);
-               throw new Error("Invalid transcription format from STT API.");
-          }
-
-
-          // Add the transcription to the input field
-          chat.setChatInputValue((prev: string) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
-          toast({ title: "Transcription Successful", description: "Audio transcribed successfully.", variant: "default" });
-
-        } catch (error) {
-          console.error("Transcription Error:", error);
-          toast({ title: "Transcription Failed", description: error instanceof Error ? error.message : "Could not process audio.", variant: "destructive" });
-        } finally {
-          setIsTranscribing(false); // Reset transcribing state
-        }
+        reader.onerror = () => {
+            console.error("FileReader error");
+            toast({ title: "File Read Error", description: "Could not read the recorded audio.", variant: "destructive" });
+            setIsTranscribing(false);
+        };
       };
 
       mediaRecorderRef.current.start();
