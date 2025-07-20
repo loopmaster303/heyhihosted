@@ -26,6 +26,10 @@ export default function ChatInterface() {
   useOnClickOutside([historyPanelRef], () => {
     if (chat.isHistoryPanelOpen) chat.closeHistoryPanel();
   }, 'radix-select-content');
+   useOnClickOutside([advancedPanelRef], () => {
+    if (chat.isAdvancedPanelOpen) chat.closeAdvancedPanel();
+  }, 'radix-select-content');
+
 
   useEffect(() => {
     return () => {
@@ -62,7 +66,7 @@ export default function ChatInterface() {
           onRegenerate={chat.regenerateLastResponse}
         />
       </div>
-      <div className="px-4 pt-2 pb-4 shrink-0">
+      <div className="relative shrink-0">
         <div className="max-w-3xl mx-auto relative">
           {chat.activeConversation.uploadedFilePreview && !chat.isImageMode && (
             <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
@@ -98,42 +102,26 @@ export default function ChatInterface() {
             chatTitle={chat.activeConversation.title || "New Chat"}
             onToggleHistoryPanel={chat.toggleHistoryPanel}
             onToggleAdvancedPanel={chat.toggleAdvancedPanel}
+            isHistoryPanelOpen={chat.isHistoryPanelOpen}
+            isAdvancedPanelOpen={chat.isAdvancedPanelOpen}
+            historyPanelRef={historyPanelRef}
+            advancedPanelRef={advancedPanelRef}
+            allConversations={chat.allConversations}
+            activeConversation={chat.activeConversation}
+            selectChat={chat.selectChat}
+            closeHistoryPanel={chat.closeHistoryPanel}
+            requestEditTitle={chat.requestEditTitle}
+            requestDeleteChat={chat.requestDeleteChat}
+            startNewChat={chat.startNewChat}
+            closeAdvancedPanel={chat.closeAdvancedPanel}
+            toDate={chat.toDate}
+            selectedModelId={chat.activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
+            handleModelChange={chat.handleModelChange}
+            selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
+            handleStyleChange={chat.handleStyleChange}
+            selectedVoice={chat.selectedVoice}
+            handleVoiceChange={chat.handleVoiceChange}
           />
-
-          {chat.isHistoryPanelOpen && (
-            <div ref={historyPanelRef}>
-                <HistoryPanel
-                allConversations={chat.allConversations}
-                activeConversation={chat.activeConversation}
-                onSelectChat={(id) => {
-                    chat.selectChat(id);
-                    chat.closeHistoryPanel();
-                }}
-                onRequestEditTitle={chat.requestEditTitle}
-                onRequestDeleteChat={chat.requestDeleteChat}
-                onStartNewChat={() => {
-                    chat.startNewChat();
-                    chat.closeHistoryPanel();
-                }}
-                toDate={chat.toDate}
-                onClose={chat.closeHistoryPanel}
-                />
-            </div>
-          )}
-
-          {chat.isAdvancedPanelOpen && (
-            <div ref={advancedPanelRef}>
-                <AdvancedSettingsPanel
-                selectedModelId={chat.activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
-                onModelChange={chat.handleModelChange}
-                selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
-                onStyleChange={chat.handleStyleChange}
-                selectedVoice={chat.selectedVoice}
-                onVoiceChange={chat.handleVoiceChange}
-                onClose={chat.closeAdvancedPanel}
-                />
-            </div>
-          )}
         </div>
       </div>
     </div>
