@@ -134,25 +134,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const showChatTitle = chatTitle !== "default.long.language.loop" && !!chatTitle;
 
 
-  const ActionButton = ({ onClick, title, disabled, children, className }: { onClick?: () => void; title: string; disabled?: boolean; children: React.ReactNode; className?: string }) => (
-    <Button
-      type="button"
-      variant="ghost"
-      onClick={onClick}
-      className={cn("group rounded-lg h-11 px-3 text-sm font-bold flex items-center gap-2", iconColorClass, className)}
-      title={title}
-      disabled={disabled}
-    >
-      {children}
-    </Button>
-  );
-
-  const ActionLabel = ({ text }: { text: string }) => (
-    <span className="w-0 opacity-0 group-hover:w-auto group-hover:opacity-100 transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden">
-      {text}
-    </span>
-  );
-
   return (
     <div className="relative">
       <div className={cn(
@@ -207,38 +188,51 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   style={{ lineHeight: '1.5rem' }}
               />
               <div className="flex w-full items-center justify-between gap-2 mt-2 px-1">
-                  <div className="flex flex-1 items-center justify-between gap-1">
-                      <ActionButton onClick={onToggleImageMode} title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"} disabled={isLoading}>
+                  <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={onToggleImageMode}
+                        className={cn("group rounded-lg h-11 w-11", iconColorClass)}
+                        title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"}
+                        disabled={isLoading}
+                      >
                           {isImageMode ? <ImageIcon className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
-                          <ActionLabel text={isImageMode ? "visualize" : "text"} />
-                      </ActionButton>
+                      </Button>
                       
-                      <ActionButton onClick={() => fileInputRef.current?.click()} title="Analyze document" disabled={isLoading || isImageMode}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => fileInputRef.current?.click()}
+                        className={cn("group rounded-lg h-11 w-11", iconColorClass)}
+                        title="Analyze document"
+                        disabled={isLoading || isImageMode}
+                      >
                           <Search className="w-6 h-6" />
-                          <ActionLabel text="analyze" />
-                      </ActionButton>
-                  </div>
-                  
-                  <div className="relative group">
-                  <Button 
-                      type="submit" 
-                      variant="ghost" 
-                      size="icon" 
-                      className={cn(
-                      "h-14 w-14 flex-shrink-0 rounded-lg text-foreground/60 hover:text-foreground",
-                      "transition-all duration-200 ml-4 group-hover:-translate-y-4",
-                      !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) && "text-blue-400 hover:text-blue-300 shadow-[0_0_15px_2px_rgba(147,197,253,0.4)]"
-                      )} 
-                      disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
-                      aria-label="Send message">
-                      <Send className="w-7 h-7" strokeWidth={2.5} />
-                  </Button>
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
-                      <Button type="button" variant="ghost" disabled={isLoading || isImageMode} className={cn("flex-col h-auto pt-2 text-foreground/60 hover:text-foreground")}>
-                          <Mic className="w-6 h-6" />
-                          <span className="text-xs font-normal whitespace-nowrap">yak with ai</span>
                       </Button>
                   </div>
+                  
+                  <div className="relative group flex items-center">
+                    <div className="absolute right-full mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+                        <Button type="button" variant="ghost" disabled={isLoading || isImageMode} className={cn("flex-row items-center h-auto py-2 px-3 text-foreground/60 hover:text-foreground")}>
+                            <Mic className="w-6 h-6" />
+                            <span className="text-sm font-normal whitespace-nowrap ml-2">yak with ai</span>
+                        </Button>
+                    </div>
+
+                    <Button 
+                        type="submit" 
+                        variant="ghost" 
+                        size="icon" 
+                        className={cn(
+                        "h-14 w-14 flex-shrink-0 rounded-lg text-foreground/60 hover:text-foreground",
+                        "transition-all duration-200",
+                        !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) && "text-blue-400 hover:text-blue-300 shadow-[0_0_15px_2px_rgba(147,197,253,0.4)]"
+                        )} 
+                        disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
+                        aria-label="Send message">
+                        <Send className="w-7 h-7" strokeWidth={2.5} />
+                    </Button>
                   </div>
               </div>
               </div>
