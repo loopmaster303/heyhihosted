@@ -1,9 +1,8 @@
 
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useChat } from '@/components/ChatProvider';
-import { useToast } from "@/hooks/use-toast";
 
 // UI Components
 import ChatView from '@/components/chat/ChatView';
@@ -19,16 +18,9 @@ import { X } from 'lucide-react';
 
 export default function ChatInterface() {
   const chat = useChat();
-  const { toast } = useToast();
 
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const advancedPanelRef = useRef<HTMLDivElement>(null);
-
-  // Speech-to-Text state and refs
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
 
   // Custom hook to handle clicks outside of the history panel
   useOnClickOutside([historyPanelRef], () => {
@@ -43,94 +35,6 @@ export default function ChatInterface() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // STT: Start Recording
-  const startRecording = async () => {
-    try {
-      const mimeType = "audio/webm;codecs=opus";
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        toast({ title: "Browser Not Supported", description: "Your browser does not support the required audio format (WebM/Opus).", variant: "destructive" });
-        return;
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        
-        // Stop all tracks to turn off the microphone indicator
-        stream.getTracks().forEach(track => track.stop());
-
-        if (audioBlob.size < 1000) {
-            toast({ title: "Recording Error", description: "Recording was too short or empty. Please try again.", variant: "destructive" });
-            setIsTranscribing(false);
-            return;
-        }
-
-        setIsTranscribing(true);
-
-        // Convert Blob to Data URI to send to the backend
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-            const audioDataUri = reader.result as string;
-
-            try {
-              const response = await fetch('/api/stt', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ audioDataUri }),
-              });
-
-              const result = await response.json();
-
-              if (!response.ok) {
-                throw new Error(result.error || "Failed to transcribe audio.");
-              }
-
-              if (typeof result.transcription === 'string') {
-                  chat.setChatInputValue((prev: string) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
-                  toast({ title: "Transcription Successful" });
-              } else {
-                  throw new Error("Invalid transcription format from API.");
-              }
-
-            } catch (error) {
-              console.error("Transcription Error:", error);
-              toast({ title: "Transcription Failed", description: error instanceof Error ? error.message : "Could not process audio.", variant: "destructive" });
-            } finally {
-              setIsTranscribing(false);
-            }
-        };
-
-        reader.onerror = () => {
-            console.error("FileReader error");
-            toast({ title: "File Read Error", description: "Could not read the recorded audio.", variant: "destructive" });
-            setIsTranscribing(false);
-        };
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error("Error accessing microphone:", error);
-      toast({ title: "Microphone Access Denied", description: "Please enable microphone permissions in your browser.", variant: "destructive"});
-    }
-  };
-
-  // STT: Stop Recording
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
 
 
   if (!chat.isInitialLoadComplete || !chat.activeConversation) {
@@ -194,11 +98,6 @@ export default function ChatInterface() {
             chatTitle={chat.activeConversation.title || "New Chat"}
             onToggleHistoryPanel={chat.toggleHistoryPanel}
             onToggleAdvancedPanel={chat.toggleAdvancedPanel}
-            // Pass STT props
-            isRecording={isRecording}
-            isTranscribing={isTranscribing}
-            onStartRecording={startRecording}
-            onStopRecording={stopRecording}
           />
 
           {chat.isHistoryPanelOpen && (

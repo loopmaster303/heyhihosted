@@ -1,12 +1,11 @@
 'use client';
 
 import type React from 'react';
-import { useRef, useEffect } from 'react'; // Removed useState for recording/transcribing
+import { useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, X, Send, Image as ImageIcon, MessageSquare, Mic, MicOff, Loader2 } from 'lucide-react'; // Keep icons
+import { Paperclip, X, Send, Image as ImageIcon, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-// Removed useToast
 
 
 interface ChatInputProps {
@@ -22,11 +21,6 @@ interface ChatInputProps {
   chatTitle: string;
   onToggleHistoryPanel: () => void;
   onToggleAdvancedPanel: () => void;
-  // Props for STT (will be managed by parent)
-  isRecording: boolean;
-  isTranscribing: boolean;
-  onStartRecording: () => void;
-  onStopRecording: () => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -42,16 +36,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
   chatTitle,
   onToggleHistoryPanel,
   onToggleAdvancedPanel,
-  // STT Props
-  isRecording,
-  isTranscribing,
-  onStartRecording,
-  onStopRecording,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // Removed mediaRecorderRef and audioChunksRef
-
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -95,16 +82,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  // STT Handle Click - simplified to call parent props
-  const handleMicClick = () => {
-    if (isRecording) {
-      onStopRecording();
-    } else {
-      onStartRecording();
-    }
-  };
-
-
   const placeholderText = isImageMode
     ? "just provide in natural language your imagination and the machine (gpt image-1) will visualize it directy in chat."
     : "just ask/discuss everything. get natural and humanlike support by the machine.";
@@ -128,7 +105,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               placeholder={placeholderText}
               className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
               rows={1}
-              disabled={isLoading || isRecording || isTranscribing} // Disable basierend auf STT states
+              disabled={isLoading}
               aria-label="Chat message input"
               style={{ lineHeight: '1.5rem' }}
           />
@@ -163,34 +140,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
               >
                 {uploadedFilePreviewUrl ? <X className="w-5 h-5" strokeWidth={iconStrokeWidth} /> : <Paperclip className="w-5 h-5" strokeWidth={iconStrokeWidth} />}
               </Button>
-              {/* Mikrofon Button */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleMicClick}
-                className={cn(
-                    "rounded-lg h-10 w-10 flex-shrink-0",
-                    isRecording ? "text-red-500 hover:text-red-600" : iconColorClass,
-                    isTranscribing && "text-blue-500" // Blaue Farbe während der Transkription
-                )}
-                title={isRecording ? "Stop recording" : (isTranscribing ? "Transcribing..." : "Start recording")}
-                disabled={isLoading || isImageMode || isTranscribing} // Deaktiviere während Laden, Bildmodus oder Transkription
-                >
-                {isTranscribing ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                ) : isRecording ? (
-                    <MicOff className="w-5 h-5" strokeWidth={iconStrokeWidth} />
-                ) : (
-                    <Mic className="w-5 h-5" strokeWidth={iconStrokeWidth} />
-                )}
-              </Button>
              <Button
                 type="submit"
                 variant="ghost"
                 size="icon"
                 className="text-foreground/80 hover:text-foreground h-10 w-10 flex-shrink-0"
-                disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl)) || isRecording || isTranscribing}
+                disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))}
                 aria-label="Send message"
               >
                   <Send className="w-6 h-6" strokeWidth={iconStrokeWidth} />
