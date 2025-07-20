@@ -20,9 +20,6 @@ export async function speechToText(audioDataUri: string): Promise<{ transcriptio
     throw new Error('A valid audio data URI must be provided.');
   }
 
-  // The gpt-4o-transcribe model expects the input parameter to be `audio`.
-  // The documentation can sometimes be inconsistent between `audio` and `audio_file`.
-  // We will use `audio` as it's the most common standard for Replicate's audio models.
   const inputPayload = {
     audio: audioDataUri,
     language: "auto",
