@@ -90,51 +90,51 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const startRecording = async () => {
     try {
+      if (!MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+        throw new Error("audio/webm;codecs=opus not supported by this browser.");
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        if(event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm;codecs=opus' });
         const audioFile = new File([audioBlob], "recording.webm", { type: "audio/webm" });
 
         stream.getTracks().forEach(track => track.stop());
-
         setIsTranscribing(true);
+        
+        const formData = new FormData();
+        formData.append("audioFile", audioFile);
 
-        const reader = new FileReader();
-        reader.readAsDataURL(audioFile);
-        reader.onloadend = async () => {
-            const base64Audio = reader.result as string;
-            
-            try {
-              const response = await fetch('/api/stt', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ audioDataUri: base64Audio }),
-              });
-              const result = await response.json();
-              if (!response.ok) throw new Error(result.error || "Transcription failed");
-              onInputChange((prev) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
-            } catch (error) {
-              const message = error instanceof Error ? error.message : "Unknown error";
-              toast({ title: "STT failed", description: message, variant: "destructive" });
-            } finally {
-              setIsTranscribing(false);
-            }
-        };
+        try {
+          const response = await fetch('/api/stt', {
+            method: 'POST',
+            body: formData,
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Transcription failed");
+          onInputChange((prev) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Unknown error";
+          toast({ title: "STT failed", description: message, variant: "destructive" });
+        } finally {
+          setIsTranscribing(false);
+        }
       };
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
     } catch (error) {
-      toast({ title: "Mic error", description: "Enable mic permissions", variant: "destructive" });
+      const message = error instanceof Error ? error.message : "Could not start recording.";
+      toast({ title: "Mic error", description: message, variant: "destructive" });
     }
   };
+
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
@@ -156,8 +156,26 @@ const ChatInput: React.FC<ChatInputProps> = ({
     : "just ask/discuss everything. get natural and humanlike support by the machine.";
 
   const iconColorClass = "text-foreground/60 hover:text-foreground";
-  
   const displayTitle = chatTitle === "default.long.language.loop" || !chatTitle ? "New Chat" : chatTitle;
+
+  const ActionButton = ({ onClick, title, disabled, children, className }: { onClick?: () => void; title: string; disabled?: boolean; children: React.ReactNode; className?: string }) => (
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={onClick}
+      className={cn("group rounded-lg h-11 px-3 text-sm font-bold flex items-center gap-2", iconColorClass, className)}
+      title={title}
+      disabled={disabled}
+    >
+      {children}
+    </Button>
+  );
+
+  const ActionLabel = ({ text }: { text: string }) => (
+    <span className="w-0 opacity-0 group-hover:w-auto group-hover:opacity-100 transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden">
+      {text}
+    </span>
+  );
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -175,34 +193,36 @@ const ChatInput: React.FC<ChatInputProps> = ({
             aria-label="Chat message input"
             style={{ lineHeight: '1.5rem' }}
           />
-          <div className="flex w-full items-center justify-between gap-2 mt-2 px-2">
-            <Button type="button" variant="ghost" className={cn("rounded-lg h-9 px-3 text-xs font-bold", iconColorClass)} onClick={onToggleImageMode} title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"} disabled={isLoading}>
-              {isImageMode ? <ImageIcon /> : <MessageSquare />}
-              <span className="ml-2">{isImageMode ? "visualize" : "text"}</span>
-            </Button>
-            
-            <Button type="button" variant="ghost" className={cn("rounded-lg h-9 px-3 text-xs font-bold", iconColorClass)} onClick={() => fileInputRef.current?.click()} title="Analyze document" disabled={isLoading || isImageMode}>
-              <Search />
-              <span className="ml-2">analyze</span>
-            </Button>
+          <div className="flex w-full items-center justify-between gap-2 mt-2 px-1">
+            <div className="flex items-center gap-1">
+                <ActionButton onClick={onToggleImageMode} title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"} disabled={isLoading}>
+                    {isImageMode ? <ImageIcon className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
+                    <ActionLabel text={isImageMode ? "visualize" : "text"} />
+                </ActionButton>
+                
+                <ActionButton onClick={() => fileInputRef.current?.click()} title="Analyze document" disabled={isLoading || isImageMode}>
+                    <Search className="w-5 h-5" />
+                    <ActionLabel text="analyze" />
+                </ActionButton>
 
-            <Button type="button" variant="ghost" onClick={handleMicClick} className={cn("rounded-lg h-9 px-3 text-xs font-bold", isRecording ? "text-red-500 hover:text-red-600" : iconColorClass, isTranscribing && "text-blue-500")} title={isRecording ? "Stop recording" : (isTranscribing ? "Transcribing..." : "Start recording")} disabled={isLoading || isImageMode}>
-              {isTranscribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic />}
-              <span className="ml-2">yak with ai</span>
-            </Button>
+                <ActionButton onClick={handleMicClick} title={isRecording ? "Stop recording" : (isTranscribing ? "Transcribing..." : "Start recording")} disabled={isLoading || isImageMode} className={cn(isRecording && "text-red-500 hover:text-red-600", isTranscribing && "text-blue-500")}>
+                    {isTranscribing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mic className="w-5 h-5" />}
+                    <ActionLabel text="yak with ai" />
+                </ActionButton>
+            </div>
             
             <Button 
               type="submit" 
               variant="ghost" 
               size="icon" 
               className={cn(
-                "h-10 w-10 flex-shrink-0 rounded-lg text-foreground/60 hover:text-foreground",
-                "border-2 border-transparent",
-                !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) && "border-blue-300/50 hover:border-blue-400/80"
+                "h-12 w-12 flex-shrink-0 rounded-lg text-foreground/60 hover:text-foreground",
+                "transition-all duration-200",
+                !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) && "text-blue-400 hover:text-blue-300 shadow-[0_0_15px_2px_rgba(147,197,253,0.4)]"
               )} 
               disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
               aria-label="Send message">
-              <Send className="w-5 h-5" strokeWidth={2.5} />
+              <Send className="w-6 h-6" strokeWidth={2.5} />
             </Button>
           </div>
         </div>
