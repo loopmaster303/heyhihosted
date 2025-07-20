@@ -12,6 +12,7 @@
     "test": "jest --watch"
   },
   "dependencies": {
+    "@genkit-ai/googleai": "^1.0.4",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-checkbox": "^1.1.4",
     "@radix-ui/react-dropdown-menu": "^2.1.6",
@@ -28,6 +29,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "dotenv": "^16.5.0",
+    "genkit": "^1.0.0",
     "lucide-react": "^0.475.0",
     "next": "15.3.3",
     "next-themes": "^0.3.0",
