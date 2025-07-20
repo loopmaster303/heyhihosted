@@ -10,7 +10,6 @@
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const REPLICATE_API_ENDPOINT = "https://api.replicate.com/v1/predictions";
-// This is the specific version ID for the openai/gpt-4o-transcribe model.
 const MODEL_VERSION = "fe49a592f98178ba939f2629ee17d79234b204cab4d9a5a15f861a7423a52ee6";
 
 export async function speechToText(audioDataUri: string): Promise<{ transcription: string }> {
