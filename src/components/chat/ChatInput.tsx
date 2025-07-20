@@ -39,11 +39,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -85,66 +80,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     onFileSelect(file || null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
-    }
-  };
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioFile = new File([audioBlob], "recording.webm", { type: "audio/webm" });
-
-        stream.getTracks().forEach(track => track.stop());
-        setIsTranscribing(true);
-
-        const formData = new FormData();
-        formData.append("audioFile", audioFile);
-
-        try {
-          const response = await fetch('/api/stt', {
-            method: 'POST',
-            body: formData,
-          });
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.error || "Transcription failed");
-          onInputChange((prev) => `${prev}${prev ? ' ' : ''}${result.transcription}`.trim());
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown error";
-          toast({ title: "STT failed", description: message, variant: "destructive" });
-        } finally {
-          setIsTranscribing(false);
-        }
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not start recording.";
-      toast({ title: "Mic error", description: message, variant: "destructive" });
-    }
-  };
-
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const handleMicClick = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
     }
   };
 
@@ -218,10 +153,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 <Send className="w-7 h-7" strokeWidth={2.5} />
               </Button>
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
-                  <ActionButton onClick={handleMicClick} title={isRecording ? "Stop recording" : (isTranscribing ? "Transcribing..." : "Start recording")} disabled={isLoading || isImageMode} className={cn("flex-col h-auto pt-2", isRecording && "text-red-500 hover:text-red-600", isTranscribing && "text-blue-500")}>
-                      {isTranscribing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Mic className="w-6 h-6" />}
+                  <Button type="button" variant="ghost" disabled={isLoading || isImageMode} className={cn("flex-col h-auto pt-2 text-foreground/60 hover:text-foreground")}>
+                      <Mic className="w-6 h-6" />
                       <span className="text-xs font-normal whitespace-nowrap">yak with ai</span>
-                  </ActionButton>
+                  </Button>
               </div>
             </div>
           </div>
