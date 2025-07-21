@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useChat } from '@/components/ChatProvider';
 
 // UI Components
@@ -19,7 +19,6 @@ export default function ChatInterface() {
 
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const advancedPanelRef = useRef<HTMLDivElement>(null);
-  const [inputHeight, setInputHeight] = useState(120); // Default height
   
   // Custom hook to handle clicks outside of the history panel
   useOnClickOutside([historyPanelRef], () => {
@@ -49,18 +48,21 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="relative h-full overflow-hidden">
-      <ChatView
-        conversation={chat.activeConversation}
-        messages={chat.currentMessages}
-        isLoading={chat.isAiResponding}
-        className="h-full overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-36 no-scrollbar"
-        onPlayAudio={chat.handlePlayAudio}
-        playingMessageId={chat.playingMessageId}
-        isTtsLoadingForId={chat.isTtsLoadingForId}
-        onCopyToClipboard={chat.handleCopyToClipboard}
-        onRegenerate={chat.regenerateLastResponse}
-      />
+    <div className="relative h-full flex flex-col overflow-hidden">
+      <div className="flex-grow overflow-y-auto no-scrollbar">
+        <ChatView
+            conversation={chat.activeConversation}
+            messages={chat.currentMessages}
+            isLoading={chat.isAiResponding}
+            className="w-full max-w-4xl mx-auto px-4 pt-2 pb-44" // Added more padding-bottom
+            onPlayAudio={chat.handlePlayAudio}
+            playingMessageId={chat.playingMessageId}
+            isTtsLoadingForId={chat.isTtsLoadingForId}
+            onCopyToClipboard={chat.handleCopyToClipboard}
+            onRegenerate={chat.regenerateLastResponse}
+        />
+      </div>
+
 
       <div className="absolute bottom-0 left-0 right-0 px-4 pb-2 pt-1 pointer-events-auto bg-gradient-to-t from-background via-background/80 to-transparent">
         <div className="max-w-3xl mx-auto relative">
