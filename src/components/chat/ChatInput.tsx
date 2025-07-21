@@ -199,83 +199,67 @@ const ChatInput: React.FC<ChatInputProps> = ({
               </div>
           )}
           <form onSubmit={handleSubmit} className="w-full">
-              <div className="bg-input rounded-2xl p-3 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1),_0_5px_15px_-5px_rgba(0,0,0,0.08)] dark:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.2),_0_5px_15px_-5px_rgba(0,0,0,0.2)] flex flex-col min-h-0">
-                  <div className="flex items-start gap-2">
-                      <div className="flex-grow">
-                          <Textarea
-                              ref={textareaRef}
-                              value={inputValue}
-                              onChange={handleTextareaInput}
-                              onKeyDown={handleKeyDown}
-                              placeholder={placeholderText}
-                              className="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
-                              rows={1}
-                              disabled={isLoading || isRecording || isTranscribing}
-                              aria-label="Chat message input"
-                              style={{ lineHeight: '1.5rem' }}
-                          />
-                      </div>
-                      <div className="flex-shrink-0 pt-1">
-                          <Button 
-                              type="submit" 
-                              variant="ghost" 
-                              size="icon" 
-                              className={cn(
-                              "h-8 w-8 text-foreground/60 hover:text-foreground",
-                              !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) && "text-blue-500 hover:text-blue-500"
-                              )} 
-                              disabled={isLoading || isRecording || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
-                              aria-label="Send message">
-                              <Send className="w-5 h-5" strokeWidth={2.5} />
-                          </Button>
-                      </div>
-                  </div>
-                  <div className="flex w-full items-center justify-between gap-1 mt-1 -ml-1">
-                      <div className="flex items-center gap-0">
-                          <Button
-                              type="button"
-                              variant="ghost"
-                              onClick={onToggleImageMode}
-                              className={cn(
-                                  "group rounded-lg h-9 w-9 transition-colors duration-300",
-                                  isImageMode ? 'filter-purple' : 'filter-neutral',
-                                  iconColorClass
-                              )}
-                              title={isImageMode ? "Switch to Text Mode" : "Switch to Visualize Mode"}
-                              disabled={isLoading || isRecording || isTranscribing}
-                          >
-                              <ImageIcon className="w-5 h-5" />
-                          </Button>
-                          
-                          <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                  <Button
-                                      type="button"
-                                      variant="ghost"
-                                      className={cn("group rounded-lg h-9 w-9", iconColorClass)}
-                                      title="Attach a file"
-                                      disabled={isLoading || isImageMode || isRecording || isTranscribing}
-                                  >
-                                      <Paperclip className="w-5 h-5" />
-                                  </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent className="w-64" side="top" align="start">
-                                  <DropdownMenuItem onSelect={() => docInputRef.current?.click()}>
-                                      <File className="mr-2 h-4 w-4" />
-                                      <span>Analyze document from file</span>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onSelect={() => imageInputRef.current?.click()}>
-                                      <FileImage className="mr-2 h-4 w-4" />
-                                      <span>Analyze image from file</span>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onSelect={openCamera}>
-                                      <Camera className="mr-2 h-4 w-4" />
-                                      <span>Analyze image from camera</span>
-                                  </DropdownMenuItem>
-                              </DropdownMenuContent>
-                          </DropdownMenu>
-                      </div>
-                      
+            <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-0">
+                <div className="flex-grow">
+                    <Textarea
+                        ref={textareaRef}
+                        value={inputValue}
+                        onChange={handleTextareaInput}
+                        onKeyDown={handleKeyDown}
+                        placeholder={placeholderText}
+                        className="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                        rows={1}
+                        disabled={isLoading || isRecording || isTranscribing}
+                        aria-label="Chat message input"
+                        style={{ lineHeight: '1.5rem' }}
+                    />
+                </div>
+                <div className="flex w-full items-center justify-between gap-1 mt-1 -ml-1">
+                    <div className="flex items-center gap-0">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={onToggleImageMode}
+                            className={cn(
+                                "group rounded-lg h-9 w-9 transition-colors duration-300",
+                                isImageMode ? 'text-blue-500 hover:text-blue-600' : iconColorClass
+                            )}
+                            title={isImageMode ? "Switch to Text Mode" : "Switch to Visualize Mode"}
+                            disabled={isLoading || isRecording || isTranscribing}
+                        >
+                            <ImageIcon className="w-5 h-5" />
+                        </Button>
+                        
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className={cn("group rounded-lg h-9 w-9", iconColorClass)}
+                                    title="Attach a file"
+                                    disabled={isLoading || isImageMode || isRecording || isTranscribing}
+                                >
+                                    <Paperclip className="w-5 h-5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-64" side="top" align="start">
+                                <DropdownMenuItem onSelect={() => docInputRef.current?.click()}>
+                                    <File className="mr-2 h-4 w-4" />
+                                    <span>Analyze document from file</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => imageInputRef.current?.click()}>
+                                    <FileImage className="mr-2 h-4 w-4" />
+                                    <span>Analyze image from file</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={openCamera}>
+                                    <Camera className="mr-2 h-4 w-4" />
+                                    <span>Analyze image from camera</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                    
+                    <div className="flex items-center gap-0">
                       <Button
                           type="button"
                           variant="ghost"
@@ -288,8 +272,23 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       >
                           <Mic className="w-5 h-5" />
                       </Button>
-                  </div>
-              </div>
+                      <Button 
+                          type="submit" 
+                          variant="ghost" 
+                          size="icon" 
+                          className={cn(
+                          "h-9 w-9",
+                          !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) 
+                            ? "text-blue-500 hover:text-blue-600"
+                            : iconColorClass
+                          )} 
+                          disabled={isLoading || isRecording || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
+                          aria-label="Send message">
+                          <Send className="w-5 h-5" />
+                      </Button>
+                    </div>
+                </div>
+            </div>
           </form>
       </div>
 
