@@ -134,10 +134,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       options: { 
         isImageModeIntent?: boolean; 
         isRegeneration?: boolean; 
+        messagesForApi?: ChatMessage[];
       } = {}
     ) => {
-        if (!activeConversation || activeConversation.toolType !== 'long language loops' || (!chatInputValue.trim() && !activeConversation.uploadedFile && !options.isRegeneration)) return;
-    
+        if (!activeConversation || activeConversation.toolType !== 'long language loops') return;
+
         const { id: convId, selectedModelId, selectedResponseStyleName, messages, uploadedFile, uploadedFilePreview } = activeConversation;
         const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
         
@@ -161,7 +162,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         }
     
         setIsAiResponding(true);
-        setChatInputValue('');
+        if (!options.isRegeneration) {
+            setChatInputValue('');
+        }
+        
         const isImagePrompt = options.isImageModeIntent || false;
         const isFileUpload = !!uploadedFile && !isImagePrompt;
     
@@ -171,7 +175,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           return;
         }
     
-        let updatedMessagesForState = messages;
+        let updatedMessagesForState = options.messagesForApi || messages;
 
         if (!options.isRegeneration) {
             let userMessageContent: string | ChatMessageContentPart[] = chatInputValue.trim();
@@ -459,21 +463,25 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   
     const regenerateLastResponse = useCallback(async () => {
       if (!activeConversation || isAiResponding) return;
-
+    
       const lastMessageIndex = activeConversation.messages.length - 1;
       const lastMessage = activeConversation.messages[lastMessageIndex];
-  
+    
       if (!lastMessage || lastMessage.role !== 'assistant') {
         toast({ title: "Action Not Available", description: "You can only regenerate the AI's most recent response.", variant: "destructive" });
         return;
       }
-  
-      const historyForApi = activeConversation.messages.slice(0, lastMessageIndex);
-      setActiveConversation(prev => prev ? { ...prev, messages: historyForApi } : null);
-      
-      // Directly call sendMessage with the regeneration flag
-      sendMessage("", { isRegeneration: true });
-
+    
+      // Immediately remove the last AI message from the state for a clean UI
+      const messagesForRegeneration = activeConversation.messages.slice(0, lastMessageIndex);
+      setActiveConversation(prev => prev ? { ...prev, messages: messagesForRegeneration } : null);
+    
+      // Call sendMessage with a special flag and the history *without* the last AI message
+      sendMessage("", { 
+        isRegeneration: true,
+        messagesForApi: messagesForRegeneration 
+      });
+    
     }, [isAiResponding, activeConversation, sendMessage, toast]);
 
     const startRecording = async () => {
@@ -611,5 +619,7 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    
 
     
