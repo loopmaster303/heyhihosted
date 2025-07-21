@@ -48,24 +48,23 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="relative flex-grow overflow-hidden">
-        <ChatView
-          conversation={chat.activeConversation}
-          messages={chat.currentMessages}
-          isLoading={chat.isAiResponding}
-          className="h-full overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-4 no-scrollbar"
-          onPlayAudio={chat.handlePlayAudio}
-          playingMessageId={chat.playingMessageId}
-          isTtsLoadingForId={chat.isTtsLoadingForId}
-          onCopyToClipboard={chat.handleCopyToClipboard}
-          onRegenerate={chat.regenerateLastResponse}
-        />
-      </div>
-      <div className="relative shrink-0 px-4 pb-2 pt-1">
-        <div className="max-w-3xl mx-auto relative">
+    <div className="relative h-full overflow-hidden">
+      <ChatView
+        conversation={chat.activeConversation}
+        messages={chat.currentMessages}
+        isLoading={chat.isAiResponding}
+        className="h-full overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-48 no-scrollbar" // Added pb-48 for spacing
+        onPlayAudio={chat.handlePlayAudio}
+        playingMessageId={chat.playingMessageId}
+        isTtsLoadingForId={chat.isTtsLoadingForId}
+        onCopyToClipboard={chat.handleCopyToClipboard}
+        onRegenerate={chat.regenerateLastResponse}
+      />
+
+      <div className="absolute bottom-0 left-0 right-0 px-4 pb-2 pt-1 pointer-events-none">
+        <div className="max-w-3xl mx-auto relative pointer-events-auto">
           {chat.activeConversation.uploadedFilePreview && !chat.isImageMode && (
-            <div className="max-w-3xl mx-auto p-2 relative w-fit self-center">
+            <div className="p-2 relative w-fit self-center">
               <img
                 src={chat.activeConversation.uploadedFilePreview}
                 alt="Uploaded preview"
