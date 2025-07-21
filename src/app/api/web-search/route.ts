@@ -37,8 +37,7 @@ export async function POST(request: Request) {
       );
     }
     
-    // The API consistently returns plain text, so we return it directly.
-    // The client-side logic will now handle this as a simple text response.
+    // The API can return plain text. Wrap it in a consistent JSON structure for the client.
     return NextResponse.json({ responseText: responseText.trim() });
 
   } catch (error: any) {
