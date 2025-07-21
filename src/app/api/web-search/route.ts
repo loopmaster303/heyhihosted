@@ -28,16 +28,28 @@ export async function POST(request: Request) {
       headers: headers,
     });
 
+    const responseText = await response.text();
+
     if (!response.ok) {
-      const errorText = await response.text();
       return NextResponse.json(
-        { error: `Elixposearch API request failed with status ${response.status}: ${errorText}` },
+        { error: `Elixposearch API request failed with status ${response.status}: ${responseText}` },
         { status: response.status }
       );
     }
     
-    const results = await response.json();
-    return NextResponse.json(results);
+    // Attempt to parse as JSON, but handle plain text responses gracefully
+    try {
+        const results = JSON.parse(responseText);
+        return NextResponse.json(results);
+    } catch (e) {
+        // If parsing fails, the response is likely plain text.
+        // We will wrap it in a structure that the frontend expects.
+        return NextResponse.json([{
+            title: "Web Search Result",
+            description: responseText.trim(),
+            url: searchUrl,
+        }]);
+    }
 
   } catch (error: any) {
     console.error('Error in /api/web-search:', error);
