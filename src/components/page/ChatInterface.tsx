@@ -19,6 +19,7 @@ export default function ChatInterface() {
 
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const advancedPanelRef = useRef<HTMLDivElement>(null);
+  const [inputHeight, setInputHeight] = useState(120); // Default height
   
   // Custom hook to handle clicks outside of the history panel
   useOnClickOutside([historyPanelRef], () => {
@@ -53,7 +54,7 @@ export default function ChatInterface() {
         conversation={chat.activeConversation}
         messages={chat.currentMessages}
         isLoading={chat.isAiResponding}
-        className="h-full overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-48 no-scrollbar" // Added pb-48 for spacing
+        className="h-full overflow-y-auto px-4 w-full max-w-4xl mx-auto pt-2 pb-36 no-scrollbar"
         onPlayAudio={chat.handlePlayAudio}
         playingMessageId={chat.playingMessageId}
         isTtsLoadingForId={chat.isTtsLoadingForId}
@@ -61,8 +62,8 @@ export default function ChatInterface() {
         onRegenerate={chat.regenerateLastResponse}
       />
 
-      <div className="absolute bottom-0 left-0 right-0 px-4 pb-2 pt-1 pointer-events-none">
-        <div className="max-w-3xl mx-auto relative pointer-events-auto">
+      <div className="absolute bottom-0 left-0 right-0 px-4 pb-2 pt-1 pointer-events-auto bg-gradient-to-t from-background via-background/80 to-transparent">
+        <div className="max-w-3xl mx-auto relative">
           {chat.activeConversation.uploadedFilePreview && !chat.isImageMode && (
             <div className="p-2 relative w-fit self-center">
               <img
