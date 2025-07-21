@@ -50,6 +50,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     // Camera State
     const [isCameraOpen, setIsCameraOpen] = useState(false);
+    
+    // New state to track the ID of the last user message for scrolling
+    const [lastUserMessageId, setLastUserMessageId] = useState<string | null>(null);
+
 
     const { toast } = useToast();
 
@@ -179,7 +183,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         }
     
         let updatedMessagesForState = options.messagesForApi || messages;
-        let lastUserMessageId: string | null = null;
+        let newUserMessageId: string | null = null;
 
         if (!options.isRegeneration) {
             let userMessageContent: string | ChatMessageContentPart[] = chatInputValue.trim();
@@ -191,15 +195,17 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             }
         
             const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
-            lastUserMessageId = userMessage.id;
+            newUserMessageId = userMessage.id;
             
             updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
-            setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState, lastUserMessageId: userMessage.id } : null);
+            setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState } : null);
+            setLastUserMessageId(userMessage.id); // Track the new user message ID for scrolling
         } else {
            const lastUserMsg = updatedMessagesForState.slice().reverse().find(m => m.role === 'user');
            if (lastUserMsg) {
-                lastUserMessageId = lastUserMsg.id;
-                setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState, lastUserMessageId: lastUserMsg.id } : null);
+                newUserMessageId = lastUserMsg.id;
+                setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState } : null);
+                setLastUserMessageId(lastUserMsg.id); // Also track on regeneration
            }
         }
 
@@ -256,7 +262,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       } finally {
         const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: new Date().toISOString(), isImageMode: false, uploadedFile: null, uploadedFilePreview: null };
         
-        setActiveConversation(prev => prev ? { ...prev, ...finalConversationState, lastUserMessageId: lastUserMessageId } : null);
+        setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
       }
     }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle]);
@@ -268,7 +274,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       }
       const conversationToSelect = allConversations.find(c => c.id === conversationId);
       if (conversationToSelect) {
-          setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null, lastUserMessageId: null });
+          setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null });
+          setLastUserMessageId(null); // Reset scroll target on chat switch
       }
     }, [allConversations]);
     
@@ -296,6 +303,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         }
         
         setActiveConversation(newConversationData);
+        setLastUserMessageId(null); // Reset scroll target on new chat
 
         return newConversationData;
     }, [allConversations, setAllConversations]);
@@ -583,6 +591,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       playingMessageId, isTtsLoadingForId, chatInputValue,
       selectedVoice,
       isInitialLoadComplete,
+      lastUserMessageId, // Expose for the view
       isRecording, isTranscribing,
       isCameraOpen,
       selectChat, startNewChat, deleteChat, sendMessage,

@@ -30,7 +30,6 @@ export interface Conversation {
   uploadedFilePreview?: string | null;
   selectedModelId?: string;
   selectedResponseStyleName?: string;
-  lastUserMessageId?: string | null; // For scroll behavior
 }
 
 export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about';
