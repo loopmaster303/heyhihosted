@@ -98,7 +98,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const docInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [showMicButton, setShowMicButton] = useState(false);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -277,23 +276,18 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           </DropdownMenu>
                       </div>
                       
-                      <div className="relative group flex items-center"
-                          onMouseEnter={() => setShowMicButton(true)}
-                          onMouseLeave={() => setShowMicButton(false)}
+                      <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={handleMicClick}
+                          disabled={isLoading || isTranscribing || isImageMode}
+                          className={cn(
+                              "group rounded-lg h-9 w-9 transition-colors duration-300",
+                              isRecording ? "text-red-500 hover:text-red-600" : iconColorClass
+                          )}
                       >
-                          <Button
-                              type="button"
-                              variant="ghost"
-                              onClick={handleMicClick}
-                              disabled={isLoading || isTranscribing || isImageMode}
-                              className={cn(
-                                  "group rounded-lg h-9 w-9 transition-colors duration-300",
-                                  isRecording ? "text-red-500 hover:text-red-600" : iconColorClass
-                              )}
-                          >
-                              <Mic className="w-5 h-5" />
-                          </Button>
-                      </div>
+                          <Mic className="w-5 h-5" />
+                      </Button>
                   </div>
               </div>
           </form>
