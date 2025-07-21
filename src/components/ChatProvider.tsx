@@ -131,9 +131,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     
     const sendMessage = useCallback(async (
       _messageText: string,
-      options: { isImageModeIntent?: boolean; } = {}
+      options: { 
+        isImageModeIntent?: boolean; 
+        isRegeneration?: boolean; 
+      } = {}
     ) => {
-        if (!activeConversation || activeConversation.toolType !== 'long language loops' || (!chatInputValue.trim() && !activeConversation.uploadedFile)) return;
+        if (!activeConversation || activeConversation.toolType !== 'long language loops' || (!chatInputValue.trim() && !activeConversation.uploadedFile && !options.isRegeneration)) return;
     
         const { id: convId, selectedModelId, selectedResponseStyleName, messages, uploadedFile, uploadedFilePreview } = activeConversation;
         const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
@@ -151,6 +154,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             const selectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName);
             effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
         }
+
+        if (options.isRegeneration) {
+          const regenerationInstruction = "Generate a new, alternative response to the last user request. Do not repeat your previous answer. Offer a different perspective or style.";
+          effectiveSystemPrompt = `${regenerationInstruction}\n\n${effectiveSystemPrompt}`;
+        }
     
         setIsAiResponding(true);
         setChatInputValue('');
@@ -163,18 +171,22 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           return;
         }
     
-        let userMessageContent: string | ChatMessageContentPart[] = chatInputValue.trim();
-        if (isFileUpload && uploadedFilePreview) {
-          userMessageContent = [
-            { type: 'text', text: chatInputValue.trim() || "Describe this image." },
-            { type: 'image_url', image_url: { url: uploadedFilePreview, altText: uploadedFile.name, isUploaded: true } }
-          ];
-        }
-    
-        const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
+        let updatedMessagesForState = messages;
+
+        if (!options.isRegeneration) {
+            let userMessageContent: string | ChatMessageContentPart[] = chatInputValue.trim();
+            if (isFileUpload && uploadedFilePreview) {
+              userMessageContent = [
+                { type: 'text', text: chatInputValue.trim() || "Describe this image." },
+                { type: 'image_url', image_url: { url: uploadedFilePreview, altText: uploadedFile.name, isUploaded: true } }
+              ];
+            }
         
-        const updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
-        setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState } : null);
+            const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
+            
+            updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
+            setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState } : null);
+        }
 
         const historyForApi: ApiChatMessage[] = updatedMessagesForState
           .filter(msg => msg.role === 'user' || msg.role === 'assistant')
@@ -446,8 +458,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }, [toast]);
   
     const regenerateLastResponse = useCallback(async () => {
-      if (!activeConversation) return;
-      if (isAiResponding) return;
+      if (!activeConversation || isAiResponding) return;
 
       const lastMessageIndex = activeConversation.messages.length - 1;
       const lastMessage = activeConversation.messages[lastMessageIndex];
@@ -460,22 +471,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       const historyForApi = activeConversation.messages.slice(0, lastMessageIndex);
       setActiveConversation(prev => prev ? { ...prev, messages: historyForApi } : null);
       
-      const lastUserMessage = historyForApi.filter(msg => msg.role === 'user').slice(-1)[0];
-      
-      if(lastUserMessage) {
-        const promptText = typeof lastUserMessage.content === 'string' 
-          ? lastUserMessage.content 
-          : lastUserMessage.content.find(p => p.type === 'text')?.text || '';
-        
-        setChatInputValue(promptText);
-
-        setTimeout(() => {
-            sendMessage(promptText);
-        }, 0);
-
-      } else {
-        toast({ title: "Cannot Regenerate", description: "Could not find a previous user prompt.", variant: "destructive"});
-      }
+      // Directly call sendMessage with the regeneration flag
+      sendMessage("", { isRegeneration: true });
 
     }, [isAiResponding, activeConversation, sendMessage, toast]);
 
@@ -614,3 +611,5 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+
+    
