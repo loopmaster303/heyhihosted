@@ -164,9 +164,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="relative">
-      <div className="pb-12">
+      <div className="relative">
           {isHistoryPanelOpen && (
-              <div ref={historyPanelRef}>
+              <div ref={historyPanelRef} className="absolute bottom-full mb-2 left-0 w-full z-30">
                   <HistoryPanel
                       allConversations={allConversations}
                       activeConversation={activeConversation}
@@ -186,7 +186,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               </div>
           )}
           {isAdvancedPanelOpen && (
-              <div ref={advancedPanelRef}>
+              <div ref={advancedPanelRef} className="absolute bottom-full mb-2 left-0 w-full z-30">
                   <AdvancedSettingsPanel
                       selectedModelId={selectedModelId}
                       onModelChange={handleModelChange}
@@ -292,24 +292,24 @@ const ChatInput: React.FC<ChatInputProps> = ({
           </form>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 flex justify-between items-center px-6">
+      <div className="flex justify-between items-center px-6 py-2">
           <button
               onClick={onToggleHistoryPanel}
-              className="text-foreground/80 hover:text-foreground font-bold text-xl px-6 py-2 rounded-lg pointer-events-auto transition-colors"
+              className="text-foreground/80 hover:text-foreground font-bold text-xl px-2 py-1 rounded-lg pointer-events-auto transition-colors"
               aria-label="Open chat history"
           >
               throwback
           </button>
           <div className="text-center">
               {showChatTitle && (
-                  <span className="text-foreground/50 font-bold text-xl px-6 py-2 rounded-lg pointer-events-none">
+                  <span className="text-foreground/50 font-bold text-xl px-2 py-1 rounded-lg pointer-events-none">
                       {displayTitle}
                   </span>
               )}
           </div>
           <button
               onClick={onToggleAdvancedPanel}
-              className="text-foreground/80 hover:text-foreground font-bold text-xl px-6 py-2 rounded-lg pointer-events-auto transition-colors"
+              className="text-foreground/80 hover:text-foreground font-bold text-xl px-2 py-1 rounded-lg pointer-events-auto transition-colors"
               aria-label="Open advanced settings"
           >
               advanced

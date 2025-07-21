@@ -9,7 +9,6 @@ import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
 import { Loader2, X } from 'lucide-react';
 
-const HEADER_HEIGHT_PX = 72;
 
 export default function ChatInterface() {
   const chat = useChat();
@@ -42,27 +41,23 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="relative h-full flex flex-col overflow-hidden">
+    <div className="relative h-screen flex flex-col overflow-hidden">
       
-      <div 
-        className="flex-grow flex flex-col" 
-        style={{ paddingTop: `${HEADER_HEIGHT_PX}px` }}
-      >
+      <div className="flex-grow overflow-y-auto" style={{ paddingTop: '72px' }}>
         <ChatView
           messages={chat.activeConversation.messages}
-          className="w-full max-w-4xl mx-auto px-4"
+          className="w-full max-w-4xl mx-auto px-4 pb-48"
           onPlayAudio={chat.handlePlayAudio}
           playingMessageId={chat.playingMessageId}
           isTtsLoadingForId={chat.isTtsLoadingForId}
           onCopyToClipboard={chat.handleCopyToClipboard}
           onRegenerate={chat.regenerateLastResponse}
           isAiResponding={chat.isAiResponding}
-          lastUserMessageId={chat.activeConversation.lastUserMessageId}
         />
       </div>
 
-      <div className="w-full px-4 pb-2 pt-1 pointer-events-auto bg-gradient-to-t from-background via-background/80 to-transparent">
-        <div className="max-w-3xl mx-auto relative">
+      <div className="fixed bottom-0 left-0 right-0 pointer-events-auto bg-gradient-to-t from-background via-background/80 to-transparent">
+        <div className="max-w-3xl mx-auto px-4 pb-2 pt-1">
           {chat.activeConversation.uploadedFilePreview && !chat.isImageMode && (
             <div className="p-2 relative w-fit self-center">
               <img

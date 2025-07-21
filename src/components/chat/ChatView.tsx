@@ -16,7 +16,6 @@ interface ChatViewProps {
   onCopyToClipboard: (text: string) => void;
   onRegenerate: () => void;
   isAiResponding: boolean;
-  lastUserMessageId: string | null;
 }
 
 const ChatView: React.FC<ChatViewProps> = ({
@@ -28,25 +27,19 @@ const ChatView: React.FC<ChatViewProps> = ({
   onCopyToClipboard,
   onRegenerate,
   isAiResponding,
-  lastUserMessageId,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useLayoutEffect(() => {
-    if (lastUserMessageId && messageRefs.current[lastUserMessageId]) {
-      const element = messageRefs.current[lastUserMessageId];
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    } else if (messages.length > 0 && !lastUserMessageId) {
-      // On initial load or chat switch, scroll to bottom
-      const scrollContainer = scrollContainerRef.current;
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    // This effect ensures that the view scrolls to the bottom whenever messages change.
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      const parent = scrollContainer.parentElement;
+      if (parent) {
+        parent.scrollTop = parent.scrollHeight;
       }
     }
-  }, [lastUserMessageId, messages]);
+  }, [messages, isAiResponding]);
 
 
   const isLastMessage = (index: number) => {
@@ -65,10 +58,10 @@ const ChatView: React.FC<ChatViewProps> = ({
 
 
   return (
-    <div ref={scrollContainerRef} className={cn("w-full h-full flex flex-col bg-background overflow-y-auto no-scrollbar", className)}>
+    <div ref={scrollContainerRef} className={cn("w-full h-auto flex flex-col bg-transparent", className)}>
       <div className="flex-grow space-y-0">
         {messages.map((msg, index) => (
-          <div key={msg.id} ref={el => messageRefs.current[msg.id] = el}>
+          <div key={msg.id}>
             <MessageBubble 
               message={msg}
               onPlayAudio={onPlayAudio}
