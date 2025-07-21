@@ -1,142 +1,118 @@
 
-'use client';
+"use client";
 
-import React, { useEffect, useRef } from 'react';
-import { useChat } from '@/components/ChatProvider';
+import React from 'react';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
+import { useChat } from '@/components/ChatProvider';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
-import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
-import { Loader2, X } from 'lucide-react';
 
-// Define a constant for the header height to ensure consistency
-const HEADER_HEIGHT_PX = 72;
-// Define a constant for the input area's minimum height (approximate)
-const INPUT_AREA_MIN_HEIGHT_PX = 148;
+const ChatInterface: React.FC = () => {
+    const { 
+        activeConversation, 
+        isAiResponding, 
+        sendMessage, 
+        chatInputValue, 
+        setChatInputValue,
+        isImageMode, 
+        toggleImageMode, 
+        handleFileSelect,
+        isHistoryPanelOpen,
+        toggleHistoryPanel,
+        closeHistoryPanel,
+        isAdvancedPanelOpen,
+        toggleAdvancedPanel,
+        closeAdvancedPanel,
+        allConversations,
+        selectChat,
+        requestEditTitle,
+        requestDeleteChat,
+        startNewChat,
+        toDate,
+        handleModelChange,
+        handleStyleChange,
+        handleVoiceChange,
+        selectedVoice,
+        lastUserMessageId,
+        handlePlayAudio,
+        playingMessageId,
+        isTtsLoadingForId,
+        handleCopyToClipboard,
+        regenerateLastResponse,
+        isRecording, isTranscribing, startRecording, stopRecording,
+        isCameraOpen, openCamera, closeCamera
+    } = useChat();
+    
+    const historyPanelRef = React.useRef<HTMLDivElement>(null);
+    const advancedPanelRef = React.useRef<HTMLDivElement>(null);
+
+    useOnClickOutside([historyPanelRef], closeHistoryPanel, 'radix-select-content');
+    useOnClickOutside([advancedPanelRef], closeAdvancedPanel, 'radix-select-content');
 
 
-export default function ChatInterface() {
-  const chat = useChat();
+    if (!activeConversation) {
+        return <div className="flex-grow flex items-center justify-center"><p>Loading conversation...</p></div>;
+    }
+    
+    const { messages, title, selectedModelId, selectedResponseStyleName, uploadedFilePreview } = activeConversation;
 
-  const historyPanelRef = useRef<HTMLDivElement>(null);
-  const advancedPanelRef = useRef<HTMLDivElement>(null);
-  
-  useOnClickOutside([historyPanelRef], () => {
-    if (chat.isHistoryPanelOpen) chat.closeHistoryPanel();
-  }, 'radix-select-content');
-   useOnClickOutside([advancedPanelRef], () => {
-    if (chat.isAdvancedPanelOpen) chat.closeAdvancedPanel();
-  }, 'radix-select-content');
-
-  useEffect(() => {
-    return () => {
-      if (chat.isAdvancedPanelOpen) chat.closeAdvancedPanel();
-      if (chat.isHistoryPanelOpen) chat.closeHistoryPanel();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (!chat.isInitialLoadComplete || !chat.activeConversation) {
     return (
-      <div className="flex flex-col h-full items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-        <p className="mt-4 text-muted-foreground">Initializing Chat...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative h-screen flex flex-col overflow-hidden">
-      
-      {/* Scrollable chat content area */}
-      <div 
-        className="flex-grow overflow-y-auto" 
-        style={{
-          // Ensure content starts below the fixed header
-          paddingTop: `${HEADER_HEIGHT_PX}px`, 
-          // Add padding at the bottom to ensure last message isn't hidden by the input
-          paddingBottom: `${INPUT_AREA_MIN_HEIGHT_PX}px`,
-        }}
-      >
-        <ChatView
-          messages={chat.activeConversation.messages}
-          lastUserMessageId={chat.lastUserMessageId}
-          isAiResponding={chat.isAiResponding}
-          className="w-full max-w-4xl mx-auto px-4"
-          onPlayAudio={chat.handlePlayAudio}
-          playingMessageId={chat.playingMessageId}
-          isTtsLoadingForId={chat.isTtsLoadingForId}
-          onCopyToClipboard={chat.handleCopyToClipboard}
-          onRegenerate={chat.regenerateLastResponse}
-        />
-      </div>
-
-      {/* Fixed input area at the bottom */}
-      <div className="fixed bottom-0 left-0 right-0 pointer-events-auto bg-gradient-to-t from-background via-background/80 to-transparent">
-        <div className="max-w-3xl mx-auto px-4 pb-2 pt-1">
-          {chat.activeConversation.uploadedFilePreview && !chat.isImageMode && (
-            <div className="p-2 relative w-fit self-center">
-              <img
-                src={chat.activeConversation.uploadedFilePreview}
-                alt="Uploaded preview"
-                width={80}
-                height={80}
-                style={{ objectFit: "cover" }}
-                className="rounded-md"
-              />
-              <button
-                type="button"
-                className="absolute -top-1 -right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 flex items-center justify-center"
-                onClick={chat.clearUploadedImage}
-                aria-label="Clear uploaded image"
-              >
-                <X className="w-4 h-4" />
-              </button>
+        <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
+            <div className="flex-grow overflow-y-auto pt-[72px] pb-4 px-4 no-scrollbar">
+                <ChatView
+                    messages={messages}
+                    lastUserMessageId={lastUserMessageId}
+                    isAiResponding={isAiResponding}
+                    onPlayAudio={handlePlayAudio}
+                    playingMessageId={playingMessageId}
+                    isTtsLoadingForId={isTtsLoadingForId}
+                    onCopyToClipboard={handleCopyToClipboard}
+                    onRegenerate={regenerateLastResponse}
+                />
             </div>
-          )}
 
-          <ChatInput
-            onSendMessage={chat.sendMessage}
-            isLoading={chat.isAiResponding || chat.isTranscribing}
-            uploadedFilePreviewUrl={chat.activeConversation.uploadedFilePreview ?? null}
-            onFileSelect={chat.handleFileSelect}
-            isLongLanguageLoopActive={true}
-            inputValue={chat.chatInputValue}
-            onInputChange={chat.setChatInputValue}
-            isImageMode={chat.isImageMode}
-            onToggleImageMode={chat.toggleImageMode}
-            chatTitle={chat.activeConversation.title || "New Chat"}
-            onToggleHistoryPanel={chat.toggleHistoryPanel}
-            onToggleAdvancedPanel={chat.toggleAdvancedPanel}
-            isHistoryPanelOpen={chat.isHistoryPanelOpen}
-            isAdvancedPanelOpen={chat.isAdvancedPanelOpen}
-            historyPanelRef={historyPanelRef}
-            advancedPanelRef={advancedPanelRef}
-            allConversations={chat.allConversations}
-            activeConversation={chat.activeConversation}
-            selectChat={chat.selectChat}
-            closeHistoryPanel={chat.closeHistoryPanel}
-            requestEditTitle={chat.requestEditTitle}
-            requestDeleteChat={chat.requestDeleteChat}
-            startNewChat={chat.startNewChat}
-            closeAdvancedPanel={chat.closeAdvancedPanel}
-            toDate={chat.toDate}
-            selectedModelId={chat.activeConversation.selectedModelId || DEFAULT_POLLINATIONS_MODEL_ID}
-            handleModelChange={chat.handleModelChange}
-            selectedResponseStyleName={chat.activeConversation.selectedResponseStyleName || DEFAULT_RESPONSE_STYLE_NAME}
-            handleStyleChange={chat.handleStyleChange}
-            selectedVoice={chat.selectedVoice}
-            handleVoiceChange={chat.handleVoiceChange}
-            isRecording={chat.isRecording}
-            isTranscribing={chat.isTranscribing}
-            startRecording={chat.startRecording}
-            stopRecording={chat.stopRecording}
-            openCamera={chat.openCamera}
-          />
+            <div className="shrink-0 px-4 pb-4">
+                 <ChatInput
+                    onSendMessage={(msg, opts) => sendMessage(msg, opts)}
+                    isLoading={isAiResponding}
+                    uploadedFilePreviewUrl={uploadedFilePreview || null}
+                    onFileSelect={(file, type) => handleFileSelect(file, type)}
+                    isLongLanguageLoopActive={true}
+                    inputValue={chatInputValue}
+                    onInputChange={setChatInputValue}
+                    isImageMode={isImageMode}
+                    onToggleImageMode={toggleImageMode}
+                    chatTitle={title}
+                    onToggleHistoryPanel={toggleHistoryPanel}
+                    onToggleAdvancedPanel={toggleAdvancedPanel}
+                    isHistoryPanelOpen={isHistoryPanelOpen}
+                    isAdvancedPanelOpen={isAdvancedPanelOpen}
+                    historyPanelRef={historyPanelRef}
+                    advancedPanelRef={advancedPanelRef}
+                    allConversations={allConversations}
+                    activeConversation={activeConversation}
+                    selectChat={selectChat}
+                    closeHistoryPanel={closeHistoryPanel}
+                    requestEditTitle={requestEditTitle}
+                    requestDeleteChat={requestDeleteChat}
+                    startNewChat={startNewChat}
+                    closeAdvancedPanel={closeAdvancedPanel}
+                    toDate={toDate}
+                    selectedModelId={selectedModelId!}
+                    handleModelChange={handleModelChange}
+                    selectedResponseStyleName={selectedResponseStyleName!}
+                    handleStyleChange={handleStyleChange}
+                    selectedVoice={selectedVoice}
+                    handleVoiceChange={handleVoiceChange}
+                    isRecording={isRecording}
+                    isTranscribing={isTranscribing}
+                    startRecording={startRecording}
+                    stopRecording={stopRecording}
+                    openCamera={openCamera}
+                />
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
-    
+export default ChatInterface;
