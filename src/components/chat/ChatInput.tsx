@@ -235,7 +235,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   >
                     <div className={cn(
                         "absolute right-full mr-2 opacity-0 transition-all duration-300",
-                        showMicButton && "opacity-100 -translate-x-1"
+                        (showMicButton || isRecording) && "opacity-100 -translate-x-1"
                     )}>
                         <Button
                           type="button"
