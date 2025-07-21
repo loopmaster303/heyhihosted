@@ -121,6 +121,7 @@ export default function ChatInterface() {
             isTranscribing={chat.isTranscribing}
             startRecording={chat.startRecording}
             stopRecording={chat.stopRecording}
+            openCamera={chat.openCamera}
           />
         </div>
       </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import type React from 'react';
@@ -5,17 +6,23 @@ import { useRef, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Send, Mic, ImageIcon } from 'lucide-react';
+import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types';
 import HistoryPanel from './HistoryPanel';
 import AdvancedSettingsPanel from './AdvancedSettingsPanel';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ChatInputProps {
   onSendMessage: (message: string, options?: { isImageModeIntent?: boolean }) => void;
   isLoading: boolean;
   uploadedFilePreviewUrl: string | null;
-  onFileSelect: (file: File | null) => void;
+  onFileSelect: (file: File | null, fileType: string | null) => void;
   isLongLanguageLoopActive: boolean;
   inputValue: string;
   onInputChange: (value: string | ((prev: string) => string)) => void;
@@ -47,6 +54,7 @@ interface ChatInputProps {
   isTranscribing: boolean;
   startRecording: () => void;
   stopRecording: () => void;
+  openCamera: () => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -85,8 +93,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
   isTranscribing,
   startRecording,
   stopRecording,
+  openCamera,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [showMicButton, setShowMicButton] = useState(false);
 
@@ -124,11 +134,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
     onInputChange(e.target.value);
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, fileType: 'document' | 'image') => {
     const file = event.target.files?.[0];
-    onFileSelect(file || null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    onFileSelect(file || null, fileType);
+    if (event.currentTarget) {
+      event.currentTarget.value = "";
     }
   };
   
@@ -139,7 +149,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
       startRecording();
     }
   };
-
 
   const placeholderText = isRecording
     ? 'Recording...'
@@ -220,16 +229,33 @@ const ChatInput: React.FC<ChatInputProps> = ({
                          <ImageIcon className="w-6 h-6" />
                       </Button>
                       
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => fileInputRef.current?.click()}
-                        className={cn("group rounded-lg h-11 w-11", iconColorClass)}
-                        title="Analyze document"
-                        disabled={isLoading || isImageMode || isRecording || isTranscribing}
-                      >
-                          <Search className="w-6 h-6" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className={cn("group rounded-lg h-11 w-11", iconColorClass)}
+                                title="Attach a file"
+                                disabled={isLoading || isImageMode || isRecording || isTranscribing}
+                            >
+                                <Paperclip className="w-6 h-6" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-64" side="top" align="start">
+                            <DropdownMenuItem onSelect={() => docInputRef.current?.click()}>
+                                <File className="mr-2 h-4 w-4" />
+                                <span>Analyze document from file</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => imageInputRef.current?.click()}>
+                                <FileImage className="mr-2 h-4 w-4" />
+                                <span>Analyze image from file</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={openCamera}>
+                                <Camera className="mr-2 h-4 w-4" />
+                                <span>Analyze image from camera</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                   </div>
                   
                   <div className="relative group flex items-center"
@@ -296,7 +322,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
               advanced
           </button>
       </div>
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*,application/pdf" className="hidden" disabled={isLoading || !isLongLanguageLoopActive || isImageMode} />
+      <input type="file" ref={docInputRef} onChange={(e) => handleFileChange(e, 'document')} accept="image/*,application/pdf" className="hidden" disabled={isLoading || !isLongLanguageLoopActive || isImageMode} />
+      <input type="file" ref={imageInputRef} onChange={(e) => handleFileChange(e, 'image')} accept="image/*" className="hidden" disabled={isLoading || !isLongLanguageLoopActive || isImageMode} />
     </div>
   );
 };

@@ -7,6 +7,7 @@ import AppHeader from '@/components/page/AppHeader';
 import type { TileItem } from '@/types';
 import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
+import CameraCaptureDialog from '@/components/dialogs/CameraCaptureDialog';
 import { useChat } from '@/components/ChatProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { Loader2 } from 'lucide-react';
@@ -55,6 +56,11 @@ function ChatPageContent() {
                 onCancel={chat.cancelEditTitle}
                 title={chat.editingTitle}
                 setTitle={chat.setEditingTitle}
+            />
+            <CameraCaptureDialog
+                isOpen={chat.isCameraOpen}
+                onOpenChange={chat.closeCamera}
+                onCapture={(dataUri) => chat.handleFileSelect(dataUri, 'image/jpeg')}
             />
         </div>
     );

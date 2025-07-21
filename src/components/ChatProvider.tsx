@@ -48,6 +48,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
 
+    // Camera State
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+
     const { toast } = useToast();
 
     // Helper to ensure dates are handled correctly
@@ -182,7 +185,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             if (isFileUpload && uploadedFilePreview) {
               userMessageContent = [
                 { type: 'text', text: chatInputValue.trim() || "Describe this image." },
-                { type: 'image_url', image_url: { url: uploadedFilePreview, altText: uploadedFile.name, isUploaded: true } }
+                { type: 'image_url', image_url: { url: uploadedFilePreview, altText: uploadedFile?.name, isUploaded: true } }
               ];
             }
         
@@ -351,25 +354,44 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const newImageModeState = !isImageMode;
         setIsImageMode(newImageModeState);
         if(newImageModeState === false) {
-           handleFileSelect(null);
+           handleFileSelect(null, null);
         }
     };
+    
+    const dataURItoFile = (dataURI: string, filename: string): File => {
+        const arr = dataURI.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], filename, { type: mime });
+    };
 
-    const handleFileSelect = (file: File | null) => {
+    const handleFileSelect = (fileOrDataUri: File | string | null, fileType: string | null) => {
       if (!activeConversation) return;
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: file, uploadedFilePreview: reader.result as string } : null);
-        };
-        reader.readAsDataURL(file);
+      if (fileOrDataUri) {
+        if (typeof fileOrDataUri === 'string') {
+            // It's a data URI from camera
+            const file = dataURItoFile(fileOrDataUri, `capture-${Date.now()}.jpg`);
+            setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: file, uploadedFilePreview: fileOrDataUri } : null);
+        } else {
+            // It's a file from input
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: fileOrDataUri, uploadedFilePreview: reader.result as string } : null);
+            };
+            reader.readAsDataURL(fileOrDataUri);
+        }
       } else {
         setActiveConversation(prev => prev ? { ...prev, uploadedFile: null, uploadedFilePreview: null } : null);
       }
     };
   
     const clearUploadedImage = () => {
-      if (activeConversation) handleFileSelect(null); 
+      if (activeConversation) handleFileSelect(null, null); 
     }
   
     const handleModelChange = useCallback((modelId: string) => {
@@ -545,6 +567,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         }
     };
   
+    const openCamera = () => setIsCameraOpen(true);
+    const closeCamera = () => setIsCameraOpen(false);
+
     return {
       activeConversation, allConversations,
       isAiResponding, isImageMode,
@@ -554,6 +579,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       selectedVoice,
       isInitialLoadComplete,
       isRecording, isTranscribing,
+      isCameraOpen,
       selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
       requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
@@ -566,6 +592,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       handleCopyToClipboard,
       regenerateLastResponse,
       startRecording, stopRecording,
+      openCamera, closeCamera,
       toDate,
       setActiveConversation,
     };
@@ -620,7 +647,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
-    
-
-    
