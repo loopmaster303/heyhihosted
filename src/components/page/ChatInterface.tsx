@@ -10,16 +10,16 @@ import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/co
 import { Loader2, X } from 'lucide-react';
 
 // Define a constant for the header height to ensure consistency
-const HEADER_HEIGHT = '72px';
+const HEADER_HEIGHT_PX = 72;
 // Define a constant for the input area's minimum height (approximate)
-const INPUT_AREA_HEIGHT = '148px';
+const INPUT_AREA_MIN_HEIGHT_PX = 148;
+
 
 export default function ChatInterface() {
   const chat = useChat();
 
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const advancedPanelRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   useOnClickOutside([historyPanelRef], () => {
     if (chat.isHistoryPanelOpen) chat.closeHistoryPanel();
@@ -36,14 +36,6 @@ export default function ChatInterface() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Scroll to bottom when a new chat is started and it's empty
-  useEffect(() => {
-    if (chat.activeConversation?.messages.length === 0 && scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-    }
-  }, [chat.activeConversation?.id, chat.activeConversation?.messages.length]);
-
-
   if (!chat.isInitialLoadComplete || !chat.activeConversation) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
@@ -58,12 +50,12 @@ export default function ChatInterface() {
       
       {/* Scrollable chat content area */}
       <div 
-        ref={scrollContainerRef}
         className="flex-grow overflow-y-auto" 
         style={{
-          paddingTop: HEADER_HEIGHT,
+          // Ensure content starts below the fixed header
+          paddingTop: `${HEADER_HEIGHT_PX}px`, 
           // Add padding at the bottom to ensure last message isn't hidden by the input
-          paddingBottom: INPUT_AREA_HEIGHT, 
+          paddingBottom: `${INPUT_AREA_MIN_HEIGHT_PX}px`,
         }}
       >
         <ChatView
@@ -146,3 +138,5 @@ export default function ChatInterface() {
     </div>
   );
 };
+
+    
