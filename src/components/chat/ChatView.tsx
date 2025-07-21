@@ -8,9 +8,7 @@ import MessageBubble from './MessageBubble';
 import { cn } from '@/lib/utils';
 
 interface ChatViewProps {
-  conversation: Conversation | null; 
   messages: ChatMessage[];
-  isLoading: boolean;
   className?: string;
   onPlayAudio: (text: string, messageId: string) => void;
   playingMessageId: string | null;
@@ -20,9 +18,7 @@ interface ChatViewProps {
 }
 
 const ChatView: React.FC<ChatViewProps> = ({
-  conversation,
   messages,
-  isLoading,
   className,
   onPlayAudio,
   playingMessageId,
@@ -51,12 +47,9 @@ const ChatView: React.FC<ChatViewProps> = ({
             isAnyAudioActive={playingMessageId !== null || isTtsLoadingForId !== null}
             onCopy={onCopyToClipboard}
             onRegenerate={onRegenerate}
-            isLastMessage={index === messages.length - 1}
+            isLastMessage={index === messages.length - 1 && msg.role === 'assistant'} // Only allow regenerate on the very last assistant message
           />
         ))}
-        {isLoading && messages.length > 0 && (
-            <MessageBubble message={{ id: 'loading', role: 'assistant', content: '...', timestamp: new Date().toISOString() }} />
-        )}
         <div ref={messagesEndRef} />
       </div>
     </div>
@@ -64,7 +57,3 @@ const ChatView: React.FC<ChatViewProps> = ({
 };
 
 export default ChatView;
-
-    
-
-    

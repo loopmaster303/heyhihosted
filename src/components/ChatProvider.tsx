@@ -597,11 +597,15 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 }
 
 
-type ChatContextType = ReturnType<typeof useChatLogic> & {
+interface ChatContextValue extends ReturnType<typeof useChatLogic> {
     currentMessages: ChatMessage[];
-};
+    latestUserMessage: ChatMessage | null;
+    latestAiMessage: ChatMessage | null;
+    chatHistory: ChatMessage[];
+}
 
-const ChatContext = createContext<ChatContextType | undefined>(undefined);
+
+const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
@@ -610,12 +614,34 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt });
     
     const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
+    const [latestUserMessage, setLatestUserMessage] = useState<ChatMessage | null>(null);
+    const [latestAiMessage, setLatestAiMessage] = useState<ChatMessage | null>(null);
+    const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
 
     useEffect(() => {
         if (chatLogic.activeConversation) {
-            setCurrentMessages(chatLogic.activeConversation.messages);
+            const messages = chatLogic.activeConversation.messages;
+            setCurrentMessages(messages);
+
+            const lastUserIndex = messages.map(m => m.role).lastIndexOf('user');
+            if (lastUserIndex !== -1) {
+                const potentialAiIndex = lastUserIndex + 1;
+                const lastUserMsg = messages[lastUserIndex];
+                const lastAiMsg = (potentialAiIndex < messages.length && messages[potentialAiIndex].role === 'assistant') ? messages[potentialAiIndex] : null;
+
+                setLatestUserMessage(lastUserMsg);
+                setLatestAiMessage(lastAiMsg);
+                setChatHistory(messages.slice(0, lastUserIndex));
+            } else {
+                setLatestUserMessage(null);
+                setLatestAiMessage(null);
+                setChatHistory(messages);
+            }
         } else {
             setCurrentMessages([]);
+            setLatestUserMessage(null);
+            setLatestAiMessage(null);
+            setChatHistory([]);
         }
     }, [chatLogic.activeConversation]);
 
@@ -625,9 +651,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         chatLogic.setChatInputValue(value);
     };
 
-    const chatContextValue = {
+    const chatContextValue: ChatContextValue = {
         ...chatLogic,
         currentMessages,
+        latestUserMessage,
+        latestAiMessage,
+        chatHistory,
         setChatInputValue: setChatInputValueWrapper,
     };
 
@@ -638,7 +667,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 };
 
-export const useChat = (): ChatContextType => {
+export const useChat = (): ChatContextValue => {
   const context = useContext(ChatContext);
   if (context === undefined) {
     throw new Error('useChat must be used within a ChatProvider');
