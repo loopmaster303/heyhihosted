@@ -32,7 +32,7 @@ export interface Conversation {
   selectedResponseStyleName?: string;
 }
 
-export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about';
+export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about' | 'web search';
 
 export interface TileItem {
   id: ToolType;

@@ -6,7 +6,7 @@ import { useRef, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage } from 'lucide-react';
+import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types';
 import HistoryPanel from './HistoryPanel';
@@ -28,6 +28,8 @@ interface ChatInputProps {
   onInputChange: (value: string | ((prev: string) => string)) => void;
   isImageMode: boolean;
   onToggleImageMode: () => void;
+  isWebSearchMode: boolean;
+  onToggleWebSearchMode: () => void;
   chatTitle: string;
   onToggleHistoryPanel: () => void;
   onToggleAdvancedPanel: () => void;
@@ -67,6 +69,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   onInputChange,
   isImageMode,
   onToggleImageMode,
+  isWebSearchMode,
+  onToggleWebSearchMode,
   chatTitle,
   onToggleHistoryPanel,
   onToggleAdvancedPanel,
@@ -154,6 +158,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
     ? 'Recording...'
     : isTranscribing
     ? 'Transcribing...'
+    : isWebSearchMode
+    ? 'Enter a query for web research...'
     : isImageMode
     ? "just provide in natural language your imagination and the machine (gpt image-1) will visualize it directy in chat."
     : "just ask/discuss everything. get natural and humanlike support by the machine.";
@@ -215,6 +221,19 @@ const ChatInput: React.FC<ChatInputProps> = ({
               />
               <div className="flex w-full items-center justify-between gap-2 mt-2 px-1">
                   <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={onToggleWebSearchMode}
+                        className={cn(
+                          "group rounded-lg h-11 w-11 transition-colors duration-300",
+                           isWebSearchMode ? 'text-violet-500 hover:text-violet-600' : iconColorClass
+                        )}
+                        title={isWebSearchMode ? "Switch to Chat Mode" : "Switch to Web Research Mode"}
+                        disabled={isLoading || isRecording || isTranscribing}
+                      >
+                         <Globe className="w-6 h-6" />
+                      </Button>
                       <Button
                         type="button"
                         variant="ghost"

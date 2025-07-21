@@ -32,6 +32,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const [editingTitle, setEditingTitle] = useState('');
     
     const [isImageMode, setIsImageMode] = useState(false);
+    const [isWebSearchMode, setIsWebSearchMode] = useState(false);
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
     const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
   
@@ -160,7 +161,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         }
 
         if (options.isRegeneration) {
-          const regenerationInstruction = "Generate a new, alternative response to the last user request. Do not repeat your previous answer. Offer a different perspective or style.";
+          const regenerationInstruction = "Generiere eine neue, alternative Antwort auf die letzte Anfrage des Benutzers. Wiederhole deine vorherige Antwort nicht. Biete eine andere Perspektive oder einen anderen Stil.";
           effectiveSystemPrompt = `${regenerationInstruction}\n\n${effectiveSystemPrompt}`;
         }
     
@@ -207,7 +208,23 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
       try {
           let aiMessage: ChatMessage;
-          if (isImagePrompt && chatInputValue.trim()) {
+          if (isWebSearchMode) {
+              const response = await fetch('/api/web-search', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ query: chatInputValue.trim() }),
+              });
+              const result = await response.json();
+              if (!response.ok) throw new Error(result.error || 'Failed to perform web search.');
+
+              let searchResponseText = "Web search yielded no results.";
+              if (Array.isArray(result) && result.length > 0) {
+                  searchResponseText = "Here are the top web search results:\n\n" + result.map((item: any, index: number) => 
+                      `${index + 1}. **${item.title}**\n*${item.url}*\n${item.description || 'No description available.'}`
+                  ).join('\n\n');
+              }
+              aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: searchResponseText, timestamp: new Date().toISOString(), toolType: 'web search' };
+          } else if (isImagePrompt && chatInputValue.trim()) {
               const response = await fetch('/api/openai-image', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -246,13 +263,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const errorMsg: ChatMessage = {id: crypto.randomUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date().toISOString(), toolType: 'long language loops'};
         finalMessages = [...updatedMessagesForState, errorMsg];
       } finally {
-        const newUpdatedAt = new Date().toISOString();
-        const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: newUpdatedAt, isImageMode: false, uploadedFile: null, uploadedFilePreview: null };
+        const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: new Date().toISOString(), isImageMode: false, uploadedFile: null, uploadedFilePreview: null };
         
         setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
+        setIsWebSearchMode(false); // Always turn off web search mode after a message is sent
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setAllConversations]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setAllConversations, isWebSearchMode]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
@@ -353,11 +370,21 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         if (!activeConversation) return;
         const newImageModeState = !isImageMode;
         setIsImageMode(newImageModeState);
-        if(newImageModeState === false) {
+        if(newImageModeState) {
+           setIsWebSearchMode(false);
            handleFileSelect(null, null);
         }
     };
     
+    const toggleWebSearchMode = () => {
+        const newWebSearchState = !isWebSearchMode;
+        setIsWebSearchMode(newWebSearchState);
+        if (newWebSearchState) {
+            setIsImageMode(false);
+            handleFileSelect(null, null);
+        }
+    };
+
     const dataURItoFile = (dataURI: string, filename: string): File => {
         const arr = dataURI.split(',');
         const mime = arr[0].match(/:(.*?);/)?.[1];
@@ -373,6 +400,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const handleFileSelect = (fileOrDataUri: File | string | null, fileType: string | null) => {
       if (!activeConversation) return;
       if (fileOrDataUri) {
+        setIsWebSearchMode(false);
+        setIsImageMode(false);
         if (typeof fileOrDataUri === 'string') {
             // It's a data URI from camera
             const file = dataURItoFile(fileOrDataUri, `capture-${Date.now()}.jpg`);
@@ -396,12 +425,14 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   
     const handleModelChange = useCallback((modelId: string) => {
       if (activeConversation) {
+        setIsWebSearchMode(false);
         setActiveConversation(prev => prev ? { ...prev, selectedModelId: modelId } : null);
       }
     }, [activeConversation]);
   
     const handleStyleChange = useCallback((styleName: string) => {
        if (activeConversation) {
+        setIsWebSearchMode(false);
         setActiveConversation(prev => prev ? { ...prev, selectedResponseStyleName: styleName } : null);
        }
     }, [activeConversation]);
@@ -486,26 +517,24 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   
     const regenerateLastResponse = useCallback(async () => {
       if (!activeConversation || isAiResponding) return;
-    
+  
       const lastMessageIndex = activeConversation.messages.length - 1;
       const lastMessage = activeConversation.messages[lastMessageIndex];
-    
+  
       if (!lastMessage || lastMessage.role !== 'assistant') {
         toast({ title: "Action Not Available", description: "You can only regenerate the AI's most recent response.", variant: "destructive" });
         return;
       }
-    
-      // Immediately remove the last AI message from the state for a clean UI
+  
       const messagesForRegeneration = activeConversation.messages.slice(0, lastMessageIndex);
       setActiveConversation(prev => prev ? { ...prev, messages: messagesForRegeneration } : null);
-    
-      // Call sendMessage with a special flag and the history *without* the last AI message
-      sendMessage("", { 
+  
+      sendMessage("", {
         isRegeneration: true,
-        messagesForApi: messagesForRegeneration 
+        messagesForApi: messagesForRegeneration
       });
-    
-    }, [isAiResponding, activeConversation, sendMessage, toast, setActiveConversation]);
+  
+    }, [isAiResponding, activeConversation, sendMessage, toast]);
 
     const startRecording = async () => {
         if (isRecording) return;
@@ -572,7 +601,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     return {
       activeConversation, allConversations,
-      isAiResponding, isImageMode,
+      isAiResponding, isImageMode, isWebSearchMode,
       isHistoryPanelOpen, isAdvancedPanelOpen,
       isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,
       playingMessageId, isTtsLoadingForId, chatInputValue,
@@ -583,6 +612,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
       requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
+      toggleWebSearchMode,
       handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
       handleVoiceChange,
       toggleHistoryPanel, closeHistoryPanel, 
