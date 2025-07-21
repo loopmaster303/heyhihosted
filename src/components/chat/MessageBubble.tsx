@@ -109,7 +109,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           'max-w-[85%] relative p-3 rounded-xl', 
           isUser
             ? 'bg-primary text-primary-foreground'
-            : 'bg-secondary text-secondary-foreground'
+            : 'text-secondary-foreground'
         )}
       >
         <div className="flex flex-col">
