@@ -32,7 +32,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const [editingTitle, setEditingTitle] = useState('');
     
     const [isImageMode, setIsImageMode] = useState(false);
-    const [isWebSearchMode, setIsWebSearchMode] = useState(false);
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
     const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
   
@@ -208,18 +207,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
       try {
           let aiMessage: ChatMessage;
-          if (isWebSearchMode) {
-              const response = await fetch('/api/web-search', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ query: chatInputValue.trim() }),
-              });
-              const result = await response.json();
-              if (!response.ok) throw new Error(result.error || 'Failed to perform web search.');
-
-              const searchResponseText = result.responseText || "Web search yielded no results.";
-              aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: searchResponseText, timestamp: new Date().toISOString(), toolType: 'web search' };
-          } else if (isImagePrompt && chatInputValue.trim()) {
+          if (isImagePrompt && chatInputValue.trim()) {
               const response = await fetch('/api/openai-image', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -262,9 +250,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         
         setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
-        setIsWebSearchMode(false); // Always turn off web search mode after a message is sent
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, isWebSearchMode]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
@@ -366,17 +353,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const newImageModeState = !isImageMode;
         setIsImageMode(newImageModeState);
         if(newImageModeState) {
-           setIsWebSearchMode(false);
            handleFileSelect(null, null);
-        }
-    };
-    
-    const toggleWebSearchMode = () => {
-        const newWebSearchState = !isWebSearchMode;
-        setIsWebSearchMode(newWebSearchState);
-        if (newWebSearchState) {
-            setIsImageMode(false);
-            handleFileSelect(null, null);
         }
     };
 
@@ -395,7 +372,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const handleFileSelect = (fileOrDataUri: File | string | null, fileType: string | null) => {
       if (!activeConversation) return;
       if (fileOrDataUri) {
-        setIsWebSearchMode(false);
         setIsImageMode(false);
         if (typeof fileOrDataUri === 'string') {
             // It's a data URI from camera
@@ -420,14 +396,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   
     const handleModelChange = useCallback((modelId: string) => {
       if (activeConversation) {
-        setIsWebSearchMode(false);
         setActiveConversation(prev => prev ? { ...prev, selectedModelId: modelId } : null);
       }
     }, [activeConversation]);
   
     const handleStyleChange = useCallback((styleName: string) => {
        if (activeConversation) {
-        setIsWebSearchMode(false);
         setActiveConversation(prev => prev ? { ...prev, selectedResponseStyleName: styleName } : null);
        }
     }, [activeConversation]);
@@ -596,7 +570,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     return {
       activeConversation, allConversations,
-      isAiResponding, isImageMode, isWebSearchMode,
+      isAiResponding, isImageMode,
       isHistoryPanelOpen, isAdvancedPanelOpen,
       isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,
       playingMessageId, isTtsLoadingForId, chatInputValue,
@@ -607,7 +581,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
       requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
-      toggleWebSearchMode,
       handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
       handleVoiceChange,
       toggleHistoryPanel, closeHistoryPanel, 

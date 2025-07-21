@@ -95,8 +95,6 @@ export default function ChatInterface() {
             onInputChange={chat.setChatInputValue}
             isImageMode={chat.isImageMode}
             onToggleImageMode={chat.toggleImageMode}
-            isWebSearchMode={chat.isWebSearchMode}
-            onToggleWebSearchMode={chat.toggleWebSearchMode}
             chatTitle={chat.activeConversation.title || "New Chat"}
             onToggleHistoryPanel={chat.toggleHistoryPanel}
             onToggleAdvancedPanel={chat.toggleAdvancedPanel}
