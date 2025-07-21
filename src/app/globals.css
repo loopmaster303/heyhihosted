@@ -21,7 +21,7 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
-    --input: 0 0% 93%; /* #f8f8f8 adjusted for input */
+    --input: 0 0% 10%; /* #f8f8f8 adjusted for input */
     --ring: 0 0% 10%; /* #1a1a1a */
     --radius: 0.5rem;
 
