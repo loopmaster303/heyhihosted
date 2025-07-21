@@ -88,7 +88,7 @@ export default function ChatInterface() {
 
           <ChatInput
             onSendMessage={chat.sendMessage}
-            isLoading={chat.isAiResponding}
+            isLoading={chat.isAiResponding || chat.isTranscribing}
             uploadedFilePreviewUrl={chat.activeConversation.uploadedFilePreview ?? null}
             onFileSelect={chat.handleFileSelect}
             isLongLanguageLoopActive={true}
@@ -118,6 +118,10 @@ export default function ChatInterface() {
             handleStyleChange={chat.handleStyleChange}
             selectedVoice={chat.selectedVoice}
             handleVoiceChange={chat.handleVoiceChange}
+            isRecording={chat.isRecording}
+            isTranscribing={chat.isTranscribing}
+            startRecording={chat.startRecording}
+            stopRecording={chat.stopRecording}
           />
         </div>
       </div>

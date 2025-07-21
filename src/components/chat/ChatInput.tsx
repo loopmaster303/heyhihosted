@@ -5,7 +5,7 @@ import type React from 'react';
 import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Send, Mic, MessageSquare, ImageIcon } from 'lucide-react';
+import { Search, Send, Mic, ImageIcon, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types';
 import HistoryPanel from './HistoryPanel';
@@ -43,6 +43,10 @@ interface ChatInputProps {
   handleStyleChange: (styleName: string) => void;
   selectedVoice: string;
   handleVoiceChange: (voiceId: string) => void;
+  isRecording: boolean;
+  isTranscribing: boolean;
+  startRecording: () => void;
+  stopRecording: () => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -77,6 +81,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
   handleStyleChange,
   selectedVoice,
   handleVoiceChange,
+  isRecording,
+  isTranscribing,
+  startRecording,
+  stopRecording,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -92,7 +100,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    if (isLoading) return;
+    if (isLoading || isRecording) return;
 
     const canSendMessage = (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) || (inputValue.trim() !== '');
 
@@ -123,8 +131,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
       fileInputRef.current.value = "";
     }
   };
+  
+  const handleMicClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
 
-  const placeholderText = isImageMode
+
+  const placeholderText = isRecording
+    ? 'Recording...'
+    : isTranscribing
+    ? 'Transcribing...'
+    : isImageMode
     ? "just provide in natural language your imagination and the machine (gpt image-1) will visualize it directy in chat."
     : "just ask/discuss everything. get natural and humanlike support by the machine.";
 
@@ -135,7 +156,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="relative">
-      <div className="relative pb-12">
+      <div className="pb-12">
           {isHistoryPanelOpen && (
               <div ref={historyPanelRef}>
                   <HistoryPanel
@@ -179,7 +200,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   placeholder={placeholderText}
                   className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
                   rows={1}
-                  disabled={isLoading}
+                  disabled={isLoading || isRecording || isTranscribing}
                   aria-label="Chat message input"
                   style={{ lineHeight: '1.5rem' }}
               />
@@ -190,8 +211,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         variant="ghost"
                         onClick={onToggleImageMode}
                         className={cn("group rounded-lg h-11 w-11", iconColorClass)}
-                        title={isImageMode ? "Switch to Chat Mode" : "Switch to Image Mode"}
-                        disabled={isLoading}
+                        title={isImageMode ? "Switch to Text Mode" : "Switch to Visualize Mode"}
+                        disabled={isLoading || isRecording || isTranscribing}
                       >
                           {isImageMode ? <ImageIcon className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
                       </Button>
@@ -202,7 +223,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         onClick={() => fileInputRef.current?.click()}
                         className={cn("group rounded-lg h-11 w-11", iconColorClass)}
                         title="Analyze document"
-                        disabled={isLoading || isImageMode}
+                        disabled={isLoading || isImageMode || isRecording || isTranscribing}
                       >
                           <Search className="w-6 h-6" />
                       </Button>
@@ -216,7 +237,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         "absolute right-full mr-2 opacity-0 transition-all duration-300",
                         showMicButton && "opacity-100 -translate-x-1"
                     )}>
-                        <Button type="button" variant="ghost" disabled={isLoading || isImageMode} className={cn("flex-row items-center h-auto py-2 px-3 text-foreground/60 hover:text-foreground")}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={handleMicClick}
+                          disabled={isLoading || isTranscribing || isImageMode}
+                          className={cn(
+                            "flex-row items-center h-auto py-2 px-3",
+                             isRecording ? "text-red-500 hover:text-red-600" : "text-foreground/60 hover:text-foreground"
+                          )}
+                         >
                             <Mic className="w-6 h-6" />
                             <span className="text-sm font-normal whitespace-nowrap ml-2">yak with ai</span>
                         </Button>
@@ -231,7 +261,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         "transition-all duration-200",
                         !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) && "text-blue-400 hover:text-blue-300 shadow-[0_0_15px_2px_rgba(147,197,253,0.4)]"
                         )} 
-                        disabled={isLoading || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
+                        disabled={isLoading || isRecording || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
                         aria-label="Send message">
                         <Send className="w-7 h-7" strokeWidth={2.5} />
                     </Button>
@@ -241,7 +271,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           </form>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 flex justify-between items-end px-6 pointer-events-none">
+      <div className="absolute bottom-0 left-0 right-0 flex justify-between items-center px-6">
           <button
               onClick={onToggleHistoryPanel}
               className="bg-black/50 backdrop-blur-sm text-white font-bold text-xl px-6 py-2 rounded-lg pointer-events-auto shadow-lg"
@@ -251,14 +281,14 @@ const ChatInput: React.FC<ChatInputProps> = ({
           </button>
           <div className="text-center">
               {showChatTitle && (
-                  <span className="bg-black/50 backdrop-blur-sm text-white font-bold text-xl px-6 py-2 rounded-lg pointer-events-none shadow-lg opacity-75">
+                  <span className="bg-black/50 backdrop-blur-sm text-white/75 font-bold text-xl px-6 py-2 rounded-lg pointer-events-none shadow-lg">
                       {displayTitle}
                   </span>
               )}
           </div>
           <button
               onClick={onToggleAdvancedPanel}
-              className="text-white font-bold text-xl px-6 py-2 rounded-lg pointer-events-auto"
+              className="bg-black/50 backdrop-blur-sm text-white font-bold text-xl px-6 py-2 rounded-lg pointer-events-auto shadow-lg"
               aria-label="Open advanced settings"
           >
               advanced

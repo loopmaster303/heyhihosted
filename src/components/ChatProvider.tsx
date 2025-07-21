@@ -42,6 +42,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     const [selectedVoice, setSelectedVoice] = useState<string>(AVAILABLE_TTS_VOICES[0].id);
 
+    // STT State
+    const [isRecording, setIsRecording] = useState(false);
+    const [isTranscribing, setIsTranscribing] = useState(false);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+
     const { toast } = useToast();
 
     // Helper to ensure dates are handled correctly
@@ -472,7 +478,66 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       }
 
     }, [isAiResponding, activeConversation, sendMessage, toast]);
-  
+
+    const startRecording = async () => {
+        if (isRecording) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = recorder;
+            audioChunksRef.current = [];
+
+            recorder.ondataavailable = (event) => {
+                audioChunksRef.current.push(event.data);
+            };
+
+            recorder.onstart = () => {
+                setIsRecording(true);
+            };
+
+            recorder.onstop = async () => {
+                setIsRecording(false);
+                setIsTranscribing(true);
+
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('audioFile', audioFile);
+
+                    const response = await fetch('/api/stt', {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Speech-to-text failed.');
+                    }
+                    if (result.transcription && result.transcription.trim() !== '') {
+                        setChatInputValue(prev => prev + result.transcription);
+                    }
+                } catch (err: any) {
+                    toast({ title: 'Transcription Error', description: err.message, variant: 'destructive' });
+                } finally {
+                    setIsTranscribing(false);
+                    // Clean up the stream tracks
+                    stream.getTracks().forEach(track => track.stop());
+                }
+            };
+            recorder.start();
+        } catch (error) {
+            console.error('Error starting recording:', error);
+            toast({ title: 'Microphone Access Denied', description: 'Please allow microphone access in your browser settings.', variant: 'destructive' });
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+        }
+    };
   
     return {
       activeConversation, allConversations,
@@ -482,6 +547,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       playingMessageId, isTtsLoadingForId, chatInputValue,
       selectedVoice,
       isInitialLoadComplete,
+      isRecording, isTranscribing,
       selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
       requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
@@ -493,6 +559,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       setChatInputValue,
       handleCopyToClipboard,
       regenerateLastResponse,
+      startRecording, stopRecording,
       toDate,
       setActiveConversation,
     };
