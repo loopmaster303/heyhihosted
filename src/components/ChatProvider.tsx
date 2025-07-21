@@ -218,10 +218,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               if (!response.ok) throw new Error(result.error || 'Failed to perform web search.');
 
               let searchResponseText = "Web search yielded no results.";
-              if (Array.isArray(result) && result.length > 0) {
-                  searchResponseText = "Here are the top web search results:\n\n" + result.map((item: any, index: number) => 
+              if (result.type === 'results' && Array.isArray(result.data) && result.data.length > 0) {
+                  searchResponseText = "Here are the top web search results:\n\n" + result.data.map((item: any, index: number) => 
                       `${index + 1}. **${item.title}**\n*${item.url}*\n${item.description || 'No description available.'}`
                   ).join('\n\n');
+              } else if (result.type === 'text') {
+                  searchResponseText = result.data;
               }
               aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: searchResponseText, timestamp: new Date().toISOString(), toolType: 'web search' };
           } else if (isImagePrompt && chatInputValue.trim()) {

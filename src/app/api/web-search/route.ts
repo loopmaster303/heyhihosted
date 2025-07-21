@@ -37,18 +37,19 @@ export async function POST(request: Request) {
       );
     }
     
-    // Attempt to parse as JSON, but handle plain text responses gracefully
+    // Attempt to parse as JSON. If successful and it's an array, it's likely search results.
+    // Otherwise, it's treated as a plain text response from the underlying AI.
     try {
         const results = JSON.parse(responseText);
-        return NextResponse.json(results);
+        if (Array.isArray(results)) {
+            // It's a list of search results
+            return NextResponse.json({ type: 'results', data: results });
+        }
+        // It's some other JSON object, treat as plain text for simplicity
+        return NextResponse.json({ type: 'text', data: responseText.trim() });
     } catch (e) {
-        // If parsing fails, the response is likely plain text.
-        // We will wrap it in a structure that the frontend expects.
-        return NextResponse.json([{
-            title: "Web Search Result",
-            description: responseText.trim(),
-            url: searchUrl,
-        }]);
+        // If parsing fails, the response is definitely plain text.
+        return NextResponse.json({ type: 'text', data: responseText.trim() });
     }
 
   } catch (error: any) {
