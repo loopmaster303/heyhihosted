@@ -33,14 +33,19 @@ const ChatView: React.FC<ChatViewProps> = ({
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
-    // Scroll to the top of the last user message when an AI response is complete
-    if (lastUserMessageId && !isAiResponding) {
+    // This effect now triggers whenever the lastUserMessageId changes.
+    // This correctly handles both sending a new message and receiving an AI response,
+    // ensuring the viewport always focuses on the latest user interaction.
+    if (lastUserMessageId) {
       const node = messageRefs.current[lastUserMessageId];
       if (node) {
-        node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // We use requestAnimationFrame to ensure the DOM has updated before we scroll.
+        requestAnimationFrame(() => {
+            node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
       }
     }
-  }, [lastUserMessageId, isAiResponding]);
+  }, [lastUserMessageId]); // The key change: dependency is now only on lastUserMessageId
 
   const isLastMessageForRegeneration = (index: number) => {
     // A message is the "last" for regeneration purposes if it's from the assistant
@@ -76,7 +81,7 @@ const ChatView: React.FC<ChatViewProps> = ({
             />
           </div>
         ))}
-        {isAiResponding && messages[messages.length - 1]?.role === 'user' && (
+        {isAiResponding && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
            <MessageBubble message={{ id: 'loading', role: 'assistant', content: '', timestamp: new Date().toISOString() }} />
         )}
       </div>
@@ -85,5 +90,3 @@ const ChatView: React.FC<ChatViewProps> = ({
 };
 
 export default ChatView;
-
-    
