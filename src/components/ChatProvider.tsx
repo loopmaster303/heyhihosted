@@ -249,7 +249,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setAllConversations]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
@@ -305,6 +305,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       }
       const newTitle = editingTitle.trim();
       
+      setAllConversations(prev => prev.map(c => c.id === chatToEditId ? { ...c, title: newTitle } : c));
       setActiveConversation(prev => (prev?.id === chatToEditId) ? { ...prev, title: newTitle } : prev);
       
       toast({ title: "Title Updated" });
@@ -482,7 +483,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         messagesForApi: messagesForRegeneration 
       });
     
-    }, [isAiResponding, activeConversation, sendMessage, toast]);
+    }, [isAiResponding, activeConversation, sendMessage, toast, setActiveConversation]);
 
     const startRecording = async () => {
         if (isRecording) return;
