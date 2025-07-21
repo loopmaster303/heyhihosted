@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 97.3%; /* #f8f8f8 */
-    --foreground: 0 0% 10%; /* #1a1a1a */
-    --card: 0 0% 97.3%; /* #f8f8f8 */
-    --card-foreground: 0 0% 10%; /* #1a1a1a */
-    --popover: 0 0% 97.3%; /* #f8f8f8 */
-    --popover-foreground: 0 0% 10%; /* #1a1a1a */
+    --background: 240 3.7% 97.3%; /* #f8f8f8 */
+    --foreground: 240 4.8% 10%; /* #1a1a1a */
+    --card: 240 3.7% 97.3%; /* #f8f8f8 */
+    --card-foreground: 240 4.8% 10%; /* #1a1a1a */
+    --popover: 240 3.7% 97.3%; /* #f8f8f8 */
+    --popover-foreground: 240 4.8% 10%; /* #1a1a1a */
     --primary: 0 0% 91%; /* #e8e8e8 - user chat bubble */
-    --primary-foreground: 0 0% 26.7%; /* #444444 */
+    --primary-foreground: 0 0% 85%; /* #d9d9d9 - UNIFIED */
     --secondary: 0 0% 92.9%; /* #ededed - system chat bubble */
-    --secondary-foreground: 0 0% 26.7%; /* #444444 */
+    --secondary-foreground: 0 0% 85%; /* #d9d9d9 - UNIFIED */
     --muted: 0 0% 91%; /* #e8e8e8 */
-    --muted-foreground: 0 0% 26.7%; /* #444444 */
+    --muted-foreground: 0 0% 40%; /* #666 */
     --accent: 0 0% 92.9%; /* #ededed */
-    --accent-foreground: 0 0% 10%; /* #1a1a1a */
+    --accent-foreground: 240 4.8% 10%; /* #1a1a1a */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
-    --input: 0 0% 10%; /* #f8f8f8 adjusted for input */
-    --ring: 0 0% 10%; /* #1a1a1a */
+    --input: 240 4.8% 10%; /* #f8f8f8 adjusted for input */
+    --ring: 240 4.8% 10%; /* #1a1a1a */
     --radius: 0.5rem;
 
     --chart-1: 0 0% 40%;
@@ -42,10 +42,10 @@
   }
 
   .dark {
-    --background: 0 0% 6.7%; /* #111111 */
-    --foreground: 0 0% 94.1%; /* #f0f0f0 */
-    --card: 0 0% 6.7%; /* #111111 */
-    --card-foreground: 0 0% 94.1%; /* #f0f0f0 */
+    --background: 240 2.8% 6.7%; /* #111111 */
+    --foreground: 240 5.9% 94.1%; /* #f0f0f0 */
+    --card: 240 2.8% 6.7%; /* #111111 */
+    --card-foreground: 240 5.9% 94.1%; /* #f0f0f0 */
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 94.1%;
     --primary: 0 0% 16.9%; /* #2b2b2b - user chat bubble */
@@ -95,6 +95,15 @@
   .no-scrollbar {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
+  }
+  .filter-neutral {
+    filter: invert(50%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
+    opacity: 0.6;
+  }
+  .filter-purple {
+    /* Generated with https://codepen.io/sosuke/pen/Pjoqqp */
+    /* Target color: #8b5cf6 (purple-500) */
+    filter: invert(47%) sepia(87%) saturate(1437%) hue-rotate(228deg) brightness(97%) contrast(96%);
   }
 }
 

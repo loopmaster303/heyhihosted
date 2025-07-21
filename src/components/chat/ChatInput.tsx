@@ -2,9 +2,10 @@
 
 import type React from 'react';
 import { useRef, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Send, Mic, ImageIcon, MessageSquare } from 'lucide-react';
+import { Search, Send, Mic } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types';
 import HistoryPanel from './HistoryPanel';
@@ -209,11 +210,20 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         type="button"
                         variant="ghost"
                         onClick={onToggleImageMode}
-                        className={cn("group rounded-lg h-11 w-11", iconColorClass)}
+                        className="group rounded-lg h-11 w-11"
                         title={isImageMode ? "Switch to Text Mode" : "Switch to Visualize Mode"}
                         disabled={isLoading || isRecording || isTranscribing}
                       >
-                          {isImageMode ? <ImageIcon className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
+                         <Image 
+                            src="/uiself/toggle_mode_icon.png" 
+                            alt="Toggle Mode"
+                            width={24}
+                            height={24}
+                            className={cn(
+                                "transition-all duration-300",
+                                isImageMode ? "filter-purple" : "filter-neutral"
+                            )}
+                         />
                       </Button>
                       
                       <Button
