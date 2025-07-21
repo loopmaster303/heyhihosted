@@ -264,7 +264,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setIsAiResponding(false);
         setIsWebSearchMode(false); // Always turn off web search mode after a message is sent
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setAllConversations, isWebSearchMode]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, isWebSearchMode]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
