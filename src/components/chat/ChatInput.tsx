@@ -1,4 +1,3 @@
-
 'use client';
 
 import type React from 'react';
@@ -191,7 +190,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               </div>
           )}
           <form onSubmit={handleSubmit} className="w-full">
-              <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
+              <div className="bg-input rounded-2xl p-3 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1),_0_5px_15px_-5px_rgba(0,0,0,0.08)] dark:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.2),_0_5px_15px_-5px_rgba(0,0,0,0.2)] flex flex-col min-h-[96px]">
               <Textarea
                   ref={textareaRef}
                   value={inputValue}
@@ -248,7 +247,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           )}
                          >
                             <Mic className="w-6 h-6" />
-                            <span className="text-sm font-normal whitespace-nowrap ml-2">yak with ai</span>
                         </Button>
                     </div>
 
@@ -274,21 +272,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
       <div className="absolute bottom-0 left-0 right-0 flex justify-between items-center px-6">
           <button
               onClick={onToggleHistoryPanel}
-              className="bg-black/50 backdrop-blur-sm text-white font-bold text-xl px-6 py-2 rounded-lg pointer-events-auto shadow-lg"
+              className="text-foreground/80 hover:text-foreground font-bold text-xl px-6 py-2 rounded-lg pointer-events-auto transition-colors"
               aria-label="Open chat history"
           >
               throwback
           </button>
           <div className="text-center">
               {showChatTitle && (
-                  <span className="bg-black/50 backdrop-blur-sm text-white/75 font-bold text-xl px-6 py-2 rounded-lg pointer-events-none shadow-lg">
+                  <span className="text-foreground/50 font-bold text-xl px-6 py-2 rounded-lg pointer-events-none">
                       {displayTitle}
                   </span>
               )}
           </div>
           <button
               onClick={onToggleAdvancedPanel}
-              className="bg-black/50 backdrop-blur-sm text-white font-bold text-xl px-6 py-2 rounded-lg pointer-events-auto shadow-lg"
+              className="text-foreground/80 hover:text-foreground font-bold text-xl px-6 py-2 rounded-lg pointer-events-auto transition-colors"
               aria-label="Open advanced settings"
           >
               advanced

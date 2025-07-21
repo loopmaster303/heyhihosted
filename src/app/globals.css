@@ -11,7 +11,7 @@
     --popover: 0 0% 97.3%; /* #f8f8f8 */
     --popover-foreground: 0 0% 10%; /* #1a1a1a */
     --primary: 0 0% 91%; /* #e8e8e8 - user chat bubble */
-    --primary-foreground: 0 0% 10%; /* #1a1a1a */
+    --primary-foreground: 0 0% 26.7%; /* #444444 - Same as secondary */
     --secondary: 0 0% 92.9%; /* #ededed - system chat bubble */
     --secondary-foreground: 0 0% 26.7%; /* #444444 */
     --muted: 0 0% 91%; /* #e8e8e8 */
@@ -49,9 +49,9 @@
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 94.1%;
     --primary: 0 0% 16.9%; /* #2b2b2b - user chat bubble */
-    --primary-foreground: 0 0% 94.1%; /* #f0f0f0 */
+    --primary-foreground: 0 0% 83.3%; /* #d4d4d4 - Same as secondary */
     --secondary: 0 0% 14.5%; /* #252525 - system chat bubble */
-    --secondary-foreground: 0 0% 73.3%; /* #bbbbbb */
+    --secondary-foreground: 0 0% 83.3%; /* #d4d4d4 */
     --muted: 0 0% 14.5%; /* #252525 */
     --muted-foreground: 0 0% 53.3%; /* #888888 */
     --accent: 0 0% 16.9%; /* #2b2b2b */
