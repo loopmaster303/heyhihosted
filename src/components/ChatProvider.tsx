@@ -179,6 +179,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         }
     
         let updatedMessagesForState = options.messagesForApi || messages;
+        let lastUserMessageId: string | null = null;
 
         if (!options.isRegeneration) {
             let userMessageContent: string | ChatMessageContentPart[] = chatInputValue.trim();
@@ -190,9 +191,16 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             }
         
             const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
+            lastUserMessageId = userMessage.id;
             
             updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
-            setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState } : null);
+            setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState, lastUserMessageId: userMessage.id } : null);
+        } else {
+           const lastUserMsg = updatedMessagesForState.slice().reverse().find(m => m.role === 'user');
+           if (lastUserMsg) {
+                lastUserMessageId = lastUserMsg.id;
+                setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState, lastUserMessageId: lastUserMsg.id } : null);
+           }
         }
 
         const historyForApi: ApiChatMessage[] = updatedMessagesForState
@@ -248,7 +256,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       } finally {
         const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: new Date().toISOString(), isImageMode: false, uploadedFile: null, uploadedFilePreview: null };
         
-        setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
+        setActiveConversation(prev => prev ? { ...prev, ...finalConversationState, lastUserMessageId: lastUserMessageId } : null);
         setIsAiResponding(false);
       }
     }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle]);
@@ -260,7 +268,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       }
       const conversationToSelect = allConversations.find(c => c.id === conversationId);
       if (conversationToSelect) {
-          setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null });
+          setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null, lastUserMessageId: null });
       }
     }, [allConversations]);
     
@@ -496,8 +504,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       }
   
       const messagesForRegeneration = activeConversation.messages.slice(0, lastMessageIndex);
-      setActiveConversation(prev => prev ? { ...prev, messages: messagesForRegeneration } : null);
-  
+      
       sendMessage("", {
         isRegeneration: true,
         messagesForApi: messagesForRegeneration
@@ -598,10 +605,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
 
 interface ChatContextValue extends ReturnType<typeof useChatLogic> {
-    currentMessages: ChatMessage[];
-    latestUserMessage: ChatMessage | null;
-    latestAiMessage: ChatMessage | null;
-    chatHistory: ChatMessage[];
+    // No extra fields needed, everything is in useChatLogic
 }
 
 
@@ -613,38 +617,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt });
     
-    const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
-    const [latestUserMessage, setLatestUserMessage] = useState<ChatMessage | null>(null);
-    const [latestAiMessage, setLatestAiMessage] = useState<ChatMessage | null>(null);
-    const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-
-    useEffect(() => {
-        if (chatLogic.activeConversation) {
-            const messages = chatLogic.activeConversation.messages;
-            setCurrentMessages(messages);
-
-            const lastUserIndex = messages.map(m => m.role).lastIndexOf('user');
-            if (lastUserIndex !== -1) {
-                const potentialAiIndex = lastUserIndex + 1;
-                const lastUserMsg = messages[lastUserIndex];
-                const lastAiMsg = (potentialAiIndex < messages.length && messages[potentialAiIndex].role === 'assistant') ? messages[potentialAiIndex] : null;
-
-                setLatestUserMessage(lastUserMsg);
-                setLatestAiMessage(lastAiMsg);
-                setChatHistory(messages.slice(0, lastUserIndex));
-            } else {
-                setLatestUserMessage(null);
-                setLatestAiMessage(null);
-                setChatHistory(messages);
-            }
-        } else {
-            setCurrentMessages([]);
-            setLatestUserMessage(null);
-            setLatestAiMessage(null);
-            setChatHistory([]);
-        }
-    }, [chatLogic.activeConversation]);
-
     // This is a bit of a workaround to satisfy TypeScript's strictness
     // for the setChatInputValue function passed to the input component.
     const setChatInputValueWrapper = (value: string | ((prev: string) => string)) => {
@@ -653,10 +625,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const chatContextValue: ChatContextValue = {
         ...chatLogic,
-        currentMessages,
-        latestUserMessage,
-        latestAiMessage,
-        chatHistory,
         setChatInputValue: setChatInputValueWrapper,
     };
 

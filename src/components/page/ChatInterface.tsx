@@ -3,19 +3,12 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useChat } from '@/components/ChatProvider';
-
-// UI Components
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
-import MessageBubble from '@/components/chat/MessageBubble';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
-
-// Types & Config
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME } from '@/config/chat-options';
-import { Loader2 } from 'lucide-react';
-import { X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 
-// This should match the height of the AppHeader
 const HEADER_HEIGHT_PX = 72;
 
 export default function ChatInterface() {
@@ -24,7 +17,6 @@ export default function ChatInterface() {
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const advancedPanelRef = useRef<HTMLDivElement>(null);
   
-  // Custom hook to handle clicks outside of the history panel
   useOnClickOutside([historyPanelRef], () => {
     if (chat.isHistoryPanelOpen) chat.closeHistoryPanel();
   }, 'radix-select-content');
@@ -32,10 +24,8 @@ export default function ChatInterface() {
     if (chat.isAdvancedPanelOpen) chat.closeAdvancedPanel();
   }, 'radix-select-content');
 
-
   useEffect(() => {
     return () => {
-      // Ensure panels are closed on component unmount
       if (chat.isAdvancedPanelOpen) chat.closeAdvancedPanel();
       if (chat.isHistoryPanelOpen) chat.closeHistoryPanel();
     };
@@ -51,51 +41,26 @@ export default function ChatInterface() {
     );
   }
 
-  const { latestUserMessage, latestAiMessage, chatHistory } = chat;
-
   return (
-    <div className="relative h-full flex flex-col overflow-hidden" style={{ paddingTop: `${HEADER_HEIGHT_PX}px` }}>
+    <div className="relative h-full flex flex-col overflow-hidden">
       
-      {/* Sticky/Fixed Interaction Area */}
-      <div className="w-full max-w-4xl mx-auto px-4 shrink-0">
-          {latestUserMessage && (
-            <MessageBubble 
-              key={`${latestUserMessage.id}-sticky`} 
-              message={latestUserMessage}
-            />
-          )}
-          {latestAiMessage && (
-             <MessageBubble 
-              key={`${latestAiMessage.id}-sticky`} 
-              message={latestAiMessage}
-              onPlayAudio={chat.handlePlayAudio}
-              isPlaying={chat.playingMessageId === latestAiMessage.id}
-              isLoadingAudio={chat.isTtsLoadingForId === latestAiMessage.id}
-              isAnyAudioActive={chat.playingMessageId !== null || chat.isTtsLoadingForId !== null}
-              onCopy={chat.handleCopyToClipboard}
-              onRegenerate={chat.regenerateLastResponse}
-              isLastMessage={true}
-            />
-          )}
-          {chat.isAiResponding && !latestAiMessage && (
-              <MessageBubble message={{ id: 'loading', role: 'assistant', content: '...', timestamp: new Date().toISOString() }} />
-          )}
-      </div>
-
-      {/* Scrollable History Area */}
-      <div className="flex-grow overflow-y-auto no-scrollbar">
+      <div 
+        className="flex-grow flex flex-col" 
+        style={{ paddingTop: `${HEADER_HEIGHT_PX}px` }}
+      >
         <ChatView
-            messages={chatHistory}
-            className="w-full max-w-4xl mx-auto px-4"
-            onPlayAudio={chat.handlePlayAudio}
-            playingMessageId={chat.playingMessageId}
-            isTtsLoadingForId={chat.isTtsLoadingForId}
-            onCopyToClipboard={chat.handleCopyToClipboard}
-            onRegenerate={chat.regenerateLastResponse}
+          messages={chat.activeConversation.messages}
+          className="w-full max-w-4xl mx-auto px-4"
+          onPlayAudio={chat.handlePlayAudio}
+          playingMessageId={chat.playingMessageId}
+          isTtsLoadingForId={chat.isTtsLoadingForId}
+          onCopyToClipboard={chat.handleCopyToClipboard}
+          onRegenerate={chat.regenerateLastResponse}
+          isAiResponding={chat.isAiResponding}
+          lastUserMessageId={chat.activeConversation.lastUserMessageId}
         />
       </div>
 
-      {/* Fixed Input Area */}
       <div className="w-full px-4 pb-2 pt-1 pointer-events-auto bg-gradient-to-t from-background via-background/80 to-transparent">
         <div className="max-w-3xl mx-auto relative">
           {chat.activeConversation.uploadedFilePreview && !chat.isImageMode && (

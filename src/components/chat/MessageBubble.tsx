@@ -68,8 +68,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     
     if (typeof content === 'string') {
       let displayContent = content;
-      if (message.role === 'assistant' && (!content || content.trim() === '')) {
-        displayContent = "[AI response was empty]";
+       if (message.role === 'assistant' && (!content || content.trim() === '')) {
+        // Render a loading spinner if content is empty for assistant
+        return (
+          <div className="flex items-center p-2">
+            <Loader2 className="w-5 h-5 animate-spin" />
+          </div>
+        );
       }
       return <p className="text-sm whitespace-pre-wrap">{displayContent}</p>;
     }
