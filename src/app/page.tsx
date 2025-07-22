@@ -34,10 +34,10 @@ export default function HomePage() {
             {/* Container for the content with background */}
             <div className="bg-radial-gradient-fog rounded-xl md:rounded-2xl p-6 md:p-8 max-w-max">
                 <header className="shrink-0 text-center">
-                    <h1 className="text-5xl md:text-8xl lg:text-9xl font-code text-white">&lt;/hey.hi&gt;</h1>
+                    <h1 className="text-5xl md:text-8xl lg:text-9xl font-code text-white text-glow">&lt;/hey.hi&gt;</h1>
                     <nav className="mt-8 space-y-3 md:space-y-4 font-code text-xl md:text-2xl lg:text-3xl w-auto inline-block text-left">
                         {toolTileItems.map((item) => (
-                            <Link key={item.id} href={item.href || '#'} className="block w-full text-left text-gray-300 hover:text-white transition-colors">
+                            <Link key={item.id} href={item.href || '#'} className="block w-full text-left text-gray-300 hover:text-white transition-colors text-glow">
                                 {`└${item.title}`}
                             </Link>
                         ))}
@@ -47,4 +47,3 @@ export default function HomePage() {
         </div>
     );
 };
-
