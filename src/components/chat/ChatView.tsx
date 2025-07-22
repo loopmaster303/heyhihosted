@@ -67,7 +67,7 @@ const ChatView: React.FC<ChatViewProps> = ({
         {messages.map((msg, index) => (
           <div 
             key={msg.id} 
-            ref={el => messageRefs.current[msg.id] = el}
+            ref={el => { messageRefs.current[msg.id] = el; }}
           >
             <MessageBubble 
               message={msg}
