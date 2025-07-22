@@ -44,7 +44,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
         )}
       />
       
-      <header className={cn("fixed top-0 left-0 right-0 z-50 flex items-center p-4 justify-between", className)}>
+      <header className={cn("fixed top-0 left-0 right-0 z-50 flex items-center p-4 justify-between bg-background", className)}>
         <div className="flex-1"></div>
         <div className="flex-1 flex justify-center">
             <button
