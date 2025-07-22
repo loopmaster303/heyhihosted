@@ -9,6 +9,9 @@ export default {
   ],
   theme: {
     extend: {
+      backgroundImage: {
+        'radial-gradient-fog': 'radial-gradient(circle, rgba(0,0,0,0.85) 50%, rgba(0,0,0,0))',
+      },
       fontFamily: {
         body: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
         code: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
