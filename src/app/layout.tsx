@@ -31,6 +31,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </ThemeProvider>
+        <script src="https://player.vimeo.com/api/player.js"></script>
       </body>
     </html>
   );
