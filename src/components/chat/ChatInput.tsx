@@ -228,7 +228,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             title={isImageMode ? "Switch to Text Mode" : "Switch to Visualize Mode"}
                             disabled={isLoading || isRecording || isTranscribing}
                         >
-                            <ImageIcon className="w-12 h-12" />
+                            <ImageIcon className="w-16 h-16" />
                         </Button>
                         
                         <DropdownMenu>
@@ -240,7 +240,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                     title="Attach a file"
                                     disabled={isLoading || isImageMode || isRecording || isTranscribing}
                                 >
-                                    <Paperclip className="w-12 h-12" />
+                                    <Paperclip className="w-16 h-16" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-64" side="top" align="start">
@@ -271,7 +271,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                               isRecording ? "text-red-500 hover:text-red-600" : iconColorClass
                           )}
                       >
-                          <Mic className="w-12 h-12" />
+                          <Mic className="w-16 h-16" />
                       </Button>
                       <Button 
                           type="submit" 
@@ -285,7 +285,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           )} 
                           disabled={isLoading || isRecording || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
                           aria-label="Send message">
-                          <Send className="w-12 h-12" />
+                          <Send className="w-16 h-16" />
                       </Button>
                     </div>
                 </div>
