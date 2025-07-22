@@ -41,20 +41,12 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     <div 
       className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 max-h-80 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
     >
-      <div className="grid grid-cols-3 items-center px-2 pt-1 pb-2">
-        <h3 className="text-sm font-semibold text-foreground text-left">Chat History</h3>
-        <div className="flex justify-center">
-            <Button variant="ghost" size="sm" onClick={handleNewChat} className="text-foreground/80 hover:text-foreground">
-                <Plus className="w-4 h-4 mr-1.5" />
-                New Chat
-            </Button>
-        </div>
-        <div className="flex justify-end">
-            <Button variant="ghost" size="sm" onClick={onClose} className="text-foreground/80 hover:text-foreground">
-                <X className="w-4 h-4 mr-1.5" />
-                Close
-            </Button>
-        </div>
+      <div className="flex justify-between items-center px-2 pt-1 pb-2">
+        <h3 className="text-sm font-semibold text-foreground">Conversations</h3>
+        <Button variant="ghost" size="sm" onClick={onClose} className="text-foreground/80 hover:text-foreground">
+            <X className="w-4 h-4 mr-1.5" />
+            Close
+        </Button>
       </div>
       <ScrollArea className="h-full max-h-64">
         {filteredConversations.length === 0 ? (
