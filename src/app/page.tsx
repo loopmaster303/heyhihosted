@@ -1,10 +1,11 @@
 
 "use client";
 
-import React from 'react';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import React, { useState, useRef, useCallback } from 'react';
 import type { TileItem } from '@/types';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Play, Pause } from 'lucide-react';
 
 const toolTileItems: TileItem[] = [
   { id: 'long language loops', title: 'chat/conversational/assistance', href: '/chat' },
@@ -15,10 +16,27 @@ const toolTileItems: TileItem[] = [
 ];
 
 export default function HomePage() {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const [isPlaying, setIsPlaying] = useState(true);
+
+    const togglePlay = useCallback(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        if (video.paused) {
+            video.play();
+            setIsPlaying(true);
+        } else {
+            video.pause();
+            setIsPlaying(false);
+        }
+    }, []);
+
     return (
         <div className="relative flex flex-col items-center justify-center h-full p-4 overflow-hidden">
             <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
               <video
+                ref={videoRef}
                 autoPlay
                 loop
                 muted
@@ -28,7 +46,10 @@ export default function HomePage() {
               />
             </div>
             <div className="absolute top-4 right-4">
-              <ThemeToggle />
+                <Button variant="ghost" size="icon" onClick={togglePlay} className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10">
+                    {isPlaying ? <Pause className="h-[1.2rem] w-[1.2rem]" /> : <Play className="h-[1.2rem] w-[1.2rem]" />}
+                    <span className="sr-only">{isPlaying ? 'Pause video' : 'Play video'}</span>
+                </Button>
             </div>
 
             {/* Container for the content with background */}
