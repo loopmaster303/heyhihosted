@@ -199,7 +199,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               </div>
           )}
           <form onSubmit={handleSubmit} className="w-full">
-            <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-0">
+            <div className="bg-secondary rounded-2xl p-3 shadow-xl flex flex-col min-h-0">
                 <div className="flex-grow">
                     <Textarea
                         ref={textareaRef}
