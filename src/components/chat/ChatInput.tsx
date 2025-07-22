@@ -98,6 +98,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const docInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isTitleHovered, setIsTitleHovered] = useState(false);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -300,12 +301,25 @@ const ChatInput: React.FC<ChatInputProps> = ({
           >
               throwback
           </button>
-          <div className="text-center">
-              {showChatTitle && (
-                  <span className="text-foreground/50 font-bold text-xl px-2 py-1 rounded-lg pointer-events-none">
-                      {displayTitle}
-                  </span>
-              )}
+          <div
+            className="text-center h-9 flex items-center"
+            onMouseEnter={() => setIsTitleHovered(true)}
+            onMouseLeave={() => setIsTitleHovered(false)}
+          >
+              {showChatTitle &&
+                  (isTitleHovered ? (
+                      <button
+                          onClick={startNewChat}
+                          className="text-foreground font-bold text-xl px-2 py-1 rounded-lg transition-colors hover:text-foreground/80 animate-in fade-in-0"
+                          aria-label="Start new chat"
+                      >
+                          New Conversation
+                      </button>
+                  ) : (
+                      <span className="text-foreground/50 font-bold text-xl px-2 py-1 rounded-lg pointer-events-none animate-in fade-in-0">
+                          {displayTitle}
+                      </span>
+                  ))}
           </div>
           <button
               onClick={onToggleAdvancedPanel}
