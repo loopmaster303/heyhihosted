@@ -195,11 +195,11 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
     setFormFields(prevFields => ({ ...prevFields, [name]: value }));
   }, []);
 
-  const handleMainPromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleMainPromptChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMainPromptValue(e.target.value);
-  };
+  }, []);
   
-  const handleSingleFileSelectAndConvert = (file: File | null) => {
+  const handleSingleFileSelectAndConvert = useCallback((file: File | null) => {
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -217,16 +217,16 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
         setFormFields(prev => ({...prev, input_image: undefined }));
       }
     }
-  };
+  }, [isFluxModelSelected, toast]);
 
-  const handleSingleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSingleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     handleSingleFileSelectAndConvert(event.target.files?.[0] || null);
     if (singleFileInputRef.current) {
       singleFileInputRef.current.value = "";
     }
-  };
+  }, [handleSingleFileSelectAndConvert]);
   
-  const handleClearUploadedImage = () => {
+  const handleClearUploadedImage = useCallback(() => {
     setUploadedImagePreview(null);
     if (isFluxModelSelected) { 
         setFormFields(prev => ({...prev, input_image: undefined }));
@@ -234,9 +234,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
     if (singleFileInputRef.current) {
       singleFileInputRef.current.value = "";
     }
-  };
+  }, [isFluxModelSelected]);
   
-  const handleMultipleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMultipleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
@@ -258,28 +258,28 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
     if (multiFileInputRef.current) {
         multiFileInputRef.current.value = "";
     }
-  };
+  }, [referenceImages.length, toast]);
 
-  const handleRemoveReferenceImage = (index: number) => {
+  const handleRemoveReferenceImage = useCallback((index: number) => {
     setReferenceImages(prev => prev.filter((_, i) => i !== index));
     setReferenceTags(prev => prev.filter((_, i) => i !== index));
-  };
+  }, []);
   
-  const handleAddTag = () => {
+  const handleAddTag = useCallback(() => {
     if (currentTag.trim() && referenceTags.length < referenceImages.length) {
         setReferenceTags(prev => [...prev, currentTag.trim()]);
         setCurrentTag('');
     } else if (referenceTags.length >= referenceImages.length) {
         toast({ title: "Tag Limit Reached", description: "You can only add as many tags as you have reference images.", variant: "destructive" });
     }
-  };
+  }, [currentTag, referenceImages.length, referenceTags.length, toast]);
 
-  const handleRemoveTag = (index: number) => {
+  const handleRemoveTag = useCallback((index: number) => {
     setReferenceTags(prev => prev.filter((_, i) => i !== index));
-  };
+  }, []);
 
 
-  const renderInputField = (inputConfig: ReplicateModelInput) => {
+  const renderInputField = useCallback((inputConfig: ReplicateModelInput) => {
     const commonProps = {
       id: `${inputConfig.name}-replicate-param-${currentModelConfig?.id || 'default'}`,
       name: inputConfig.name,
@@ -475,9 +475,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
       default:
         return null;
     }
-  };
+  }, [currentModelConfig, loading, formFields, handleInputChange, isRunwayModelSelected, isFluxModelSelected, referenceImages, currentTag, referenceTags, handleRemoveReferenceImage, handleAddTag, handleRemoveTag]);
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedModelKey || !currentModelConfig) {
         toast({ title: "No Model Selected", description: "Please select a model first.", variant: "destructive" });
@@ -606,34 +606,34 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedModelKey, currentModelConfig, password, mainPromptValue, isFluxModelSelected, uploadedImagePreview, formFields, isRunwayModelSelected, referenceImages, referenceTags, toast]);
 
-  const handleClearHistory = () => {
+  const handleClearHistory = useCallback(() => {
     setHistory([]);
     setSelectedImage(null);
     localStorage.removeItem(HISTORY_STORAGE_KEY);
     toast({ title: "History Cleared", description: "Your image generation history has been removed." });
-  };
+  }, [toast]);
 
-  const handleSelectHistoryItem = (item: ImageHistoryItem) => {
+  const handleSelectHistoryItem = useCallback((item: ImageHistoryItem) => {
     setSelectedImage(item);
     setMainPromptValue(item.prompt);
     setIsHistoryPanelOpen(false);
-  };
+  }, []);
   
   const canSubmit = !loading && currentModelConfig &&
     ( (isFluxModelSelected && (mainPromptValue.trim() !== '' || uploadedImagePreview)) ||
       (!isFluxModelSelected && mainPromptValue.trim() !== '') );
 
-  const toggleAdvancedPanel = () => {
+  const toggleAdvancedPanel = useCallback(() => {
     if (isHistoryPanelOpen) setIsHistoryPanelOpen(false);
     setIsAdvancedPanelOpen(prev => !prev);
-  }
+  }, [isHistoryPanelOpen]);
 
-  const toggleHistoryPanel = () => {
+  const toggleHistoryPanel = useCallback(() => {
     if (isAdvancedPanelOpen) setIsAdvancedPanelOpen(false);
     setIsHistoryPanelOpen(prev => !prev);
-  }
+  }, [isAdvancedPanelOpen]);
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">

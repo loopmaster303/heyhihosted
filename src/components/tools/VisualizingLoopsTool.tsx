@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, FC, FormEvent, useRef } from 'react';
+import { useState, useEffect, useMemo, FC, FormEvent, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -168,13 +168,13 @@ const VisualizingLoopsTool: FC = () => {
     }
   }, [history, toast, isInitialLoadComplete]);
   
-  const handleSelectHistoryItem = (item: ImageHistoryItem) => {
+  const handleSelectHistoryItem = useCallback((item: ImageHistoryItem) => {
     setSelectedImage(item);
     setPrompt(item.prompt);
     setIsHistoryPanelOpen(false);
-  };
+  }, []);
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
       toast({ title: "Prompt Missing", description: "Please enter a prompt.", variant: "destructive" });
       return;
@@ -261,9 +261,9 @@ const VisualizingLoopsTool: FC = () => {
       setPrompt(newHistoryItems[0].prompt);
     }
     setLoading(false);
-  };
+  }, [prompt, toast, model, batchSize, seed, width, height, isPrivate, upsampling, transparent]);
 
-  const handleAspectRatioChange = (val: string) => {
+  const handleAspectRatioChange = useCallback((val: string) => {
     setAspectRatio(val);
     const [wStr, hStr] = val.split(':');
     const wRatio = Number(wStr);
@@ -283,29 +283,29 @@ const VisualizingLoopsTool: FC = () => {
       setWidth(newWidth);
       setHeight(newHeight);
     }
-  };
+  }, [width]);
   
-  const handleGenerateEvent = (e: FormEvent) => {
+  const handleGenerateEvent = useCallback((e: FormEvent) => {
     e.preventDefault();
     handleGenerate();
-  };
+  }, [handleGenerate]);
 
-  const handleClearHistory = () => {
+  const handleClearHistory = useCallback(() => {
     setHistory([]);
     setSelectedImage(null);
     localStorage.removeItem(HISTORY_STORAGE_KEY);
     toast({ title: "History Cleared", description: "Your image generation history has been removed." });
-  };
+  }, [toast]);
 
-  const toggleAdvancedPanel = () => {
+  const toggleAdvancedPanel = useCallback(() => {
     if (isHistoryPanelOpen) setIsHistoryPanelOpen(false);
     setIsAdvancedPanelOpen(prev => !prev);
-  }
+  }, [isHistoryPanelOpen]);
 
-  const toggleHistoryPanel = () => {
+  const toggleHistoryPanel = useCallback(() => {
     if (isAdvancedPanelOpen) setIsAdvancedPanelOpen(false);
     setIsHistoryPanelOpen(prev => !prev);
-  }
+  }, [isAdvancedPanelOpen]);
 
 
   return (
