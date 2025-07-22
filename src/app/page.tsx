@@ -41,16 +41,20 @@ export default function HomePage() {
             <div className="absolute top-4 right-4">
               <ThemeToggle />
             </div>
-            <header className="shrink-0 mb-8 md:mb-12 text-center">
-                <h1 className="text-5xl md:text-8xl lg:text-9xl font-code">&lt;/hey.hi&gt;</h1>
-                <nav className="mt-8 space-y-3 md:space-y-4 font-code text-xl md:text-2xl lg:text-3xl w-auto inline-block text-left">
-                    {toolTileItems.map((item) => (
-                        <Link key={item.id} href={item.href || '#'} className="block w-full text-left text-foreground/80 hover:text-foreground transition-colors">
-                            {`└${item.title}`}
-                        </Link>
-                    ))}
-                </nav>
-            </header>
+
+            {/* Container for the content with background */}
+            <div className="bg-black/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-2xl p-6 md:p-8 max-w-max">
+                <header className="shrink-0 text-center">
+                    <h1 className="text-5xl md:text-8xl lg:text-9xl font-code text-white">&lt;/hey.hi&gt;</h1>
+                    <nav className="mt-8 space-y-3 md:space-y-4 font-code text-xl md:text-2xl lg:text-3xl w-auto inline-block text-left">
+                        {toolTileItems.map((item) => (
+                            <Link key={item.id} href={item.href || '#'} className="block w-full text-left text-gray-300 hover:text-white transition-colors">
+                                {`└${item.title}`}
+                            </Link>
+                        ))}
+                    </nav>
+                </header>
+            </div>
         </div>
     );
 };
