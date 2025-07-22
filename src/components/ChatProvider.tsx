@@ -1,9 +1,9 @@
-
-"use client";
+'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useContext, createContext } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import useLocalStorageState from '@/hooks/useLocalStorageState';
+import { useDebounce } from '@/hooks/useDebounce'; // Sicherstellen, dass dieser Import korrekt ist
 
 import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
@@ -17,7 +17,15 @@ export interface UseChatLogicProps {
 const MAX_STORED_CONVERSATIONS = 50;
 const CHAT_HISTORY_STORAGE_KEY = 'fluxflow-chatHistory';
 
+// Helper to ensure dates are handled correctly (outside of component to avoid re-creation)
+const toDate = (timestamp: Date | string | undefined | null): Date => {
+    if (!timestamp) return new Date();
+    if (typeof timestamp === 'string') return new Date(timestamp);
+    return timestamp as Date;
+};
+
 export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLogicProps) {
+    // --- State Declarations ---
     const [allConversations, setAllConversations] = useLocalStorageState<Conversation[]>(CHAT_HISTORY_STORAGE_KEY, []);
     const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
 
@@ -45,7 +53,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     // STT State
     const [isRecording, setIsRecording] = useState(false);
     const [isTranscribing, setIsTranscribing] = useState(false);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null); // Korrekte Typisierung und Initialisierung
     const audioChunksRef = useRef<Blob[]>([]);
 
     // Camera State
@@ -54,53 +62,71 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     // New state to track the ID of the last user message for scrolling
     const [lastUserMessageId, setLastUserMessageId] = useState<string | null>(null);
 
-
     const { toast } = useToast();
 
-    // Helper to ensure dates are handled correctly
-    const toDate = (timestamp: Date | string | undefined | null): Date => {
-        if (!timestamp) return new Date();
-        if (typeof timestamp === 'string') return new Date(timestamp);
-        return timestamp as Date;
-    };
-    
-    // Initial load from localStorage is now handled by the useLocalStorageState hook directly.
-    // This effect now focuses on setting the active conversation on first load.
-    useEffect(() => {
-        const relevantConversations = allConversations.filter(c => c.toolType === 'long language loops');
-        if (activeConversation === null && relevantConversations.length > 0) {
-            // Sort to get the most recently updated one
-            const sortedConvs = [...relevantConversations].sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
-            setActiveConversation(sortedConvs[0]);
-        } else if (activeConversation === null && relevantConversations.length === 0) {
-            // No chats exist, so create a new one.
-            startNewChat();
+    // Debounced state for saving all conversations to localStorage (if needed for other effects)
+    const debouncedAllConversations = useDebounce(allConversations, 500); // 500ms debounce delay
+
+    // --- Helper Functions / Callbacks (defined early for dependencies) ---
+
+    // Callback for file handling (used by toggleImageMode, clearUploadedImage)
+    const dataURItoFile = useCallback((dataURI: string, filename: string): File => {
+        const arr = dataURI.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
         }
-        setIsInitialLoadComplete(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [allConversations]); // Dependency on allConversations ensures this runs when data is loaded.
+        return new File([u8arr], filename, { type: mime });
+    }, []);
 
-
-    // Effect to update the allConversations in localStorage whenever active one changes
-    useEffect(() => {
-        if (activeConversation) {
-            setAllConversations(prevAll => {
-                const existingIndex = prevAll.findIndex(c => c.id === activeConversation.id);
-                if (existingIndex > -1) {
-                    const newAll = [...prevAll];
-                    newAll[existingIndex] = activeConversation;
-                    return newAll.sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
-                } else {
-                    return [activeConversation, ...prevAll].sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
-                }
-            });
+    const handleFileSelect = useCallback((fileOrDataUri: File | string | null, fileType: string | null) => {
+      if (!activeConversation) return; // Stellen Sie sicher, dass activeConversation existiert
+      if (fileOrDataUri) {
+        setIsImageMode(false);
+        if (typeof fileOrDataUri === 'string') {
+            const file = dataURItoFile(fileOrDataUri, `capture-${Date.now()}.jpg`);
+            setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: file, uploadedFilePreview: fileOrDataUri } : null);
+        } else {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: fileOrDataUri, uploadedFilePreview: reader.result as string } : null);
+            };
+            reader.readAsDataURL(fileOrDataUri);
         }
-    }, [activeConversation, setAllConversations]);
+      } else {
+        setActiveConversation(prev => prev ? { ...prev, uploadedFile: null, uploadedFilePreview: null } : null);
+      }
+    }, [activeConversation, dataURItoFile, setActiveConversation, setIsImageMode]);
 
-  
-    const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]) => {
+    const clearUploadedImage = useCallback(() => {
+      if (activeConversation) handleFileSelect(null, null); 
+    }, [activeConversation, handleFileSelect]);
+
+    // Callbacks for panel toggles (used by other toggle functions)
+    const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
+    const closeAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(false), []);
+
+    // Core Chat Logic Functions (can now reference helpers defined above)
+
+    const toggleImageMode = useCallback(() => {
+        if (!activeConversation) return;
+        const newImageModeState = !isImageMode;
+        setIsImageMode(newImageModeState);
+        if(newImageModeState) {
+           handleFileSelect(null, null); // handleFileSelect ist jetzt bekannt
+        }
+    }, [activeConversation, isImageMode, handleFileSelect]);
+
+    const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]): Promise<string> => { // Rückgabetyp hinzugefügt
       const convToUpdate = allConversations.find(c => c.id === conversationId) ?? activeConversation;
-      if (!convToUpdate || convToUpdate.toolType !== 'long language loops') return;
+      
+      // Korrektur: Wenn convToUpdate null ist, einen Standardtitel zurückgeben
+      if (!convToUpdate || convToUpdate.toolType !== 'long language loops') {
+          return activeConversation?.title || "Neue Konversation"; // Sicherer Fallback
+      }
   
       const isDefaultTitle = convToUpdate.title === "default.long.language.loop" || convToUpdate.title.toLowerCase().startsWith("new ") || convToUpdate.title === "Chat";
   
@@ -129,12 +155,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
                 } catch (error) { 
                     console.error("Failed to generate chat title:", error); 
+                    return convToUpdate.title; // Fallback bei Fehler
                 }
             }
         }
       }
       return convToUpdate.title;
-    }, [allConversations, activeConversation]);
+    }, [allConversations, activeConversation, setActiveConversation]);
     
     const sendMessage = useCallback(async (
       _messageText: string,
@@ -146,7 +173,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     ) => {
         if (!activeConversation || activeConversation.toolType !== 'long language loops') return;
 
-        const { id: convId, selectedModelId, selectedResponseStyleName, messages, uploadedFile, uploadedFilePreview } = activeConversation;
+        const { id: convId, selectedModelId, selectedResponseStyleName, messages } = activeConversation;
         const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
         
         let effectiveSystemPrompt = '';
@@ -174,7 +201,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         }
         
         const isImagePrompt = options.isImageModeIntent || false;
-        const isFileUpload = !!uploadedFile && !isImagePrompt;
+        // uploadedFile und uploadedFilePreview kommen jetzt aus activeConversation
+        const isFileUpload = !!activeConversation.uploadedFile && !isImagePrompt; 
     
         if (isFileUpload && !currentModel.vision) {
           toast({ title: "Model Incompatibility", description: `Model '${currentModel.name}' doesn't support images.`, variant: "destructive" });
@@ -187,10 +215,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
         if (!options.isRegeneration) {
             let userMessageContent: string | ChatMessageContentPart[] = chatInputValue.trim();
-            if (isFileUpload && uploadedFilePreview) {
+            if (isFileUpload && activeConversation.uploadedFilePreview) { // Zugriff über activeConversation
               userMessageContent = [
                 { type: 'text', text: chatInputValue.trim() || "Describe this image." },
-                { type: 'image_url', image_url: { url: uploadedFilePreview, altText: uploadedFile?.name, isUploaded: true } }
+                { type: 'image_url', image_url: { url: activeConversation.uploadedFilePreview, altText: activeConversation.uploadedFile?.name, isUploaded: true } }
               ];
             }
         
@@ -265,7 +293,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
@@ -277,8 +305,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null });
           setLastUserMessageId(null); // Reset scroll target on chat switch
       }
-    }, [allConversations]);
+    }, [allConversations, setActiveConversation, setLastUserMessageId]);
     
+    // startNewChat muss vor dem useEffect definiert werden, der es aufruft
     const startNewChat = useCallback(() => {
         const newConversationId = crypto.randomUUID();
         const newConversationData: Conversation = {
@@ -306,17 +335,17 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setLastUserMessageId(null); // Reset scroll target on new chat
 
         return newConversationData;
-    }, [allConversations, setAllConversations]);
+    }, [allConversations, setAllConversations, setActiveConversation, setLastUserMessageId]);
     
-    const requestEditTitle = (conversationId: string) => {
+    const requestEditTitle = useCallback((conversationId: string) => {
       const convToEdit = allConversations.find(c => c.id === conversationId);
       if (!convToEdit) return;
       setChatToEditId(conversationId);
       setEditingTitle(convToEdit.title);
       setIsEditTitleDialogOpen(true);
-    };
+    }, [allConversations]);
     
-    const confirmEditTitle = () => {
+    const confirmEditTitle = useCallback(() => {
       if (!chatToEditId || !editingTitle.trim()) {
         toast({ title: "Invalid Title", description: "Title cannot be empty.", variant: "destructive" });
         return;
@@ -328,14 +357,14 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       
       toast({ title: "Title Updated" });
       setIsEditTitleDialogOpen(false);
-    };
+    }, [chatToEditId, editingTitle, setAllConversations, setActiveConversation, toast]);
   
-    const cancelEditTitle = () => setIsEditTitleDialogOpen(false);
+    const cancelEditTitle = useCallback(() => setIsEditTitleDialogOpen(false), []);
   
-    const requestDeleteChat = (conversationId: string) => {
+    const requestDeleteChat = useCallback((conversationId: string) => {
       setChatToDeleteId(conversationId);
       setIsDeleteDialogOpen(true);
-    };
+    }, []);
     
     const deleteChat = useCallback((conversationId: string) => {
         const wasActive = activeConversation?.id === conversationId;
@@ -349,88 +378,39 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           if(nextChat) {
             selectChat(nextChat.id);
           } else {
-            startNewChat();
+            startNewChat(); // startNewChat ist jetzt bekannt
           }
         }
 
         toast({ title: "Chat Deleted" });
     }, [activeConversation?.id, allConversations, selectChat, setAllConversations, toast, startNewChat]);
   
-    const confirmDeleteChat = () => {
+    const confirmDeleteChat = useCallback(() => {
       if (!chatToDeleteId) return;
       deleteChat(chatToDeleteId);
       setIsDeleteDialogOpen(false);
-    };
+    }, [chatToDeleteId, deleteChat]);
   
-    const cancelDeleteChat = () => setIsDeleteDialogOpen(false);
+    const cancelDeleteChat = useCallback(() => setIsDeleteDialogOpen(false), []);
     
-    const toggleImageMode = () => {
-        if (!activeConversation) return;
-        const newImageModeState = !isImageMode;
-        setIsImageMode(newImageModeState);
-        if(newImageModeState) {
-           handleFileSelect(null, null);
-        }
-    };
-
-    const dataURItoFile = (dataURI: string, filename: string): File => {
-        const arr = dataURI.split(',');
-        const mime = arr[0].match(/:(.*?);/)?.[1];
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-            u8arr[n] = bstr.charCodeAt(n);
-        }
-        return new File([u8arr], filename, { type: mime });
-    };
-
-    const handleFileSelect = (fileOrDataUri: File | string | null, fileType: string | null) => {
-      if (!activeConversation) return;
-      if (fileOrDataUri) {
-        setIsImageMode(false);
-        if (typeof fileOrDataUri === 'string') {
-            // It's a data URI from camera
-            const file = dataURItoFile(fileOrDataUri, `capture-${Date.now()}.jpg`);
-            setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: file, uploadedFilePreview: fileOrDataUri } : null);
-        } else {
-            // It's a file from input
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: fileOrDataUri, uploadedFilePreview: reader.result as string } : null);
-            };
-            reader.readAsDataURL(fileOrDataUri);
-        }
-      } else {
-        setActiveConversation(prev => prev ? { ...prev, uploadedFile: null, uploadedFilePreview: null } : null);
-      }
-    };
-  
-    const clearUploadedImage = () => {
-      if (activeConversation) handleFileSelect(null, null); 
-    }
-  
     const handleModelChange = useCallback((modelId: string) => {
       if (activeConversation) {
         setActiveConversation(prev => prev ? { ...prev, selectedModelId: modelId } : null);
       }
-    }, [activeConversation]);
+    }, [activeConversation, setActiveConversation]);
   
     const handleStyleChange = useCallback((styleName: string) => {
        if (activeConversation) {
         setActiveConversation(prev => prev ? { ...prev, selectedResponseStyleName: styleName } : null);
        }
-    }, [activeConversation]);
+    }, [activeConversation, setActiveConversation]);
 
-    const handleVoiceChange = (voiceId: string) => {
+    const handleVoiceChange = useCallback((voiceId: string) => {
       setSelectedVoice(voiceId);
-    };
+    }, []);
   
-    const toggleHistoryPanel = () => setIsHistoryPanelOpen(prev => !prev);
-    const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
-
-    const toggleAdvancedPanel = () => setIsAdvancedPanelOpen(prev => !prev);
-    const closeAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(false), []);
+    const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), []);
+    const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), []);
   
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
       if (audioRef.current) {
@@ -488,7 +468,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             setPlayingMessageId(null);
         }
       }
-    }, [playingMessageId, toast, selectedVoice]);
+    }, [playingMessageId, toast, selectedVoice, setIsTtsLoadingForId, setPlayingMessageId]);
   
     const handleCopyToClipboard = useCallback((text: string) => {
       if (!text) return;
@@ -513,19 +493,19 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   
       const messagesForRegeneration = activeConversation.messages.slice(0, lastMessageIndex);
       
-      sendMessage("", {
+      await sendMessage("", { // `sendMessage` ist jetzt in Scope
         isRegeneration: true,
         messagesForApi: messagesForRegeneration
       });
   
     }, [isAiResponding, activeConversation, sendMessage, toast]);
 
-    const startRecording = async () => {
+    const startRecording = useCallback(async () => { // In useCallback gewickelt
         if (isRecording) return;
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const recorder = new MediaRecorder(stream);
-            mediaRecorderRef.current = recorder;
+            mediaRecorderRef.current = recorder; // mediaRecorderRef ist jetzt korrekt typisiert und zugreifbar
             audioChunksRef.current = [];
 
             recorder.ondataavailable = (event) => {
@@ -572,17 +552,54 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             console.error('Error starting recording:', error);
             toast({ title: 'Microphone Access Denied', description: 'Please allow microphone access in your browser settings.', variant: 'destructive' });
         }
-    };
+    }, [isRecording, toast, setChatInputValue, setIsRecording, setIsTranscribing]);
 
-    const stopRecording = () => {
+    const stopRecording = useCallback(() => { // In useCallback gewickelt
         if (mediaRecorderRef.current && isRecording) {
             mediaRecorderRef.current.stop();
         }
-    };
+    }, [isRecording]);
   
-    const openCamera = () => setIsCameraOpen(true);
-    const closeCamera = () => setIsCameraOpen(false);
+    const openCamera = useCallback(() => setIsCameraOpen(true), []);
+    const closeCamera = useCallback(() => setIsCameraOpen(false), []);
 
+    // --- Effects ---
+    // Initial load from localStorage is now handled by the useLocalStorageState hook directly.
+    // This effect now focuses on setting the active conversation on first load.
+    useEffect(() => {
+        if (!isInitialLoadComplete) { // Only run once on initial load
+            const relevantConversations = allConversations.filter(c => c.toolType === 'long language loops');
+            if (activeConversation === null && relevantConversations.length > 0) {
+                const sortedConvs = [...relevantConversations].sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
+                setActiveConversation(sortedConvs[0]);
+            } else if (activeConversation === null && relevantConversations.length === 0) {
+                startNewChat(); // startNewChat ist jetzt bekannt
+            }
+            setIsInitialLoadComplete(true);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allConversations, isInitialLoadComplete, activeConversation, startNewChat]);
+
+
+    // Effect to update the allConversations in localStorage whenever active one changes
+    useEffect(() => {
+        if (activeConversation && isInitialLoadComplete) { // Ensure initial load is complete
+            setAllConversations(prevAll => {
+                const existingIndex = prevAll.findIndex(c => c.id === activeConversation.id);
+                if (existingIndex > -1) {
+                    const newAll = [...prevAll];
+                    newAll[existingIndex] = { ...activeConversation, updatedAt: new Date().toISOString() }; // Update timestamp for active chat
+                    return newAll.sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
+                } else {
+                    const newAll = [activeConversation, ...prevAll];
+                    return newAll.sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
+                }
+            });
+        }
+    }, [activeConversation, setAllConversations, isInitialLoadComplete]);
+
+
+    // --- Return Value ---
     return {
       activeConversation, allConversations,
       isAiResponding, isImageMode,
@@ -604,7 +621,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       handlePlayAudio,
       setChatInputValue,
       handleCopyToClipboard,
-      regenerateLastResponse,
+      regenerateLastResponse, // regenerateLastResponse ist jetzt in Scope
       startRecording, stopRecording,
       openCamera, closeCamera,
       toDate,
@@ -628,9 +645,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // This is a bit of a workaround to satisfy TypeScript's strictness
     // for the setChatInputValue function passed to the input component.
-    const setChatInputValueWrapper = (value: string | ((prev: string) => string)) => {
+    const setChatInputValueWrapper = useCallback((value: string | ((prev: string) => string)) => {
         chatLogic.setChatInputValue(value);
-    };
+    }, [chatLogic]);
 
     const chatContextValue: ChatContextValue = {
         ...chatLogic,
