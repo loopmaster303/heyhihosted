@@ -222,13 +222,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             variant="ghost"
                             onClick={onToggleImageMode}
                             className={cn(
-                                "group rounded-lg h-16 w-16 transition-colors duration-300",
+                                "group rounded-lg h-20 w-20 transition-colors duration-300",
                                 isImageMode ? 'text-blue-500 hover:text-blue-600' : iconColorClass
                             )}
                             title={isImageMode ? "Switch to Text Mode" : "Switch to Visualize Mode"}
                             disabled={isLoading || isRecording || isTranscribing}
                         >
-                            <ImageIcon className="w-16 h-16" />
+                            <ImageIcon className="w-12 h-12" />
                         </Button>
                         
                         <DropdownMenu>
@@ -236,11 +236,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    className={cn("group rounded-lg h-16 w-16", iconColorClass)}
+                                    className={cn("group rounded-lg h-20 w-20", iconColorClass)}
                                     title="Attach a file"
                                     disabled={isLoading || isImageMode || isRecording || isTranscribing}
                                 >
-                                    <Paperclip className="w-16 h-16" />
+                                    <Paperclip className="w-12 h-12" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-64" side="top" align="start">
@@ -267,25 +267,25 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           onClick={handleMicClick}
                           disabled={isLoading || isTranscribing || isImageMode}
                           className={cn(
-                              "group rounded-lg h-16 w-16 transition-colors duration-300",
+                              "group rounded-lg h-20 w-20 transition-colors duration-300",
                               isRecording ? "text-red-500 hover:text-red-600" : iconColorClass
                           )}
                       >
-                          <Mic className="w-16 h-16" />
+                          <Mic className="w-12 h-12" />
                       </Button>
                       <Button 
                           type="submit" 
                           variant="ghost" 
                           size="icon" 
                           className={cn(
-                          "h-16 w-16",
+                          "h-20 w-20",
                           !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) 
                             ? "text-blue-500 hover:text-blue-600"
                             : iconColorClass
                           )} 
                           disabled={isLoading || isRecording || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
                           aria-label="Send message">
-                          <Send className="w-16 h-16" />
+                          <Send className="w-12 h-12" />
                       </Button>
                     </div>
                 </div>
