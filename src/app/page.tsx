@@ -19,11 +19,11 @@ export default function HomePage() {
         <div className="relative flex flex-col items-center justify-center h-full p-4">
             <div className="fixed top-0 left-0 w-full h-full -z-10">
               <div style={{padding: '56.25% 0 0 0', position: 'relative', width: '100%', height: '100%'}}>
-                <iframe 
-                  src="https://player.vimeo.com/video/1103423962?badge=0&autopause=0&player_id=0&app_id=58479&loop=1&autoplay=1&muted=1" 
-                  frameBorder="0" 
-                  allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" 
-                  style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%'}} 
+                <iframe
+                  src="https://player.vimeo.com/video/1103423962?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1"
+                  frameBorder="0"
+                  allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
+                  style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%'}}
                   title="glitchkot"
                   allowFullScreen
                 ></iframe>
