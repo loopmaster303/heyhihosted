@@ -2,7 +2,7 @@
 'use client';
 
 import type React from 'react';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -108,7 +108,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, [inputValue]);
 
-  const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     if (isLoading || isRecording) return;
 
@@ -121,34 +121,34 @@ const ChatInput: React.FC<ChatInputProps> = ({
         textareaRef.current.style.height = 'auto';
       }
     }
-  };
+  }, [isLoading, isRecording, isLongLanguageLoopActive, uploadedFilePreviewUrl, inputValue, onSendMessage, isImageMode, onInputChange]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
-  };
+  }, [handleSubmit]);
 
-  const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleTextareaInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onInputChange(e.target.value);
-  };
+  }, [onInputChange]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, fileType: 'document' | 'image') => {
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>, fileType: 'document' | 'image') => {
     const file = event.target.files?.[0];
     onFileSelect(file || null, fileType);
     if (event.currentTarget) {
       event.currentTarget.value = "";
     }
-  };
+  }, [onFileSelect]);
   
-  const handleMicClick = () => {
+  const handleMicClick = useCallback(() => {
     if (isRecording) {
       stopRecording();
     } else {
       startRecording();
     }
-  };
+  }, [isRecording, stopRecording, startRecording]);
 
   const placeholderText = isRecording
     ? 'Recording...'
@@ -222,7 +222,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             variant="ghost"
                             onClick={onToggleImageMode}
                             className={cn(
-                                "group rounded-lg h-20 w-20 transition-colors duration-300",
+                                "group rounded-lg h-12 w-12 transition-colors duration-300",
                                 isImageMode ? 'text-blue-500 hover:text-blue-600' : iconColorClass
                             )}
                             title={isImageMode ? "Switch to Text Mode" : "Switch to Visualize Mode"}
@@ -236,7 +236,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    className={cn("group rounded-lg h-20 w-20", iconColorClass)}
+                                    className={cn("group rounded-lg h-12 w-12", iconColorClass)}
                                     title="Attach a file"
                                     disabled={isLoading || isImageMode || isRecording || isTranscribing}
                                 >
@@ -267,7 +267,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           onClick={handleMicClick}
                           disabled={isLoading || isTranscribing || isImageMode}
                           className={cn(
-                              "group rounded-lg h-20 w-20 transition-colors duration-300",
+                              "group rounded-lg h-12 w-12 transition-colors duration-300",
                               isRecording ? "text-red-500 hover:text-red-600" : iconColorClass
                           )}
                       >
@@ -278,7 +278,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           variant="ghost" 
                           size="icon" 
                           className={cn(
-                          "h-20 w-20",
+                          "h-12 w-12",
                           !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) 
                             ? "text-blue-500 hover:text-blue-600"
                             : iconColorClass
@@ -299,7 +299,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               className="text-foreground/80 hover:text-foreground font-bold text-xl px-2 py-1 rounded-lg pointer-events-auto transition-colors"
               aria-label="Open chat history"
           >
-              throwback
+              Conversations
           </button>
           <div
             className="text-center h-9 flex items-center"
@@ -336,3 +336,5 @@ const ChatInput: React.FC<ChatInputProps> = ({
 };
 
 export default ChatInput;
+
+    
