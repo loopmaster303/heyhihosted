@@ -11,9 +11,9 @@
     --popover: 240 3.7% 97.3%; /* #f8f8f8 */
     --popover-foreground: 240 4.8% 10%; /* #1a1a1a */
     --primary: 0 0% 91%; /* #e8e8e8 - user chat bubble */
-    --primary-foreground: 0 0% 85%; /* #d9d9d9 - UNIFIED */
+    --primary-foreground: 240 4.8% 10%; /* #1a1a1a - Fix for light mode */
     --secondary: 0 0% 92.9%; /* #ededed - system chat bubble */
-    --secondary-foreground: 0 0% 85%; /* #d9d9d9 - UNIFIED */
+    --secondary-foreground: 240 4.8% 10%; /* #1a1a1a - Fix for light mode */
     --muted: 0 0% 91%; /* #e8e8e8 */
     --muted-foreground: 0 0% 40%; /* #666 */
     --accent: 0 0% 92.9%; /* #ededed */
