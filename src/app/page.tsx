@@ -17,26 +17,15 @@ const toolTileItems: TileItem[] = [
 export default function HomePage() {
     return (
         <div className="relative flex flex-col items-center justify-center h-full p-4 overflow-hidden">
-            <div className="fixed top-0 left-0 w-full h-full -z-10">
-              <div style={{width: '100%', height: '100%', overflow: 'hidden', position: 'relative'}}>
-                <iframe
-                  src="https://player.vimeo.com/video/1103423962?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1"
-                  frameBorder="0"
-                  allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    width: '177.77vh', // 16/9 aspect ratio
-                    minWidth: '100vw',
-                    height: '100vw', // 9/16 aspect ratio
-                    minHeight: '100vh',
-                    transform: 'translate(-50%, -50%) scale(1.2)'
-                  }}
-                  title="glitchkot"
-                  allowFullScreen
-                ></iframe>
-              </div>
+            <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                src="/background-video.mp4"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="absolute top-4 right-4">
               <ThemeToggle />
