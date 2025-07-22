@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -22,7 +23,7 @@ export default function HomePage() {
                 loop
                 muted
                 playsInline
-                src="/kotüberkot.mp4"
+                src="/backgroundclip.mp4"
                 className="w-full h-full object-cover"
               />
             </div>
