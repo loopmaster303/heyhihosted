@@ -360,7 +360,7 @@ const VisualizingLoopsTool: FC = () => {
               ref={advancedPanelRef}
               className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
                 <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-semibold">Advanced Settings</h3>
+                    <h3 className="text-sm font-semibold">Configuration</h3>
                     <Button variant="ghost" size="sm" onClick={() => setIsAdvancedPanelOpen(false)}>
                         <X className="w-4 h-4 mr-1.5" />
                         Close
@@ -474,7 +474,7 @@ const VisualizingLoopsTool: FC = () => {
               )}
               aria-label="Open advanced settings"
             >
-              └ Advanced
+              └ Configurations
             </button>
           </div>
           

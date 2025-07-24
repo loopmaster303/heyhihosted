@@ -38,7 +38,7 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
       className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 max-h-80 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
     >
       <div className="flex justify-between items-center px-2 pt-1 pb-2">
-        <h3 className="text-sm font-semibold text-foreground">Advanced Settings</h3>
+        <h3 className="text-sm font-semibold text-foreground">Configuration</h3>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-4 h-4 mr-1.5" />
           Close

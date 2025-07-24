@@ -326,7 +326,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               className="text-foreground/80 hover:text-foreground font-bold text-xl px-2 py-1 rounded-lg pointer-events-auto transition-colors"
               aria-label="Open advanced settings"
           >
-              advanced
+              Configurations
           </button>
       </div>
       <input type="file" ref={docInputRef} onChange={(e) => handleFileChange(e, 'document')} accept="image/*,application/pdf" className="hidden" disabled={isLoading || !isLongLanguageLoopActive || isImageMode} />
