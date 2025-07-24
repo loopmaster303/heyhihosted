@@ -33,7 +33,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
     setIsMenuOpen(prev => !prev);
   }
   
-  const showUserName = userDisplayName && userDisplayName.trim() !== '' && userDisplayName !== 'User';
+  const displayName = userDisplayName && userDisplayName.trim() !== '' ? userDisplayName : 'user';
 
   return (
     <>
@@ -53,12 +53,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
                 aria-label="Toggle navigation menu"
                 disabled={loading}
             >
-              <div className="flex items-baseline gap-4">
-                  <div className="text-3xl md:text-4xl font-code text-foreground select-none font-bold">&lt;/hey.hi&gt;</div>
-                  {showUserName && (
-                      <span className="text-3xl md:text-4xl font-code text-foreground select-none font-bold">{userDisplayName}</span>
-                  )}
-              </div>
+              <h1 className="text-3xl md:text-4xl font-code text-foreground text-glow text-center">
+                  <span className="text-foreground/60">(</span>
+                  !hey.hi
+                  <span className="text-foreground/60"> = </span>
+                  <span className="text-pink-500">{`'${displayName}'`}</span>
+                  <span className="text-foreground/60">)</span>
+              </h1>
             </button>
         </div>
         <div className="flex-1 flex justify-end">
@@ -76,7 +77,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
             aria-label="Close navigation menu"
             disabled={loading}
           >
-            &lt;/hey.hi&gt;
+             <h1 className="text-5xl md:text-7xl font-code text-foreground text-glow text-center">
+                  <span className="text-foreground/60">(</span>
+                  !hey.hi
+                  <span className="text-foreground/60"> = </span>
+                  <span className="text-pink-500">{`'${displayName}'`}</span>
+                  <span className="text-foreground/60">)</span>
+              </h1>
           </button>
           
           <nav className="flex flex-col space-y-1 md:space-y-4 font-code w-auto text-left">
