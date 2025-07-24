@@ -73,8 +73,11 @@ export default function HomePage() {
         }
     }, []);
 
+    const firstFourItems = toolTileItems.slice(0, 4);
+    const lastItem = toolTileItems.length > 4 ? toolTileItems[4] : null;
+
     return (
-        <div className="relative flex flex-col items-center justify-center h-full p-4 overflow-hidden">
+        <div className="relative flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden">
             <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
               <video
                 ref={videoRef}
@@ -93,8 +96,8 @@ export default function HomePage() {
                 </Button>
             </div>
 
-            <main className="w-full max-w-2xl flex flex-col items-center">
-                 <h1 className="text-4xl md:text-5xl font-code text-white text-glow mb-12">
+            <main className="w-full max-w-4xl flex flex-col items-center">
+                 <h1 className="text-5xl md:text-7xl font-code text-white text-glow mb-12 text-center">
                     <span className="text-gray-400">(</span>
                     !hey.hi
                     <span className="text-gray-400"> = </span>
@@ -102,25 +105,48 @@ export default function HomePage() {
                     <span className="text-gray-400">)</span>
                 </h1>
 
-                <nav className="w-full space-y-3 md:space-y-4 font-code text-sm md:text-base">
-                    {toolTileItems.map((item) => (
-                        <Link key={item.id} href={item.href || '#'} className="block group">
-                            <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 md:p-4 border border-white/10 hover:border-white/30 transition-colors duration-300">
-                                <div className="flex items-center gap-3">
-                                    <span className={item.symbolColor}>+</span>
-                                    <p className={item.tagColor}>{item.tag}</p>
+                <nav className="w-full font-code text-sm md:text-base flex flex-col items-center gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
+                        {firstFourItems.map((item) => (
+                            <Link key={item.id} href={item.href || '#'} className="block group">
+                                <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 md:p-4 border border-white/10 hover:border-white/30 transition-colors duration-300 h-full">
+                                    <div className="flex items-center gap-3">
+                                        <span className={item.symbolColor}>+</span>
+                                        <p className={item.tagColor}>{item.tag}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1">
+                                        <span className="text-yellow-400">!</span>
+                                        <p><span className="text-gray-400">import </span><span className="text-gray-200">{item.importText.match(/\[.*?\]/)?.[0]}</span></p>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1">
+                                        <span className="text-purple-400">#</span>
+                                        <p><span className="text-gray-400">export </span><span className="text-gray-200">{item.exportText.match(/\[.*?\]/)?.[0]}</span></p>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3 mt-1">
-                                    <span className="text-yellow-400">!</span>
-                                    <p><span className="text-gray-400">import </span><span className="text-gray-200">{item.importText.match(/\[.*?\]/)?.[0]}</span></p>
+                            </Link>
+                        ))}
+                    </div>
+                    
+                    {lastItem && (
+                         <div className="w-full max-w-[calc(50%-0.5rem)] md:max-w-md">
+                            <Link key={lastItem.id} href={lastItem.href || '#'} className="block group">
+                                <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 md:p-4 border border-white/10 hover:border-white/30 transition-colors duration-300 h-full">
+                                    <div className="flex items-center gap-3">
+                                        <span className={lastItem.symbolColor}>+</span>
+                                        <p className={lastItem.tagColor}>{lastItem.tag}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1">
+                                        <span className="text-yellow-400">!</span>
+                                        <p><span className="text-gray-400">import </span><span className="text-gray-200">{lastItem.importText.match(/\[.*?\]/)?.[0]}</span></p>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1">
+                                        <span className="text-purple-400">#</span>
+                                        <p><span className="text-gray-400">export </span><span className="text-gray-200">{lastItem.exportText.match(/\[.*?\]/)?.[0]}</span></p>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3 mt-1">
-                                    <span className="text-purple-400">#</span>
-                                    <p><span className="text-gray-400">export </span><span className="text-gray-200">{item.exportText.match(/\[.*?\]/)?.[0]}</span></p>
-                                </div>
-                            </div>
-                        </Link>
-                    ))}
+                            </Link>
+                        </div>
+                    )}
                 </nav>
             </main>
         </div>
