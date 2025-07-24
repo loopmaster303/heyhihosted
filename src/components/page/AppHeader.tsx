@@ -69,7 +69,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
       
       {isMenuOpen && (
         <div 
-          className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] flex flex-col items-center justify-start pt-20 animate-in fade-in-0 duration-300"
+          className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] flex flex-col items-center justify-center animate-in fade-in-0 duration-300"
         >
           <button 
             onClick={toggleMenu} 
@@ -77,7 +77,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
             aria-label="Close navigation menu"
             disabled={loading}
           >
-             <h1 className="text-5xl md:text-7xl font-code text-foreground text-glow text-center">
+             <h1 className="text-4xl md:text-5xl font-code text-foreground text-glow text-center">
                   <span className="text-foreground/60">(</span>
                   !hey.hi
                   <span className="text-foreground/60"> = </span>
@@ -86,13 +86,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
               </h1>
           </button>
           
-          <nav className="flex flex-col space-y-1 md:space-y-4 font-code w-auto text-left">
-            <Link href="/" onClick={handleNavigationStart} className={cn("text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl", pathname === '/' && 'text-foreground')}>
-              {`└home/page`}
+          <nav className="flex flex-col space-y-2 font-code text-left">
+            <Link href="/" onClick={handleNavigationStart} className={cn("text-left text-foreground/60 hover:text-foreground transition-colors w-full text-lg md:text-xl", pathname === '/' && 'text-foreground')}>
+              {'</home.space>'}
             </Link>
             {toolTileItems.map((item) => (
-              <Link key={item.id} href={item.href || '#'} onClick={handleNavigationStart} className={cn("text-left text-foreground/80 hover:text-foreground transition-colors w-full text-xl md:text-3xl", pathname === item.href && 'text-foreground')}>
-                {`└${item.title}`}
+              <Link key={item.id} href={item.href || '#'} onClick={handleNavigationStart} className={cn("text-left text-foreground/60 hover:text-foreground transition-colors w-full text-lg md:text-xl", pathname === item.href && 'text-foreground')}>
+                {item.title}
               </Link>
             ))}
           </nav>

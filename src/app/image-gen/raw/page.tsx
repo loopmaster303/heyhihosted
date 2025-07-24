@@ -6,11 +6,11 @@ import type { TileItem } from '@/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 
 const toolTileItems: TileItem[] = [
-    { id: 'long language loops', title: 'chat/conversational/assistance', href: '/chat' },
-    { id: 'nocost imagination', title: 'generate/visualize/image-gen/fast', href: '/image-gen/no-cost' },
-    { id: 'premium imagination', title: 'generate/visualize/image-gen/raw', href: '/image-gen/raw' },
-    { id: 'personalization', title: 'settings/personalization', href: '/settings' },
-    { id: 'about', title: 'about/hey.hi/readme', href: '/about' },
+    { id: 'long language loops', title: '</chat.talk.discuss>', href: '/chat' },
+    { id: 'nocost imagination', title: '</generate.visuals.lite>', href: '/image-gen/no-cost' },
+    { id: 'premium imagination', title: '</generate.visuals.raw>', href: '/image-gen/raw' },
+    { id: 'personalization', title: '</settings.user.preferences>', href: '/settings' },
+    { id: 'about', title: '</about.system.readme>', href: '/about' },
 ];
 
 export default function RawImageGenPage() {
