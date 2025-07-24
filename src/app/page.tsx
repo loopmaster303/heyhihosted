@@ -7,12 +7,53 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Play, Pause } from 'lucide-react';
 
-const toolTileItems: TileItem[] = [
-  { id: 'long language loops', title: 'chat/conversational/assistance', href: '/chat' },
-  { id: 'nocost imagination', title: 'generate/visualize/image-gen/fast', href: '/image-gen/no-cost' },
-  { id: 'premium imagination', title: 'generate/visualize/image-gen/raw', href: '/image-gen/raw' },
-  { id: 'personalization', title: 'settings/personalization', href: '/settings' },
-  { id: 'about', title: 'about/hey.hi/readme', href: '/about' },
+// Adjusted to match the new design's text
+const toolTileItems = [
+  { 
+    id: 'long language loops', 
+    href: '/chat',
+    tag: '</chat.talk.discuss>',
+    importText: 'import [voice, text]',
+    exportText: 'export [conversational.assistance]',
+    tagColor: 'text-blue-400',
+    symbolColor: 'text-blue-400',
+  },
+  { 
+    id: 'nocost imagination', 
+    href: '/image-gen/no-cost',
+    tag: '</generate.visuals.lite>',
+    importText: 'import [simple.text, simple.config]',
+    exportText: 'export [fast.visualization]',
+    tagColor: 'text-green-400',
+    symbolColor: 'text-green-400',
+  },
+  { 
+    id: 'premium imagination', 
+    href: '/image-gen/raw',
+    tag: '</generate.visuals.raw>',
+    importText: 'import [image, text, expert.config]',
+    exportText: 'export [state-of-the-art.visualization]',
+    tagColor: 'text-orange-400',
+    symbolColor: 'text-orange-400',
+   },
+  { 
+    id: 'personalization', 
+    href: '/settings',
+    tag: '</settings.user.preferences>',
+    importText: 'import [your.preferences]',
+    exportText: 'export [personalized.machine.behavior]',
+    tagColor: 'text-gray-400',
+    symbolColor: 'text-gray-400',
+  },
+  { 
+    id: 'about', 
+    href: '/about',
+    tag: '</about.system.readme>',
+    importText: 'import [curiosity]',
+    exportText: 'export [transparency, context]',
+    tagColor: 'text-gray-500',
+    symbolColor: 'text-gray-500',
+  },
 ];
 
 export default function HomePage() {
@@ -45,26 +86,43 @@ export default function HomePage() {
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-4 right-4 z-10">
                 <Button variant="ghost" size="icon" onClick={togglePlay} className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10">
                     {isPlaying ? <Pause className="h-[1.2rem] w-[1.2rem]" /> : <Play className="h-[1.2rem] w-[1.2rem]" />}
                     <span className="sr-only">{isPlaying ? 'Pause video' : 'Play video'}</span>
                 </Button>
             </div>
 
-            {/* Container for the content with background */}
-            <div className="bg-radial-gradient-fog rounded-xl md:rounded-2xl p-6 md:p-8 max-w-max">
-                <header className="shrink-0 text-center">
-                    <h1 className="text-5xl md:text-8xl lg:text-9xl font-code text-white text-glow">&lt;/hey.hi&gt;</h1>
-                    <nav className="mt-8 space-y-3 md:space-y-4 font-code text-xl md:text-2xl lg:text-3xl w-auto inline-block text-left">
-                        {toolTileItems.map((item) => (
-                            <Link key={item.id} href={item.href || '#'} className="block w-full text-left text-gray-300 hover:text-white transition-colors text-glow">
-                                {`└${item.title}`}
-                            </Link>
-                        ))}
-                    </nav>
-                </header>
-            </div>
+            <main className="w-full max-w-2xl flex flex-col items-center">
+                 <h1 className="text-4xl md:text-5xl font-code text-white text-glow mb-12">
+                    <span className="text-gray-400">(</span>
+                    !hey.hi
+                    <span className="text-gray-400"> = </span>
+                    <span className="text-pink-500">{`'space'`}</span>
+                    <span className="text-gray-400">)</span>
+                </h1>
+
+                <nav className="w-full space-y-3 md:space-y-4 font-code text-sm md:text-base">
+                    {toolTileItems.map((item) => (
+                        <Link key={item.id} href={item.href || '#'} className="block group">
+                            <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 md:p-4 border border-white/10 hover:border-white/30 transition-colors duration-300">
+                                <div className="flex items-center gap-3">
+                                    <span className={item.symbolColor}>+</span>
+                                    <p className={item.tagColor}>{item.tag}</p>
+                                </div>
+                                <div className="flex items-center gap-3 mt-1">
+                                    <span className="text-yellow-400">!</span>
+                                    <p><span className="text-gray-400">import </span><span className="text-gray-200">{item.importText.match(/\[.*?\]/)?.[0]}</span></p>
+                                </div>
+                                <div className="flex items-center gap-3 mt-1">
+                                    <span className="text-purple-400">#</span>
+                                    <p><span className="text-gray-400">export </span><span className="text-gray-200">{item.exportText.match(/\[.*?\]/)?.[0]}</span></p>
+                                </div>
+                            </div>
+                        </Link>
+                    ))}
+                </nav>
+            </main>
         </div>
     );
 };
