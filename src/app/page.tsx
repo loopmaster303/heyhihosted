@@ -77,7 +77,7 @@ export default function HomePage() {
     const lastItem = toolTileItems.length > 4 ? toolTileItems[4] : null;
 
     return (
-        <div className="relative flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden">
+        <div className="relative flex flex-col items-center justify-start min-h-screen p-4 pt-24 overflow-hidden">
             <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
               <video
                 ref={videoRef}
