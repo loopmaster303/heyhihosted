@@ -235,11 +235,9 @@ export default function HomePage() {
                                                     <p className={lastItem.tagColor}>{lastItem.tag}</p>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1">
-                                                    <span className="text-yellow-400">!</span>
                                                     <p><span className="text-gray-400">import </span><span className="text-gray-200">{lastItem.importText.match(/\[.*?\]/)?.[0]}</span></p>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1">
-                                                    <span className="text-purple-400">#</span>
                                                     <p><span className="text-gray-400">export </span><span className="text-gray-200">{lastItem.exportText.match(/\[.*?\]/)?.[0]}</span></p>
                                                 </div>
                                             </motion.div>
