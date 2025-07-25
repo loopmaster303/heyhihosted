@@ -458,7 +458,7 @@ const VisualizingLoopsTool: FC = () => {
             <button
               onClick={toggleHistoryPanel}
               className={cn(
-                "text-left text-foreground/90 text-sm font-bold font-code select-none truncate",
+                "text-left text-foreground/90 text-xl font-bold font-code select-none truncate",
                 "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
               )}
               aria-label="Open image generation history"
@@ -468,7 +468,7 @@ const VisualizingLoopsTool: FC = () => {
             <button
               onClick={toggleAdvancedPanel}
               className={cn(
-                "text-right text-foreground/90 text-sm font-bold font-code select-none truncate",
+                "text-right text-foreground/90 text-xl font-bold font-code select-none truncate",
                 "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
               )}
               aria-label="Open advanced settings"
