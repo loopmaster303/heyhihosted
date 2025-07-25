@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -142,7 +141,7 @@ export default function HomePage() {
                 </Button>
             </div>
 
-            <main className="w-full max-w-4xl flex flex-col items-center p-6 md:p-8 relative">
+            <main className="w-full flex flex-col items-center p-6 md:p-8 relative" style={{ maxWidth: '1020px' }}>
                 <div className="absolute -inset-8 bg-radial-gradient-fog -z-10"></div>
                 <h1 className="text-5xl md:text-7xl font-code text-white text-glow mb-12 text-center">
                     <span className="text-gray-400">(</span>
@@ -152,19 +151,26 @@ export default function HomePage() {
                     <span className="text-gray-400">)</span>
                 </h1>
 
-                <nav 
+                <nav
                     className="w-full font-code text-sm md:text-base flex flex-col items-center gap-4"
                     onMouseLeave={() => setHoveredId(null)}
+                    style={{ marginRight: '7px' }}
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
                         {firstFourItems.map((item) => (
-                            <Link 
-                                key={item.id} 
-                                href={item.href || '#'} 
+                            <Link
+                                key={item.id}
+                                href={item.href || '#'}
                                 className="block group"
                                 onMouseEnter={() => setHoveredId(item.id)}
                             >
-                                <div className="bg-black/80 rounded-lg p-4 border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[120px] flex flex-col justify-center">
+                                <div className={cn(
+                                    "bg-black/80 rounded-lg border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[120px] flex flex-col justify-center",
+                                    item.id === 'premium imagination' ? '' : 'p-4'
+                                )} style={{
+                                    padding: item.id === 'premium imagination' ? '16px 16px 16px 19px' : undefined,
+                                    marginRight: item.id === 'personalization' ? '-2px' : undefined
+                                }}>
                                     <AnimatePresence mode="wait">
                                         {hoveredId === item.id ? (
                                             <motion.div
@@ -185,16 +191,14 @@ export default function HomePage() {
                                                 exit={{ opacity: 0 }}
                                                 transition={{ duration: 0.2 }}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <span className={item.symbolColor}>+</span>
+                                                <div className="flex items-center gap-3" style={{ fontSize: '20px' }}>
+                                                    <span className={item.symbolColor} style={{ fontSize: '17px' }}>+</span>
                                                     <p className={item.tagColor}>{item.tag}</p>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1">
-                                                    <span className="text-yellow-400">!</span>
                                                     <p><span className="text-gray-400">import </span><span className="text-gray-200">{item.importText.match(/\[.*?\]/)?.[0]}</span></p>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1">
-                                                    <span className="text-purple-400">#</span>
                                                     <p><span className="text-gray-400">export </span><span className="text-gray-200">{item.exportText.match(/\[.*?\]/)?.[0]}</span></p>
                                                 </div>
                                             </motion.div>
@@ -237,11 +241,9 @@ export default function HomePage() {
                                                     <p className={lastItem.tagColor}>{lastItem.tag}</p>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1">
-                                                    <span className="text-yellow-400">!</span>
                                                     <p><span className="text-gray-400">import </span><span className="text-gray-200">{lastItem.importText.match(/\[.*?\]/)?.[0]}</span></p>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1">
-                                                    <span className="text-purple-400">#</span>
                                                     <p><span className="text-gray-400">export </span><span className="text-gray-200">{lastItem.exportText.match(/\[.*?\]/)?.[0]}</span></p>
                                                 </div>
                                             </motion.div>
