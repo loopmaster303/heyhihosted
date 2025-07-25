@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -639,8 +638,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
     <div className="flex flex-col h-full bg-background text-foreground">
       <main className="flex-grow flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto no-scrollbar">
         <Card className="flex-grow flex flex-col border-0 shadow-none">
-          <CardHeader className="py-3 px-4">
-            <CardTitle className="text-base sm:text-lg">Output</CardTitle>
+          <CardHeader className="py-3 px-4 flex flex-col">
           </CardHeader>
           <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg flex items-center justify-center">
             {loading && <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />}
@@ -706,7 +704,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
+            <div className="rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]" style={{ backgroundColor: 'rgba(242, 228, 237, 1)' }}>
               <div className="w-full">
                   <Textarea
                     ref={textareaRef}
@@ -717,7 +715,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                     rows={1}
                     disabled={loading || !currentModelConfig}
                     aria-label="Main prompt input"
-                    style={{ lineHeight: '1.5rem' }}
+                    style={{ lineHeight: '1.5rem', fontSize: '17px' }}
                   />
               </div>
               <div className="flex w-full items-center justify-end gap-2 mt-2">
@@ -753,7 +751,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                   </TooltipProvider>
                 )}
                 <Select value={selectedModelKey} onValueChange={setSelectedModelKey} disabled={loading}>
-                  <SelectTrigger className="h-10 w-auto px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
+                  <SelectTrigger className="h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border" style={{ backgroundColor: 'rgba(238, 208, 227, 1)' }}>
                     <SelectValue placeholder="Select model" />
                   </SelectTrigger>
                   <SelectContent>
@@ -765,7 +763,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                     ))}
                   </SelectContent>
                 </Select>
-                <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg">
+                <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg" style={{ backgroundColor: 'rgba(238, 208, 227, 1)' }}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
                 </Button>
               </div>
@@ -778,22 +776,22 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
             <button
               onClick={toggleHistoryPanel}
               className={cn(
-                "text-left text-foreground/90 text-sm font-bold font-code select-none truncate",
+                "text-left text-foreground/90 text-xl font-bold font-code select-none truncate",
                 "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
               )}
               aria-label="Open image generation history"
             >
-              └ Gallery
+              <p>Gallery</p>
             </button>
              <button
               onClick={toggleAdvancedPanel}
               className={cn(
-                "text-right text-foreground/90 text-sm font-bold font-code select-none truncate",
+                "text-right text-foreground/90 text-xl font-bold font-code select-none truncate",
                 "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
               )}
               aria-label="Open advanced settings"
             >
-              └ Configurations
+              <p>Configurations</p>
             </button>
           </div>
           
