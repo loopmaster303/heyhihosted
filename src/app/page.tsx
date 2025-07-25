@@ -185,8 +185,8 @@ export default function HomePage() {
                                                 exit={{ opacity: 0 }}
                                                 transition={{ duration: 0.2 }}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <span className={item.symbolColor}>+</span>
+                                                <div className="flex items-center gap-3" style={{ fontSize: '20px' }}>
+                                                    <span className={item.symbolColor} style={{ fontSize: '17px' }}>+</span>
                                                     <p className={item.tagColor}>{item.tag}</p>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1">
