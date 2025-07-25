@@ -114,7 +114,7 @@ export default function HomePage() {
 
     return (
         <div className={cn(
-            "relative flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden",
+            "relative flex flex-col items-center justify-start min-h-screen p-4 pt-20 overflow-hidden",
             !isVideoVisible && 'bg-black'
         )}>
             <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
@@ -206,7 +206,7 @@ export default function HomePage() {
                     
                     {lastItem && (
                          <div 
-                            className="w-full max-w-[calc(50%-0.5rem)] md:max-w-md"
+                            className="w-full max-w-3xl md:max-w-[calc(50%-0.5rem)] self-center"
                             onMouseEnter={() => setHoveredId(lastItem.id)}
                         >
                             <Link key={lastItem.id} href={lastItem.href || '#'} className="block group">
