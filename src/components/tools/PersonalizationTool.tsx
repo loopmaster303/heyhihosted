@@ -62,7 +62,8 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
           value={customSystemPrompt}
           onChange={(e) => setCustomSystemPrompt(e.target.value)}
           placeholder="You are a helpful assistant that calls the user 'Captain'..."
-          className="bg-input border-border focus-visible:ring-primary min-h-[200px] text-sm font-code leading-relaxed"
+          className="border-border focus-visible:ring-primary min-h-[200px] text-sm font-code leading-relaxed"
+          style={{ backgroundColor: 'rgba(242, 228, 237, 1)' }}
         />
         <div className="font-code text-xs text-muted-foreground space-y-1 pt-1">
             <p>
