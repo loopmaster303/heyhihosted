@@ -17,7 +17,6 @@ export default function SettingsPage() {
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
   const [replicateToolPassword, setReplicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
-  const [pollinationsApiToken, setPollinationsApiToken] = useLocalStorageState<string>('pollinationsApiToken', '');
   
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
@@ -30,8 +29,6 @@ export default function SettingsPage() {
                 setCustomSystemPrompt={setCustomSystemPrompt}
                 replicateToolPassword={replicateToolPassword}
                 setReplicateToolPassword={setReplicateToolPassword}
-                pollinationsApiToken={pollinationsApiToken}
-                setPollinationsApiToken={setPollinationsApiToken}
             />
         </main>
     </div>

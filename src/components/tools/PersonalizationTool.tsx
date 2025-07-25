@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -11,8 +12,6 @@ interface PersonalizationToolProps {
   setCustomSystemPrompt: (prompt: string) => void;
   replicateToolPassword?: string;
   setReplicateToolPassword?: (password: string) => void;
-  pollinationsApiToken?: string;
-  setPollinationsApiToken?: (token: string) => void;
 }
 
 const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
@@ -22,8 +21,6 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   setCustomSystemPrompt,
   replicateToolPassword,
   setReplicateToolPassword,
-  pollinationsApiToken,
-  setPollinationsApiToken,
 }) => {
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground p-4 md:p-6 space-y-8 no-scrollbar">
@@ -73,36 +70,10 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
         </div>
       </div>
       
-      <div className="space-y-1">
-        <h1 className="text-xl font-code text-foreground">Tool Access Keys</h1>
-        <p className="text-xs text-muted-foreground font-code">
-          Enter keys to access certain AI models. These are provided by the developer.
-        </p>
-      </div>
-      
-      {setPollinationsApiToken && (
-        <div className="space-y-2">
-           <Label htmlFor="pollinationsToken" className="text-sm font-code text-muted-foreground">
-              Pollinations API Token
-            </Label>
-          <Input
-            id="pollinationsToken"
-            type="password"
-            value={pollinationsApiToken || ''}
-            onChange={(e) => setPollinationsApiToken(e.target.value)}
-            placeholder="Enter Pollinations API Token..."
-            className="border-border focus-visible:ring-primary text-base font-code bg-tool-input-bg"
-          />
-           <p className="text-xs text-muted-foreground font-code pt-1">
-             Used for all Pollinations-based text and image models.
-           </p>
-        </div>
-      )}
-      
       {setReplicateToolPassword && (
         <div className="space-y-2">
             <Label htmlFor="replicatePassword" className="text-sm font-code text-muted-foreground">
-              Replicate Tool Password
+              Raw Image Key
             </Label>
             <Input
               id="replicatePassword"
