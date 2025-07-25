@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, FC, FormEvent, useRef, useCallback } from 'react';
@@ -313,8 +312,7 @@ const VisualizingLoopsTool: FC = () => {
     <div className="flex flex-col h-full bg-background text-foreground">
       <main className="flex-grow flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto no-scrollbar">
         <Card className="flex-grow flex flex-col border-0 shadow-none">
-          <CardHeader className="py-3 px-4">
-            <CardTitle className="text-base sm:text-lg">Output</CardTitle>
+          <CardHeader className="py-3 px-4 flex flex-col">
           </CardHeader>
           <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg flex items-center justify-center">
             {loading && <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />}
@@ -423,7 +421,7 @@ const VisualizingLoopsTool: FC = () => {
           )}
 
           <form onSubmit={handleGenerateEvent}>
-            <div className="bg-input rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
+            <div className="rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]" style={{ backgroundColor: '#f2e4ed' }}>
               <div className="w-full">
                 <Textarea
                   ref={textareaRef}
@@ -435,12 +433,12 @@ const VisualizingLoopsTool: FC = () => {
                   rows={1}
                   disabled={loading}
                   aria-label="Image prompt for Pollinations models"
-                  style={{ lineHeight: '1.5rem' }}
+                  style={{ lineHeight: '1.5rem', fontSize: '17px' }}
                 />
               </div>
               <div className="flex w-full items-center justify-end gap-2 mt-2">
                  <Select value={model} onValueChange={setModel} disabled={loading}>
-                  <SelectTrigger className="h-10 w-auto px-3 rounded-lg text-xs bg-input hover:bg-muted focus-visible:ring-primary border-border">
+                  <SelectTrigger className="h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border" style={{ backgroundColor: 'rgba(238, 208, 226, 1)' }}>
                     <SelectValue placeholder="Select model" />
                   </SelectTrigger>
                   <SelectContent>
@@ -449,7 +447,7 @@ const VisualizingLoopsTool: FC = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button type="submit" disabled={loading || !prompt.trim()} className="h-10 px-4 rounded-lg">
+                <Button type="submit" disabled={loading || !prompt.trim()} className="h-10 px-4 rounded-lg" style={{ backgroundColor: '#eed0e3' }}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
                 </Button>
               </div>
