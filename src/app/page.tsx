@@ -142,7 +142,7 @@ export default function HomePage() {
                 </Button>
             </div>
 
-            <main className="w-full max-w-4xl flex flex-col items-center bg-black/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10">
+            <main className="w-full max-w-4xl flex flex-col items-center bg-black/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border animate-pulse-border">
                 <h1 className="text-5xl md:text-7xl font-code text-white text-glow mb-12 text-center">
                     <span className="text-gray-400">(</span>
                     !hey.hi
