@@ -158,13 +158,19 @@ export default function HomePage() {
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
                         {firstFourItems.map((item) => (
-                            <Link 
-                                key={item.id} 
-                                href={item.href || '#'} 
+                            <Link
+                                key={item.id}
+                                href={item.href || '#'}
                                 className="block group"
                                 onMouseEnter={() => setHoveredId(item.id)}
                             >
-                                <div className="bg-black/80 rounded-lg p-4 border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[120px] flex flex-col justify-center">
+                                <div className={cn(
+                                    "bg-black/80 rounded-lg border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[120px] flex flex-col justify-center",
+                                    item.id === 'premium imagination' ? '' : 'p-4'
+                                )} style={{
+                                    padding: item.id === 'premium imagination' ? '16px 16px 16px 19px' : undefined,
+                                    marginRight: item.id === 'personalization' ? '-2px' : undefined
+                                }}>
                                     <AnimatePresence mode="wait">
                                         {hoveredId === item.id ? (
                                             <motion.div
