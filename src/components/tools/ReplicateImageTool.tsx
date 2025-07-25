@@ -704,7 +704,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]" style={{ backgroundColor: 'rgba(242, 228, 237, 1)' }}>
+            <div className="bg-tool-input-bg rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
               <div className="w-full">
                   <Textarea
                     ref={textareaRef}
@@ -751,7 +751,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                   </TooltipProvider>
                 )}
                 <Select value={selectedModelKey} onValueChange={setSelectedModelKey} disabled={loading}>
-                  <SelectTrigger className="h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border" style={{ backgroundColor: 'rgba(238, 208, 227, 1)' }}>
+                  <SelectTrigger className="bg-tool-button-bg h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border">
                     <SelectValue placeholder="Select model" />
                   </SelectTrigger>
                   <SelectContent>
@@ -763,7 +763,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                     ))}
                   </SelectContent>
                 </Select>
-                <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg" style={{ backgroundColor: 'rgba(238, 208, 227, 1)' }}>
+                <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg bg-tool-button-bg hover:bg-muted">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
                 </Button>
               </div>

@@ -45,8 +45,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
           value={userDisplayName}
           onChange={(e) => setUserDisplayName(e.target.value)}
           placeholder="E.g., Captain Jack"
-          className="border-border focus-visible:ring-primary text-base font-code"
-          style={{ backgroundColor: 'rgba(242, 228, 237, 1)' }}
+          className="border-border focus-visible:ring-primary text-base font-code bg-tool-input-bg"
         />
         <p className="text-xs text-muted-foreground font-code pt-1">
           This name can be used by the AI if you reference it in your custom prompt (e.g., "Call me {'{userDisplayName}'}").
@@ -62,8 +61,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
           value={customSystemPrompt}
           onChange={(e) => setCustomSystemPrompt(e.target.value)}
           placeholder="You are a helpful assistant that calls the user 'Captain'..."
-          className="border-border focus-visible:ring-primary min-h-[200px] text-sm font-code leading-relaxed"
-          style={{ backgroundColor: 'rgba(242, 228, 237, 1)' }}
+          className="border-border focus-visible:ring-primary min-h-[200px] text-sm font-code leading-relaxed bg-tool-input-bg"
         />
         <div className="font-code text-xs text-muted-foreground space-y-1 pt-1">
             <p>
@@ -93,8 +91,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
             value={pollinationsApiToken || ''}
             onChange={(e) => setPollinationsApiToken(e.target.value)}
             placeholder="Enter Pollinations API Token..."
-            className="border-border focus-visible:ring-primary text-base font-code"
-            style={{ backgroundColor: 'rgba(242, 228, 237, 1)' }}
+            className="border-border focus-visible:ring-primary text-base font-code bg-tool-input-bg"
           />
            <p className="text-xs text-muted-foreground font-code pt-1">
              Used for all Pollinations-based text and image models.
@@ -113,8 +110,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
               value={replicateToolPassword || ''}
               onChange={(e) => setReplicateToolPassword(e.target.value)}
               placeholder="Enter access key for image-gen/raw..."
-              className="border-border focus-visible:ring-primary text-base font-code"
-              style={{ backgroundColor: 'rgba(242, 228, 237, 1)' }}
+              className="border-border focus-visible:ring-primary text-base font-code bg-tool-input-bg"
             />
             <p className="text-xs text-muted-foreground font-code pt-1">
               Used for the `image-gen/raw` tool.
