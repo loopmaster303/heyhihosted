@@ -69,7 +69,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
       
       {isMenuOpen && (
         <div 
-          className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] flex flex-col items-center justify-center animate-in fade-in-0 duration-300"
+          className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] flex flex-col items-center justify-start pt-24 animate-in fade-in-0 duration-300"
         >
           <button 
             onClick={toggleMenu} 
