@@ -1,12 +1,14 @@
 
 "use client";
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import type { TileItem } from '@/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, Square } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
+
 
 // Adjusted to match the new design's text
 const toolTileItems = [
@@ -70,11 +72,23 @@ const toolTileItems = [
 export default function HomePage() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [isPlaying, setIsPlaying] = useState(true);
+    const [isVideoVisible, setIsVideoVisible] = useState(true);
     const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (video) {
+            video.playbackRate = 0.75;
+        }
+    }, []);
 
     const togglePlay = useCallback(() => {
         const video = videoRef.current;
         if (!video) return;
+
+        if (!isVideoVisible) {
+            setIsVideoVisible(true);
+        }
 
         if (video.paused) {
             video.play();
@@ -83,13 +97,26 @@ export default function HomePage() {
             video.pause();
             setIsPlaying(false);
         }
+    }, [isVideoVisible]);
+
+    const handleStop = useCallback(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        setIsVideoVisible(false);
+        video.pause();
+        video.currentTime = 0;
+        setIsPlaying(false);
     }, []);
 
     const firstFourItems = toolTileItems.slice(0, 4);
     const lastItem = toolTileItems.length > 4 ? toolTileItems[4] : null;
 
     return (
-        <div className="relative flex flex-col items-center justify-start min-h-screen p-4 pt-24 overflow-hidden">
+        <div className={cn(
+            "relative flex flex-col items-center justify-start min-h-screen p-4 pt-24 overflow-hidden",
+            !isVideoVisible && 'bg-black'
+        )}>
             <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
               <video
                 ref={videoRef}
@@ -98,13 +125,20 @@ export default function HomePage() {
                 muted
                 playsInline
                 src="/backgroundclip.mp4"
-                className="w-full h-full object-cover"
+                className={cn(
+                    "w-full h-full object-cover transition-opacity duration-500",
+                    isVideoVisible ? "opacity-100" : "opacity-0"
+                )}
               />
             </div>
-            <div className="absolute top-4 right-4 z-10">
+            <div className="absolute top-4 right-4 z-10 flex gap-2">
                 <Button variant="ghost" size="icon" onClick={togglePlay} className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10">
                     {isPlaying ? <Pause className="h-[1.2rem] w-[1.2rem]" /> : <Play className="h-[1.2rem] w-[1.2rem]" />}
                     <span className="sr-only">{isPlaying ? 'Pause video' : 'Play video'}</span>
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleStop} className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10">
+                    <Square className="h-[1.2rem] w-[1.2rem]" />
+                    <span className="sr-only">Stop video</span>
                 </Button>
             </div>
 
