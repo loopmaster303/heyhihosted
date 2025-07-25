@@ -113,7 +113,8 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
               value={replicateToolPassword || ''}
               onChange={(e) => setReplicateToolPassword(e.target.value)}
               placeholder="Enter access key for image-gen/raw..."
-              className="bg-input border-border focus-visible:ring-primary text-base font-code"
+              className="border-border focus-visible:ring-primary text-base font-code"
+              style={{ backgroundColor: 'rgba(242, 228, 237, 1)' }}
             />
             <p className="text-xs text-muted-foreground font-code pt-1">
               Used for the `image-gen/raw` tool.
