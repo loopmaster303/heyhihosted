@@ -40,12 +40,16 @@ const ChatInterface: React.FC = () => {
         handleCopyToClipboard,
         regenerateLastResponse,
         isRecording, isTranscribing, startRecording, stopRecording,
-        isCameraOpen, openCamera, closeCamera
+        openCamera,
+        availableImageModels,
+        selectedImageModelId,
+        handleImageModelChange,
     } = useChat();
     
     const historyPanelRef = React.useRef<HTMLDivElement>(null);
     const advancedPanelRef = React.useRef<HTMLDivElement>(null);
 
+    // This hook now correctly ignores clicks inside any Radix UI Select/Dropdown content
     useOnClickOutside([historyPanelRef], closeHistoryPanel, 'radix-select-content');
     useOnClickOutside([advancedPanelRef], closeAdvancedPanel, 'radix-select-content');
 
@@ -109,6 +113,9 @@ const ChatInterface: React.FC = () => {
                     startRecording={startRecording}
                     stopRecording={stopRecording}
                     openCamera={openCamera}
+                    availableImageModels={availableImageModels}
+                    selectedImageModelId={selectedImageModelId}
+                    handleImageModelChange={handleImageModelChange}
                 />
             </div>
         </div>

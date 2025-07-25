@@ -202,11 +202,12 @@ const VisualizingLoopsTool: FC = () => {
         nologo: true,
         private: isPrivate,
         enhance: upsampling,
-        transparent: transparent,
       };
       
-      if (model !== 'gptimage') {
-        payload.transparent = undefined; // only send transparent for gptimage
+      // The 'transparent' param is specific to the Pollinations wrapper for OpenAI's DALL-E, 
+      // which we route to via 'gptimage'. Other models might not support it or have different param names.
+      if (model === 'gptimage') {
+        payload.transparent = transparent;
       }
       
       if (currentSeedForIteration) {
@@ -360,7 +361,7 @@ const VisualizingLoopsTool: FC = () => {
               ref={advancedPanelRef}
               className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
                 <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-semibold">Configuration</h3>
+                    <h3 className="text-sm font-semibold">Configurations</h3>
                     <Button variant="ghost" size="sm" onClick={() => setIsAdvancedPanelOpen(false)}>
                         <X className="w-4 h-4 mr-1.5" />
                         Close

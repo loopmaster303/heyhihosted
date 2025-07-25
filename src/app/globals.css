@@ -90,7 +90,7 @@
 
 @layer utilities {
   .text-glow {
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.7), 0 0 20px rgba(255, 255, 255, 0.5);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.7), 0 0 20px rgba(255, 255, 255, 0.5), 0 0 30px rgba(255, 255, 255, 0.3);
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -109,7 +109,7 @@
     filter: invert(47%) sepia(87%) saturate(1437%) hue-rotate(228deg) brightness(97%) contrast(96%);
   }
   .bg-radial-gradient-fog {
-    background-image: radial-gradient(circle, rgba(0,0,0,0.85) 50%, rgba(0,0,0,0));
+    background-image: radial-gradient(ellipse at center, rgba(0,0,0,0.85) 20%, rgba(0,0,0,0) 70%);
   }
 }
 

@@ -6,11 +6,12 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    if (!body.messages || !body.modelId) {
+    // Check for apiKey and add it to the header if it exists.
+    const { messages, modelId, systemPrompt, apiKey } = body;
+    
+    if (!messages || !modelId) {
       return NextResponse.json({ error: 'Missing required fields: messages and modelId' }, { status: 400 });
     }
-
-    const { messages, modelId, systemPrompt } = body;
 
     const payload: Record<string, any> = {
       model: modelId,
@@ -23,8 +24,12 @@ export async function POST(request: Request) {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.POLLINATIONS_API_TOKEN}`,
     };
+    
+    // Add Authorization header only if apiKey is provided
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
 
     const response = await fetch(POLLINATIONS_API_URL, {
       method: 'POST',

@@ -6,12 +6,13 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useDebounce } from '@/hooks/useDebounce'; // Sicherstellen, dass dieser Import korrekt ist
 
 import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
-import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
+import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES, FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
 
 
 export interface UseChatLogicProps {
   userDisplayName?: string;
   customSystemPrompt?: string;
+  pollinationsApiToken?: string;
 }
 
 const MAX_STORED_CONVERSATIONS = 50;
@@ -24,7 +25,7 @@ const toDate = (timestamp: Date | string | undefined | null): Date => {
     return timestamp as Date;
 };
 
-export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLogicProps) {
+export function useChatLogic({ userDisplayName, customSystemPrompt, pollinationsApiToken }: UseChatLogicProps) {
     // --- State Declarations ---
     const [allConversations, setAllConversations] = useLocalStorageState<Conversation[]>(CHAT_HISTORY_STORAGE_KEY, []);
     const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
@@ -61,6 +62,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     
     // New state to track the ID of the last user message for scrolling
     const [lastUserMessageId, setLastUserMessageId] = useState<string | null>(null);
+
+    // Image Model State
+    const [availableImageModels, setAvailableImageModels] = useState<string[]>([]);
+    const [selectedImageModelId, setSelectedImageModelId] = useLocalStorageState<string>('chatSelectedImageModel', DEFAULT_IMAGE_MODEL);
 
     const { toast } = useToast();
 
@@ -250,16 +255,17 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       try {
           let aiMessage: ChatMessage;
           if (isImagePrompt && chatInputValue.trim()) {
-              const response = await fetch('/api/openai-image', {
+              const endpoint = selectedImageModelId === 'gptimage' ? '/api/openai-image' : '/api/generate';
+              const response = await fetch(endpoint, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ prompt: chatInputValue.trim(), model: 'gptimage', private: true }),
+                  body: JSON.stringify({ prompt: chatInputValue.trim(), model: selectedImageModelId, private: true }),
               });
               const result = await response.json();
               if (!response.ok) throw new Error(result.error || 'Failed to generate image.');
               
               const aiResponseContent: ChatMessageContentPart[] = [
-                  { type: 'text', text: `Generated image for: "${chatInputValue.trim()}"` },
+                  { type: 'text', text: `Generated image for: "${chatInputValue.trim()}" (Model: ${selectedImageModelId})` },
                   { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${chatInputValue.trim()}`, isGenerated: true } }
               ];
               aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
@@ -270,7 +276,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                 body: JSON.stringify({
                     messages: historyForApi,
                     modelId: currentModel.id,
-                    systemPrompt: effectiveSystemPrompt
+                    systemPrompt: effectiveSystemPrompt,
+                    apiKey: pollinationsApiToken, // Pass the API key
                 })
               });
               const result = await response.json();
@@ -293,7 +300,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, pollinationsApiToken]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
@@ -398,6 +405,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setActiveConversation(prev => prev ? { ...prev, selectedModelId: modelId } : null);
       }
     }, [activeConversation, setActiveConversation]);
+
+    const handleImageModelChange = useCallback((modelId: string) => {
+        setSelectedImageModelId(modelId);
+    }, [setSelectedImageModelId]);
   
     const handleStyleChange = useCallback((styleName: string) => {
        if (activeConversation) {
@@ -564,6 +575,29 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const closeCamera = useCallback(() => setIsCameraOpen(false), []);
 
     // --- Effects ---
+    // Fetch available image models on initial load
+    useEffect(() => {
+        const fetchImageModels = async () => {
+          try {
+            const res = await fetch('/api/image/models');
+            if (!res.ok) throw new Error('Failed to fetch image models');
+            const data = await res.json();
+            const models = Array.isArray(data.models) ? data.models : FALLBACK_IMAGE_MODELS;
+            setAvailableImageModels(models);
+            // Ensure the selected model is valid
+            if (!models.includes(selectedImageModelId)) {
+              setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
+            }
+          } catch (error) {
+            console.error("Error fetching image models for chat:", error);
+            setAvailableImageModels(FALLBACK_IMAGE_MODELS);
+            setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
+          }
+        };
+        fetchImageModels();
+    }, [selectedImageModelId, setSelectedImageModelId]);
+
+
     // Initial load from localStorage is now handled by the useLocalStorageState hook directly.
     // This effect now focuses on setting the active conversation on first load.
     useEffect(() => {
@@ -611,11 +645,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       lastUserMessageId, // Expose for the view
       isRecording, isTranscribing,
       isCameraOpen,
+      availableImageModels, selectedImageModelId,
       selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
       requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
       handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
-      handleVoiceChange,
+      handleVoiceChange, handleImageModelChange,
       toggleHistoryPanel, closeHistoryPanel, 
       toggleAdvancedPanel, closeAdvancedPanel,
       handlePlayAudio,
@@ -640,8 +675,10 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
     const [customSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
+    const [pollinationsApiToken] = useLocalStorageState<string>("pollinationsApiToken", "");
+
     
-    const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt });
+    const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt, pollinationsApiToken });
     
     // This is a bit of a workaround to satisfy TypeScript's strictness
     // for the setChatInputValue function passed to the input component.

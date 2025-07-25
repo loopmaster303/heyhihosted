@@ -55,6 +55,9 @@ interface ChatInputProps {
   startRecording: () => void;
   stopRecording: () => void;
   openCamera: () => void;
+  availableImageModels: string[];
+  selectedImageModelId: string;
+  handleImageModelChange: (modelId: string) => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -94,6 +97,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
   startRecording,
   stopRecording,
   openCamera,
+  availableImageModels,
+  selectedImageModelId,
+  handleImageModelChange,
 }) => {
   const docInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -155,7 +161,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     : isTranscribing
     ? 'Transcribing...'
     : isImageMode
-    ? "just provide in natural language your imagination and the machine (gpt image-1) will visualize it directy in chat."
+    ? `Imagination using ${selectedImageModelId}...`
     : "just ask/discuss everything. get natural and humanlike support by the machine.";
 
   const iconColorClass = "text-foreground/60 hover:text-foreground";
@@ -195,6 +201,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       onStyleChange={handleStyleChange}
                       selectedVoice={selectedVoice}
                       onVoiceChange={handleVoiceChange}
+                      availableImageModels={availableImageModels}
+                      selectedImageModelId={selectedImageModelId}
+                      onImageModelChange={handleImageModelChange}
                       onClose={closeAdvancedPanel}
                   />
               </div>
@@ -336,5 +345,3 @@ const ChatInput: React.FC<ChatInputProps> = ({
 };
 
 export default ChatInput;
-
-    

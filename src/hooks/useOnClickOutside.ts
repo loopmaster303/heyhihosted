@@ -6,6 +6,8 @@ import { useEffect, type RefObject } from 'react';
 type AnyEvent = MouseEvent | TouchEvent;
 type RefArray = RefObject<HTMLElement>[];
 
+// Updated to also ignore clicks within Radix popper content wrappers,
+// which is necessary for Select/Dropdown menus that render in a portal.
 export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
   refs: RefArray,
   handler: (event: AnyEvent) => void,
@@ -13,11 +15,15 @@ export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
 ): void {
   useEffect(() => {
     const listener = (event: AnyEvent) => {
-      
       const target = event.target as Node;
 
-      // Do nothing if the click is on an ignored element
+      // Do nothing if the click is on an element with the ignored class
       if (ignoredClass && (target as Element).closest(`.${ignoredClass}`)) {
+        return;
+      }
+      
+      // Do nothing if the click is inside a Radix popper (for Selects, Dropdowns etc.)
+      if ((target as Element).closest('[data-radix-popper-content-wrapper]')) {
         return;
       }
 
