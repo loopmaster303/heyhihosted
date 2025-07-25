@@ -49,6 +49,7 @@ const ChatInterface: React.FC = () => {
     const historyPanelRef = React.useRef<HTMLDivElement>(null);
     const advancedPanelRef = React.useRef<HTMLDivElement>(null);
 
+    // This hook now correctly ignores clicks inside any Radix UI Select/Dropdown content
     useOnClickOutside([historyPanelRef], closeHistoryPanel, 'radix-select-content');
     useOnClickOutside([advancedPanelRef], closeAdvancedPanel, 'radix-select-content');
 
