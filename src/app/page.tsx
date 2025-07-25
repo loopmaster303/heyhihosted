@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -142,7 +141,7 @@ export default function HomePage() {
                 </Button>
             </div>
 
-            <main className="w-full max-w-4xl flex flex-col items-center p-6 md:p-8 relative">
+            <main className="w-full flex flex-col items-center p-6 md:p-8 relative" style={{ maxWidth: '1020px' }}>
                 <div className="absolute -inset-8 bg-radial-gradient-fog -z-10"></div>
                 <h1 className="text-5xl md:text-7xl font-code text-white text-glow mb-12 text-center">
                     <span className="text-gray-400">(</span>
