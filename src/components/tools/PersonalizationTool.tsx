@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -46,7 +45,8 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
           value={userDisplayName}
           onChange={(e) => setUserDisplayName(e.target.value)}
           placeholder="E.g., Captain Jack"
-          className="bg-input border-border focus-visible:ring-primary text-base font-code"
+          className="border-border focus-visible:ring-primary text-base font-code"
+          style={{ backgroundColor: 'rgba(242, 228, 237, 1)' }}
         />
         <p className="text-xs text-muted-foreground font-code pt-1">
           This name can be used by the AI if you reference it in your custom prompt (e.g., "Call me {'{userDisplayName}'}").
