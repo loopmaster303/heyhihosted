@@ -704,7 +704,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="bg-tool-input-bg rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
+            <div className="bg-secondary rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
               <div className="w-full">
                   <Textarea
                     ref={textareaRef}
@@ -751,7 +751,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                   </TooltipProvider>
                 )}
                 <Select value={selectedModelKey} onValueChange={setSelectedModelKey} disabled={loading}>
-                  <SelectTrigger className="bg-tool-button-bg h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border">
+                  <SelectTrigger className="bg-background/50 h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border">
                     <SelectValue placeholder="Select model" />
                   </SelectTrigger>
                   <SelectContent>
@@ -763,7 +763,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
                     ))}
                   </SelectContent>
                 </Select>
-                <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg bg-tool-button-bg hover:bg-muted">
+                <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg bg-background/50 hover:bg-muted">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
                 </Button>
               </div>
