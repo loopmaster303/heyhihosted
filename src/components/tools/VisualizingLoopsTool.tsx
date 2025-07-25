@@ -463,7 +463,7 @@ const VisualizingLoopsTool: FC = () => {
               )}
               aria-label="Open image generation history"
             >
-              └ Gallery
+              <p> Gallery</p>
             </button>
             <button
               onClick={toggleAdvancedPanel}
@@ -473,7 +473,7 @@ const VisualizingLoopsTool: FC = () => {
               )}
               aria-label="Open advanced settings"
             >
-              └ Configurations
+              <p> Configurations</p>
             </button>
           </div>
           
