@@ -1,4 +1,3 @@
-
 'use client';
 
 import type React from 'react';
@@ -221,7 +220,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         rows={1}
                         disabled={isLoading || isRecording || isTranscribing}
                         aria-label="Chat message input"
-                        style={{ lineHeight: '1.5rem' }}
+                        style={{ lineHeight: '1.5rem', fontSize: '17px' }}
                     />
                 </div>
                 <div className="flex w-full items-center justify-between gap-1 -ml-1">
@@ -280,7 +279,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                               isRecording ? "text-red-500 hover:text-red-600" : iconColorClass
                           )}
                       >
-                          <Mic className="w-16 h-16" />
+                          <Mic className="w-[18px] h-[18px]" style={{ maxWidth: '500px', width: '100%' }} />
                       </Button>
                       <Button 
                           type="submit" 
@@ -294,7 +293,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           )} 
                           disabled={isLoading || isRecording || (!inputValue.trim() && !(isLongLanguageLoopActive && uploadedFilePreviewUrl))} 
                           aria-label="Send message">
-                          <Send className="w-16 h-16" />
+                          <Send className="w-[26px] h-[26px]" />
                       </Button>
                     </div>
                 </div>
