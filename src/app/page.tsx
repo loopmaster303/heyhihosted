@@ -114,7 +114,7 @@ export default function HomePage() {
 
     return (
         <div className={cn(
-            "relative flex flex-col items-center justify-start min-h-screen p-4 pt-24 overflow-hidden",
+            "relative flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden",
             !isVideoVisible && 'bg-black'
         )}>
             <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
@@ -142,7 +142,7 @@ export default function HomePage() {
                 </Button>
             </div>
 
-            <main className="w-full max-w-4xl flex flex-col items-center">
+            <main className="w-full max-w-4xl flex flex-col items-center bg-black/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10">
                 <h1 className="text-5xl md:text-7xl font-code text-white text-glow mb-12 text-center">
                     <span className="text-gray-400">(</span>
                     !hey.hi
@@ -163,7 +163,7 @@ export default function HomePage() {
                                 className="block group"
                                 onMouseEnter={() => setHoveredId(item.id)}
                             >
-                                <div className="bg-black/80 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[120px] flex flex-col justify-center">
+                                <div className="bg-black/80 rounded-lg p-4 border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[120px] flex flex-col justify-center">
                                     <AnimatePresence mode="wait">
                                         {hoveredId === item.id ? (
                                             <motion.div
@@ -210,7 +210,7 @@ export default function HomePage() {
                             onMouseEnter={() => setHoveredId(lastItem.id)}
                         >
                             <Link key={lastItem.id} href={lastItem.href || '#'} className="block group">
-                                <div className="bg-black/80 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[120px] flex flex-col justify-center">
+                                <div className="bg-black/80 rounded-lg p-4 border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[120px] flex flex-col justify-center">
                                     <AnimatePresence mode="wait">
                                        {hoveredId === lastItem.id ? (
                                             <motion.div
