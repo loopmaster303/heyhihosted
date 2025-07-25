@@ -93,7 +93,8 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
             value={pollinationsApiToken || ''}
             onChange={(e) => setPollinationsApiToken(e.target.value)}
             placeholder="Enter Pollinations API Token..."
-            className="bg-input border-border focus-visible:ring-primary text-base font-code"
+            className="border-border focus-visible:ring-primary text-base font-code"
+            style={{ backgroundColor: 'rgba(242, 228, 237, 1)' }}
           />
            <p className="text-xs text-muted-foreground font-code pt-1">
              Used for all Pollinations-based text and image models.
