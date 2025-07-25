@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -38,7 +39,7 @@ const toolTileItems = [
     href: '/image-gen/raw',
     tag: '</generate.visuals.raw>',
     importText: 'import [image, text, expert.config]',
-    exportText: 'export [state-of-the-art.visualization]',
+    exportText: 'export [sota.visualization]',
     tagColor: 'text-orange-400',
     symbolColor: 'text-orange-400',
     hoverTitle: 'generate.visuals.raw',
@@ -49,7 +50,7 @@ const toolTileItems = [
     href: '/settings',
     tag: '</settings.user.preferences>',
     importText: 'import [your.preferences]',
-    exportText: 'export [personalized.machine.behavior]',
+    exportText: 'export [personalized.behavior]',
     tagColor: 'text-gray-400',
     symbolColor: 'text-gray-400',
     hoverTitle: 'settings.user.preferences',
@@ -192,7 +193,6 @@ export default function HomePage() {
                                                 transition={{ duration: 0.2 }}
                                             >
                                                 <div className="flex items-center gap-3" style={{ fontSize: '20px' }}>
-                                                    <span className={item.symbolColor} style={{ fontSize: '17px' }}>+</span>
                                                     <p className={item.tagColor}>{item.tag}</p>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1">
@@ -237,7 +237,6 @@ export default function HomePage() {
                                                 transition={{ duration: 0.2 }}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <span className={lastItem.symbolColor}>+</span>
                                                     <p className={lastItem.tagColor}>{lastItem.tag}</p>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1">
