@@ -12,6 +12,8 @@ interface PersonalizationToolProps {
   setCustomSystemPrompt: (prompt: string) => void;
   replicateToolPassword?: string;
   setReplicateToolPassword?: (password: string) => void;
+  pollinationsApiToken?: string;
+  setPollinationsApiToken?: (token: string) => void;
 }
 
 const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
@@ -21,6 +23,8 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   setCustomSystemPrompt,
   replicateToolPassword,
   setReplicateToolPassword,
+  pollinationsApiToken,
+  setPollinationsApiToken,
 }) => {
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground p-4 md:p-6 space-y-8 no-scrollbar">
@@ -69,23 +73,49 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
             </p>
         </div>
       </div>
-
-      {setReplicateToolPassword && (
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <h1 className="text-xl font-code text-foreground">image-gen/raw access key</h1>
-            <p className="text-xs text-muted-foreground font-code">
-              Enter a key to generate with the image/gen/raw tool. A key may be required for full access. Provided by the developer.
-            </p>
-          </div>
+      
+      <div className="space-y-1">
+        <h1 className="text-xl font-code text-foreground">Tool Access Keys</h1>
+        <p className="text-xs text-muted-foreground font-code">
+          Enter keys to access certain AI models. These are provided by the developer.
+        </p>
+      </div>
+      
+      {setPollinationsApiToken && (
+        <div className="space-y-2">
+           <Label htmlFor="pollinationsToken" className="text-sm font-code text-muted-foreground">
+              Pollinations API Token
+            </Label>
           <Input
-            id="replicatePassword"
+            id="pollinationsToken"
             type="password"
-            value={replicateToolPassword || ''}
-            onChange={(e) => setReplicateToolPassword(e.target.value)}
-            placeholder="Enter access key..."
+            value={pollinationsApiToken || ''}
+            onChange={(e) => setPollinationsApiToken(e.target.value)}
+            placeholder="Enter Pollinations API Token..."
             className="bg-input border-border focus-visible:ring-primary text-base font-code"
           />
+           <p className="text-xs text-muted-foreground font-code pt-1">
+             Used for all Pollinations-based text and image models.
+           </p>
+        </div>
+      )}
+      
+      {setReplicateToolPassword && (
+        <div className="space-y-2">
+            <Label htmlFor="replicatePassword" className="text-sm font-code text-muted-foreground">
+              Replicate Tool Password
+            </Label>
+            <Input
+              id="replicatePassword"
+              type="password"
+              value={replicateToolPassword || ''}
+              onChange={(e) => setReplicateToolPassword(e.target.value)}
+              placeholder="Enter access key for image-gen/raw..."
+              className="bg-input border-border focus-visible:ring-primary text-base font-code"
+            />
+            <p className="text-xs text-muted-foreground font-code pt-1">
+              Used for the `image-gen/raw` tool.
+            </p>
         </div>
       )}
       

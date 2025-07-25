@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Brain, Fingerprint, Speech, X } from 'lucide-react';
+import { Brain, Fingerprint, Speech, X, Image as ImageIcon } from 'lucide-react';
 import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import { ScrollArea } from '../ui/scroll-area';
 import { Button } from '../ui/button';
@@ -21,6 +21,9 @@ interface AdvancedSettingsPanelProps {
   onStyleChange: (styleName: string) => void;
   selectedVoice: string;
   onVoiceChange: (voiceId: string) => void;
+  availableImageModels: string[];
+  selectedImageModelId: string;
+  onImageModelChange: (modelId: string) => void;
   onClose: () => void;
 }
 
@@ -31,6 +34,9 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
   onStyleChange,
   selectedVoice,
   onVoiceChange,
+  availableImageModels,
+  selectedImageModelId,
+  onImageModelChange,
   onClose
 }) => {
   return (
@@ -47,7 +53,7 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
       <ScrollArea className="h-full max-h-64">
         <div className="grid gap-4 p-2">
             <div className="space-y-2">
-                <p className="font-medium leading-none text-sm flex items-center gap-2"><Brain className="w-4 h-4" />AI Model</p>
+                <p className="font-medium leading-none text-sm flex items-center gap-2"><Brain className="w-4 h-4" />AI Model (Text)</p>
                 <Select value={selectedModelId} onValueChange={onModelChange}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select a model" />
@@ -55,6 +61,19 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
                     <SelectContent>
                         {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
                             <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+             <div className="space-y-2">
+                <p className="font-medium leading-none text-sm flex items-center gap-2"><ImageIcon className="w-4 h-4" />AI Model (Image)</p>
+                <Select value={selectedImageModelId} onValueChange={onImageModelChange}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select an image model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableImageModels.map((model) => (
+                            <SelectItem key={model} value={model}>{model}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
