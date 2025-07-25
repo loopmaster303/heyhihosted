@@ -151,9 +151,10 @@ export default function HomePage() {
                     <span className="text-gray-400">)</span>
                 </h1>
 
-                <nav 
+                <nav
                     className="w-full font-code text-sm md:text-base flex flex-col items-center gap-4"
                     onMouseLeave={() => setHoveredId(null)}
+                    style={{ marginRight: '7px' }}
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
                         {firstFourItems.map((item) => (
