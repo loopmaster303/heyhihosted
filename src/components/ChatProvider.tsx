@@ -103,8 +103,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }, [activeConversation, dataURItoFile, setActiveConversation, setIsImageMode]);
 
     const clearUploadedImage = useCallback(() => {
-      if (activeConversation) handleFileSelect(null, null); 
-    }, [activeConversation, handleFileSelect]);
+      if (activeConversation) {
+        setActiveConversation(prev => prev ? { ...prev, uploadedFile: null, uploadedFilePreview: null } : null);
+      }
+    }, [activeConversation]);
 
     // Callbacks for panel toggles (used by other toggle functions)
     const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);

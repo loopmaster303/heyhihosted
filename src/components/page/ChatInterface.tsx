@@ -17,6 +17,7 @@ const ChatInterface: React.FC = () => {
         isImageMode, 
         toggleImageMode, 
         handleFileSelect,
+        clearUploadedImage,
         isHistoryPanelOpen,
         toggleHistoryPanel,
         closeHistoryPanel,
@@ -81,6 +82,7 @@ const ChatInterface: React.FC = () => {
                     isLoading={isAiResponding}
                     uploadedFilePreviewUrl={uploadedFilePreview || null}
                     onFileSelect={(file, type) => handleFileSelect(file, type)}
+                    onClearUploadedImage={clearUploadedImage}
                     isLongLanguageLoopActive={true}
                     inputValue={chatInputValue}
                     onInputChange={setChatInputValue}

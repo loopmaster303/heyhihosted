@@ -5,7 +5,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage } from 'lucide-react';
+import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types';
 import HistoryPanel from './HistoryPanel';
@@ -22,6 +22,7 @@ interface ChatInputProps {
   isLoading: boolean;
   uploadedFilePreviewUrl: string | null;
   onFileSelect: (file: File | null, fileType: string | null) => void;
+  onClearUploadedImage: () => void;
   isLongLanguageLoopActive: boolean;
   inputValue: string;
   onInputChange: (value: string | ((prev: string) => string)) => void;
@@ -64,6 +65,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   isLoading,
   uploadedFilePreviewUrl,
   onFileSelect,
+  onClearUploadedImage,
   isLongLanguageLoopActive,
   inputValue,
   onInputChange,
@@ -238,6 +240,28 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         >
                             <ImageIcon className="w-16 h-16" />
                         </Button>
+                        
+                        {uploadedFilePreviewUrl && !isImageMode && (
+                            <div className="relative group mr-2">
+                                <Image
+                                    src={uploadedFilePreviewUrl}
+                                    alt="File preview"
+                                    width={36}
+                                    height={36}
+                                    className="rounded-md object-cover h-9 w-9"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    onClick={onClearUploadedImage}
+                                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    aria-label="Remove attached file"
+                                >
+                                    <XCircle className="h-5 w-5" />
+                                </Button>
+                            </div>
+                        )}
                         
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
