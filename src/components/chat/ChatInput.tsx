@@ -301,10 +301,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
           </form>
       </div>
 
-      <div className="flex justify-between items-center px-6 py-2">
+      <div className="flex justify-between items-center px-4 sm:px-6 py-2">
           <button
               onClick={onToggleHistoryPanel}
-              className="text-foreground/80 hover:text-foreground font-bold text-xl px-2 py-1 rounded-lg pointer-events-auto transition-colors"
+              className="text-foreground/80 hover:text-foreground font-bold text-sm sm:text-base md:text-lg px-2 py-1 rounded-lg pointer-events-auto transition-colors"
               aria-label="Open chat history"
           >
               Conversations
@@ -318,20 +318,20 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   (isTitleHovered ? (
                       <button
                           onClick={startNewChat}
-                          className="text-foreground font-bold text-xl px-2 py-1 rounded-lg transition-colors hover:text-foreground/80 animate-in fade-in-0"
+                          className="text-foreground font-bold text-sm sm:text-base md:text-lg px-2 py-1 rounded-lg transition-colors hover:text-foreground/80 animate-in fade-in-0"
                           aria-label="Start new chat"
                       >
                           New Conversation
                       </button>
                   ) : (
-                      <span className="text-foreground/50 font-bold text-xl px-2 py-1 rounded-lg pointer-events-none animate-in fade-in-0">
+                      <span className="text-foreground/50 font-bold text-sm sm:text-base md:text-lg px-2 py-1 rounded-lg pointer-events-none animate-in fade-in-0">
                           {displayTitle}
                       </span>
                   ))}
           </div>
           <button
               onClick={onToggleAdvancedPanel}
-              className="text-foreground/80 hover:text-foreground font-bold text-xl px-2 py-1 rounded-lg pointer-events-auto transition-colors"
+              className="text-foreground/80 hover:text-foreground font-bold text-sm sm:text-base md:text-lg px-2 py-1 rounded-lg pointer-events-auto transition-colors"
               aria-label="Open advanced settings"
           >
               Configurations
