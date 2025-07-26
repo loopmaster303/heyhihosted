@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useRef, useContext, createContext } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { useDebounce } from '@/hooks/useDebounce'; // Sicherstellen, dass dieser Import korrekt ist
 
 import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES, FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
@@ -65,12 +64,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     // Image Model State
     const [availableImageModels, setAvailableImageModels] = useState<string[]>([]);
     const [selectedImageModelId, setSelectedImageModelId] = useLocalStorageState<string>('chatSelectedImageModel', DEFAULT_IMAGE_MODEL);
-    const [pollinationsApiToken, setPollinationsApiToken] = useLocalStorageState<string>('pollinationsApiToken', '');
-
+    
     const { toast } = useToast();
-
-    // Debounced state for saving all conversations to localStorage (if needed for other effects)
-    const debouncedAllConversations = useDebounce(allConversations, 500); // 500ms debounce delay
 
     // --- Helper Functions / Callbacks (defined early for dependencies) ---
 
@@ -277,7 +272,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                     messages: historyForApi,
                     modelId: currentModel.id,
                     systemPrompt: effectiveSystemPrompt,
-                    apiKey: pollinationsApiToken, // Pass the token here
                 })
               });
               const result = await response.json();
@@ -300,7 +294,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, pollinationsApiToken]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
@@ -646,7 +640,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       isRecording, isTranscribing,
       isCameraOpen,
       availableImageModels, selectedImageModelId,
-      pollinationsApiToken, setPollinationsApiToken,
       selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
       requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,

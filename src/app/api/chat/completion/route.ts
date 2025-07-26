@@ -7,8 +7,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // The API key is now handled on the server side.
-    const { messages, modelId, systemPrompt, apiKey } = body;
+    // The client no longer sends the API key.
+    const { messages, modelId, systemPrompt } = body;
     
     if (!messages || !modelId) {
       return NextResponse.json({ error: 'Missing required fields: messages and modelId' }, { status: 400 });
@@ -23,13 +23,19 @@ export async function POST(request: Request) {
       payload.system = systemPrompt;
     }
 
+    // Securely get the API key from server-side environment variables.
+    const apiKey = process.env.POLLINATIONS_API_TOKEN;
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
     
-    // Securely add the Authorization header from environment variables on the server.
     if (apiKey) {
       headers['Authorization'] = `Bearer ${apiKey}`;
+    } else {
+        // If the key is missing on the server, fail early.
+        console.error('Error: POLLINATIONS_API_TOKEN is not set in the environment variables.');
+        return NextResponse.json({ error: 'API key is not configured on the server.' }, { status: 500 });
     }
 
     const response = await fetch(POLLINATIONS_API_URL, {
@@ -38,18 +44,20 @@ export async function POST(request: Request) {
       body: JSON.stringify(payload),
     });
 
+    // Detailed logging for non-OK responses
     if (!response.ok) {
       const errorText = await response.text();
       let errorData;
       try {
         errorData = JSON.parse(errorText);
       } catch (e) {
-        errorData = errorText;
+        errorData = errorText; // The error is not JSON, use the raw text.
       }
       const detail = typeof errorData === 'string'
           ? errorData
           : errorData.error?.message || JSON.stringify(errorData);
 
+      console.error(`Pollinations API request failed with status ${response.status}: ${detail}`);
       return NextResponse.json(
         { error: `Pollinations API request failed with status ${response.status}: ${detail}` },
         { status: response.status }
