@@ -12,7 +12,6 @@ import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_R
 export interface UseChatLogicProps {
   userDisplayName?: string;
   customSystemPrompt?: string;
-  pollinationsApiToken?: string;
 }
 
 const MAX_STORED_CONVERSATIONS = 50;
@@ -25,7 +24,7 @@ const toDate = (timestamp: Date | string | undefined | null): Date => {
     return timestamp as Date;
 };
 
-export function useChatLogic({ userDisplayName, customSystemPrompt, pollinationsApiToken }: UseChatLogicProps) {
+export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLogicProps) {
     // --- State Declarations ---
     const [allConversations, setAllConversations] = useLocalStorageState<Conversation[]>(CHAT_HISTORY_STORAGE_KEY, []);
     const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
@@ -277,7 +276,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, pollinations
                     messages: historyForApi,
                     modelId: currentModel.id,
                     systemPrompt: effectiveSystemPrompt,
-                    apiKey: pollinationsApiToken, // Pass the API key
                 })
               });
               const result = await response.json();
@@ -300,7 +298,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, pollinations
         setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, pollinationsApiToken]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
@@ -675,10 +673,9 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
     const [customSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
-    const [pollinationsApiToken] = useLocalStorageState<string>("pollinationsApiToken", "");
 
     
-    const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt, pollinationsApiToken });
+    const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt });
     
     // This is a bit of a workaround to satisfy TypeScript's strictness
     // for the setChatInputValue function passed to the input component.

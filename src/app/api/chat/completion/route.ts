@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 
 const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
@@ -6,8 +7,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Check for apiKey and add it to the header if it exists.
-    const { messages, modelId, systemPrompt, apiKey } = body;
+    // The API key is now handled on the server side.
+    const { messages, modelId, systemPrompt } = body;
     
     if (!messages || !modelId) {
       return NextResponse.json({ error: 'Missing required fields: messages and modelId' }, { status: 400 });
@@ -26,9 +27,14 @@ export async function POST(request: Request) {
       'Content-Type': 'application/json',
     };
     
-    // Add Authorization header only if apiKey is provided
+    // Securely add the Authorization header from environment variables on the server.
+    const apiKey = process.env.POLLINATIONS_API_TOKEN;
     if (apiKey) {
       headers['Authorization'] = `Bearer ${apiKey}`;
+    } else {
+      // If the key is missing on the server, we should return an error.
+      console.error('Error in /api/chat/completion: POLLINATIONS_API_TOKEN is not set on the server.');
+      return NextResponse.json({ error: 'Server configuration error: API token is not set.' }, { status: 500 });
     }
 
     const response = await fetch(POLLINATIONS_API_URL, {
