@@ -65,6 +65,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     // Image Model State
     const [availableImageModels, setAvailableImageModels] = useState<string[]>([]);
     const [selectedImageModelId, setSelectedImageModelId] = useLocalStorageState<string>('chatSelectedImageModel', DEFAULT_IMAGE_MODEL);
+    const [pollinationsApiToken, setPollinationsApiToken] = useLocalStorageState<string>('pollinationsApiToken', '');
 
     const { toast } = useToast();
 
@@ -129,10 +130,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       
       // Korrektur: Wenn convToUpdate null ist, einen Standardtitel zurückgeben
       if (!convToUpdate || convToUpdate.toolType !== 'long language loops') {
-          return activeConversation?.title || "Neue Konversation"; // Sicherer Fallback
+          return activeConversation?.title || "New Conversation"; // Sicherer Fallback
       }
   
-      const isDefaultTitle = convToUpdate.title === "default.long.language.loop" || convToUpdate.title.toLowerCase().startsWith("new ") || convToUpdate.title === "Chat";
+      const isDefaultTitle = convToUpdate.title === "New Conversation" || convToUpdate.title.toLowerCase().startsWith("new ") || convToUpdate.title === "Chat";
   
       if (messagesForTitleGen.length >= 1 && isDefaultTitle) {
         const firstUserMessage = messagesForTitleGen.find(msg => msg.role === 'user');
@@ -276,6 +277,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                     messages: historyForApi,
                     modelId: currentModel.id,
                     systemPrompt: effectiveSystemPrompt,
+                    apiKey: pollinationsApiToken, // Pass the token here
                 })
               });
               const result = await response.json();
@@ -298,7 +300,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, pollinationsApiToken]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
@@ -317,7 +319,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const newConversationId = crypto.randomUUID();
         const newConversationData: Conversation = {
             id: newConversationId,
-            title: "default.long.language.loop",
+            title: "New Conversation",
             messages: [],
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -644,6 +646,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       isRecording, isTranscribing,
       isCameraOpen,
       availableImageModels, selectedImageModelId,
+      pollinationsApiToken, setPollinationsApiToken,
       selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
       requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
