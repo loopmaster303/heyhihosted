@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useContext, createContext } from 'react';
@@ -202,7 +203,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, pollinations
         }
         
         const isImagePrompt = options.isImageModeIntent || false;
-        // uploadedFile und uploadedFilePreview kommen jetzt aus activeConversation
         const isFileUpload = !!activeConversation.uploadedFile && !isImagePrompt; 
     
         if (isFileUpload && !currentModel.vision) {
@@ -216,7 +216,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, pollinations
 
         if (!options.isRegeneration) {
             let userMessageContent: string | ChatMessageContentPart[] = chatInputValue.trim();
-            if (isFileUpload && activeConversation.uploadedFilePreview) { // Zugriff über activeConversation
+            if (isFileUpload && activeConversation.uploadedFilePreview) {
               userMessageContent = [
                 { type: 'text', text: chatInputValue.trim() || "Describe this image." },
                 { type: 'image_url', image_url: { url: activeConversation.uploadedFilePreview, altText: activeConversation.uploadedFile?.name, isUploaded: true } }
@@ -228,22 +228,31 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, pollinations
             
             updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
             setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState } : null);
-            setLastUserMessageId(userMessage.id); // Track the new user message ID for scrolling
+            setLastUserMessageId(userMessage.id);
         } else {
            const lastUserMsg = updatedMessagesForState.slice().reverse().find(m => m.role === 'user');
            if (lastUserMsg) {
                 newUserMessageId = lastUserMsg.id;
                 setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState } : null);
-                setLastUserMessageId(lastUserMsg.id); // Also track on regeneration
+                setLastUserMessageId(lastUserMsg.id);
            }
         }
 
         const historyForApi: ApiChatMessage[] = updatedMessagesForState
-          .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-          .map(msg => ({
-              role: msg.role as 'user' | 'assistant',
-              content: msg.content,
-           }));
+            .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+            .map(msg => {
+                let content = msg.content;
+                // If the model does not support vision, filter out image parts.
+                if (!currentModel.vision && Array.isArray(content)) {
+                    const textParts = content.filter(part => part.type === 'text');
+                    // If only text parts exist, join them. Otherwise, keep the first text part.
+                    content = textParts.length > 0 ? textParts.map(p => p.text).join('\n') : '';
+                }
+                return {
+                    role: msg.role as 'user' | 'assistant',
+                    content: content,
+                };
+            });
       
       let finalMessages = updatedMessagesForState;
       let finalTitle = activeConversation.title;
@@ -273,7 +282,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, pollinations
                     messages: historyForApi,
                     modelId: currentModel.id,
                     systemPrompt: effectiveSystemPrompt,
-                    apiKey: pollinationsApiToken, // Pass the token here
                 })
               });
               
@@ -295,7 +303,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, pollinations
               try {
                   result = JSON.parse(responseText);
               } catch (e) {
-                  // If parsing fails, it's plain text. Use it directly.
                   aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: responseText.trim(), timestamp: new Date().toISOString(), toolType: 'long language loops' };
                   finalMessages = [...updatedMessagesForState, aiMessage];
                   finalTitle = await updateConversationTitle(convId, finalMessages);
@@ -704,9 +711,8 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
     const [customSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
-    const [pollinationsApiToken] = useLocalStorageState<string>('pollinationsApiToken', '');
-    
-    const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt, pollinationsApiToken });
+    // The API token is no longer needed on the client, it's handled by the backend API route.
+    const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt });
     
     // This is a bit of a workaround to satisfy TypeScript's strictness
     // for the setChatInputValue function passed to the input component.
@@ -733,5 +739,7 @@ export const useChat = (): ChatContextValue => {
   }
   return context;
 };
+
+    
 
     
