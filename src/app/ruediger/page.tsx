@@ -19,7 +19,11 @@ export default function RuedigerPage() {
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
         <AppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName} />
         <main className="flex flex-col flex-grow pt-16">
-            <ReplicateImageTool password={replicateToolPassword} />
+            <ReplicateImageTool 
+              password={replicateToolPassword} 
+              settingsStorageKey="ruedigerToolSettings"
+              historyStorageKey="ruedigerToolHistory"
+            />
         </main>
     </div>
   );

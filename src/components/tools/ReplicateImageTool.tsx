@@ -28,12 +28,18 @@ import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 interface ReplicateImageToolProps {
   password?: string;
+  settingsStorageKey?: string;
+  historyStorageKey?: string;
 }
 
-const REPLICATE_TOOL_SETTINGS_KEY = 'replicateImageToolSettings';
-const HISTORY_STORAGE_KEY = 'replicateToolHistory';
+const DEFAULT_SETTINGS_KEY = 'replicateImageToolSettings';
+const DEFAULT_HISTORY_KEY = 'replicateToolHistory';
 
-const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => {
+const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ 
+  password, 
+  settingsStorageKey = DEFAULT_SETTINGS_KEY, 
+  historyStorageKey = DEFAULT_HISTORY_KEY 
+}) => {
   const { toast } = useToast();
 
   const modelKeys = Object.keys(modelConfigs);
@@ -71,7 +77,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useEffect(() => {
-    const storedData = localStorage.getItem(REPLICATE_TOOL_SETTINGS_KEY);
+    const storedData = localStorage.getItem(settingsStorageKey);
     if (storedData) {
       try {
         const settings = JSON.parse(storedData);
@@ -89,7 +95,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
     }
 
     try {
-        const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
+        const storedHistory = localStorage.getItem(historyStorageKey);
         if (storedHistory) {
             const parsedHistory = JSON.parse(storedHistory);
             if(Array.isArray(parsedHistory)) {
@@ -101,11 +107,11 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
         }
     } catch (e) {
         console.error("Failed to parse history from localStorage", e);
-        localStorage.removeItem(HISTORY_STORAGE_KEY);
+        localStorage.removeItem(historyStorageKey);
     }
 
     setInitialLoadComplete(true);
-  }, []); 
+  }, [settingsStorageKey, historyStorageKey, modelKeys]); 
 
   useEffect(() => {
     if (!initialLoadComplete || !selectedModelKey) return; 
@@ -128,7 +134,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
           }
       });
       
-      const storedData = localStorage.getItem(REPLICATE_TOOL_SETTINGS_KEY);
+      const storedData = localStorage.getItem(settingsStorageKey);
       if (storedData) {
         try {
           const settings = JSON.parse(storedData);
@@ -159,7 +165,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
       setFormFields({});
       setMainPromptValue('');
     }
-  }, [selectedModelKey, initialLoadComplete]);
+  }, [selectedModelKey, initialLoadComplete, settingsStorageKey]);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -178,17 +184,17 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
       mainPromptValue,
       formFields,
     };
-    localStorage.setItem(REPLICATE_TOOL_SETTINGS_KEY, JSON.stringify(settingsToSave));
-  }, [selectedModelKey, mainPromptValue, formFields, currentModelConfig, initialLoadComplete]);
+    localStorage.setItem(settingsStorageKey, JSON.stringify(settingsToSave));
+  }, [selectedModelKey, mainPromptValue, formFields, currentModelConfig, initialLoadComplete, settingsStorageKey]);
 
 
   useEffect(() => {
     if (history.length > 0) {
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+        localStorage.setItem(historyStorageKey, JSON.stringify(history));
     } else {
-        localStorage.removeItem(HISTORY_STORAGE_KEY);
+        localStorage.removeItem(historyStorageKey);
     }
-  }, [history]);
+  }, [history, historyStorageKey]);
 
   const handleInputChange = useCallback((name: string, value: string | number | boolean) => {
     setFormFields(prevFields => ({ ...prevFields, [name]: value }));
@@ -605,14 +611,14 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ password }) => 
     } finally {
       setLoading(false);
     }
-  }, [selectedModelKey, currentModelConfig, password, mainPromptValue, isFluxModelSelected, uploadedImagePreview, formFields, isRunwayModelSelected, referenceImages, referenceTags, toast]);
+  }, [selectedModelKey, currentModelConfig, password, mainPromptValue, isFluxModelSelected, uploadedImagePreview, formFields, isRunwayModelSelected, referenceImages, referenceTags, toast, historyStorageKey]);
 
   const handleClearHistory = useCallback(() => {
     setHistory([]);
     setSelectedImage(null);
-    localStorage.removeItem(HISTORY_STORAGE_KEY);
+    localStorage.removeItem(historyStorageKey);
     toast({ title: "History Cleared", description: "Your image generation history has been removed." });
-  }, [toast]);
+  }, [toast, historyStorageKey]);
 
   const handleSelectHistoryItem = useCallback((item: ImageHistoryItem) => {
     setSelectedImage(item);
