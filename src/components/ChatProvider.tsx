@@ -12,7 +12,6 @@ import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_R
 export interface UseChatLogicProps {
   userDisplayName?: string;
   customSystemPrompt?: string;
-  pollinationsApiToken?: string;
 }
 
 const MAX_STORED_CONVERSATIONS = 50;
@@ -25,7 +24,7 @@ const toDate = (timestamp: Date | string | undefined | null): Date => {
     return timestamp as Date;
 };
 
-export function useChatLogic({ userDisplayName, customSystemPrompt, pollinationsApiToken }: UseChatLogicProps) {
+export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLogicProps) {
     // --- State Declarations ---
     const [allConversations, setAllConversations] = useLocalStorageState<Conversation[]>(CHAT_HISTORY_STORAGE_KEY, []);
     const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
@@ -176,7 +175,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, pollinations
         if (!activeConversation || activeConversation.toolType !== 'long language loops') return;
 
         const { id: convId, selectedModelId, selectedResponseStyleName, messages } = activeConversation;
-        const currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
+        let currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
         
         let effectiveSystemPrompt = '';
         const basicStylePrompt = (AVAILABLE_RESPONSE_STYLES.find(s => s.name === 'Basic') || AVAILABLE_RESPONSE_STYLES[0]).systemPrompt;
@@ -206,9 +205,19 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, pollinations
         const isFileUpload = !!activeConversation.uploadedFile && !isImagePrompt; 
     
         if (isFileUpload && !currentModel.vision) {
-          toast({ title: "Model Incompatibility", description: `Model '${currentModel.name}' doesn't support images.`, variant: "destructive" });
-          setIsAiResponding(false);
-          return;
+            const fallbackModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.vision);
+            if (fallbackModel) {
+                toast({ 
+                    title: "Model Switched", 
+                    description: `Model '${currentModel.name}' doesn't support images. Using '${fallbackModel.name}' for this request.`,
+                    variant: "default" 
+                });
+                currentModel = fallbackModel; // Use fallback model for this request only
+            } else {
+                toast({ title: "Model Incompatibility", description: `No available models support images.`, variant: "destructive" });
+                setIsAiResponding(false);
+                return;
+            }
         }
     
         let updatedMessagesForState = options.messagesForApi || messages;
@@ -285,32 +294,21 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, pollinations
                 })
               });
               
-              const responseText = await response.text();
               if (!response.ok) {
+                    const errorText = await response.text();
                     let errorData;
                     try {
-                        errorData = JSON.parse(responseText);
+                        errorData = JSON.parse(errorText);
                     } catch (e) {
-                        errorData = responseText;
+                        errorData = errorText; // The error is not JSON, use the raw text.
                     }
                     const detail = typeof errorData === 'string' 
                         ? errorData 
                         : (errorData.error?.message || JSON.stringify(errorData));
-                    throw new Error(`Pollinations API request failed with status ${response.status}: ${detail}`);
+                    throw new Error(`API request failed with status ${response.status}: ${detail}`);
               }
-              
-              let result;
-              try {
-                  result = JSON.parse(responseText);
-              } catch (e) {
-                  aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: responseText.trim(), timestamp: new Date().toISOString(), toolType: 'long language loops' };
-                  finalMessages = [...updatedMessagesForState, aiMessage];
-                  finalTitle = await updateConversationTitle(convId, finalMessages);
-                  const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: new Date().toISOString(), isImageMode: false, uploadedFile: null, uploadedFilePreview: null };
-                  setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
-                  setIsAiResponding(false);
-                  return; 
-              }
+
+              const result = await response.json();
 
               if (result.error) {
                   const detail = typeof result.error === 'string' 
@@ -336,7 +334,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, pollinations
         setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, pollinationsApiToken]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
