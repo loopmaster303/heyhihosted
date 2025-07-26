@@ -250,12 +250,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const historyForApi: ApiChatMessage[] = updatedMessagesForState
             .filter(msg => msg.role === 'user' || msg.role === 'assistant')
             .map(msg => {
-                let content = msg.content;
-                // If the model does not support vision, filter out image parts.
-                if (!currentModel.vision && Array.isArray(content)) {
-                    const textParts = content.filter(part => part.type === 'text');
-                    // If only text parts exist, join them. Otherwise, keep the first text part.
-                    content = textParts.length > 0 ? textParts.map(p => p.text).join('\n') : '';
+                let content: string | ChatMessageContentPart[] = msg.content;
+                // If model doesn't support vision OR if the message is from assistant, filter out images.
+                if (!currentModel.vision || msg.role === 'assistant') {
+                    if (Array.isArray(content)) {
+                        const textParts = content.filter(part => part.type === 'text');
+                        content = textParts.map(p => p.text).join('\n');
+                    }
                 }
                 return {
                     role: msg.role as 'user' | 'assistant',
@@ -737,6 +738,8 @@ export const useChat = (): ChatContextValue => {
   }
   return context;
 };
+
+    
 
     
 

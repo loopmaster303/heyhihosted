@@ -19,9 +19,9 @@ export interface VoiceOption {
 
 // Updated model list based on the provided official JSON data
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-  { id: "openai",         name: "OpenAI GPT-4o Mini",         vision: true },
   { id: "openai-large",   name: "OpenAI GPT-4.1",             vision: true },
   { id: "openai-fast",    name: "OpenAI GPT-4.1 Nano",        vision: true },
+  { id: "openai",         name: "OpenAI GPT-4o Mini",         vision: true },
   { id: "mistral",        name: "Mistral Small 3.1 24B",      vision: true },
   { id: "llamascout",     name: "Llama 4 Scout 17B",          vision: false },
   { id: "grok",           name: "xAI Grok-3 Mini",            vision: false },
@@ -145,3 +145,5 @@ export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 // For in-chat image generation
 export const FALLBACK_IMAGE_MODELS = ['flux', 'turbo', 'gptimage'];
 export const DEFAULT_IMAGE_MODEL = 'flux'; // A safe default
+
+    
