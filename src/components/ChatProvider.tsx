@@ -11,6 +11,7 @@ import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_R
 export interface UseChatLogicProps {
   userDisplayName?: string;
   customSystemPrompt?: string;
+  pollinationsApiToken?: string;
 }
 
 const MAX_STORED_CONVERSATIONS = 50;
@@ -23,7 +24,7 @@ const toDate = (timestamp: Date | string | undefined | null): Date => {
     return timestamp as Date;
 };
 
-export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLogicProps) {
+export function useChatLogic({ userDisplayName, customSystemPrompt, pollinationsApiToken }: UseChatLogicProps) {
     // --- State Declarations ---
     const [allConversations, setAllConversations] = useLocalStorageState<Conversation[]>(CHAT_HISTORY_STORAGE_KEY, []);
     const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
@@ -272,12 +273,46 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                     messages: historyForApi,
                     modelId: currentModel.id,
                     systemPrompt: effectiveSystemPrompt,
+                    apiKey: pollinationsApiToken, // Pass the token here
                 })
               });
-              const result = await response.json();
-              if (!response.ok) throw new Error(result.error || 'Failed to get chat completion.');
               
-              const aiResponseText = result.choices?.[0]?.message?.content || result.responseText || "Sorry, I couldn't get a response.";
+              const responseText = await response.text();
+              if (!response.ok) {
+                    let errorData;
+                    try {
+                        errorData = JSON.parse(responseText);
+                    } catch (e) {
+                        errorData = responseText;
+                    }
+                    const detail = typeof errorData === 'string' 
+                        ? errorData 
+                        : (errorData.error?.message || JSON.stringify(errorData));
+                    throw new Error(`Pollinations API request failed with status ${response.status}: ${detail}`);
+              }
+              
+              let result;
+              try {
+                  result = JSON.parse(responseText);
+              } catch (e) {
+                  // If parsing fails, it's plain text. Use it directly.
+                  aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: responseText.trim(), timestamp: new Date().toISOString(), toolType: 'long language loops' };
+                  finalMessages = [...updatedMessagesForState, aiMessage];
+                  finalTitle = await updateConversationTitle(convId, finalMessages);
+                  const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: new Date().toISOString(), isImageMode: false, uploadedFile: null, uploadedFilePreview: null };
+                  setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
+                  setIsAiResponding(false);
+                  return; 
+              }
+
+              if (result.error) {
+                  const detail = typeof result.error === 'string' 
+                      ? result.error 
+                      : (result.error.message || JSON.stringify(result.error));
+                  throw new Error(`Pollinations API returned an error: ${detail}`);
+              }
+
+              const aiResponseText = result.choices?.[0]?.message?.content || "Sorry, I couldn't get a response.";
               aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date().toISOString(), toolType: 'long language loops' };
           }
           finalMessages = [...updatedMessagesForState, aiMessage];
@@ -294,7 +329,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, pollinationsApiToken]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
@@ -669,9 +704,9 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
     const [customSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
-
+    const [pollinationsApiToken] = useLocalStorageState<string>('pollinationsApiToken', '');
     
-    const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt });
+    const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt, pollinationsApiToken });
     
     // This is a bit of a workaround to satisfy TypeScript's strictness
     // for the setChatInputValue function passed to the input component.
@@ -698,3 +733,5 @@ export const useChat = (): ChatContextValue => {
   }
   return context;
 };
+
+    
