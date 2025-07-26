@@ -144,7 +144,7 @@ export default function HomePage() {
 
             <main className="w-full flex flex-col items-center p-6 md:p-8 relative" style={{ maxWidth: '1020px' }}>
                 <div className="absolute -inset-8 bg-radial-gradient-fog -z-10"></div>
-                <h1 className="text-5xl md:text-7xl font-code text-white text-glow mb-12 text-center">
+                <h1 className="text-4xl sm:text-5xl md:text-7xl font-code text-white text-glow mb-8 sm:mb-12 text-center">
                     <span className="text-gray-400">(</span>
                     !hey.hi
                     <span className="text-gray-400"> = </span>
@@ -153,7 +153,7 @@ export default function HomePage() {
                 </h1>
 
                 <nav
-                    className="w-full font-code text-sm md:text-base flex flex-col items-center gap-4"
+                    className="w-full font-code text-xs sm:text-sm md:text-base flex flex-col items-center gap-4"
                     onMouseLeave={() => setHoveredId(null)}
                     style={{ marginRight: '7px' }}
                 >
@@ -166,10 +166,10 @@ export default function HomePage() {
                                 onMouseEnter={() => setHoveredId(item.id)}
                             >
                                 <div className={cn(
-                                    "bg-black/80 rounded-lg border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[120px] flex flex-col justify-center",
-                                    item.id === 'premium imagination' ? '' : 'p-4'
+                                    "bg-black/80 rounded-lg border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[100px] sm:min-h-[120px] flex flex-col justify-center",
+                                    item.id === 'premium imagination' ? '' : 'p-3 sm:p-4'
                                 )} style={{
-                                    padding: item.id === 'premium imagination' ? '16px 16px 16px 19px' : undefined,
+                                    padding: item.id === 'premium imagination' ? '12px 12px 12px 15px' : undefined,
                                     marginRight: item.id === 'personalization' ? '-2px' : undefined
                                 }}>
                                     <AnimatePresence mode="wait">
@@ -181,8 +181,8 @@ export default function HomePage() {
                                                 exit={{ opacity: 0, y: -10 }}
                                                 transition={{ duration: 0.2 }}
                                             >
-                                                <h2 className={`font-bold text-lg mb-2 ${item.tagColor}`}>{item.hoverTitle}</h2>
-                                                <p className="text-white/80 text-xs whitespace-pre-line leading-relaxed">{item.hoverDescription}</p>
+                                                <h2 className={`font-bold text-base sm:text-lg mb-1 sm:mb-2 ${item.tagColor}`}>{item.hoverTitle}</h2>
+                                                <p className="text-white/80 text-[11px] sm:text-xs whitespace-pre-line leading-relaxed">{item.hoverDescription}</p>
                                             </motion.div>
                                         ) : (
                                             <motion.div
@@ -192,14 +192,14 @@ export default function HomePage() {
                                                 exit={{ opacity: 0 }}
                                                 transition={{ duration: 0.2 }}
                                             >
-                                                <div className="flex items-center gap-3" style={{ fontSize: '20px' }}>
-                                                    <p className={item.tagColor}>{item.tag}</p>
+                                                <div className="flex items-center gap-2 sm:gap-3">
+                                                    <p className={`${item.tagColor} text-base sm:text-lg md:text-xl`}>{item.tag}</p>
                                                 </div>
-                                                <div className="flex items-center gap-3 mt-1">
-                                                    <p><span className="text-gray-400">import </span><span className="text-gray-200">{item.importText.match(/\[.*?\]/)?.[0]}</span></p>
+                                                <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1">
+                                                    <p className="text-sm sm:text-base"><span className="text-gray-400">import </span><span className="text-gray-200">{item.importText.match(/\[.*?\]/)?.[0]}</span></p>
                                                 </div>
-                                                <div className="flex items-center gap-3 mt-1">
-                                                    <p><span className="text-gray-400">export </span><span className="text-gray-200">{item.exportText.match(/\[.*?\]/)?.[0]}</span></p>
+                                                <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1">
+                                                    <p className="text-sm sm:text-base"><span className="text-gray-400">export </span><span className="text-gray-200">{item.exportText.match(/\[.*?\]/)?.[0]}</span></p>
                                                 </div>
                                             </motion.div>
                                         )}
@@ -211,7 +211,7 @@ export default function HomePage() {
                     
                     {lastItem && (
                          <div 
-                            className="w-full max-w-3xl md:max-w-[calc(50%-0.5rem)] self-center"
+                            className="w-full max-w-3xl md:max-w-[calc(50%-0.5rem)] self-center px-4 sm:px-0"
                             onMouseEnter={() => setHoveredId(lastItem.id)}
                         >
                             <Link key={lastItem.id} href={lastItem.href || '#'} className="block group">
