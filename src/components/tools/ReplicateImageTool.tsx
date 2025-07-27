@@ -611,7 +611,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [selectedModelKey, currentModelConfig, password, mainPromptValue, isFluxModelSelected, uploadedImagePreview, formFields, isRunwayModelSelected, referenceImages, referenceTags, toast, historyStorageKey]);
+  }, [selectedModelKey, currentModelConfig, password, mainPromptValue, isFluxModelSelected, uploadedImagePreview, formFields, isRunwayModelSelected, referenceImages, referenceTags, toast]);
 
   const handleClearHistory = useCallback(() => {
     setHistory([]);
@@ -726,35 +726,28 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
               </div>
               <div className="flex w-full items-center justify-end gap-2 mt-2">
                  {isFluxModelSelected && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          className="relative h-10 w-10 cursor-pointer group flex-shrink-0"
-                          onClick={() => {
-                            if (uploadedImagePreview) handleClearUploadedImage();
-                            else singleFileInputRef.current?.click();
-                          }}
-                          aria-label={uploadedImagePreview ? "Clear reference image" : "Upload reference image"}
-                        >
-                          {uploadedImagePreview ? (
-                            <>
-                              <NextImage src={uploadedImagePreview} alt="Reference preview" fill sizes="40px" style={{ objectFit: 'cover' }} className="rounded-md" data-ai-hint="reference thumbnail" />
-                              <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
-                                <X className="h-5 w-5 text-white" />
-                              </div>
-                            </>
-                          ) : (
-                            <div className="h-10 w-10 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
-                              <ImageIcon className="h-5 w-5" />
-                            </div>
-                          )}
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top"><p>{uploadedImagePreview ? "Clear Reference Image" : "Upload Reference Image"}</p></TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <button
+                    type="button"
+                    className="relative h-10 w-10 cursor-pointer group flex-shrink-0"
+                    onClick={() => {
+                      if (uploadedImagePreview) handleClearUploadedImage();
+                      else singleFileInputRef.current?.click();
+                    }}
+                    aria-label={uploadedImagePreview ? "Clear reference image" : "Upload reference image"}
+                  >
+                    {uploadedImagePreview ? (
+                      <>
+                        <NextImage src={uploadedImagePreview} alt="Reference preview" fill sizes="40px" style={{ objectFit: 'cover' }} className="rounded-md" data-ai-hint="reference thumbnail" />
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                          <X className="h-5 w-5 text-white" />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="h-10 w-10 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                        <ImageIcon className="h-5 w-5" />
+                      </div>
+                    )}
+                  </button>
                 )}
                 <Select value={selectedModelKey} onValueChange={setSelectedModelKey} disabled={loading}>
                   <SelectTrigger className="bg-background/50 h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border">
