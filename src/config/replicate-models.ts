@@ -76,3 +76,5 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     ],
   },
 };
+
+export const modelKeys = Object.keys(modelConfigs);

@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, Info, ImageIcon, X, FileImage, Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import NextImage from 'next/image';
-import { modelConfigs, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
+import { modelConfigs, modelKeys, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -42,7 +42,6 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 }) => {
   const { toast } = useToast();
 
-  const modelKeys = Object.keys(modelConfigs);
   const [selectedModelKey, setSelectedModelKey] = useState<string>(""); 
   const [currentModelConfig, setCurrentModelConfig] = useState<ReplicateModelConfig | null>(null);
   
