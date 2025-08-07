@@ -14,6 +14,7 @@ import { Loader2 } from 'lucide-react';
 
 const toolTileItems: TileItem[] = [
     { id: 'long language loops', title: '</chat.talk.discuss>', href: '/chat' },
+    { id: 'code reasoning', title: '</code.reasoning>', href: '/reasoning' },
     { id: 'nocost imagination', title: '</generate.visuals.lite>', href: '/image-gen/no-cost' },
     { id: 'premium imagination', title: '</generate.visuals.raw>', href: '/image-gen/raw' },
     { id: 'personalization', title: '</settings.user.preferences>', href: '/settings' },
