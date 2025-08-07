@@ -148,7 +148,7 @@ const ReasoningTool: React.FC = () => {
                         )}
                         {!isLoading && !error && !response && (
                              <div className="flex items-center justify-center h-full text-muted-foreground font-code">
-                                </p></p><p>&lt;/output&gt;</p>
+                                <p>&lt;/output&gt;</p>
                              </div>
                         )}
                         {response && <MarkdownRenderer content={response} />}
