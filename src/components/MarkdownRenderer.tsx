@@ -43,11 +43,10 @@ const MarkdownRenderer: FC<MarkdownRendererProps> = ({ content }) => {
                                 <Clipboard className="h-4 w-4" />
                             </Button>
                             <SyntaxHighlighter
-                                style={vscDarkPlus}
+                                style={vscDarkPlus as any}
                                 language={match[1]}
                                 PreTag="div"
                                 {...props}
-                                className="!m-0 rounded-md"
                             >
                                 {codeString}
                             </SyntaxHighlighter>
