@@ -24,6 +24,17 @@ const toolTileItems = [
     hoverDescription: 'Talk here with the machine like you would with a real person, like a friend for example.\nAsk anything, get help, or just have a normal chat—no special rules.'
   },
   { 
+    id: 'code reasoning', 
+    href: '/reasoning',
+    tag: '</code.reasoning>',
+    importText: 'import [logic, code, text]',
+    exportText: 'export [structured.knowledge]',
+    tagColor: 'text-purple-400',
+    symbolColor: 'text-purple-400',
+    hoverTitle: 'code.reasoning',
+    hoverDescription: 'Get help with complex topics. The AI will provide structured explanations, code examples, and logical breakdowns in a clean, readable format.'
+  },
+  { 
     id: 'nocost imagination', 
     href: '/image-gen/no-cost',
     tag: '</generate.visuals.lite>',
@@ -110,7 +121,7 @@ export default function HomePage() {
     }, []);
 
     const firstFourItems = toolTileItems.slice(0, 4);
-    const lastItem = toolTileItems.length > 4 ? toolTileItems[4] : null;
+    const lastTwoItems = toolTileItems.slice(4);
 
     return (
         <div className={cn(
@@ -147,7 +158,7 @@ export default function HomePage() {
                 <h1 className="text-4xl sm:text-5xl md:text-7xl font-code text-white text-glow mb-8 sm:mb-12 text-center">
                     <span className="text-gray-400">(</span>
                     !hey.hi
-                    <span className="text-gray-400"> = </span>
+                    <span className="text-gray-400"> = </span> 
                     <span className="text-pink-500">{`'space'`}</span>
                     <span className="text-gray-400">)</span>
                 </h1>
@@ -155,9 +166,8 @@ export default function HomePage() {
                 <nav
                     className="w-full font-code text-xs sm:text-sm md:text-base flex flex-col items-center gap-4"
                     onMouseLeave={() => setHoveredId(null)}
-                    style={{ marginRight: '7px' }}
                 >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl">
                         {firstFourItems.map((item) => (
                             <Link
                                 key={item.id}
@@ -165,13 +175,7 @@ export default function HomePage() {
                                 className="block group"
                                 onMouseEnter={() => setHoveredId(item.id)}
                             >
-                                <div className={cn(
-                                    "bg-black/80 rounded-lg border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[100px] sm:min-h-[120px] flex flex-col justify-center",
-                                    item.id === 'premium imagination' ? '' : 'p-3 sm:p-4'
-                                )} style={{
-                                    padding: item.id === 'premium imagination' ? '12px 12px 12px 15px' : undefined,
-                                    marginRight: item.id === 'personalization' ? '-2px' : undefined
-                                }}>
+                                <div className="bg-black/80 rounded-lg border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[100px] sm:min-h-[120px] flex flex-col justify-center p-3 sm:p-4">
                                     <AnimatePresence mode="wait">
                                         {hoveredId === item.id ? (
                                             <motion.div
@@ -180,6 +184,7 @@ export default function HomePage() {
                                                 animate={{ opacity: 1, y: 0 }}
                                                 exit={{ opacity: 0, y: -10 }}
                                                 transition={{ duration: 0.2 }}
+                                                className="h-full"
                                             >
                                                 <h2 className={`font-bold text-base sm:text-lg mb-1 sm:mb-2 ${item.tagColor}`}>{item.hoverTitle}</h2>
                                                 <p className="text-white/80 text-[11px] sm:text-xs whitespace-pre-line leading-relaxed">{item.hoverDescription}</p>
@@ -209,24 +214,27 @@ export default function HomePage() {
                         ))}
                     </div>
                     
-                    {lastItem && (
-                         <div 
-                            className="w-full max-w-3xl md:max-w-[calc(50%-0.5rem)] self-center px-4 sm:px-0"
-                            onMouseEnter={() => setHoveredId(lastItem.id)}
-                        >
-                            <Link key={lastItem.id} href={lastItem.href || '#'} className="block group">
-                                <div className="bg-black/80 rounded-lg p-4 border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[120px] flex flex-col justify-center">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl">
+                        {lastTwoItems.map((item) => (
+                             <Link
+                                key={item.id}
+                                href={item.href || '#'}
+                                className="block group"
+                                onMouseEnter={() => setHoveredId(item.id)}
+                            >
+                                <div className="bg-black/80 rounded-lg border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[100px] sm:min-h-[120px] flex flex-col justify-center p-3 sm:p-4">
                                     <AnimatePresence mode="wait">
-                                       {hoveredId === lastItem.id ? (
+                                       {hoveredId === item.id ? (
                                             <motion.div
                                                 key="description"
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 exit={{ opacity: 0, y: -10 }}
                                                 transition={{ duration: 0.2 }}
+                                                className="h-full"
                                             >
-                                                <h2 className={`font-bold text-lg mb-2 ${lastItem.tagColor}`}>{lastItem.hoverTitle}</h2>
-                                                <p className="text-white/80 text-xs whitespace-pre-line leading-relaxed">{lastItem.hoverDescription}</p>
+                                                <h2 className={`font-bold text-base sm:text-lg mb-1 sm:mb-2 ${item.tagColor}`}>{item.hoverTitle}</h2>
+                                                <p className="text-white/80 text-[11px] sm:text-xs whitespace-pre-line leading-relaxed">{item.hoverDescription}</p>
                                             </motion.div>
                                         ) : (
                                             <motion.div
@@ -236,22 +244,22 @@ export default function HomePage() {
                                                 exit={{ opacity: 0 }}
                                                 transition={{ duration: 0.2 }}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <p className={lastItem.tagColor}>{lastItem.tag}</p>
+                                                <div className="flex items-center gap-2 sm:gap-3">
+                                                    <p className={`${item.tagColor} text-base sm:text-lg md:text-xl`}>{item.tag}</p>
                                                 </div>
-                                                <div className="flex items-center gap-3 mt-1">
-                                                    <p><span className="text-gray-400">import </span><span className="text-gray-200">{lastItem.importText.match(/\[.*?\]/)?.[0]}</span></p>
+                                                <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1">
+                                                    <p className="text-sm sm:text-base"><span className="text-gray-400">import </span><span className="text-gray-200">{item.importText.match(/\[.*?\]/)?.[0]}</span></p>
                                                 </div>
-                                                <div className="flex items-center gap-3 mt-1">
-                                                    <p><span className="text-gray-400">export </span><span className="text-gray-200">{lastItem.exportText.match(/\[.*?\]/)?.[0]}</span></p>
+                                                <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1">
+                                                    <p className="text-sm sm:text-base"><span className="text-gray-400">export </span><span className="text-gray-200">{item.exportText.match(/\[.*?\]/)?.[0]}</span></p>
                                                 </div>
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
                                 </div>
                             </Link>
-                        </div>
-                    )}
+                        ))}
+                    </div>
                 </nav>
             </main>
         </div>

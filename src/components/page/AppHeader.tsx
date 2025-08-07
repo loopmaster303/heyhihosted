@@ -56,7 +56,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
               <h1 className="text-3xl md:text-4xl font-code text-foreground text-glow text-center">
                   <span className="text-foreground/60">(</span>
                   !hey.hi
-                  <span className="text-foreground/60"> = </span>
+                  <span className="text-foreground/60"> = </span> 
                   <span className="text-pink-500">{`'${displayName}'`}</span>
                   <span className="text-foreground/60">)</span>
               </h1>
