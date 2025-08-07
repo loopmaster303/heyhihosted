@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, FC, FormEvent, useRef, useCallback } from 'react';
@@ -377,7 +378,7 @@ const VisualizingLoopsTool: FC = () => {
                    <div className="space-y-1.5">
                       <Label htmlFor="aspect-ratio-tool" className="text-xs font-medium">Aspect Ratio</Label>
                       <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
-                        <SelectTrigger id="aspect-ratio-tool" className="h-9 bg-input border-border text-xs">
+                        <SelectTrigger id="aspect-ratio-tool" className="h-9 bg-tool-input-bg border-border text-xs">
                           <SelectValue placeholder="Aspect Ratio" />
                         </SelectTrigger>
                         <SelectContent>
@@ -394,7 +395,7 @@ const VisualizingLoopsTool: FC = () => {
                     <div className="space-y-1.5">
                       <Label htmlFor="seed-input-tool" className="text-xs font-medium">Seed</Label>
                       <div className='flex gap-2'>
-                        <Input id="seed-input-tool" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="h-9 bg-input border-border text-xs" />
+                        <Input id="seed-input-tool" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="h-9 bg-tool-input-bg border-border text-xs" />
                         <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random() * 99999999)))} className="text-xs h-9">
                           Random
                         </Button>

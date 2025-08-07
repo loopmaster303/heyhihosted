@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -110,7 +111,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     }
 
     setInitialLoadComplete(true);
-  }, [settingsStorageKey, historyStorageKey, modelKeys]); 
+  }, [settingsStorageKey, historyStorageKey]); 
 
   useEffect(() => {
     if (!initialLoadComplete || !selectedModelKey) return; 
@@ -322,7 +323,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                 value={formFields[inputConfig.name] ?? ''}
                 placeholder={inputConfig.placeholder || `Enter ${inputConfig.label.toLowerCase()}`}
                 onChange={(e) => handleInputChange(inputConfig.name, e.target.value)}
-                className="bg-input border-border focus-visible:ring-primary min-h-[60px]"
+                className="bg-tool-input-bg border-border focus-visible:ring-primary min-h-[60px]"
                 rows={inputConfig.isNegativePrompt ? 2 : 3}
                 required={inputConfig.required}
             />
@@ -339,7 +340,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
               value={formFields[inputConfig.name] ?? ''}
               placeholder={inputConfig.placeholder || "https://example.com/image.png"}
               onChange={(e) => handleInputChange(inputConfig.name, e.target.value)}
-              className="bg-input border-border focus-visible:ring-primary"
+              className="bg-tool-input-bg border-border focus-visible:ring-primary"
               required={inputConfig.required}
             />
           </div>
@@ -382,7 +383,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                 const val = e.target.value;
                 handleInputChange(inputConfig.name, val === '' ? '' : parseFloat(val));
               }}
-              className="bg-input border-border focus-visible:ring-primary"
+              className="bg-tool-input-bg border-border focus-visible:ring-primary"
               required={inputConfig.required}
             />
           </div>
@@ -409,7 +410,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                     disabled={loading}
                     required={inputConfig.required}
                 >
-                    <SelectTrigger id={commonProps.id} className="w-full bg-input border-border focus:ring-primary">
+                    <SelectTrigger id={commonProps.id} className="w-full bg-tool-input-bg border-border focus:ring-primary">
                         <SelectValue placeholder={inputConfig.placeholder || `Select ${inputConfig.label.toLowerCase()}`} />
                     </SelectTrigger>
                     <SelectContent>
@@ -458,7 +459,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                         onChange={(e) => setCurrentTag(e.target.value)}
                         placeholder="Add a tag..."
                         disabled={loading || referenceTags.length >= referenceImages.length}
-                        className="bg-input border-border"
+                        className="bg-tool-input-bg border-border"
                     />
                     <Button type="button" onClick={handleAddTag} disabled={loading || !currentTag.trim() || referenceTags.length >= referenceImages.length}>
                         <Plus className="h-4 w-4" />
@@ -725,8 +726,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
               </div>
               <div className="flex w-full items-center justify-end gap-2 mt-2">
                  {isFluxModelSelected && (
-                  <button
-                    type="button"
+                  <div
                     className="relative h-10 w-10 cursor-pointer group flex-shrink-0"
                     onClick={() => {
                       if (uploadedImagePreview) handleClearUploadedImage();
@@ -746,7 +746,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                         <ImageIcon className="h-5 w-5" />
                       </div>
                     )}
-                  </button>
+                  </div>
                 )}
                 <Select value={selectedModelKey} onValueChange={setSelectedModelKey} disabled={loading}>
                   <SelectTrigger className="bg-background/50 h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border">
