@@ -29,11 +29,13 @@ const MarkdownRenderer: FC<MarkdownRendererProps> = ({ content }) => {
             className="prose prose-sm dark:prose-invert max-w-none font-code"
             components={{
                 code({ node, className, children, ...props }) {
+                    // Destructure ref and other props to avoid passing an incompatible ref to SyntaxHighlighter
+                    const { ref, ...rest } = props;
                     const match = /language-(\w+)/.exec(className || '');
                     const codeString = String(children).replace(/\n$/, '');
 
                     return match ? (
-                        <div className="relative my-4 rounded-md">
+                        <div className="relative my-4 rounded-md" ref={ref as React.Ref<HTMLDivElement>}>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -46,7 +48,7 @@ const MarkdownRenderer: FC<MarkdownRendererProps> = ({ content }) => {
                                 style={vscDarkPlus as any}
                                 language={match[1]}
                                 PreTag="div"
-                                {...props}
+                                {...rest}
                             >
                                 {codeString}
                             </SyntaxHighlighter>
