@@ -19,16 +19,15 @@ export interface VoiceOption {
 
 // Updated model list based on the provided official JSON data
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-  { id: "openai-large",   name: "OpenAI GPT-4.1",             vision: true },
-  { id: "openai-fast",    name: "OpenAI GPT-4.1 Nano",        vision: true },
-  { id: "openai",         name: "OpenAI GPT-4o Mini",         vision: true },
-  { id: "mistral",        name: "Mistral Small 3.1 24B",      vision: true },
-  { id: "llamascout",     name: "Llama 4 Scout 17B",          vision: false },
-  { id: "grok",           name: "xAI Grok-3 Mini",            vision: false },
-  { id: "deepseek",       name: "DeepSeek V3",                vision: false },
-  { id: "phi",            name: "Phi-4 Mini Instruct",        vision: true },
-  { id: "unity",          name: "Unity Unrestricted Agent",   vision: true },
-  { id: "evil",           name: "Evil",                       vision: true },
+    { id: "gpt-5-nano", name: "OpenAI GPT-5 Nano", vision: true },
+    { id: "openai-large", name: "OpenAI GPT-4.1", vision: true },
+    { id: "mistral", name: "Mistral Small 3.1 24B", vision: true },
+    { id: "deepseek-reasoning", name: "DeepSeek R1 0528 (Vertex AI)", vision: false },
+    { id: "glm", name: "GLM-4 9B Chat (Intelligence.io)", vision: false },
+    { id: "llama-roblox", name: "Llama 3.1 8B Instruct (Nebius)", vision: false },
+    { id: "llamascout", name: "Llama 4 Scout 17B", vision: false },
+    { id: "mistral-nemo-roblox", name: "Mistral Nemo Instruct 2407 (Nebius)", vision: false },
+    { id: "nova-fast", name: "Amazon Nova Micro (Bedrock)", vision: false },
 ];
 
 // Stil-Profile (ResponseStyles)
@@ -147,7 +146,7 @@ Stilregeln:
 • Komplexität sichtbar machen, statt sie zu reduzieren (außer auf ausdrückliche Bitte des Users).
 • Neutral im Sinne von „offen für verschiedene Denktraditionen“, aber kritisch im Aufzeigen von Grenzen jeder Position.
 • Genderneutral, diskriminierungsfrei.
-• Ziel ist nicht, die „eine“ Antwort zu liefern, sondern das Denken des Users zu erweitern.`,
+• Ziel ist nicht, die „die“ Antwort zu liefern, sondern das Denken des Users zu erweitern.`,
   },
   {
     name: "User's Default",
@@ -174,5 +173,3 @@ export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 // For in-chat image generation
 export const FALLBACK_IMAGE_MODELS = ['flux', 'turbo', 'gptimage'];
 export const DEFAULT_IMAGE_MODEL = 'flux'; // A safe default
-
-    
