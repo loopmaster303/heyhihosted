@@ -6,6 +6,7 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "imagen-4-ultra": "google/imagen-4-ultra",
   "flux-kontext-max": "black-forest-labs/flux-kontext-max",
   "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
+  "flux-krea-dev": "black-forest-labs/flux-krea-dev",
   "runway-gen4-image": "runwayml/gen4-image",
   "qwen-image": "qwen/qwen-image"
 };

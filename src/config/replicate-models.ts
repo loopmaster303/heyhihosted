@@ -24,6 +24,22 @@ export interface ReplicateModelConfig {
 }
 
 export const modelConfigs: Record<string, ReplicateModelConfig> = {
+  "flux-krea-dev": {
+    id: "flux-krea-dev",
+    name: "Flux Krea Dev",
+    outputType: "image",
+    description: "FLUX.1 KREA.dev by Black Forest Labs for fast, high-quality image generation.",
+    inputs: [
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A cinematic photo of a robot in a field of flowers...", info: "The main text prompt describing the image you want to generate.", isPrompt: true },
+      { name: "image", label: "Input Image (URL)", type: "url", info: "An optional image to guide the generation (img2img). Accepts HTTP or data URLs." },
+      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Blurry, text, watermark, ugly", info: "Specify elements to avoid in the image.", isNegativePrompt: true },
+      { name: "scheduler", label: "Scheduler", type: "select", default: "dpmpp-2m-sde-karras", options: ["dpmpp-2m-sde-karras", "dpmpp-2m-sde", "dpmpp-sde-karras", "dpmpp-sde", "euler", "euler-a", "lms-karras"], info: "Choose a scheduler to guide the diffusion process." },
+      { name: "num_inference_steps", label: "Inference Steps", type: "number", default: 25, min: 1, max: 100, step: 1, info: "Number of denoising steps. Higher values can improve quality but take longer." },
+      { name: "guidance", label: "Guidance", type: "number", default: 3, min: 0, max: 20, step: 0.1, info: "Controls how much the prompt influences the output. Lower values give more creative freedom." },
+      { name: "output_quality", label: "Output Quality", type: "number", default: 95, min: 1, max: 100, step: 1, info: "Quality of the output image (1-100). Higher is better." },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "A specific seed to reproduce results. Leave blank for random." },
+    ]
+  },
   "qwen-image": {
     id: "qwen-image",
     name: "Qwen Image",
