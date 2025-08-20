@@ -74,6 +74,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
   const isRunwayModelSelected = currentModelConfig?.id === 'runway-gen4-image';
+  const isVideoModelSelected = currentModelConfig?.outputType === 'video';
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useEffect(() => {
@@ -210,19 +211,19 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       reader.onloadend = () => {
         const dataUri = reader.result as string;
         setUploadedImagePreview(dataUri);
-        if (isFluxModelSelected) { 
-            setFormFields(prev => ({...prev, input_image: dataUri }));
+        if (isFluxModelSelected || isVideoModelSelected) { 
+            setFormFields(prev => ({...prev, image: dataUri, input_image: dataUri }));
         }
       };
       reader.readAsDataURL(file);
     } else if (file) {
       toast({ title: "Invalid File", description: "Please upload an image file.", variant: "destructive" });
       setUploadedImagePreview(null);
-      if (isFluxModelSelected) { 
-        setFormFields(prev => ({...prev, input_image: undefined }));
+      if (isFluxModelSelected || isVideoModelSelected) { 
+        setFormFields(prev => ({...prev, image: undefined, input_image: undefined }));
       }
     }
-  }, [isFluxModelSelected, toast]);
+  }, [isFluxModelSelected, isVideoModelSelected, toast]);
 
   const handleSingleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     handleSingleFileSelectAndConvert(event.target.files?.[0] || null);
@@ -233,13 +234,13 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   
   const handleClearUploadedImage = useCallback(() => {
     setUploadedImagePreview(null);
-    if (isFluxModelSelected) { 
-        setFormFields(prev => ({...prev, input_image: undefined }));
+    if (isFluxModelSelected || isVideoModelSelected) { 
+        setFormFields(prev => ({...prev, image: undefined, input_image: undefined }));
     }
     if (singleFileInputRef.current) {
       singleFileInputRef.current.value = "";
     }
-  }, [isFluxModelSelected]);
+  }, [isFluxModelSelected, isVideoModelSelected]);
   
   const handleMultipleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -330,7 +331,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
             </div>
         );
       case 'url':
-        if (inputConfig.name === "input_image" && isFluxModelSelected) return null; 
+        if ((isFluxModelSelected || isVideoModelSelected) && (inputConfig.name === "input_image" || inputConfig.name === "image")) return null; 
         return (
           <div key={inputConfig.name} className="space-y-1.5">
             {label}
@@ -480,7 +481,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       default:
         return null;
     }
-  }, [currentModelConfig, loading, formFields, handleInputChange, isRunwayModelSelected, isFluxModelSelected, referenceImages, currentTag, referenceTags, handleRemoveReferenceImage, handleAddTag, handleRemoveTag]);
+  }, [currentModelConfig, loading, formFields, handleInputChange, isRunwayModelSelected, isFluxModelSelected, isVideoModelSelected, referenceImages, currentTag, referenceTags, handleRemoveReferenceImage, handleAddTag, handleRemoveTag]);
 
   const handleSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
@@ -504,11 +505,18 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         }
     }
     
-    if (isFluxModelSelected && uploadedImagePreview && formFields.input_image) {
-        currentPayload.input_image = formFields.input_image; 
-    } else if (isFluxModelSelected && currentModelConfig.inputs.find(i => i.name === 'input_image')?.required && !uploadedImagePreview && !effectivePrompt) {
-        toast({ title: "Input Missing", description: "Flux models require a prompt or an input image.", variant: "destructive" });
-        return;
+    if ((isFluxModelSelected || isVideoModelSelected) && uploadedImagePreview && (formFields.input_image || formFields.image)) {
+        currentPayload.image = formFields.image || formFields.input_image;
+        currentPayload.input_image = formFields.image || formFields.input_image;
+    } else if ((isFluxModelSelected || isVideoModelSelected) && currentModelConfig.inputs.find(i => i.name === 'image' || i.name === 'input_image')?.required && !uploadedImagePreview) {
+        if (isFluxModelSelected && !effectivePrompt) {
+            toast({ title: "Input Missing", description: "Flux models require a prompt or an input image.", variant: "destructive" });
+            return;
+        }
+        if (isVideoModelSelected) {
+            toast({ title: "Input Missing", description: "This video model requires an input image.", variant: "destructive" });
+            return;
+        }
     }
 
     if (isRunwayModelSelected) {
@@ -524,11 +532,10 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         }
     }
 
-
     for (const input of currentModelConfig.inputs) {
       if ((input.isPrompt && input.name === 'prompt')) continue; 
       if (input.type === 'files' || input.type === 'tags') continue;
-      if (isFluxModelSelected && input.name === "input_image") continue;
+      if ((isFluxModelSelected || isVideoModelSelected) && (input.name === "input_image" || input.name === "image")) continue;
 
       const valueToUse = formFields[input.name];
 
@@ -611,7 +618,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [selectedModelKey, currentModelConfig, password, mainPromptValue, isFluxModelSelected, uploadedImagePreview, formFields, isRunwayModelSelected, referenceImages, referenceTags, toast]);
+  }, [selectedModelKey, currentModelConfig, password, mainPromptValue, isFluxModelSelected, isVideoModelSelected, uploadedImagePreview, formFields, isRunwayModelSelected, referenceImages, referenceTags, toast]);
 
   const handleClearHistory = useCallback(() => {
     setHistory([]);
@@ -628,7 +635,8 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   
   const canSubmit = !loading && currentModelConfig &&
     ( (isFluxModelSelected && (mainPromptValue.trim() !== '' || uploadedImagePreview)) ||
-      (!isFluxModelSelected && mainPromptValue.trim() !== '') );
+      (isVideoModelSelected && mainPromptValue.trim() !== '' && uploadedImagePreview) ||
+      (!isFluxModelSelected && !isVideoModelSelected && mainPromptValue.trim() !== '') );
 
   const toggleAdvancedPanel = useCallback(() => {
     if (isHistoryPanelOpen) setIsHistoryPanelOpen(false);
@@ -725,7 +733,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                   />
               </div>
               <div className="flex w-full items-center justify-end gap-2 mt-2">
-                 {isFluxModelSelected && (
+                 {(isFluxModelSelected || isVideoModelSelected) && (
                   <div
                     className="relative h-10 w-10 cursor-pointer group flex-shrink-0"
                     onClick={() => {
@@ -814,3 +822,5 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 };
 
 export default ReplicateImageTool;
+
+    

@@ -51,3 +51,5 @@ export interface ImageHistoryItem {
   toolType: 'premium imagination' | 'nocost imagination';
   videoUrl?: string;
 }
+
+    

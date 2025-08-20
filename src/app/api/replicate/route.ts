@@ -8,7 +8,8 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
   "flux-krea-dev": "black-forest-labs/flux-krea-dev",
   "runway-gen4-image": "runwayml/gen4-image",
-  "qwen-image": "qwen/qwen-image"
+  "qwen-image": "qwen/qwen-image",
+  "wan-2.2-video": "wan-video/wan-2.2-i2v-a14b",
 };
 
 export async function POST(request: NextRequest) {
@@ -114,3 +115,5 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+    

@@ -106,6 +106,20 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "reference_tags", label: "Reference Tags", type: "tags", info: "An optional tag for each of your reference images. Tags must be alphanumeric and start with a letter. You can reference them in your prompt using @tag_name. Tags must be between 3 and 15 characters." }
     ],
   },
+  "wan-2.2-video": {
+    id: "wan-2.2-video",
+    name: "WAN 2.2 Video",
+    outputType: "video",
+    description: "Image-to-Video model by Wandisco. Takes an image and a prompt to generate a short video.",
+    inputs: [
+      { name: "image", label: "Source Image", type: "url", required: true, info: "The starting image for the video generation." },
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Golden hour, soft lighting...", info: "A detailed description of the desired motion and scene.", isPrompt: true },
+      { name: "sample_steps", label: "Sampling Steps", type: "number", default: 30, min: 10, max: 60, step: 1, info: "Number of steps in the sampling process." },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed for reproducibility." },
+    ],
+  },
 };
 
 export const modelKeys = Object.keys(modelConfigs);
+
+    
