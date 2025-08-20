@@ -209,23 +209,20 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   
   const handleSingleFileSelectAndConvert = useCallback((file: File | null) => {
     if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUri = reader.result as string;
-        setUploadedImagePreview(dataUri);
-        if (isFluxModelSelected || isVideoModelSelected || hasCharacterReference) { 
-            setFormFields(prev => ({...prev, image: dataUri, input_image: dataUri, character_reference_image: dataUri }));
-        }
-      };
-      reader.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const dataUri = reader.result as string;
+            setUploadedImagePreview(dataUri);
+            // This logic is now cleaner, just sets the preview.
+            // The actual field to use is determined in handleSubmit.
+        };
+        reader.readAsDataURL(file);
     } else if (file) {
-      toast({ title: "Invalid File", description: "Please upload an image file.", variant: "destructive" });
-      setUploadedImagePreview(null);
-      if (isFluxModelSelected || isVideoModelSelected || hasCharacterReference) { 
-        setFormFields(prev => ({...prev, image: undefined, input_image: undefined, character_reference_image: undefined }));
-      }
+        toast({ title: "Invalid File", description: "Please upload an image file.", variant: "destructive" });
+        setUploadedImagePreview(null);
     }
-  }, [isFluxModelSelected, isVideoModelSelected, hasCharacterReference, toast]);
+  }, [toast]);
+
 
   const handleSingleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     handleSingleFileSelectAndConvert(event.target.files?.[0] || null);
@@ -236,13 +233,10 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   
   const handleClearUploadedImage = useCallback(() => {
     setUploadedImagePreview(null);
-    if (isFluxModelSelected || isVideoModelSelected || hasCharacterReference) { 
-        setFormFields(prev => ({...prev, image: undefined, input_image: undefined, character_reference_image: undefined }));
-    }
     if (singleFileInputRef.current) {
       singleFileInputRef.current.value = "";
     }
-  }, [isFluxModelSelected, isVideoModelSelected, hasCharacterReference]);
+  }, []);
   
   const handleMultipleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -493,75 +487,78 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     }
 
     const currentPayload: Record<string, any> = { model: selectedModelKey, password: password };
-
+    
+    // --- Prompt Handling ---
     const effectivePrompt = mainPromptValue.trim();
-    const promptConfig = currentModelConfig.inputs.find(i => i.name === 'prompt' && i.isPrompt);
-
-    if (promptConfig) {
-        if (promptConfig.required && !effectivePrompt && !(isFluxModelSelected && uploadedImagePreview) ) {
-            toast({ title: "Prompt Missing", description: "This model requires a prompt.", variant: "destructive" });
+    if (effectivePrompt) {
+        currentPayload.prompt = effectivePrompt;
+    } else {
+        const promptConfig = currentModelConfig.inputs.find(i => i.isPrompt && i.required);
+        if (promptConfig) {
+            toast({ title: "Prompt Missing", description: `The field "${promptConfig.label}" is required for this model.`, variant: "destructive" });
             return;
-        }
-        if (effectivePrompt) { 
-            currentPayload.prompt = effectivePrompt;
         }
     }
     
-    if ((isFluxModelSelected || isVideoModelSelected || hasCharacterReference) && uploadedImagePreview) {
-      if(formFields.image) currentPayload.image = formFields.image;
-      if(formFields.input_image) currentPayload.input_image = formFields.input_image;
-      if(formFields.character_reference_image) currentPayload.character_reference_image = formFields.character_reference_image;
-    } else if ((isFluxModelSelected || isVideoModelSelected || hasCharacterReference) && !uploadedImagePreview) {
-        const imageInput = currentModelConfig.inputs.find(i => i.name === 'image' || i.name === 'input_image' || i.name === 'character_reference_image');
-        if (imageInput?.required) {
-            if (isFluxModelSelected && !effectivePrompt) {
-                toast({ title: "Input Missing", description: "Flux models require a prompt or an input image.", variant: "destructive" });
-                return;
-            }
-             if (isVideoModelSelected || hasCharacterReference) {
-                toast({ title: "Input Missing", description: `This model requires an input image for '${imageInput.label}'.`, variant: "destructive" });
-                return;
-            }
+    // --- Image Input Handling ---
+    if (uploadedImagePreview) {
+        if (hasCharacterReference) {
+            currentPayload.character_reference_image = uploadedImagePreview;
+        } else if (isVideoModelSelected) {
+            currentPayload.image = uploadedImagePreview;
+        } else if (isFluxModelSelected) {
+            currentPayload.input_image = uploadedImagePreview;
         }
-    }
-
-    if (isRunwayModelSelected) {
-        if (referenceImages.length > 0) {
-            currentPayload.reference_images = referenceImages;
-        }
-        if (referenceTags.length > 0) {
-            currentPayload.reference_tags = referenceTags;
-        }
-        if (referenceImages.length > 0 && referenceTags.length !== referenceImages.length) {
-            toast({ title: "Tag Mismatch", description: "You must provide a tag for each reference image.", variant: "destructive"});
+    } else {
+        // Check if an image is required but missing
+        const imageInputConfig = currentModelConfig.inputs.find(i => i.type === 'url' && i.required);
+        if (imageInputConfig) {
+            toast({ title: "Image Missing", description: `The field "${imageInputConfig.label}" is required for this model.`, variant: "destructive" });
             return;
         }
     }
-
-    for (const input of currentModelConfig.inputs) {
-      if ((input.isPrompt && input.name === 'prompt')) continue; 
-      if (input.type === 'files' || input.type === 'tags') continue;
-      if ((isFluxModelSelected || isVideoModelSelected || hasCharacterReference) && (input.name === "input_image" || input.name === "image" || input.name === "character_reference_image")) continue;
-
-      const valueToUse = formFields[input.name];
-
-      if (input.required && (valueToUse === undefined || valueToUse === '' || valueToUse === null)) {
-         if (!(input.type === 'boolean' && valueToUse === false)) { 
-             toast({ title: "Missing Required Field", description: `Please fill in the "${input.label}" field.`, variant: "destructive"});
-             return;
-         }
-      }
-
-      if (valueToUse !== undefined && valueToUse !== '' && valueToUse !== null) {
-         if (input.type === 'number') {
-          const numValue = parseFloat(String(valueToUse));
-          if (!isNaN(numValue)) currentPayload[input.name] = numValue;
-        } else {
-          currentPayload[input.name] = valueToUse;
+    
+    // --- Runway-Specific Multi-Image/Tag Handling ---
+    if (isRunwayModelSelected) {
+        if (referenceImages.length > 0) {
+            currentPayload.reference_images = referenceImages;
+            if (referenceTags.length !== referenceImages.length) {
+                toast({ title: "Tag Mismatch", description: "You must provide a tag for each reference image.", variant: "destructive"});
+                return;
+            }
+            if (referenceTags.length > 0) {
+                 currentPayload.reference_tags = referenceTags;
+            }
         }
-      } else if (input.type === 'boolean' && valueToUse === false) { 
-         currentPayload[input.name] = false; 
-      }
+    }
+
+    // --- Generic Form Field Handling ---
+    for (const input of currentModelConfig.inputs) {
+        // Skip inputs that have been handled already
+        if (input.isPrompt || input.type === 'url' || input.type === 'files' || input.type === 'tags') {
+            continue;
+        }
+
+        const valueToUse = formFields[input.name];
+
+        if (input.required && (valueToUse === undefined || valueToUse === '' || valueToUse === null)) {
+            if (!(input.type === 'boolean' && valueToUse === false)) { 
+                toast({ title: "Missing Required Field", description: `Please fill in the "${input.label}" field.`, variant: "destructive"});
+                return;
+            }
+        }
+        
+        // Add field to payload if it has a value, or if it's a boolean set to false
+        if (valueToUse !== undefined && valueToUse !== '' && valueToUse !== null) {
+            if (input.type === 'number') {
+                const numValue = parseFloat(String(valueToUse));
+                if (!isNaN(numValue)) currentPayload[input.name] = numValue;
+            } else {
+                currentPayload[input.name] = valueToUse;
+            }
+        } else if (input.type === 'boolean' && valueToUse === false) { 
+            currentPayload[input.name] = false; 
+        }
     }
 
     setLoading(true);
@@ -829,5 +826,3 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 };
 
 export default ReplicateImageTool;
-
-    
