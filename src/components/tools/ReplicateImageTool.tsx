@@ -213,8 +213,6 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         reader.onloadend = () => {
             const dataUri = reader.result as string;
             setUploadedImagePreview(dataUri);
-            // This logic is now cleaner, just sets the preview.
-            // The actual field to use is determined in handleSubmit.
         };
         reader.readAsDataURL(file);
     } else if (file) {
@@ -502,15 +500,13 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     
     // --- Image Input Handling ---
     if (uploadedImagePreview) {
-        if (hasCharacterReference) {
-            currentPayload.character_reference_image = uploadedImagePreview;
-        } else if (isVideoModelSelected) {
-            currentPayload.image = uploadedImagePreview;
-        } else if (isFluxModelSelected) {
-            currentPayload.input_image = uploadedImagePreview;
+        const imageInputConfig = currentModelConfig.inputs.find(i => i.type === 'url' && i.required);
+        if (imageInputConfig) {
+            currentPayload[imageInputConfig.name] = uploadedImagePreview;
+        } else if (isFluxModelSelected) { // Fallback for flux
+             currentPayload.input_image = uploadedImagePreview;
         }
     } else {
-        // Check if an image is required but missing
         const imageInputConfig = currentModelConfig.inputs.find(i => i.type === 'url' && i.required);
         if (imageInputConfig) {
             toast({ title: "Image Missing", description: `The field "${imageInputConfig.label}" is required for this model.`, variant: "destructive" });
@@ -534,21 +530,16 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 
     // --- Generic Form Field Handling ---
     for (const input of currentModelConfig.inputs) {
-        // Skip inputs that have been handled already
         if (input.isPrompt || input.type === 'url' || input.type === 'files' || input.type === 'tags') {
             continue;
         }
-
         const valueToUse = formFields[input.name];
-
         if (input.required && (valueToUse === undefined || valueToUse === '' || valueToUse === null)) {
             if (!(input.type === 'boolean' && valueToUse === false)) { 
                 toast({ title: "Missing Required Field", description: `Please fill in the "${input.label}" field.`, variant: "destructive"});
                 return;
             }
         }
-        
-        // Add field to payload if it has a value, or if it's a boolean set to false
         if (valueToUse !== undefined && valueToUse !== '' && valueToUse !== null) {
             if (input.type === 'number') {
                 const numValue = parseFloat(String(valueToUse));
@@ -826,3 +817,5 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 };
 
 export default ReplicateImageTool;
+
+    

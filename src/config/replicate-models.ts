@@ -57,18 +57,17 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "A specific seed to reproduce results. Leave blank for random." },
     ]
   },
-  "qwen-image": {
-    id: "qwen-image",
-    name: "Qwen Image",
+  "qwen-image-edit": {
+    id: "qwen-image-edit",
+    name: "Qwen Image (+edit)",
     outputType: "image",
-    description: "High-quality text-to-image synthesis by Qwen, supporting English and Chinese prompts.",
+    hasCharacterReference: true, 
+    description: "Edit images using text instructions with Qwen.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A beautiful cat on a chair...", info: "The main text prompt describing the image you want to generate.", isPrompt: true },
-      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Blurry, low quality, text, watermark", info: "Specify elements you want to avoid in the image.", isNegativePrompt: true },
-      { name: "style", label: "Style", type: "select", default: "<photorealistic>", options: ["<photorealistic>", "<3d cartoon>", "<anime>", "<cinematic>", "<comic book>", "<craft clay>", "<digital art>", "<fantasy art>", "<isometric>", "<line art>", "<low-poly>", "<modeling compound>", "<origami>", "<pixel art>", "<texture>"], info: "Artistic style of the generated image." },
-      { name: "size", label: "Size", type: "select", default: "1024*1024", options: ["1024*1024", "720*1280", "1280*720"], info: "Dimensions of the output image." },
-      { name: "num_inference_steps", label: "Inference Steps", type: "number", default: 50, min: 10, max: 100, step: 1, info: "Number of denoising steps. More steps can improve quality but take longer." },
-      { name: "guidance_scale", label: "Guidance Scale", type: "number", default: 7.5, min: 1, max: 20, step: 0.1, info: "How strongly the prompt should guide generation. Higher values mean stricter adherence." },
+      { name: "image", label: "Image to Edit", type: "url", required: true, info: "The source image you want to modify." },
+      { name: "prompt", label: "Edit Instruction", type: "text", required: true, placeholder: "Make the sky blue, add a cat on the roof...", info: "Describe the changes you want to make to the image.", isPrompt: true },
+      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Blurry, low quality, text, watermark", info: "Specify elements you want to avoid in the final image.", isNegativePrompt: true },
+      { name: "output_quality", label: "Output Quality", type: "number", default: 80, min: 1, max: 100, step: 1, info: "Quality of the output image (1-100). Higher is better." },
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "A specific seed to reproduce results. Leave blank for random." },
     ]
   },
@@ -138,5 +137,7 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
 };
 
 export const modelKeys = Object.keys(modelConfigs);
+
+    
 
     
