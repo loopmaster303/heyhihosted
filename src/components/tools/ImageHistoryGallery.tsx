@@ -5,7 +5,7 @@ import type { FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import NextImage from 'next/image';
-import { Trash2, X } from 'lucide-react';
+import { Trash2, X, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import type { ImageHistoryItem } from '@/types';
 
@@ -17,6 +17,43 @@ interface ImageHistoryGalleryProps {
 }
 
 const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectImage, onClearHistory, onClose }) => {
+
+  const handleDownload = async (event: React.MouseEvent, item: ImageHistoryItem) => {
+    event.stopPropagation(); // Prevent selecting the image when downloading
+    
+    const url = item.videoUrl || item.imageUrl;
+    const isVideo = !!item.videoUrl;
+    
+    try {
+      // Using fetch to get the blob allows for more reliable downloads, especially for cross-origin resources
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      
+      // Create a filename from prompt and timestamp
+      const timestamp = format(new Date(item.timestamp), "yyyyMMdd_HHmmss");
+      const safePrompt = item.prompt.substring(0, 20).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const extension = isVideo ? 'mp4' : (blob.type.split('/')[1] || 'png');
+      link.download = `${safePrompt}_${timestamp}.${extension}`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error("Download failed:", error);
+      // Fallback for when fetch fails (e.g. CORS issues): open in new tab
+      window.open(url, '_blank');
+    }
+  };
+
   return (
     <div className="h-full">
       <div className="flex items-center justify-between mb-2 px-1">
@@ -61,6 +98,15 @@ const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectIm
                   <p className="text-white text-xs font-medium truncate">{item.prompt}</p>
                   <p className="text-white/80 text-[10px]">{format(new Date(item.timestamp), "dd/MM/yy HH:mm")}</p>
                 </div>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  onClick={(e) => handleDownload(e, item)}
+                  aria-label="Download"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
               </div>
             ))}
           </div>
