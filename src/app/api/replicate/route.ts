@@ -6,7 +6,8 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "imagen-4-ultra": "google/imagen-4-ultra",
   "flux-kontext-max": "black-forest-labs/flux-kontext-max",
   "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
-  "runway-gen4-image": "runwayml/gen4-image"
+  "runway-gen4-image": "runwayml/gen4-image",
+  "qwen-image": "qwen/qwen-image"
 };
 
 export async function POST(request: NextRequest) {
