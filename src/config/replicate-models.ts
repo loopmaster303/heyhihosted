@@ -21,9 +21,26 @@ export interface ReplicateModelConfig {
   inputs: ReplicateModelInput[];
   description?: string;
   outputType?: "image" | "video";
+  hasCharacterReference?: boolean;
 }
 
 export const modelConfigs: Record<string, ReplicateModelConfig> = {
+  "ideogram-character": {
+    id: "ideogram-character",
+    name: "Ideogram Character",
+    outputType: "image",
+    hasCharacterReference: true,
+    description: "Create consistent characters across different images using a reference image.",
+    inputs: [
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A photo of the character smiling...", info: "The main text prompt describing the scene.", isPrompt: true },
+      { name: "character_reference_image", label: "Character Reference", type: "url", required: true, info: "The reference image for the character." },
+      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Ugly, deformed, text, watermark", info: "Specify elements to avoid in the image.", isNegativePrompt: true },
+      { name: "style", label: "Style", type: "select", default: "cinematic", options: ["photorealistic", "cinematic", "anime", "illustration", "3d_render", "line_art", "graffiti", "typography", "sticker", "painting", "vector", "abstract", "ukiyo_e"], info: "Artistic style of the generated image." },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "1:1", options: ["1:1", "16:9", "9:16"], info: "Aspect ratio of the output image." },
+      { name: "prompt_magic_v3", label: "Prompt Magic V3", type: "boolean", default: true, info: "Enable Ideogram's automatic prompt enhancement." },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "A specific seed to reproduce results." },
+    ]
+  },
   "flux-krea-dev": {
     id: "flux-krea-dev",
     name: "Flux Krea Dev",
