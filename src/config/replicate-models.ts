@@ -59,7 +59,7 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
   },
   "qwen-image-edit": {
     id: "qwen-image-edit",
-    name: "Qwen Image (+edit)",
+    name: "Qwen Image Edit",
     outputType: "image",
     hasCharacterReference: true, 
     description: "Edit images using text instructions with Qwen.",
@@ -69,6 +69,19 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Blurry, low quality, text, watermark", info: "Specify elements you want to avoid in the final image.", isNegativePrompt: true },
       { name: "output_quality", label: "Output Quality", type: "number", default: 80, min: 1, max: 100, step: 1, info: "Quality of the output image (1-100). Higher is better." },
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "A specific seed to reproduce results. Leave blank for random." },
+    ]
+  },
+  "qwen-image": {
+    id: "qwen-image",
+    name: "Qwen Image",
+    outputType: "image",
+    description: "Generate images from text prompts using Qwen.",
+    inputs: [
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A beautiful landscape...", info: "The main text prompt describing the image.", isPrompt: true },
+      { name: "style", label: "Style", type: "select", default: "sketch", options: ["photorealistic", "cinematic", "anime", "illustration", "3d_render", "line_art", "graffiti", "typography", "sticker", "painting", "vector", "abstract", "ukiyo_e", "sketch", "pixel_art", "watercolor", "poster", "logo", "comic"], info: "Artistic style of the generated image." },
+      { name: "size", label: "Size", type: "select", default: "1024*1024", options: ["1024*1024", "720*1280", "1280*720"], info: "Dimensions of the output image." },
+      { name: "num_inference_steps", label: "Inference Steps", type: "number", default: 50, min: 1, max: 100, step: 1, info: "Number of denoising steps." },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "A specific seed for reproducibility." },
     ]
   },
   "imagen-4-ultra": {
