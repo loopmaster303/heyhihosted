@@ -55,19 +55,21 @@ const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectIm
   };
 
   return (
-    <div className="h-full">
-      <div className="flex items-center justify-between mb-2 px-1">
+    <div className="flex flex-col h-full max-h-80">
+      <div className="flex items-center justify-between mb-2 px-1 flex-shrink-0">
         <h3 className="text-sm font-semibold text-foreground">History</h3>
-        <Button variant="ghost" size="sm" onClick={onClearHistory} aria-label="Clear history" className="text-muted-foreground hover:text-foreground">
-          <Trash2 className="w-4 h-4 mr-1.5" />
-          Clear
-        </Button>
-         <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="w-4 h-4 mr-1.5" />
-            Close
-        </Button>
+        <div className="flex items-center">
+            <Button variant="ghost" size="sm" onClick={onClearHistory} aria-label="Clear history" className="text-muted-foreground hover:text-foreground">
+              <Trash2 className="w-4 h-4 mr-1.5" />
+              Clear
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+                <X className="w-4 h-4 mr-1.5" />
+                Close
+            </Button>
+        </div>
       </div>
-      <ScrollArea className="h-full max-h-64">
+      <ScrollArea className="flex-grow overflow-y-auto">
         {history.length === 0 ? (
            <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
              No images generated yet.
