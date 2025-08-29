@@ -5,8 +5,10 @@ import React, { useState, useEffect } from 'react';
 import type { TileItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '../ThemeToggle';
+import LanguageToggle from '../LanguageToggle';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useLanguage } from '../LanguageProvider';
 
 interface AppHeaderProps {
   toolTileItems: TileItem[];
@@ -15,6 +17,7 @@ interface AppHeaderProps {
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, className }) => {
+  const { t } = useLanguage();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
@@ -49,20 +52,40 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toolTileItems, userDisplayName, c
         <div className="flex-1 flex justify-center">
             <button
                 onClick={toggleMenu}
-                className="flex items-baseline gap-4 text-left hover:opacity-80 transition-opacity"
-                aria-label="Toggle navigation menu"
+                className={cn(
+                  "flex items-baseline gap-4 text-left transition-all duration-200 relative",
+                  isMenuOpen 
+                    ? "opacity-100 scale-105" 
+                    : "hover:opacity-80 hover:scale-102"
+                )}
+                aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
                 disabled={loading}
             >
-              <h1 className="text-3xl md:text-4xl font-code text-foreground text-glow text-center">
+              {/* Visual indicator when menu is open */}
+              {isMenuOpen && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-pink-500 rounded-full animate-pulse" />
+              )}
+              <h1 className={cn(
+                "text-3xl md:text-4xl font-code text-glow text-center transition-colors duration-200",
+                isMenuOpen ? "text-pink-500" : "text-foreground"
+              )}>
                   <span className="text-foreground/60">(</span>
                   !hey.hi
                   <span className="text-foreground/60"> = </span> 
                   <span className="text-pink-500">{`'${displayName}'`}</span>
                   <span className="text-foreground/60">)</span>
               </h1>
+              
+              {/* Hint text when menu is open */}
+              {isMenuOpen && (
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-pink-400 font-code animate-pulse">
+                  {t('nav.clickAgainToClose')}
+                </div>
+              )}
             </button>
         </div>
-        <div className="flex-1 flex justify-end">
+        <div className="flex-1 flex justify-end items-center gap-2">
+          <LanguageToggle />
           <ThemeToggle />
         </div>
       </header>

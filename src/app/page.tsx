@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Play, Pause, Square } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/components/LanguageProvider';
+import LanguageToggleHomepage from '@/components/LanguageToggleHomepage';
 
 
 // Adjusted to match the new design's text
@@ -21,7 +23,8 @@ const toolTileItems = [
     tagColor: 'text-blue-400',
     symbolColor: 'text-blue-400',
     hoverTitle: 'chat.talk.discuss',
-    hoverDescription: 'Talk here with the machine like you would with a real person, like a friend for example.\nAsk anything, get help, or just have a normal chat—no special rules.'
+    hoverDescription: 'Talk here with the machine like you would with a real person, like a friend for example.\nAsk anything, get help, or just have a normal chat—no special rules.',
+    translationKey: 'tool.chat.hoverDescription'
   },
   { 
     id: 'code reasoning', 
@@ -32,7 +35,8 @@ const toolTileItems = [
     tagColor: 'text-purple-400',
     symbolColor: 'text-purple-400',
     hoverTitle: 'code.reasoning',
-    hoverDescription: 'Get help with complex topics. The AI will provide structured explanations, code examples, and logical breakdowns in a clean, readable format.'
+    hoverDescription: 'Get help with complex topics. The AI will provide structured explanations, code examples, and logical breakdowns in a clean, readable format.',
+    translationKey: 'tool.reasoning.hoverDescription'
   },
   { 
     id: 'nocost imagination', 
@@ -43,7 +47,8 @@ const toolTileItems = [
     tagColor: 'text-green-400',
     symbolColor: 'text-green-400',
     hoverTitle: 'generate.visuals.lite',
-    hoverDescription: 'Type your idea in natural language and instantly get a simple visualization—no settings, just magic.'
+    hoverDescription: 'Type your idea in natural language and instantly get a simple visualization—no settings, just magic.',
+    translationKey: 'tool.imageLite.hoverDescription'
   },
   { 
     id: 'premium imagination', 
@@ -54,7 +59,8 @@ const toolTileItems = [
     tagColor: 'text-orange-400',
     symbolColor: 'text-orange-400',
     hoverTitle: 'generate.visuals.raw',
-    hoverDescription: 'Describe your idea in natural language, modify every detail with expert settings, and create images using next-gen, state-of-the-art models.'
+    hoverDescription: 'Describe your idea in natural language, modify every detail with expert settings, and create images using next-gen, state-of-the-art models.',
+    translationKey: 'tool.imageRaw.hoverDescription'
    },
   { 
     id: 'personalization', 
@@ -65,7 +71,8 @@ const toolTileItems = [
     tagColor: 'text-gray-400',
     symbolColor: 'text-gray-400',
     hoverTitle: 'settings.user.preferences',
-    hoverDescription: 'Personalize how the machine behaves—set your username, adjust responses, language, style, and more to match your vibe.'
+    hoverDescription: 'Personalize how the machine behaves—set your username, adjust responses, language, style, and more to match your vibe.',
+    translationKey: 'tool.settings.hoverDescription'
   },
   { 
     id: 'about', 
@@ -76,7 +83,8 @@ const toolTileItems = [
     tagColor: 'text-gray-500',
     symbolColor: 'text-gray-500',
     hoverTitle: 'about.system.readme',
-    hoverDescription: 'Learn more about the project, its components, and the philosophy behind it.'
+    hoverDescription: 'Learn more about the project, its components, and the philosophy behind it.',
+    translationKey: 'tool.about.hoverDescription'
   },
 ];
 
@@ -85,6 +93,7 @@ export default function HomePage() {
     const [isPlaying, setIsPlaying] = useState(true);
     const [isVideoVisible, setIsVideoVisible] = useState(true);
     const [hoveredId, setHoveredId] = useState<string | null>(null);
+    const { t } = useLanguage();
 
     useEffect(() => {
         const video = videoRef.current;
@@ -143,6 +152,7 @@ export default function HomePage() {
               />
             </div>
             <div className="absolute top-4 right-4 z-10 flex gap-2">
+                <LanguageToggleHomepage />
                 <Button variant="ghost" size="icon" onClick={togglePlay} className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10">
                     {isPlaying ? <Pause className="h-[1.2rem] w-[1.2rem]" /> : <Play className="h-[1.2rem] w-[1.2rem]" />}
                     <span className="sr-only">{isPlaying ? 'Pause video' : 'Play video'}</span>
@@ -187,7 +197,7 @@ export default function HomePage() {
                                                 className="h-full"
                                             >
                                                 <h2 className={`font-bold text-base sm:text-lg mb-1 sm:mb-2 ${item.tagColor}`}>{item.hoverTitle}</h2>
-                                                <p className="text-white/80 text-[11px] sm:text-xs whitespace-pre-line leading-relaxed">{item.hoverDescription}</p>
+                                                <p className="text-white/80 text-[11px] sm:text-xs whitespace-pre-line leading-relaxed">{t(item.translationKey)}</p>
                                             </motion.div>
                                         ) : (
                                             <motion.div
@@ -234,7 +244,7 @@ export default function HomePage() {
                                                 className="h-full"
                                             >
                                                 <h2 className={`font-bold text-base sm:text-lg mb-1 sm:mb-2 ${item.tagColor}`}>{item.hoverTitle}</h2>
-                                                <p className="text-white/80 text-[11px] sm:text-xs whitespace-pre-line leading-relaxed">{item.hoverDescription}</p>
+                                                <p className="text-white/80 text-[11px] sm:text-xs whitespace-pre-line leading-relaxed">{t(item.translationKey)}</p>
                                             </motion.div>
                                         ) : (
                                             <motion.div

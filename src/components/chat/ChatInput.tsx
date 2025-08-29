@@ -5,11 +5,12 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle } from 'lucide-react';
+import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types';
 import HistoryPanel from './HistoryPanel';
 import AdvancedSettingsPanel from './AdvancedSettingsPanel';
+import { useLanguage } from '../LanguageProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,6 +103,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   selectedImageModelId,
   handleImageModelChange,
 }) => {
+  const { t } = useLanguage();
   const docInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -129,6 +131,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
       }
     }
   }, [isLoading, isRecording, isLongLanguageLoopActive, uploadedFilePreviewUrl, inputValue, onSendMessage, isImageMode, onInputChange]);
+
+
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -158,12 +162,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
   }, [isRecording, stopRecording, startRecording]);
 
   const placeholderText = isRecording
-    ? 'Recording...'
+    ? t('chat.recording')
     : isTranscribing
-    ? 'Transcribing...'
+    ? t('chat.transcribing')
     : isImageMode
     ? `Imagination using ${selectedImageModelId}...`
-    : "just ask/discuss everything. get natural and humanlike support by the machine.";
+    : t('chat.placeholder');
 
   const iconColorClass = "text-foreground/60 hover:text-foreground";
   const displayTitle = chatTitle === "default.long.language.loop" || !chatTitle ? "New Chat" : chatTitle;
@@ -331,7 +335,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               className="text-foreground/80 hover:text-foreground font-bold text-sm sm:text-base md:text-lg px-2 py-1 rounded-lg pointer-events-auto transition-colors"
               aria-label="Open chat history"
           >
-              Conversations
+              {t('nav.conversations')}
           </button>
           <div
             className="text-center h-9 flex items-center"
@@ -345,7 +349,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           className="text-foreground font-bold text-sm sm:text-base md:text-lg px-2 py-1 rounded-lg transition-colors hover:text-foreground/80 animate-in fade-in-0"
                           aria-label="Start new chat"
                       >
-                          New Conversation
+                          {t('nav.newConversation')}
                       </button>
                   ) : (
                       <span className="text-foreground/50 font-bold text-sm sm:text-base md:text-lg px-2 py-1 rounded-lg pointer-events-none animate-in fade-in-0">
@@ -358,7 +362,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               className="text-foreground/80 hover:text-foreground font-bold text-sm sm:text-base md:text-lg px-2 py-1 rounded-lg pointer-events-auto transition-colors"
               aria-label="Open advanced settings"
           >
-              Configurations
+              {t('nav.configurations')}
           </button>
       </div>
       <input type="file" ref={docInputRef} onChange={(e) => handleFileChange(e, 'document')} accept="image/*,application/pdf" className="hidden" disabled={isLoading || !isLongLanguageLoopActive || isImageMode} />

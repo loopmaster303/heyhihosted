@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Brain, Fingerprint, Speech, X, Image as ImageIcon } from 'lucide-react';
 import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
+import { useLanguage } from '../LanguageProvider';
 import { ScrollArea } from '../ui/scroll-area';
 import { Button } from '../ui/button';
 
@@ -39,21 +40,22 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
   onImageModelChange,
   onClose
 }) => {
+  const { t } = useLanguage();
   return (
     <div
       className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300 flex flex-col max-h-[400px]"
     >
       <div className="flex justify-between items-center px-2 pt-1 pb-2 flex-shrink-0">
-        <h3 className="text-sm font-semibold text-foreground">Configuration</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('imageGen.configuration')}</h3>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-4 h-4 mr-1.5" />
-          Close
+          {t('imageGen.close')}
         </Button>
       </div>
       <ScrollArea className="flex-grow">
         <div className="grid gap-4 p-2">
             <div className="space-y-2">
-                <p className="font-medium leading-none text-sm flex items-center gap-2"><Brain className="w-4 h-4" />AI Model (Text)</p>
+                <p className="font-medium leading-none text-sm flex items-center gap-2"><Brain className="w-4 h-4" />{t('settings.aiModelText') || 'AI Model (Text)'}</p>
                 <Select value={selectedModelId} onValueChange={onModelChange}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select a model" />
@@ -66,7 +68,7 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
                 </Select>
             </div>
              <div className="space-y-2">
-                <p className="font-medium leading-none text-sm flex items-center gap-2"><ImageIcon className="w-4 h-4" />AI Model (Image)</p>
+                <p className="font-medium leading-none text-sm flex items-center gap-2"><ImageIcon className="w-4 h-4" />{t('settings.aiModelImage') || 'AI Model (Image)'}</p>
                 <Select value={selectedImageModelId} onValueChange={onImageModelChange}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select an image model" />
@@ -79,20 +81,25 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
                 </Select>
             </div>
             <div className="space-y-2">
-                    <p className="font-medium leading-none text-sm flex items-center gap-2"><Fingerprint className="w-4 h-4" />Response Style</p>
+                    <p className="font-medium leading-none text-sm flex items-center gap-2"><Fingerprint className="w-4 h-4" />{t('settings.responseStyle') || 'Response Style'}</p>
                     <Select value={selectedResponseStyleName} onValueChange={onStyleChange}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select a style" />
                     </SelectTrigger>
                     <SelectContent>
-                        {AVAILABLE_RESPONSE_STYLES.map((style) => (
-                            <SelectItem key={style.name} value={style.name}>{style.name}</SelectItem>
-                        ))}
+                        {AVAILABLE_RESPONSE_STYLES.map((style) => {
+                            const key = style.name.toLowerCase().replace(/\s+/g, '').replace(/'/g, '');
+                            return (
+                                <SelectItem key={style.name} value={style.name}>
+                                    {t(`responseStyle.${key}`) || style.name}
+                                </SelectItem>
+                            );
+                        })}
                     </SelectContent>
                 </Select>
             </div>
             <div className="space-y-2">
-                    <p className="font-medium leading-none text-sm flex items-center gap-2"><Speech className="w-4 h-4" />Voice</p>
+                    <p className="font-medium leading-none text-sm flex items-center gap-2"><Speech className="w-4 h-4" />{t('settings.voice') || 'Voice'}</p>
                     <Select value={selectedVoice} onValueChange={onVoiceChange}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select a voice" />

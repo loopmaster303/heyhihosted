@@ -5,6 +5,7 @@ export interface PollinationsModel {
   name: string; // The display name for the UI, e.g., "OpenAI GPT-4o Mini"
   description?: string;
   vision?: boolean;
+  webBrowsing?: boolean;
 }
 
 export interface ResponseStyle {
@@ -21,6 +22,7 @@ export interface VoiceOption {
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     { id: "gpt-5-nano", name: "OpenAI GPT-5 Nano", vision: true },
     { id: "openai-large", name: "OpenAI GPT-4.1", vision: true },
+    { id: "gpt-oss-120b", name: "OpenAI GPT-OSS-120B (Web Browsing)", vision: false, webBrowsing: true },
     { id: "mistral", name: "Mistral Small 3.1 24B", vision: true },
     { id: "deepseek-reasoning", name: "DeepSeek R1 0528 (Vertex AI)", vision: false },
     { id: "glm", name: "GLM-4 9B Chat (Intelligence.io)", vision: false },

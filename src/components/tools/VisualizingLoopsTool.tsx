@@ -23,6 +23,7 @@ import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
 import { cn } from '@/lib/utils';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
+import { useLanguage } from '../LanguageProvider';
 
 
 const FALLBACK_MODELS = ['flux', 'turbo', 'gptimage'];
@@ -32,6 +33,7 @@ const HISTORY_STORAGE_KEY = 'visualizingLoopsHistory';
 
 const VisualizingLoopsTool: FC = () => {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [prompt, setPrompt] = useState('A beautiful landscape painting, trending on artstation');
   const [imageModels, setImageModels] = useState<string[]>([]);
   const [model, setModel] = useState<string>(DEFAULT_MODEL);
@@ -320,7 +322,7 @@ const VisualizingLoopsTool: FC = () => {
             {error && !loading && (
               <div className="w-full flex flex-col items-center justify-center text-destructive space-y-2 max-w-md mx-auto text-center">
                 <AlertCircle className="w-8 h-8 sm:w-10 sm:w-10 mb-2" />
-                <p className="font-semibold text-md sm:text-lg">Generation Error</p>
+                <p className="font-semibold text-md sm:text-lg">{t('imageGen.generationError') || 'Generation Error'}</p>
                 <p className="text-xs sm:text-sm leading-relaxed">{error}</p>
               </div>
             )}
@@ -337,7 +339,7 @@ const VisualizingLoopsTool: FC = () => {
                     data-ai-hint="ai generated digital art"
                   />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
-                    <p className="text-white text-sm p-2 bg-black/80 rounded-md">View Full Image</p>
+                    <p className="text-white text-sm p-2 bg-black/80 rounded-md">{t('imageGen.viewFullImage') || 'View Full Image'}</p>
 
                   </div>
                 </a>
@@ -360,26 +362,26 @@ const VisualizingLoopsTool: FC = () => {
               ref={advancedPanelRef}
               className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
                 <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-semibold">Configurations</h3>
+                    <h3 className="text-sm font-semibold">{t('imageGen.configurations')}</h3>
                     <Button variant="ghost" size="sm" onClick={() => setIsAdvancedPanelOpen(false)}>
                         <X className="w-4 h-4 mr-1.5" />
-                        Close
+                        {t('imageGen.close')}
                     </Button>
                 </div>
               <div className="grid gap-x-6 gap-y-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="width-slider-tool" className="text-xs font-medium">Width ({width}px)</Label>
+                    <Label htmlFor="width-slider-tool" className="text-xs font-medium">{t('imageGen.width') || 'Width'} ({width}px)</Label>
                     <Slider id="width-slider-tool" value={widthValue} onValueChange={(val) => setWidth(val[0])} min={256} max={2048} step={64} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="height-slider-tool" className="text-xs font-medium">Height ({height}px)</Label>
+                    <Label htmlFor="height-slider-tool" className="text-xs font-medium">{t('imageGen.height') || 'Height'} ({height}px)</Label>
                     <Slider id="height-slider-tool" value={heightValue} onValueChange={(val) => setHeight(val[0])} min={256} max={2048} step={64} />
                   </div>
                    <div className="space-y-1.5">
-                      <Label htmlFor="aspect-ratio-tool" className="text-xs font-medium">Aspect Ratio</Label>
+                      <Label htmlFor="aspect-ratio-tool" className="text-xs font-medium">{t('imageGen.aspectRatio')}</Label>
                       <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
                         <SelectTrigger id="aspect-ratio-tool" className="h-9 bg-tool-input-bg border-border text-xs">
-                          <SelectValue placeholder="Aspect Ratio" />
+                          <SelectValue placeholder={t('imageGen.aspectRatio')} />
                         </SelectTrigger>
                         <SelectContent>
                           {['1:1', '4:3', '3:2', '16:9', '21:9', '3:4', '2:3', '9:16'].map(r => (
@@ -389,31 +391,31 @@ const VisualizingLoopsTool: FC = () => {
                       </Select>
                     </div>
                      <div className="space-y-1.5">
-                      <Label htmlFor="batch-size-tool" className="text-xs font-medium">Batch Size ({batchSize})</Label>
+                      <Label htmlFor="batch-size-tool" className="text-xs font-medium">{t('imageGen.batchSize') || 'Batch Size'} ({batchSize})</Label>
                       <Slider id="batch-size-tool" value={batchSizeValue} onValueChange={(val) => setBatchSize(val[0])} min={1} max={5} step={1} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="seed-input-tool" className="text-xs font-medium">Seed</Label>
+                      <Label htmlFor="seed-input-tool" className="text-xs font-medium">{t('field.seed') || 'Seed'}</Label>
                       <div className='flex gap-2'>
-                        <Input id="seed-input-tool" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Random" className="h-9 bg-tool-input-bg border-border text-xs" />
+                        <Input id="seed-input-tool" type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder={t('imageGen.random') || 'Random'} className="h-9 bg-tool-input-bg border-border text-xs" />
                         <Button variant="outline" size="sm" onClick={() => setSeed(String(Math.floor(Math.random() * 99999999)))} className="text-xs h-9">
-                          Random
+                          {t('imageGen.random') || 'Random'}
                         </Button>
                       </div>
                     </div>
                     <div className='grid grid-cols-3 gap-4 items-center pt-2'>
                        <div className="flex items-center space-x-2">
                         <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(!!checked)} id="private-check-tool" />
-                        <Label htmlFor="private-check-tool" className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Private</Label>
+                        <Label htmlFor="private-check-tool" className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('imageGen.private') || 'Private'}</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-tool" />
-                        <Label htmlFor="upsampling-check-tool" className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Upsample</Label>
+                        <Label htmlFor="upsampling-check-tool" className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('imageGen.upsample') || 'Upsample'}</Label>
                       </div>
                       {model === 'gptimage' && (
                         <div className="flex items-center space-x-2">
                           <Checkbox checked={transparent} onCheckedChange={(checked) => setTransparent(!!checked)} id="transparent-check-tool" />
-                          <Label htmlFor="transparent-check-tool" className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Transparent</Label>
+                          <Label htmlFor="transparent-check-tool" className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('imageGen.transparent') || 'Transparent'}</Label>
                         </div>
                       )}
                     </div>
@@ -429,7 +431,7 @@ const VisualizingLoopsTool: FC = () => {
                   id="prompt-pollinations-tool"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe what you imagine..."
+                  placeholder={t('imageGen.placeholderLite')}
                   className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
                   rows={1}
                   disabled={loading}
@@ -440,7 +442,7 @@ const VisualizingLoopsTool: FC = () => {
               <div className="flex w-full items-center justify-end gap-2 mt-2">
                  <Select value={model} onValueChange={setModel} disabled={loading}>
                   <SelectTrigger className="bg-background/50 h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border">
-                    <SelectValue placeholder="Select model" />
+                    <SelectValue placeholder={t('imageGen.selectModel')} />
                   </SelectTrigger>
                   <SelectContent>
                     {imageModels.map(m => (
@@ -449,7 +451,7 @@ const VisualizingLoopsTool: FC = () => {
                   </SelectContent>
                 </Select>
                 <Button type="submit" disabled={loading || !prompt.trim()} className="h-10 px-4 rounded-lg bg-background/50 hover:bg-muted">
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('imageGen.execute')}
                 </Button>
               </div>
             </div>
@@ -464,7 +466,7 @@ const VisualizingLoopsTool: FC = () => {
               )}
               aria-label="Open image generation history"
             >
-              <p> Gallery</p>
+              <p>{t('imageGen.gallery')}</p>
             </button>
             <button
               onClick={toggleAdvancedPanel}
@@ -474,7 +476,7 @@ const VisualizingLoopsTool: FC = () => {
               )}
               aria-label="Open advanced settings"
             >
-              <p> Configurations</p>
+              <p>{t('imageGen.configurations')}</p>
             </button>
           </div>
           

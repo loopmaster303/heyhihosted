@@ -13,6 +13,8 @@ export interface ReplicateModelInput {
   info?: string;
   isPrompt?: boolean;
   isNegativePrompt?: boolean;
+  hidden?: boolean; // Hide field from UI but keep in config
+  labelKey?: string; // Translation key for the label
 }
 
 export interface ReplicateModelConfig {
@@ -32,13 +34,16 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     hasCharacterReference: true,
     description: "Create consistent characters across different images using a reference image.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A photo of the character smiling...", info: "The main text prompt describing the scene.", isPrompt: true },
-      { name: "character_reference_image", label: "Character Reference", type: "url", required: true, info: "The reference image for the character." },
-      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Ugly, deformed, text, watermark", info: "Specify elements to avoid in the image.", isNegativePrompt: true },
-      { name: "style", label: "Style", type: "select", default: "cinematic", options: ["photorealistic", "cinematic", "anime", "illustration", "3d_render", "line_art", "graffiti", "typography", "sticker", "painting", "vector", "abstract", "ukiyo_e"], info: "Artistic style of the generated image." },
-      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "1:1", options: ["1:1", "16:9", "9:16"], info: "Aspect ratio of the output image." },
-      { name: "prompt_magic_v3", label: "Prompt Magic V3", type: "boolean", default: true, info: "Enable Ideogram's automatic prompt enhancement." },
-      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "A specific seed to reproduce results." },
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A close up photo of a woman in a fashion magazine photoshoot...", info: "Text prompt for image generation.", isPrompt: true, labelKey: "prompt.ideogramCharacter" },
+      { name: "character_reference_image", label: "Character Reference Image", type: "url", required: true, info: "An image to use as a character reference." },
+      { name: "rendering_speed", label: "Rendering Speed", type: "select", default: "default", options: ["default", "turbo", "quality"], info: "Rendering speed. Turbo for faster and cheaper generation, quality for higher quality and more expensive generation, default for balanced.", labelKey: "field.renderingSpeed" },
+      { name: "style_type", label: "Style Type", type: "select", default: "auto", options: ["auto", "fiction", "realistic"], info: "The character style type. Auto, Fiction, or Realistic.", labelKey: "field.styleType" },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "1:1", options: ["1:1", "16:9", "9:16", "4:3", "3:4"], info: "Aspect ratio. Ignored if a resolution or inpainting image is given.", labelKey: "imageGen.aspectRatio" },
+      { name: "resolution", label: "Resolution", type: "select", default: "none", options: ["none"], info: "Resolution. Overrides aspect ratio. Ignored if an inpainting image is given.", hidden: true },
+      { name: "magic_prompt_option", label: "Magic Prompt Option", type: "select", default: "auto", options: ["auto", "on", "off"], info: "Magic Prompt will interpret your prompt and optimize it to maximize variety and quality of the images generated. You can also use it to write prompts in different languages.", labelKey: "field.magicPrompt" },
+      { name: "image", label: "Image File", type: "url", info: "An image file to use for inpainting. You must also use a mask.", hidden: true },
+      { name: "mask", label: "Mask File", type: "url", info: "A black and white image. Black pixels are inpainted, white pixels are preserved. The mask will be resized to match the image size.", hidden: true },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, max: 2147483647, info: "Random seed. Set for reproducible generation." },
     ]
   },
   "flux-krea-dev": {
@@ -47,14 +52,19 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     outputType: "image",
     description: "FLUX.1 KREA.dev by Black Forest Labs for fast, high-quality image generation.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A cinematic photo of a robot in a field of flowers...", info: "The main text prompt describing the image you want to generate.", isPrompt: true },
-      { name: "image", label: "Input Image (URL)", type: "url", info: "An optional image to guide the generation (img2img). Accepts HTTP or data URLs." },
-      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Blurry, text, watermark, ugly", info: "Specify elements to avoid in the image.", isNegativePrompt: true },
-      { name: "scheduler", label: "Scheduler", type: "select", default: "dpmpp-2m-sde-karras", options: ["dpmpp-2m-sde-karras", "dpmpp-2m-sde", "dpmpp-sde-karras", "dpmpp-sde", "euler", "euler-a", "lms-karras"], info: "Choose a scheduler to guide the diffusion process." },
-      { name: "num_inference_steps", label: "Inference Steps", type: "number", default: 25, min: 1, max: 100, step: 1, info: "Number of denoising steps. Higher values can improve quality but take longer." },
-      { name: "guidance", label: "Guidance", type: "number", default: 3, min: 0, max: 20, step: 0.1, info: "Controls how much the prompt influences the output. Lower values give more creative freedom." },
-      { name: "output_quality", label: "Output Quality", type: "number", default: 95, min: 1, max: 100, step: 1, info: "Quality of the output image (1-100). Higher is better." },
-      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "A specific seed to reproduce results. Leave blank for random." },
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A cinematic photo of a robot in a field of flowers...", info: "The main text prompt describing the image you want to generate.", isPrompt: true, labelKey: "prompt.fluxKreaDev" },
+      { name: "image", label: "Image File", type: "url", info: "An image file to use for img2img generation. Accepts HTTP or data URLs.", hidden: true },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "1:1", options: ["1:1", "16:9", "9:16", "4:3", "3:4", "2:1", "1:2"], info: "Aspect ratio of the output image.", labelKey: "imageGen.aspectRatio" },
+      { name: "prompt_strength", label: "Prompt Strength", type: "number", default: 0.8, min: 0, max: 1, step: 0.1, info: "Strength of the prompt influence.", hidden: true },
+      { name: "num_outputs", label: "Number of Generations", type: "number", default: 1, min: 1, max: 4, step: 1, info: "Number of images to generate (1-4).", labelKey: "field.numOutputs" },
+      { name: "num_inference_steps", label: "Inference Steps", type: "number", default: 50, min: 1, max: 50, step: 1, info: "Number of denoising steps. Maximum is 50.", hidden: true },
+      { name: "guidance", label: "Guidance", type: "number", default: 4.5, min: 0, max: 20, step: 0.1, info: "Controls how much the prompt influences the output.", hidden: true },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation." },
+      { name: "output_format", label: "Output Format", type: "select", default: "webp", options: ["webp", "png", "jpg"], info: "Format of the output image.", labelKey: "field.outputFormat" },
+      { name: "output_quality", label: "Output Quality", type: "number", default: 100, min: 1, max: 100, step: 1, info: "Quality of the output image (1-100).", hidden: true },
+      { name: "disable_safety_checker", label: "Safety Checker", type: "boolean", default: false, info: "Disable the safety checker for more creative freedom.", labelKey: "field.disableSafetyChecker" },
+      { name: "go_fast", label: "Go Fast", type: "boolean", default: false, info: "Enable fast generation mode.", hidden: true },
+      { name: "megapixels", label: "Megapixels", type: "number", default: 1, min: 0.5, max: 2, step: 0.1, info: "Target megapixels for the output image.", hidden: true },
     ]
   },
   "qwen-image-edit": {
@@ -64,11 +74,14 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     hasCharacterReference: true, 
     description: "Edit images using text instructions with Qwen.",
     inputs: [
-      { name: "image", label: "Image to Edit", type: "url", required: true, info: "The source image you want to modify." },
-      { name: "prompt", label: "Edit Instruction", type: "text", required: true, placeholder: "Make the sky blue, add a cat on the roof...", info: "Describe the changes you want to make to the image.", isPrompt: true },
-      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Blurry, low quality, text, watermark", info: "Specify elements you want to avoid in the final image.", isNegativePrompt: true },
-      { name: "output_quality", label: "Output Quality", type: "number", default: 80, min: 1, max: 100, step: 1, info: "Quality of the output image (1-100). Higher is better." },
-      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "A specific seed to reproduce results. Leave blank for random." },
+      { name: "image", label: "Image to Edit", type: "url", required: true, info: "The source image you want to modify.", hidden: true },
+      { name: "prompt", label: "Edit Instruction", type: "text", required: true, placeholder: "Make the sky blue, add a cat on the roof...", info: "Describe the changes you want to make to the image.", isPrompt: true, labelKey: "prompt.qwenImageEdit" },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "match_input_image", options: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4"], info: "Aspect ratio for the generated image.", labelKey: "imageGen.aspectRatio" },
+      { name: "go_fast", label: "Go Fast", type: "boolean", default: false, info: "Run faster predictions with additional optimizations.", hidden: true },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation." },
+      { name: "output_format", label: "Output Format", type: "select", default: "webp", options: ["webp", "png", "jpg"], info: "Format of the output images.", labelKey: "field.outputFormat" },
+      { name: "output_quality", label: "Output Quality", type: "number", default: 100, min: 1, max: 100, step: 1, info: "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs.", hidden: true },
+      { name: "disable_safety_checker", label: "Disable Safety Checker", type: "boolean", default: false, info: "This model's safety checker can't be disabled when running on the website.", labelKey: "field.disableSafetyChecker" },
     ]
   },
   "qwen-image": {
@@ -77,11 +90,22 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     outputType: "image",
     description: "Generate images from text prompts using Qwen.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A beautiful landscape...", info: "The main text prompt describing the image.", isPrompt: true },
-      { name: "style", label: "Style", type: "select", default: "sketch", options: ["photorealistic", "cinematic", "anime", "illustration", "3d_render", "line_art", "graffiti", "typography", "sticker", "painting", "vector", "abstract", "ukiyo_e", "sketch", "pixel_art", "watercolor", "poster", "logo", "comic"], info: "Artistic style of the generated image." },
-      { name: "size", label: "Size", type: "select", default: "1024*1024", options: ["1024*1024", "720*1280", "1280*720"], info: "Dimensions of the output image." },
-      { name: "num_inference_steps", label: "Inference Steps", type: "number", default: 50, min: 1, max: 100, step: 1, info: "Number of denoising steps." },
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A beautiful landscape...", info: "The main text prompt describing the image.", isPrompt: true, labelKey: "prompt.qwenImage" },
+      { name: "enhance_prompt", label: "Enhance Prompt", type: "boolean", default: false, info: "Automatically enhance the prompt for better results.", labelKey: "field.enhancePrompt" },
+      { name: "lora_weights", label: "Lora Weights", type: "text", info: "LoRA weights for fine-tuning.", hidden: true },
+      { name: "lora_scale", label: "Lora Scale", type: "number", default: 1, min: 0, max: 2, step: 0.1, info: "LoRA scale factor.", hidden: true },
+      { name: "image", label: "Image File", type: "url", info: "An image file to use for image-to-image generation. Accepts HTTP or data URLs." },
+      { name: "strength", label: "Strength", type: "number", default: 0.8, min: 0, max: 1, step: 0.1, info: "Strength of the image-to-image transformation (0 = keep original, 1 = completely new).", labelKey: "field.strength" },
+      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Blurry, low quality, text, watermark", info: "Specify elements you want to avoid in the image.", isNegativePrompt: true, labelKey: "field.negativePrompt" },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "1:1", options: ["1:1", "16:9", "9:16", "4:3", "3:4"], info: "Aspect ratio of the generated image.", labelKey: "imageGen.aspectRatio" },
+      { name: "quality", label: "Quality", type: "select", default: "1024*1024", options: ["1024*1024", "720*1280", "1280*720"], info: "Quality and dimensions of the output image.", labelKey: "field.quality" },
+      { name: "go_fast", label: "Go Fast", type: "boolean", default: false, info: "Enable fast generation mode (lower quality).", hidden: true },
+      { name: "num_inference_steps", label: "Inference Steps", type: "number", default: 50, min: 1, max: 100, step: 1, info: "Number of denoising steps.", hidden: true },
+      { name: "guidance", label: "Guidance", type: "number", default: 4, min: 1, max: 20, step: 0.1, info: "How strongly the prompt should guide generation.", hidden: true },
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "A specific seed for reproducibility." },
+      { name: "output_format", label: "Output Format", type: "select", default: "jpg", options: ["jpg", "png", "webp"], info: "Format of the output image.", labelKey: "field.outputFormat" },
+      { name: "output_quality", label: "Output Quality", type: "number", default: 100, min: 1, max: 100, step: 1, info: "Quality of the output image (1-100).", hidden: true },
+      { name: "disable_safety_checker", label: "Disable Safety Checker", type: "boolean", default: true, info: "Disable the safety checker for more creative freedom.", labelKey: "field.disableSafetyChecker" },
     ]
   },
   "imagen-4-ultra": {
@@ -90,16 +114,10 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     outputType: "image",
     description: "Google's state-of-the-art text-to-image model. Ideal for high-detail photorealism and artistic styles.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A vibrant coral reef teeming with life...", info: "The main text prompt describing the image you want to generate.", isPrompt: true },
-      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Blurry, low quality, text, watermark", info: "Specify elements you want to avoid in the image.", isNegativePrompt: true },
-      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "1:1", options: ["1:1", "16:9", "9:16", "4:3", "3:4", "2:1", "1:2"], info: "Aspect ratio of the generated image." },
-      { name: "safety_filter_level", label: "Safety Filter Level", type: "select", default: "block_only_high", options: ["block_none", "block_low_and_above", "block_medium_and_above", "block_only_high"], info: "Adjust the strictness of the safety filter. 'block_none' is most permissive."},
-      { name: "output_format", label: "Output Format", type: "select", default: "jpg", options: ["jpg", "png", "webp"], info: "Format of the output image."},
-      { name: "width", label: "Width", type: "number", default: 1024, min: 256, max: 2048, step: 64, info: "Width of the generated image in pixels. Ignored if aspect_ratio is set and model auto-adjusts." },
-      { name: "height", label: "Height", type: "number", default: 1024, min: 256, max: 2048, step: 64, info: "Height of the generated image in pixels. Ignored if aspect_ratio is set and model auto-adjusts." },
-      { name: "num_inference_steps", label: "Inference Steps", type: "number", default: 25, min:10, max: 100, step:1, info: "Number of denoising steps. More steps can improve quality but take longer." },
-      { name: "guidance_scale", label: "Guidance Scale", type: "number", default: 7.5, min:1, max:20, step:0.1, info: "How strongly the prompt should guide generation. Higher values mean stricter adherence." },
-      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min:0, info: "A specific seed to reproduce results. Leave blank for random." },
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A vibrant coral reef teeming with life...", info: "Text prompt for image generation.", isPrompt: true, labelKey: "prompt.imagen4Ultra" },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "1:1", options: ["1:1", "16:9", "9:16", "4:3", "3:4", "2:1", "1:2"], info: "Aspect ratio of the generated image.", labelKey: "imageGen.aspectRatio" },
+      { name: "safety_filter_level", label: "Safety Filter Level", type: "select", default: "block_only_high", options: ["block_none", "block_low_and_above", "block_medium_and_above", "block_only_high"], info: "block_low_and_above is strictest, block_medium_and_above blocks some prompts, block_only_high is most permissive but some prompts will still be blocked", labelKey: "field.safetyFilterLevel"},
+      { name: "output_format", label: "Output Format", type: "select", default: "jpg", options: ["jpg", "png", "webp"], info: "Format of the output image", labelKey: "field.outputFormat"},
     ],
   },
   "flux-kontext-pro": {
@@ -108,17 +126,13 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     outputType: "image",
     description: "Professional grade contextual image generation by Black Forest Labs, also with image input capabilities.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: false, placeholder: "Describe your image or modifications...", info:"Text prompt. Can be combined with an input image.", isPrompt: true },
-      { name: "input_image", label: "Input Image", type: "url", info: "Upload an image to guide the generation." }, // Type 'url' for internal data; UI handles upload
-      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Drawing, sketch, watermark", info:"What to avoid in the image.", isNegativePrompt: true },
-      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "match_input_image", options: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4"], info: "Target aspect ratio."},
-      { name: "output_format", label: "Output Format", type: "select", default: "png", options: ["png", "jpg", "webp"], info: "Image output format."},
-      { name: "safety_tolerance", label: "Safety Tolerance", type: "number", default: 2, min:0, max:6, step:1, info: "Safety filter strictness (0-6)."},
-      { name: "width", label: "Width", type: "number", default: 1024, min: 512, max: 1536, step: 64, info:"Image width in pixels." },
-      { name: "height", label: "Height", type: "number", default: 1024, min: 512, max: 1536, step: 64, info:"Image height in pixels." },
-      { name: "steps", label: "Steps", type: "number", default: 28, min:10, max:50, step:1, info:"Number of generation steps." },
-      { name: "guidance_scale", label: "Guidance Scale", type: "number", default: 6.5, min:1, max:15, step:0.1, info:"Strength of prompt guidance." },
-      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min:0, info:"Random seed. Blank for random." },
+      { name: "prompt", label: "Prompt", type: "text", required: false, placeholder: "Describe your image or modifications...", info:"Text description of what you want to generate, or the instruction on how to edit the given image.", isPrompt: true, labelKey: "prompt.fluxKontextPro" },
+      { name: "input_image", label: "Input Image", type: "url", info: "Image to use as reference. Must be jpeg, png, gif, or webp.", hidden: true },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "match_input_image", options: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4"], info: "Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image.", labelKey: "imageGen.aspectRatio"},
+      { name: "enhance_prompt", label: "Enhance Prompt", type: "boolean", default: false, info: "Automatic prompt improvement.", labelKey: "field.enhancePrompt"},
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation." },
+      { name: "output_format", label: "Output Format", type: "select", default: "png", options: ["png", "jpg", "webp"], info: "Output format for the generated image.", labelKey: "field.outputFormat"},
+      { name: "safety_tolerance", label: "Safety Tolerance", type: "number", default: 2, min: 0, max: 6, step: 1, info: "Safety tolerance, 0 is most strict and 6 is most permissive. 2 is currently the maximum allowed when input images are used.", labelKey: "field.safetyTolerance"},
     ],
   },
   "runway-gen4-image": {
@@ -127,12 +141,12 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     outputType: "image",
     description: "Runway's Gen-4 model for image generation with reference images.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A close up portrait of @woman...", isPrompt: true, info: "Text prompt for image generation. You can reference uploaded images using @tag_name." },
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A close up portrait of @woman...", isPrompt: true, info: "Text prompt for image generation. You can reference uploaded images using @tag_name.", labelKey: "prompt.runwayGen4" },
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation." },
-      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "16:9", options: ["16:9", "9:16", "4:3", "3:4", "1:1"], info: "Image aspect ratio." },
-      { name: "resolution", label: "Resolution", type: "select", default: "1080p", options: ["1080p", "720p", "540p", "360p"], info: "Image resolution." },
-      { name: "reference_images", label: "Reference Images", type: "files", info: "Up to 3 reference images. Images must be between 0.5 and 2 aspect ratio." },
-      { name: "reference_tags", label: "Reference Tags", type: "tags", info: "An optional tag for each of your reference images. Tags must be alphanumeric and start with a letter. You can reference them in your prompt using @tag_name. Tags must be between 3 and 15 characters." }
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "16:9", options: ["16:9", "9:16", "4:3", "3:4", "1:1"], info: "Image aspect ratio.", labelKey: "imageGen.aspectRatio" },
+      { name: "resolution", label: "Resolution", type: "select", default: "1080p", options: ["1080p", "720p", "540p", "360p"], info: "Image resolution.", labelKey: "field.resolution" },
+      { name: "reference_images", label: "Reference Images", type: "files", info: "Up to 3 reference images. Images must be between 0.5 and 2 aspect ratio.", labelKey: "field.referenceImages" },
+      { name: "reference_tags", label: "Reference Tags", type: "tags", info: "An optional tag for each of your reference images. Tags must be alphanumeric and start with a letter. You can reference them in your prompt using @tag_name. Tags must be between 3 and 15 characters.", labelKey: "field.referenceTags" }
     ],
   },
   "wan-2.2-video": {
@@ -141,10 +155,15 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     outputType: "video",
     description: "Image-to-Video model by Wandisco. Takes an image and a prompt to generate a short video.",
     inputs: [
-      { name: "image", label: "Source Image", type: "url", required: true, info: "The starting image for the video generation." },
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Golden hour, soft lighting...", info: "A detailed description of the desired motion and scene.", isPrompt: true },
-      { name: "sample_steps", label: "Sampling Steps", type: "number", default: 30, min: 10, max: 60, step: 1, info: "Number of steps in the sampling process." },
-      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed for reproducibility." },
+      { name: "image", label: "Source Image", type: "url", required: true, info: "Input image to generate video from.", hidden: true },
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Golden hour, soft lighting, warm colors, saturated colors, wide shot, left-heavy composition...", info: "Prompt for video generation.", isPrompt: true, labelKey: "prompt.wanVideo" },
+      { name: "go_fast", label: "Go Fast", type: "boolean", default: false, info: "Go fast", labelKey: "field.goFast" },
+      { name: "num_frames", label: "Num Frames", type: "number", default: 81, min: 81, max: 100, step: 1, info: "Number of video frames. 81 frames give the best results", labelKey: "field.numFrames" },
+      { name: "resolution", label: "Resolution", type: "select", default: "480p", options: ["480p", "720p", "1080p"], info: "Resolution of video. 832x480px corresponds to 16:9 aspect ratio, and 480x832px is 9:16", labelKey: "field.resolution" },
+      { name: "frames_per_second", label: "Frames Per Second", type: "number", default: 16, min: 5, max: 24, step: 1, info: "Frames per second. Note that the pricing of this model is based on the video duration at 16 fps", labelKey: "field.framesPerSecond" },
+      { name: "sample_steps", label: "Sample Steps", type: "number", default: 30, min: 1, max: 50, step: 1, info: "Number of generation steps. Fewer steps means faster generation, at the expensive of output quality. 30 steps is sufficient for most prompts", labelKey: "field.sampleSteps" },
+      { name: "sample_shift", label: "Sample Shift", type: "number", default: 5, min: 1, max: 20, step: 1, info: "Sample shift factor", labelKey: "field.sampleShift" },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Leave blank for random" },
     ],
   },
 };

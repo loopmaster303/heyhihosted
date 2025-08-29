@@ -68,7 +68,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     
     if (typeof content === 'string') {
       let displayContent = content;
-       if (message.role === 'assistant' && (!content || content.trim() === '')) {
+      
+
+      
+      if (message.role === 'assistant' && (!content || content.trim() === '')) {
         // Render a loading spinner if content is empty for assistant
         return (
           <div className="flex items-center p-2">

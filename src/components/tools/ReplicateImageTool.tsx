@@ -26,6 +26,8 @@ import { Badge } from '@/components/ui/badge';
 import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
+import { useLanguage } from '../LanguageProvider';
+import { translations } from '@/config/translations';
 
 interface ReplicateImageToolProps {
   password?: string;
@@ -42,6 +44,21 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   historyStorageKey = DEFAULT_HISTORY_KEY 
 }) => {
   const { toast } = useToast();
+  const { t, language } = useLanguage();
+
+  const getPromptPlaceholder = () => {
+    if (!currentModelConfig) return t('imageGen.placeholder');
+    
+    // Get model-specific placeholder
+    const modelKey = selectedModelKey as keyof typeof modelConfigs;
+    const placeholderKey = `prompt.${modelKey}` as keyof typeof translations.de;
+    
+    if (placeholderKey in translations[language]) {
+      return t(placeholderKey);
+    }
+    
+    return t('imageGen.placeholder');
+  };
 
   const [selectedModelKey, setSelectedModelKey] = useState<string>(""); 
   const [currentModelConfig, setCurrentModelConfig] = useState<ReplicateModelConfig | null>(null);
@@ -66,13 +83,21 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   
   const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const advancedPanelRef = useRef<HTMLDivElement>(null);
 
   useOnClickOutside([historyPanelRef], () => setIsHistoryPanelOpen(false), 'radix-select-content');
 
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
+  const isFluxKreaDev = currentModelConfig?.id === "flux-krea-dev";
+  const isQwenImage = currentModelConfig?.id === "qwen-image";
   const isRunwayModelSelected = currentModelConfig?.id === 'runway-gen4-image';
   const isVideoModelSelected = currentModelConfig?.outputType === 'video';
   const hasCharacterReference = currentModelConfig?.hasCharacterReference;
@@ -156,7 +181,11 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         } catch (e) { console.error("Error applying ReplicateImageTool model specific settings:", e); }
       }
       
-      setMainPromptValue(initialMainPrompt);
+      // Preserve existing prompt if user has already typed something
+      const shouldPreservePrompt = mainPromptValue && mainPromptValue.trim() !== '';
+      const finalMainPrompt = shouldPreservePrompt ? mainPromptValue : initialMainPrompt;
+      
+      setMainPromptValue(finalMainPrompt);
       setFormFields(initialFields);
       setReferenceImages([]);
       setReferenceTags([]);
@@ -286,9 +315,16 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       disabled: loading,
     };
 
+    // Force re-render when language changes
+    const currentLanguage = language;
+
+
+
+
+
     const label = (
         <Label htmlFor={commonProps.id} className="text-sm font-medium flex items-center">
-            {inputConfig.label}
+            {inputConfig.labelKey ? t(inputConfig.labelKey) : inputConfig.label}
             {inputConfig.required && <span className="text-destructive ml-1">*</span>}
             {inputConfig.info && (
             <TooltipProvider delayDuration={100}>
@@ -325,7 +361,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
             </div>
         );
       case 'url':
-        if ((isFluxModelSelected || isVideoModelSelected || hasCharacterReference) && (inputConfig.name === "input_image" || inputConfig.name === "image" || inputConfig.name === "character_reference_image")) return null; 
+        if ((isFluxModelSelected || isVideoModelSelected || isQwenImage || hasCharacterReference) && (inputConfig.name === "input_image" || inputConfig.name === "image" || inputConfig.name === "character_reference_image")) return null; 
         return (
           <div key={inputConfig.name} className="space-y-1.5">
             {label}
@@ -475,7 +511,21 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       default:
         return null;
     }
-  }, [currentModelConfig, loading, formFields, handleInputChange, isRunwayModelSelected, isFluxModelSelected, isVideoModelSelected, hasCharacterReference, referenceImages, currentTag, referenceTags, handleRemoveReferenceImage, handleAddTag, handleRemoveTag]);
+  }, [currentModelConfig, loading, formFields, handleInputChange, isRunwayModelSelected, isFluxModelSelected, isVideoModelSelected, hasCharacterReference, referenceImages, currentTag, referenceTags, handleRemoveReferenceImage, handleAddTag, handleRemoveTag, language]);
+
+  const handleModelChange = useCallback((newModelKey: string) => {
+    // Save current prompt before changing model
+    const currentPrompt = mainPromptValue;
+    
+    setSelectedModelKey(newModelKey);
+    
+    // Restore prompt after model change
+    setTimeout(() => {
+      if (currentPrompt && currentPrompt.trim() !== '') {
+        setMainPromptValue(currentPrompt);
+      }
+    }, 100);
+  }, [mainPromptValue]);
 
   const handleSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
@@ -629,9 +679,11 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   
   const canSubmit = !loading && currentModelConfig &&
     ( (isFluxModelSelected && (mainPromptValue.trim() !== '' || uploadedImagePreview)) ||
+      (isFluxKreaDev && mainPromptValue.trim() !== '') ||
+      (isQwenImage && mainPromptValue.trim() !== '') ||
       (hasCharacterReference && mainPromptValue.trim() !== '' && uploadedImagePreview) ||
       (isVideoModelSelected && mainPromptValue.trim() !== '' && uploadedImagePreview) ||
-      (!isFluxModelSelected && !isVideoModelSelected && !hasCharacterReference && mainPromptValue.trim() !== '') );
+      (!isFluxModelSelected && !isFluxKreaDev && !isQwenImage && !isVideoModelSelected && !hasCharacterReference && mainPromptValue.trim() !== '') );
 
   const toggleAdvancedPanel = useCallback(() => {
     if (isHistoryPanelOpen) setIsHistoryPanelOpen(false);
@@ -642,6 +694,22 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     if (isAdvancedPanelOpen) setIsAdvancedPanelOpen(false);
     setIsHistoryPanelOpen(prev => !prev);
   }, [isAdvancedPanelOpen]);
+
+  if (!mounted) {
+    return (
+      <div className="flex flex-col h-full bg-background text-foreground">
+        <main className="flex-grow flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto no-scrollbar">
+          <Card className="flex-grow flex flex-col border-0 shadow-none">
+            <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground font-code">
+                <p className="text-lg">Loading...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
@@ -694,16 +762,16 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
               ref={advancedPanelRef}
               className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
                 <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-semibold">Configuration</h3>
+                    <h3 className="text-sm font-semibold">{t('imageGen.configuration')}</h3>
                     <Button variant="ghost" size="sm" onClick={() => setIsAdvancedPanelOpen(false)}>
                         <X className="w-4 h-4 mr-1.5" />
-                        Close
+                        {t('imageGen.close')}
                     </Button>
                 </div>
                 <div className="grid gap-x-6 gap-y-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {currentModelConfig ? (
                     <>
-                      {currentModelConfig.inputs.filter(input => !input.isPrompt).map(input => renderInputField(input))}
+                      {currentModelConfig.inputs.filter(input => !input.isPrompt && !input.hidden).map(input => renderInputField(input))}
                     </>
                   ) : (
                     <p className="text-sm text-muted-foreground p-4 text-center col-span-full">Select a model to see its parameters.</p>
@@ -719,7 +787,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                     ref={textareaRef}
                     value={mainPromptValue}
                     onChange={handleMainPromptChange}
-                    placeholder="Describe what you imagine (or want to modify)..."
+                    placeholder={getPromptPlaceholder()}
                     className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
                     rows={1}
                     disabled={loading || !currentModelConfig}
@@ -728,7 +796,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                   />
               </div>
               <div className="flex w-full items-center justify-end gap-2 mt-2">
-                 {(isFluxModelSelected || isVideoModelSelected || hasCharacterReference) && (
+                 {(isFluxModelSelected || isFluxKreaDev || isQwenImage || isVideoModelSelected || hasCharacterReference) && (
                   <div
                     className="relative h-10 w-10 cursor-pointer group flex-shrink-0"
                     onClick={() => {
@@ -751,9 +819,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                     )}
                   </div>
                 )}
-                <Select value={selectedModelKey} onValueChange={setSelectedModelKey} disabled={loading}>
+                <Select value={selectedModelKey} onValueChange={handleModelChange} disabled={loading}>
                   <SelectTrigger className="bg-background/50 h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border">
-                    <SelectValue placeholder="Select model" />
+                    <SelectValue placeholder={t('imageGen.selectModel')} />
                   </SelectTrigger>
                   <SelectContent>
                     {modelKeys.map(key => (
@@ -765,7 +833,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                   </SelectContent>
                 </Select>
                 <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg bg-background/50 hover:bg-muted">
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Execute'}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('imageGen.execute')}
                 </Button>
               </div>
             </div>
@@ -782,7 +850,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
               )}
               aria-label="Open image generation history"
             >
-              <p>Gallery</p>
+              <p>{t('imageGen.gallery')}</p>
             </button>
              <button
               onClick={toggleAdvancedPanel}
@@ -792,7 +860,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
               )}
               aria-label="Open advanced settings"
             >
-              <p>Configurations</p>
+              <p>{t('imageGen.configurations')}</p>
             </button>
           </div>
           

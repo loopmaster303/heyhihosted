@@ -8,6 +8,7 @@ import NextImage from 'next/image';
 import { Trash2, X, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import type { ImageHistoryItem } from '@/types';
+import { useLanguage } from '../LanguageProvider';
 
 interface ImageHistoryGalleryProps {
   history: ImageHistoryItem[];
@@ -17,6 +18,7 @@ interface ImageHistoryGalleryProps {
 }
 
 const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectImage, onClearHistory, onClose }) => {
+  const { t } = useLanguage();
 
   const handleDownload = async (event: React.MouseEvent, item: ImageHistoryItem) => {
     event.stopPropagation(); // Prevent selecting the image when downloading
@@ -57,22 +59,22 @@ const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectIm
   return (
     <div className="flex flex-col h-full max-h-80">
       <div className="flex items-center justify-between mb-2 px-1 flex-shrink-0">
-        <h3 className="text-sm font-semibold text-foreground">History</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('imageGen.history')}</h3>
         <div className="flex items-center">
             <Button variant="ghost" size="sm" onClick={onClearHistory} aria-label="Clear history" className="text-muted-foreground hover:text-foreground">
               <Trash2 className="w-4 h-4 mr-1.5" />
-              Clear
+              {t('imageGen.clearHistory')}
             </Button>
             <Button variant="ghost" size="sm" onClick={onClose}>
                 <X className="w-4 h-4 mr-1.5" />
-                Close
+                {t('imageGen.close')}
             </Button>
         </div>
       </div>
       <ScrollArea className="flex-grow overflow-y-auto">
         {history.length === 0 ? (
            <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
-             No images generated yet.
+             {t('imageGen.noImages')}
            </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-1">

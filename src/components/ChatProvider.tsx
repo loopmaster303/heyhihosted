@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef, useContext, createContext } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import useLocalStorageState from '@/hooks/useLocalStorageState';
+import { useLanguage } from './LanguageProvider';
 
 import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES, FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
@@ -66,7 +67,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const [availableImageModels, setAvailableImageModels] = useState<string[]>([]);
     const [selectedImageModelId, setSelectedImageModelId] = useLocalStorageState<string>('chatSelectedImageModel', DEFAULT_IMAGE_MODEL);
     
+
+    
     const { toast } = useToast();
+    const { t } = useLanguage();
 
     // --- Helper Functions / Callbacks (defined early for dependencies) ---
 
@@ -128,10 +132,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       
       // Korrektur: Wenn convToUpdate null ist, einen Standardtitel zurückgeben
       if (!convToUpdate || convToUpdate.toolType !== 'long language loops') {
-          return activeConversation?.title || "New Conversation"; // Sicherer Fallback
+          return activeConversation?.title || t('nav.newConversation'); // Sicherer Fallback
       }
   
-      const isDefaultTitle = convToUpdate.title === "New Conversation" || convToUpdate.title.toLowerCase().startsWith("new ") || convToUpdate.title === "Chat";
+      const isDefaultTitle = convToUpdate.title === t('nav.newConversation') || convToUpdate.title.toLowerCase().startsWith("new ") || convToUpdate.title === "Chat";
   
       if (messagesForTitleGen.length >= 1 && isDefaultTitle) {
         const firstUserMessage = messagesForTitleGen.find(msg => msg.role === 'user');
@@ -166,6 +170,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       return convToUpdate.title;
     }, [allConversations, activeConversation, setActiveConversation]);
     
+
+
     const sendMessage = useCallback(async (
       _messageText: string,
       options: { 
@@ -287,6 +293,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               ];
               aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
           } else {
+              
+
               const response = await fetch('/api/chat/completion', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -312,15 +320,31 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               }
 
               const result = await response.json();
+              console.log("API Response:", result); // Debug logging
 
               if (result.error) {
                   const detail = typeof result.error === 'string' 
                       ? result.error 
                       : (result.error.message || JSON.stringify(result.error));
-                  throw new Error(`Pollinations API returned an error: ${detail}`);
+                  throw new Error(`API returned an error: ${detail}`);
               }
 
-              const aiResponseText = result.choices?.[0]?.message?.content || "Sorry, I couldn't get a response.";
+              // Handle both Pollinations and Replicate response formats
+              let aiResponseText;
+              if (currentModel.id === "gpt-oss-120b") {
+                  // Replicate format
+                  aiResponseText = result.choices?.[0]?.message?.content || "Sorry, I couldn't get a response from GPT-OSS-120b.";
+                  
+                  // Clean up Replicate response formatting
+                  aiResponseText = aiResponseText
+                    .replace(/\n\s*\n\s*\n/g, '\n\n') // Remove multiple consecutive empty lines
+                    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                    .trim(); // Remove leading/trailing whitespace
+              } else {
+                  // Pollinations format
+                  aiResponseText = result.choices?.[0]?.message?.content || "Sorry, I couldn't get a response.";
+              }
+              
               aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date().toISOString(), toolType: 'long language loops' };
           }
           finalMessages = [...updatedMessagesForState, aiMessage];
@@ -328,6 +352,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        console.error("Chat API Error:", error); // Debug logging
         toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
         const errorMsg: ChatMessage = {id: crypto.randomUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date().toISOString(), toolType: 'long language loops'};
         finalMessages = [...updatedMessagesForState, errorMsg];
@@ -356,7 +381,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const newConversationId = crypto.randomUUID();
         const newConversationData: Conversation = {
             id: newConversationId,
-            title: "New Conversation",
+            title: t('nav.newConversation'),
             messages: [],
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -446,6 +471,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const handleImageModelChange = useCallback((modelId: string) => {
         setSelectedImageModelId(modelId);
     }, [setSelectedImageModelId]);
+
+
   
     const handleStyleChange = useCallback((styleName: string) => {
        if (activeConversation) {
@@ -698,6 +725,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       openCamera, closeCamera,
       toDate,
       setActiveConversation,
+
     };
 }
 
