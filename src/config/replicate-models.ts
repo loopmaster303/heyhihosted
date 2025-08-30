@@ -64,7 +64,7 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "output_quality", label: "Output Quality", type: "number", default: 100, min: 1, max: 100, step: 1, info: "Quality of the output image (1-100).", hidden: true },
       { name: "disable_safety_checker", label: "Safety Checker", type: "boolean", default: false, info: "Disable the safety checker for more creative freedom.", labelKey: "field.disableSafetyChecker" },
       { name: "go_fast", label: "Go Fast", type: "boolean", default: false, info: "Enable fast generation mode.", hidden: true },
-      { name: "megapixels", label: "Megapixels", type: "number", default: 1, min: 0.5, max: 2, step: 0.1, info: "Target megapixels for the output image.", hidden: true },
+      { name: "megapixels", label: "Megapixels", type: "select", default: "1", options: [{ value: "1", label: "1" }, { value: "0.25", label: "0.25" }], info: "Target megapixels for the output image.", hidden: true },
     ]
   },
   "qwen-image-edit": {

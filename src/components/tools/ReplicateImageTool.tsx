@@ -593,7 +593,12 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         if (valueToUse !== undefined && valueToUse !== '' && valueToUse !== null) {
             if (input.type === 'number') {
                 const numValue = parseFloat(String(valueToUse));
-                if (!isNaN(numValue)) currentPayload[input.name] = numValue;
+                if (!isNaN(numValue)) {
+                    currentPayload[input.name] = numValue;
+                }
+            } else if (input.name === 'megapixels') {
+                // Ensure megapixels is sent as string
+                currentPayload[input.name] = String(valueToUse);
             } else {
                 currentPayload[input.name] = valueToUse;
             }
