@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChatProvider } from '@/components/ChatProvider';
 import ChatInterface from '@/components/page/ChatInterface';
-import AppHeader from '@/components/page/AppHeader';
+import NewAppHeader from '@/components/page/NewAppHeader';
 import type { TileItem } from '@/types';
 import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
@@ -40,7 +40,7 @@ function ChatPageContent() {
 
     return (
         <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-            <AppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName} />
+            <NewAppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName || 'user'} />
             <main className="flex flex-col flex-grow pt-16">
                 <ChatInterface />
             </main>

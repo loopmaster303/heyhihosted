@@ -11,15 +11,15 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/LanguageProvider';
 import LanguageToggleHomepage from '@/components/LanguageToggleHomepage';
 
-
 // Adjusted to match the new design's text
-const toolTileItems = [
+const toolTileItems: any[] = [
   { 
     id: 'long language loops', 
+    title: '</chat.talk.discuss>',
     href: '/chat',
     tag: '</chat.talk.discuss>',
-    importText: 'import [voice, text]',
-    exportText: 'export [conversational.assistance]',
+    importText: 'import [sprache, text]',
+    exportText: 'export [unterstützung, assistenz in natürlicher sprache]',
     tagColor: 'text-blue-400',
     symbolColor: 'text-blue-400',
     hoverTitle: 'chat.talk.discuss',
@@ -28,10 +28,11 @@ const toolTileItems = [
   },
   { 
     id: 'code reasoning', 
+    title: '</code.reasoning>',
     href: '/reasoning',
     tag: '</code.reasoning>',
-    importText: 'import [logic, code, text]',
-    exportText: 'export [structured.knowledge]',
+    importText: 'import [komplexe anfragen, code, text]',
+    exportText: 'export [code, deine website, mathematisch korrekte lösungen]',
     tagColor: 'text-purple-400',
     symbolColor: 'text-purple-400',
     hoverTitle: 'code.reasoning',
@@ -41,24 +42,24 @@ const toolTileItems = [
   { 
     id: 'nocost imagination', 
     href: '/image-gen/no-cost',
-    tag: '</generate.visuals.lite>',
-    importText: 'import [simple.text, simple.config]',
-    exportText: 'export [fast.visualization]',
+    tag: '</image.generation.lite>',
+    importText: 'import [einfacher text, minimale configs]',
+    exportText: 'export [kreative ergebnisse für alle, präzise und unglaubliche ergebnisse mit etwas übung]',
     tagColor: 'text-green-400',
     symbolColor: 'text-green-400',
-    hoverTitle: 'generate.visuals.lite',
+    hoverTitle: 'image.generation.lite',
     hoverDescription: 'Type your idea in natural language and instantly get a simple visualization—no settings, just magic.',
     translationKey: 'tool.imageLite.hoverDescription'
   },
   { 
     id: 'premium imagination', 
     href: '/image-gen/raw',
-    tag: '</generate.visuals.raw>',
-    importText: 'import [image, text, expert.config]',
-    exportText: 'export [sota.visualization]',
+    tag: '</image.generation.raw>',
+    importText: 'import [einfacher text, referenzbilder, komplexe einstellungsmöglichkeiten]',
+    exportText: 'export [photorealistische detailreiche visualisierung]',
     tagColor: 'text-orange-400',
     symbolColor: 'text-orange-400',
-    hoverTitle: 'generate.visuals.raw',
+    hoverTitle: 'image.generation.raw',
     hoverDescription: 'Describe your idea in natural language, modify every detail with expert settings, and create images using next-gen, state-of-the-art models.',
     translationKey: 'tool.imageRaw.hoverDescription'
    },
@@ -66,8 +67,8 @@ const toolTileItems = [
     id: 'personalization', 
     href: '/settings',
     tag: '</settings.user.preferences>',
-    importText: 'import [your.preferences]',
-    exportText: 'export [personalized.behavior]',
+    importText: 'import [deine präferenzen = dein tool]',
+    exportText: 'export [personalisiertes verhalten, angepasste erfahrung]',
     tagColor: 'text-gray-400',
     symbolColor: 'text-gray-400',
     hoverTitle: 'settings.user.preferences',
@@ -78,8 +79,8 @@ const toolTileItems = [
     id: 'about', 
     href: '/about',
     tag: '</about.system.readme>',
-    importText: 'import [curiosity]',
-    exportText: 'export [transparency, context]',
+    importText: 'import [neugier, interesse]',
+    exportText: 'export [transparenz, kontext, verständnis]',
     tagColor: 'text-gray-500',
     symbolColor: 'text-gray-500',
     hoverTitle: 'about.system.readme',

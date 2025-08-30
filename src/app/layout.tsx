@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.ico?v=3',
     shortcut: '/favicon.ico?v=3',
-    apple: '/favicon.ico?v=3',
+    apple: '/apple-touch-icon.png',
   },
 };
 
@@ -28,12 +28,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Code&display=swap" rel="stylesheet" />
         <link rel="icon" href="/favicon.ico?v=3" />
         <link rel="shortcut icon" href="/favicon.ico?v=3" />
-        <link rel="apple-touch-icon" href="/favicon.ico?v=3" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon-precomposed.png" />
       </head>
       <body className="font-body antialiased">
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >

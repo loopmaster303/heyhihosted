@@ -1,7 +1,7 @@
 
 "use client";
 import ReasoningTool from '@/components/tools/ReasoningTool';
-import AppHeader from '@/components/page/AppHeader';
+import NewAppHeader from '@/components/page/NewAppHeader';
 import type { TileItem } from '@/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 
@@ -15,10 +15,10 @@ const toolTileItems: TileItem[] = [
 ];
 
 export default function ReasoningPage() {
-  const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
+  const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "john");
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-        <AppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName} />
+        <NewAppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName || 'john'} />
         <main className="flex flex-col flex-grow pt-16">
             <ReasoningTool />
         </main>

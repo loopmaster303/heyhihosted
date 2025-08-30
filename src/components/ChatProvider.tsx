@@ -643,11 +643,31 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     useEffect(() => {
         const fetchImageModels = async () => {
           try {
-            const res = await fetch('/api/image/models');
-            if (!res.ok) throw new Error('Failed to fetch image models');
+            const res = await fetch('/api/image/models', {
+              headers: {
+                'Cache-Control': 'no-cache'
+              }
+            });
+            
+            if (!res.ok) {
+              console.warn('Image models API returned non-OK status:', res.status);
+              setAvailableImageModels(FALLBACK_IMAGE_MODELS);
+              setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
+              return;
+            }
+            
             const data = await res.json();
-            const models = Array.isArray(data.models) ? data.models : FALLBACK_IMAGE_MODELS;
+            
+            if (!data || !Array.isArray(data.models)) {
+              console.warn('Invalid response format from image models API:', data);
+              setAvailableImageModels(FALLBACK_IMAGE_MODELS);
+              setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
+              return;
+            }
+            
+            const models = data.models;
             setAvailableImageModels(models);
+            
             // Ensure the selected model is valid
             if (!models.includes(selectedImageModelId)) {
               setSelectedImageModelId(DEFAULT_IMAGE_MODEL);

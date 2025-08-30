@@ -1,6 +1,6 @@
 
 "use client";
-import AppHeader from '@/components/page/AppHeader';
+import NewAppHeader from '@/components/page/NewAppHeader';
 import type { TileItem } from '@/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 
@@ -14,13 +14,13 @@ const toolTileItems: TileItem[] = [
 ];
 
 export default function AboutPage() {
-  const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
+  const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "john");
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-        <AppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName} />
+        <NewAppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName || 'john'} />
         <main className="flex flex-col flex-grow pt-16 items-center justify-center p-4 text-center">
-            <h2 className="text-3xl font-code text-foreground">about/hey.hi/readme</h2>
-            <p className="text-muted-foreground mt-4 max-w-md">
+            <h2 className="text-3xl font-code text-white">about/hey.hi/readme</h2>
+            <p className="text-gray-400 mt-4 max-w-md">
               This section is under construction. Come back soon to learn more about the project!
             </p>
         </main>
