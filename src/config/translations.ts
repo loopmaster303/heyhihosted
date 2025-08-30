@@ -64,6 +64,7 @@ export const translations = {
     'settings.theme': 'Theme',
     'settings.model': 'Modell',
     'settings.style': 'Antwortstil',
+    'settings.voice': 'Stimme',
     'settings.imageModel': 'Bildmodell',
     
     // Common Actions
@@ -91,7 +92,10 @@ export const translations = {
     'tool.imageGen.description': 'Erstelle Bilder aus Textbeschreibungen',
     
     // Image Generation Fields
+    'field.renderingSpeed': 'Qualität',
+    'field.styleType': 'Stil',
     'field.aspectRatio': 'Seitenverhältnis',
+    'field.magicPrompt': 'Automatische Prompt Verbesserung',
     'field.seed': 'Seed',
     'field.numOutputs': 'Anzahl der zu generierenden Bilder',
     'field.outputFormat': 'Ausgabeformat',
@@ -167,7 +171,11 @@ export const translations = {
     'imageGen.clearHistory': 'Clear History',
     'imageGen.close': 'Close',
     'imageGen.noImages': 'No images generated yet.',
-        
+            'imageGen.configuration': 'Configurations',
+    'imageGen.aspectRatio': 'Aspect Ratio',
+    'field.renderingSpeed': 'Quality',
+    'field.styleType': 'Style',
+    'field.magicPrompt': 'Prompt Enhance',
     'chat.send': 'Send',
     'chat.recording': 'Recording...',
     'chat.transcribing': 'Transcribing...',
@@ -201,6 +209,7 @@ export const translations = {
     'settings.theme': 'Theme',
     'settings.model': 'Model',
     'settings.style': 'Response Style',
+    'settings.voice': 'Voice',
     'settings.imageModel': 'Image Model',
     
     // Common Actions
@@ -287,13 +296,13 @@ export const defaultLanguage: Language = 'de';
 
 // Helper function to get translation
 export function getTranslation(language: Language, key: string): string {
-  const translation = translations[language]?.[key as keyof typeof translations[typeof language]];
+  const translation = translations[language]?.[key];
   if (translation) {
     return translation;
   }
   
   // Fallback to German
-  const fallbackTranslation = translations.de?.[key as keyof typeof translations.de];
+  const fallbackTranslation = translations.de?.[key];
   if (fallbackTranslation) {
     return fallbackTranslation;
   }
