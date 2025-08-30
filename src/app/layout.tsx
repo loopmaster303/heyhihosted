@@ -8,9 +8,9 @@ export const metadata: Metadata = {
   title: 'HeyHi',
   description: 'hello? Hi ? Hey dearare you there ? Okay i mean. its so easy. just sayin. when u r ready execute </hey.hi> to run multiple AI.',
   icons: {
-    icon: '/firebase-icon.svg',
-    shortcut: '/firebase-icon.svg',
-    apple: '/firebase-icon.svg',
+    icon: '/favicon.ico?v=3',
+    shortcut: '/favicon.ico?v=3',
+    apple: '/favicon.ico?v=3',
   },
 };
 
@@ -26,9 +26,9 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Code&display=swap" rel="stylesheet" />
-        <link rel="icon" type="image/svg+xml" href="/firebase-icon.svg" />
-        <link rel="shortcut icon" href="/firebase-icon.svg" />
-        <link rel="apple-touch-icon" href="/firebase-icon.svg" />
+        <link rel="icon" href="/favicon.ico?v=3" />
+        <link rel="shortcut icon" href="/favicon.ico?v=3" />
+        <link rel="apple-touch-icon" href="/favicon.ico?v=3" />
       </head>
       <body className="font-body antialiased">
         <ThemeProvider
