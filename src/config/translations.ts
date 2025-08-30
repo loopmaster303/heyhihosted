@@ -64,7 +64,6 @@ export const translations = {
     'settings.theme': 'Theme',
     'settings.model': 'Modell',
     'settings.style': 'Antwortstil',
-    'settings.voice': 'Stimme',
     'settings.imageModel': 'Bildmodell',
     
     // Common Actions
@@ -92,10 +91,7 @@ export const translations = {
     'tool.imageGen.description': 'Erstelle Bilder aus Textbeschreibungen',
     
     // Image Generation Fields
-    'field.renderingSpeed': 'Qualität',
-    'field.styleType': 'Stil',
     'field.aspectRatio': 'Seitenverhältnis',
-    'field.magicPrompt': 'Automatische Prompt Verbesserung',
     'field.seed': 'Seed',
     'field.numOutputs': 'Anzahl der zu generierenden Bilder',
     'field.outputFormat': 'Ausgabeformat',
@@ -209,7 +205,6 @@ export const translations = {
     'settings.theme': 'Theme',
     'settings.model': 'Model',
     'settings.style': 'Response Style',
-    'settings.voice': 'Voice',
     'settings.imageModel': 'Image Model',
     
     // Common Actions
@@ -237,10 +232,7 @@ export const translations = {
     'tool.imageGen.description': 'Create images from text descriptions',
     
     // Image Generation Fields
-    'field.renderingSpeed': 'Rendering Speed',
-    'field.styleType': 'Style Type',
     'field.aspectRatio': 'Aspect Ratio',
-    'field.magicPrompt': 'Magic Prompt Option',
     'field.seed': 'Seed',
     'field.numOutputs': 'Number of Generations',
     'field.outputFormat': 'Output Format',
@@ -296,13 +288,13 @@ export const defaultLanguage: Language = 'de';
 
 // Helper function to get translation
 export function getTranslation(language: Language, key: string): string {
-  const translation = translations[language]?.[key];
+  const translation = translations[language]?.[key as keyof typeof translations[typeof language]];
   if (translation) {
     return translation;
   }
   
   // Fallback to German
-  const fallbackTranslation = translations.de?.[key];
+  const fallbackTranslation = translations.de?.[key as keyof typeof translations.de];
   if (fallbackTranslation) {
     return fallbackTranslation;
   }
