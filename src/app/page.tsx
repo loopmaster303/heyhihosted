@@ -1,11 +1,9 @@
 
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { TileItem } from '@/types';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Play, Pause, Square } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -20,8 +18,8 @@ const toolTileItems: any[] = [
     tag: '</chat.talk.discuss>',
     importText: 'import [language, text]',
     exportText: 'export [support, assistance in natural language]',
-    tagColor: 'text-blue-400',
-    symbolColor: 'text-blue-400',
+    tagColor: 'text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text',
+    symbolColor: 'text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text',
     hoverTitle: 'chat.talk.discuss',
     hoverDescription: 'Talk here with the machine like you would with a real person, like a friend for example.\nAsk anything, get help, or just have a normal chat—no special rules.',
     translationKey: 'tool.chat.hoverDescription'
@@ -33,8 +31,8 @@ const toolTileItems: any[] = [
     tag: '</code.reasoning>',
     importText: 'import [complex requests, code, text]',
     exportText: 'export [code, your website, mathematically correct solutions]',
-    tagColor: 'text-purple-400',
-    symbolColor: 'text-purple-400',
+    tagColor: 'text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text',
+    symbolColor: 'text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text',
     hoverTitle: 'code.reasoning',
     hoverDescription: 'Get help with complex topics. The AI will provide structured explanations, code examples, and logical breakdowns in a clean, readable format.',
     translationKey: 'tool.reasoning.hoverDescription'
@@ -45,8 +43,8 @@ const toolTileItems: any[] = [
     tag: '</image.generation.lite>',
     importText: 'import [simple text, minimal configs]',
     exportText: 'export [creative results for everyone, precise and incredible results with some practice]',
-    tagColor: 'text-green-400',
-    symbolColor: 'text-green-400',
+    tagColor: 'text-transparent bg-gradient-to-r from-green-400 to-green-600 bg-clip-text',
+    symbolColor: 'text-transparent bg-gradient-to-r from-green-400 to-green-600 bg-clip-text',
     hoverTitle: 'image.generation.lite',
     hoverDescription: 'Type your idea in natural language and instantly get a simple visualization—no settings, just magic.',
     translationKey: 'tool.imageLite.hoverDescription'
@@ -57,8 +55,8 @@ const toolTileItems: any[] = [
     tag: '</image.generation.raw>',
     importText: 'import [simple text, reference images, complex configuration options]',
     exportText: 'export [photorealistic detailed visualization]',
-    tagColor: 'text-orange-400',
-    symbolColor: 'text-orange-400',
+    tagColor: 'text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text',
+    symbolColor: 'text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text',
     hoverTitle: 'image.generation.raw',
     hoverDescription: 'Describe your idea in natural language, modify every detail with expert settings, and create images using next-gen, state-of-the-art models.',
     translationKey: 'tool.imageRaw.hoverDescription'
@@ -69,8 +67,8 @@ const toolTileItems: any[] = [
     tag: '</settings.user.preferences>',
     importText: 'import [your preferences = your tool]',
     exportText: 'export [personalized behavior, tailored experience]',
-    tagColor: 'text-gray-400',
-    symbolColor: 'text-gray-400',
+    tagColor: 'text-transparent bg-gradient-to-r from-gray-400 to-gray-600 bg-clip-text',
+    symbolColor: 'text-transparent bg-gradient-to-r from-gray-400 to-gray-600 bg-clip-text',
     hoverTitle: 'settings.user.preferences',
     hoverDescription: 'Personalize how the machine behaves—set your username, adjust responses, language, style, and more to match your vibe.',
     translationKey: 'tool.settings.hoverDescription'
@@ -81,8 +79,8 @@ const toolTileItems: any[] = [
     tag: '</about.system.readme>',
     importText: 'import [curiosity, interest]',
     exportText: 'export [transparency, context, understanding]',
-    tagColor: 'text-gray-500',
-    symbolColor: 'text-gray-500',
+    tagColor: 'text-transparent bg-gradient-to-r from-gray-500 to-gray-700 bg-clip-text',
+    symbolColor: 'text-transparent bg-gradient-to-r from-gray-500 to-gray-700 bg-clip-text',
     hoverTitle: 'about.system.readme',
     hoverDescription: 'Learn more about the project, its components, and the philosophy behind it.',
     translationKey: 'tool.about.hoverDescription'
@@ -90,87 +88,38 @@ const toolTileItems: any[] = [
 ];
 
 export default function HomePage() {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const [isPlaying, setIsPlaying] = useState(true);
-    const [isVideoVisible, setIsVideoVisible] = useState(true);
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const { t } = useLanguage();
-
-    useEffect(() => {
-        const video = videoRef.current;
-        if (video) {
-            video.playbackRate = 0.75;
-        }
-    }, []);
-
-    const togglePlay = useCallback(() => {
-        const video = videoRef.current;
-        if (!video) return;
-
-        if (!isVideoVisible) {
-            setIsVideoVisible(true);
-        }
-
-        if (video.paused) {
-            video.play();
-            setIsPlaying(true);
-        } else {
-            video.pause();
-            setIsPlaying(false);
-        }
-    }, [isVideoVisible]);
-
-    const handleStop = useCallback(() => {
-        const video = videoRef.current;
-        if (!video) return;
-
-        setIsVideoVisible(false);
-        video.pause();
-        video.currentTime = 0;
-        setIsPlaying(false);
-    }, []);
 
     const firstFourItems = toolTileItems.slice(0, 4);
     const lastTwoItems = toolTileItems.slice(4);
 
     return (
         <div className={cn(
-            "relative flex flex-col items-center justify-start min-h-screen p-4 pt-20 overflow-hidden",
-            !isVideoVisible && 'bg-black'
+            "relative flex flex-col items-center justify-start min-h-screen p-4 pt-20 overflow-hidden"
         )}>
             <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
+              <div className="absolute inset-0 bg-black"></div>
               <video
-                ref={videoRef}
                 autoPlay
                 loop
                 muted
                 playsInline
                 src="/backgroundclip.mp4"
-                className={cn(
-                    "w-full h-full object-cover transition-opacity duration-500",
-                    isVideoVisible ? "opacity-100" : "opacity-0"
-                )}
+                className="w-full h-full object-cover opacity-30"
               />
             </div>
             <div className="absolute top-4 right-4 z-10 flex gap-2">
                 <LanguageToggleHomepage />
-                <Button variant="ghost" size="icon" onClick={togglePlay} className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10">
-                    {isPlaying ? <Pause className="h-[1.2rem] w-[1.2rem]" /> : <Play className="h-[1.2rem] w-[1.2rem]" />}
-                    <span className="sr-only">{isPlaying ? 'Pause video' : 'Play video'}</span>
-                </Button>
-                <Button variant="ghost" size="icon" onClick={handleStop} className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10">
-                    <Square className="h-[1.2rem] w-[1.2rem]" />
-                    <span className="sr-only">Stop video</span>
-                </Button>
             </div>
 
             <main className="w-full flex flex-col items-center p-6 md:p-8 relative" style={{ maxWidth: '1020px' }}>
-                <div className="absolute -inset-8 bg-radial-gradient-fog -z-10"></div>
+                <div className="absolute -inset-8 bg-gradient-to-b from-transparent via-purple-900/20 to-transparent -z-10"></div>
                 <h1 className="text-4xl sm:text-5xl md:text-7xl font-code text-white text-glow mb-8 sm:mb-12 text-center">
                     <span className="text-gray-400">(</span>
                     !hey.hi
                     <span className="text-gray-400"> = </span> 
-                    <span className="text-pink-500">{`'space'`}</span>
+                    <span className="text-transparent bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text">{`'space'`}</span>
                     <span className="text-gray-400">)</span>
                 </h1>
 
@@ -186,7 +135,7 @@ export default function HomePage() {
                                 className="block group"
                                 onMouseEnter={() => setHoveredId(item.id)}
                             >
-                                <div className="bg-black/80 rounded-lg border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[100px] sm:min-h-[120px] flex flex-col justify-center p-3 sm:p-4">
+                                <div className="bg-black/20 backdrop-blur-md rounded-xl transition-all duration-300 h-full min-h-[100px] sm:min-h-[120px] flex flex-col justify-center p-3 sm:p-4">
                                     <AnimatePresence mode="wait">
                                         {hoveredId === item.id ? (
                                             <motion.div
@@ -233,7 +182,7 @@ export default function HomePage() {
                                 className="block group"
                                 onMouseEnter={() => setHoveredId(item.id)}
                             >
-                                <div className="bg-black/80 rounded-lg border border-white/10 hover:border-white/30 transition-colors duration-300 h-full min-h-[100px] sm:min-h-[120px] flex flex-col justify-center p-3 sm:p-4">
+                                <div className="bg-black/20 backdrop-blur-md rounded-xl transition-all duration-300 h-full min-h-[100px] sm:min-h-[120px] flex flex-col justify-center p-3 sm:p-4">
                                     <AnimatePresence mode="wait">
                                        {hoveredId === item.id ? (
                                             <motion.div

@@ -117,6 +117,52 @@
   .bg-radial-gradient-fog {
     background-image: radial-gradient(ellipse at center, rgba(0,0,0,0.85) 20%, rgba(0,0,0,0) 70%);
   }
+  
+  .matrix-rain {
+    background: linear-gradient(180deg, 
+      transparent 0%, 
+      rgba(236, 72, 153, 0.1) 10%, 
+      rgba(147, 51, 234, 0.2) 20%, 
+      rgba(236, 72, 153, 0.1) 30%, 
+      transparent 40%);
+    background-size: 100% 200%;
+    animation: matrix-fall 8s linear infinite;
+  }
+  
+  @keyframes matrix-fall {
+    0% {
+      background-position: 0 -100%;
+    }
+    100% {
+      background-position: 0 100%;
+    }
+  }
+  
+  .matrix-rain::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(236, 72, 153, 0.05) 2px,
+      rgba(147, 51, 234, 0.05) 4px
+    );
+    animation: matrix-scan 12s linear infinite;
+  }
+  
+  @keyframes matrix-scan {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(100%);
+    }
+  }
 }
 
 /* Specific font weights */
