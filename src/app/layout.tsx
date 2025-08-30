@@ -7,6 +7,9 @@ import { LanguageProvider } from '@/components/LanguageProvider';
 export const metadata: Metadata = {
   title: 'HeyHi',
   description: 'hello? Hi ? Hey dearare you there ? Okay i mean. its so easy. just sayin. when u r ready execute </hey.hi> to run multiple AI.',
+  icons: {
+    icon: '/firebase-icon.svg',
+  },
 };
 
 export default function RootLayout({

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <!-- Circular arrow -->
+  <path d="M12 2 A10 10 0 0 1 22 12 A10 10 0 0 1 12 22 A10 10 0 0 1 2 12 A10 10 0 0 1 12 2" stroke="white" stroke-width="2" fill="none"/>
+  <path d="M18 8 L22 12 L18 16" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Face -->
+  <circle cx="10" cy="10" r="1" fill="white"/> <!-- Left eye -->
+  <circle cx="14" cy="10" r="1" fill="white"/> <!-- Right eye -->
+  <path d="M8 14 Q12 18 16 14" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/> <!-- Smile -->
+</svg>
