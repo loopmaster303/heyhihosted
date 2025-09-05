@@ -37,12 +37,12 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
     setIsMenuOpen(false);
   }, [pathname]);
 
-  // Click outside to close mobile menu
+  // Click outside to close mobile menu - exclude navigation links and controls
   useOnClickOutside([mobileMenuRef], () => {
     if (isMenuOpen) {
       setIsMenuOpen(false);
     }
-  });
+  }, 'nav a, nav button, [data-menu-control]'); // Allow clicks on navigation links and menu controls
 
   const handleNavigationStart = () => {
     setLoading(true);
@@ -221,7 +221,7 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
             </Link>
             
             {/* Mobile Controls */}
-            <div className="flex items-center justify-center gap-4 pt-4">
+            <div className="flex items-center justify-center gap-4 pt-4" data-menu-control>
               {mounted && <LanguageToggle />}
               {mounted && <ThemeToggle />}
             </div>
