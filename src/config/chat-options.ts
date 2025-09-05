@@ -20,16 +20,24 @@ export interface VoiceOption {
 
 // Updated model list based on the provided official JSON data
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-    { id: "gpt-5-nano", name: "OpenAI GPT-5 Nano", vision: true },
-    { id: "openai-large", name: "OpenAI GPT-4.1", vision: true },
-    { id: "gpt-oss-120b", name: "OpenAI GPT-OSS-120B (Web Browsing)", vision: false, webBrowsing: true },
-    { id: "mistral", name: "Mistral Small 3.1 24B", vision: true },
-    { id: "deepseek-reasoning", name: "DeepSeek R1 0528 (Vertex AI)", vision: false },
-    { id: "glm", name: "GLM-4 9B Chat (Intelligence.io)", vision: false },
-    { id: "llama-roblox", name: "Llama 3.1 8B Instruct (Nebius)", vision: false },
-    { id: "llamascout", name: "Llama 4 Scout 17B", vision: false },
-    { id: "mistral-nemo-roblox", name: "Mistral Nemo Instruct 2407 (Nebius)", vision: false },
-    { id: "nova-fast", name: "Amazon Nova Micro (Bedrock)", vision: false },
+    { id: "deepseek-reasoning", name: "DeepSeek R1 0528 (Bedrock)", description: "DeepSeek R1 0528 (Bedrock)", vision: false },
+    { id: "gemini", name: "Gemini 2.5 Flash Lite (api.navy)", description: "Gemini 2.5 Flash Lite (api.navy)", vision: false },
+    { id: "mistral", name: "Mistral Small 3.1 24B", description: "Mistral Small 3.1 24B", vision: false },
+    { id: "nova-fast", name: "Amazon Nova Micro (Bedrock)", description: "Amazon Nova Micro (Bedrock)", vision: false },
+    { id: "openai", name: "OpenAI GPT-5 Nano", description: "OpenAI GPT-5 Nano", vision: true },
+    { id: "openai-audio", name: "OpenAI GPT-4o Mini Audio Preview", description: "OpenAI GPT-4o Mini Audio Preview", vision: true },
+    { id: "openai-fast", name: "OpenAI GPT-4.1 Nano", description: "OpenAI GPT-4.1 Nano", vision: true },
+    { id: "openai-large", name: "OpenAI GPT-4.1", description: "OpenAI GPT-4.1", vision: true },
+    { id: "openai-reasoning", name: "OpenAI o4-mini (api.navy)", description: "OpenAI o4-mini (api.navy)", vision: false },
+    { id: "qwen-coder", name: "Qwen 2.5 Coder 32B", description: "Qwen 2.5 Coder 32B", vision: false },
+    { id: "roblox-rp", name: "Llama 3.1 8B Instruct (Cross-Region Bedrock)", description: "Llama 3.1 8B Instruct (Cross-Region Bedrock)", vision: false },
+    { id: "gpt-oss-120b", name: "OpenAI GPT-OSS-120B (Web Browsing)", description: "OpenAI GPT-OSS-120B (Web Browsing)", vision: false, webBrowsing: true },
+    { id: "bidara", name: "BIDARA (Biomimetic Designer and Research Assistant by NASA)", description: "BIDARA (Biomimetic Designer and Research Assistant by NASA)", vision: true },
+    { id: "evil", name: "Evil", description: "Evil", vision: true },
+    { id: "midijourney", name: "MIDIjourney", description: "MIDIjourney", vision: false },
+    { id: "mirexa", name: "Mirexa AI Companion", description: "Mirexa AI Companion", vision: true },
+    { id: "rtist", name: "Rtist", description: "Rtist", vision: false },
+    { id: "unity", name: "Unity Unrestricted Agent", description: "Unity Unrestricted Agent", vision: true },
 ];
 
 // Stil-Profile (ResponseStyles)
