@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { TileItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '../ThemeToggle';
@@ -11,6 +11,7 @@ import { useLanguage } from '../LanguageProvider';
 import { Button } from '../ui/button';
 import { Menu, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 interface NewAppHeaderProps {
   toolTileItems: TileItem[];
@@ -25,6 +26,7 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -35,8 +37,16 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
     setIsMenuOpen(false);
   }, [pathname]);
 
+  // Click outside to close mobile menu
+  useOnClickOutside([mobileMenuRef], () => {
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
+    }
+  });
+
   const handleNavigationStart = () => {
     setLoading(true);
+    setIsMenuOpen(false); // Close menu when navigating
   };
   
   const toggleMenu = () => {
@@ -140,6 +150,7 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
       {/* Mobile Menu */}
       {isMenuOpen && (
         <div 
+          ref={mobileMenuRef}
           className="fixed inset-0 bg-background/95 backdrop-blur-md z-[60] flex flex-col items-center justify-start pt-20 animate-in fade-in-0 duration-300 md:hidden"
         >
           <nav className="flex flex-col space-y-4 font-code text-center w-full px-4">
