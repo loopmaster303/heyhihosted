@@ -225,6 +225,19 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
               {mounted && <LanguageToggle />}
               {mounted && <ThemeToggle />}
             </div>
+            
+            {/* Close Button */}
+            <div className="flex justify-center pt-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMenuOpen(false)}
+                className="p-2 rounded-full hover:bg-muted/50"
+                aria-label="Close menu"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </nav>
         </div>
       )}
