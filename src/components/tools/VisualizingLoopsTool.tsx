@@ -24,6 +24,7 @@ import ImageHistoryGallery from './ImageHistoryGallery';
 import { cn } from '@/lib/utils';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 import { useLanguage } from '../LanguageProvider';
+import { generateUUID } from '@/lib/uuid';
 
 
 const FALLBACK_MODELS = ['flux', 'turbo', 'gptimage'];
@@ -235,7 +236,7 @@ const VisualizingLoopsTool: FC = () => {
 
         if (data.imageUrl) {
           const newItem: ImageHistoryItem = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             imageUrl: data.imageUrl,
             prompt: prompt.trim(),
             model,
@@ -432,7 +433,7 @@ const VisualizingLoopsTool: FC = () => {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={t('imageGen.placeholderLite')}
-                  className="flex-grow w-full bg-transparent text-black placeholder:text-black/50 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                  className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
                   rows={1}
                   disabled={loading}
                   aria-label="Image prompt for Pollinations models"
@@ -441,16 +442,16 @@ const VisualizingLoopsTool: FC = () => {
               </div>
               <div className="flex w-full items-center justify-end gap-2 mt-2">
                  <Select value={model} onValueChange={setModel} disabled={loading}>
-                  <SelectTrigger className="bg-background/50 h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border text-black">
+                  <SelectTrigger className="bg-background/50 h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border text-foreground">
                     <SelectValue placeholder={t('imageGen.selectModel')} />
                   </SelectTrigger>
                   <SelectContent>
                     {imageModels.map(m => (
-                      <SelectItem key={m} value={m} className="text-xs text-black">{m}</SelectItem>
+                      <SelectItem key={m} value={m} className="text-xs text-foreground">{m}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Button type="submit" disabled={loading || !prompt.trim()} className="h-10 px-4 rounded-lg bg-background/50 hover:bg-muted text-black">
+                <Button type="submit" disabled={loading || !prompt.trim()} className="h-10 px-4 rounded-lg bg-background/50 hover:bg-muted text-foreground">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('imageGen.execute')}
                 </Button>
               </div>
@@ -461,8 +462,8 @@ const VisualizingLoopsTool: FC = () => {
             <button
               onClick={toggleHistoryPanel}
               className={cn(
-                "text-left text-black/90 text-xl font-bold font-code select-none truncate",
-                "hover:text-black transition-colors duration-200 px-2 py-1 rounded-md"
+                "text-left text-foreground text-xl font-bold font-code select-none truncate",
+                "hover:text-foreground/80 transition-colors duration-200 px-2 py-1 rounded-md"
               )}
               aria-label="Open image generation history"
             >
@@ -471,12 +472,12 @@ const VisualizingLoopsTool: FC = () => {
             <button
               onClick={toggleAdvancedPanel}
               className={cn(
-                "text-right text-black/90 text-xl font-bold font-code select-none truncate",
-                "hover:text-black transition-colors duration-200 px-2 py-1 rounded-md"
+                "text-right text-xl font-bold font-code select-none truncate",
+                "text-foreground hover:text-foreground/80 transition-colors duration-200 px-2 py-1 rounded-md"
               )}
               aria-label="Open advanced settings"
             >
-              <p>{t('imageGen.configurations')}</p>
+              <p>{t('imageGen.configuration')}</p>
             </button>
           </div>
           

@@ -11,7 +11,12 @@ export const translations = {
     'imageGen.placeholder': 'Beschreibe in natürlicher Sprache was du dir vorstellst (oder was du an einem Referenzbild ändern möchtest)...',
     'imageGen.placeholderLite': 'Beschreibe was du dir vorstellst...',
     'prompt.ideogramCharacter': 'Ein Portrait einer Frau in einem Mode-Magazin... (Ideogram erstellt konsistente Charaktere mit Referenzbild)',
+
+
     'prompt.fluxKreaDev': 'Ein kinematografisches Foto eines Roboters in einem Blumenfeld... (FLUX für schnelle, hochwertige Bildgenerierung)',
+
+    'prompt.wan22Image': 'Ein kinematografischer Shot einer futuristischen Stadt... (WAN 2.2 für schöne 2-Megapixel Bilder in 3-4 Sekunden)',
+    'prompt.nanoBanana': 'Erstelle eine futuristische Stadtszene... (Google Nano Banana für Bildbearbeitung und Multi-Image-Fusion)',
     'prompt.qwenImageEdit': 'Mache den Himmel blau, füge eine Katze auf dem Dach hinzu... (Beschreibe die Änderungen die du am Bild vornehmen möchtest)',
     'prompt.qwenImage': 'Eine wunderschöne Landschaft mit Bergen und See... (Qwen für realistische Bildgenerierung)',
     'prompt.imagen4Ultra': 'Ein lebendiges Korallenriff voller Leben... (Google\'s beste KI für fotorealistische und künstlerische Stile)',
@@ -21,12 +26,11 @@ export const translations = {
     'imageGen.gallery': 'Galerie',
     'imageGen.selectModel': 'Modell Auswahl',
     'imageGen.execute': 'Start',
-    'imageGen.configurations': 'Einstellungen',
+    'imageGen.configuration': 'Konfigurationen',
     'imageGen.history': 'Historie',
     'imageGen.clearHistory': 'Historie löschen',
     'imageGen.close': 'Schließen',
     'imageGen.noImages': 'Keine Bilder generiert bisher.',
-    'imageGen.configuration': 'Einstellungen',
     'imageGen.aspectRatio': 'Seitenverhältnis',
     'field.renderingSpeed': 'Qualität',
     'field.styleType': 'Stil',
@@ -296,7 +300,12 @@ Stil:
     'imageGen.placeholder': 'Describe what you imagine (or want to modify)...',
     'imageGen.placeholderLite': 'Describe what you imagine...',
     'prompt.ideogramCharacter': 'A portrait of a woman in a fashion magazine... (Ideogram creates consistent characters with reference image)',
+
+
     'prompt.fluxKreaDev': 'A cinematic photo of a robot in a field of flowers... (FLUX for fast, high-quality image generation)',
+
+    'prompt.wan22Image': 'A cinematic shot of a futuristic city... (WAN 2.2 for beautiful 2-megapixel images in 3-4 seconds)',
+    'prompt.nanoBanana': 'Create a futuristic cityscape... (Google Nano Banana for image editing and multi-image fusion)',
     'prompt.qwenImageEdit': 'Make the sky blue, add a cat on the roof... (Describe the changes you want to make to the image)',
     'prompt.qwenImage': 'A beautiful landscape with mountains and lake... (Qwen for realistic image generation)',
     'prompt.imagen4Ultra': 'A vibrant coral reef teeming with life... (Google\'s best AI for photorealistic and artistic styles)',
@@ -306,12 +315,11 @@ Stil:
     'imageGen.gallery': 'Gallery',
     'imageGen.selectModel': 'Select model',
     'imageGen.execute': 'Execute',
-    'imageGen.configurations': 'Configurations',
+    'imageGen.configuration': 'Configurations',
     'imageGen.history': 'History',
     'imageGen.clearHistory': 'Clear History',
     'imageGen.close': 'Close',
     'imageGen.noImages': 'No images generated yet.',
-            'imageGen.configuration': 'Configurations',
     'imageGen.aspectRatio': 'Aspect Ratio',
     'field.renderingSpeed': 'Quality',
     'field.styleType': 'Style',

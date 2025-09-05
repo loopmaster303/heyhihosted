@@ -28,6 +28,7 @@ import ImageHistoryGallery from './ImageHistoryGallery';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 import { useLanguage } from '../LanguageProvider';
 import { translations } from '@/config/translations';
+import { generateUUID } from '@/lib/uuid';
 
 interface ReplicateImageToolProps {
   password?: string;
@@ -612,7 +613,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     setSelectedImage(null);
 
     try {
-      const response = await fetch('/api/replicate', {
+      const apiEndpoint = '/api/replicate';
+      
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(currentPayload),
@@ -630,7 +633,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         
         if (typeof resultUrl === 'string' && resultUrl.trim() !== '') {
             const newHistoryItem: ImageHistoryItem = {
-              id: crypto.randomUUID(),
+              id: generateUUID(),
               imageUrl: isVideo ? '' : resultUrl,
               videoUrl: isVideo ? resultUrl : undefined,
               prompt: mainPromptValue,
@@ -865,7 +868,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
               )}
               aria-label="Open advanced settings"
             >
-              <p>{t('imageGen.configurations')}</p>
+              <p>{t('imageGen.configuration')}</p>
             </button>
           </div>
           

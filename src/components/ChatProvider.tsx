@@ -5,6 +5,7 @@ import React, { useState, useEffect, useCallback, useRef, useContext, createCont
 import { useToast } from "@/hooks/use-toast";
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from './LanguageProvider';
+import { generateUUID } from '@/lib/uuid';
 
 import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES, FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
@@ -240,7 +241,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               ];
             }
         
-            const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: userMessageContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
+            const userMessage: ChatMessage = { id: generateUUID(), role: 'user', content: userMessageContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
             newUserMessageId = userMessage.id;
             
             updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
@@ -291,7 +292,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                   { type: 'text', text: `Generated image for: "${chatInputValue.trim()}" (Model: ${selectedImageModelId})` },
                   { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${chatInputValue.trim()}`, isGenerated: true } }
               ];
-              aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
+              aiMessage = { id: generateUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
           } else {
               
 
@@ -345,7 +346,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                   aiResponseText = result.choices?.[0]?.message?.content || "Sorry, I couldn't get a response.";
               }
               
-              aiMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date().toISOString(), toolType: 'long language loops' };
+              aiMessage = { id: generateUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date().toISOString(), toolType: 'long language loops' };
           }
           finalMessages = [...updatedMessagesForState, aiMessage];
           finalTitle = await updateConversationTitle(convId, finalMessages);
@@ -354,7 +355,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         console.error("Chat API Error:", error); // Debug logging
         toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
-        const errorMsg: ChatMessage = {id: crypto.randomUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date().toISOString(), toolType: 'long language loops'};
+        const errorMsg: ChatMessage = {id: generateUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date().toISOString(), toolType: 'long language loops'};
         finalMessages = [...updatedMessagesForState, errorMsg];
       } finally {
         const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: new Date().toISOString(), isImageMode: false, uploadedFile: null, uploadedFilePreview: null };
@@ -378,7 +379,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     
     // startNewChat muss vor dem useEffect definiert werden, der es aufruft
     const startNewChat = useCallback(() => {
-        const newConversationId = crypto.randomUUID();
+        const newConversationId = generateUUID();
         const newConversationData: Conversation = {
             id: newConversationId,
             title: t('nav.newConversation'),

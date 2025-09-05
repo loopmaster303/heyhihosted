@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const MODEL_ENDPOINTS: Record<string, string> = {
+  "wan-2.2-image": "prunaai/wan-2.2-image",
+  "nano-banana": "google/nano-banana",
   "imagen-4-ultra": "google/imagen-4-ultra",
   "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
   "flux-krea-dev": "black-forest-labs/flux-krea-dev",
@@ -51,7 +53,16 @@ export async function POST(request: NextRequest) {
   for (const key in inputParams) {
     const value = inputParams[key];
     if (value !== null && value !== undefined) {
-       sanitizedInput[key] = value;
+      // Convert specific parameters to correct types
+      if (key === "megapixels" && typeof value === "string") {
+        sanitizedInput[key] = parseInt(value, 10);
+      } else if (key === "seed" && typeof value === "string") {
+        sanitizedInput[key] = parseInt(value, 10);
+      } else if (key === "output_quality" && typeof value === "string") {
+        sanitizedInput[key] = parseInt(value, 10);
+      } else {
+        sanitizedInput[key] = value;
+      }
     }
   }
 

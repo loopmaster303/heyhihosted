@@ -20,10 +20,15 @@ interface NewAppHeaderProps {
 
 const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayName, className }) => {
   const { t, language } = useLanguage();
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setLoading(false);
@@ -41,7 +46,8 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
   
   const displayName = userDisplayName && userDisplayName.trim() !== '' ? userDisplayName : 'john';
 
-  const isDark = theme === 'dark';
+  // Use resolvedTheme to avoid hydration mismatch
+  const isDark = mounted && resolvedTheme === 'dark';
 
   return (
     <>
@@ -82,7 +88,7 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
               ? "text-gray-400 hover:text-white" 
               : "text-black/60 hover:text-black"
           )}>
-            {language === 'de' ? '</bild.gen.lite>' : '</img.gen.lite>'}
+            {mounted && language === 'de' ? '</bild.gen.lite>' : '</img.gen.lite>'}
           </Link>
           <Link href="/image-gen/raw" className={cn(
             "text-sm md:text-base font-code transition-colors",
@@ -90,7 +96,7 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
               ? "text-gray-400 hover:text-white" 
               : "text-black/60 hover:text-black"
           )}>
-            {language === 'de' ? '</bild.gen.expert>' : '</img.gen.expert>'}
+            {mounted && language === 'de' ? '</bild.gen.expert>' : '</img.gen.expert>'}
           </Link>
           <Link href="/reasoning" className={cn(
             "text-sm md:text-base font-code transition-colors",
@@ -106,7 +112,7 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
               ? "text-gray-400 hover:text-white" 
               : "text-black/60 hover:text-black"
           )}>
-            {language === 'de' ? '</einstellungen>' : '</settings>'}
+            {mounted && language === 'de' ? '</einstellungen>' : '</settings>'}
           </Link>
         </nav>
 
@@ -125,8 +131,8 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
           
           {/* Desktop Controls */}
           <div className="hidden md:flex items-center gap-2">
-            <LanguageToggle />
-            <ThemeToggle />
+            {mounted && <LanguageToggle />}
+            {mounted && <ThemeToggle />}
           </div>
         </div>
       </header>
@@ -205,8 +211,8 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
             
             {/* Mobile Controls */}
             <div className="flex items-center justify-center gap-4 pt-4">
-              <LanguageToggle />
-              <ThemeToggle />
+              {mounted && <LanguageToggle />}
+              {mounted && <ThemeToggle />}
             </div>
           </nav>
         </div>

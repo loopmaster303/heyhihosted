@@ -27,6 +27,32 @@ export interface ReplicateModelConfig {
 }
 
 export const modelConfigs: Record<string, ReplicateModelConfig> = {
+  "wan-2.2-image": {
+    id: "wan-2.2-image",
+    name: "WAN 2.2 Image",
+    outputType: "image",
+    description: "Beautiful cinematic 2 megapixel images in 3-4 seconds. Derived from the Wan 2.2 model through optimization techniques from the pruna package.",
+    inputs: [
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "A cinematic shot of a futuristic city...", info: "Text prompt for image generation.", isPrompt: true, labelKey: "prompt.wan22Image" },
+      { name: "juiced", label: "Juiced", type: "boolean", default: false, info: "Faster inference with additional optimizations.", labelKey: "field.juiced" },
+      { name: "megapixels", label: "Megapixels", type: "select", default: "2", options: ["1", "2"], info: "Approximate number of megapixels for generated image.", labelKey: "field.megapixels" },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "16:9", options: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9"], info: "Aspect ratio for the generated image.", labelKey: "imageGen.aspectRatio" },
+      { name: "output_format", label: "Output Format", type: "select", default: "jpg", options: ["png", "jpg", "webp"], info: "Format of the output images.", labelKey: "field.outputFormat" },
+      { name: "output_quality", label: "Output Quality", type: "number", default: 80, min: 1, max: 100, step: 1, info: "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs.", labelKey: "field.outputQuality" },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", info: "Random seed. Set for reproducible generation.", hidden: true },
+    ]
+  },
+  "nano-banana": {
+    id: "nano-banana",
+    name: "Google Nano Banana",
+    outputType: "image",
+    description: "Google's latest image editing model in Gemini 2.5. Features multi-image fusion, character consistency, conversational editing, and visual reasoning capabilities.",
+    inputs: [
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Create a futuristic cityscape...", info: "A text description of the image you want to generate.", isPrompt: true, labelKey: "prompt.nanoBanana" },
+      { name: "image_input", label: "Image Input", type: "url", info: "Input images to transform or use as reference (supports multiple images).", hidden: true },
+      { name: "output_format", label: "Output Format", type: "select", default: "jpg", options: ["jpg", "png"], info: "Format of the output image.", labelKey: "field.outputFormat" },
+    ]
+  },
   "ideogram-character": {
     id: "ideogram-character",
     name: "Ideogram Character",
