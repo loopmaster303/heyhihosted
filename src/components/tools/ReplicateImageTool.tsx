@@ -426,7 +426,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                 placeholder={inputConfig.placeholder || `Enter ${inputConfig.label.toLowerCase()}`}
                 onChange={(e) => handleInputChange(inputConfig.name, e.target.value)}
                 className="bg-tool-input-bg border-border focus-visible:ring-primary min-h-[60px]"
-                rows={inputConfig.isNegativePrompt ? 2 : 3}
+                rows={3}
                 required={inputConfig.required}
             />
             </div>
