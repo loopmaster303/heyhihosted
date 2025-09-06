@@ -1,16 +1,24 @@
 
 import { NextResponse } from 'next/server';
 
-const SUPPORTED_POLLINATIONS_MODELS = ['flux', 'turbo', 'gptimage']; // "gptimage" is now a selectable option
+const SUPPORTED_POLLINATIONS_MODELS = ['flux', 'turbo', 'kontext']; // Pollinations models with context support
 
 export async function GET() {
   try {
-    // We now fetch all models and filter to our supported list, which includes gptimage.
+    const token = process.env.POLLINATIONS_API_TOKEN;
+    
+    // We fetch all models and filter to our supported list with context support
+    const headers: Record<string, string> = {
+      'User-Agent': 'hey.hi-app/1.0'
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const resp = await fetch('https://image.pollinations.ai/models', { 
       cache: 'no-store',
-      headers: {
-        'User-Agent': 'hey.hi-app/1.0'
-      }
+      headers
     });
     
     if (!resp.ok) {

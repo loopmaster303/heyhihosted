@@ -83,7 +83,12 @@ const toolTileItems = [
 
 export default function HomePage() {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
     const { t, language } = useLanguage();
+
+    useEffect(() => {
+      setMounted(true);
+    }, []);
 
     useEffect(() => {
       setHoveredId(null);
@@ -91,6 +96,15 @@ export default function HomePage() {
 
     const firstFourItems = toolTileItems.slice(0, 4);
     const lastTwoItems = toolTileItems.slice(4);
+
+    // Prevent hydration mismatch by not rendering until mounted
+    if (!mounted) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4 pt-20">
+          <div className="text-white text-lg">Loading...</div>
+        </div>
+      );
+    }
 
     return (
         <div

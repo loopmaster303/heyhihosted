@@ -27,7 +27,7 @@ import { useLanguage } from '../LanguageProvider';
 import { generateUUID } from '@/lib/uuid';
 
 
-const FALLBACK_MODELS = ['flux', 'turbo', 'gptimage'];
+const FALLBACK_MODELS = ['flux', 'turbo', 'kontext'];
 const DEFAULT_MODEL = 'flux';
 const LOCAL_STORAGE_KEY = 'visualizingLoopsToolSettings';
 const HISTORY_STORAGE_KEY = 'visualizingLoopsHistory';
@@ -35,6 +35,7 @@ const HISTORY_STORAGE_KEY = 'visualizingLoopsHistory';
 const VisualizingLoopsTool: FC = () => {
   const { toast } = useToast();
   const { t } = useLanguage();
+  const [mounted, setMounted] = useState(false);
   const [prompt, setPrompt] = useState('A beautiful landscape painting, trending on artstation');
   const [imageModels, setImageModels] = useState<string[]>([]);
   const [model, setModel] = useState<string>(DEFAULT_MODEL);
@@ -66,6 +67,11 @@ const VisualizingLoopsTool: FC = () => {
   useOnClickOutside([historyPanelRef], () => setIsHistoryPanelOpen(false), 'radix-select-content');
   useOnClickOutside([advancedPanelRef], () => setIsAdvancedPanelOpen(false), 'radix-select-content');
 
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -79,6 +85,8 @@ const VisualizingLoopsTool: FC = () => {
   const batchSizeValue = useMemo(() => [batchSize], [batchSize]);
 
   useEffect(() => {
+    if (!mounted) return;
+    
     const fetchModels = async () => {
       try {
         const res = await fetch('/api/image/models');
@@ -143,7 +151,7 @@ const VisualizingLoopsTool: FC = () => {
     }
     setIsInitialLoadComplete(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [mounted]); // Run when mounted changes
 
   useEffect(() => {
     if (!isInitialLoadComplete) return;
@@ -185,7 +193,7 @@ const VisualizingLoopsTool: FC = () => {
     setLoading(true);
     setError('');
     
-    const endpoint = model === 'gptimage' ? '/api/openai-image' : '/api/generate';
+    const endpoint = '/api/generate';
     const newHistoryItems: ImageHistoryItem[] = [];
 
     for (let i = 0; i < batchSize; i++) {
@@ -208,8 +216,8 @@ const VisualizingLoopsTool: FC = () => {
       };
       
       // The 'transparent' param is specific to the Pollinations wrapper for OpenAI's DALL-E, 
-      // which we route to via 'gptimage'. Other models might not support it or have different param names.
-      if (model === 'gptimage') {
+      // Pollinations models support transparency parameter
+      if (transparent) {
         payload.transparent = transparent;
       }
       
@@ -310,6 +318,16 @@ const VisualizingLoopsTool: FC = () => {
     if (isAdvancedPanelOpen) setIsAdvancedPanelOpen(false);
     setIsHistoryPanelOpen(prev => !prev);
   }, [isAdvancedPanelOpen]);
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] p-6">
+        <Loader2 className="w-8 h-8 animate-spin" />
+        <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
 
 
   return (

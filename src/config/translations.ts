@@ -9,7 +9,7 @@ export const translations = {
     'chat.webBrowsingDisabled': 'Web-Browsing Deaktiviert',
     'chat.usingGptOss': 'Verwende GPT-OSS-120B für Web-Browsing-Funktionen.',
     'imageGen.placeholder': 'Beschreibe in natürlicher Sprache was du dir vorstellst (oder was du an einem Referenzbild ändern möchtest)...',
-    'imageGen.placeholderLite': 'Beschreibe was du dir vorstellst...',
+    'imageGen.placeholderLite': 'Beschreibe was du dir vorstellst... (Pollinations AI für schnelle Bildgenerierung)',
     'prompt.ideogramCharacter': 'Ein Portrait einer Frau in einem Mode-Magazin... (Ideogram erstellt konsistente Charaktere mit Referenzbild)',
 
 
@@ -166,9 +166,9 @@ export const translations = {
     // Homepage
     'home.title': 'hey.hi = space',
     'home.subtitle': 'Dein KI-Assistent für alles',
-    'tool.chat.hoverDescription': 'Sprich hier mit der Maschine wie mit einem echten Menschen, wie einem Freund zum Beispiel.\nFrag alles, bekomme Hilfe oder führe einfach ein normales Gespräch—keine besonderen Regeln.',
+    'tool.chat.hoverDescription': 'Sprich hier mit der Maschine wie mit einem echten Menschen, wie einem Freund zum Beispiel.\nFrag alles, bekomme Hilfe oder führe einfach ein normales Gespräch—keine besonderen Regeln. Mit Kontext-Unterstützung für bessere Gespräche.',
     'tool.reasoning.hoverDescription': 'Bekomme Hilfe bei komplexen Themen. Die KI liefert strukturierte Erklärungen, Code-Beispiele und logische Aufschlüsselungen in einem sauberen, lesbaren Format.',
-    'tool.imageLite.hoverDescription': 'Tippe deine Idee in natürlicher Sprache und bekomme sofort eine einfache Visualisierung—keine Einstellungen, nur Magie.',
+    'tool.imageLite.hoverDescription': 'Tippe deine Idee in natürlicher Sprache und bekomme sofort eine einfache Visualisierung—Pollinations AI für schnelle Bildgenerierung mit Kontext-Unterstützung.',
     'tool.imageRaw.hoverDescription': 'Beschreibe deine Idee in natürlicher Sprache, modifiziere jedes Detail mit Experten-Einstellungen und erstelle Bilder mit Next-Gen, State-of-the-Art Modellen.',
     'tool.settings.hoverDescription': 'Personalisieren Sie, wie sich die Maschine verhält—setzen Sie Ihren Benutzernamen, passen Sie Antworten, Sprache, Stil und mehr an, um zu Ihrem Vibe zu passen.',
     'tool.about.hoverDescription': 'Erfahren Sie mehr über das Projekt, seine Komponenten und die Philosophie dahinter.',
@@ -331,7 +331,7 @@ Stil:
     'chat.webBrowsingDisabled': 'Web Browsing Disabled',
     'chat.usingGptOss': 'Using GPT-OSS-120B for web browsing capabilities.',
     'imageGen.placeholder': 'Describe what you imagine (or want to modify)...',
-    'imageGen.placeholderLite': 'Describe what you imagine...',
+    'imageGen.placeholderLite': 'Describe what you imagine... (Pollinations AI for fast image generation)',
     'prompt.ideogramCharacter': 'A portrait of a woman in a fashion magazine... (Ideogram creates consistent characters with reference image)',
 
 
@@ -488,9 +488,9 @@ Stil:
     // Homepage
     'home.title': 'hey.hi = space',
     'home.subtitle': 'Your AI assistant for everything',
-    'tool.chat.hoverDescription': 'Talk here with the machine like you would with a real person, like a friend for example.\nAsk anything, get help, or just have a normal chat—no special rules.',
+    'tool.chat.hoverDescription': 'Talk here with the machine like you would with a real person, like a friend for example.\nAsk anything, get help, or just have a normal chat—no special rules. With context support for better conversations.',
     'tool.reasoning.hoverDescription': 'Get help with complex topics. The AI will provide structured explanations, code examples, and logical breakdowns in a clean, readable format.',
-    'tool.imageLite.hoverDescription': 'Type your idea in natural language and instantly get a simple visualization—no settings, just magic.',
+    'tool.imageLite.hoverDescription': 'Type your idea in natural language and instantly get a simple visualization—Pollinations AI for fast image generation with context support.',
     'tool.imageRaw.hoverDescription': 'Describe your idea in natural language, modify every detail with expert settings, and create images using next-gen, state-of-the-art models.',
     'tool.settings.hoverDescription': 'Personalize how the machine behaves—set your username, adjust responses, language, style, and more to match your vibe.',
     'tool.about.hoverDescription': 'Learn more about the project, its components, and the philosophy behind it.',

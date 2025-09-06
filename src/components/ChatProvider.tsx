@@ -279,7 +279,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       try {
           let aiMessage: ChatMessage;
           if (isImagePrompt && chatInputValue.trim()) {
-              const endpoint = selectedImageModelId === 'gptimage' ? '/api/openai-image' : '/api/generate';
+              const endpoint = '/api/generate';
               const response = await fetch(endpoint, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },

@@ -1,8 +1,8 @@
 
 import { NextResponse } from 'next/server';
 
-// This route now exclusively handles Pollinations.ai API calls for 'flux', 'turbo' etc.
-// OpenAI 'gptimage' calls are handled by /api/openai-image
+// This route handles Pollinations.ai API calls for image generation with context support
+// Supports models: flux, turbo, kontext
 
 export async function POST(request: Request) {
   let body;
@@ -32,9 +32,8 @@ export async function POST(request: Request) {
     if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
       return NextResponse.json({ error: 'Prompt is required and must be a non-empty string.', modelUsed: model }, { status: 400 });
     }
-    if (!model || typeof model !== 'string' || model.trim() === '' || model.toLowerCase() === 'gptimage') {
-      // gptimage should not be routed here.
-      return NextResponse.json({ error: `Invalid or unsupported model for Pollinations endpoint: ${model}. 'gptimage' should use the OpenAI endpoint.`, modelUsed: model || 'unknown' }, { status: 400 });
+    if (!model || typeof model !== 'string' || model.trim() === '') {
+      return NextResponse.json({ error: `Invalid or unsupported model for Pollinations endpoint: ${model}.`, modelUsed: model || 'unknown' }, { status: 400 });
     }
 
     const token = process.env.POLLINATIONS_API_TOKEN;
@@ -59,14 +58,16 @@ export async function POST(request: Request) {
     if (transparent) params.append('transparent', 'true'); // For Pollinations models that support it
 
     const encodedPrompt = encodeURIComponent(prompt.trim());
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
+    let imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
+
+    // Add API token if available
+    if (token) {
+      imageUrl += `&token=${token}`;
+    }
 
     console.log(`Requesting image from Pollinations (model: ${model}):`, imageUrl);
 
-    // Instead of fetching the image on the backend, we return the URL to the client.
-    // This allows the client to handle the image and avoids server bandwidth for proxying.
-    // It also solves the localStorage quota issue by allowing the client to store the URL
-    // instead of a large base64 data URI.
+    // Return the image URL with token for authenticated access
     return NextResponse.json({ imageUrl });
 
 
