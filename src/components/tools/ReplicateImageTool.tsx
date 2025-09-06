@@ -61,7 +61,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     return t('imageGen.placeholder');
   };
 
-  const [selectedModelKey, setSelectedModelKey] = useState<string>(""); 
+  const [selectedModelKey, setSelectedModelKey] = useState<string>("wan-2.2-image"); 
   const [currentModelConfig, setCurrentModelConfig] = useState<ReplicateModelConfig | null>(null);
   
   const [formFields, setFormFields] = useState<Record<string, any>>({});
@@ -79,15 +79,17 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   const [currentTag, setCurrentTag] = useState('');
   const multiFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Nano Banana multiple input images
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const multipleFileInputRef = useRef<HTMLInputElement>(null);
+
   const [history, setHistory] = useState<ImageHistoryItem[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageHistoryItem | null>(null);
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   
-  const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   const historyPanelRef = useRef<HTMLDivElement>(null);
-  const advancedPanelRef = useRef<HTMLDivElement>(null);
 
   useOnClickOutside([historyPanelRef], () => setIsHistoryPanelOpen(false), 'radix-select-content');
 
@@ -112,15 +114,15 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         const settings = JSON.parse(storedData);
         if (settings.selectedModelKey && modelKeys.includes(settings.selectedModelKey)) {
           setSelectedModelKey(settings.selectedModelKey);
-        } else if (modelKeys.length > 0) {
-          setSelectedModelKey(modelKeys[0]); 
+        } else {
+          setSelectedModelKey("wan-2.2-image"); 
         }
       } catch (e) {
         console.error("Error loading ReplicateImageTool selectedModelKey:", e);
-        if (modelKeys.length > 0) setSelectedModelKey(modelKeys[0]);
+        setSelectedModelKey("wan-2.2-image");
       }
-    } else if (modelKeys.length > 0) {
-      setSelectedModelKey(modelKeys[0]); 
+    } else {
+      setSelectedModelKey("wan-2.2-image"); 
     }
 
     try {
@@ -156,40 +158,51 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       
       config.inputs.forEach(input => {
           if (!input.isPrompt && input.type !== 'files' && input.type !== 'tags') {
-              initialFields[input.name] = input.default ?? 
-                                          (input.type === 'number' ? (input.min ?? 0) : 
-                                          (input.type === 'boolean' ? false : 
-                                          (input.type === 'select' ? (typeof input.options?.[0] === 'object' ? input.options?.[0].value : input.options?.[0]) : '')));
+              // Always set default values for all fields
+              if (input.default !== undefined) {
+                  initialFields[input.name] = input.default;
+              } else if (input.type === 'number') {
+                  initialFields[input.name] = input.min ?? 0;
+              } else if (input.type === 'boolean') {
+                  initialFields[input.name] = false;
+              } else if (input.type === 'select' && input.options && input.options.length > 0) {
+                  // Use first option as default if no default is specified
+                  const defaultValue = typeof input.options[0] === 'object' ? input.options[0].value : input.options[0];
+                  initialFields[input.name] = input.name === 'megapixels' ? String(defaultValue) : defaultValue;
+              } else {
+                  initialFields[input.name] = '';
+              }
           }
       });
       
-      const storedData = localStorage.getItem(settingsStorageKey);
-      if (storedData) {
-        try {
-          const settings = JSON.parse(storedData);
-          if (settings.selectedModelKey === selectedModelKey) { 
-            if (settings.mainPromptValue !== undefined) {
-              initialMainPrompt = settings.mainPromptValue;
-            }
-            if (settings.formFields !== undefined) {
-              Object.keys(initialFields).forEach(key => {
-                if (settings.formFields[key] !== undefined) {
-                  initialFields[key] = settings.formFields[key];
-                }
-              });
-            }
+      // Force default values for all select fields
+      config.inputs.forEach(input => {
+        if (input.type === 'select' && input.default !== undefined) {
+          // Ensure megapixels is always stored as string
+          if (input.name === 'megapixels') {
+            initialFields[input.name] = String(input.default);
+          } else {
+            initialFields[input.name] = input.default;
           }
-        } catch (e) { console.error("Error applying ReplicateImageTool model specific settings:", e); }
-      }
+        }
+      });
       
       // Preserve existing prompt if user has already typed something
       const shouldPreservePrompt = mainPromptValue && mainPromptValue.trim() !== '';
       const finalMainPrompt = shouldPreservePrompt ? mainPromptValue : initialMainPrompt;
       
       setMainPromptValue(finalMainPrompt);
-      setFormFields(initialFields);
+      
+      // Ensure megapixels is always a string in formFields
+      const correctedFields = { ...initialFields };
+      if (correctedFields.megapixels !== undefined) {
+        correctedFields.megapixels = String(correctedFields.megapixels);
+      }
+      
+      setFormFields(correctedFields);
       setReferenceImages([]);
       setReferenceTags([]);
+      setUploadedImages([]);
 
       setError(null);
       setUploadedImagePreview(null);
@@ -243,6 +256,17 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         reader.onloadend = () => {
             const dataUri = reader.result as string;
             setUploadedImagePreview(dataUri);
+            
+            // Set the uploaded image in formFields for specific models
+            if (currentModelConfig?.id === 'ideogram-character') {
+              setFormFields(prev => ({ ...prev, character_reference_image: dataUri }));
+            } else if (currentModelConfig?.id === 'qwen-image-edit') {
+              setFormFields(prev => ({ ...prev, image: dataUri }));
+            } else if (currentModelConfig?.id === 'flux-kontext-pro') {
+              setFormFields(prev => ({ ...prev, input_image: dataUri }));
+            } else if (currentModelConfig?.id === 'nano-banana') {
+              setFormFields(prev => ({ ...prev, image_input: dataUri }));
+            }
         };
         reader.readAsDataURL(file);
     } else if (file) {
@@ -264,12 +288,49 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     if (singleFileInputRef.current) {
       singleFileInputRef.current.value = "";
     }
-  }, []);
+    
+    // Clear the uploaded image from formFields for specific models
+    if (currentModelConfig?.id === 'ideogram-character') {
+      setFormFields(prev => ({ ...prev, character_reference_image: '' }));
+    } else if (currentModelConfig?.id === 'qwen-image-edit') {
+      setFormFields(prev => ({ ...prev, image: '' }));
+    } else if (currentModelConfig?.id === 'flux-kontext-pro') {
+      setFormFields(prev => ({ ...prev, input_image: '' }));
+    } else if (currentModelConfig?.id === 'nano-banana') {
+      setFormFields(prev => ({ ...prev, image_input: '' }));
+    }
+  }, [currentModelConfig]);
   
   const handleMultipleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
+    // Nano Banana: Handle multiple input images (0-5 files)
+    if (currentModelConfig?.id === 'nano-banana') {
+      if (uploadedImages.length + files.length > 5) {
+        toast({ title: "Upload Limit Exceeded", description: "You can upload a maximum of 5 input images.", variant: "destructive" });
+        return;
+      }
+
+      Array.from(files).forEach(file => {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const newImages = [...uploadedImages, reader.result as string];
+            setUploadedImages(newImages);
+            setFormFields(prev => ({ ...prev, image_input: newImages }));
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      if (multipleFileInputRef.current) {
+        multipleFileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    // Default behavior for other models (reference images)
     if (referenceImages.length + files.length > 3) {
         toast({ title: "Upload Limit Exceeded", description: "You can upload a maximum of 3 reference images.", variant: "destructive" });
         return;
@@ -288,7 +349,15 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     if (multiFileInputRef.current) {
         multiFileInputRef.current.value = "";
     }
-  }, [referenceImages.length, toast]);
+  }, [referenceImages.length, uploadedImages.length, currentModelConfig, toast]);
+
+  const handleRemoveImage = useCallback((index: number) => {
+    if (currentModelConfig?.id === 'nano-banana') {
+      const newImages = uploadedImages.filter((_, i) => i !== index);
+      setUploadedImages(newImages);
+      setFormFields(prev => ({ ...prev, image_input: newImages }));
+    }
+  }, [uploadedImages, currentModelConfig]);
 
   const handleRemoveReferenceImage = useCallback((index: number) => {
     setReferenceImages(prev => prev.filter((_, i) => i !== index));
@@ -303,6 +372,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         toast({ title: "Tag Limit Reached", description: "You can only add as many tags as you have reference images.", variant: "destructive" });
     }
   }, [currentTag, referenceImages.length, referenceTags.length, toast]);
+
 
   const handleRemoveTag = useCallback((index: number) => {
     setReferenceTags(prev => prev.filter((_, i) => i !== index));
@@ -362,7 +432,20 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
             </div>
         );
       case 'url':
-        if ((isFluxModelSelected || isVideoModelSelected || isQwenImage || hasCharacterReference) && (inputConfig.name === "input_image" || inputConfig.name === "image" || inputConfig.name === "character_reference_image")) return null; 
+        // Hide specific image fields for different models (handled as mini upload)
+        if (inputConfig.name === "character_reference_image" && currentModelConfig?.id === 'ideogram-character') {
+          return null;
+        }
+        if (inputConfig.name === "image" && currentModelConfig?.id === 'qwen-image-edit') {
+          return null;
+        }
+        if (inputConfig.name === "input_image" && currentModelConfig?.id === 'flux-kontext-pro') {
+          return null;
+        }
+        if (inputConfig.name === "image_input" && currentModelConfig?.id === 'nano-banana') {
+          return null;
+        }
+        // Regular URL fields
         return (
           <div key={inputConfig.name} className="space-y-1.5">
             {label}
@@ -579,34 +662,58 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         }
     }
 
+    // --- Nano Banana Multi-Image Handling ---
+    if (currentModelConfig.id === 'nano-banana') {
+        if (uploadedImages.length > 0) {
+            currentPayload.image_input = uploadedImages;
+        }
+    }
+
     // --- Generic Form Field Handling ---
     for (const input of currentModelConfig.inputs) {
         if (input.isPrompt || input.type === 'url' || input.type === 'files' || input.type === 'tags') {
             continue;
         }
-        const valueToUse = formFields[input.name];
-        if (input.required && (valueToUse === undefined || valueToUse === '' || valueToUse === null)) {
-            if (!(input.type === 'boolean' && valueToUse === false)) { 
-                toast({ title: "Missing Required Field", description: `Please fill in the "${input.label}" field.`, variant: "destructive"});
-                return;
+        
+        // Handle megapixels separately to ensure it's always a string
+        if (input.name === 'megapixels') {
+            const valueToUse = formFields[input.name];
+            const finalValue = valueToUse !== undefined && valueToUse !== '' && valueToUse !== null ? valueToUse : input.default;
+            if (finalValue !== undefined && finalValue !== '' && finalValue !== null) {
+                currentPayload[input.name] = String(finalValue);
             }
+            continue;
         }
-        if (valueToUse !== undefined && valueToUse !== '' && valueToUse !== null) {
+        
+        const valueToUse = formFields[input.name];
+        const finalValue = valueToUse !== undefined && valueToUse !== '' && valueToUse !== null ? valueToUse : input.default;
+        
+        
+        // Always send the value if it exists or has a default
+        if (finalValue !== undefined && finalValue !== '' && finalValue !== null) {
             if (input.type === 'number') {
-                const numValue = parseFloat(String(valueToUse));
+                const numValue = parseFloat(String(finalValue));
                 if (!isNaN(numValue)) {
                     currentPayload[input.name] = numValue;
                 }
-            } else if (input.name === 'megapixels') {
-                // Ensure megapixels is sent as string
-                currentPayload[input.name] = String(valueToUse);
             } else {
-                currentPayload[input.name] = valueToUse;
+                currentPayload[input.name] = finalValue;
             }
-        } else if (input.type === 'boolean' && valueToUse === false) { 
-            currentPayload[input.name] = false; 
+        } else if (input.type === 'boolean') {
+            // Always send boolean values, even if false
+            currentPayload[input.name] = valueToUse === true;
         }
     }
+
+    // Explicitly set default values for problematic fields
+    if (currentModelConfig.id === 'ideogram-character') {
+        if (!currentPayload.magic_prompt_option) currentPayload.magic_prompt_option = "Auto";
+        if (!currentPayload.rendering_speed) currentPayload.rendering_speed = "Default";
+        if (!currentPayload.style_type) currentPayload.style_type = "Auto";
+        if (!currentPayload.resolution) currentPayload.resolution = "None";
+    }
+    
+
 
     setLoading(true);
     setError(null);
@@ -615,6 +722,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     try {
       const apiEndpoint = '/api/replicate';
       
+      // Debug: Log the payload before sending
+      console.log('Sending payload:', JSON.stringify(currentPayload, null, 2));
+      
       const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -622,6 +732,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       });
 
       const data = await response.json();
+      
+      // Debug: Log the response
+      console.log('API Response:', response.status, data);
 
       if (!response.ok) {
         throw new Error(data.error || data.detail || `API request failed with status ${response.status}`);
@@ -693,15 +806,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       (isVideoModelSelected && mainPromptValue.trim() !== '' && uploadedImagePreview) ||
       (!isFluxModelSelected && !isFluxKreaDev && !isQwenImage && !isVideoModelSelected && !hasCharacterReference && mainPromptValue.trim() !== '') );
 
-  const toggleAdvancedPanel = useCallback(() => {
-    if (isHistoryPanelOpen) setIsHistoryPanelOpen(false);
-    setIsAdvancedPanelOpen(prev => !prev);
-  }, [isHistoryPanelOpen]);
-
   const toggleHistoryPanel = useCallback(() => {
-    if (isAdvancedPanelOpen) setIsAdvancedPanelOpen(false);
     setIsHistoryPanelOpen(prev => !prev);
-  }, [isAdvancedPanelOpen]);
+  }, []);
 
   if (!mounted) {
     return (
@@ -721,6 +828,25 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
+      {/* Model Selector - Top Left */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="max-w-6xl mx-auto">
+          <Select value={selectedModelKey} onValueChange={handleModelChange} disabled={loading}>
+            <SelectTrigger className="bg-gradient-to-r from-background/80 to-background/60 h-12 w-auto px-4 rounded-xl text-lg hover:from-background/90 hover:to-background/70 focus-visible:ring-primary border-border/50 shadow-lg hover:shadow-xl transition-all duration-200 font-semibold">
+              <SelectValue placeholder={t('imageGen.selectModel')} />
+            </SelectTrigger>
+            <SelectContent>
+              {modelKeys.map(key => (
+                <SelectItem key={key} value={key}>
+                  {modelConfigs[key].name}
+                  {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-xs">Video</Badge>}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <main className="flex-grow flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto no-scrollbar">
         <Card className="flex-grow flex flex-col border-0 shadow-none">
           <CardHeader className="py-3 px-4 flex flex-col">
@@ -763,90 +889,165 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       </main>
 
       <footer className="px-4 pt-2 pb-4 shrink-0">
-        <div className="max-w-3xl mx-auto relative">
-          
-          {isAdvancedPanelOpen && (
-             <div
-              ref={advancedPanelRef}
-              className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
-                <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-semibold">{t('imageGen.configuration')}</h3>
-                    <Button variant="ghost" size="sm" onClick={() => setIsAdvancedPanelOpen(false)}>
-                        <X className="w-4 h-4 mr-1.5" />
-                        {t('imageGen.close')}
-                    </Button>
-                </div>
-                <div className="grid gap-x-6 gap-y-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  {currentModelConfig ? (
-                    <>
-                      {currentModelConfig.inputs.filter(input => !input.isPrompt && !input.hidden).map(input => renderInputField(input))}
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground p-4 text-center col-span-full">Select a model to see its parameters.</p>
-                  )}
-                </div>
-            </div>
-          )}
+        <div className="max-w-6xl mx-auto relative">
 
           <form onSubmit={handleSubmit}>
-            <div className="bg-secondary rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
-              <div className="w-full">
-                  <Textarea
-                    ref={textareaRef}
-                    value={mainPromptValue}
-                    onChange={handleMainPromptChange}
-                    placeholder={getPromptPlaceholder()}
-                    className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
-                    rows={1}
-                    disabled={loading || !currentModelConfig}
-                    aria-label="Main prompt input"
-                    style={{ lineHeight: '1.5rem', fontSize: '17px' }}
-                  />
-              </div>
-              <div className="flex w-full items-center justify-end gap-2 mt-2">
-                 {(isFluxModelSelected || isFluxKreaDev || isQwenImage || isVideoModelSelected || hasCharacterReference) && (
-                  <div
-                    className="relative h-10 w-10 cursor-pointer group flex-shrink-0"
-                    onClick={() => {
-                      if (uploadedImagePreview) handleClearUploadedImage();
-                      else singleFileInputRef.current?.click();
-                    }}
-                    aria-label={uploadedImagePreview ? "Clear reference image" : "Upload reference image"}
-                  >
-                    {uploadedImagePreview ? (
-                      <>
-                        <NextImage src={uploadedImagePreview} alt="Reference preview" fill sizes="40px" style={{ objectFit: 'cover' }} className="rounded-md" data-ai-hint="reference thumbnail" />
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
-                          <X className="h-5 w-5 text-white" />
+            {/* Prompt Input und Execute auf einer Höhe - Responsive */}
+            <div className="bg-gradient-to-r from-secondary/80 to-secondary rounded-3xl p-3 shadow-2xl border border-border/20 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
+              <Textarea
+                ref={textareaRef}
+                value={mainPromptValue}
+                onChange={handleMainPromptChange}
+                placeholder={getPromptPlaceholder()}
+                className="flex-grow bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                rows={1}
+                disabled={loading || !currentModelConfig}
+                aria-label="Main prompt input"
+                style={{ lineHeight: '1.5rem', fontSize: '18px' }}
+              />
+              <div className="flex gap-3 flex-shrink-0">
+                {/* Input Images Upload für Google Nano Banana (0-5 files) */}
+                {currentModelConfig?.id === 'nano-banana' && (
+                  <div className="flex gap-2 flex-shrink-0">
+                    {/* Uploaded Images Display */}
+                    {uploadedImages.map((image, index) => (
+                      <div key={index} className="relative h-12 w-12 group">
+                        <NextImage 
+                          src={image} 
+                          alt={`Input image ${index + 1}`} 
+                          fill 
+                          sizes="48px" 
+                          style={{ objectFit: 'cover' }} 
+                          className="rounded-xl" 
+                        />
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute -top-2 -right-2 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Remove image"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    
+                    {/* Add More Images Button */}
+                    {uploadedImages.length < 5 && (
+                      <div
+                        className="relative h-12 w-12 cursor-pointer group flex-shrink-0"
+                        onClick={() => multipleFileInputRef.current?.click()}
+                        aria-label="Add input images"
+                      >
+                        <div className="h-12 w-12 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                          <ImageIcon className="h-6 w-6" />
                         </div>
-                      </>
-                    ) : (
-                      <div className="h-10 w-10 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
-                        <ImageIcon className="h-5 w-5" />
                       </div>
                     )}
                   </div>
                 )}
-                <Select value={selectedModelKey} onValueChange={handleModelChange} disabled={loading}>
-                  <SelectTrigger className="bg-background/50 h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border">
-                    <SelectValue placeholder={t('imageGen.selectModel')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {modelKeys.map(key => (
-                      <SelectItem key={key} value={key}>
-                        {modelConfigs[key].name}
-                        {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-xs">Video</Badge>}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="submit" disabled={!canSubmit} className="h-10 px-4 rounded-lg bg-background/50 hover:bg-muted">
+                
+                {/* Input Image Upload für Flux Kontext Pro */}
+                {currentModelConfig?.id === 'flux-kontext-pro' && (
+                  <div
+                    className="relative h-12 w-12 cursor-pointer group flex-shrink-0"
+                    onClick={() => {
+                      if (uploadedImagePreview) handleClearUploadedImage();
+                      else singleFileInputRef.current?.click();
+                    }}
+                    aria-label={uploadedImagePreview ? "Clear input image" : "Upload input image"}
+                  >
+                    {uploadedImagePreview ? (
+                      <>
+                        <NextImage src={uploadedImagePreview} alt="Input image preview" fill sizes="48px" style={{ objectFit: 'cover' }} className="rounded-xl" data-ai-hint="input image thumbnail" />
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+                          <X className="h-5 w-5 text-white" />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="h-12 w-12 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                        <ImageIcon className="h-6 w-6" />
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Image Upload für Qwen Image Edit */}
+                {currentModelConfig?.id === 'qwen-image-edit' && (
+                  <div
+                    className="relative h-12 w-12 cursor-pointer group flex-shrink-0"
+                    onClick={() => {
+                      if (uploadedImagePreview) handleClearUploadedImage();
+                      else singleFileInputRef.current?.click();
+                    }}
+                    aria-label={uploadedImagePreview ? "Clear image to edit" : "Upload image to edit"}
+                  >
+                    {uploadedImagePreview ? (
+                      <>
+                        <NextImage src={uploadedImagePreview} alt="Image to edit preview" fill sizes="48px" style={{ objectFit: 'cover' }} className="rounded-xl" data-ai-hint="image to edit thumbnail" />
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+                          <X className="h-5 w-5 text-white" />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="h-12 w-12 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                        <ImageIcon className="h-6 w-6" />
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Character Reference Image Upload für Ideogram Character */}
+                {currentModelConfig?.id === 'ideogram-character' && (
+                  <div
+                    className="relative h-12 w-12 cursor-pointer group flex-shrink-0"
+                    onClick={() => {
+                      if (uploadedImagePreview) handleClearUploadedImage();
+                      else singleFileInputRef.current?.click();
+                    }}
+                    aria-label={uploadedImagePreview ? "Clear character reference image" : "Upload character reference image"}
+                  >
+                    {uploadedImagePreview ? (
+                      <>
+                        <NextImage src={uploadedImagePreview} alt="Character reference preview" fill sizes="48px" style={{ objectFit: 'cover' }} className="rounded-xl" data-ai-hint="character reference thumbnail" />
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+                          <X className="h-5 w-5 text-white" />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="h-12 w-12 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                        <ImageIcon className="h-6 w-6" />
+                      </div>
+                    )}
+                  </div>
+                )}
+                <Button type="submit" disabled={!canSubmit} className="h-12 px-8 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('imageGen.execute')}
                 </Button>
               </div>
             </div>
+
+            {/* Configuration Panel - Responsive und sortiert */}
+            <div className="bg-gradient-to-br from-popover/95 to-popover/80 text-popover-foreground rounded-2xl shadow-2xl border border-border/30 p-6 backdrop-blur-sm">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+                {currentModelConfig ? (
+                  <>
+                    {currentModelConfig.inputs
+                      .filter(input => !input.isPrompt && !input.hidden)
+                      .sort((a, b) => {
+                        // Sortierung: Boolean (Toggle) zuerst, dann Select, dann Number
+                        const typeOrder = { boolean: 0, select: 1, number: 2, text: 3, url: 4 };
+                        return (typeOrder[a.type as keyof typeof typeOrder] || 5) - (typeOrder[b.type as keyof typeof typeOrder] || 5);
+                      })
+                      .map(input => renderInputField(input))}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground p-4 text-center col-span-full">Select a model to see its parameters.</p>
+                )}
+              </div>
+            </div>
+
             <input type="file" ref={singleFileInputRef} onChange={handleSingleFileChange} accept="image/*" className="hidden" />
             <input type="file" ref={multiFileInputRef} onChange={handleMultipleFileChange} accept="image/*" multiple className="hidden" />
+            <input type="file" ref={multipleFileInputRef} onChange={handleMultipleFileChange} accept="image/*" multiple className="hidden" />
           </form>
 
           <div className="mt-3 flex justify-between items-center px-1">
@@ -859,16 +1060,6 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
               aria-label="Open image generation history"
             >
               <p>{t('imageGen.gallery')}</p>
-            </button>
-             <button
-              onClick={toggleAdvancedPanel}
-              className={cn(
-                "text-right text-foreground/90 text-xl font-bold font-code select-none truncate",
-                "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
-              )}
-              aria-label="Open advanced settings"
-            >
-              <p>{t('imageGen.configuration')}</p>
             </button>
           </div>
           
@@ -894,4 +1085,5 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 
 export default ReplicateImageTool;
 
+    
     

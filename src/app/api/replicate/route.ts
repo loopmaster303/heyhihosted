@@ -5,7 +5,6 @@ import type { NextRequest } from 'next/server';
 const MODEL_ENDPOINTS: Record<string, string> = {
   "wan-2.2-image": "prunaai/wan-2.2-image",
   "nano-banana": "google/nano-banana",
-  "imagen-4-ultra": "google/imagen-4-ultra",
   "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
   "flux-krea-dev": "black-forest-labs/flux-krea-dev",
   "runway-gen4-image": "runwayml/gen4-image",
@@ -53,9 +52,15 @@ export async function POST(request: NextRequest) {
   for (const key in inputParams) {
     const value = inputParams[key];
     if (value !== null && value !== undefined) {
-      // Convert specific parameters to correct types
-      if (key === "megapixels" && typeof value === "string") {
-        sanitizedInput[key] = parseInt(value, 10);
+      // Convert specific parameters to correct types based on model
+      if (key === "megapixels") {
+        // WAN models expect integer, Flux models expect string
+        if (modelKey.includes("wan") || modelKey.includes("ideogram")) {
+          sanitizedInput[key] = typeof value === "string" ? parseInt(value, 10) : value;
+        } else {
+          // Keep as string for Flux models
+          sanitizedInput[key] = String(value);
+        }
       } else if (key === "seed" && typeof value === "string") {
         sanitizedInput[key] = parseInt(value, 10);
       } else if (key === "output_quality" && typeof value === "string") {
