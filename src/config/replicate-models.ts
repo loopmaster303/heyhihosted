@@ -46,10 +46,11 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     id: "nano-banana",
     name: "Google Nano Banana",
     outputType: "image",
+    hasCharacterReference: true,
     description: "Google's latest image editing model in Gemini 2.5. Features multi-image fusion, character consistency, conversational editing, and visual reasoning capabilities.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Create a futuristic cityscape...", info: "A text description of the image you want to generate.", isPrompt: true, labelKey: "prompt.nanoBanana" },
-      { name: "image_input", label: "Image Input", type: "url", info: "Input images to transform or use as reference (supports multiple images).", hidden: true },
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Make the sheets in the style of the logo. Make the scene natural...", info: "A text description of the image you want to generate or edit.", isPrompt: true, labelKey: "prompt.nanoBanana" },
+      { name: "image_input", label: "Image Input", type: "files", info: "Input images to transform or use as reference (supports multiple images).", labelKey: "field.referenceImages" },
       { name: "output_format", label: "Output Format", type: "select", default: "jpg", options: ["jpg", "png"], info: "Format of the output image.", labelKey: "field.outputFormat" },
     ]
   },
