@@ -57,7 +57,7 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation." },
       { name: "output_format", label: "Output Format", type: "select", default: "webp", options: ["webp", "png", "jpg"], info: "Format of the output image.", labelKey: "field.outputFormat" },
       { name: "output_quality", label: "Output Quality", type: "number", default: 100, min: 1, max: 100, step: 1, info: "Quality of the output image (1-100).", hidden: true },
-      { name: "disable_safety_checker", label: "Safety Checker", type: "boolean", default: false, info: "Disable the safety checker for more creative freedom.", labelKey: "field.disableSafetyChecker" },
+      { name: "disable_safety_checker", label: "Safety Checker", type: "boolean", default: false, info: "Disable the safety checker for more creative freedom.", labelKey: "field.disableSafetyChecker", hidden: true },
       { name: "go_fast", label: "Go Fast", type: "boolean", default: false, info: "Enable fast generation mode.", hidden: true },
       { name: "megapixels", label: "Megapixels", type: "select", default: "1", options: [{ value: "1", label: "1" }, { value: "0.25", label: "0.25" }], info: "Target megapixels for the output image.", hidden: true },
     ]
@@ -76,7 +76,7 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation.", labelKey: "field.seed" },
       { name: "output_format", label: "Output Format", type: "select", default: "jpg", options: ["jpg", "png", "webp"], info: "Format of the output image.", labelKey: "field.outputFormat" },
       { name: "output_quality", label: "Output Quality", type: "number", default: 100, min: 1, max: 100, step: 1, info: "Quality of the output image (1-100).", hidden: true },
-      { name: "disable_safety_checker", label: "Safety Checker", type: "boolean", default: false, info: "Disable the safety checker for more creative freedom.", labelKey: "field.disableSafetyChecker" },
+      { name: "disable_safety_checker", label: "Safety Checker", type: "boolean", default: false, info: "Disable the safety checker for more creative freedom.", labelKey: "field.disableSafetyChecker", hidden: true },
       { name: "go_fast", label: "Go Fast", type: "boolean", default: false, info: "Enable fast generation mode.", hidden: true },
       { name: "image", label: "Image File", type: "url", info: "An image file to use for img2img generation.", hidden: true },
       { name: "guidance", label: "Guidance", type: "number", default: 7.5, min: 0, max: 20, step: 0.1, info: "Controls how much the prompt influences the output.", hidden: true },
@@ -111,7 +111,7 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "quality", label: "Quality", type: "select", default: "Quality", options: ["Speed", "Quality"], info: "Choose between faster generation or higher quality.", labelKey: "field.quality" },
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation.", labelKey: "field.seed" },
       { name: "output_format", label: "Output Format", type: "select", default: "webp", options: ["webp", "png", "jpg"], info: "Format of the output images.", labelKey: "field.outputFormat" },
-      { name: "disable_safety_checker", label: "Disable Safety Checker", type: "boolean", default: false, info: "This model's safety checker can't be disabled when running on the website.", labelKey: "field.disableSafetyChecker" },
+      { name: "disable_safety_checker", label: "Disable Safety Checker", type: "boolean", default: false, info: "This model's safety checker can't be disabled when running on the website.", labelKey: "field.disableSafetyChecker", hidden: true },
       { name: "strength", label: "Strength", type: "number", default: 0.8, min: 0, max: 1, step: 0.1, info: "Strength of the image editing transformation (0 = keep original, 1 = completely new).", labelKey: "field.strength", hidden: true },
       { name: "output_quality", label: "Output Quality", type: "number", default: 100, min: 1, max: 100, step: 1, info: "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs.", hidden: true },
       { name: "go_fast", label: "Go Fast", type: "boolean", default: false, info: "Run faster predictions with additional optimizations.", hidden: true },
@@ -152,7 +152,7 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "num_inference_steps", label: "Inference Steps", type: "number", default: 28, min: 1, max: 50, step: 1, info: "Number of denoising steps.", hidden: true },
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation." },
       { name: "output_format", label: "Output Format", type: "select", default: "webp", options: ["webp", "png", "jpg"], info: "Format of the output image.", labelKey: "field.outputFormat" },
-      { name: "disable_safety_checker", label: "Safety Checker", type: "boolean", default: false, info: "Disable the safety checker for more creative freedom.", labelKey: "field.disableSafetyChecker" },
+      { name: "disable_safety_checker", label: "Safety Checker", type: "boolean", default: false, info: "Disable the safety checker for more creative freedom.", labelKey: "field.disableSafetyChecker", hidden: true },
     ]
   },
   "runway-gen4": {

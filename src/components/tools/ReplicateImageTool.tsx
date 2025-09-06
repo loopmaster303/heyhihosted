@@ -48,16 +48,57 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   const { t, language } = useLanguage();
 
   const getPromptPlaceholder = () => {
-    if (!currentModelConfig) return t('imageGen.placeholder');
-    
-    // Get model-specific placeholder
+    // Hard map by model id so we are independent of translations.json and defaults
+    const id = currentModelConfig?.id || selectedModelKey || '';
+
+    // English placeholders (provided by user)
+    const EN: Record<string, string> = {
+      // 🖼️ IMAGE GENERATORS
+      'wan-2.2-image': 'Type what you want to see – makes very realistic pictures in seconds.',
+      'flux-krea-dev': "Write your idea – creates natural, artistic images that don't look AI-made.",
+      'qwen-image': 'Describe your scene – makes detailed, lifelike photos and can also draw text.',
+      // ✏️ IMAGE EDITORS
+      'nano-banana': 'Upload a picture or type text – edits and creates images with simple instructions.',
+      'qwen-image-edit': 'Upload a picture and tell it what to change – perfect for fixing or adding text.',
+      'ideogram-character': 'Upload a character picture and describe a new scene – keeps the character consistent.',
+      'flux-kontext-pro': 'Write your scene in detail – handles complex prompts and makes pro-looking images.',
+      'runway-gen4-image': 'Upload references and use @tags – advanced image generation with strong control.',
+    };
+
+    // German equivalents (short, actionable)
+    const DE: Record<string, string> = {
+      // 🖼️ BILDERZEUGER
+      'wan-2.2-image': 'Schreibe, was du sehen willst – macht in Sekunden sehr realistische Bilder.',
+      'flux-krea-dev': 'Beschreibe deine Idee – erzeugt natürliche, künstlerische Bilder, die nicht nach AI aussehen.',
+      'qwen-image': 'Beschreibe die Szene – detailreiche, lebensnahe Fotos, kann auch Text zeichnen.',
+      // ✏️ BILDBEARBEITER
+      'nano-banana': 'Bild hochladen oder Text schreiben – bearbeitet/erstellt Bilder mit einfachen Anweisungen.',
+      'qwen-image-edit': 'Bild hochladen und sagen, was geändert werden soll – ideal zum Korrigieren oder Text einfügen.',
+      'ideogram-character': 'Charakterfoto hochladen und neue Szene beschreiben – Figur bleibt konsistent.',
+      'flux-kontext-pro': 'Szene ausführlich beschreiben – kann komplexe Prompts, liefert Profi-Looks.',
+      'runway-gen4-image': 'Referenzen hochladen und @Tags nutzen – präzise Steuerung für fortgeschrittene Bildgenerierung.',
+    };
+
+    // Video fallback if model is video
+    const videoPlaceholderEN = 'Describe a scene or upload an image – turns text or pictures into cinematic video clips.';
+    const videoPlaceholderDE = 'Szene beschreiben oder Bild hochladen – macht aus Text/Bildern cineastische Videoclips.';
+
+    const lang = (language || 'en') as 'de' | 'en';
+    const table = lang === 'de' ? DE : EN;
+
+    if (id && table[id]) return table[id];
+
+    // If current model advertises video outputType, use video string
+    if (currentModelConfig?.outputType === 'video') {
+      return lang === 'de' ? videoPlaceholderDE : videoPlaceholderEN;
+    }
+
+    // Last resort: original translation key or global fallback
     const modelKey = selectedModelKey as keyof typeof modelConfigs;
     const placeholderKey = `prompt.${modelKey}` as keyof typeof translations.de;
-    
     if (placeholderKey in translations[language]) {
       return t(placeholderKey);
     }
-    
     return t('imageGen.placeholder');
   };
 
@@ -67,6 +108,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   const [formFields, setFormFields] = useState<Record<string, any>>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [mainPromptValue, setMainPromptValue] = useState('');
+  const [userTouchedPrompt, setUserTouchedPrompt] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -247,8 +289,18 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   }, []);
 
   const handleMainPromptChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (!userTouchedPrompt) setUserTouchedPrompt(true);
     setMainPromptValue(e.target.value);
-  }, []);
+  }, [userTouchedPrompt]);
+  useEffect(() => {
+    // On language change, remount is already handled via Textarea key.
+    // If the user hasn't typed anything (or prompt is blank), keep it blank so the new placeholder shows.
+    if (!userTouchedPrompt || mainPromptValue.trim() === '') {
+      setMainPromptValue('');
+      setUserTouchedPrompt(false);
+    }
+    // Do not clear if the user has typed; preserve their text across language switches.
+  }, [language]);
   
   const handleSingleFileSelectAndConvert = useCallback((file: File | null) => {
     if (file && file.type.startsWith('image/')) {
@@ -722,9 +774,6 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     try {
       const apiEndpoint = '/api/replicate';
       
-      // Debug: Log the payload before sending
-      console.log('Sending payload:', JSON.stringify(currentPayload, null, 2));
-      
       const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -733,9 +782,6 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 
       const data = await response.json();
       
-      // Debug: Log the response
-      console.log('API Response:', response.status, data);
-
       if (!response.ok) {
         throw new Error(data.error || data.detail || `API request failed with status ${response.status}`);
       }
@@ -895,6 +941,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
             {/* Prompt Input und Execute auf einer Höhe - Responsive */}
             <div className="bg-gradient-to-r from-secondary/80 to-secondary rounded-3xl p-3 shadow-2xl border border-border/20 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
               <Textarea
+                key={`prompt-${selectedModelKey}-${language}`}
                 ref={textareaRef}
                 value={mainPromptValue}
                 onChange={handleMainPromptChange}
