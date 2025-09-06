@@ -173,6 +173,37 @@ export const translations = {
     'tool.settings.hoverDescription': 'Personalisieren Sie, wie sich die Maschine verhält—setzen Sie Ihren Benutzernamen, passen Sie Antworten, Sprache, Stil und mehr an, um zu Ihrem Vibe zu passen.',
     'tool.about.hoverDescription': 'Erfahren Sie mehr über das Projekt, seine Komponenten und die Philosophie dahinter.',
     
+    // Tool Tiles
+    'tool.chat.tag': '</chat.talk.discuss>',
+    'tool.chat.hoverTitle': 'chat.talk.discuss',
+    'tool.chat.importText': 'import [Sprache, Text]',
+    'tool.chat.exportText': 'export [Unterstützung, Hilfe in natürlicher Sprache]',
+    
+    'tool.reasoning.tag': '</code.reasoning>',
+    'tool.reasoning.hoverTitle': 'code.reasoning',
+    'tool.reasoning.importText': 'import [komplexe Anfragen, Code, Text]',
+    'tool.reasoning.exportText': 'export [Code, deine Website, mathematisch korrekte Lösungen]',
+    
+    'tool.imageLite.tag': '</image.generation.lite>',
+    'tool.imageLite.hoverTitle': 'image.generation.lite',
+    'tool.imageLite.importText': 'import [einfacher Text, minimale Konfigs]',
+    'tool.imageLite.exportText': 'export [kreative Ergebnisse für alle, präzise und unglaubliche Ergebnisse mit etwas Übung]',
+    
+    'tool.imageRaw.tag': '</image.generation.raw>',
+    'tool.imageRaw.hoverTitle': 'image.generation.raw',
+    'tool.imageRaw.importText': 'import [einfacher Text, Referenzbilder, komplexe Konfigurationsoptionen]',
+    'tool.imageRaw.exportText': 'export [fotorealistische detaillierte Visualisierung]',
+    
+    'tool.settings.tag': '</settings.user.preferences>',
+    'tool.settings.hoverTitle': 'settings.user.preferences',
+    'tool.settings.importText': 'import [deine Präferenzen = dein Tool]',
+    'tool.settings.exportText': 'export [personalisiertes Verhalten, maßgeschneiderte Erfahrung]',
+    
+    'tool.about.tag': '</about.system.readme>',
+    'tool.about.hoverTitle': 'about.system.readme',
+    'tool.about.importText': 'import [Neugier, Interesse]',
+    'tool.about.exportText': 'export [Transparenz, Kontext, Verständnis]',
+    
     // Navigation
     'nav.clickAgainToClose': 'Klicke erneut zum Schließen',
     
@@ -463,6 +494,37 @@ Stil:
     'tool.imageRaw.hoverDescription': 'Describe your idea in natural language, modify every detail with expert settings, and create images using next-gen, state-of-the-art models.',
     'tool.settings.hoverDescription': 'Personalize how the machine behaves—set your username, adjust responses, language, style, and more to match your vibe.',
     'tool.about.hoverDescription': 'Learn more about the project, its components, and the philosophy behind it.',
+    
+    // Tool Tiles
+    'tool.chat.tag': '</chat.talk.discuss>',
+    'tool.chat.hoverTitle': 'chat.talk.discuss',
+    'tool.chat.importText': 'import [language, text]',
+    'tool.chat.exportText': 'export [support, assistance in natural language]',
+    
+    'tool.reasoning.tag': '</code.reasoning>',
+    'tool.reasoning.hoverTitle': 'code.reasoning',
+    'tool.reasoning.importText': 'import [complex requests, code, text]',
+    'tool.reasoning.exportText': 'export [code, your website, mathematically correct solutions]',
+    
+    'tool.imageLite.tag': '</image.generation.lite>',
+    'tool.imageLite.hoverTitle': 'image.generation.lite',
+    'tool.imageLite.importText': 'import [simple text, minimal configs]',
+    'tool.imageLite.exportText': 'export [creative results for everyone, precise and incredible results with some practice]',
+    
+    'tool.imageRaw.tag': '</image.generation.raw>',
+    'tool.imageRaw.hoverTitle': 'image.generation.raw',
+    'tool.imageRaw.importText': 'import [simple text, reference images, complex configuration options]',
+    'tool.imageRaw.exportText': 'export [photorealistic detailed visualization]',
+    
+    'tool.settings.tag': '</settings.user.preferences>',
+    'tool.settings.hoverTitle': 'settings.user.preferences',
+    'tool.settings.importText': 'import [your preferences = your tool]',
+    'tool.settings.exportText': 'export [personalized behavior, tailored experience]',
+    
+    'tool.about.tag': '</about.system.readme>',
+    'tool.about.hoverTitle': 'about.system.readme',
+    'tool.about.importText': 'import [curiosity, interest]',
+    'tool.about.exportText': 'export [transparency, context, understanding]',
     
     // Navigation
     'nav.clickAgainToClose': 'Click again to close',
