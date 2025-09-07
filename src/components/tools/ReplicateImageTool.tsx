@@ -517,6 +517,70 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
             />
           </div>
         );
+      case 'file': {
+        const hiddenInputId = `file-hidden-${commonProps.id}`;
+        const hasFile = !!formFields[inputConfig.name];
+        return (
+          <div key={inputConfig.name} className="space-y-1.5 w-full max-w-xs mx-auto">
+            {label}
+            <input
+              id={hiddenInputId}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={loading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  const dataUri = reader.result as string;
+                  handleInputChange(inputConfig.name, dataUri);
+                };
+                reader.readAsDataURL(file);
+                e.currentTarget.value = '';
+              }}
+            />
+            <div
+              className={cn(
+                "rounded-md border border-dashed border-border bg-tool-input-bg/80 px-3 py-4 text-sm text-muted-foreground",
+                "hover:bg-muted/60 cursor-pointer transition-colors"
+              )}
+              onClick={() => document.getElementById(hiddenInputId)?.click()}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const file = e.dataTransfer.files?.[0];
+                if (!file || !file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  const dataUri = reader.result as string;
+                  handleInputChange(inputConfig.name, dataUri);
+                };
+                reader.readAsDataURL(file);
+              }}
+              aria-label={inputConfig.placeholder || 'Click to upload (or drop)'}
+            >
+              {hasFile ? (
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded bg-muted overflow-hidden relative">
+                    {typeof formFields[inputConfig.name] === 'string' && String(formFields[inputConfig.name]).startsWith('data:') ? (
+                      <NextImage src={formFields[inputConfig.name]} alt="preview" fill sizes="32px" style={{ objectFit: 'cover' }} />
+                    ) : (
+                      <div className="h-full w-full" />
+                    )}
+                  </div>
+                  <span className="text-foreground/80">File selected – click to change</span>
+                </div>
+              ) : (
+                <span>{inputConfig.placeholder || 'Click to upload (or drop image)'}</span>
+              )}
+            </div>
+          </div>
+        );
+      }
       case 'number':
         if (inputConfig.min !== undefined && inputConfig.max !== undefined && inputConfig.step !== undefined) {
              return (
@@ -689,7 +753,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         }
     }
     
-    // --- Image Input Handling ---
+    // --- Image / URL Inputs Handling ---
     if (uploadedImagePreview) {
         const imageInputConfig = currentModelConfig.inputs.find(i => i.type === 'url' && i.required);
         if (imageInputConfig) {
@@ -697,12 +761,24 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         } else if (isFluxModelSelected) { // Fallback for flux
              currentPayload.input_image = uploadedImagePreview;
         }
-    } else {
-        const imageInputConfig = currentModelConfig.inputs.find(i => i.type === 'url' && i.required);
-        if (imageInputConfig) {
-            toast({ title: "Image Missing", description: `The field "${imageInputConfig.label}" is required for this model.`, variant: "destructive" });
-            return;
-        }
+    }
+    // Include any provided URL fields from the form (supports optional first/last frame)
+    currentModelConfig.inputs
+        .filter(i => i.type === 'url')
+        .forEach(i => {
+            const val = formFields[i.name];
+            if (val !== undefined && val !== null && String(val).trim() !== '') {
+                currentPayload[i.name] = val;
+            }
+        });
+    // Validate required URL fields if any are still missing
+    const missingRequiredUrl = currentModelConfig.inputs
+        .filter(i => i.type === 'url' && i.required)
+        .some(i => !currentPayload[i.name]);
+    if (missingRequiredUrl) {
+        const firstMissing = currentModelConfig.inputs.find(i => i.type === 'url' && i.required && !currentPayload[i.name]);
+        toast({ title: "Image Missing", description: `The field "${firstMissing?.label || firstMissing?.name}" is required for this model.`, variant: "destructive" });
+        return;
     }
     
     // --- Runway-Specific Multi-Image/Tag Handling ---
@@ -849,12 +925,13 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     setIsHistoryPanelOpen(false);
   }, []);
   
+  const hasAnyMediaField = currentModelConfig?.inputs?.some(i => (i.type === 'url' || i.type === 'file') && !!formFields[i.name]);
   const canSubmit = !loading && currentModelConfig &&
     ( (isFluxModelSelected && (mainPromptValue.trim() !== '' || uploadedImagePreview)) ||
       (isFluxKreaDev && mainPromptValue.trim() !== '') ||
       (isQwenImage && mainPromptValue.trim() !== '') ||
       (hasCharacterReference && mainPromptValue.trim() !== '' && uploadedImagePreview) ||
-      (isVideoModelSelected && mainPromptValue.trim() !== '' && uploadedImagePreview) ||
+      (isVideoModelSelected && mainPromptValue.trim() !== '') ||
       (!isFluxModelSelected && !isFluxKreaDev && !isQwenImage && !isVideoModelSelected && !hasCharacterReference && mainPromptValue.trim() !== '') );
 
   const toggleHistoryPanel = useCallback(() => {

@@ -1,7 +1,7 @@
 export interface ReplicateModelInput {
   name: string; // Internal name for the parameter
   label: string; // User-facing label
-  type: "text" | "number" | "boolean" | "select" | "url" | "files" | "tags";
+  type: "text" | "number" | "boolean" | "select" | "url" | "file" | "files" | "tags";
   required?: boolean;
   default?: any;
   placeholder?: string;
@@ -173,15 +173,29 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
   // === VIDEOS (Video-Generatoren) ===
   "wan-video": {
     id: "wan-video",
-    name: "WAN Video",
+    name: "WAN 2.1 i2v 720p",
     outputType: "video",
-    description: "Generate high-quality videos from text prompts. Great for cinematic and artistic video content.",
+    description: "Image-to-video at 720p using wavespeedai/wan-2.1-i2v-720p. Upload a reference image and optionally guide with a prompt.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Describe a scene or upload an image – turns text or pictures into cinematic video clips.", info: "Text prompt for video generation.", isPrompt: true, labelKey: "prompt.wanVideo" },
-      { name: "duration", label: "Duration", type: "select", default: "5", options: ["3", "5", "10"], info: "Duration of the generated video in seconds.", labelKey: "field.duration" },
-      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "16:9", options: ["16:9", "9:16", "1:1", "4:3", "3:4"], info: "Aspect ratio of the generated video.", labelKey: "imageGen.aspectRatio" },
+      { name: "prompt", label: "Prompt", type: "text", required: false, placeholder: "Optional guidance for the animation.", info: "Optional text to steer the generated motion.", isPrompt: true, labelKey: "prompt.wanVideo" },
+      { name: "image", label: "First Frame", type: "file", required: false, placeholder: "Upload first frame image (optional)", info: "Optional first frame image. Upload a file to guide the animation." },
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation.", labelKey: "field.seed" },
       { name: "output_format", label: "Output Format", type: "select", default: "mp4", options: ["mp4", "webm"], info: "Format of the output video.", labelKey: "field.outputFormat" },
+    ]
+  },
+
+  // Minimax hailuo-02 video model
+  "hailuo-02": {
+    id: "hailuo-02",
+    name: "Hailuo 02 (MiniMax)",
+    outputType: "video",
+    description: "State-of-the-art text-to-video with optional first/last frame guidance.",
+    inputs: [
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Describe the scene you want to generate.", info: "Main text prompt.", isPrompt: true },
+      { name: "first_frame", label: "First Frame", type: "file", required: false, placeholder: "Upload first frame (optional)", info: "Optional first frame image to guide the start." },
+      { name: "last_frame", label: "Last Frame", type: "file", required: false, placeholder: "Upload last frame (optional)", info: "Optional last frame image to guide the ending." },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation.", labelKey: "field.seed" },
+      { name: "output_format", label: "Output Format", type: "select", default: "mp4", options: ["mp4", "webm"], info: "Format of the output video." },
     ]
   },
 };

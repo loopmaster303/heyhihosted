@@ -10,8 +10,10 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "runway-gen4": "runwayml/gen4-image",
   "qwen-image": "qwen/qwen-image",
   "qwen-image-edit": "qwen/qwen-image-edit",
-  "wan-video": "wan-video/wan-2.2-i2v-a14b",
+  // Repoint WAN video to wavespeedai i2v 720p
+  "wan-video": "wavespeedai/wan-2.1-i2v-720p",
   "ideogram-character": "ideogram-ai/ideogram-character",
+  "hailuo-02": "minimax/hailuo-02",
 };
 
 export async function POST(request: NextRequest) {
