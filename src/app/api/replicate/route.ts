@@ -7,10 +7,10 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "nano-banana": "google/nano-banana",
   "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
   "flux-krea-dev": "black-forest-labs/flux-krea-dev",
-  "runway-gen4-image": "runwayml/gen4-image",
+  "runway-gen4": "runwayml/gen4-image",
   "qwen-image": "qwen/qwen-image",
   "qwen-image-edit": "qwen/qwen-image-edit",
-  "wan-2.2-video": "wan-video/wan-2.2-i2v-a14b",
+  "wan-video": "wan-video/wan-2.2-i2v-a14b",
   "ideogram-character": "ideogram-ai/ideogram-character",
 };
 

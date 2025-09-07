@@ -162,8 +162,8 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     description: "Advanced image generation with reference image support and tagging system.",
     inputs: [
       { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Upload references and use @tags – advanced image generation with strong control.", info: "Text prompt for image generation. Use @tags to reference uploaded images.", isPrompt: true, labelKey: "prompt.runwayGen4" },
-      { name: "reference_images", label: "Reference Images", type: "files", info: "Upload reference images to use with @tags in your prompt.", hidden: true },
-      { name: "reference_tags", label: "Reference Tags", type: "tags", info: "Tags to associate with reference images.", hidden: true },
+      { name: "reference_images", label: "Reference Images", type: "files", info: "Upload reference images to use with @tags in your prompt.", labelKey: "field.referenceImages" },
+      { name: "reference_tags", label: "Reference Tags", type: "tags", info: "Tags to associate with reference images.", labelKey: "field.referenceTags" },
       { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "16:9", options: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9"], info: "Aspect ratio for the generated image.", labelKey: "imageGen.aspectRatio" },
       { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation.", labelKey: "field.seed" },
       { name: "output_format", label: "Output Format", type: "select", default: "jpg", options: ["jpg", "png", "webp"], info: "Format of the output image.", labelKey: "field.outputFormat" },

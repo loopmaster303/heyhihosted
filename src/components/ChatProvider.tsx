@@ -295,12 +295,67 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               aiMessage = { id: generateUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
           } else {
               
+              // Optional Web Browsing chain if enabled
+              let finalMessagesForApi: ApiChatMessage[] = historyForApi;
+              const browsingEnabled = !!activeConversation.webBrowsingEnabled;
+              if (browsingEnabled) {
+                try {
+                  // Derive latest user query text
+                  const lastUser = [...updatedMessagesForState].reverse().find(m => m.role === 'user');
+                  let queryText = '';
+                  if (lastUser) {
+                    if (typeof lastUser.content === 'string') queryText = lastUser.content;
+                    else {
+                      const textPart = lastUser.content.find(p => p.type === 'text');
+                      queryText = textPart ? textPart.text : '';
+                    }
+                  }
+
+                  if (queryText.trim()) {
+                    // 1) Search
+                    const searchRes = await fetch('/api/browse/search', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ q: queryText.trim(), count: 6 })
+                    });
+                    const searchData = await searchRes.json();
+                    if (searchRes.ok && Array.isArray(searchData.results)) {
+                      // 2) Fetch top pages
+                      const top = searchData.results.slice(0, 4);
+                      const fetches = top.map((r: any) => fetch('/api/browse/fetch', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: r.url })
+                      }).then(res => res.json().then(j => ({ ok: res.ok, data: j, meta: r }))));
+                      const pages = await Promise.all(fetches);
+                      const contextBlocks = pages
+                        .filter(p => p.ok && p.data && p.data.content)
+                        .map((p, idx) => {
+                          const title = p.data.title || p.meta.title || p.meta.url;
+                          const snippet = p.meta.snippet || '';
+                          const url = p.meta.url;
+                          const content = (p.data.content || '').slice(0, 3000);
+                          return `[#${idx + 1}] ${title}\n${url}\nSnippet: ${snippet}\nContent: \n${content}`;
+                        });
+
+                      if (contextBlocks.length > 0) {
+                        const researchMessage: ApiChatMessage = {
+                          role: 'user',
+                          content: `Web research results (use for grounding):\n\n${contextBlocks.join('\n\n---\n\n')}\n\nInstructions: Use the research above to answer the user's request precisely. When you use information, cite it inline like [#] and include a short Sources list at the end (with the same [#] and URL).`
+                        };
+                        finalMessagesForApi = [...historyForApi, researchMessage];
+                      }
+                    }
+                  }
+                } catch (err) {
+                  console.warn('Web browsing chain failed, falling back without browsing:', err);
+                  finalMessagesForApi = historyForApi;
+                }
+              }
 
               const response = await fetch('/api/chat/completion', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    messages: historyForApi,
+                    messages: finalMessagesForApi,
                     modelId: currentModel.id,
                     systemPrompt: effectiveSystemPrompt,
                 })
@@ -388,6 +443,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             updatedAt: new Date().toISOString(),
             toolType: 'long language loops',
             isImageMode: false,
+            webBrowsingEnabled: false,
             selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
             selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
         };
@@ -719,6 +775,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
 
     // --- Return Value ---
+    const handleWebBrowsingChange = useCallback((enabled: boolean) => {
+      setActiveConversation(prev => prev ? { ...prev, webBrowsingEnabled: enabled } : prev);
+    }, [setActiveConversation]);
+
     return {
       activeConversation, allConversations,
       isAiResponding, isImageMode,
@@ -746,6 +806,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       openCamera, closeCamera,
       toDate,
       setActiveConversation,
+      handleWebBrowsingChange,
 
     };
 }

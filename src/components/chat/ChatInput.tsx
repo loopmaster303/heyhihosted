@@ -59,6 +59,8 @@ interface ChatInputProps {
   availableImageModels: string[];
   selectedImageModelId: string;
   handleImageModelChange: (modelId: string) => void;
+  webBrowsingEnabled: boolean;
+  onWebBrowsingChange: (enabled: boolean) => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -102,6 +104,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   availableImageModels,
   selectedImageModelId,
   handleImageModelChange,
+  webBrowsingEnabled,
+  onWebBrowsingChange,
 }) => {
   const { t } = useLanguage();
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -209,6 +213,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       availableImageModels={availableImageModels}
                       selectedImageModelId={selectedImageModelId}
                       onImageModelChange={handleImageModelChange}
+                      webBrowsingEnabled={webBrowsingEnabled}
+                      onWebBrowsingChange={onWebBrowsingChange}
                       onClose={closeAdvancedPanel}
                   />
               </div>
@@ -243,6 +249,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             disabled={isLoading || isRecording || isTranscribing}
                         >
                             <ImageIcon className="w-16 h-16" />
+                        </Button>
+
+                        {/* Web Browsing toggle */}
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => onWebBrowsingChange(!webBrowsingEnabled)}
+                            className={cn(
+                                "group rounded-lg h-12 w-12 transition-colors duration-300",
+                                webBrowsingEnabled ? 'text-green-500 hover:text-green-600' : iconColorClass
+                            )}
+                            title={webBrowsingEnabled ? "Web Browsing: On" : "Web Browsing: Off"}
+                            disabled={isLoading || isRecording || isTranscribing}
+                        >
+                            <Globe className="w-16 h-16" />
                         </Button>
                         
                         {uploadedFilePreviewUrl && !isImageMode && (

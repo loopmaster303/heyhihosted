@@ -33,6 +33,7 @@ const ChatInterface: React.FC = () => {
         handleModelChange,
         handleStyleChange,
         handleVoiceChange,
+        handleWebBrowsingChange,
         selectedVoice,
         lastUserMessageId,
         handlePlayAudio,
@@ -118,6 +119,8 @@ const ChatInterface: React.FC = () => {
                     availableImageModels={availableImageModels}
                     selectedImageModelId={selectedImageModelId}
                     handleImageModelChange={handleImageModelChange}
+                    webBrowsingEnabled={!!activeConversation.webBrowsingEnabled}
+                    onWebBrowsingChange={handleWebBrowsingChange}
                 />
             </div>
         </div>

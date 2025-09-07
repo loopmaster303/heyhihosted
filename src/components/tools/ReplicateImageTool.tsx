@@ -62,7 +62,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       'qwen-image-edit': 'Upload a picture and tell it what to change – perfect for fixing or adding text.',
       'ideogram-character': 'Upload a character picture and describe a new scene – keeps the character consistent.',
       'flux-kontext-pro': 'Write your scene in detail – handles complex prompts and makes pro-looking images.',
-      'runway-gen4-image': 'Upload references and use @tags – advanced image generation with strong control.',
+      'runway-gen4': 'Upload references and use @tags – advanced image generation with strong control.',
     };
 
     // German equivalents (short, actionable)
@@ -76,7 +76,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       'qwen-image-edit': 'Bild hochladen und sagen, was geändert werden soll – ideal zum Korrigieren oder Text einfügen.',
       'ideogram-character': 'Charakterfoto hochladen und neue Szene beschreiben – Figur bleibt konsistent.',
       'flux-kontext-pro': 'Szene ausführlich beschreiben – kann komplexe Prompts, liefert Profi-Looks.',
-      'runway-gen4-image': 'Referenzen hochladen und @Tags nutzen – präzise Steuerung für fortgeschrittene Bildgenerierung.',
+      'runway-gen4': 'Referenzen hochladen und @Tags nutzen – präzise Steuerung für fortgeschrittene Bildgenerierung.',
     };
 
     // Video fallback if model is video
@@ -128,22 +128,27 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   const [history, setHistory] = useState<ImageHistoryItem[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageHistoryItem | null>(null);
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
+  const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
   
   const [mounted, setMounted] = useState(false);
 
   const historyPanelRef = useRef<HTMLDivElement>(null);
+  const configPanelRef = useRef<HTMLDivElement>(null);
 
-  useOnClickOutside([historyPanelRef], () => setIsHistoryPanelOpen(false), 'radix-select-content');
+  useOnClickOutside([historyPanelRef, configPanelRef], () => {
+    setIsHistoryPanelOpen(false);
+    setIsConfigPanelOpen(false);
+  }, 'radix-select-content');
 
   // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const isFluxModelSelected = !!currentModelConfig?.id.startsWith("flux-kontext");
+  const isFluxModelSelected = currentModelConfig?.id?.startsWith("flux-kontext") === true;
   const isFluxKreaDev = currentModelConfig?.id === "flux-krea-dev";
   const isQwenImage = currentModelConfig?.id === "qwen-image";
-  const isRunwayModelSelected = currentModelConfig?.id === 'runway-gen4-image';
+  const isRunwayModelSelected = currentModelConfig?.id === 'runway-gen4';
   const isVideoModelSelected = currentModelConfig?.outputType === 'video';
   const hasCharacterReference = currentModelConfig?.hasCharacterReference;
   
@@ -259,7 +264,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      const newHeight = Math.min(Math.max(textarea.scrollHeight, 40), 130);
+      const newHeight = Math.min(Math.max(textarea.scrollHeight, 56), 200);
       textarea.style.height = `${newHeight}px`;
     }
   }, [mainPromptValue]);
@@ -470,7 +475,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       case 'text':
         if (inputConfig.name === 'prompt' && isRunwayModelSelected) return null;
         return (
-            <div key={inputConfig.name} className="space-y-1.5">
+            <div key={inputConfig.name} className="space-y-1.5 w-full max-w-xs mx-auto">
             {label}
             <Textarea
                 {...commonProps}
@@ -499,7 +504,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         }
         // Regular URL fields
         return (
-          <div key={inputConfig.name} className="space-y-1.5">
+          <div key={inputConfig.name} className="space-y-1.5 w-full max-w-xs mx-auto">
             {label}
             <Input
               {...commonProps}
@@ -515,7 +520,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       case 'number':
         if (inputConfig.min !== undefined && inputConfig.max !== undefined && inputConfig.step !== undefined) {
              return (
-                <div key={inputConfig.name} className="space-y-1.5">
+                <div key={inputConfig.name} className="space-y-1.5 w-full max-w-xs mx-auto">
                     <div className="flex justify-between items-center mb-1">
                         {label}
                         <span className="text-xs text-muted-foreground tabular-nums px-1 py-0.5 bg-muted rounded">
@@ -536,7 +541,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
             );
         }
         return (
-          <div key={inputConfig.name} className="space-y-1.5">
+          <div key={inputConfig.name} className="space-y-1.5 w-full max-w-xs mx-auto">
             {label}
             <Input
               {...commonProps}
@@ -569,7 +574,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         );
       case 'select':
         return (
-            <div key={inputConfig.name} className="space-y-1.5">
+            <div key={inputConfig.name} className="space-y-1.5 w-full max-w-xs mx-auto">
                 {label}
                 <Select
                     value={String(formFields[inputConfig.name] ?? inputConfig.default ?? '')}
@@ -592,7 +597,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         );
       case 'files':
         return (
-            <div key={inputConfig.name} className="space-y-2">
+            <div key={inputConfig.name} className="space-y-2 w-full max-w-xs mx-auto">
                 {label}
                 <Button type="button" variant="outline" className="w-full" onClick={() => multiFileInputRef.current?.click()} disabled={loading || referenceImages.length >= 3}>
                     <FileImage className="mr-2 h-4 w-4" /> Add multiple files...
@@ -617,7 +622,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         );
       case 'tags':
         return (
-            <div key={inputConfig.name} className="space-y-2">
+            <div key={inputConfig.name} className="space-y-2 w-full max-w-xs mx-auto">
                 {label}
                 <div className="flex gap-2">
                     <Input
@@ -853,8 +858,14 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       (!isFluxModelSelected && !isFluxKreaDev && !isQwenImage && !isVideoModelSelected && !hasCharacterReference && mainPromptValue.trim() !== '') );
 
   const toggleHistoryPanel = useCallback(() => {
+    if (isConfigPanelOpen) setIsConfigPanelOpen(false);
     setIsHistoryPanelOpen(prev => !prev);
-  }, []);
+  }, [isConfigPanelOpen]);
+
+  const toggleConfigPanel = useCallback(() => {
+    if (isHistoryPanelOpen) setIsHistoryPanelOpen(false);
+    setIsConfigPanelOpen(prev => !prev);
+  }, [isHistoryPanelOpen]);
 
   if (!mounted) {
     return (
@@ -874,24 +885,6 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
-      {/* Model Selector - Top Left */}
-      <div className="px-4 pt-4 pb-2">
-        <div className="max-w-6xl mx-auto">
-          <Select value={selectedModelKey} onValueChange={handleModelChange} disabled={loading}>
-            <SelectTrigger className="bg-gradient-to-r from-background/80 to-background/60 h-12 w-auto px-4 rounded-xl text-lg hover:from-background/90 hover:to-background/70 focus-visible:ring-primary border-border/50 shadow-lg hover:shadow-xl transition-all duration-200 font-semibold">
-              <SelectValue placeholder={t('imageGen.selectModel')} />
-            </SelectTrigger>
-            <SelectContent>
-              {modelKeys.map(key => (
-                <SelectItem key={key} value={key}>
-                  {modelConfigs[key].name}
-                  {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-xs">Video</Badge>}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
       <main className="flex-grow flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto no-scrollbar">
         <Card className="flex-grow flex flex-col border-0 shadow-none">
@@ -937,28 +930,59 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       <footer className="px-4 pt-2 pb-4 shrink-0">
         <div className="max-w-6xl mx-auto relative">
 
+          {/* Config drop-up panel like Lite tool */}
+          {isConfigPanelOpen && (
+            <div 
+              ref={configPanelRef}
+              className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
+            >
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-sm font-semibold">{t('imageGen.configuration')}</h3>
+                <Button variant="ghost" size="sm" onClick={() => setIsConfigPanelOpen(false)}>
+                  <X className="w-4 h-4 mr-1.5" />
+                  {t('imageGen.close')}
+                </Button>
+              </div>
+              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                {currentModelConfig ? (
+                  <>
+                    {currentModelConfig.inputs
+                      .filter(input => !input.isPrompt && !input.hidden)
+                      .sort((a, b) => {
+                        const typeOrder = { boolean: 0, select: 1, number: 2, text: 3, url: 4 } as const;
+                        return (typeOrder[a.type as keyof typeof typeOrder] || 5) - (typeOrder[b.type as keyof typeof typeOrder] || 5);
+                      })
+                      .map(input => renderInputField(input))}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground p-4 text-center col-span-full">Select a model to see its parameters.</p>
+                )}
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
-            {/* Prompt Input und Execute auf einer Höhe - Responsive */}
-            <div className="bg-gradient-to-r from-secondary/80 to-secondary rounded-3xl p-3 shadow-2xl border border-border/20 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
+            {/* Prompt Input aligned like Lite tool */}
+            <div className="bg-secondary rounded-2xl p-3 shadow-xl flex flex-col sm:flex-row sm:items-center gap-2">
               <Textarea
                 key={`prompt-${selectedModelKey}-${language}`}
                 ref={textareaRef}
                 value={mainPromptValue}
                 onChange={handleMainPromptChange}
                 placeholder={getPromptPlaceholder()}
-                className="flex-grow bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                className="flex-grow sm:flex-1 w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none px-3 py-2 m-0 leading-tight resize-none overflow-y-auto font-medium min-h-[56px]"
                 rows={1}
                 disabled={loading || !currentModelConfig}
                 aria-label="Main prompt input"
-                style={{ lineHeight: '1.5rem', fontSize: '18px' }}
+                style={{ lineHeight: '1.5rem', fontSize: '19px' }}
               />
-              <div className="flex gap-3 flex-shrink-0">
+              <div className="flex w-full sm:w-auto items-center justify-end gap-2 mt-2 sm:mt-0 sm:ml-2">
                 {/* Input Images Upload für Google Nano Banana (0-5 files) */}
                 {currentModelConfig?.id === 'nano-banana' && (
                   <div className="flex gap-2 flex-shrink-0">
                     {/* Uploaded Images Display */}
                     {uploadedImages.map((image, index) => (
-                      <div key={index} className="relative h-12 w-12 group">
+                      <div key={index} className="relative h-11 w-11 group">
                         <NextImage 
                           src={image} 
                           alt={`Input image ${index + 1}`} 
@@ -980,11 +1004,11 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                     {/* Add More Images Button */}
                     {uploadedImages.length < 5 && (
                       <div
-                        className="relative h-12 w-12 cursor-pointer group flex-shrink-0"
+                        className="relative h-11 w-11 cursor-pointer group flex-shrink-0"
                         onClick={() => multipleFileInputRef.current?.click()}
                         aria-label="Add input images"
                       >
-                        <div className="h-12 w-12 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                        <div className="h-11 w-11 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
                           <ImageIcon className="h-6 w-6" />
                         </div>
                       </div>
@@ -995,7 +1019,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                 {/* Input Image Upload für Flux Kontext Pro */}
                 {currentModelConfig?.id === 'flux-kontext-pro' && (
                   <div
-                    className="relative h-12 w-12 cursor-pointer group flex-shrink-0"
+                    className="relative h-11 w-11 cursor-pointer group flex-shrink-0"
                     onClick={() => {
                       if (uploadedImagePreview) handleClearUploadedImage();
                       else singleFileInputRef.current?.click();
@@ -1004,13 +1028,13 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                   >
                     {uploadedImagePreview ? (
                       <>
-                        <NextImage src={uploadedImagePreview} alt="Input image preview" fill sizes="48px" style={{ objectFit: 'cover' }} className="rounded-xl" data-ai-hint="input image thumbnail" />
+                        <NextImage src={uploadedImagePreview} alt="Input image preview" fill sizes="44px" style={{ objectFit: 'cover' }} className="rounded-xl" data-ai-hint="input image thumbnail" />
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
                           <X className="h-5 w-5 text-white" />
                         </div>
                       </>
                     ) : (
-                      <div className="h-12 w-12 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                      <div className="h-11 w-11 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
                         <ImageIcon className="h-6 w-6" />
                       </div>
                     )}
@@ -1020,7 +1044,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                 {/* Image Upload für Qwen Image Edit */}
                 {currentModelConfig?.id === 'qwen-image-edit' && (
                   <div
-                    className="relative h-12 w-12 cursor-pointer group flex-shrink-0"
+                    className="relative h-11 w-11 cursor-pointer group flex-shrink-0"
                     onClick={() => {
                       if (uploadedImagePreview) handleClearUploadedImage();
                       else singleFileInputRef.current?.click();
@@ -1029,13 +1053,13 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                   >
                     {uploadedImagePreview ? (
                       <>
-                        <NextImage src={uploadedImagePreview} alt="Image to edit preview" fill sizes="48px" style={{ objectFit: 'cover' }} className="rounded-xl" data-ai-hint="image to edit thumbnail" />
+                        <NextImage src={uploadedImagePreview} alt="Image to edit preview" fill sizes="44px" style={{ objectFit: 'cover' }} className="rounded-xl" data-ai-hint="image to edit thumbnail" />
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
                           <X className="h-5 w-5 text-white" />
                         </div>
                       </>
                     ) : (
-                      <div className="h-12 w-12 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                      <div className="h-11 w-11 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
                         <ImageIcon className="h-6 w-6" />
                       </div>
                     )}
@@ -1045,7 +1069,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                 {/* Character Reference Image Upload für Ideogram Character */}
                 {currentModelConfig?.id === 'ideogram-character' && (
                   <div
-                    className="relative h-12 w-12 cursor-pointer group flex-shrink-0"
+                    className="relative h-11 w-11 cursor-pointer group flex-shrink-0"
                     onClick={() => {
                       if (uploadedImagePreview) handleClearUploadedImage();
                       else singleFileInputRef.current?.click();
@@ -1054,44 +1078,36 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                   >
                     {uploadedImagePreview ? (
                       <>
-                        <NextImage src={uploadedImagePreview} alt="Character reference preview" fill sizes="48px" style={{ objectFit: 'cover' }} className="rounded-xl" data-ai-hint="character reference thumbnail" />
+                        <NextImage src={uploadedImagePreview} alt="Character reference preview" fill sizes="44px" style={{ objectFit: 'cover' }} className="rounded-xl" data-ai-hint="character reference thumbnail" />
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
                           <X className="h-5 w-5 text-white" />
                         </div>
                       </>
                     ) : (
-                      <div className="h-12 w-12 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
+                      <div className="h-11 w-11 rounded-xl border-2 border-dashed border-muted-foreground/50 flex items-center justify-center text-muted-foreground/50 hover:bg-muted/20 hover:border-muted-foreground">
                         <ImageIcon className="h-6 w-6" />
                       </div>
                     )}
                   </div>
                 )}
-                <Button type="submit" disabled={!canSubmit} className="h-12 px-8 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200">
+                <Select value={selectedModelKey} onValueChange={handleModelChange} disabled={loading}>
+                  <SelectTrigger className="bg-background/50 h-11 w-auto px-3 rounded-lg text-sm hover:bg-muted focus-visible:ring-primary border-border text-foreground">
+                    <SelectValue placeholder={t('imageGen.selectModel')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modelKeys.map(key => (
+                      <SelectItem key={key} value={key} className="text-sm text-foreground">
+                        {modelConfigs[key].name}
+                        {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-[10px]">Video</Badge>}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button type="submit" disabled={!canSubmit} className="h-11 px-4 rounded-lg bg-background/50 hover:bg-muted text-foreground">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('imageGen.execute')}
                 </Button>
               </div>
             </div>
-
-            {/* Configuration Panel - Responsive und sortiert */}
-            <div className="bg-gradient-to-br from-popover/95 to-popover/80 text-popover-foreground rounded-2xl shadow-2xl border border-border/30 p-6 backdrop-blur-sm">
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
-                {currentModelConfig ? (
-                  <>
-                    {currentModelConfig.inputs
-                      .filter(input => !input.isPrompt && !input.hidden)
-                      .sort((a, b) => {
-                        // Sortierung: Boolean (Toggle) zuerst, dann Select, dann Number
-                        const typeOrder = { boolean: 0, select: 1, number: 2, text: 3, url: 4 };
-                        return (typeOrder[a.type as keyof typeof typeOrder] || 5) - (typeOrder[b.type as keyof typeof typeOrder] || 5);
-                      })
-                      .map(input => renderInputField(input))}
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground p-4 text-center col-span-full">Select a model to see its parameters.</p>
-                )}
-              </div>
-            </div>
-
             <input type="file" ref={singleFileInputRef} onChange={handleSingleFileChange} accept="image/*" className="hidden" />
             <input type="file" ref={multiFileInputRef} onChange={handleMultipleFileChange} accept="image/*" multiple className="hidden" />
             <input type="file" ref={multipleFileInputRef} onChange={handleMultipleFileChange} accept="image/*" multiple className="hidden" />
@@ -1101,15 +1117,25 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
             <button
               onClick={toggleHistoryPanel}
               className={cn(
-                "text-left text-foreground/90 text-xl font-bold font-code select-none truncate",
-                "hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md"
+                "text-left text-foreground text-xl font-bold font-code select-none truncate",
+                "hover:text-foreground/80 transition-colors duration-200 px-2 py-1 rounded-md"
               )}
               aria-label="Open image generation history"
             >
               <p>{t('imageGen.gallery')}</p>
             </button>
+            <button
+              onClick={toggleConfigPanel}
+              className={cn(
+                "text-right text-xl font-bold font-code select-none truncate",
+                "text-foreground hover:text-foreground/80 transition-colors duration-200 px-2 py-1 rounded-md"
+              )}
+              aria-label="Open configuration settings"
+            >
+              <p>{t('imageGen.configuration')}</p>
+            </button>
           </div>
-          
+
           {isHistoryPanelOpen && (
             <div 
               ref={historyPanelRef}

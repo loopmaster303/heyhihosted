@@ -19,6 +19,9 @@ export default {
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        // Custom tool colors used across tools (e.g., ReplicateImageTool)
+        'tool-input-bg': 'hsl(var(--tool-input-bg))',
+        'tool-button-bg': 'hsl(var(--tool-button-bg))',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',

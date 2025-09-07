@@ -19,12 +19,13 @@ export interface VoiceOption {
 }
 
 // Updated model list based on the provided official JSON data
+// Ensure "OpenAI GPT-5 Nano" (id: 'openai') appears first in UI and fallbacks
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
+    { id: "openai", name: "OpenAI GPT-5 Nano", description: "OpenAI GPT-5 Nano", vision: true },
     { id: "deepseek-reasoning", name: "DeepSeek R1 0528 (Bedrock)", description: "DeepSeek R1 0528 (Bedrock)", vision: false },
     { id: "gemini", name: "Gemini 2.5 Flash Lite (api.navy)", description: "Gemini 2.5 Flash Lite (api.navy)", vision: false },
     { id: "mistral", name: "Mistral Small 3.1 24B", description: "Mistral Small 3.1 24B", vision: false },
     { id: "nova-fast", name: "Amazon Nova Micro (Bedrock)", description: "Amazon Nova Micro (Bedrock)", vision: false },
-    { id: "openai", name: "OpenAI GPT-5 Nano", description: "OpenAI GPT-5 Nano", vision: true },
     { id: "openai-audio", name: "OpenAI GPT-4o Mini Audio Preview", description: "OpenAI GPT-4o Mini Audio Preview", vision: true },
     { id: "openai-fast", name: "OpenAI GPT-4.1 Nano", description: "OpenAI GPT-4.1 Nano", vision: true },
     { id: "openai-large", name: "OpenAI GPT-4.1", description: "OpenAI GPT-4.1", vision: true },
@@ -189,7 +190,8 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
   { id: 'R8_8CZH4KMY', name: 'Dev' },
 ];
 
-export const DEFAULT_POLLINATIONS_MODEL_ID = AVAILABLE_POLLINATIONS_MODELS[0].id;
+// Default to OpenAI GPT-5 Nano for new users/chats
+export const DEFAULT_POLLINATIONS_MODEL_ID = 'openai';
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // For in-chat image generation

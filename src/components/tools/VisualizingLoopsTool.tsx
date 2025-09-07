@@ -75,7 +75,7 @@ const VisualizingLoopsTool: FC = () => {
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 40), 130);
+      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 84), 220);
       textareaRef.current.style.height = `${newHeight}px`;
     }
   }, [prompt]);
@@ -443,33 +443,33 @@ const VisualizingLoopsTool: FC = () => {
           )}
 
           <form onSubmit={handleGenerateEvent}>
-            <div className="bg-secondary rounded-2xl p-3 shadow-xl flex flex-col min-h-[96px]">
-              <div className="w-full">
+            <div className="bg-secondary rounded-2xl p-3 shadow-xl flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="w-full sm:flex-1">
                 <Textarea
                   ref={textareaRef}
                   id="prompt-pollinations-tool"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={t('imageGen.placeholderLite')}
-                  className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                  className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none px-3 py-2 m-0 leading-tight resize-none overflow-y-auto font-medium min-h-[84px]"
                   rows={1}
                   disabled={loading}
                   aria-label="Image prompt for Pollinations models"
-                  style={{ lineHeight: '1.5rem', fontSize: '17px' }}
+                  style={{ lineHeight: '1.5rem', fontSize: '19px' }}
                 />
               </div>
-              <div className="flex w-full items-center justify-end gap-2 mt-2">
+              <div className="flex w-full sm:w-auto items-center justify-end gap-2 mt-2 sm:mt-0 sm:ml-2">
                  <Select value={model} onValueChange={setModel} disabled={loading}>
-                  <SelectTrigger className="bg-background/50 h-10 w-auto px-3 rounded-lg text-xs hover:bg-muted focus-visible:ring-primary border-border text-foreground">
+                  <SelectTrigger className="bg-background/50 h-12 w-auto px-3 rounded-lg text-base hover:bg-muted focus-visible:ring-primary border-border text-foreground">
                     <SelectValue placeholder={t('imageGen.selectModel')} />
                   </SelectTrigger>
                   <SelectContent>
                     {imageModels.map(m => (
-                      <SelectItem key={m} value={m} className="text-xs text-foreground">{m}</SelectItem>
+                      <SelectItem key={m} value={m} className="text-base text-foreground">{m}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Button type="submit" disabled={loading || !prompt.trim()} className="h-10 px-4 rounded-lg bg-background/50 hover:bg-muted text-foreground">
+                <Button type="submit" disabled={loading || !prompt.trim()} className="h-12 px-4 rounded-lg bg-background/50 hover:bg-muted text-foreground text-base">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('imageGen.execute')}
                 </Button>
               </div>
