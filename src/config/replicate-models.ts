@@ -170,12 +170,12 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     ]
   },
 
-  // === BYTEDANCE (SeDream 4) ===
+  // === BYTEDANCE (Seedream 4.0) ===
   "seedream-4": {
     id: "seedream-4",
-    name: "SeDream 4 (Bytedance)",
+    name: "Seedream 4.0",
     outputType: "image",
-    description: "Bytedance's SeDream 4 image generation model. High-quality text-to-image with natural styles.",
+    description: "Bytedance's Seedream 4 image generation model. High-quality text-to-image with natural styles.",
     inputs: [
       { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Describe what to generate – subject, style, details.", info: "Main text prompt for the image.", isPrompt: true },
       { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "1:1", options: ["1:1", "16:9", "9:16", "4:3", "3:4", "2:1", "1:2"], info: "Aspect ratio of the output image.", labelKey: "imageGen.aspectRatio" },

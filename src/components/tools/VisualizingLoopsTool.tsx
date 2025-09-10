@@ -45,7 +45,6 @@ const VisualizingLoopsTool: FC = () => {
   const [seed, setSeed] = useState<string>('');
   const [isPrivate, setIsPrivate] = useState(true);
   const [upsampling, setUpsampling] = useState(false);
-  const [transparent, setTransparent] = useState(false);
 
   const [aspectRatio, setAspectRatio] = useState<string>('1:1');
   const [batchSize, setBatchSize] = useState<number>(1);
@@ -125,7 +124,6 @@ const VisualizingLoopsTool: FC = () => {
         if (settings.seed !== undefined) setSeed(settings.seed);
         if (settings.isPrivate !== undefined) setIsPrivate(settings.isPrivate);
         if (settings.upsampling !== undefined) setUpsampling(settings.upsampling);
-        if (settings.transparent !== undefined) setTransparent(settings.transparent);
         if (settings.aspectRatio !== undefined) setAspectRatio(settings.aspectRatio);
         if (settings.batchSize !== undefined) setBatchSize(settings.batchSize);
       }
@@ -156,10 +154,10 @@ const VisualizingLoopsTool: FC = () => {
   useEffect(() => {
     if (!isInitialLoadComplete) return;
     const settingsToSave = {
-      prompt, model, width, height, seed, isPrivate, upsampling, transparent, aspectRatio, batchSize,
+      prompt, model, width, height, seed, isPrivate, upsampling, aspectRatio, batchSize,
     };
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settingsToSave));
-  }, [prompt, model, width, height, seed, isPrivate, upsampling, transparent, aspectRatio, batchSize, isInitialLoadComplete]);
+  }, [prompt, model, width, height, seed, isPrivate, upsampling, aspectRatio, batchSize, isInitialLoadComplete]);
 
   useEffect(() => {
     if (!isInitialLoadComplete) return;
@@ -214,12 +212,7 @@ const VisualizingLoopsTool: FC = () => {
         private: isPrivate,
         enhance: upsampling,
       };
-      
-      // The 'transparent' param is specific to the Pollinations wrapper for OpenAI's DALL-E, 
-      // Pollinations models support transparency parameter
-      if (transparent) {
-        payload.transparent = transparent;
-      }
+      // Removed gptimage-specific transparent option
       
       if (currentSeedForIteration) {
         const seedNum = parseInt(currentSeedForIteration, 10);
@@ -273,7 +266,7 @@ const VisualizingLoopsTool: FC = () => {
       setPrompt(newHistoryItems[0].prompt);
     }
     setLoading(false);
-  }, [prompt, toast, model, batchSize, seed, width, height, isPrivate, upsampling, transparent]);
+  }, [prompt, toast, model, batchSize, seed, width, height, isPrivate, upsampling]);
 
   const handleAspectRatioChange = useCallback((val: string) => {
     setAspectRatio(val);
@@ -431,12 +424,7 @@ const VisualizingLoopsTool: FC = () => {
                         <Checkbox checked={upsampling} onCheckedChange={(checked) => setUpsampling(!!checked)} id="upsampling-check-tool" />
                         <Label htmlFor="upsampling-check-tool" className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('imageGen.upsample') || 'Upsample'}</Label>
                       </div>
-                      {model === 'gptimage' && (
-                        <div className="flex items-center space-x-2">
-                          <Checkbox checked={transparent} onCheckedChange={(checked) => setTransparent(!!checked)} id="transparent-check-tool" />
-                          <Label htmlFor="transparent-check-tool" className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('imageGen.transparent') || 'Transparent'}</Label>
-                        </div>
-                      )}
+                      {/* Transparent option removed (was gptimage-specific) */}
                     </div>
               </div>
             </div>

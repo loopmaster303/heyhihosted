@@ -194,6 +194,7 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
 export const DEFAULT_POLLINATIONS_MODEL_ID = 'openai';
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
-// For in-chat image generation
-export const FALLBACK_IMAGE_MODELS = ['flux', 'turbo', 'gptimage'];
+// For in-chat image generation (align with bild.gen.lite)
+// Keep in sync with `/api/image/models` and VisualizingLoopsTool
+export const FALLBACK_IMAGE_MODELS = ['flux', 'turbo', 'kontext'];
 export const DEFAULT_IMAGE_MODEL = 'flux'; // A safe default
