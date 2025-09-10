@@ -14,6 +14,7 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "wan-video": "wavespeedai/wan-2.1-i2v-720p",
   "ideogram-character": "ideogram-ai/ideogram-character",
   "hailuo-02": "minimax/hailuo-02",
+  "seedream-4": "bytedance/seedream-4",
 };
 
 export async function POST(request: NextRequest) {

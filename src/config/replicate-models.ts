@@ -170,6 +170,20 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     ]
   },
 
+  // === BYTEDANCE (SeDream 4) ===
+  "seedream-4": {
+    id: "seedream-4",
+    name: "SeDream 4 (Bytedance)",
+    outputType: "image",
+    description: "Bytedance's SeDream 4 image generation model. High-quality text-to-image with natural styles.",
+    inputs: [
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Describe what to generate – subject, style, details.", info: "Main text prompt for the image.", isPrompt: true },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "1:1", options: ["1:1", "16:9", "9:16", "4:3", "3:4", "2:1", "1:2"], info: "Aspect ratio of the output image.", labelKey: "imageGen.aspectRatio" },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation.", labelKey: "field.seed" },
+      { name: "output_format", label: "Output Format", type: "select", default: "webp", options: ["webp", "png", "jpg"], info: "Format of the output image.", labelKey: "field.outputFormat" },
+    ]
+  },
+
   // === VIDEOS (Video-Generatoren) ===
   "wan-video": {
     id: "wan-video",
