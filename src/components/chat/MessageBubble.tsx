@@ -7,6 +7,8 @@ import type { ChatMessage, ChatMessageContentPart } from '@/types';
 import Image from 'next/image';
 import { Loader2, StopCircle, RefreshCw, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTypewriter } from '@/hooks/useTypewriter';
+import { BlinkingCursor } from '@/components/ui/BlinkingCursor';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -17,6 +19,7 @@ interface MessageBubbleProps {
   onCopy?: (text: string) => void;
   onRegenerate?: () => void;
   isLastMessage?: boolean;
+  isAiResponding?: boolean;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -28,9 +31,30 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onCopy,
   onRegenerate,
   isLastMessage,
+  isAiResponding = false,
 }) => {
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
+
+  const getTextContent = (): string | null => {
+      if (typeof message.content === 'string') return message.content;
+      if (Array.isArray(message.content)) {
+          const textPart = message.content.find(p => p.type === 'text');
+          return textPart?.text || null;
+      }
+      return null;
+  }
+
+  // Typewriter effect for assistant messages
+  const textContent = getTextContent();
+  const shouldUseTypewriter = isAssistant && textContent && !isUser;
+  
+  const { displayedText, isTyping, isComplete } = useTypewriter({
+    text: textContent || '',
+    speed: 25, // milliseconds per character
+    delay: 0,
+    skipAnimation: !shouldUseTypewriter || message.id === 'loading'
+  });
 
   const handlePlayClick = () => {
     const textContent = getTextContent();
@@ -46,40 +70,38 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   }
 
-  const getTextContent = (): string | null => {
-      if (typeof message.content === 'string') return message.content;
-      if (Array.isArray(message.content)) {
-          const textPart = message.content.find(p => p.type === 'text');
-          return textPart?.text || null;
-      }
-      return null;
-  }
-
   const hasAudioContent = isAssistant && !!getTextContent();
   
   const renderContent = (content: string | ChatMessageContentPart[]) => {
     if (message.id === 'loading') {
       return (
-        <div className="flex items-center justify-center p-2">
-            <Loader2 className="w-5 h-5 animate-spin" />
+        <div className="flex items-center p-2">
+          <BlinkingCursor className="text-primary" />
         </div>
       );
     }
     
     if (typeof content === 'string') {
-      let displayContent = content;
-      
-
-      
       if (message.role === 'assistant' && (!content || content.trim() === '')) {
-        // Render a loading spinner if content is empty for assistant
+        // Show blinking cursor while AI is responding
         return (
           <div className="flex items-center p-2">
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <BlinkingCursor className="text-primary" />
           </div>
         );
       }
-      return <p className="text-sm whitespace-pre-wrap">{displayContent}</p>;
+      
+      // Use typewriter effect for assistant messages
+      if (shouldUseTypewriter) {
+        return (
+          <p className="text-sm whitespace-pre-wrap font-mono">
+            {displayedText}
+            {isTyping && <BlinkingCursor className="text-primary ml-1" />}
+          </p>
+        );
+      }
+      
+      return <p className="text-sm whitespace-pre-wrap">{content}</p>;
     }
 
     return content.map((part, index) => {

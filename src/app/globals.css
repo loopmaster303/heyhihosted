@@ -174,6 +174,12 @@
       transform: translateY(100%);
     }
   }
+  
+  /* Typewriter cursor animation */
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
 }
 
 /* Specific font weights */

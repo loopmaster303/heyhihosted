@@ -18,27 +18,25 @@ export interface VoiceOption {
   name: string; // Display name, e.g., "German (Female, Natural)"
 }
 
-// Updated model list based on the provided official JSON data
-// Ensure "OpenAI GPT-5 Nano" (id: 'openai') appears first in UI and fallbacks
+// Curated model list - Standard: GPT-5 Nano, Rest: Selected models
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
+    // Standard Model
     { id: "openai", name: "OpenAI GPT-5 Nano", description: "OpenAI GPT-5 Nano", vision: true },
-    { id: "deepseek-reasoning", name: "DeepSeek R1 0528 (Bedrock)", description: "DeepSeek R1 0528 (Bedrock)", vision: false },
-    { id: "gemini", name: "Gemini 2.5 Flash Lite (api.navy)", description: "Gemini 2.5 Flash Lite (api.navy)", vision: false },
-    { id: "mistral", name: "Mistral Small 3.1 24B", description: "Mistral Small 3.1 24B", vision: false },
-    { id: "nova-fast", name: "Amazon Nova Micro (Bedrock)", description: "Amazon Nova Micro (Bedrock)", vision: false },
-    { id: "openai-audio", name: "OpenAI GPT-4o Mini Audio Preview", description: "OpenAI GPT-4o Mini Audio Preview", vision: true },
+    
+    // Premium Models
     { id: "openai-fast", name: "OpenAI GPT-4.1 Nano", description: "OpenAI GPT-4.1 Nano", vision: true },
-    { id: "openai-large", name: "OpenAI GPT-4.1", description: "OpenAI GPT-4.1", vision: true },
-    { id: "openai-reasoning", name: "OpenAI o4-mini (api.navy)", description: "OpenAI o4-mini (api.navy)", vision: false },
+    
+    // Specialized Models
+    { id: "gemini", name: "Gemini 2.5 Flash Lite", description: "Gemini 2.5 Flash Lite", vision: true },
+    { id: "mistral", name: "Mistral Small 3.1 24B", description: "Mistral Small 3.1 24B", vision: false },
+    { id: "nova-fast", name: "Amazon Nova Micro", description: "Amazon Nova Micro", vision: false },
     { id: "qwen-coder", name: "Qwen 2.5 Coder 32B", description: "Qwen 2.5 Coder 32B", vision: false },
-    { id: "roblox-rp", name: "Llama 3.1 8B Instruct (Cross-Region Bedrock)", description: "Llama 3.1 8B Instruct (Cross-Region Bedrock)", vision: false },
-    { id: "gpt-oss-120b", name: "OpenAI GPT-OSS-120B (Web Browsing)", description: "OpenAI GPT-OSS-120B (Web Browsing)", vision: false, webBrowsing: true },
-    { id: "bidara", name: "BIDARA (Biomimetic Designer and Research Assistant by NASA)", description: "BIDARA (Biomimetic Designer and Research Assistant by NASA)", vision: true },
-    { id: "evil", name: "Evil", description: "Evil", vision: true },
-    { id: "midijourney", name: "MIDIjourney", description: "MIDIjourney", vision: false },
-    { id: "mirexa", name: "Mirexa AI Companion", description: "Mirexa AI Companion", vision: true },
-    { id: "rtist", name: "Rtist", description: "Rtist", vision: false },
-    { id: "unity", name: "Unity Unrestricted Agent", description: "Unity Unrestricted Agent", vision: true },
+    { id: "deepseek-reasoning", name: "DeepSeek R1 0528", description: "DeepSeek R1 0528", vision: false },
+    { id: "roblox-rp", name: "Llama 3.1 8B Instruct", description: "Llama 3.1 8B Instruct", vision: false },
+    
+    // Experimental Models
+    { id: "evil", name: "Evil", description: "Evil (Uncensored)", vision: true },
+    { id: "unity", name: "Unity Unrestricted Agent", description: "Unity Unrestricted Agent (Uncensored)", vision: true },
 ];
 
 // Stil-Profile (ResponseStyles)

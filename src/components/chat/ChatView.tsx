@@ -78,11 +78,15 @@ const ChatView: React.FC<ChatViewProps> = ({
               onCopy={onCopyToClipboard}
               onRegenerate={onRegenerate}
               isLastMessage={isLastMessageForRegeneration(index)}
+              isAiResponding={isAiResponding && index === messages.length - 1}
             />
           </div>
         ))}
         {isAiResponding && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
-           <MessageBubble message={{ id: 'loading', role: 'assistant', content: '', timestamp: new Date().toISOString() }} />
+           <MessageBubble 
+             message={{ id: 'loading', role: 'assistant', content: '', timestamp: new Date().toISOString() }} 
+             isAiResponding={true}
+           />
         )}
       </div>
     </div>
