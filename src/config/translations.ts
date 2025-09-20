@@ -3,7 +3,7 @@ export type Language = 'de' | 'en';
 export const translations = {
   de: {
     // Chat Interface
-    'chat.placeholder': 'Frag mich einfach alles...',
+    'chat.placeholder': 'Du kannst mit der Maschine alles diskutieren, sie im Web suchen lassen, Dateien analysieren oder eine Idee visualisieren',
     'chat.noHistory': 'Noch keine Historie.',
     'chat.webBrowsingEnabled': 'Web-Browsing Aktiviert',
     'chat.webBrowsingDisabled': 'Web-Browsing Deaktiviert',
@@ -183,15 +183,11 @@ export const translations = {
     'tool.reasoning.importText': 'import [komplexe Anfragen, Code, Text]',
     'tool.reasoning.exportText': 'export [Code, deine Website, mathematisch korrekte Lösungen]',
     
-    'tool.imageLite.tag': '</image.generation.lite>',
-    'tool.imageLite.hoverTitle': 'image.generation.lite',
-    'tool.imageLite.importText': 'import [einfacher Text, minimale Konfigs]',
-    'tool.imageLite.exportText': 'export [kreative Ergebnisse für alle, präzise und unglaubliche Ergebnisse mit etwas Übung]',
-    
-    'tool.imageRaw.tag': '</image.generation.raw>',
-    'tool.imageRaw.hoverTitle': 'image.generation.raw',
-    'tool.imageRaw.importText': 'import [einfacher Text, Referenzbilder, komplexe Konfigurationsoptionen]',
-    'tool.imageRaw.exportText': 'export [fotorealistische detaillierte Visualisierung]',
+    'tool.imageGen.tag': '</generate.multimedia.output>',
+    'tool.imageGen.hoverTitle': 'generate.multimedia.output',
+    'tool.imageGen.importText': 'import [einfacher Text, Referenzbilder, Konfigurationsoptionen]',
+    'tool.imageGen.exportText': 'export [kreative Ergebnisse, fotorealistische Visualisierung]',
+    'tool.imageGen.hoverDescription': 'Erstelle oder transformiere Bilder und Videos via Text und Referenz-Input.\nWähle zwischen AI Beginner Lite-Version oder Expert-Modellen mit erweiterten Optionen.',
     
     'tool.settings.tag': '</settings.user.preferences>',
     'tool.settings.hoverTitle': 'settings.user.preferences',
@@ -324,7 +320,7 @@ Stil:
   
   en: {
     // Chat Interface
-    'chat.placeholder': 'Just ask me anything...',
+    'chat.placeholder': 'You can discuss anything with the machine, let it search the web, analyze files, or visualize an idea.',
     'chat.noHistory': 'No history yet.',
     'chat.webBrowsingEnabled': 'Web Browsing Enabled',
     'chat.webBrowsingDisabled': 'Web Browsing Disabled',
@@ -504,15 +500,11 @@ Stil:
     'tool.reasoning.importText': 'import [complex requests, code, text]',
     'tool.reasoning.exportText': 'export [code, your website, mathematically correct solutions]',
     
-    'tool.imageLite.tag': '</image.generation.lite>',
-    'tool.imageLite.hoverTitle': 'image.generation.lite',
-    'tool.imageLite.importText': 'import [simple text, minimal configs]',
-    'tool.imageLite.exportText': 'export [creative results for everyone, precise and incredible results with some practice]',
-    
-    'tool.imageRaw.tag': '</image.generation.raw>',
-    'tool.imageRaw.hoverTitle': 'image.generation.raw',
-    'tool.imageRaw.importText': 'import [simple text, reference images, complex configuration options]',
-    'tool.imageRaw.exportText': 'export [photorealistic detailed visualization]',
+    'tool.imageGen.tag': '</generate.multimedia.output>',
+    'tool.imageGen.hoverTitle': 'generate.multimedia.output',
+    'tool.imageGen.importText': 'import [simple text, reference images, configuration options]',
+    'tool.imageGen.exportText': 'export [creative results, photorealistic visualization]',
+    'tool.imageGen.hoverDescription': 'Create or transform images and videos via text and reference input.\n\nCreate images from text descriptions - choose between fast Lite version or Expert models with advanced options.',
     
     'tool.settings.tag': '</settings.user.preferences>',
     'tool.settings.hoverTitle': 'settings.user.preferences',

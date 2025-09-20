@@ -71,9 +71,7 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
               // Derive labels like in the screenshot, based on route + language
               const label = (() => {
                 if (href === '/chat') return '</chat>';
-                if (href === '/image-gen/no-cost') return language === 'de' ? '</bild.gen.lite>' : '</img.gen.lite>';
-                if (href === '/image-gen/raw') return language === 'de' ? '</bild.gen.expert>' : '</img.gen.expert>';
-                if (href === '/reasoning') return '</code>';
+                if (href === '/image-gen') return '</generate.multimedia.output>';
                 if (href === '/settings') return language === 'de' ? '</einstellungen>' : '</settings>';
                 if (href === '/about') return language === 'de' ? '</über>' : '</about>';
                 return item.title || href;

@@ -1,13 +1,16 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import type { TileItem } from '@/types';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/LanguageProvider';
 import LanguageToggleHomepage from '@/components/LanguageToggleHomepage';
+import { Button } from '@/components/ui/button';
+import { Play, Square } from 'lucide-react';
+import useLocalStorageState from '@/hooks/useLocalStorageState';
 
 // Adjusted to match the new design's text
 const toolTileItems = [
@@ -24,39 +27,16 @@ const toolTileItems = [
     translationKey: 'tool.chat.hoverDescription'
   },
   { 
-    id: 'code reasoning', 
-    titleKey: 'tool.reasoning.tag',
-    href: '/reasoning',
-    tagKey: 'tool.reasoning.tag',
-    importTextKey: 'tool.reasoning.importText',
-    exportTextKey: 'tool.reasoning.exportText',
-    tagColor: 'text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text',
-    symbolColor: 'text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text',
-    hoverTitleKey: 'tool.reasoning.hoverTitle',
-    translationKey: 'tool.reasoning.hoverDescription'
+    id: 'image generation', 
+    href: '/image-gen',
+    tagKey: 'tool.imageGen.tag',
+    importTextKey: 'tool.imageGen.importText',
+    exportTextKey: 'tool.imageGen.exportText',
+    tagColor: 'text-transparent bg-gradient-to-r from-green-400 to-orange-600 bg-clip-text',
+    symbolColor: 'text-transparent bg-gradient-to-r from-green-400 to-orange-600 bg-clip-text',
+    hoverTitleKey: 'tool.imageGen.hoverTitle',
+    translationKey: 'tool.imageGen.hoverDescription'
   },
-  { 
-    id: 'nocost imagination', 
-    href: '/image-gen/no-cost',
-    tagKey: 'tool.imageLite.tag',
-    importTextKey: 'tool.imageLite.importText',
-    exportTextKey: 'tool.imageLite.exportText',
-    tagColor: 'text-transparent bg-gradient-to-r from-green-400 to-green-600 bg-clip-text',
-    symbolColor: 'text-transparent bg-gradient-to-r from-green-400 to-green-600 bg-clip-text',
-    hoverTitleKey: 'tool.imageLite.hoverTitle',
-    translationKey: 'tool.imageLite.hoverDescription'
-  },
-  { 
-    id: 'premium imagination', 
-    href: '/image-gen/raw',
-    tagKey: 'tool.imageRaw.tag',
-    importTextKey: 'tool.imageRaw.importText',
-    exportTextKey: 'tool.imageRaw.exportText',
-    tagColor: 'text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text',
-    symbolColor: 'text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text',
-    hoverTitleKey: 'tool.imageRaw.hoverTitle',
-    translationKey: 'tool.imageRaw.hoverDescription'
-   },
   { 
     id: 'personalization', 
     href: '/settings',
@@ -85,6 +65,8 @@ export default function HomePage() {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
     const { t, language } = useLanguage();
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const [isBgVideoOn, setIsBgVideoOn] = useLocalStorageState<boolean>('homeBgVideoOn', true);
 
     useEffect(() => {
       setMounted(true);
@@ -116,20 +98,45 @@ export default function HomePage() {
             <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
               <div className="absolute inset-0 bg-black"></div>
               <video
+                ref={videoRef}
                 autoPlay
                 loop
                 muted
                 playsInline
                 src="/backgroundclip.mp4"
-                className="w-full h-full object-cover opacity-30"
+                className={cn('w-full h-full object-cover transition-opacity duration-300', isBgVideoOn ? 'opacity-30' : 'opacity-0')}
               />
+              {/* Full-screen purple gradient overlay, responsive to viewport */}
+              <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-purple-900/40 via-purple-900/20 to-transparent"></div>
             </div>
-            <div className="absolute top-4 right-4 z-10 flex gap-2">
+            <div className="absolute top-4 right-4 z-10 flex gap-2 items-center">
                 <LanguageToggleHomepage />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => { setIsBgVideoOn(true); videoRef.current?.play().catch(() => {}); }}
+                  title="Play background video"
+                  aria-label="Play background video"
+                  disabled={isBgVideoOn}
+                  className={cn(isBgVideoOn ? 'text-foreground/40' : 'text-green-500 hover:text-green-600')}
+                >
+                  <Play className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => { setIsBgVideoOn(false); videoRef.current?.pause(); }}
+                  title="Stop background video"
+                  aria-label="Stop background video"
+                  disabled={!isBgVideoOn}
+                  className={cn(!isBgVideoOn ? 'text-foreground/40' : 'text-red-500 hover:text-red-600')}
+                >
+                  <Square className="h-4 w-4" />
+                </Button>
             </div>
 
             <main className="w-full flex flex-col items-center p-6 md:p-8 relative" style={{ maxWidth: '1020px' }}>
-                <div className="absolute -inset-8 bg-gradient-to-b from-transparent via-purple-900/20 to-transparent -z-10"></div>
+                {/* Local gradient removed; global full-screen gradient added above */}
                 <h1 className="text-4xl sm:text-5xl md:text-7xl font-code text-white text-glow mb-8 sm:mb-12 text-center">
                     <span className="text-gray-400">(</span>
                     !hey.hi

@@ -196,3 +196,6 @@ export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 // Keep in sync with `/api/image/models` and VisualizingLoopsTool
 export const FALLBACK_IMAGE_MODELS = ['flux', 'turbo', 'kontext'];
 export const DEFAULT_IMAGE_MODEL = 'flux'; // A safe default
+
+// Code reasoning system prompt used when Code Mode is enabled
+export const CODE_REASONING_SYSTEM_PROMPT = "You are a world-class software engineer and reasoning expert. Provide clear, concise, and accurate explanations and code. Prefer step-by-step reasoning when helpful. Always format code with fenced code blocks and correct language tags. Avoid hallucinations; if unsure, state assumptions and ask for missing details.";

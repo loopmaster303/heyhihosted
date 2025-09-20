@@ -46,6 +46,7 @@ const ChatInterface: React.FC = () => {
         availableImageModels,
         selectedImageModelId,
         handleImageModelChange,
+        setActiveConversation,
     } = useChat();
     
     const historyPanelRef = React.useRef<HTMLDivElement>(null);
@@ -89,6 +90,20 @@ const ChatInterface: React.FC = () => {
                     onInputChange={setChatInputValue}
                     isImageMode={isImageMode}
                     onToggleImageMode={toggleImageMode}
+                    isCodeMode={!!activeConversation.isCodeMode}
+                    onToggleCodeMode={() => {
+                        // Flip code mode in the active conversation via context updater
+                        // We keep logic in provider; here just minimal toggle via context function
+                        // added below through useChat return setActiveConversation
+                        const turnedOn = !activeConversation.isCodeMode;
+                        // Disable web browsing when enabling code mode (UI courtesy)
+                        if (turnedOn && activeConversation.webBrowsingEnabled) {
+                            handleWebBrowsingChange(false);
+                        }
+                        // Apply the toggle
+                        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                        setActiveConversation(prev => prev ? { ...prev, isCodeMode: turnedOn } : prev);
+                    }}
                     chatTitle={title}
                     onToggleHistoryPanel={toggleHistoryPanel}
                     onToggleAdvancedPanel={toggleAdvancedPanel}

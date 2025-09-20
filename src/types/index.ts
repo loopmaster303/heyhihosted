@@ -25,6 +25,7 @@ export interface Conversation {
   updatedAt: string; // ISO string for easy storage/retrieval
   toolType: ToolType;
   isImageMode?: boolean;
+  isCodeMode?: boolean;
   webBrowsingEnabled?: boolean;
   // These are client-side only and will not be persisted
   uploadedFile?: File | null;
@@ -33,7 +34,7 @@ export interface Conversation {
   selectedResponseStyleName?: string;
 }
 
-export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about' | 'code reasoning';
+export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about';
 
 export interface TileItem {
   id: ToolType;

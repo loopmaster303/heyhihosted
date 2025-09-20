@@ -5,7 +5,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle, Globe } from 'lucide-react';
+import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle, Globe, Code2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types';
 import HistoryPanel from './HistoryPanel';
@@ -29,6 +29,8 @@ interface ChatInputProps {
   onInputChange: (value: string | ((prev: string) => string)) => void;
   isImageMode: boolean;
   onToggleImageMode: () => void;
+  isCodeMode?: boolean;
+  onToggleCodeMode?: () => void;
   chatTitle: string;
   onToggleHistoryPanel: () => void;
   onToggleAdvancedPanel: () => void;
@@ -106,6 +108,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   handleImageModelChange,
   webBrowsingEnabled,
   onWebBrowsingChange,
+  isCodeMode = false,
+  onToggleCodeMode,
 }) => {
   const { t } = useLanguage();
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -171,6 +175,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
     ? t('chat.transcribing')
     : isImageMode
     ? `Imagination using ${selectedImageModelId}...`
+    : isCodeMode
+    ? `Coding & reasoning with qwen-coder...`
     : t('chat.placeholder');
 
   const iconColorClass = "text-foreground/60 hover:text-foreground";
@@ -264,6 +270,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             disabled={isLoading || isRecording || isTranscribing}
                         >
                             <Globe className="w-16 h-16" />
+                        </Button>
+
+                        {/* Code Mode toggle */}
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => onToggleCodeMode && onToggleCodeMode()}
+                            className={cn(
+                                "group rounded-lg h-12 w-12 transition-colors duration-300",
+                                isCodeMode ? 'text-purple-500 hover:text-purple-600' : iconColorClass
+                            )}
+                            title={isCodeMode ? "Code Mode: On" : "Code Mode: Off"}
+                            disabled={isLoading || isRecording || isTranscribing}
+                        >
+                            <Code2 className="w-16 h-16" />
                         </Button>
                         
                         {uploadedFilePreviewUrl && !isImageMode && (

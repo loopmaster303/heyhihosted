@@ -9,6 +9,7 @@ import { Loader2, StopCircle, RefreshCw, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTypewriter } from '@/hooks/useTypewriter';
 import { BlinkingCursor } from '@/components/ui/BlinkingCursor';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -91,6 +92,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         );
       }
       
+      // If content contains fenced code blocks, render via Markdown for nicer code display
+      if (/```/.test(content)) {
+        return <MarkdownRenderer content={content} />;
+      }
+
       // Use typewriter effect for assistant messages
       if (shouldUseTypewriter) {
         return (
@@ -100,7 +106,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </p>
         );
       }
-      
+
       return <p className="text-sm whitespace-pre-wrap">{content}</p>;
     }
 

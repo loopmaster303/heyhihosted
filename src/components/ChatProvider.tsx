@@ -8,7 +8,7 @@ import { useLanguage } from './LanguageProvider';
 import { generateUUID } from '@/lib/uuid';
 
 import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
-import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES, FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
+import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES, FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL, CODE_REASONING_SYSTEM_PROMPT } from '@/config/chat-options';
 
 
 export interface UseChatLogicProps {
@@ -351,13 +351,24 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                 }
               }
 
+              // Override model and system prompt when Code Mode is enabled
+              const isCodeMode = !!activeConversation.isCodeMode;
+              const modelIdForRequest = isCodeMode ? 'qwen-coder' : currentModel.id;
+              let systemPromptForRequest = effectiveSystemPrompt;
+              if (isCodeMode) {
+                systemPromptForRequest = CODE_REASONING_SYSTEM_PROMPT;
+              }
+
+              // If code mode is enabled, disable web browsing chain for this request
+              const finalMessagesForApiMaybePruned = isCodeMode ? historyForApi : finalMessagesForApi;
+
               const response = await fetch('/api/chat/completion', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    messages: finalMessagesForApi,
-                    modelId: currentModel.id,
-                    systemPrompt: effectiveSystemPrompt,
+                    messages: finalMessagesForApiMaybePruned,
+                    modelId: modelIdForRequest,
+                    systemPrompt: systemPromptForRequest,
                 })
               });
               
@@ -443,6 +454,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             updatedAt: new Date().toISOString(),
             toolType: 'long language loops',
             isImageMode: false,
+            isCodeMode: false,
             webBrowsingEnabled: false,
             selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
             selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,

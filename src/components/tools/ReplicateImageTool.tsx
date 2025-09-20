@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Info, ImageIcon, X, FileImage, Plus } from 'lucide-react';
+import { Loader2, AlertCircle, Info, ImageIcon, X, FileImage, Plus, Sparkles } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import NextImage from 'next/image';
 import { modelConfigs, modelKeys, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
@@ -129,6 +129,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   const [selectedImage, setSelectedImage] = useState<ImageHistoryItem | null>(null);
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   
   const [mounted, setMounted] = useState(false);
 
@@ -732,6 +733,50 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     }, 100);
   }, [mainPromptValue]);
 
+  const handleEnhancePrompt = useCallback(async () => {
+    if (!mainPromptValue.trim() || !selectedModelKey || isEnhancing) {
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      const response = await fetch('/api/enhance-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: mainPromptValue,
+          modelId: selectedModelKey,
+          language,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Enhancement API error:', errorData);
+        throw new Error(errorData.error || 'Failed to enhance prompt');
+      }
+
+      const result = await response.json();
+      setMainPromptValue(result.enhancedPrompt);
+      
+      toast({
+        title: "Prompt Enhanced",
+        description: "Your prompt has been improved using AI.",
+      });
+    } catch (error) {
+      console.error('Enhancement error:', error);
+      toast({
+        title: "Enhancement Failed",
+        description: error instanceof Error ? error.message : "Could not enhance the prompt. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEnhancing(false);
+    }
+  }, [mainPromptValue, selectedModelKey, isEnhancing, toast]);
+
   const handleSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedModelKey || !currentModelConfig) {
@@ -1180,6 +1225,19 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                     ))}
                   </SelectContent>
                 </Select>
+                <Button 
+                  type="button" 
+                  onClick={handleEnhancePrompt}
+                  disabled={!mainPromptValue.trim() || !selectedModelKey || loading || isEnhancing}
+                  className="h-11 px-3 rounded-lg bg-background/50 hover:bg-muted text-foreground"
+                  title="Enhance prompt with AI"
+                >
+                  {isEnhancing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                </Button>
                 <Button type="submit" disabled={!canSubmit} className="h-11 px-4 rounded-lg bg-background/50 hover:bg-muted text-foreground">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('imageGen.execute')}
                 </Button>
