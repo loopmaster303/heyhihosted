@@ -34,6 +34,7 @@ interface ReplicateImageToolProps {
   password?: string;
   settingsStorageKey?: string;
   historyStorageKey?: string;
+  gallerySlug?: string;
 }
 
 const DEFAULT_SETTINGS_KEY = 'replicateImageToolSettings';
@@ -42,7 +43,8 @@ const DEFAULT_HISTORY_KEY = 'replicateToolHistory';
 const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ 
   password, 
   settingsStorageKey = DEFAULT_SETTINGS_KEY, 
-  historyStorageKey = DEFAULT_HISTORY_KEY 
+  historyStorageKey = DEFAULT_HISTORY_KEY,
+  gallerySlug,
 }) => {
   const { toast } = useToast();
   const { t, language } = useLanguage();
@@ -917,10 +919,28 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         const resultUrl = Array.isArray(data.output) ? data.output[0] : data.output;
         
         if (typeof resultUrl === 'string' && resultUrl.trim() !== '') {
+            let finalUrl: string = resultUrl;
+            if (gallerySlug) {
+              try {
+                const ingestRes = await fetch('/api/storage/ingest', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ slug: gallerySlug, sourceUrl: resultUrl }),
+                });
+                if (ingestRes.ok) {
+                  const ingest = await ingestRes.json();
+                  if (ingest?.publicUrl) finalUrl = ingest.publicUrl;
+                } else {
+                  console.warn('Ingest failed:', await ingestRes.text());
+                }
+              } catch (e) {
+                console.warn('Ingest error:', e);
+              }
+            }
             const newHistoryItem: ImageHistoryItem = {
               id: generateUUID(),
-              imageUrl: isVideo ? '' : resultUrl,
-              videoUrl: isVideo ? resultUrl : undefined,
+              imageUrl: isVideo ? '' : finalUrl,
+              videoUrl: isVideo ? finalUrl : undefined,
               prompt: mainPromptValue,
               model: currentModelConfig.name,
               timestamp: new Date().toISOString(),
