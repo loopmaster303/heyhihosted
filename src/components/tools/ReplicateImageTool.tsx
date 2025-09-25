@@ -67,6 +67,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       'wan-2.2-image': 'Type what you want to see – makes very realistic pictures in seconds.',
       'flux-krea-dev': "Write your idea – creates natural, artistic images that don't look AI-made.",
       'qwen-image': 'Describe your scene – makes detailed, lifelike photos and can also draw text.',
+      'wan-video': 'Script the visuals, dialogue, and audio cues for your Wan 2.5 video.',
+      'wan-2.5-t2v': 'Write the dialogue, ambience, and cinematic flow for your Wan 2.5 clip.',
+      'veo-3-fast': 'Detail the motion, camera, and text behavior for your Veo 3 video.',
       // ✏️ IMAGE EDITORS
       'nano-banana': 'Upload a picture or type text – edits and creates images with simple instructions.',
       'qwen-image-edit': 'Upload a picture and tell it what to change – perfect for fixing or adding text.',
@@ -81,6 +84,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       'wan-2.2-image': 'Schreibe, was du sehen willst – macht in Sekunden sehr realistische Bilder.',
       'flux-krea-dev': 'Beschreibe deine Idee – erzeugt natürliche, künstlerische Bilder, die nicht nach AI aussehen.',
       'qwen-image': 'Beschreibe die Szene – detailreiche, lebensnahe Fotos, kann auch Text zeichnen.',
+      'wan-video': 'Beschreibe Bild, Dialog und Audio für dein Wan-2.5-Video.',
+      'wan-2.5-t2v': 'Schreibe Dialog, Klangkulisse und Kameraführung für den Wan-2.5-Clip.',
+      'veo-3-fast': 'Beschreibe Bewegung, Kamera und Text für dein Veo-3-Video.',
       // ✏️ BILDBEARBEITER
       'nano-banana': 'Bild hochladen oder Text schreiben – bearbeitet/erstellt Bilder mit einfachen Anweisungen.',
       'qwen-image-edit': 'Bild hochladen und sagen, was geändert werden soll – ideal zum Korrigieren oder Text einfügen.',
@@ -90,8 +96,8 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     };
 
     // Video fallback if model is video
-    const videoPlaceholderEN = 'Describe a scene or upload an image – turns text or pictures into cinematic video clips.';
-    const videoPlaceholderDE = 'Szene beschreiben oder Bild hochladen – macht aus Text/Bildern cineastische Videoclips.';
+    const videoPlaceholderEN = 'Lay out shot, dialogue, and background audio for the clip.';
+    const videoPlaceholderDE = 'Beschreibe Bild, Dialog und Klangkulisse für den Clip.';
 
     const lang = (language || 'en') as 'de' | 'en';
     const table = lang === 'de' ? DE : EN;

@@ -211,15 +211,66 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
   // === VIDEOS (Video-Generatoren) ===
   "wan-video": {
     id: "wan-video",
-    name: "WAN 2.1 i2v 720p",
+    name: "WAN 2.5 Image to Video",
     outputType: "video",
-    description: "Image-to-video at 720p using wavespeedai/wan-2.1-i2v-720p. Upload a reference image and optionally guide with a prompt.",
+    description: "Wan 2.5 image-to-video model with detailed control over audio and cinematic dynamics.",
     inputs: [
-      { name: "prompt", label: "Prompt", type: "text", required: false, placeholder: "Optional guidance for the animation.", info: "Optional text to steer the generated motion.", isPrompt: true, labelKey: "prompt.wanVideo" },
-      { name: "image", label: "First Frame", type: "file", required: false, placeholder: "Upload first frame image (optional)", info: "Optional first frame image. Upload a file to guide the animation." },
-      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed. Set for reproducible generation.", labelKey: "field.seed" },
-      { name: "output_format", label: "Output Format", type: "select", default: "mp4", options: ["mp4", "webm"], info: "Format of the output video.", labelKey: "field.outputFormat" },
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Describe dialogue, ambience, camera moves, and scene.", info: "Full Wan 2.5 instruction covering visuals, audio, and mood.", isPrompt: true },
+      { name: "negative_prompt", label: "Negative Prompt", type: "text", default: '', placeholder: "Use -dialogue or -actors speaking to enforce silence.", info: "Describe what to avoid in the video." },
+      { name: "image", label: "Reference Image", type: "file", required: false, placeholder: "Click to upload keyframe (optional)", info: "Optional keyframe image to guide composition." },
+      { name: "audio", label: "Audio Track URL", type: "url", placeholder: "https://example.com/music.mp3", info: "Optional WAV/MP3 (3-30s, <=15MB) for voice/music sync." },
+      { name: "enable_prompt_expansion", label: "Prompt Expansion", type: "boolean", default: true, info: "Let Wan optimize your prompt automatically." },
+      { name: "duration", label: "Duration", type: "select", default: "5", options: [
+        { value: "5", label: "5 seconds" },
+        { value: "10", label: "10 seconds" }
+      ], info: "Length of the generated clip." },
+      { name: "resolution", label: "Resolution", type: "select", default: "720p", options: ["480p", "720p", "1080p"], info: "Video resolution preset." },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed for reproducibility." },
+      { name: "output_format", label: "Output Format", type: "select", default: "mp4", options: ["mp4", "webm"], info: "Container format for the rendered video." },
     ]
+  },
+
+  "wan-2.5-t2v": {
+    id: "wan-2.5-t2v",
+    name: "WAN 2.5 Text to Video",
+    outputType: "video",
+    description: "Wan 2.5 text-to-video generation with prompt expansion, audio sync, and resolution presets.",
+    inputs: [
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Write dialogue, ambience, camera moves, and scene details.", info: "Complete description for Wan 2.5 text-to-video.", isPrompt: true },
+      { name: "negative_prompt", label: "Negative Prompt", type: "text", default: '', placeholder: "Elements to avoid (e.g. -dialogue).", info: "Describe what should not appear." },
+      { name: "audio", label: "Audio Track URL", type: "url", placeholder: "https://example.com/music.mp3", info: "Optional WAV/MP3 (3-30s, <=15MB) for voice or music." },
+      { name: "size", label: "Resolution", type: "select", default: "1280*720", options: [
+        { value: "832*480", label: "832 x 480" },
+        { value: "480*832", label: "480 x 832" },
+        { value: "1280*720", label: "1280 x 720" },
+        { value: "720*1280", label: "720 x 1280" },
+        { value: "1920*1080", label: "1920 x 1080" },
+        { value: "1080*1920", label: "1080 x 1920" }
+      ], info: "Output resolution preset." },
+      { name: "duration", label: "Duration", type: "select", default: "5", options: [
+        { value: "5", label: "5 seconds" },
+        { value: "10", label: "10 seconds" }
+      ], info: "Length of the generated clip." },
+      { name: "enable_prompt_expansion", label: "Prompt Expansion", type: "boolean", default: true, info: "Enable Wan's prompt optimizer." },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed for reproducibility." },
+      { name: "output_format", label: "Output Format", type: "select", default: "mp4", options: ["mp4", "webm"], info: "Video container format." },
+    ],
+  },
+
+  "veo-3-fast": {
+    id: "veo-3-fast",
+    name: "Google Veo 3 Fast",
+    outputType: "video",
+    description: "Google Veo 3 Fast text-to-video with style preservation and camera-motion directives.",
+    inputs: [
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Describe subject, motion, camera moves, and text behavior.", info: "Full Veo 3 instruction covering visuals, motion, and typography.", isPrompt: true },
+      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Elements to avoid or keep static.", info: "Specify what should not animate or appear." },
+      { name: "image", label: "Reference Image", type: "file", required: false, placeholder: "Upload input image (optional)", info: "Optional first frame / style reference." },
+      { name: "resolution", label: "Resolution", type: "select", default: "720p", options: ["720p", "1080p"], info: "Video resolution preset." },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "16:9", options: ["16:9", "9:16"], info: "Output aspect ratio." },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", min: 0, info: "Random seed for reproducibility." },
+      { name: "output_format", label: "Output Format", type: "select", default: "mp4", options: ["mp4", "webm"], info: "Container format for the rendered video." },
+    ],
   },
 
   // Minimax hailuo-02 video model

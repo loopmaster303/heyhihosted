@@ -19,6 +19,8 @@ const MODEL_ALIASES: Record<string, string> = {
   'hailuo-02': 'hailuo-02',
   // Config uses 'seedream-4.0' but UI uses 'seedream-4'
   'seedream-4': 'seedream-4.0',
+  'wan-2.5-t2v': 'wan-video',
+  'veo-3-fast': 'veo-3-fast',
 };
 
 function selectGuidelines(modelId: string): string {

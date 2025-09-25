@@ -10,8 +10,10 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "runway-gen4": "runwayml/gen4-image",
   "qwen-image": "qwen/qwen-image",
   "qwen-image-edit": "qwen/qwen-image-edit",
-  // Repoint WAN video to wavespeedai i2v 720p
-  "wan-video": "wavespeedai/wan-2.1-i2v-720p",
+  // Wan 2.5 image-to-video
+  "wan-video": "wan-video/wan-2.5-i2v",
+  "wan-2.5-t2v": "wan-video/wan-2.5-t2v",
+  "veo-3-fast": "google/veo-3-fast",
   "ideogram-character": "ideogram-ai/ideogram-character",
   "hailuo-02": "minimax/hailuo-02",
   "seedream-4": "bytedance/seedream-4",
@@ -64,8 +66,11 @@ export async function POST(request: NextRequest) {
           // Keep as string for Flux models
           sanitizedInput[key] = String(value);
         }
-      } else if (key === "seed" && typeof value === "string") {
-        sanitizedInput[key] = parseInt(value, 10);
+      } else if ((key === "seed" || key === "duration") && typeof value === "string") {
+        const parsed = parseInt(value, 10);
+        if (!Number.isNaN(parsed)) {
+          sanitizedInput[key] = parsed;
+        }
       } else if (key === "output_quality" && typeof value === "string") {
         sanitizedInput[key] = parseInt(value, 10);
       } else {
@@ -93,15 +98,19 @@ export async function POST(request: NextRequest) {
 
     let prediction = await startResponse.json();
 
+    const isWanVideo = modelKey === 'wan-video' || modelKey === 'wan-2.5-t2v';
+    const pollDelayMs = isWanVideo ? 4000 : 2000;
+    const maxAttempts = isWanVideo ? 150 : 60;
+
     let retryCount = 0;
     while (
       prediction.status !== "succeeded" &&
       prediction.status !== "failed" &&
       prediction.status !== "canceled" &&
-      retryCount < 60 &&
+      retryCount < maxAttempts &&
       prediction.urls?.get
     ) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, pollDelayMs));
       const pollResponse = await fetch(prediction.urls.get, {
         headers: { 'Authorization': `Token ${replicateApiToken}` }
       });
@@ -116,7 +125,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         error: prediction.error || `Prediction ${prediction.status}.`
       }, { status: 500 });
-    } else if (retryCount >= 60) {
+    } else if (retryCount >= maxAttempts) {
       return NextResponse.json({
         error: 'Prediction polling timed out.',
         status: prediction.status
