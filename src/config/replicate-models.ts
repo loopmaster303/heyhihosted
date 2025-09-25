@@ -22,6 +22,7 @@ export interface ReplicateModelConfig {
   description?: string;
   outputType?: "image" | "video";
   hasCharacterReference?: boolean;
+  hiddenFromDefault?: boolean;
 }
 
 export const modelConfigs: Record<string, ReplicateModelConfig> = {
@@ -90,6 +91,7 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
     name: "Qwen Rüdiger",
     outputType: "image",
     description: "Custom Qwen-based image generator tuned for consistent character styling.",
+    hiddenFromDefault: true,
     inputs: [
       { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Describe your scene – makes detailed, lifelike photos and can also draw text.", info: "Main description of the desired image.", isPrompt: true },
       { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Optional elements to avoid.", info: "Describe what should be excluded from the image." },
@@ -237,4 +239,4 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
 };
 
 // Export model keys for easy access
-export const modelKeys = Object.keys(modelConfigs);
+export const modelKeys = Object.keys(modelConfigs).filter((key) => !modelConfigs[key].hiddenFromDefault);

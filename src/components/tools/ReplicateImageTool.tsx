@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Select,
   SelectContent,
@@ -34,15 +34,25 @@ interface ReplicateImageToolProps {
   password?: string;
   settingsStorageKey?: string;
   historyStorageKey?: string;
+  modelWhitelist?: string[];
+  replicateEndpoint?: string;
+  enhanceEndpoint?: string;
+  defaultModelKey?: string;
 }
 
 const DEFAULT_SETTINGS_KEY = 'replicateImageToolSettings';
 const DEFAULT_HISTORY_KEY = 'replicateToolHistory';
+const DEFAULT_REPLICATE_ENDPOINT = '/api/replicate';
+const DEFAULT_ENHANCE_ENDPOINT = '/api/enhance-prompt';
 
 const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({ 
   password, 
   settingsStorageKey = DEFAULT_SETTINGS_KEY, 
-  historyStorageKey = DEFAULT_HISTORY_KEY 
+  historyStorageKey = DEFAULT_HISTORY_KEY,
+  modelWhitelist,
+  replicateEndpoint = DEFAULT_REPLICATE_ENDPOINT,
+  enhanceEndpoint = DEFAULT_ENHANCE_ENDPOINT,
+  defaultModelKey,
 }) => {
   const { toast } = useToast();
   const { t, language } = useLanguage();
@@ -102,7 +112,24 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     return t('imageGen.placeholder');
   };
 
-  const [selectedModelKey, setSelectedModelKey] = useState<string>("wan-2.2-image"); 
+  const availableModelKeys = useMemo(() => {
+    if (Array.isArray(modelWhitelist) && modelWhitelist.length > 0) {
+      return modelWhitelist.filter((key): key is string => Boolean(modelConfigs[key]));
+    }
+    return modelKeys;
+  }, [modelWhitelist]);
+
+  const resolvedDefaultModelKey = useMemo(() => {
+    if (defaultModelKey && availableModelKeys.includes(defaultModelKey)) {
+      return defaultModelKey;
+    }
+    if (availableModelKeys.length > 0) {
+      return availableModelKeys[0];
+    }
+    return modelKeys[0] ?? '';
+  }, [availableModelKeys, defaultModelKey]);
+
+  const [selectedModelKey, setSelectedModelKey] = useState<string>(resolvedDefaultModelKey);
   const [currentModelConfig, setCurrentModelConfig] = useState<ReplicateModelConfig | null>(null);
   
   const [formFields, setFormFields] = useState<Record<string, any>>({});
@@ -160,17 +187,21 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     if (storedData) {
       try {
         const settings = JSON.parse(storedData);
-        if (settings.selectedModelKey && modelKeys.includes(settings.selectedModelKey)) {
+        if (settings.selectedModelKey && availableModelKeys.includes(settings.selectedModelKey)) {
           setSelectedModelKey(settings.selectedModelKey);
-        } else {
-          setSelectedModelKey("wan-2.2-image"); 
+        } else if (resolvedDefaultModelKey) {
+          setSelectedModelKey(resolvedDefaultModelKey);
         }
       } catch (e) {
         console.error("Error loading ReplicateImageTool selectedModelKey:", e);
-        setSelectedModelKey("wan-2.2-image");
+        if (resolvedDefaultModelKey) {
+          setSelectedModelKey(resolvedDefaultModelKey);
+        }
       }
     } else {
-      setSelectedModelKey("wan-2.2-image"); 
+      if (resolvedDefaultModelKey) {
+        setSelectedModelKey(resolvedDefaultModelKey);
+      }
     }
 
     try {
@@ -259,7 +290,13 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
       setFormFields({});
       setMainPromptValue('');
     }
-  }, [selectedModelKey, initialLoadComplete, settingsStorageKey]);
+  }, [selectedModelKey, initialLoadComplete, settingsStorageKey, availableModelKeys, resolvedDefaultModelKey]);
+
+  useEffect(() => {
+    if (!availableModelKeys.includes(selectedModelKey) && resolvedDefaultModelKey) {
+      setSelectedModelKey(resolvedDefaultModelKey);
+    }
+  }, [availableModelKeys, resolvedDefaultModelKey, selectedModelKey]);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -720,6 +757,9 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
   }, [currentModelConfig, loading, formFields, handleInputChange, isRunwayModelSelected, isFluxModelSelected, isVideoModelSelected, hasCharacterReference, referenceImages, currentTag, referenceTags, handleRemoveReferenceImage, handleAddTag, handleRemoveTag, language]);
 
   const handleModelChange = useCallback((newModelKey: string) => {
+    if (!availableModelKeys.includes(newModelKey)) {
+      return;
+    }
     // Save current prompt before changing model
     const currentPrompt = mainPromptValue;
     
@@ -731,7 +771,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
         setMainPromptValue(currentPrompt);
       }
     }, 100);
-  }, [mainPromptValue]);
+  }, [availableModelKeys, mainPromptValue]);
 
   const handleEnhancePrompt = useCallback(async () => {
     if (!mainPromptValue.trim() || !selectedModelKey || isEnhancing) {
@@ -740,7 +780,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 
     setIsEnhancing(true);
     try {
-      const response = await fetch('/api/enhance-prompt', {
+      const response = await fetch(enhanceEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -775,7 +815,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     } finally {
       setIsEnhancing(false);
     }
-  }, [mainPromptValue, selectedModelKey, isEnhancing, toast]);
+  }, [mainPromptValue, selectedModelKey, isEnhancing, toast, enhanceEndpoint, language]);
 
   const handleSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
@@ -898,9 +938,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     setSelectedImage(null);
 
     try {
-      const apiEndpoint = '/api/replicate';
-      
-      const response = await fetch(apiEndpoint, {
+      const response = await fetch(replicateEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(currentPayload),
@@ -955,7 +993,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [selectedModelKey, currentModelConfig, password, mainPromptValue, isFluxModelSelected, isVideoModelSelected, hasCharacterReference, uploadedImagePreview, formFields, isRunwayModelSelected, referenceImages, referenceTags, toast]);
+  }, [selectedModelKey, currentModelConfig, password, mainPromptValue, isFluxModelSelected, isVideoModelSelected, hasCharacterReference, uploadedImagePreview, formFields, isRunwayModelSelected, referenceImages, referenceTags, toast, replicateEndpoint]);
 
   const handleClearHistory = useCallback(() => {
     setHistory([]);
@@ -1217,7 +1255,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                     <SelectValue placeholder={t('imageGen.selectModel')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {modelKeys.map(key => (
+                    {availableModelKeys.map(key => (
                       <SelectItem key={key} value={key} className="text-sm text-foreground">
                         {modelConfigs[key].name}
                         {modelConfigs[key].outputType === 'video' && <Badge variant="secondary" className="ml-2 text-[10px]">Video</Badge>}
