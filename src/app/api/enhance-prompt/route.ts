@@ -147,12 +147,13 @@ export async function POST(request: NextRequest) {
       console.warn('OPENAI_API_KEY not set. Falling back to Pollinations.');
       const pollinationsKey = process.env.POLLINATIONS_API_KEY;
       const result = await getPollinationsChatCompletion({
-        modelId: 'openai',
+        modelId: 'openai-fast',
         messages: [
           { role: 'user', content: prompt },
         ],
         systemPrompt: systemMessage,
         apiKey: pollinationsKey,
+        maxCompletionTokens: 500,
       });
       enhancedText = result.responseText;
     }

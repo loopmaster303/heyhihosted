@@ -85,6 +85,28 @@ export const modelConfigs: Record<string, ReplicateModelConfig> = {
       { name: "lora_scale", label: "LoRA Scale", type: "number", default: 1.0, min: 0, max: 2, step: 0.1, info: "Scale factor for LoRA weights.", hidden: true },
     ]
   },
+  "qwenrud": {
+    id: "qwenrud",
+    name: "Qwen Rüdiger",
+    outputType: "image",
+    description: "Custom Qwen-based image generator tuned for consistent character styling.",
+    inputs: [
+      { name: "prompt", label: "Prompt", type: "text", required: true, placeholder: "Describe your scene – makes detailed, lifelike photos and can also draw text.", info: "Main description of the desired image.", isPrompt: true },
+      { name: "negative_prompt", label: "Negative Prompt", type: "text", placeholder: "Optional elements to avoid.", info: "Describe what should be excluded from the image." },
+      { name: "aspect_ratio", label: "Aspect Ratio", type: "select", default: "16:9", options: ["1:1", "16:9", "9:16", "4:3", "3:4", "2:3"], info: "Select the aspect ratio for the output." },
+      { name: "output_format", label: "Output Format", type: "select", default: "png", options: ["png", "webp", "jpg"], info: "Choose the file format for the generated image." },
+      { name: "seed", label: "Seed", type: "number", placeholder: "Leave blank for random", info: "Random seed for reproducible generations." },
+      { name: "enhance_prompt", label: "Enhance Prompt", type: "boolean", default: false, hidden: true },
+      { name: "image_size", label: "Image Size", type: "select", default: "optimize_for_quality", options: ["optimize_for_quality", "optimize_for_speed"], hidden: true },
+      { name: "width", label: "Width", type: "number", min: 512, max: 2048, hidden: true },
+      { name: "height", label: "Height", type: "number", min: 512, max: 2048, hidden: true },
+      { name: "go_fast", label: "Go Fast", type: "boolean", default: false, hidden: true },
+      { name: "num_inference_steps", label: "Inference Steps", type: "number", default: 50, min: 0, max: 50, hidden: true },
+      { name: "guidance", label: "Guidance", type: "number", default: 4, min: 0, max: 10, hidden: true },
+      { name: "output_quality", label: "Output Quality", type: "number", default: 100, min: 0, max: 100, hidden: true },
+      { name: "lora_scale", label: "LoRA Scale", type: "number", default: 1, min: 0, max: 3, hidden: true },
+    ],
+  },
 
   // === EDITOREN (Bildbearbeitung & Input-Capabilities) ===
   "nano-banana": {

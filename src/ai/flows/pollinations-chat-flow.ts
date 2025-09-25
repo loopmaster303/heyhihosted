@@ -33,6 +33,12 @@ const PollinationsChatInputSchemaInternal = z.object({
   systemPrompt: z.string().optional().describe('An optional system prompt to guide the AI.'),
   // New field to pass the token securely
   apiKey: z.string().optional().describe('The API key for authentication.'),
+  maxCompletionTokens: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Optional cap for completion tokens (Azure models expect max_completion_tokens).'),
 });
 
 export type PollinationsChatInput = z.infer<typeof PollinationsChatInputSchemaInternal>;
@@ -50,7 +56,7 @@ const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
 export async function getPollinationsChatCompletion(
   input: PollinationsChatInput
 ): Promise<PollinationsChatOutput> {
-  const { messages: historyMessages, modelId, systemPrompt, apiKey } = input;
+  const { messages: historyMessages, modelId, systemPrompt, apiKey, maxCompletionTokens } = input;
   
   if (!apiKey) {
       console.warn('getPollinationsChatCompletion called without an apiKey. Requests may fail or be rate-limited.');
@@ -61,6 +67,10 @@ export async function getPollinationsChatCompletion(
     model: modelId,
     messages: historyMessages, // Directly use the history messages
   };
+
+  if (typeof maxCompletionTokens === 'number') {
+    payload.max_completion_tokens = maxCompletionTokens;
+  }
 
   // Add system prompt as a top-level parameter if it exists and is not empty
   // This is more compatible across different Pollinations models than using role: 'system'

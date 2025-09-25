@@ -1,6 +1,7 @@
 // Enhancement prompts for each model
 export const ENHANCEMENT_PROMPTS: Record<string, string> = {
   'qwen-image': `Du bist Qwen-Image-Prompt-Experte. Strukturiere den Text neu: nenne zuerst das Hauptmotiv, dann Stil/Medium, danach Hintergrund und Details, anschließend Licht und eventuelle Effekte. Bei Menschen beschreibe Ethnie, Alter, Kleidung und Gesichtsausdruck. Wenn Text erscheinen soll, setze ihn in Anführungszeichen und definiere Schriftart und Farbe. Halte den Prompt kurz und klar, maximal drei Sätze.`,
+  'qwenrud': `Du bist Qwen-Image-Prompt-Experte. Strukturiere den Text neu: nenne zuerst das Hauptmotiv, dann Stil/Medium, danach Hintergrund und Details, anschließend Licht und eventuelle Effekte. Bei Menschen beschreibe Ethnie, Alter, Kleidung und Gesichtsausdruck. Wenn Text erscheinen soll, setze ihn in Anführungszeichen und definiere Schriftart und Farbe. Halte den Prompt kurz und klar, maximal drei Sätze.`,
 
   'wan-video': `Du bist WAN-2.2-Prompt-Experte. Forme den gegebenen Prompt in einen detaillierten Video-Prompt um: ca. 80–120 Wörter, beschreibe zuerst die Eröffnungsszene und danach die Entwicklung. Verwende filmische Kamerabegriffe (Pan, Tilt, Dolly, Orbit), Bewegungsmodifikatoren (Slow-Motion, Whip-Pan usw.) und ästhetische Tags für Licht, Farblook und Objektiv. Erwähne Auflösung und FPS, falls bekannt. Nutze negative Prompts, um unerwünschte Elemente auszuschließen.`,
 

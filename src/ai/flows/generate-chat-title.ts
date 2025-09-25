@@ -38,7 +38,8 @@ export async function generateChatTitle(input: GenerateChatTitleInput): Promise<
       messages: [{
         role: 'user',
         content: `Conversation messages:\n\n${input.messages}\n\nConcise Title:`
-      }]
+      }],
+      maxCompletionTokens: 60,
     };
 
     const { responseText } = await getPollinationsChatCompletion(apiInput);
