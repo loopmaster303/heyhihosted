@@ -50,7 +50,7 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
   const supportsBrowsing = !!selectedModel?.webBrowsing;
   return (
     <div
-      className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300 flex flex-col max-h-[400px]"
+      className="absolute bottom-full mb-2 left-0 w-full max-w-[min(100vw-1.5rem,32rem)] bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300 flex flex-col max-h-[70vh]"
     >
       <div className="flex justify-between items-center px-2 pt-1 pb-2 flex-shrink-0">
         <h3 className="text-sm font-semibold text-foreground">{t('imageGen.configuration')}</h3>
@@ -59,8 +59,8 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
           {t('imageGen.close')}
         </Button>
       </div>
-      <ScrollArea className="flex-grow">
-        <div className="grid gap-4 p-2">
+      <ScrollArea className="flex-grow pr-1">
+        <div className="grid gap-4 p-2 pb-4">
             <div className="space-y-2">
                 <p className="font-medium leading-none text-sm flex items-center gap-2"><Brain className="w-4 h-4" />{t('settings.aiModelText') || 'AI Model (Text)'}</p>
                 <Select value={selectedModelId} onValueChange={onModelChange}>

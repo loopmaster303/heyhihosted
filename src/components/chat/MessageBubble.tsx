@@ -21,6 +21,8 @@ interface MessageBubbleProps {
   onRegenerate?: () => void;
   isLastMessage?: boolean;
   isAiResponding?: boolean;
+  shouldAnimate?: boolean;
+  onTypewriterComplete?: (messageId: string) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -33,6 +35,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onRegenerate,
   isLastMessage,
   isAiResponding = false,
+  shouldAnimate = false,
+  onTypewriterComplete,
 }) => {
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
@@ -46,16 +50,26 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       return null;
   }
 
-  // Typewriter effect for assistant messages
   const textContent = getTextContent();
-  const shouldUseTypewriter = isAssistant && textContent && !isUser;
+  const shouldUseTypewriter = Boolean(shouldAnimate && isAssistant && textContent && message.id !== 'loading');
   
   const { displayedText, isTyping, isComplete } = useTypewriter({
     text: textContent || '',
     speed: 25, // milliseconds per character
     delay: 0,
-    skipAnimation: !shouldUseTypewriter || message.id === 'loading'
+    skipAnimation: !shouldUseTypewriter,
+    onComplete: () => {
+      if (shouldUseTypewriter) {
+        onTypewriterComplete?.(message.id);
+      }
+    }
   });
+
+  React.useEffect(() => {
+    if (!shouldUseTypewriter && shouldAnimate && textContent) {
+      onTypewriterComplete?.(message.id);
+    }
+  }, [shouldUseTypewriter, shouldAnimate, textContent, onTypewriterComplete, message.id]);
 
   const handlePlayClick = () => {
     const textContent = getTextContent();

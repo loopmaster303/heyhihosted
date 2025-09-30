@@ -18,12 +18,13 @@ export interface VoiceOption {
   name: string; // Display name, e.g., "German (Female, Natural)"
 }
 
-// Curated model list - Standard: GPT-5 Nano, Rest: Selected models
+// Curated model list - Standard: GPT-5 Chat (large), Rest: Selected models
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     // Standard Model
-    { id: "openai", name: "OpenAI GPT-5 Nano", description: "OpenAI GPT-5 Nano", vision: true },
+    { id: "openai-large", name: "OpenAI GPT-5 Chat", description: "OpenAI GPT-5 Chat", vision: true },
     
     // Premium Models
+    { id: "openai", name: "OpenAI GPT-5 Nano", description: "OpenAI GPT-5 Nano", vision: true },
     { id: "openai-fast", name: "OpenAI GPT-4.1 Nano", description: "OpenAI GPT-4.1 Nano", vision: true },
     
     // Specialized Models
@@ -188,8 +189,8 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
   { id: 'R8_8CZH4KMY', name: 'Dev' },
 ];
 
-// Default to OpenAI GPT-5 Nano for new users/chats
-export const DEFAULT_POLLINATIONS_MODEL_ID = 'openai';
+// Default to OpenAI GPT-5 Chat for new users/chats
+export const DEFAULT_POLLINATIONS_MODEL_ID = 'openai-large';
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // For in-chat image generation (align with bild.gen.lite)

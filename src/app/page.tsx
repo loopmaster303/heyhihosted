@@ -182,11 +182,15 @@ export default function HomePage() {
                                                 <div className="flex items-center gap-2 sm:gap-3">
                                                     <p className={`${item.tagColor} text-base sm:text-lg md:text-xl`}>{t(item.tagKey)}</p>
                                                 </div>
-                                                <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1">
-                                                    <p className="text-sm sm:text-base"><span className="text-gray-400">import </span><span className="text-gray-200">{t(item.importTextKey).match(/\[.*?\]/)?.[0]}</span></p>
-                                                </div>
-                                                <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1">
-                                                    <p className="text-sm sm:text-base"><span className="text-gray-400">export </span><span className="text-gray-200">{t(item.exportTextKey).match(/\[.*?\]/)?.[0]}</span></p>
+                                                <div className="space-y-1 mt-0.5 sm:mt-1 text-sm sm:text-base">
+                                                    <div className="grid grid-cols-[auto,1fr] gap-x-2">
+                                                        <span className="text-gray-400 whitespace-nowrap">import</span>
+                                                        <span className="text-gray-200 break-words">{t(item.importTextKey).match(/\[.*?\]/)?.[0]}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-[auto,1fr] gap-x-2">
+                                                        <span className="text-gray-400 whitespace-nowrap">export</span>
+                                                        <span className="text-gray-200 break-words">{t(item.exportTextKey).match(/\[.*?\]/)?.[0]}</span>
+                                                    </div>
                                                 </div>
                                             </motion.div>
                                         )}
@@ -229,11 +233,15 @@ export default function HomePage() {
                                                 <div className="flex items-center gap-2 sm:gap-3">
                                                     <p className={`${item.tagColor} text-base sm:text-lg md:text-xl`}>{t(item.tagKey)}</p>
                                                 </div>
-                                                <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1">
-                                                    <p className="text-sm sm:text-base"><span className="text-gray-400">import </span><span className="text-gray-200">{t(item.importTextKey).match(/\[.*?\]/)?.[0]}</span></p>
-                                                </div>
-                                                <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1">
-                                                    <p className="text-sm sm:text-base"><span className="text-gray-400">export </span><span className="text-gray-200">{t(item.exportTextKey).match(/\[.*?\]/)?.[0]}</span></p>
+                                                <div className="space-y-1 mt-0.5 sm:mt-1 text-sm sm:text-base">
+                                                    <div className="grid grid-cols-[auto,1fr] gap-x-2">
+                                                        <span className="text-gray-400 whitespace-nowrap">import</span>
+                                                        <span className="text-gray-200 break-words">{t(item.importTextKey).match(/\[.*?\]/)?.[0]}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-[auto,1fr] gap-x-2">
+                                                        <span className="text-gray-400 whitespace-nowrap">export</span>
+                                                        <span className="text-gray-200 break-words">{t(item.exportTextKey).match(/\[.*?\]/)?.[0]}</span>
+                                                    </div>
                                                 </div>
                                             </motion.div>
                                         )}

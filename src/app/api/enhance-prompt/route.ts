@@ -148,16 +148,26 @@ export async function POST(request: NextRequest) {
     } else {
       console.warn('OPENAI_API_KEY not set. Falling back to Pollinations.');
       const pollinationsKey = process.env.POLLINATIONS_API_KEY;
-      const result = await getPollinationsChatCompletion({
-        modelId: 'openai-fast',
-        messages: [
-          { role: 'user', content: prompt },
-        ],
-        systemPrompt: systemMessage,
-        apiKey: pollinationsKey,
-        maxCompletionTokens: 500,
-      });
-      enhancedText = result.responseText;
+      try {
+        const result = await getPollinationsChatCompletion({
+          modelId: 'openai-fast',
+          messages: [
+            { role: 'user', content: prompt },
+          ],
+          systemPrompt: systemMessage,
+          apiKey: pollinationsKey,
+          maxCompletionTokens: 500,
+        });
+        enhancedText = result.responseText;
+      } catch (pollinationsError) {
+        const message = pollinationsError instanceof Error ? pollinationsError.message : String(pollinationsError);
+        if (message.includes('Input text exceeds maximum length')) {
+          console.warn('Pollinations prompt too long, returning original prompt without enhancement.');
+          enhancedText = prompt;
+        } else {
+          throw pollinationsError;
+        }
+      }
     }
 
     const cleaned = sanitizeEnhancedPrompt(enhancedText || prompt);

@@ -99,8 +99,9 @@ export async function POST(request: NextRequest) {
     let prediction = await startResponse.json();
 
     const isWanVideo = modelKey === 'wan-video' || modelKey === 'wan-2.5-t2v';
-    const pollDelayMs = isWanVideo ? 4000 : 2000;
-    const maxAttempts = isWanVideo ? 150 : 60;
+    const isLongVideoModel = isWanVideo || modelKey === 'hailuo-02' || modelKey === 'veo-3-fast';
+    const pollDelayMs = isLongVideoModel ? 4000 : 2000;
+    const maxAttempts = isLongVideoModel ? 150 : 60;
 
     let retryCount = 0;
     while (

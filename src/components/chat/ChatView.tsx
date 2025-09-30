@@ -31,6 +31,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   className,
 }) => {
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const animatedAssistantMessagesRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     // This effect now triggers whenever the lastUserMessageId changes.
@@ -64,24 +65,31 @@ const ChatView: React.FC<ChatViewProps> = ({
   return (
     <div className={cn("w-full h-auto flex flex-col bg-transparent", className)}>
       <div className="flex-grow space-y-0">
-        {messages.map((msg, index) => (
-          <div 
-            key={msg.id} 
-            ref={el => { messageRefs.current[msg.id] = el; }}
-          >
-            <MessageBubble 
-              message={msg}
-              onPlayAudio={onPlayAudio}
-              isPlaying={playingMessageId === msg.id}
-              isLoadingAudio={isTtsLoadingForId === msg.id}
-              isAnyAudioActive={playingMessageId !== null || isTtsLoadingForId !== null}
-              onCopy={onCopyToClipboard}
-              onRegenerate={onRegenerate}
-              isLastMessage={isLastMessageForRegeneration(index)}
-              isAiResponding={isAiResponding && index === messages.length - 1}
-            />
-          </div>
-        ))}
+        {messages.map((msg, index) => {
+          const isLast = index === messages.length - 1;
+          const shouldAnimate = msg.role === 'assistant' && msg.id !== 'loading' && isLast && !animatedAssistantMessagesRef.current.has(msg.id);
+
+          return (
+            <div 
+              key={msg.id} 
+              ref={el => { messageRefs.current[msg.id] = el; }}
+            >
+              <MessageBubble 
+                message={msg}
+                onPlayAudio={onPlayAudio}
+                isPlaying={playingMessageId === msg.id}
+                isLoadingAudio={isTtsLoadingForId === msg.id}
+                isAnyAudioActive={playingMessageId !== null || isTtsLoadingForId !== null}
+                onCopy={onCopyToClipboard}
+                onRegenerate={onRegenerate}
+                isLastMessage={isLastMessageForRegeneration(index)}
+                isAiResponding={isAiResponding && isLast}
+                shouldAnimate={shouldAnimate}
+                onTypewriterComplete={(id) => animatedAssistantMessagesRef.current.add(id)}
+              />
+            </div>
+          );
+        })}
         {isAiResponding && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
            <MessageBubble 
              message={{ id: 'loading', role: 'assistant', content: '', timestamp: new Date().toISOString() }} 
