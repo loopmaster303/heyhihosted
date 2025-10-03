@@ -1262,7 +1262,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                   </div>
                 )}
                 <Select value={selectedModelKey} onValueChange={handleModelChange} disabled={loading}>
-                  <SelectTrigger className="bg-white/20 border border-white/30 h-11 w-auto px-3 rounded-lg text-sm hover:bg-white/30 focus-visible:ring-white text-white">
+                  <SelectTrigger className="bg-white/20 border border-white/30 h-11 w-auto px-3 rounded-lg text-sm hover:bg-white/30 focus-visible:ring-white text-gray-800 dark:text-white">
                     <SelectValue placeholder={t('imageGen.selectModel')} />
                   </SelectTrigger>
                   <SelectContent>

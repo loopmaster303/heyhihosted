@@ -453,7 +453,7 @@ const VisualizingLoopsTool: FC = () => {
               </div>
               <div className="flex w-full sm:w-auto items-center justify-end gap-2 mt-2 sm:mt-0 sm:ml-2">
                  <Select value={model} onValueChange={setModel} disabled={loading}>
-                  <SelectTrigger className="bg-muted/20 border border-border/30 h-12 w-auto px-3 rounded-lg text-base hover:bg-muted/40 focus-visible:ring-primary text-foreground">
+                  <SelectTrigger className="bg-muted/20 border border-border/30 h-12 w-auto px-3 rounded-lg text-base hover:bg-muted/40 focus-visible:ring-primary text-gray-800 dark:text-foreground">
                     <SelectValue placeholder={t('imageGen.selectModel')} />
                   </SelectTrigger>
                   <SelectContent>
