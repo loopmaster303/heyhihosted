@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 
-const SUPPORTED_POLLINATIONS_MODELS = ['flux', 'turbo', 'kontext']; // Pollinations models with context support
+const SUPPORTED_POLLINATIONS_MODELS = ['flux', 'turbo', 'nanobanana', 'seedream']; // Pollinations models with context support
 
 export async function GET() {
   try {

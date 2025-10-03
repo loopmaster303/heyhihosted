@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { handleApiError, validateRequest, apiErrors } from '@/lib/api-error-handler';
 
 // This route handles Pollinations.ai API calls for image generation with context support
-// Supports models: flux, turbo, kontext
+// Supports models: flux, turbo, nanobanana, seedream
 
 const ImageGenerationSchema = z.object({
   prompt: z.string().min(1, 'Prompt is required'),
