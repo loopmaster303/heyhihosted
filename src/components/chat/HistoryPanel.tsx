@@ -1,11 +1,12 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { MessageSquareText, Pencil, Trash2, Plus, X } from 'lucide-react';
+import { MessageSquareText, Pencil, Trash2, Plus, X, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Conversation } from '@/types';
 import { useLanguage } from '../LanguageProvider';
@@ -32,8 +33,37 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   onClose
 }) => {
   const { t } = useLanguage();
-  const filteredConversations = allConversations.filter(c => c.toolType === 'long language loops');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter conversations by tool type first
+  const toolFilteredConversations = useMemo(() => 
+    allConversations.filter(c => c.toolType === 'long language loops'),
+    [allConversations]
+  );
+
+  // Then filter by search query
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return toolFilteredConversations;
+    }
+
+    const query = searchQuery.toLowerCase();
+    return toolFilteredConversations.filter(conv => {
+      // Search in title
+      if (conv.title.toLowerCase().includes(query)) {
+        return true;
+      }
+
+      // Search in message content [[memory:7636151]]
+      return conv.messages.some(msg => {
+        if (msg.role === 'user' && typeof msg.content === 'string') {
+          return msg.content.toLowerCase().includes(query);
+        }
+        return false;
+      });
+    });
+  }, [toolFilteredConversations, searchQuery]);
 
   const handleNewChat = () => {
     onStartNewChat();
@@ -50,9 +80,26 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
             {t('imageGen.close')}
         </Button>
       </div>
+      
+      {/* Search Input */}
+      <div className="px-2 pb-2">
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder={t('chat.searchPlaceholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 text-sm h-8"
+          />
+        </div>
+      </div>
+
       <ScrollArea className="h-full max-h-64">
         {filteredConversations.length === 0 ? (
-            <p className="text-xs text-muted-foreground p-2 text-center">{t('chat.noHistory') || 'No history yet.'}</p>
+            <p className="text-xs text-muted-foreground p-2 text-center">
+              {searchQuery.trim() ? 'Keine Gespräche gefunden für diese Suche.' : t('chat.noHistory')}
+            </p>
         ) : (
             <div className="flex flex-col space-y-1 pr-2">
             {filteredConversations.map(conv => (

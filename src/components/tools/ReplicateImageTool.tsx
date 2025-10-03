@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, Info, ImageIcon, X, FileImage, Plus, Sparkles } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import useEscapeKey from '@/hooks/useEscapeKey';
 import NextImage from 'next/image';
 import { modelConfigs, modelKeys, type ReplicateModelConfig, type ReplicateModelInput } from '@/config/replicate-models';
 import { Slider } from '@/components/ui/slider';
@@ -173,6 +174,10 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
     setIsHistoryPanelOpen(false);
     setIsConfigPanelOpen(false);
   }, 'radix-select-content');
+
+  // ESC Key handlers for panels
+  useEscapeKey(() => setIsHistoryPanelOpen(false), isHistoryPanelOpen);
+  useEscapeKey(() => setIsConfigPanelOpen(false), isConfigPanelOpen);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -1129,14 +1134,14 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 
           <form onSubmit={handleSubmit}>
             {/* Prompt Input aligned like Lite tool */}
-            <div className="bg-secondary rounded-2xl p-3 shadow-xl flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="bg-pink-100 dark:bg-gray-800 text-gray-800 dark:text-white rounded-2xl p-3 shadow-lg flex flex-col sm:flex-row sm:items-center gap-2">
               <Textarea
                 key={`prompt-${selectedModelKey}-${language}`}
                 ref={textareaRef}
                 value={mainPromptValue}
                 onChange={handleMainPromptChange}
                 placeholder={getPromptPlaceholder()}
-                className="flex-grow sm:flex-1 w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none px-3 py-2 m-0 leading-tight resize-none overflow-y-auto font-medium min-h-[56px]"
+                className="flex-grow sm:flex-1 w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none px-3 py-2 m-0 leading-tight resize-none overflow-y-auto font-medium min-h-[56px]"
                 rows={1}
                 disabled={loading || !currentModelConfig}
                 aria-label="Main prompt input"
@@ -1257,7 +1262,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                   </div>
                 )}
                 <Select value={selectedModelKey} onValueChange={handleModelChange} disabled={loading}>
-                  <SelectTrigger className="bg-background/50 h-11 w-auto px-3 rounded-lg text-sm hover:bg-muted focus-visible:ring-primary border-border text-foreground">
+                  <SelectTrigger className="bg-white/20 border border-white/30 h-11 w-auto px-3 rounded-lg text-sm hover:bg-white/30 focus-visible:ring-white text-white">
                     <SelectValue placeholder={t('imageGen.selectModel')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -1273,7 +1278,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                   type="button" 
                   onClick={handleEnhancePrompt}
                   disabled={!mainPromptValue.trim() || !selectedModelKey || loading || isEnhancing}
-                  className="h-11 px-3 rounded-lg bg-background/50 hover:bg-muted text-foreground"
+                  className="h-11 px-3 rounded-lg bg-muted/20 border border-border/30 hover:bg-muted/40 text-foreground"
                   title="Enhance prompt with AI"
                 >
                   {isEnhancing ? (
@@ -1282,7 +1287,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
                     <Sparkles className="h-4 w-4" />
                   )}
                 </Button>
-                <Button type="submit" disabled={!canSubmit} className="h-11 px-4 rounded-lg bg-background/50 hover:bg-muted text-foreground">
+                <Button type="submit" disabled={!canSubmit} className="h-11 px-4 rounded-lg bg-muted/20 border border-border/30 hover:bg-muted/40 text-foreground">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('imageGen.execute')}
                 </Button>
               </div>

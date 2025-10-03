@@ -4,6 +4,7 @@ import ReplicateImageTool from '@/components/tools/ReplicateImageTool';
 import NewAppHeader from '@/components/page/NewAppHeader';
 import type { TileItem } from '@/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const toolTileItems: TileItem[] = [
     { id: 'long language loops', title: '</chat.talk.discuss>', href: '/chat' },
@@ -17,11 +18,16 @@ export default function RawImageGenPage() {
   const [userDisplayName] = useLocalStorageState<string>('userDisplayName', 'john');
   const [replicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
   return (
-    <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-        <NewAppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName || 'john'} />
-        <main className="flex flex-col flex-grow pt-16">
-            <ReplicateImageTool password={replicateToolPassword} />
-        </main>
-    </div>
+    <ErrorBoundary
+      fallbackTitle="Bildgenerierung konnte nicht geladen werden"
+      fallbackMessage="Es gab ein Problem beim Laden der erweiterten Bildgenerierung. Bitte versuche es erneut."
+    >
+      <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+          <NewAppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName || 'john'} />
+          <main className="flex flex-col flex-grow pt-16">
+              <ReplicateImageTool password={replicateToolPassword} />
+          </main>
+      </div>
+    </ErrorBoundary>
   );
 }

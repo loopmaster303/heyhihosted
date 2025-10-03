@@ -1,32 +1,38 @@
 
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { handleApiError, validateRequest, requireEnv, ApiError } from '@/lib/api-error-handler';
 
 const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
+
+// Validation schema
+const ChatCompletionSchema = z.object({
+  messages: z.array(z.any()).min(1, 'At least one message is required'),
+  modelId: z.string().min(1, 'Model ID is required'),
+  systemPrompt: z.string().optional(),
+  webBrowsingEnabled: z.boolean().optional(),
+});
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-
-    // The client no longer sends the API key.
-    const { messages, modelId, systemPrompt } = body;
     
-    if (!messages || !modelId) {
-      return NextResponse.json({ error: 'Missing required fields: messages and modelId' }, { status: 400 });
-    }
+    // Validate request
+    const { messages, modelId, systemPrompt, webBrowsingEnabled } = validateRequest(ChatCompletionSchema, body);
+
+    // If web browsing is enabled, force Gemini Flash model
+    const effectiveModelId = webBrowsingEnabled ? "gemini-flash" : modelId;
 
     // Handle GPT-OSS-120b model with Replicate API
-    if (modelId === "gpt-oss-120b") {
+    if (effectiveModelId === "gpt-oss-120b") {
       console.log("Using GPT-OSS-120b via Replicate API");
       
-      if (!process.env.REPLICATE_API_TOKEN) {
-        console.error("REPLICATE_API_TOKEN is not set");
-        return NextResponse.json({ error: 'Replicate API token is not configured on the server.' }, { status: 500 });
-      }
+      const REPLICATE_API_TOKEN = requireEnv('REPLICATE_API_TOKEN');
       
       const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: {
-          "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
+          "Authorization": `Token ${REPLICATE_API_TOKEN}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -45,7 +51,11 @@ export async function POST(request: Request) {
       if (!replicateResponse.ok) {
         const errorText = await replicateResponse.text();
         console.error("Replicate API error:", errorText);
-        throw new Error(`Replicate API error: ${replicateResponse.status} ${errorText}`);
+        throw new ApiError(
+          502,
+          `Replicate API error: ${replicateResponse.status}`,
+          'REPLICATE_API_ERROR'
+        );
       }
 
       const replicateData = await replicateResponse.json();
@@ -60,7 +70,7 @@ export async function POST(request: Request) {
         
         const statusResponse = await fetch(replicateData.urls.get, {
           headers: {
-            "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
+            "Authorization": `Token ${REPLICATE_API_TOKEN}`,
           }
         });
         
@@ -69,14 +79,14 @@ export async function POST(request: Request) {
         if (statusData.status === "succeeded") {
           result = statusData.output;
         } else if (statusData.status === "failed") {
-          throw new Error("Replicate prediction failed");
+          throw new ApiError(500, "Replicate prediction failed", 'PREDICTION_FAILED');
         }
         
         attempts++;
       }
       
       if (!result) {
-        throw new Error("Replicate prediction timed out");
+        throw new ApiError(504, "Replicate prediction timed out", 'PREDICTION_TIMEOUT');
       }
       
       // Log the result for debugging
@@ -103,7 +113,7 @@ export async function POST(request: Request) {
     }
 
     const payload: Record<string, any> = {
-      model: modelId,
+        model: effectiveModelId,
       messages: messages,
     };
 
@@ -112,19 +122,12 @@ export async function POST(request: Request) {
     }
 
     // Securely get the API key from server-side environment variables.
-    const apiKey = process.env.POLLINATIONS_API_TOKEN;
+    const apiKey = requireEnv('POLLINATIONS_API_TOKEN');
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
     };
-    
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
-    } else {
-        // If the key is missing on the server, fail early.
-        console.error('Error: POLLINATIONS_API_TOKEN is not set in the environment variables.');
-        return NextResponse.json({ error: 'API key is not configured on the server.' }, { status: 500 });
-    }
 
     const response = await fetch(POLLINATIONS_API_URL, {
       method: 'POST',
@@ -132,35 +135,22 @@ export async function POST(request: Request) {
       body: JSON.stringify(payload),
     });
 
-    // Detailed logging for non-OK responses
+    // Handle non-OK responses
     if (!response.ok) {
       const errorText = await response.text();
-      let errorData;
-      try {
-        errorData = JSON.parse(errorText);
-      } catch (e) {
-        errorData = errorText; // The error is not JSON, use the raw text.
-      }
-      const detail = typeof errorData === 'string'
-          ? errorData
-          : errorData.error?.message || JSON.stringify(errorData);
-
-      console.error(`Pollinations API request failed with status ${response.status}: ${detail}`);
-      return NextResponse.json(
-        { error: `Pollinations API request failed with status ${response.status}: ${detail}` },
-        { status: response.status }
+      console.error(`Pollinations API error (${response.status}):`, errorText);
+      throw new ApiError(
+        502,
+        `Pollinations API returned status ${response.status}`,
+        'POLLINATIONS_API_ERROR'
       );
     }
     
     const result = await response.json();
     return NextResponse.json(result);
 
-  } catch (error: any) {
-    console.error('Error in /api/chat/completion:', error);
-    return NextResponse.json(
-      { error: `Internal server error: ${error.message || 'Unknown error'}` },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

@@ -1,6 +1,9 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { handleApiError, requireEnv, ApiError, apiErrors } from '@/lib/api-error-handler';
+import type { ReplicatePrediction } from '@/types/api';
 
 const MODEL_ENDPOINTS: Record<string, string> = {
   "wan-2.2-image": "prunaai/wan-2.2-image",
@@ -20,40 +23,31 @@ const MODEL_ENDPOINTS: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
-  // --- Simple Password Check ---
-  const masterPassword = process.env.REPLICATE_TOOL_PASSWORD;
-  
-  let body;
   try {
-    body = await request.json();
-  } catch (e) {
-    return NextResponse.json({ error: 'Invalid JSON in request body.' }, { status: 400 });
-  }
-  
-  // If a master password is set in the environment, we must validate it.
-  if (masterPassword) {
-    const { password: userPassword } = body;
-    if (userPassword !== masterPassword) {
-      return NextResponse.json({ error: 'Invalid or missing password. Please provide the correct password in the settings.' }, { status: 401 });
+    // --- Simple Password Check ---
+    const masterPassword = process.env.REPLICATE_TOOL_PASSWORD;
+    
+    const body = await request.json();
+    
+    // If a master password is set in the environment, we must validate it.
+    if (masterPassword) {
+      const { password: userPassword } = body;
+      if (userPassword !== masterPassword) {
+        throw apiErrors.unauthorized('Invalid or missing password. Please provide the correct password in the settings.');
+      }
     }
-  }
 
-  const replicateApiToken = process.env.REPLICATE_API_TOKEN;
-  if (!replicateApiToken) {
-    return NextResponse.json({ error: 'Server configuration error: REPLICATE_API_TOKEN is missing.' }, { status: 500 });
-  }
-  
-  const { model: modelKey, password, ...inputParams } = body;
+    const replicateApiToken = requireEnv('REPLICATE_API_TOKEN');
+    
+    const { model: modelKey, password, ...inputParams } = body;
 
-  if (!modelKey || typeof modelKey !== 'string' || !MODEL_ENDPOINTS[modelKey]) {
-    return NextResponse.json({
-      error: `Unknown or invalid model: ${modelKey}. Available: ${Object.keys(MODEL_ENDPOINTS).join(', ')}`
-    }, { status: 400 });
-  }
+    if (!modelKey || typeof modelKey !== 'string' || !MODEL_ENDPOINTS[modelKey]) {
+      throw apiErrors.badRequest(`Unknown or invalid model: ${modelKey}. Available: ${Object.keys(MODEL_ENDPOINTS).join(', ')}`);
+    }
 
   const endpoint = `https://api.replicate.com/v1/models/${MODEL_ENDPOINTS[modelKey]}/predictions`;
 
-  const sanitizedInput: Record<string, any> = {};
+  const sanitizedInput: Record<string, string | number | boolean | string[]> = {};
   for (const key in inputParams) {
     const value = inputParams[key];
     if (value !== null && value !== undefined) {
@@ -79,7 +73,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  try {
     const startResponse = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -91,12 +84,14 @@ export async function POST(request: NextRequest) {
 
     if (!startResponse.ok) {
       const errorBody = await startResponse.json().catch(() => ({ detail: `Replicate API error ${startResponse.status}.` }));
-      return NextResponse.json({
-        error: errorBody.detail || 'Failed to start prediction with Replicate.'
-      }, { status: startResponse.status });
+      throw new ApiError(
+        502,
+        errorBody.detail || 'Failed to start prediction with Replicate.',
+        'REPLICATE_START_ERROR'
+      );
     }
 
-    let prediction = await startResponse.json();
+    let prediction: ReplicatePrediction = await startResponse.json();
 
     const isWanVideo = modelKey === 'wan-video' || modelKey === 'wan-2.5-t2v';
     const isLongVideoModel = isWanVideo || modelKey === 'hailuo-02' || modelKey === 'veo-3-fast';
@@ -123,26 +118,27 @@ export async function POST(request: NextRequest) {
     if (prediction.status === "succeeded") {
       return NextResponse.json({ output: prediction.output });
     } else if (prediction.status === "failed" || prediction.status === "canceled") {
-      return NextResponse.json({
-        error: prediction.error || `Prediction ${prediction.status}.`
-      }, { status: 500 });
+      throw new ApiError(
+        500,
+        prediction.error || `Prediction ${prediction.status}.`,
+        'PREDICTION_FAILED'
+      );
     } else if (retryCount >= maxAttempts) {
-      return NextResponse.json({
-        error: 'Prediction polling timed out.',
-        status: prediction.status
-      }, { status: 504 });
+      throw new ApiError(
+        504,
+        'Prediction polling timed out.',
+        'PREDICTION_TIMEOUT'
+      );
     } else {
-      return NextResponse.json({
-        error: 'Prediction did not reach a final state.',
-        status: prediction.status || 'unknown'
-      }, { status: 500 });
+      throw new ApiError(
+        500,
+        'Prediction did not reach a final state.',
+        'PREDICTION_INCOMPLETE'
+      );
     }
 
-  } catch (err) {
-    return NextResponse.json({
-      error: 'Internal server error processing Replicate request.',
-      details: err instanceof Error ? err.message : String(err)
-    }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

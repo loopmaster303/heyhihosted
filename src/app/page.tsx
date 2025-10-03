@@ -11,6 +11,7 @@ import LanguageToggleHomepage from '@/components/LanguageToggleHomepage';
 import { Button } from '@/components/ui/button';
 import { Play, Square } from 'lucide-react';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
+import PageLoader from '@/components/ui/PageLoader';
 
 // Adjusted to match the new design's text
 const toolTileItems = [
@@ -81,11 +82,7 @@ export default function HomePage() {
 
     // Prevent hydration mismatch by not rendering until mounted
     if (!mounted) {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 pt-20">
-          <div className="text-white text-lg">Loading...</div>
-        </div>
-      );
+      return <PageLoader text="Startseite wird geladen..." className="text-white" />;
     }
 
     return (
@@ -118,7 +115,7 @@ export default function HomePage() {
                   title="Play background video"
                   aria-label="Play background video"
                   disabled={isBgVideoOn}
-                  className={cn(isBgVideoOn ? 'text-foreground/40' : 'text-green-500 hover:text-green-600')}
+                    className={cn(isBgVideoOn ? 'text-foreground/40' : 'text-green-500 hover:text-green-600')}
                 >
                   <Play className="h-4 w-4" />
                 </Button>
@@ -129,7 +126,7 @@ export default function HomePage() {
                   title="Stop background video"
                   aria-label="Stop background video"
                   disabled={!isBgVideoOn}
-                  className={cn(!isBgVideoOn ? 'text-foreground/40' : 'text-red-500 hover:text-red-600')}
+                    className={cn(!isBgVideoOn ? 'text-foreground/40' : 'text-red-500 hover:text-red-600')}
                 >
                   <Square className="h-4 w-4" />
                 </Button>
@@ -138,7 +135,7 @@ export default function HomePage() {
             <main className="w-full flex flex-col items-center p-6 md:p-8 relative" style={{ maxWidth: '1020px' }}>
                 {/* Local gradient removed; global full-screen gradient added above */}
                 <h1 className="text-4xl sm:text-5xl md:text-7xl font-code text-white text-glow mb-8 sm:mb-12 text-center">
-                    <span className="text-gray-400">(</span>
+                    <span className="text-gray-400">()</span>
                     !hey.hi
                     <span className="text-gray-400"> = </span> 
                     <span className="text-transparent bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text">{`'space'`}</span>
@@ -169,7 +166,7 @@ export default function HomePage() {
                                                 className="h-full"
                                             >
                                                 <h2 className={`font-bold text-base sm:text-lg mb-1 sm:mb-2 ${item.tagColor}`}>{t(item.hoverTitleKey)}</h2>
-                                                <p className="text-white/80 text-[11px] sm:text-xs whitespace-pre-line leading-relaxed">{t(item.translationKey)}</p>
+                                                <p className="text-white/80 text-xs sm:text-sm whitespace-pre-line leading-relaxed">{t(item.translationKey)}</p>
                                             </motion.div>
                                         ) : (
                                             <motion.div
@@ -220,7 +217,7 @@ export default function HomePage() {
                                                 className="h-full"
                                             >
                                                 <h2 className={`font-bold text-base sm:text-lg mb-1 sm:mb-2 ${item.tagColor}`}>{t(item.hoverTitleKey)}</h2>
-                                                <p className="text-white/80 text-[11px] sm:text-xs whitespace-pre-line leading-relaxed">{t(item.translationKey)}</p>
+                                                <p className="text-white/80 text-xs sm:text-sm whitespace-pre-line leading-relaxed">{t(item.translationKey)}</p>
                                             </motion.div>
                                         ) : (
                                             <motion.div

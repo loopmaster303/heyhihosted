@@ -6,8 +6,19 @@ import { useToast } from "@/hooks/use-toast";
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from './LanguageProvider';
 import { generateUUID } from '@/lib/uuid';
+import useEscapeKey from '@/hooks/useEscapeKey';
 
 import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
+import type { 
+  PollinationsChatCompletionResponse, 
+  ImageGenerationResponse, 
+  TitleGenerationResponse,
+  ImageModelsResponse,
+  TTSResponse,
+  STTResponse,
+  ApiErrorResponse,
+} from '@/types/api';
+import { isApiErrorResponse, isPollinationsChatResponse } from '@/types/api';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES, FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL, CODE_REASONING_SYSTEM_PROMPT } from '@/config/chat-options';
 
 
@@ -44,6 +55,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const [isImageMode, setIsImageMode] = useState(false);
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
     const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
+    const [webBrowsingEnabled, setWebBrowsingEnabled] = useState(false);
   
     const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
     const [isTtsLoadingForId, setIsTtsLoadingForId] = useState<string | null>(null);
@@ -51,6 +63,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const [chatInputValue, setChatInputValue] = useState('');
 
     const [selectedVoice, setSelectedVoice] = useState<string>(AVAILABLE_TTS_VOICES[0].id);
+
+    // Retry State for failed requests
+    const [lastFailedRequest, setLastFailedRequest] = useState<{
+        messageText: string;
+        options?: { isImageModeIntent?: boolean; isRegeneration?: boolean; messagesForApi?: ChatMessage[] };
+        timestamp: number;
+    } | null>(null);
 
     // STT State
     const [isRecording, setIsRecording] = useState(false);
@@ -117,6 +136,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
     const closeAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(false), []);
 
+    // ESC Key handlers for panels
+    useEscapeKey(closeHistoryPanel, isHistoryPanelOpen);
+    useEscapeKey(closeAdvancedPanel, isAdvancedPanelOpen);
+
     // Core Chat Logic Functions (can now reference helpers defined above)
 
     const toggleImageMode = useCallback(() => {
@@ -152,10 +175,14 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ messages: textContent }),
                   });
-                  const result = await response.json();
-                  if (!response.ok) throw new Error(result.error || 'Failed to generate title.');
+                  const result: TitleGenerationResponse | ApiErrorResponse = await response.json();
+                  if (!response.ok || isApiErrorResponse(result)) {
+                    const errorMsg = isApiErrorResponse(result) ? result.error : 'Failed to generate title.';
+                    throw new Error(errorMsg);
+                  }
                   
-                  const newTitle = result.title || "Chat";
+                  const titleResult = result as TitleGenerationResponse;
+                  const newTitle = titleResult.title || "Chat";
                   const finalTitle = newTitle.replace(/^"|"$/g, '').trim();
 
                   setActiveConversation(prev => prev ? { ...prev, title: finalTitle } : null);
@@ -172,6 +199,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }, [allConversations, activeConversation, setActiveConversation]);
     
 
+
+    const retryLastRequestRef = useRef<(() => Promise<void>) | null>(null);
 
     const sendMessage = useCallback(async (
       _messageText: string,
@@ -285,72 +314,20 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ prompt: chatInputValue.trim(), model: selectedImageModelId, private: true }),
               });
-              const result = await response.json();
-              if (!response.ok) throw new Error(result.error || 'Failed to generate image.');
+              const result: ImageGenerationResponse | ApiErrorResponse = await response.json();
+              if (!response.ok || isApiErrorResponse(result)) {
+                const errorMsg = isApiErrorResponse(result) ? result.error : 'Failed to generate image.';
+                throw new Error(errorMsg);
+              }
               
+              const imageResult = result as ImageGenerationResponse;
               const aiResponseContent: ChatMessageContentPart[] = [
                   { type: 'text', text: `Generated image for: "${chatInputValue.trim()}" (Model: ${selectedImageModelId})` },
-                  { type: 'image_url', image_url: { url: result.imageUrl, altText: `Generated image for ${chatInputValue.trim()}`, isGenerated: true } }
+                  { type: 'image_url', image_url: { url: imageResult.imageUrl, altText: `Generated image for ${chatInputValue.trim()}`, isGenerated: true } }
               ];
               aiMessage = { id: generateUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
           } else {
               
-              // Optional Web Browsing chain if enabled
-              let finalMessagesForApi: ApiChatMessage[] = historyForApi;
-              const browsingEnabled = !!activeConversation.webBrowsingEnabled;
-              if (browsingEnabled) {
-                try {
-                  // Derive latest user query text
-                  const lastUser = [...updatedMessagesForState].reverse().find(m => m.role === 'user');
-                  let queryText = '';
-                  if (lastUser) {
-                    if (typeof lastUser.content === 'string') queryText = lastUser.content;
-                    else {
-                      const textPart = lastUser.content.find(p => p.type === 'text');
-                      queryText = textPart ? textPart.text : '';
-                    }
-                  }
-
-                  if (queryText.trim()) {
-                    // 1) Search
-                    const searchRes = await fetch('/api/browse/search', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ q: queryText.trim(), count: 6 })
-                    });
-                    const searchData = await searchRes.json();
-                    if (searchRes.ok && Array.isArray(searchData.results)) {
-                      // 2) Fetch top pages
-                      const top = searchData.results.slice(0, 4);
-                      const fetches = top.map((r: any) => fetch('/api/browse/fetch', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: r.url })
-                      }).then(res => res.json().then(j => ({ ok: res.ok, data: j, meta: r }))));
-                      const pages = await Promise.all(fetches);
-                      const contextBlocks = pages
-                        .filter(p => p.ok && p.data && p.data.content)
-                        .map((p, idx) => {
-                          const title = p.data.title || p.meta.title || p.meta.url;
-                          const snippet = p.meta.snippet || '';
-                          const url = p.meta.url;
-                          const content = (p.data.content || '').slice(0, 3000);
-                          return `[#${idx + 1}] ${title}\n${url}\nSnippet: ${snippet}\nContent: \n${content}`;
-                        });
-
-                      if (contextBlocks.length > 0) {
-                        const researchMessage: ApiChatMessage = {
-                          role: 'user',
-                          content: `Web research results (use for grounding):\n\n${contextBlocks.join('\n\n---\n\n')}\n\nInstructions: Use the research above to answer the user's request precisely. When you use information, cite it inline like [#] and include a short Sources list at the end (with the same [#] and URL).`
-                        };
-                        finalMessagesForApi = [...historyForApi, researchMessage];
-                      }
-                    }
-                  }
-                } catch (err) {
-                  console.warn('Web browsing chain failed, falling back without browsing:', err);
-                  finalMessagesForApi = historyForApi;
-                }
-              }
-
               // Override model and system prompt when Code Mode is enabled
               const isCodeMode = !!activeConversation.isCodeMode;
               const modelIdForRequest = isCodeMode ? 'qwen-coder' : currentModel.id;
@@ -359,57 +336,39 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                 systemPromptForRequest = CODE_REASONING_SYSTEM_PROMPT;
               }
 
-              // If code mode is enabled, disable web browsing chain for this request
-              const finalMessagesForApiMaybePruned = isCodeMode ? historyForApi : finalMessagesForApi;
-
               const response = await fetch('/api/chat/completion', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    messages: finalMessagesForApiMaybePruned,
+                    messages: historyForApi,
                     modelId: modelIdForRequest,
                     systemPrompt: systemPromptForRequest,
+                    webBrowsingEnabled: webBrowsingEnabled,
                 })
               });
               
-              if (!response.ok) {
-                    const errorText = await response.text();
-                    let errorData;
-                    try {
-                        errorData = JSON.parse(errorText);
-                    } catch (e) {
-                        errorData = errorText; // The error is not JSON, use the raw text.
-                    }
-                    const detail = typeof errorData === 'string' 
-                        ? errorData 
-                        : (errorData.error?.message || JSON.stringify(errorData));
-                    throw new Error(`API request failed with status ${response.status}: ${detail}`);
+              const result: PollinationsChatCompletionResponse | ApiErrorResponse = await response.json();
+              
+              if (!response.ok || isApiErrorResponse(result)) {
+                    const errorMsg = isApiErrorResponse(result) ? result.error : 'API request failed';
+                    throw new Error(`API error: ${errorMsg}`);
               }
 
-              const result = await response.json();
-              console.log("API Response:", result); // Debug logging
-
-              if (result.error) {
-                  const detail = typeof result.error === 'string' 
-                      ? result.error 
-                      : (result.error.message || JSON.stringify(result.error));
-                  throw new Error(`API returned an error: ${detail}`);
+              if (!isPollinationsChatResponse(result)) {
+                  throw new Error('Invalid API response format');
               }
 
-              // Handle both Pollinations and Replicate response formats
-              let aiResponseText;
+              console.log("API Response:", result);
+
+              // Extract AI response text
+              let aiResponseText = result.choices[0]?.message?.content || "Sorry, I couldn't get a response.";
+              
               if (currentModel.id === "gpt-oss-120b") {
-                  // Replicate format
-                  aiResponseText = result.choices?.[0]?.message?.content || "Sorry, I couldn't get a response from GPT-OSS-120b.";
-                  
                   // Clean up Replicate response formatting
                   aiResponseText = aiResponseText
-                    .replace(/\n\s*\n\s*\n/g, '\n\n') // Remove multiple consecutive empty lines
-                    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-                    .trim(); // Remove leading/trailing whitespace
-              } else {
-                  // Pollinations format
-                  aiResponseText = result.choices?.[0]?.message?.content || "Sorry, I couldn't get a response.";
+                    .replace(/\n\s*\n\s*\n/g, '\n\n')
+                    .replace(/\s+/g, ' ')
+                    .trim();
               }
               
               aiMessage = { id: generateUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date().toISOString(), toolType: 'long language loops' };
@@ -420,7 +379,29 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         console.error("Chat API Error:", error); // Debug logging
-        toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
+        
+        // Store failed request for retry
+        if (!options.isRegeneration) {
+            setLastFailedRequest({
+                messageText: chatInputValue.trim(),
+                options,
+                timestamp: Date.now()
+            });
+        }
+        
+        toast({ 
+            title: "Fehler beim Senden", 
+            description: errorMessage, 
+            variant: "destructive",
+            action: !options.isRegeneration ? (
+                <button
+                    onClick={() => retryLastRequestRef.current?.()}
+                    className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                >
+                    Erneut versuchen
+                </button>
+            ) : undefined
+        });
         const errorMsg: ChatMessage = {id: generateUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date().toISOString(), toolType: 'long language loops'};
         finalMessages = [...updatedMessagesForState, errorMsg];
       } finally {
@@ -455,7 +436,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             toolType: 'long language loops',
             isImageMode: false,
             isCodeMode: false,
-            webBrowsingEnabled: false,
             selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
             selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
         };
@@ -555,6 +535,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   
     const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), []);
     const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), []);
+    const toggleWebBrowsing = useCallback(() => setWebBrowsingEnabled(prev => !prev), []);
   
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
       if (audioRef.current) {
@@ -573,15 +554,19 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       setIsTtsLoadingForId(messageId);
       
       try {
-        const response = await fetch('/api/tts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, voice: selectedVoice }),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Failed to generate audio.");
+            const response = await fetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, voice: selectedVoice }),
+            });
+            const result: TTSResponse | ApiErrorResponse = await response.json();
+            if (!response.ok || isApiErrorResponse(result)) {
+                const errorMsg = isApiErrorResponse(result) ? result.error : "Failed to generate audio.";
+                throw new Error(errorMsg);
+            }
 
-        const { audioDataUri } = result;
+            const ttsResult = result as TTSResponse;
+            const { audioDataUri } = ttsResult;
         const audio = new Audio(audioDataUri);
         audioRef.current = audio;
         
@@ -644,6 +629,23 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   
     }, [isAiResponding, activeConversation, sendMessage, toast]);
 
+    const retryLastRequest = useCallback(async () => {
+        if (!lastFailedRequest) return;
+        
+        setLastFailedRequest(null); // Clear before retry
+        
+        // Re-populate the input with the failed message
+        setChatInputValue(lastFailedRequest.messageText);
+        
+        // Send the message again
+        await sendMessage(lastFailedRequest.messageText, lastFailedRequest.options);
+    }, [lastFailedRequest, sendMessage, setChatInputValue]);
+
+    // Update ref for toast callback
+    useEffect(() => {
+        retryLastRequestRef.current = retryLastRequest;
+    }, [retryLastRequest]);
+
     const startRecording = useCallback(async () => { // In useCallback gewickelt
         if (isRecording) return;
         try {
@@ -675,16 +677,20 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                         method: 'POST',
                         body: formData,
                     });
-                    const result = await response.json();
+                    const result: STTResponse | ApiErrorResponse = await response.json();
 
-                    if (!response.ok) {
-                        throw new Error(result.error || 'Speech-to-text failed.');
+                    if (!response.ok || isApiErrorResponse(result)) {
+                        const errorMsg = isApiErrorResponse(result) ? result.error : 'Speech-to-text failed.';
+                        throw new Error(errorMsg);
                     }
-                    if (result.transcription && result.transcription.trim() !== '') {
-                        setChatInputValue(prev => prev + result.transcription);
+                    
+                    const sttResult = result as STTResponse;
+                    if (sttResult.transcription && sttResult.transcription.trim() !== '') {
+                        setChatInputValue(prev => prev + sttResult.transcription);
                     }
-                } catch (err: any) {
-                    toast({ title: 'Transcription Error', description: err.message, variant: 'destructive' });
+                } catch (err) {
+                    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+                    toast({ title: 'Transcription Error', description: errorMessage, variant: 'destructive' });
                 } finally {
                     setIsTranscribing(false);
                     // Clean up the stream tracks
@@ -725,20 +731,20 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               return;
             }
             
-            const data = await res.json();
+            const data: ImageModelsResponse | ApiErrorResponse = await res.json();
             
-            if (!data || !Array.isArray(data.models)) {
+            if (isApiErrorResponse(data) || !('models' in data) || !Array.isArray(data.models)) {
               console.warn('Invalid response format from image models API:', data);
               setAvailableImageModels(FALLBACK_IMAGE_MODELS);
               setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
               return;
             }
             
-            const models = data.models;
-            setAvailableImageModels(models);
+            const modelsResult = data as ImageModelsResponse;
+            setAvailableImageModels(modelsResult.models);
             
             // Ensure the selected model is valid
-            if (!models.includes(selectedImageModelId)) {
+            if (!modelsResult.models.includes(selectedImageModelId)) {
               setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
             }
           } catch (error) {
@@ -787,10 +793,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
 
     // --- Return Value ---
-    const handleWebBrowsingChange = useCallback((enabled: boolean) => {
-      setActiveConversation(prev => prev ? { ...prev, webBrowsingEnabled: enabled } : prev);
-    }, [setActiveConversation]);
-
     return {
       activeConversation, allConversations,
       isAiResponding, isImageMode,
@@ -810,15 +812,16 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       handleVoiceChange, handleImageModelChange,
       toggleHistoryPanel, closeHistoryPanel, 
       toggleAdvancedPanel, closeAdvancedPanel,
+      toggleWebBrowsing, webBrowsingEnabled,
       handlePlayAudio,
       setChatInputValue,
       handleCopyToClipboard,
       regenerateLastResponse, // regenerateLastResponse ist jetzt in Scope
+      retryLastRequest,
       startRecording, stopRecording,
       openCamera, closeCamera,
       toDate,
       setActiveConversation,
-      handleWebBrowsingChange,
 
     };
 }

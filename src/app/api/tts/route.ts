@@ -1,28 +1,25 @@
 
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { textToSpeech } from '@/ai/flows/tts-flow';
+import { handleApiError, validateRequest } from '@/lib/api-error-handler';
 
-interface TtsApiInput {
-  text: string;
-  voice: string;
-}
+const TTSSchema = z.object({
+  text: z.string().min(1, 'Text is required'),
+  voice: z.string().min(1, 'Voice is required'),
+});
 
 export async function POST(request: Request) {
   try {
-    const body: TtsApiInput = await request.json();
+    const body = await request.json();
+    
+    // Validate request
+    const { text, voice } = validateRequest(TTSSchema, body);
 
-    if (!body.text || !body.voice) {
-      return NextResponse.json({ error: 'Missing required fields: text and voice' }, { status: 400 });
-    }
-
-    const result = await textToSpeech(body.text, body.voice);
+    const result = await textToSpeech(text, voice);
     return NextResponse.json(result);
 
-  } catch (error: any) {
-    console.error('Error in /api/tts:', error);
-    return NextResponse.json(
-      { error: `Internal server error: ${error.message || 'Unknown error'}` },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

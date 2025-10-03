@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useTypewriter } from '@/hooks/useTypewriter';
 import { BlinkingCursor } from '@/components/ui/BlinkingCursor';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { useLanguage } from '@/components/LanguageProvider';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -38,6 +39,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   shouldAnimate = false,
   onTypewriterComplete,
 }) => {
+  const { t } = useLanguage();
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
 
@@ -90,8 +92,22 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const renderContent = (content: string | ChatMessageContentPart[]) => {
     if (message.id === 'loading') {
       return (
-        <div className="flex items-center p-2">
-          <BlinkingCursor className="text-primary" />
+        <div className="flex items-center gap-2 p-2">
+          <div className="flex gap-1">
+            <span 
+              className="w-2 h-2 bg-current rounded-full animate-bounce" 
+              style={{ animationDelay: '0ms', animationDuration: '1s' }}
+            />
+            <span 
+              className="w-2 h-2 bg-current rounded-full animate-bounce" 
+              style={{ animationDelay: '150ms', animationDuration: '1s' }}
+            />
+            <span 
+              className="w-2 h-2 bg-current rounded-full animate-bounce" 
+              style={{ animationDelay: '300ms', animationDuration: '1s' }}
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">{t('chat.thinking')}</span>
         </div>
       );
     }
@@ -158,8 +174,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         className={cn(
           'max-w-[85%] relative p-3 rounded-xl', 
           isUser
-            ? 'bg-primary text-primary-foreground'
-            : 'text-secondary-foreground'
+            ? 'bg-pink-200 dark:bg-gray-600 text-gray-800 dark:text-white shadow-md'
+            : 'bg-transparent text-gray-800 dark:text-white'
         )}
       >
         <div className="flex flex-col">

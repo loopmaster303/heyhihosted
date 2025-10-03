@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 import { useLanguage } from '../LanguageProvider';
 import { generateUUID } from '@/lib/uuid';
+import useEscapeKey from '@/hooks/useEscapeKey';
 
 
 const FALLBACK_MODELS = ['flux', 'turbo', 'kontext'];
@@ -65,6 +66,10 @@ const VisualizingLoopsTool: FC = () => {
 
   useOnClickOutside([historyPanelRef], () => setIsHistoryPanelOpen(false), 'radix-select-content');
   useOnClickOutside([advancedPanelRef], () => setIsAdvancedPanelOpen(false), 'radix-select-content');
+
+  // ESC Key handlers for panels
+  useEscapeKey(() => setIsHistoryPanelOpen(false), isHistoryPanelOpen);
+  useEscapeKey(() => setIsAdvancedPanelOpen(false), isAdvancedPanelOpen);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -431,7 +436,7 @@ const VisualizingLoopsTool: FC = () => {
           )}
 
           <form onSubmit={handleGenerateEvent}>
-            <div className="bg-secondary rounded-2xl p-3 shadow-xl flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="bg-pink-100 dark:bg-gray-800 text-gray-800 dark:text-white rounded-2xl p-3 shadow-lg flex flex-col sm:flex-row sm:items-center gap-2">
               <div className="w-full sm:flex-1">
                 <Textarea
                   ref={textareaRef}
@@ -439,7 +444,7 @@ const VisualizingLoopsTool: FC = () => {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={t('imageGen.placeholderLite')}
-                  className="flex-grow w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none px-3 py-2 m-0 leading-tight resize-none overflow-y-auto font-medium min-h-[84px]"
+                  className="flex-grow w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none px-3 py-2 m-0 leading-tight resize-none overflow-y-auto font-medium min-h-[84px]"
                   rows={1}
                   disabled={loading}
                   aria-label="Image prompt for Pollinations models"
@@ -448,7 +453,7 @@ const VisualizingLoopsTool: FC = () => {
               </div>
               <div className="flex w-full sm:w-auto items-center justify-end gap-2 mt-2 sm:mt-0 sm:ml-2">
                  <Select value={model} onValueChange={setModel} disabled={loading}>
-                  <SelectTrigger className="bg-background/50 h-12 w-auto px-3 rounded-lg text-base hover:bg-muted focus-visible:ring-primary border-border text-foreground">
+                  <SelectTrigger className="bg-muted/20 border border-border/30 h-12 w-auto px-3 rounded-lg text-base hover:bg-muted/40 focus-visible:ring-primary text-foreground">
                     <SelectValue placeholder={t('imageGen.selectModel')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -457,7 +462,7 @@ const VisualizingLoopsTool: FC = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button type="submit" disabled={loading || !prompt.trim()} className="h-12 px-4 rounded-lg bg-background/50 hover:bg-muted text-foreground text-base">
+                <Button type="submit" disabled={loading || !prompt.trim()} className="h-12 px-4 rounded-lg bg-muted/20 border border-border/30 hover:bg-muted/40 text-foreground text-base">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('imageGen.execute')}
                 </Button>
               </div>

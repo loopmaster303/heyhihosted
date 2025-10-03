@@ -151,10 +151,28 @@ const NonogramGrid: React.FC<NonogramGridProps> = ({
     return deriveColumnHints(grid, emptyHintPlaceholder);
   }, [columnHints, grid, emptyHintPlaceholder]);
 
+  // Calculate responsive cell size based on viewport
+  const getCellSize = useCallback(() => {
+    if (typeof window === 'undefined') return 40;
+    const viewportWidth = window.innerWidth;
+    const maxGridWidth = Math.min(viewportWidth - 120, 600); // Account for hints + padding
+    const cellSize = Math.floor(maxGridWidth / cols);
+    // Min 28px on mobile, max 48px
+    return Math.max(28, Math.min(48, cellSize));
+  }, [cols]);
+
+  const [cellSize, setCellSize] = useState(getCellSize);
+
+  useEffect(() => {
+    const handleResize = () => setCellSize(getCellSize());
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [getCellSize]);
+
   return (
-    <div className="flex flex-col gap-6 items-center">
-      <div className="flex flex-col gap-4 w-full max-w-4xl">
-        <div className="flex justify-between items-center">
+    <div className="flex flex-col gap-6 items-center w-full">
+      <div className="flex flex-col gap-4 w-full">
+        <div className="flex justify-between items-center px-2">
           {instructionsLabel ? (
             <div className="font-code text-xs sm:text-sm text-muted-foreground">
               {instructionsLabel}
@@ -164,48 +182,81 @@ const NonogramGrid: React.FC<NonogramGridProps> = ({
             {resetLabel || "reset"}
           </Button>
         </div>
-        <div className="flex flex-col md:flex-row md:items-start gap-2 md:gap-4 mx-auto">
-          <div className="flex flex-col">
-            <div className="h-10" />
-            <div className="grid gap-1">
-              {derivedRowHints.map((hint, index) => (
-                <div
-                  key={`row-hint-${index}`}
-                  className="h-8 md:h-10 flex items-center justify-end pr-2 text-xs font-mono text-muted-foreground"
-                >
-                  {hint}
-                </div>
-              ))}
+        
+        {/* Scrollable container for large grids */}
+        <div className="overflow-x-auto overflow-y-hidden w-full">
+          <div className="flex flex-row items-start gap-2 mx-auto w-fit">
+            {/* Row hints */}
+            <div className="flex flex-col flex-shrink-0">
+              <div style={{ height: `${cellSize}px` }} />
+              <div className="grid gap-1">
+                {derivedRowHints.map((hint, index) => (
+                  <div
+                    key={`row-hint-${index}`}
+                    style={{ height: `${cellSize}px` }}
+                    className="flex items-center justify-end pr-2 text-[10px] sm:text-xs font-mono text-muted-foreground min-w-[40px]"
+                  >
+                    {hint}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col">
-            <div className="grid grid-flow-col auto-cols-max gap-1 mb-1">
-              {derivedColumnHints.map((hint, index) => (
-                <div
-                  key={`col-hint-${index}`}
-                  className="w-8 md:w-10 h-10 flex items-end justify-center pb-1 text-xs font-mono text-muted-foreground"
-                >
-                  {hint}
-                </div>
-              ))}
-            </div>
-            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-              {grid.map((row, rowIndex) =>
-                row.map((cell, colIndex) => (
-                  <button
-                    key={`${rowIndex}-${colIndex}`}
-                    type="button"
-                    aria-label={`toggle cell ${rowIndex + 1}, ${colIndex + 1}`}
-                    onClick={() => handleToggleCell(rowIndex, colIndex)}
-                    className={cn(
-                      "w-8 h-8 md:w-10 md:h-10 border border-border flex items-center justify-center transition-colors select-none",
-                      cell === "empty" && "bg-background hover:bg-muted/40",
-                      cell === "filled" && "bg-foreground text-background",
-                      cell === "marked" && "bg-muted text-muted-foreground"
-                    )}
-                  />
-                ))
-              )}
+            
+            {/* Grid + Column hints */}
+            <div className="flex flex-col flex-shrink-0">
+              {/* Column hints */}
+              <div className="grid grid-flow-col auto-cols-max gap-1 mb-1">
+                {derivedColumnHints.map((hint, index) => (
+                  <div
+                    key={`col-hint-${index}`}
+                    style={{ width: `${cellSize}px`, height: `${cellSize}px` }}
+                    className="flex items-end justify-center pb-1 text-[10px] sm:text-xs font-mono text-muted-foreground"
+                  >
+                    {hint}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Main grid */}
+              <div 
+                className="grid gap-1" 
+                style={{ 
+                  gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
+                }}
+              >
+                {grid.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => {
+                    // Thicker borders every 5 cells for better readability (complete lines)
+                    const thickTop = rowIndex % 5 === 0;
+                    const thickLeft = colIndex % 5 === 0;
+                    const thickBottom = (rowIndex + 1) % 5 === 0 || rowIndex === rows - 1;
+                    const thickRight = (colIndex + 1) % 5 === 0 || colIndex === cols - 1;
+                    
+                    return (
+                      <button
+                        key={`${rowIndex}-${colIndex}`}
+                        type="button"
+                        aria-label={`toggle cell ${rowIndex + 1}, ${colIndex + 1}`}
+                        onClick={() => handleToggleCell(rowIndex, colIndex)}
+                        style={{ 
+                          width: `${cellSize}px`, 
+                          height: `${cellSize}px`,
+                        }}
+                        className={cn(
+                          "border border-border flex items-center justify-center transition-colors select-none touch-manipulation active:scale-95",
+                          cell === "empty" && "bg-background hover:bg-muted/40 active:bg-muted/60",
+                          cell === "filled" && "bg-foreground text-background",
+                          cell === "marked" && "bg-muted text-muted-foreground",
+                          thickTop && "border-t-2 border-t-foreground/40",
+                          thickLeft && "border-l-2 border-l-foreground/40",
+                          thickBottom && "border-b-2 border-b-foreground/40",
+                          thickRight && "border-r-2 border-r-foreground/40"
+                        )}
+                      />
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         </div>

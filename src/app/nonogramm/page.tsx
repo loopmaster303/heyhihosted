@@ -16,9 +16,11 @@ import NewAppHeader from "@/components/page/NewAppHeader";
 import type { TileItem } from "@/types";
 import useLocalStorageState from "@/hooks/useLocalStorageState";
 import { useLanguage } from "@/components/LanguageProvider";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Confetti from "react-confetti";
+import { useWindowSize } from "@/hooks/useWindowSize";
 
 const toolTileItems: TileItem[] = [
   { id: "long language loops", title: "</chat.talk.discuss>", href: "/chat" },
@@ -39,6 +41,10 @@ export default function NonogrammPage() {
   const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "john");
   const [mode, setMode] = useState<Mode>("levels");
   const placeholder = t("nonogram.hintEmpty");
+  const [showHints, setShowHints] = useState(false);
+  const [keySequence, setKeySequence] = useState<string[]>([]);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const { width, height } = useWindowSize();
 
   // ----- Preset levels -----
   const defaultPuzzleId = PRESET_PUZZLES[0]?.id ?? "heart";
@@ -75,9 +81,26 @@ export default function NonogrammPage() {
   const handlePuzzleGridChange = useCallback(
     (grid: CellState[][]) => {
       setPuzzleProgress(prev => ({ ...prev, [activePuzzle.id]: serializeGrid(grid) }));
-      setPuzzleSolved(isPuzzleSolved(grid, solutionGrid));
+      const solved = isPuzzleSolved(grid, solutionGrid);
+      setPuzzleSolved(solved);
+      
+      // Auto-load next random puzzle when solved
+      if (solved && !puzzleSolved) {
+        // Show confetti!
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 4000);
+        
+        setTimeout(() => {
+          // Pick random puzzle different from current
+          const otherPuzzles = PRESET_PUZZLES.filter(p => p.id !== activePuzzle.id);
+          const randomPuzzle = otherPuzzles[Math.floor(Math.random() * otherPuzzles.length)];
+          if (randomPuzzle) {
+            setSelectedPuzzleId(randomPuzzle.id);
+          }
+        }, 2000); // Short delay for celebration
+      }
     },
-    [activePuzzle.id, setPuzzleProgress, solutionGrid]
+    [activePuzzle.id, setPuzzleProgress, solutionGrid, puzzleSolved, setSelectedPuzzleId]
   );
 
   // Keep solved badge in sync when switching puzzles or languages
@@ -179,8 +202,57 @@ export default function NonogrammPage() {
     [t]
   );
 
+  // Secret hint code: Press H-I-N-T
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      setKeySequence(prev => {
+        const newSeq = [...prev, key].slice(-4); // Keep last 4 keys
+        if (newSeq.join('') === 'hint') {
+          setShowHints(true);
+          setTimeout(() => setShowHints(false), 5000); // Show for 5 seconds
+        }
+        return newSeq;
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  // Mystery puzzle names (only shown when hint code is active)
+  const mysteryNames: Record<string, string> = {
+    'mystery-01': 'Eule',
+    'mystery-02': 'Kristallkugel',
+    'mystery-03': 'Mond',
+    'mystery-04': 'Glocke',
+    'mystery-05': 'Blitz',
+    'mystery-06': 'Zielscheibe',
+    'mystery-07': 'Würfel',
+    'mystery-08': 'Schmetterling',
+    'mystery-09': 'Pilz',
+    'mystery-10': 'Gitarre',
+    'mystery-11': 'Blume',
+    'mystery-12': 'Haus',
+    'mystery-13': 'Krone',
+    'mystery-14': 'Ballon',
+    'mystery-15': 'Fisch',
+    'mystery-16': 'Stern',
+    'mystery-17': 'Zylinder',
+    'mystery-18': 'Kirschblüte',
+    'mystery-19': 'Glocke',
+    'mystery-20': 'Geschenk',
+    'mystery-21': 'Fuchs',
+    'mystery-22': 'Pizza-Slice',
+    'mystery-23': 'Welle',
+    'mystery-24': 'Schlüssel',
+  };
+
   return (
     <div className="relative flex flex-col min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+      {/* Confetti celebration when puzzle is solved */}
+      {showConfetti && <Confetti width={width} height={height} recycle={false} numberOfPieces={500} />}
+      
       <NewAppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName || "john"} />
       <main className="flex flex-col flex-grow items-center pt-20 pb-16 px-4 md:px-8">
         <motion.div
@@ -196,6 +268,13 @@ export default function NonogrammPage() {
             <p className="text-sm md:text-base text-muted-foreground max-w-2xl">
               {t("nonogram.description")}
             </p>
+            {showHints && mode === "levels" && mysteryNames[activePuzzle.id] && (
+              <div className="bg-primary/20 border border-primary/40 rounded-lg p-3 text-center animate-in fade-in-0 slide-in-from-top-2">
+                <p className="text-sm font-semibold text-primary">
+                  🔍 Geheimer Tipp: <span className="font-bold">{mysteryNames[activePuzzle.id]}</span>
+                </p>
+              </div>
+            )}
           </header>
 
           <section className="bg-black/20 backdrop-blur-md border border-white/5 rounded-xl p-4 sm:p-6 flex flex-col gap-4">
@@ -241,26 +320,39 @@ export default function NonogrammPage() {
                   })}
                 </div>
               </div>
-              <div className="flex flex-col gap-4">
-                <NonogramGrid
-                  rows={activePuzzle.size}
-                  cols={activePuzzle.size}
-                  initialState={puzzleInitialGrid}
-                  onGridChange={handlePuzzleGridChange}
-                  instructionsLabel={t("nonogram.instructions")}
-                  resetLabel={t("nonogram.reset")}
-                  emptyHintPlaceholder={placeholder}
-                  rowHints={puzzleHints.rowHints}
-                  columnHints={puzzleHints.columnHints}
-                />
-                <div className="flex items-center justify-center md:justify-start">
-                  <Badge variant={puzzleSolved ? "default" : "secondary"}>
-                    {puzzleSolved
-                      ? t("nonogram.status.solved")
-                      : t("nonogram.status.keepGoing")}
-                  </Badge>
-                </div>
-              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activePuzzle.id}
+                  initial={{ opacity: 0, scale: 0.95, rotateX: 10 }}
+                  animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="flex flex-col gap-4"
+                >
+                  <NonogramGrid
+                    rows={activePuzzle.size}
+                    cols={activePuzzle.size}
+                    initialState={puzzleInitialGrid}
+                    onGridChange={handlePuzzleGridChange}
+                    instructionsLabel={t("nonogram.instructions")}
+                    resetLabel={t("nonogram.reset")}
+                    emptyHintPlaceholder={placeholder}
+                    rowHints={puzzleHints.rowHints}
+                    columnHints={puzzleHints.columnHints}
+                  />
+                  <motion.div 
+                    className="flex items-center justify-center md:justify-start"
+                    animate={puzzleSolved ? { scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] } : {}}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <Badge variant={puzzleSolved ? "default" : "secondary"}>
+                      {puzzleSolved
+                        ? t("nonogram.status.solved")
+                        : t("nonogram.status.keepGoing")}
+                    </Badge>
+                  </motion.div>
+                </motion.div>
+              </AnimatePresence>
             </section>
           )}
 

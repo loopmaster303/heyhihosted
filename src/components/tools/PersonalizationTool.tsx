@@ -110,7 +110,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
               </h2>
               <p className={cn(
                 "text-sm",
-                isDark ? "text-gray-400" : "text-gray-600"
+                "text-muted-foreground"
               )}>
                 {t('settings.nameDescription')}
               </p>
@@ -122,7 +122,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
               </h2>
               <p className={cn(
                 "text-sm",
-                isDark ? "text-gray-400" : "text-gray-600"
+                "text-muted-foreground"
               )}>
                 {t('settings.responseStyleDescription')}
               </p>
@@ -134,7 +134,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
               </h2>
               <div className={cn(
                 "text-sm space-y-1",
-                isDark ? "text-gray-400" : "text-gray-600"
+                "text-muted-foreground"
               )}>
                 <p>• {t('settings.aiInstructionsDescription1')}</p>
                 <p>• {t('settings.aiInstructionsDescription2')}</p>
@@ -184,7 +184,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                         <span className="font-medium">{style.label}</span>
                         <span className={cn(
                           "text-xs",
-                          isDark ? "text-gray-400" : "text-gray-600"
+                          "text-muted-foreground"
                         )}>{style.description}</span>
                       </div>
                     </SelectItem>

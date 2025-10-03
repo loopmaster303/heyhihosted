@@ -26,7 +26,6 @@ export interface Conversation {
   toolType: ToolType;
   isImageMode?: boolean;
   isCodeMode?: boolean;
-  webBrowsingEnabled?: boolean;
   // These are client-side only and will not be persisted
   uploadedFile?: File | null;
   uploadedFilePreview?: string | null;

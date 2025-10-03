@@ -5,7 +5,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle, Globe, Code2 } from 'lucide-react';
+import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle, Code2, MoreHorizontal, Palette, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types';
 import HistoryPanel from './HistoryPanel';
@@ -53,6 +53,8 @@ interface ChatInputProps {
   handleStyleChange: (styleName: string) => void;
   selectedVoice: string;
   handleVoiceChange: (voiceId: string) => void;
+  webBrowsingEnabled: boolean;
+  onToggleWebBrowsing: () => void;
   isRecording: boolean;
   isTranscribing: boolean;
   startRecording: () => void;
@@ -61,8 +63,6 @@ interface ChatInputProps {
   availableImageModels: string[];
   selectedImageModelId: string;
   handleImageModelChange: (modelId: string) => void;
-  webBrowsingEnabled: boolean;
-  onWebBrowsingChange: (enabled: boolean) => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -77,9 +77,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
   isImageMode,
   onToggleImageMode,
   chatTitle,
-  onToggleHistoryPanel,
-  onToggleAdvancedPanel,
-  isHistoryPanelOpen,
+    onToggleHistoryPanel,
+    onToggleAdvancedPanel,
+    webBrowsingEnabled,
+    onToggleWebBrowsing,
+    isHistoryPanelOpen,
   isAdvancedPanelOpen,
   historyPanelRef,
   advancedPanelRef,
@@ -106,12 +108,22 @@ const ChatInput: React.FC<ChatInputProps> = ({
   availableImageModels,
   selectedImageModelId,
   handleImageModelChange,
-  webBrowsingEnabled,
-  onWebBrowsingChange,
   isCodeMode = false,
   onToggleCodeMode,
 }) => {
   const { t } = useLanguage();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640); // sm breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const docInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -179,7 +191,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     ? `Coding & reasoning with qwen-coder...`
     : t('chat.placeholder');
 
-  const iconColorClass = "text-foreground/60 hover:text-foreground";
+  const iconColorClass = "text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white";
   const displayTitle = chatTitle === "default.long.language.loop" || !chatTitle ? "New Chat" : chatTitle;
   const showChatTitle = chatTitle !== "default.long.language.loop" && !!chatTitle;
 
@@ -219,14 +231,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       availableImageModels={availableImageModels}
                       selectedImageModelId={selectedImageModelId}
                       onImageModelChange={handleImageModelChange}
-                      webBrowsingEnabled={webBrowsingEnabled}
-                      onWebBrowsingChange={onWebBrowsingChange}
                       onClose={closeAdvancedPanel}
                   />
               </div>
           )}
           <form onSubmit={handleSubmit} className="w-full">
-            <div className="bg-secondary rounded-2xl p-3 shadow-xl flex flex-col min-h-0">
+             <div className="bg-pink-100 dark:bg-gray-800 rounded-2xl p-3 shadow-xl flex flex-col min-h-0">
                 <div className="flex-grow">
                     <Textarea
                         ref={textareaRef}
@@ -234,7 +244,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         onChange={handleTextareaInput}
                         onKeyDown={handleKeyDown}
                         placeholder={placeholderText}
-                        className="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                         className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
                         rows={1}
                         disabled={isLoading || isRecording || isTranscribing}
                         aria-label="Chat message input"
@@ -243,51 +253,158 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 </div>
                 <div className="flex w-full items-center justify-between gap-1 -ml-1">
                     <div className="flex items-center gap-0">
+                        {/* Image/Visualize Mode - Always visible */}
                         <Button
                             type="button"
                             variant="ghost"
                             onClick={onToggleImageMode}
                             className={cn(
-                                "group rounded-lg h-12 w-12 transition-colors duration-300",
+                                "group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300",
+
                                 isImageMode ? 'text-blue-500 hover:text-blue-600' : iconColorClass
                             )}
                             title={isImageMode ? "Switch to Text Mode" : "Switch to Visualize Mode"}
                             disabled={isLoading || isRecording || isTranscribing}
                         >
-                            <ImageIcon className="w-16 h-16" />
+                            <ImageIcon className="w-[20px] h-[20px]" />
                         </Button>
 
-                        {/* Web Browsing toggle */}
+                        {/* Web Browsing Toggle */}
                         <Button
                             type="button"
                             variant="ghost"
-                            onClick={() => onWebBrowsingChange(!webBrowsingEnabled)}
+                            onClick={onToggleWebBrowsing}
                             className={cn(
-                                "group rounded-lg h-12 w-12 transition-colors duration-300",
+                                "group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300",
                                 webBrowsingEnabled ? 'text-green-500 hover:text-green-600' : iconColorClass
                             )}
-                            title={webBrowsingEnabled ? "Web Browsing: On" : "Web Browsing: Off"}
+                            title={webBrowsingEnabled ? "Web Browsing: On (Gemini Flash)" : "Web Browsing: Off"}
                             disabled={isLoading || isRecording || isTranscribing}
                         >
-                            <Globe className="w-16 h-16" />
+                            <Globe className="w-[20px] h-[20px]" />
                         </Button>
 
-                        {/* Code Mode toggle */}
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => onToggleCodeMode && onToggleCodeMode()}
-                            className={cn(
-                                "group rounded-lg h-12 w-12 transition-colors duration-300",
-                                isCodeMode ? 'text-purple-500 hover:text-purple-600' : iconColorClass
-                            )}
-                            title={isCodeMode ? "Code Mode: On" : "Code Mode: Off"}
-                            disabled={isLoading || isRecording || isTranscribing}
-                        >
-                            <Code2 className="w-16 h-16" />
-                        </Button>
+                        {/* Mobile: Code + Attach buttons → Dropdown | Desktop: Show all buttons */}
+                        {isMobile ? (
+                            /* Mobile Dropdown */
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        className={cn(
+                                            "group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300",
+
+                                            (isCodeMode || uploadedFilePreviewUrl) 
+                                                ? 'text-purple-500 hover:text-purple-600' 
+                                                : iconColorClass
+                                        )}
+                                        disabled={isLoading || isRecording || isTranscribing}
+                                    >
+                                        <MoreHorizontal className="w-[18px] h-[18px]" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-64" side="top" align="start">
+                                    <DropdownMenuItem 
+                                        onSelect={() => onToggleCodeMode && onToggleCodeMode()}
+                                        className={isCodeMode ? 'text-purple-500' : ''}
+                                    >
+                                        <Code2 className="mr-2 h-4 w-4" />
+                                        <span>{isCodeMode ? 'Code Mode: Ein' : 'Code Mode: Aktivieren'}</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => docInputRef.current?.click()}>
+                                        <File className="mr-2 h-4 w-4" />
+                                        <span>Dokument hochladen</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => imageInputRef.current?.click()}>
+                                        <FileImage className="mr-2 h-4 w-4" />
+                                        <span>Bild hochladen</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={openCamera}>
+                                        <Camera className="mr-2 h-4 w-4" />
+                                        <span>Kamera aufnehmen</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        ) : (
+                            /* Desktop Layout - Show all buttons */
+                            <>
+                                {/* Code Mode toggle */}
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => onToggleCodeMode && onToggleCodeMode()}
+                                    className={cn(
+                                        "group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300",
+
+                                        isCodeMode ? 'text-purple-500 hover:text-purple-600' : iconColorClass
+                                    )}
+                                    title={isCodeMode ? "Code Mode: On" : "Code Mode: Off"}
+                                    disabled={isLoading || isRecording || isTranscribing}
+                                >
+                                        <Code2 className="w-[20px] h-[20px]" />
+                                </Button>
+                            </>
+                        )}
                         
-                        {uploadedFilePreviewUrl && !isImageMode && (
+                        {/* Desktop: Show file attachment buttons */}
+                        {!isMobile && (
+                            <>
+                                {uploadedFilePreviewUrl && !isImageMode && (
+                                    <div className="relative group mr-2">
+                                        <Image
+                                            src={uploadedFilePreviewUrl}
+                                            alt="File preview"
+                                            width={36}
+                                            height={36}
+                                            className="rounded-md object-cover h-9 w-9"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="icon"
+                                            onClick={onClearUploadedImage}
+                                            className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            aria-label="Remove attached file"
+                                        >
+                                            <XCircle className="h-5 w-5" />
+                                        </Button>
+
+                                    </div>
+                                )}
+                                
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            className={cn("group rounded-lg h-12 w-12", iconColorClass)}
+                                            title="Attach a file"
+                                            disabled={isLoading || isImageMode || isRecording || isTranscribing}
+                                        >
+                                            <Paperclip className="w-[20px] h-[20px]" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-64" side="top" align="start">
+                                        <DropdownMenuItem onSelect={() => docInputRef.current?.click()}>
+                                            <File className="mr-2 h-4 w-4" />
+                                            <span>Analyze document from file</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => imageInputRef.current?.click()}>
+                                            <FileImage className="mr-2 h-4 w-4" />
+                                            <span>Analyze image from file</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={openCamera}>
+                                            <Camera className="mr-2 h-4 w-4" />
+                                            <span>Analyze image from camera</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </>
+                        )}
+                        
+                        {/* Mobile: File preview in the same row */}
+                        {isMobile && uploadedFilePreviewUrl && !isImageMode && (
                             <div className="relative group mr-2">
                                 <Image
                                     src={uploadedFilePreviewUrl}
@@ -308,34 +425,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 </Button>
                             </div>
                         )}
-                        
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className={cn("group rounded-lg h-12 w-12", iconColorClass)}
-                                    title="Attach a file"
-                                    disabled={isLoading || isImageMode || isRecording || isTranscribing}
-                                >
-                                    <Paperclip className="w-16 h-16" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-64" side="top" align="start">
-                                <DropdownMenuItem onSelect={() => docInputRef.current?.click()}>
-                                    <File className="mr-2 h-4 w-4" />
-                                    <span>Analyze document from file</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => imageInputRef.current?.click()}>
-                                    <FileImage className="mr-2 h-4 w-4" />
-                                    <span>Analyze image from file</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={openCamera}>
-                                    <Camera className="mr-2 h-4 w-4" />
-                                    <span>Analyze image from camera</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
                     </div>
                     
                     <div className="flex items-center gap-0">
@@ -345,7 +434,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           onClick={handleMicClick}
                           disabled={isLoading || isTranscribing || isImageMode}
                           className={cn(
-                              "group rounded-lg h-12 w-12 transition-colors duration-300",
+                                            "group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300",
                               isRecording ? "text-red-500 hover:text-red-600" : iconColorClass
                           )}
                       >
@@ -356,7 +445,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           variant="ghost" 
                           size="icon" 
                           className={cn(
-                          "h-12 w-12",
+                          "h-14 w-14 md:h-12 md:w-12",
                           !isLoading && (inputValue.trim() || uploadedFilePreviewUrl) 
                             ? "text-blue-500 hover:text-blue-600"
                             : iconColorClass

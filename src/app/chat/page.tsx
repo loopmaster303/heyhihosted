@@ -10,7 +10,8 @@ import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import CameraCaptureDialog from '@/components/dialogs/CameraCaptureDialog';
 import { useChat } from '@/components/ChatProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { Loader2 } from 'lucide-react';
+import PageLoader from '@/components/ui/PageLoader';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const toolTileItems: TileItem[] = [
     { id: 'long language loops', title: '</chat.talk.discuss>', href: '/chat' },
@@ -30,11 +31,7 @@ function ChatPageContent() {
     }, []);
 
     if (!isClient) {
-        return (
-            <div className="flex flex-col h-screen items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-        );
+        return <PageLoader text="Chat wird geladen..." />;
     }
 
     return (
@@ -69,8 +66,13 @@ function ChatPageContent() {
 
 export default function ChatPage() {
   return (
-    <ChatProvider>
-        <ChatPageContent />
-    </ChatProvider>
+    <ErrorBoundary 
+      fallbackTitle="Chat konnte nicht geladen werden"
+      fallbackMessage="Es gab ein Problem beim Laden des Chats. Bitte versuche es erneut."
+    >
+      <ChatProvider>
+          <ChatPageContent />
+      </ChatProvider>
+    </ErrorBoundary>
   );
 }
