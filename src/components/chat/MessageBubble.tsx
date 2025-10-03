@@ -11,6 +11,7 @@ import { useTypewriter } from '@/hooks/useTypewriter';
 import { BlinkingCursor } from '@/components/ui/BlinkingCursor';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useLanguage } from '@/components/LanguageProvider';
+import { useState, useEffect } from 'react';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -40,6 +41,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onTypewriterComplete,
 }) => {
   const { t } = useLanguage();
+  const [skipAnimation, setSkipAnimation] = useState(false);
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
 
@@ -53,7 +55,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   }
 
   const textContent = getTextContent();
-  const shouldUseTypewriter = Boolean(shouldAnimate && isAssistant && textContent && message.id !== 'loading');
+  const shouldUseTypewriter = Boolean(shouldAnimate && isAssistant && textContent && message.id !== 'loading' && !skipAnimation);
+  
   
   const { displayedText, isTyping, isComplete } = useTypewriter({
     text: textContent || '',
@@ -61,17 +64,36 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     delay: 0,
     skipAnimation: !shouldUseTypewriter,
     onComplete: () => {
-      if (shouldUseTypewriter) {
-        onTypewriterComplete?.(message.id);
+      if (onTypewriterComplete) {
+        onTypewriterComplete(message.id);
       }
     }
   });
+
+  // Click-to-skip functionality
+  useEffect(() => {
+    const handleClick = () => {
+      if (shouldUseTypewriter && isTyping) {
+        setSkipAnimation(true);
+      }
+    };
+
+    if (shouldUseTypewriter) {
+      document.addEventListener('click', handleClick);
+      return () => document.removeEventListener('click', handleClick);
+    }
+  }, [shouldUseTypewriter, isTyping]);
 
   React.useEffect(() => {
     if (!shouldUseTypewriter && shouldAnimate && textContent) {
       onTypewriterComplete?.(message.id);
     }
   }, [shouldUseTypewriter, shouldAnimate, textContent, onTypewriterComplete, message.id]);
+
+  // Reset skip animation when message changes
+  React.useEffect(() => {
+    setSkipAnimation(false);
+  }, [message.id]);
 
   const handlePlayClick = () => {
     const textContent = getTextContent();
