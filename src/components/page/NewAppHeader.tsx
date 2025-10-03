@@ -55,7 +55,7 @@ const NewAppHeader: React.FC<NewAppHeaderProps> = ({ toolTileItems, userDisplayN
         <div className="flex items-center gap-6 min-w-0">
           <Link href="/" className="shrink-0 transition-opacity hover:opacity-80">
             <span className="font-code text-glow text-xl md:text-2xl font-bold">
-              <span className="text-muted-foreground">(()</span>
+              <span className="text-muted-foreground">(</span>
               <span className="text-foreground">!hey.hi</span>
               <span className="text-muted-foreground"> = </span>
               <span className="text-transparent bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text">{`'${displayName}'`}</span>

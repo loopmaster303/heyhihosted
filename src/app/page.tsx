@@ -135,7 +135,7 @@ export default function HomePage() {
             <main className="w-full flex flex-col items-center p-6 md:p-8 relative" style={{ maxWidth: '1020px' }}>
                 {/* Local gradient removed; global full-screen gradient added above */}
                 <h1 className="text-4xl sm:text-5xl md:text-7xl font-code text-white text-glow mb-8 sm:mb-12 text-center">
-                    <span className="text-gray-400">()</span>
+                    <span className="text-gray-400">(</span>
                     !hey.hi
                     <span className="text-gray-400"> = </span> 
                     <span className="text-transparent bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text">{`'space'`}</span>

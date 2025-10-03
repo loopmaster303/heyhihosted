@@ -436,7 +436,7 @@ const VisualizingLoopsTool: FC = () => {
           )}
 
           <form onSubmit={handleGenerateEvent}>
-            <div className="bg-pink-100 dark:bg-gray-800 text-gray-800 dark:text-white rounded-2xl p-3 shadow-lg flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="bg-pink-100 dark:bg-[#252525] text-gray-800 dark:text-white rounded-2xl p-3 shadow-lg flex flex-col sm:flex-row sm:items-center gap-2">
               <div className="w-full sm:flex-1">
                 <Textarea
                   ref={textareaRef}

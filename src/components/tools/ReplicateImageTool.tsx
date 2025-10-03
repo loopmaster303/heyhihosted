@@ -1134,7 +1134,7 @@ const ReplicateImageTool: React.FC<ReplicateImageToolProps> = ({
 
           <form onSubmit={handleSubmit}>
             {/* Prompt Input aligned like Lite tool */}
-            <div className="bg-pink-100 dark:bg-gray-800 text-gray-800 dark:text-white rounded-2xl p-3 shadow-lg flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="bg-pink-100 dark:bg-[#252525] text-gray-800 dark:text-white rounded-2xl p-3 shadow-lg flex flex-col sm:flex-row sm:items-center gap-2">
               <Textarea
                 key={`prompt-${selectedModelKey}-${language}`}
                 ref={textareaRef}
