@@ -20,8 +20,8 @@ export async function POST(request: Request) {
     // Validate request
     const { messages, modelId, systemPrompt, webBrowsingEnabled } = validateRequest(ChatCompletionSchema, body);
 
-    // If web browsing is enabled, force Gemini Flash model
-    const effectiveModelId = webBrowsingEnabled ? "gemini-flash" : modelId;
+    // If web browsing is enabled, force Gemini model
+    const effectiveModelId = webBrowsingEnabled ? "gemini" : modelId;
 
     // Handle GPT-OSS-120b model with Replicate API
     if (effectiveModelId === "gpt-oss-120b") {

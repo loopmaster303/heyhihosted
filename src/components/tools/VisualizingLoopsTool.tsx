@@ -28,7 +28,7 @@ import { generateUUID } from '@/lib/uuid';
 import useEscapeKey from '@/hooks/useEscapeKey';
 
 
-const FALLBACK_MODELS = ['flux', 'turbo', 'kontext'];
+const FALLBACK_MODELS = ['flux', 'kontext', 'turbo', 'gptimage'];
 const DEFAULT_MODEL = 'flux';
 const LOCAL_STORAGE_KEY = 'visualizingLoopsToolSettings';
 const HISTORY_STORAGE_KEY = 'visualizingLoopsHistory';

@@ -195,7 +195,7 @@ export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // For in-chat image generation (align with bild.gen.lite)
 // Keep in sync with `/api/image/models` and VisualizingLoopsTool
-export const FALLBACK_IMAGE_MODELS = ['flux', 'turbo', 'kontext'];
+export const FALLBACK_IMAGE_MODELS = ['flux', 'kontext', 'turbo', 'gptimage'];
 export const DEFAULT_IMAGE_MODEL = 'flux'; // A safe default
 
 // Code reasoning system prompt used when Code Mode is enabled
