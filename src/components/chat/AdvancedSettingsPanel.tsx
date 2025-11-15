@@ -14,6 +14,7 @@ import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS
 import { useLanguage } from '../LanguageProvider';
 import { ScrollArea } from '../ui/scroll-area';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 
 interface AdvancedSettingsPanelProps {
   selectedModelId: string;
@@ -62,7 +63,28 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                         {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
-                            <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                            <SelectItem key={model.id} value={model.id} className="py-2">
+                                <div className="flex flex-col items-start gap-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-medium">{model.name}</span>
+                                        <div className="flex items-center gap-1">
+                                            {model.vision && (
+                                                <Badge variant="secondary" className="text-[10px] tracking-wide uppercase">
+                                                    {t('models.capability.vision')}
+                                                </Badge>
+                                            )}
+                                            {model.webBrowsing && (
+                                                <Badge variant="outline" className="text-[10px] tracking-wide uppercase">
+                                                    {t('models.capability.web')}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {model.description && (
+                                        <p className="text-xs text-muted-foreground">{model.description}</p>
+                                    )}
+                                </div>
+                            </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>

@@ -20,24 +20,24 @@ export interface VoiceOption {
 
 // Curated model list - Standard: GPT-5 Chat (large), Rest: Selected models
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-    // Standard Model
-    { id: "openai-large", name: "OpenAI GPT-5 Chat", description: "OpenAI GPT-5 Chat", vision: true },
-    
-    // Premium Models
-    { id: "openai", name: "OpenAI GPT-5 Nano", description: "OpenAI GPT-5 Nano", vision: true },
-    { id: "openai-fast", name: "OpenAI GPT-4.1 Nano", description: "OpenAI GPT-4.1 Nano", vision: true },
-    
-    // Specialized Models
-    { id: "gemini", name: "Gemini 2.5 Flash Lite", description: "Gemini 2.5 Flash Lite", vision: true },
-    { id: "mistral", name: "Mistral Small 3.1 24B", description: "Mistral Small 3.1 24B", vision: false },
-    { id: "nova-fast", name: "Amazon Nova Micro", description: "Amazon Nova Micro", vision: false },
-    { id: "qwen-coder", name: "Qwen 2.5 Coder 32B", description: "Qwen 2.5 Coder 32B", vision: false },
-    { id: "deepseek-reasoning", name: "DeepSeek R1 0528", description: "DeepSeek R1 0528", vision: false },
-    { id: "roblox-rp", name: "Llama 3.1 8B Instruct", description: "Llama 3.1 8B Instruct", vision: false },
-    
-    // Experimental Models
-    { id: "evil", name: "Evil", description: "Evil (Uncensored)", vision: true },
-    { id: "unity", name: "Unity Unrestricted Agent", description: "Unity Unrestricted Agent (Uncensored)", vision: true },
+  // OpenAI Stack
+  { id: "openai-large", name: "OpenAI GPT-5 Chat", description: "Großes Generalmodell mit Vision", vision: true },
+  { id: "openai", name: "OpenAI GPT-5 Nano", description: "Schnelle GPT-5 Nano Variante mit Vision", vision: true },
+  { id: "openai-fast", name: "OpenAI GPT-4.1 Nano", description: "Kostengünstiges OpenAI-Modell mit Vision", vision: true },
+  { id: "openai-reasoning", name: "OpenAI o4 Mini", description: "Reasoning-orientiertes OpenAI-Modell", vision: true },
+
+  // Google Gemini
+  { id: "gemini", name: "Gemini 2.5 Flash Lite", description: "Gemini Lite mit Vision und Tools", vision: true },
+  { id: "gemini-search", name: "Gemini 2.5 Flash + Search", description: "Gemini Flash mit Google-Suche", vision: true, webBrowsing: true },
+
+  // Alternative Modelle
+  { id: "deepseek", name: "DeepSeek V3.1", description: "DeepSeek V3.1 Reasoning", vision: false },
+  { id: "mistral", name: "Mistral Small 3.2 24B", description: "Mistral Small 24B", vision: false },
+  { id: "qwen-coder", name: "Qwen 2.5 Coder 32B", description: "Code- und Reasoning-Modell", vision: false },
+
+  // Uncensored / Spezial
+  { id: "evil", name: "Evil", description: "Evil (Uncensored)", vision: true },
+  { id: "unity", name: "Unity Unrestricted Agent", description: "Unity Unrestricted Agent (Uncensored)", vision: true },
 ];
 
 // Stil-Profile (ResponseStyles)

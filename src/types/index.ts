@@ -9,6 +9,7 @@ export interface ChatMessage {
   content: string | ChatMessageContentPart[];
   timestamp: string; // ISO string for easy storage/retrieval
   toolType?: ToolType;
+  isStreaming?: boolean;
 }
 
 // Represents a message format compatible with APIs that only accept user/assistant roles
@@ -26,6 +27,7 @@ export interface Conversation {
   toolType: ToolType;
   isImageMode?: boolean;
   isCodeMode?: boolean;
+  webBrowsingEnabled?: boolean;
   // These are client-side only and will not be persisted
   uploadedFile?: File | null;
   uploadedFilePreview?: string | null;

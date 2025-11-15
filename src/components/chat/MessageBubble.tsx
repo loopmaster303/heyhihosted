@@ -44,6 +44,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [skipAnimation, setSkipAnimation] = useState(false);
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
+  const isStreaming = Boolean(message.isStreaming);
 
   const getTextContent = (): string | null => {
       if (typeof message.content === 'string') return message.content;
@@ -55,7 +56,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   }
 
   const textContent = getTextContent();
-  const shouldUseTypewriter = Boolean(shouldAnimate && isAssistant && textContent && message.id !== 'loading' && !skipAnimation);
+  const shouldUseTypewriter = Boolean(shouldAnimate && isAssistant && textContent && message.id !== 'loading' && !skipAnimation && !isStreaming);
   
   
   const { displayedText, isTyping, isComplete } = useTypewriter({
@@ -141,6 +142,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           <div className="flex items-center p-2">
             <BlinkingCursor className="text-primary" />
           </div>
+        );
+      }
+
+      if (isStreaming) {
+        return (
+          <p className="text-sm whitespace-pre-wrap">
+            {content}
+            <BlinkingCursor className="text-primary ml-1" />
+          </p>
         );
       }
       

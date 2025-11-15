@@ -278,7 +278,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 "group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300",
                                 webBrowsingEnabled ? 'text-green-500 hover:text-green-600' : iconColorClass
                             )}
-                            title={webBrowsingEnabled ? "Web Browsing: On (Gemini Flash)" : "Web Browsing: Off"}
+                            title={webBrowsingEnabled ? t('chat.webBrowsingEnabled') : t('chat.webBrowsingDisabled')}
                             disabled={isLoading || isRecording || isTranscribing}
                         >
                             <Globe className="w-[20px] h-[20px]" />

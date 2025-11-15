@@ -11,6 +11,7 @@ const ChatCompletionSchema = z.object({
   modelId: z.string().min(1, 'Model ID is required'),
   systemPrompt: z.string().optional(),
   webBrowsingEnabled: z.boolean().optional(),
+  stream: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -18,10 +19,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     // Validate request
-    const { messages, modelId, systemPrompt, webBrowsingEnabled } = validateRequest(ChatCompletionSchema, body);
+    const { messages, modelId, systemPrompt, webBrowsingEnabled, stream } = validateRequest(ChatCompletionSchema, body);
 
-    // If web browsing is enabled, force Gemini model
-    const effectiveModelId = webBrowsingEnabled ? "gemini" : modelId;
+    // If web browsing is enabled, route through Gemini Search variant
+    const effectiveModelId = webBrowsingEnabled ? "gemini-search" : modelId;
+    const streamEnabled = Boolean(stream) && effectiveModelId !== "gpt-oss-120b";
 
     // Handle GPT-OSS-120b model with Replicate API
     if (effectiveModelId === "gpt-oss-120b") {
@@ -117,6 +119,10 @@ export async function POST(request: Request) {
       messages: messages,
     };
 
+    if (streamEnabled) {
+      payload.stream = true;
+    }
+
     if (systemPrompt && systemPrompt.trim() !== "") {
       payload.system = systemPrompt;
     }
@@ -128,6 +134,10 @@ export async function POST(request: Request) {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     };
+
+    if (streamEnabled) {
+      headers['Accept'] = 'text/event-stream';
+    }
 
     const response = await fetch(POLLINATIONS_API_URL, {
       method: 'POST',
@@ -144,6 +154,21 @@ export async function POST(request: Request) {
         `Pollinations API returned status ${response.status}`,
         'POLLINATIONS_API_ERROR'
       );
+    }
+
+    if (streamEnabled) {
+      const bodyStream = response.body;
+      if (!bodyStream) {
+        throw new ApiError(502, 'Pollinations stream did not return a body', 'POLLINATIONS_STREAM_ERROR');
+      }
+      return new Response(bodyStream, {
+        status: 200,
+        headers: {
+          'Content-Type': response.headers.get('content-type') ?? 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
     }
     
     const result = await response.json();

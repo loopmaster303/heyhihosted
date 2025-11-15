@@ -1,14 +1,14 @@
 
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { MessageSquareText, Pencil, Trash2, Plus, X, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import type { Conversation } from '@/types';
+import type { Conversation, ChatMessage } from '@/types';
 import { useLanguage } from '../LanguageProvider';
 
 interface HistoryPanelProps {
@@ -36,6 +36,19 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const getMessageText = useCallback((message: ChatMessage): string => {
+    if (typeof message.content === 'string') {
+      return message.content;
+    }
+    if (Array.isArray(message.content)) {
+      return message.content
+        .filter(part => part.type === 'text')
+        .map(part => part.text)
+        .join(' ');
+    }
+    return '';
+  }, []);
+
   // Filter conversations by tool type first
   const toolFilteredConversations = useMemo(() => 
     allConversations.filter(c => c.toolType === 'long language loops'),
@@ -50,20 +63,16 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
     const query = searchQuery.toLowerCase();
     return toolFilteredConversations.filter(conv => {
-      // Search in title
       if (conv.title.toLowerCase().includes(query)) {
         return true;
       }
 
-      // Search in message content [[memory:7636151]]
       return conv.messages.some(msg => {
-        if (msg.role === 'user' && typeof msg.content === 'string') {
-          return msg.content.toLowerCase().includes(query);
-        }
-        return false;
+        const textContent = getMessageText(msg).toLowerCase();
+        return textContent.includes(query);
       });
     });
-  }, [toolFilteredConversations, searchQuery]);
+  }, [toolFilteredConversations, searchQuery, getMessageText]);
 
   const handleNewChat = () => {
     onStartNewChat();

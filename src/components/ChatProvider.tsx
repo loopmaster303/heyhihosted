@@ -37,6 +37,80 @@ const toDate = (timestamp: Date | string | undefined | null): Date => {
     return timestamp as Date;
 };
 
+const getTextFromContentParts = (content: unknown): string => {
+    if (!content) return '';
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+        return (content as Array<any>).map(part => {
+            if (!part) return '';
+            if (typeof part === 'string') return part;
+            if (typeof part.text === 'string') return part.text;
+            if (part.content) return getTextFromContentParts(part.content);
+            return '';
+        }).join('');
+    }
+    if (typeof content === 'object' && content !== null) {
+        const maybeText = (content as Record<string, unknown>).text;
+        if (typeof maybeText === 'string') return maybeText;
+        const nested = (content as Record<string, unknown>).content;
+        if (nested) return getTextFromContentParts(nested);
+    }
+    return '';
+};
+
+const extractTextFromSsePayload = (payload: any): string => {
+    const choices = payload?.choices;
+    if (!Array.isArray(choices) || choices.length === 0) return '';
+    const target = choices[0]?.delta ?? choices[0]?.message;
+    if (!target) return '';
+    const content = target.content ?? target;
+    return getTextFromContentParts(content);
+};
+
+const processSseStream = async (
+    stream: ReadableStream<Uint8Array>,
+    onChunk: (text: string) => void | Promise<void>
+) => {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    try {
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            let delimiterIndex;
+            while ((delimiterIndex = buffer.indexOf('\n\n')) !== -1) {
+                let rawEvent = buffer.slice(0, delimiterIndex);
+                buffer = buffer.slice(delimiterIndex + 2);
+                rawEvent = rawEvent.replace(/\r/g, '').trim();
+                if (!rawEvent) continue;
+                const dataLines = rawEvent
+                    .split('\n')
+                    .filter(line => line.startsWith('data:'))
+                    .map(line => line.replace(/^data:\s*/, ''));
+                if (dataLines.length === 0) continue;
+                const payload = dataLines.join('\n').trim();
+                if (!payload) continue;
+                if (payload === '[DONE]') {
+                    return;
+                }
+                try {
+                    const parsed = JSON.parse(payload);
+                    const text = extractTextFromSsePayload(parsed);
+                    if (text) {
+                        await onChunk(text);
+                    }
+                } catch (error) {
+                    console.warn('Failed to parse SSE payload', payload, error);
+                }
+            }
+        }
+    } finally {
+        reader.releaseLock();
+    }
+};
+
 export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLogicProps) {
     // --- State Declarations ---
     const [allConversations, setAllConversations] = useLocalStorageState<Conversation[]>(CHAT_HISTORY_STORAGE_KEY, []);
@@ -52,10 +126,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const [chatToEditId, setChatToEditId] = useState<string | null>(null);
     const [editingTitle, setEditingTitle] = useState('');
     
-    const [isImageMode, setIsImageMode] = useState(false);
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
     const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
-    const [webBrowsingEnabled, setWebBrowsingEnabled] = useState(false);
   
     const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
     const [isTtsLoadingForId, setIsTtsLoadingForId] = useState<string | null>(null);
@@ -87,7 +159,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const [availableImageModels, setAvailableImageModels] = useState<string[]>([]);
     const [selectedImageModelId, setSelectedImageModelId] = useLocalStorageState<string>('chatSelectedImageModel', DEFAULT_IMAGE_MODEL);
     
-
+    const isImageMode = activeConversation?.isImageMode ?? false;
+    const webBrowsingEnabled = activeConversation?.webBrowsingEnabled ?? false;
+    
     
     const { toast } = useToast();
     const { t } = useLanguage();
@@ -110,7 +184,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const handleFileSelect = useCallback((fileOrDataUri: File | string | null, fileType: string | null) => {
       if (!activeConversation) return; // Stellen Sie sicher, dass activeConversation existiert
       if (fileOrDataUri) {
-        setIsImageMode(false);
         if (typeof fileOrDataUri === 'string') {
             const file = dataURItoFile(fileOrDataUri, `capture-${Date.now()}.jpg`);
             setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: file, uploadedFilePreview: fileOrDataUri } : null);
@@ -124,7 +197,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       } else {
         setActiveConversation(prev => prev ? { ...prev, uploadedFile: null, uploadedFilePreview: null } : null);
       }
-    }, [activeConversation, dataURItoFile, setActiveConversation, setIsImageMode]);
+    }, [activeConversation, dataURItoFile, setActiveConversation]);
 
     const clearUploadedImage = useCallback(() => {
       if (activeConversation) {
@@ -144,12 +217,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     const toggleImageMode = useCallback(() => {
         if (!activeConversation) return;
-        const newImageModeState = !isImageMode;
-        setIsImageMode(newImageModeState);
+        const newImageModeState = !(activeConversation.isImageMode ?? false);
+        setActiveConversation(prev => prev ? { ...prev, isImageMode: newImageModeState } : prev);
         if(newImageModeState) {
            handleFileSelect(null, null); // handleFileSelect ist jetzt bekannt
         }
-    }, [activeConversation, isImageMode, handleFileSelect]);
+    }, [activeConversation, handleFileSelect, setActiveConversation]);
 
     const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]): Promise<string> => { // Rückgabetyp hinzugefügt
       const convToUpdate = allConversations.find(c => c.id === conversationId) ?? activeConversation;
@@ -343,37 +416,93 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                     messages: historyForApi,
                     modelId: modelIdForRequest,
                     systemPrompt: systemPromptForRequest,
-                    webBrowsingEnabled: webBrowsingEnabled,
+                    webBrowsingEnabled,
+                    stream: true,
                 })
               });
-              
-              const result: PollinationsChatCompletionResponse | ApiErrorResponse = await response.json();
-              
-              if (!response.ok || isApiErrorResponse(result)) {
-                    const errorMsg = isApiErrorResponse(result) ? result.error : 'API request failed';
+
+              const contentType = response.headers.get('content-type') || '';
+              const isStreamResponse = contentType.includes('text/event-stream');
+
+              if (!response.ok) {
+                    let errorMsg = 'API request failed';
+                    try {
+                        const errorJson = await response.json();
+                        if (isApiErrorResponse(errorJson)) {
+                            errorMsg = errorJson.error;
+                        }
+                    } catch {
+                        try {
+                            errorMsg = await response.text();
+                        } catch {
+                            // ignore
+                        }
+                    }
                     throw new Error(`API error: ${errorMsg}`);
               }
 
-              if (!isPollinationsChatResponse(result)) {
-                  throw new Error('Invalid API response format');
+              if (isStreamResponse && !response.body) {
+                  throw new Error('Streaming response missing body');
               }
 
-              console.log("API Response:", result);
+              if (isStreamResponse && response.body) {
+                  const streamingMessageId = generateUUID();
+                  const baseAssistantMessage: ChatMessage = { 
+                    id: streamingMessageId, 
+                    role: 'assistant', 
+                    content: '', 
+                    timestamp: new Date().toISOString(), 
+                    toolType: 'long language loops',
+                    isStreaming: true,
+                  };
+                  let streamedContent = '';
+                  finalMessages = [...updatedMessagesForState, baseAssistantMessage];
+                  setActiveConversation(prev => prev ? { ...prev, messages: finalMessages } : null);
 
-              // Extract AI response text
-              let aiResponseText = result.choices[0]?.message?.content || "Sorry, I couldn't get a response.";
-              
-              if (currentModel.id === "gpt-oss-120b") {
-                  // Clean up Replicate response formatting
-                  aiResponseText = aiResponseText
-                    .replace(/\n\s*\n\s*\n/g, '\n\n')
-                    .replace(/\s+/g, ' ')
-                    .trim();
+                  await processSseStream(response.body, async (delta) => {
+                      streamedContent += delta;
+                      const updatedAssistantMessage: ChatMessage = { ...baseAssistantMessage, content: streamedContent, isStreaming: true };
+                      finalMessages = [...updatedMessagesForState, updatedAssistantMessage];
+                      setActiveConversation(prev => prev ? { ...prev, messages: finalMessages } : null);
+                  });
+
+                  const completedAssistantMessage: ChatMessage = { 
+                    ...baseAssistantMessage, 
+                    content: streamedContent.trim() || "Sorry, I couldn't get a response.", 
+                    isStreaming: false 
+                  };
+                  aiMessage = completedAssistantMessage;
+                  finalMessages = [...updatedMessagesForState, completedAssistantMessage];
+                  setActiveConversation(prev => prev ? { ...prev, messages: finalMessages } : null);
+              } else {
+                  const result: PollinationsChatCompletionResponse | ApiErrorResponse = await response.json();
+                  
+                  if (isApiErrorResponse(result)) {
+                        const errorMsg = isApiErrorResponse(result) ? result.error : 'API request failed';
+                        throw new Error(`API error: ${errorMsg}`);
+                  }
+
+                  if (!isPollinationsChatResponse(result)) {
+                      throw new Error('Invalid API response format');
+                  }
+
+                  console.log("API Response:", result);
+
+                  // Extract AI response text
+                  let aiResponseText = result.choices[0]?.message?.content || "Sorry, I couldn't get a response.";
+                  
+                  if (currentModel.id === "gpt-oss-120b") {
+                      // Clean up Replicate response formatting
+                      aiResponseText = aiResponseText
+                        .replace(/\n\s*\n\s*\n/g, '\n\n')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                  }
+                  
+                  aiMessage = { id: generateUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date().toISOString(), toolType: 'long language loops' };
+                  finalMessages = [...updatedMessagesForState, aiMessage];
               }
-              
-              aiMessage = { id: generateUUID(), role: 'assistant', content: aiResponseText, timestamp: new Date().toISOString(), toolType: 'long language loops' };
           }
-          finalMessages = [...updatedMessagesForState, aiMessage];
           finalTitle = await updateConversationTitle(convId, finalMessages);
 
       } catch (error) {
@@ -410,7 +539,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
         setIsAiResponding(false);
       }
-    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId]);
+    }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, webBrowsingEnabled]);
   
     const selectChat = useCallback((conversationId: string | null) => {
       if (conversationId === null) {
@@ -419,7 +548,14 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       }
       const conversationToSelect = allConversations.find(c => c.id === conversationId);
       if (conversationToSelect) {
-          setActiveConversation({ ...conversationToSelect, uploadedFile: null, uploadedFilePreview: null });
+          setActiveConversation({ 
+            ...conversationToSelect, 
+            isImageMode: conversationToSelect.isImageMode ?? false,
+            isCodeMode: conversationToSelect.isCodeMode ?? false,
+            webBrowsingEnabled: conversationToSelect.webBrowsingEnabled ?? false,
+            uploadedFile: null, 
+            uploadedFilePreview: null 
+          });
           setLastUserMessageId(null); // Reset scroll target on chat switch
       }
     }, [allConversations, setActiveConversation, setLastUserMessageId]);
@@ -436,6 +572,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             toolType: 'long language loops',
             isImageMode: false,
             isCodeMode: false,
+            webBrowsingEnabled: false,
             selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
             selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
         };
@@ -535,7 +672,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   
     const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), []);
     const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), []);
-    const toggleWebBrowsing = useCallback(() => setWebBrowsingEnabled(prev => !prev), []);
+    const toggleWebBrowsing = useCallback(() => {
+      setActiveConversation(prev => prev ? { ...prev, webBrowsingEnabled: !(prev.webBrowsingEnabled ?? false) } : prev);
+    }, [setActiveConversation]);
   
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
       if (audioRef.current) {
