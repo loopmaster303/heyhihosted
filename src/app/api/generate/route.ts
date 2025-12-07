@@ -32,6 +32,7 @@ const ImageGenerationSchema = z.object({
   aspectRatio: z.string().optional(),
   duration: z.number().optional(),
   audio: z.boolean().optional(),
+  image: z.union([z.string().url(), z.array(z.string().url())]).optional(),
 });
 
 const VIDEO_MODELS = new Set(['seedance', 'seedance-pro', 'veo']);
@@ -87,6 +88,15 @@ export async function POST(request: Request) {
       if (aspectRatio) params.append('aspectRatio', aspectRatio);
       if (typeof duration === 'number') params.append('duration', String(duration));
       if (audio) params.append('audio', 'true');
+    }
+    // Reference images (supports arrays or single URL)
+    if (body.image) {
+      const images = Array.isArray(body.image) ? body.image : [body.image];
+      images.forEach((imgUrl) => {
+        if (typeof imgUrl === 'string' && imgUrl.trim().length > 0) {
+          params.append('image', imgUrl.trim());
+        }
+      });
     }
 
     const encodedPrompt = encodeURIComponent(prompt.trim());

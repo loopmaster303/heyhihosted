@@ -24,13 +24,13 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   { id: 'kontext', name: 'Kontext', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
   { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
   { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
-  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', supportsReference: false, isFree: true },
-  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', supportsReference: false, isFree: true },
+  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
+  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
   { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
   // Video models excluded for chat, but available for image-gen tools
   { id: 'seedance', name: 'Seedance', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true },
   { id: 'seedance-pro', name: 'Seedance Pro', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true },
-  { id: 'veo', name: 'Veo', provider: 'pollinations', kind: 'video', supportsReference: false, isFree: true },
+  { id: 'veo', name: 'Veo', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true },
 ];
 
 /**
@@ -51,7 +51,7 @@ const REPLICATE_MODELS: UnifiedImageModel[] = [
   { id: 'veo-3.1-fast', name: 'Veo 3.1 Fast', provider: 'replicate', kind: 'video', supportsReference: true, requiresPassword: true },
   
   // Image Models - Pollinations
-  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', supportsReference: false, isFree: true },
+  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
   
   // Video Models - Pollinations
   { id: 'seedance-pro', name: 'Seedance Pro', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true },

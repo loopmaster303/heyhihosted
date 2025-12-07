@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { X, FileImage, Plus, Loader2 } from 'lucide-react';
+import { X, FileImage, Plus, Loader2, SlidersHorizontal, Image as ImageIcon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import useEscapeKey from '@/hooks/useEscapeKey';
 import NextImage from 'next/image';
@@ -41,7 +41,7 @@ interface UnifiedImageToolProps {
 
 const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
   const { toast } = useToast();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   
   // Model selection
@@ -55,6 +55,29 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  const isGptImage = selectedModelId === 'gpt-image';
+  const isSeedream = selectedModelId === 'seedream' || selectedModelId === 'seedream-pro';
+  const isNanoPollen = selectedModelId === 'nanobanana' || selectedModelId === 'nanobanana-pro';
+  const isPollenModel = isGptImage || isSeedream || isNanoPollen;
+  const isPollinationsVideo = currentModelConfig?.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations';
+  const modelPlaceholderKey: Record<string, string> = {
+    'gpt-image': 'imageGen.placeholder.gptImage',
+    'seedream': 'imageGen.placeholder.seedream',
+    'seedream-pro': 'imageGen.placeholder.seedreamPro',
+    'nanobanana': 'imageGen.placeholder.nanobanana',
+    'nanobanana-pro': 'imageGen.placeholder.nanobananaPro',
+    'flux-kontext-pro': 'imageGen.placeholder.fluxKontextPro',
+    'z-image-turbo': 'imageGen.placeholder.zImageTurbo',
+    'flux-2-pro': 'imageGen.placeholder.flux2Pro',
+    'qwen-image-edit-plus': 'imageGen.placeholder.qwenImageEditPlus',
+    'seedance-pro': 'imageGen.placeholder.seedancePro',
+    'veo': 'imageGen.placeholder.veo',
+    'wan-2.5-t2v': 'imageGen.placeholder.wanT2V',
+    'wan-video': 'imageGen.placeholder.wanI2V',
+    'veo-3.1-fast': 'imageGen.placeholder.veoFast',
+  };
+  const placeholderText = t(modelPlaceholderKey[selectedModelId] || 'imageGen.placeholderDefault');
+
   // Check if model supports reference images
   const supportsReference = useMemo(() => {
     const modelInfo = getUnifiedModel(selectedModelId);
@@ -71,6 +94,11 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
     if (selectedModelId === 'wan-video') return 1; // I2V needs 1 image
     if (selectedModelId === 'veo-3.1-fast') return 1; // Can use reference image
     if (selectedModelId === 'seedance-pro') return 1; // Can use reference image
+    if (selectedModelId === 'veo') return 1; // Pollinations Veo supports one ref
+    if (selectedModelId === 'seedream-pro') return 8;
+    if (selectedModelId === 'seedream') return 8;
+    if (selectedModelId === 'gpt-image') return 8;
+    if (selectedModelId === 'nanobanana' || selectedModelId === 'nanobanana-pro') return 8;
     return 0; // Other models don't support images
   }, [selectedModelId, supportsReference]);
   
@@ -84,12 +112,20 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
   const [isImageUploadOpen, setIsImageUploadOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [openConfigParam, setOpenConfigParam] = useState<'aspect_ratio' | 'resolution' | 'output_format' | null>(null);
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
   
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const configPanelRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const gptImagePresets: Record<string, { width: number; height: number }> = {
+    '1:1': { width: 1440, height: 1440 },
+    '3:4': { width: 1248, height: 1664 },
+    '4:3': { width: 1664, height: 1248 },
+    '16:9': { width: 1920, height: 1080 },
+    '9:16': { width: 1080, height: 1920 },
+  };
 
   useOnClickOutside([historyPanelRef, configPanelRef], () => {
     setIsHistoryPanelOpen(false);
@@ -145,8 +181,20 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
         }
       }
     });
+    if (isGptImage || isSeedream || isNanoPollen) {
+      const preset = gptImagePresets['1:1'];
+      initialFields.aspect_ratio = '1:1';
+      initialFields.width = preset.width;
+      initialFields.height = preset.height;
+    } else if (isPollinationsVideo) {
+      initialFields.aspect_ratio = '16:9';
+      initialFields.duration = selectedModelId === 'veo' ? 6 : 6;
+      if (selectedModelId === 'veo') {
+        initialFields.audio = false;
+      }
+    }
     setFormFields(initialFields);
-  }, [currentModelConfig]);
+  }, [currentModelConfig, isGptImage, isSeedream, isNanoPollen, isPollinationsVideo, selectedModelId]);
 
   // Clear uploaded images when model changes to one that doesn't support reference images
   useEffect(() => {
@@ -220,6 +268,37 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       return;
     }
 
+    const pollinationUploadModels = ['gpt-image', 'seedream-pro', 'seedream', 'nanobanana', 'nanobanana-pro'];
+    if (pollinationUploadModels.includes(selectedModelId)) {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      fetch('/api/upload', { method: 'POST', body: formData })
+        .then(async (res) => {
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || 'Upload failed');
+          }
+          return res.json();
+        })
+        .then((data) => {
+          if (data?.url) {
+            setUploadedImages((prev) => [...prev, data.url]);
+          } else {
+            throw new Error('No URL returned from upload');
+          }
+        })
+        .catch((err) => {
+          console.error('Upload error:', err);
+          toast({ title: 'Upload failed', description: err.message || 'Could not upload image.', variant: 'destructive' });
+        })
+        .finally(() => {
+          setIsUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        });
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       const dataUri = reader.result as string;
@@ -239,7 +318,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }, [toast]);
+  }, [toast, selectedModelId]);
 
   const handleRemoveImage = useCallback((index: number) => {
     setUploadedImages(prev => {
@@ -333,23 +412,35 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
           payload.input_image = uploadedImages[0];
         } else if (selectedModelId === 'wan-video' || selectedModelId === 'veo-3.1-fast') {
           payload.image = uploadedImages[0];
-        } else if (selectedModelId === 'seedance-pro') {
-          // Pollinations uses different field
-          payload.referenceImage = uploadedImages[0];
+        } else if (selectedModelId === 'seedance-pro' || selectedModelId === 'veo') {
+          // Pollinations video: reference image
+          payload.image = uploadedImages.slice(0, maxImages).join(',');
+        } else if (
+          selectedModelId === 'gpt-image' ||
+          selectedModelId === 'seedream-pro' ||
+          selectedModelId === 'seedream' ||
+          selectedModelId === 'nanobanana' ||
+          selectedModelId === 'nanobanana-pro'
+        ) {
+          payload.image = uploadedImages.slice(0, maxImages).join(',');
         }
       }
 
       // Handle dimensions/aspect ratio/resolution (model-specific)
       if (isPollinationsModel) {
-        // Pollinations: Use width/height
-        if (formFields.width) payload.width = formFields.width;
-        if (formFields.height) payload.height = formFields.height;
-        
-        // Video-specific params
+        // Pollinations: images use width/height; video uses aspectRatio/duration/audio
         if (currentModelConfig?.outputType === 'video') {
-          if (formFields.aspectRatio) payload.aspectRatio = formFields.aspectRatio;
-          if (formFields.duration) payload.duration = formFields.duration;
+          if (formFields.aspect_ratio) payload.aspectRatio = formFields.aspect_ratio;
+          if (formFields.duration) payload.duration = Number(formFields.duration);
+          if (selectedModelId === 'veo' && typeof formFields.audio !== 'undefined') {
+            payload.audio = Boolean(formFields.audio);
+          }
+        } else {
+          if (formFields.width) payload.width = formFields.width;
+          if (formFields.height) payload.height = formFields.height;
         }
+        // Prefer highest quality for Pollinations
+        payload.quality = 'hd';
       } else if (selectedModelId === 'z-image-turbo') {
         // Z-Image-Turbo: Convert aspect_ratio to height/width
         const aspectRatio = formFields.aspect_ratio || '1:1';
@@ -599,7 +690,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
               </div>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground font-code">
-                <p className="text-lg">Generated content will appear here</p>
+                <p className="text-lg">{t('imageGen.outputPlaceholder')}</p>
               </div>
             )}
           </CardContent>
@@ -612,19 +703,35 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
           {isModelSelectorOpen && (
             <div className="mb-4 bg-popover text-popover-foreground rounded-xl shadow-xl border border-border p-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Select Model</h3>
+                <h3 className="text-lg font-semibold">{t('modelSelect.title')}</h3>
                 <Button variant="ghost" size="sm" onClick={() => setIsModelSelectorOpen(false)}>
                   <X className="w-4 h-4 mr-1.5" />
-                  Close
+                  {t('imageGen.modal.close')}
                 </Button>
               </div>
               
               <div className="space-y-6">
+                {/* TEXT/IMAGE → IMAGE (multi-ref) */}
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">{t('modelSelect.textImage')}</h4>
+                  <div className="space-y-1">
+                    {['gpt-image', 'seedream-pro', 'seedream', 'nanobanana', 'nanobanana-pro'].map(id => (
+                      <button
+                        key={id}
+                        onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
+                        className="block w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-lg transition-colors"
+                      >
+                        {getUnifiedModelConfig(id)?.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* TEXT → IMAGE */}
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">TEXT → IMAGE</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">{t('modelSelect.textToImage')}</h4>
                   <div className="space-y-1">
-                    {['gpt-image', 'seedream-pro', 'flux-kontext-pro', 'z-image-turbo'].map(id => (
+                    {['flux-kontext-pro', 'z-image-turbo'].map(id => (
                       <button
                         key={id}
                         onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
@@ -638,9 +745,9 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
 
                 {/* TEXT + MULTI-IMAGE → IMAGE */}
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">TEXT + MULTI-IMAGE → IMAGE</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">{t('modelSelect.textMultiImage')}</h4>
                   <div className="space-y-1">
-                    {['flux-2-pro', 'nano-banana-pro'].map(id => (
+                    {['flux-2-pro'].map(id => (
                       <button
                         key={id}
                         onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
@@ -654,7 +761,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
 
                 {/* IMAGE → IMAGE (EDIT / I2I) */}
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">IMAGE → IMAGE (EDIT / I2I)</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">{t('modelSelect.imageEdit')}</h4>
                   <div className="space-y-1">
                     {['flux-kontext-pro', 'qwen-image-edit-plus'].map(id => (
                       <button
@@ -670,7 +777,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
 
                 {/* TEXT + IMAGE → VIDEO */}
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">TEXT + IMAGE → VIDEO</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">{t('modelSelect.textImageVideo')}</h4>
                   <div className="space-y-1">
                     {['seedance-pro', 'veo', 'wan-2.5-t2v', 'wan-video', 'veo-3.1-fast'].map(id => (
                       <button
@@ -684,69 +791,109 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+        </div>
+      )}
 
-          {/* Config Panel */}
-          {isConfigPanelOpen && currentModelConfig && (
-            <div 
-              ref={configPanelRef}
-              className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
+      {/* Config Panel */}
+      {isConfigPanelOpen && currentModelConfig && (
+        <div 
+          ref={configPanelRef}
+          className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
             >
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-sm font-semibold">Configuration</h3>
+                <h3 className="text-sm font-semibold">{t('imageGen.modal.title')}</h3>
                 <Button variant="ghost" size="sm" onClick={() => setIsConfigPanelOpen(false)}>
                   <X className="w-4 h-4 mr-1.5" />
-                  Close
+                  {t('imageGen.modal.close')}
                 </Button>
               </div>
               
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                 {/* Aspect Ratio */}
-                {currentModelConfig.inputs.find(i => i.name === 'aspect_ratio') && (
+                {/* Aspect Ratio / Size */}
+                {(isGptImage || isSeedream || isNanoPollen || currentModelConfig.inputs.find(i => i.name === 'aspect_ratio')) && (
                   <div className="space-y-2">
-                    <Label>Aspect Ratio</Label>
-                    <Select
-                      value={formFields.aspect_ratio || '1:1'}
-                      onValueChange={(value) => handleFieldChange('aspect_ratio', value)}
-                      disabled={loading}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedModelId === 'z-image-turbo' ? (
-                          <>
-                            <SelectItem value="1:1">1:1 (1024×1024)</SelectItem>
-                            <SelectItem value="4:3">4:3 (1024×768)</SelectItem>
-                            <SelectItem value="3:4">3:4 (768×1024)</SelectItem>
-                            <SelectItem value="16:9">16:9 (1344×768)</SelectItem>
-                            <SelectItem value="9:16">9:16 (768×1344)</SelectItem>
-                          </>
-                        ) : (
-                          <>
-                            <SelectItem value="match_input_image">Match Input Image</SelectItem>
-                            <SelectItem value="custom">Custom</SelectItem>
-                            <SelectItem value="1:1">1:1</SelectItem>
-                            <SelectItem value="16:9">16:9</SelectItem>
-                            <SelectItem value="3:2">3:2</SelectItem>
-                            <SelectItem value="2:3">2:3</SelectItem>
-                            <SelectItem value="4:5">4:5</SelectItem>
-                            <SelectItem value="5:4">5:4</SelectItem>
-                            <SelectItem value="9:16">9:16</SelectItem>
-                            <SelectItem value="3:4">3:4</SelectItem>
-                            <SelectItem value="4:3">4:3</SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Label>{t('imageGen.aspectRatioLabel')}</Label>
+                    {(isGptImage || isSeedream || isNanoPollen) ? (
+                      <Select
+                        value={formFields.aspect_ratio || '1:1'}
+                        onValueChange={(value) => {
+                          const preset = gptImagePresets[value] || gptImagePresets['1:1'];
+                          setFormFields(prev => ({
+                            ...prev,
+                            aspect_ratio: value,
+                            width: preset.width,
+                            height: preset.height,
+                          }));
+                        }}
+                        disabled={loading}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.keys(gptImagePresets).map((ratio) => (
+                            <SelectItem key={ratio} value={ratio}>{ratio}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : currentModelConfig.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations' ? (
+                      <Select
+                        value={formFields.aspect_ratio || '16:9'}
+                        onValueChange={(value) => handleFieldChange('aspect_ratio', value)}
+                        disabled={loading}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="16:9">16:9</SelectItem>
+                          <SelectItem value="9:16">9:16</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Select
+                        value={formFields.aspect_ratio || '1:1'}
+                        onValueChange={(value) => handleFieldChange('aspect_ratio', value)}
+                        disabled={loading}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedModelId === 'z-image-turbo' ? (
+                            <>
+                              <SelectItem value="1:1">1:1 (1024×1024)</SelectItem>
+                              <SelectItem value="4:3">4:3 (1024×768)</SelectItem>
+                              <SelectItem value="3:4">3:4 (768×1024)</SelectItem>
+                              <SelectItem value="16:9">16:9 (1344×768)</SelectItem>
+                              <SelectItem value="9:16">9:16 (768×1344)</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="match_input_image">Match Input Image</SelectItem>
+                              <SelectItem value="custom">Custom</SelectItem>
+                              <SelectItem value="1:1">1:1</SelectItem>
+                              <SelectItem value="16:9">16:9</SelectItem>
+                              <SelectItem value="3:2">3:2</SelectItem>
+                              <SelectItem value="2:3">2:3</SelectItem>
+                              <SelectItem value="4:5">4:5</SelectItem>
+                              <SelectItem value="5:4">5:4</SelectItem>
+                              <SelectItem value="9:16">9:16</SelectItem>
+                              <SelectItem value="3:4">3:4</SelectItem>
+                              <SelectItem value="4:3">4:3</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 )}
 
                 {/* Resolution (conditional, model-specific) - only for Flux 2 Pro and Nano Banana Pro */}
-                {selectedModelId !== 'z-image-turbo' && shouldShowResolution && currentModelConfig.inputs.find(i => i.name === 'resolution') && (
+                {selectedModelId !== 'z-image-turbo' && !isGptImage && !isPollinationsVideo && shouldShowResolution && currentModelConfig.inputs.find(i => i.name === 'resolution') && (
                   <div className="space-y-2">
-                    <Label>Resolution</Label>
+                    <Label>{t('field.resolution')}</Label>
                     <Select
                       value={formFields.resolution || (selectedModelId === 'nano-banana-pro' ? '2K' : '1 MP')}
                       onValueChange={(value) => handleFieldChange('resolution', value)}
@@ -780,9 +927,9 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                 )}
 
                 {/* Seed */}
-                {currentModelConfig.inputs.find(i => i.name === 'seed') && (
+                {currentModelConfig.inputs.find(i => i.name === 'seed') && !isPollinationsVideo && (
                   <div className="space-y-2">
-                    <Label>Seed</Label>
+                    <Label>{t('field.seed')}</Label>
                     <Input
                       type="number"
                       placeholder="Leave blank for random"
@@ -794,11 +941,11 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                 )}
 
                 {/* Output Format (model-specific options) */}
-                {currentModelConfig.inputs.find(i => i.name === 'output_format') && (
+                {(!isPollenModel && !isPollinationsVideo && currentModelConfig.inputs.find(i => i.name === 'output_format')) && (
                   <div className="space-y-2">
                     <Label>Output Format</Label>
                     <Select
-                      value={formFields.output_format || (selectedModelId === 'flux-2-pro' ? 'webp' : 'jpg')}
+                      value={formFields.output_format || (currentModelConfig.outputType === 'video' ? 'mp4' : (selectedModelId === 'flux-2-pro' ? 'webp' : 'jpg'))}
                       onValueChange={(value) => handleFieldChange('output_format', value)}
                       disabled={loading}
                     >
@@ -813,7 +960,14 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                             <SelectItem value="png">PNG</SelectItem>
                           </>
                         )}
-                        {(selectedModelId === 'nano-banana-pro' || selectedModelId === 'qwen-image-edit-plus') && (
+                        {(selectedModelId === 'nano-banana-pro' || selectedModelId === 'qwen-image-edit-plus' || isGptImage) && (
+                          <>
+                            <SelectItem value="jpg">JPG</SelectItem>
+                            <SelectItem value="png">PNG</SelectItem>
+                            <SelectItem value="webp">WebP</SelectItem>
+                          </>
+                        )}
+                        {(isSeedream || isNanoPollen) && (
                           <>
                             <SelectItem value="jpg">JPG</SelectItem>
                             <SelectItem value="png">PNG</SelectItem>
@@ -830,6 +984,56 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                       </SelectContent>
                     </Select>
                   </div>
+                )}
+
+                {/* Video-specific options for Pollinations */}
+                {isPollinationsVideo && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Duration (seconds)</Label>
+                      <Select
+                        value={String(formFields.duration || (selectedModelId === 'veo' ? 6 : 6))}
+                        onValueChange={(value) => handleFieldChange('duration', Number(value))}
+                        disabled={loading}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedModelId === 'veo' ? (
+                            <>
+                              <SelectItem value="4">4</SelectItem>
+                              <SelectItem value="6">6</SelectItem>
+                              <SelectItem value="8">8</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="2">2</SelectItem>
+                              <SelectItem value="4">4</SelectItem>
+                              <SelectItem value="6">6</SelectItem>
+                              <SelectItem value="8">8</SelectItem>
+                              <SelectItem value="10">10</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {selectedModelId === 'veo' && (
+                      <div className="space-y-2">
+                        <Label>Audio</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={Boolean(formFields.audio)}
+                            onChange={(e) => handleFieldChange('audio', e.target.checked)}
+                            disabled={loading}
+                          />
+                          <span className="text-sm text-muted-foreground">Enable audio</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -911,7 +1115,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                   ref={textareaRef}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe what you want to see..."
+                  placeholder={placeholderText}
                   className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none px-0 py-0 m-0 leading-relaxed resize-none overflow-auto font-normal min-h-[100px] max-h-[260px]"
                   rows={1}
                   disabled={loading}
@@ -920,49 +1124,26 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
               </div>
 
               {/* Fixed bottom area */}
-              <div className="absolute bottom-0 left-0 right-0 px-6 pb-4 flex items-center justify-between">
-                {/* Left: Model Selector + Image Upload Icon */}
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsModelSelectorOpen(!isModelSelectorOpen)}
-                    className="text-sm font-medium text-gray-800 dark:text-white hover:opacity-70 transition-opacity"
-                  >
-                    {currentModelConfig?.name || 'Select Model'}
-                  </button>
-
-                  {/* Add images - Text only */}
-                  {supportsReference && (
-                    <button
-                      type="button"
-                      onClick={() => setIsImageUploadOpen(!isImageUploadOpen)}
-                      disabled={loading}
-                      className="text-sm font-medium text-gray-800 dark:text-white hover:opacity-70 transition-opacity disabled:opacity-40"
-                    >
-                      Add images
-                    </button>
-                  )}
-                </div>
-
+              <div className="absolute bottom-0 left-0 right-0 px-6 pb-4 flex items-center justify-end">
                 {/* Right: Text Buttons - ALWAYS TEXT, NO ICONS */}
                 <div className="flex items-center gap-5">
                   {/* Enhance Prompt - Text only */}
                   <button
                     type="button"
                     onClick={handleEnhancePrompt}
-                    disabled={!prompt.trim() || loading || isEnhancing}
+                    disabled={!prompt.trim() || loading || isEnhancing || isUploading}
                     className="text-sm font-medium text-gray-800 dark:text-white hover:opacity-70 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    {isEnhancing ? 'Enhancing...' : 'Enhance prompt'}
+                  {isEnhancing ? `${t('action.enhancePrompt')}...` : t('action.enhancePrompt')}
                   </button>
 
                   {/* Generate - Text only */}
                   <button
                     type="submit"
-                    disabled={loading || (!prompt.trim() && uploadedImages.length === 0)}
+                    disabled={loading || isUploading || (!prompt.trim() && uploadedImages.length === 0)}
                     className="text-sm font-medium text-gray-800 dark:text-white hover:opacity-70 transition-opacity disabled:opacity-40"
                   >
-                    {loading ? 'Generating...' : 'Generate'}
+                    {loading ? `${t('action.generate')}...` : t('action.generate')}
                   </button>
                 </div>
               </div>
@@ -972,173 +1153,40 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
               ref={fileInputRef}
               onChange={handleFileChange}
               accept="image/*"
-              multiple
-              className="hidden"
-            />
-          </form>
+            multiple
+            className="hidden"
+          />
+        </form>
 
-          <div className="mt-3 px-1">
-            {/* Gallery - hidden but kept in code */}
+        {/* Bottom utility bar under prompt */}
+        <div className="mt-3 px-1">
+          <div className="flex items-center justify-between gap-4 text-sm font-medium text-foreground">
             <button
               type="button"
-              className="hidden text-left text-foreground text-xl font-bold font-code select-none truncate opacity-40 cursor-not-allowed px-2 py-1 rounded-md"
-              disabled
+              onClick={() => setIsConfigPanelOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition"
             >
-              Gallery
+              <SlidersHorizontal className="h-4 w-4" />
+              <span>{t('imageGen.configure')}</span>
             </button>
-
-            {/* Configuration params - distributed evenly, horizontal expansion */}
-            <div className="flex items-center justify-between gap-6 relative">
-              {/* Aspect Ratio */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onMouseEnter={() => setOpenConfigParam('aspect_ratio')}
-                  onMouseLeave={() => setOpenConfigParam(null)}
-                  className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
-                >
-                  Aspect Ratio {formFields.aspect_ratio || '1:1'}
-                </button>
-                
-                {/* Horizontal expansion to the right */}
-                {openConfigParam === 'aspect_ratio' && (
-                  <div 
-                    className="absolute left-0 top-0 flex items-center gap-2 bg-background px-3 py-1.5 rounded-full animate-in fade-in-0 slide-in-from-left-2 duration-200 shadow-lg z-10"
-                    onMouseEnter={() => setOpenConfigParam('aspect_ratio')}
-                    onMouseLeave={() => setOpenConfigParam(null)}
-                  >
-                    {selectedModelId === 'z-image-turbo' ? (
-                      <>
-                        {['1:1', '4:3', '3:4', '16:9', '9:16'].map(ratio => (
-                          <button
-                            key={ratio}
-                            type="button"
-                            onClick={() => { handleFieldChange('aspect_ratio', ratio); setOpenConfigParam(null); }}
-                            className="text-sm px-2 py-0.5 hover:text-primary transition-colors"
-                          >
-                            {ratio}
-                          </button>
-                        ))}
-                      </>
-                    ) : (
-                      <>
-                        {['1:1', '16:9', '3:2', '2:3', '4:5', '9:16', '3:4', '4:3'].map(ratio => (
-                          <button
-                            key={ratio}
-                            type="button"
-                            onClick={() => { handleFieldChange('aspect_ratio', ratio); setOpenConfigParam(null); }}
-                            className="text-sm px-2 py-0.5 hover:text-primary transition-colors"
-                          >
-                            {ratio}
-                          </button>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Resolution (conditional) */}
-              {selectedModelId !== 'z-image-turbo' && shouldShowResolution && (
-                <div className="relative">
-                  <button
-                    type="button"
-                    onMouseEnter={() => setOpenConfigParam('resolution')}
-                    onMouseLeave={() => setOpenConfigParam(null)}
-                    className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
-                  >
-                    Resolution {formFields.resolution || (selectedModelId === 'nano-banana-pro' ? '2K' : '1 MP')}
-                  </button>
-                  
-                  {/* Horizontal expansion to the right */}
-                  {openConfigParam === 'resolution' && (
-                    <div 
-                      className="absolute left-0 top-0 flex items-center gap-2 bg-background px-3 py-1.5 rounded-full animate-in fade-in-0 slide-in-from-left-2 duration-200 shadow-lg z-10"
-                      onMouseEnter={() => setOpenConfigParam('resolution')}
-                      onMouseLeave={() => setOpenConfigParam(null)}
-                    >
-                      {selectedModelId === 'nano-banana-pro' ? (
-                        <>
-                          {['1K', '2K', '4K'].map(res => (
-                            <button
-                              key={res}
-                              type="button"
-                              onClick={() => { handleFieldChange('resolution', res); setOpenConfigParam(null); }}
-                              className="text-sm px-2 py-0.5 hover:text-primary transition-colors"
-                            >
-                              {res}
-                            </button>
-                          ))}
-                        </>
-                      ) : (
-                        <>
-                          {['0.5 MP', '1 MP', '2 MP', '4 MP'].map(res => (
-                            <button
-                              key={res}
-                              type="button"
-                              onClick={() => { handleFieldChange('resolution', res); setOpenConfigParam(null); }}
-                              className="text-sm px-2 py-0.5 hover:text-primary transition-colors"
-                            >
-                              {res}
-                            </button>
-                          ))}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Output Format */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onMouseEnter={() => setOpenConfigParam('output_format')}
-                  onMouseLeave={() => setOpenConfigParam(null)}
-                  className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
-                >
-                  Output Format {(formFields.output_format || (selectedModelId === 'flux-2-pro' ? 'webp' : 'jpg')).toUpperCase()}
-                </button>
-                
-                {/* Horizontal expansion to the LEFT */}
-                {openConfigParam === 'output_format' && (
-                  <div 
-                    className="absolute right-0 top-0 flex items-center gap-2 bg-background px-3 py-1.5 rounded-full animate-in fade-in-0 slide-in-from-right-2 duration-200 shadow-lg z-10"
-                    onMouseEnter={() => setOpenConfigParam('output_format')}
-                    onMouseLeave={() => setOpenConfigParam(null)}
-                  >
-                    {selectedModelId === 'flux-2-pro' ? (
-                      <>
-                        {['webp', 'jpg', 'png'].map(format => (
-                          <button
-                            key={format}
-                            type="button"
-                            onClick={() => { handleFieldChange('output_format', format); setOpenConfigParam(null); }}
-                            className="text-sm px-2 py-0.5 hover:text-primary transition-colors"
-                          >
-                            {format.toUpperCase()}
-                          </button>
-                        ))}
-                      </>
-                    ) : (
-                      <>
-                        {['jpg', 'png', 'webp'].map(format => (
-                          <button
-                            key={format}
-                            type="button"
-                            onClick={() => { handleFieldChange('output_format', format); setOpenConfigParam(null); }}
-                            className="text-sm px-2 py-0.5 hover:text-primary transition-colors"
-                          >
-                            {format.toUpperCase()}
-                          </button>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsModelSelectorOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition"
+            >
+              <span className="text-foreground/80">{currentModelConfig?.name || 'Select model'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsImageUploadOpen(true)}
+              disabled={!supportsReference || loading || isUploading}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition disabled:opacity-40"
+            >
+              <span>+</span>
+              <ImageIcon className="h-4 w-4" />
+            </button>
           </div>
+        </div>
 
           {isHistoryPanelOpen && (
             <div 

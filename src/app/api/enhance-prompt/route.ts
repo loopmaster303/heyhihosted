@@ -28,6 +28,8 @@ const MODEL_ALIASES: Record<string, string> = {
   'qwen-image-edit-plus': 'qwen-image-edit',
   'seedance-pro': 'seedance-pro',
   'gpt-image': 'default', // Generic model, uses default prompt
+  'nanobanana': 'nano-banana',
+  'nanobanana-pro': 'nano-banana-pro',
 };
 
 function selectGuidelines(modelId: string): string {

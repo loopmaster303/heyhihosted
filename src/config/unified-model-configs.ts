@@ -15,7 +15,7 @@ export interface UnifiedModelConfig {
 }
 
 export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
-  // Pollinations models
+  // Pollinations first (priority in selector)
   'gpt-image': {
     id: 'gpt-image',
     name: 'GPT-Image',
@@ -30,6 +30,39 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   'seedream-pro': {
     id: 'seedream-pro',
     name: 'Seedream Pro',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'seedream': {
+    id: 'seedream',
+    name: 'Seedream',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'nanobanana': {
+    id: 'nanobanana',
+    name: 'Nano Banana',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'nanobanana-pro': {
+    id: 'nanobanana-pro',
+    name: 'Nano Banana Pro',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'width', default: 1024 },
@@ -58,6 +91,7 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '16:9' },
       { name: 'duration', default: 6 },
+      { name: 'audio', default: false },
       { name: 'output_format', default: 'mp4' },
       { name: 'seed' },
     ],
