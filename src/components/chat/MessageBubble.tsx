@@ -1,11 +1,13 @@
 
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import React from 'react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, ChatMessageContentPart } from '@/types';
 import Image from 'next/image';
-import { Loader2, StopCircle, RefreshCw, Copy } from 'lucide-react';
+import { Loader2, StopCircle, RefreshCw, Copy, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTypewriter } from '@/hooks/useTypewriter';
 import { BlinkingCursor } from '@/components/ui/BlinkingCursor';
@@ -177,17 +179,55 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         return <p key={index} className="text-sm whitespace-pre-wrap mb-2">{part.text}</p>;
       } 
       if (part.type === 'image_url') {
-        const altText = part.image_url.altText || (part.image_url.isGenerated ? "Generated image" : (part.image_url.isUploaded ? "Uploaded image" : "Image"));
+        const altText =
+          part.image_url.altText ||
+          (part.image_url.isGenerated
+            ? 'Generated image'
+            : part.image_url.isUploaded
+              ? 'Uploaded image'
+              : 'Image');
+
+        const handleDownload = async (e: React.MouseEvent) => {
+          e.stopPropagation();
+          try {
+            const res = await fetch(part.image_url.url);
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${(altText || 'image').slice(0, 30)}.jpg`;
+            link.click();
+            URL.revokeObjectURL(url);
+          } catch {
+            window.open(part.image_url.url, '_blank');
+          }
+        };
+
         return (
-          <div key={index} className="mt-2 mb-1 relative" style={{width: '300px', height: '200px'}}>
-            <Image
+          <div
+            key={index}
+            className="mt-2 mb-1 w-[300px] max-w-full relative group"
+          >
+            <img
               src={part.image_url.url}
               alt={altText}
-              fill
-              sizes="(max-width: 768px) 80vw, 300px"
-              className="rounded-md object-contain"
-              data-ai-hint={part.image_url.isGenerated ? "illustration digital art" : (part.image_url.isUploaded ? "photo object" : "image")}
+              className="w-full max-h-[220px] rounded-md object-contain border border-border/50 bg-muted/20"
+              data-ai-hint={
+                part.image_url.isGenerated
+                  ? 'illustration digital art'
+                  : part.image_url.isUploaded
+                    ? 'photo object'
+                    : 'image'
+              }
             />
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="absolute bottom-2 right-2 rounded-full bg-black/70 text-white p-2 opacity-0 group-hover:opacity-100 transition"
+              title="Download"
+            >
+              <Download className="h-4 w-4" />
+            </button>
           </div>
         );
       }

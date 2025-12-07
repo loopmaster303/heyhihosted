@@ -328,7 +328,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             const userMessage: ChatMessage = { id: generateUUID(), role: 'user', content: userMessageContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
             newUserMessageId = userMessage.id;
             
-            updatedMessagesForState = isImagePrompt ? messages : [...messages, userMessage];
+            updatedMessagesForState = [...messages, userMessage];
             setActiveConversation(prev => prev ? { ...prev, messages: updatedMessagesForState } : null);
             setLastUserMessageId(userMessage.id);
         } else {
@@ -380,10 +380,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
               
               const imageResult = result as ImageGenerationResponse;
               const aiResponseContent: ChatMessageContentPart[] = [
-                  { type: 'text', text: `Generated image for: "${chatInputValue.trim()}" (Model: ${selectedImageModelId})` },
-                  { type: 'image_url', image_url: { url: imageResult.imageUrl, altText: `Generated image for ${chatInputValue.trim()}`, isGenerated: true } }
+                  { type: 'text', text: `Your image generation with model "${selectedImageModelId}" started. It may take a few seconds to arrive.` },
+                  { type: 'image_url', image_url: { url: imageResult.imageUrl, altText: `Generated image (${selectedImageModelId})`, isGenerated: true } }
               ];
               aiMessage = { id: generateUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
+              finalMessages = [...updatedMessagesForState, aiMessage];
           } else {
               
               // Override model and system prompt when Code Mode is enabled

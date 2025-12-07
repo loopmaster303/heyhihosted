@@ -129,10 +129,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isTitleHovered, setIsTitleHovered] = useState(false);
 
+  const TEXTAREA_MIN_HEIGHT = 80;
+  const TEXTAREA_MAX_HEIGHT = 220;
+
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 40), 130);
+      const newHeight = Math.min(
+        Math.max(textareaRef.current.scrollHeight, TEXTAREA_MIN_HEIGHT),
+        TEXTAREA_MAX_HEIGHT
+      );
       textareaRef.current.style.height = `${newHeight}px`;
     }
   }, [inputValue]);
@@ -271,7 +277,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         onChange={handleTextareaInput}
                         onKeyDown={handleKeyDown}
                         placeholder={placeholderText}
-                         className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-hidden"
+                         className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-auto min-h-[80px] max-h-[220px]"
                         rows={1}
                         disabled={isLoading || isRecording || isTranscribing}
                         aria-label="Chat message input"

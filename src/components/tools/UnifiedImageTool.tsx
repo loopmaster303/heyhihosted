@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { X, FileImage, Plus } from 'lucide-react';
+import { X, FileImage, Plus, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import useEscapeKey from '@/hooks/useEscapeKey';
 import NextImage from 'next/image';
@@ -893,6 +893,18 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
 
           <form onSubmit={handleSubmit}>
             <div className="bg-pink-100 dark:bg-[#252525] text-gray-800 dark:text-white rounded-3xl shadow-lg relative">
+              {loading && (
+                <div className="absolute inset-x-4 top-3 z-10">
+                  <div className="rounded-xl bg-black/70 text-white px-4 py-3 text-sm md:text-base shadow-lg flex items-start gap-2">
+                    <Loader2 className="h-4 w-4 mt-0.5 animate-spin" />
+                    <div className="leading-snug">
+                      {language === 'de'
+                        ? 'Generierung läuft … Aufwändige Modelle brauchen manchmal ein paar Sekunden, Bilder kommen direkt aus der Cloud.'
+                        : 'Generating… Heavier models can take a few seconds; images stream back from the cloud.'}
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* Main content area */}
               <div className="px-6 pt-5 pb-16">
                 <Textarea
