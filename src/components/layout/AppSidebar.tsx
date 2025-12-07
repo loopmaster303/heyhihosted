@@ -62,6 +62,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   const [userDisplayName] = useLocalStorageState<string>('userDisplayName', 'User');
   const [chatSearch, setChatSearch] = useState('');
   const [previewImage, setPreviewImage] = useState<ImageHistoryItem | null>(null);
+  const [isFullGalleryOpen, setIsFullGalleryOpen] = useState(false);
 
   const isVisualizePage = pathname === '/visualizepro';
   const isGerman = language === 'de';
@@ -82,6 +83,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     close: isGerman ? 'Schließen' : 'Close',
     conversations: isGerman ? 'Gespräche' : 'Conversations',
     visualize: isGerman ? 'Visualisieren' : 'Visualize',
+    openFullGallery: isGerman ? 'Galerie öffnen' : 'Open full gallery',
+    clearAll: isGerman ? 'Alles löschen' : 'Clear all',
   };
 
   // Chat history sync: prefer prop when provided, otherwise load from storage
@@ -173,6 +176,15 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
       localStorage.setItem(IMAGE_HISTORY_KEY, JSON.stringify(updated));
     } catch (e) {
       console.warn('Failed to prune image history', e);
+    }
+  };
+
+  const clearImageHistory = () => {
+    setLocalImageHistory([]);
+    try {
+      localStorage.removeItem(IMAGE_HISTORY_KEY);
+    } catch (e) {
+      console.warn('Failed to clear image history', e);
     }
   };
 
@@ -363,67 +375,80 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                 )}
               </Button>
               {isExpanded && activeSection === 'gallery' && (
-                <div className="mt-1 ml-2 mr-0 pr-2 max-h-64 overflow-y-auto no-scrollbar grid grid-cols-3 gap-1.5">
-                  {resolvedImageHistory.length === 0 ? (
-                    <p className="text-xs text-muted-foreground px-2 py-2 col-span-3">{labels.noImages}</p>
-                  ) : (
-                    resolvedImageHistory.slice(0, 30).map((item) => (
-                      <div
-                        key={item.id}
-                        className="aspect-square rounded-md overflow-hidden relative group cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => {
-                          setPreviewImage(item);
-                          navigator.clipboard?.writeText(item.prompt || '').catch(() => {});
-                          if (onSelectImage) {
-                            onSelectImage(item);
-                          }
-                        }}
-                      >
-                        {item.videoUrl ? (
-                          <div className="w-full h-full bg-muted flex items-center justify-center text-[10px] text-white/80">
-                            Video
-                          </div>
-                        ) : (
-                          <img src={item.imageUrl} alt={item.prompt} className="w-full h-full object-cover" />
-                        )}
-                        {!item.videoUrl && (
-                          <>
-                            <button
-                              className="absolute bottom-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                fetch(item.imageUrl)
-                                  .then((res) => res.blob())
-                                  .then((blob) => {
-                                    const url = URL.createObjectURL(blob);
-                                    const link = document.createElement('a');
-                                    link.href = url;
-                                    link.download = `${(item.prompt || 'image').slice(0, 20)}.jpg`;
-                                    link.click();
-                                    URL.revokeObjectURL(url);
-                                  })
-                                  .catch(() => window.open(item.imageUrl, '_blank'));
-                              }}
-                              title="Download"
-                            >
-                              <Download className="h-3 w-3" />
-                            </button>
-                            <button
-                              className="absolute bottom-1 left-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeImageFromStorage(item.id);
-                              }}
-                              title="Delete"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
+                <>
+                  <div className="mt-1 ml-2 mr-2 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => setIsFullGalleryOpen(true)}
+                      disabled={resolvedImageHistory.length === 0}
+                    >
+                      {labels.openFullGallery}
+                    </Button>
+                  </div>
+                  <div className="mt-1 ml-2 mr-0 pr-2 max-h-64 overflow-y-auto no-scrollbar grid grid-cols-3 gap-1.5">
+                    {resolvedImageHistory.length === 0 ? (
+                      <p className="text-xs text-muted-foreground px-2 py-2 col-span-3">{labels.noImages}</p>
+                    ) : (
+                      resolvedImageHistory.slice(0, 30).map((item) => (
+                        <div
+                          key={item.id}
+                          className="aspect-square rounded-md overflow-hidden relative group cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => {
+                            setPreviewImage(item);
+                            navigator.clipboard?.writeText(item.prompt || '').catch(() => {});
+                            if (onSelectImage) {
+                              onSelectImage(item);
+                            }
+                          }}
+                        >
+                          {item.videoUrl ? (
+                            <div className="w-full h-full bg-muted flex items-center justify-center text-[10px] text-white/80">
+                              Video
+                            </div>
+                          ) : (
+                            <img src={item.imageUrl} alt={item.prompt} className="w-full h-full object-cover" />
+                          )}
+                          {!item.videoUrl && (
+                            <>
+                              <button
+                                className="absolute bottom-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  fetch(item.imageUrl)
+                                    .then((res) => res.blob())
+                                    .then((blob) => {
+                                      const url = URL.createObjectURL(blob);
+                                      const link = document.createElement('a');
+                                      link.href = url;
+                                      link.download = `${(item.prompt || 'image').slice(0, 20)}.jpg`;
+                                      link.click();
+                                      URL.revokeObjectURL(url);
+                                    })
+                                    .catch(() => window.open(item.imageUrl, '_blank'));
+                                }}
+                                title="Download"
+                              >
+                                <Download className="h-3 w-3" />
+                              </button>
+                              <button
+                                className="absolute bottom-1 left-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeImageFromStorage(item.id);
+                                }}
+                                title="Delete"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -453,6 +478,98 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
             )}
         </div>
       </div>
+
+      {isFullGalleryOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
+          onClick={() => setIsFullGalleryOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-6xl max-h-[90vh] bg-background/95 rounded-2xl shadow-2xl p-4 flex flex-col gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div>
+                <p className="text-lg font-semibold">{labels.gallery}</p>
+                <p className="text-xs text-muted-foreground">{resolvedImageHistory.length} items</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearImageHistory}
+                  disabled={resolvedImageHistory.length === 0}
+                >
+                  {labels.clearAll}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setIsFullGalleryOpen(false)} aria-label={labels.close}>
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            {resolvedImageHistory.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
+                {labels.noImages}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 overflow-y-auto pr-1">
+                {resolvedImageHistory.map((item) => (
+                  <div
+                    key={item.id}
+                    className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
+                    onClick={() => {
+                      setPreviewImage(item);
+                    }}
+                  >
+                    {item.videoUrl ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xs">
+                        Video
+                      </div>
+                    ) : (
+                      <img src={item.imageUrl} alt={item.prompt} className="w-full h-full object-cover" />
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                      <p className="text-white text-xs font-medium truncate">{item.prompt}</p>
+                    </div>
+                    <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition">
+                      <button
+                        className="bg-black/70 text-white rounded-full p-1"
+                        title={labels.download}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fetch(item.imageUrl)
+                            .then((res) => res.blob())
+                            .then((blob) => {
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `${(item.prompt || 'image').slice(0, 20)}.jpg`;
+                              link.click();
+                              URL.revokeObjectURL(url);
+                            })
+                            .catch(() => window.open(item.imageUrl, '_blank'));
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                      <button
+                        className="bg-red-600 text-white rounded-full p-1"
+                        title={labels.delete}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImageFromStorage(item.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {previewImage && (
         <div

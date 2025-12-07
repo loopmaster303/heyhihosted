@@ -164,11 +164,17 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
     }
   }, [selectedModelId, supportsReference]);
 
+  const TEXTAREA_MIN_HEIGHT = 100;
+  const TEXTAREA_MAX_HEIGHT = 260; // allow scrolling beyond this height
+
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 80), 200);
+      const newHeight = Math.min(
+        Math.max(textareaRef.current.scrollHeight, TEXTAREA_MIN_HEIGHT),
+        TEXTAREA_MAX_HEIGHT
+      );
       textareaRef.current.style.height = `${newHeight}px`;
     }
   }, [prompt]);
@@ -182,7 +188,10 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
         if (textareaRef.current) {
           textareaRef.current.focus();
           textareaRef.current.style.height = 'auto';
-          const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 80), 200);
+          const newHeight = Math.min(
+            Math.max(textareaRef.current.scrollHeight, TEXTAREA_MIN_HEIGHT),
+            TEXTAREA_MAX_HEIGHT
+          );
           textareaRef.current.style.height = `${newHeight}px`;
         }
       }
@@ -480,7 +489,10 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       // Adjust textarea height after programmatic update
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
-        const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 80), 200);
+        const newHeight = Math.min(
+          Math.max(textareaRef.current.scrollHeight, TEXTAREA_MIN_HEIGHT),
+          TEXTAREA_MAX_HEIGHT
+        );
         textareaRef.current.style.height = `${newHeight}px`;
       }
       toast({ title: "Prompt Enhanced", description: "Your prompt has been improved using AI." });
@@ -888,7 +900,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Describe what you want to see..."
-                  className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none px-0 py-0 m-0 leading-relaxed resize-none overflow-hidden font-normal min-h-[80px]"
+                  className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none px-0 py-0 m-0 leading-relaxed resize-none overflow-auto font-normal min-h-[100px] max-h-[260px]"
                   rows={1}
                   disabled={loading}
                   style={{ fontSize: '20px', lineHeight: '1.6' }}
