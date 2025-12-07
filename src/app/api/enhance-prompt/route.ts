@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ENHANCEMENT_PROMPTS, DEFAULT_ENHANCEMENT_PROMPT } from '@/config/enhancement-prompts';
 import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
 
-// Optional: allow overriding the OpenAI model via env
-const DEFAULT_OPENAI_MODEL = process.env.OPENAI_ENHANCER_MODEL || 'gpt-3.5-turbo';
-
 // Map UI model keys to enhancement prompt keys if they differ
 const MODEL_ALIASES: Record<string, string> = {
   // Keep identical mapping explicit for clarity and future drift checks
@@ -19,12 +16,25 @@ const MODEL_ALIASES: Record<string, string> = {
   'hailuo-02': 'hailuo-02',
   // Config uses 'seedream-4.0' but UI uses 'seedream-4'
   'seedream-4': 'seedream-4.0',
+  'seedream-pro': 'seedream-pro',
   'wan-2.5-t2v': 'wan-video',
+  'wan-2.5-i2v': 'wan-video',
   'veo-3-fast': 'veo-3-fast',
+  'veo-3.1-fast': 'veo-3.1-fast',
+  'veo': 'veo-3.1-fast', // Pollinations Veo uses same guidelines as Veo 3.1 Fast
+  'flux-2-pro': 'flux-2-pro',
+  'nano-banana-pro': 'nano-banana-pro',
+  'z-image-turbo': 'z-image-turbo',
+  'qwen-image-edit-plus': 'qwen-image-edit',
+  'seedance-pro': 'seedance-pro',
+  'gpt-image': 'default', // Generic model, uses default prompt
 };
 
 function selectGuidelines(modelId: string): string {
   const key = MODEL_ALIASES[modelId] || modelId;
+  if (key === 'default') {
+    return DEFAULT_ENHANCEMENT_PROMPT;
+  }
   return ENHANCEMENT_PROMPTS[key] || DEFAULT_ENHANCEMENT_PROMPT;
 }
 
@@ -115,58 +125,28 @@ export async function POST(request: NextRequest) {
 
     const systemMessage = `${baseGuidelines}\n\n${strictOutputGuard}`;
 
-    // Prefer OpenAI if key present; otherwise fall back to Pollinations
-    const openaiKey = process.env.OPENAI_API_KEY;
+    // Always use Pollinations (Pollen) with Claude Sonnet 3.7
+    const pollenKey = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_API_TOKEN;
     let enhancedText: string | null = null;
 
-    if (openaiKey) {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiKey}`,
-        },
-        body: JSON.stringify({
-          model: DEFAULT_OPENAI_MODEL,
-          messages: [
-            { role: 'system', content: systemMessage },
-            { role: 'user', content: prompt },
-          ],
-          temperature: 0.5,
-          max_tokens: 500,
-        }),
+    try {
+      const result = await getPollinationsChatCompletion({
+        modelId: 'claude', // maps to Claude 3.7 Sonnet on Pollinations
+        messages: [
+          { role: 'user', content: prompt },
+        ],
+        systemPrompt: systemMessage,
+        apiKey: pollenKey,
+        maxCompletionTokens: 500,
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('OpenAI API error:', errorText);
-        throw new Error(`OpenAI API failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      enhancedText = result.choices?.[0]?.message?.content || null;
-    } else {
-      console.warn('OPENAI_API_KEY not set. Falling back to Pollinations.');
-      const pollinationsKey = process.env.POLLINATIONS_API_KEY;
-      try {
-        const result = await getPollinationsChatCompletion({
-          modelId: 'openai-fast',
-          messages: [
-            { role: 'user', content: prompt },
-          ],
-          systemPrompt: systemMessage,
-          apiKey: pollinationsKey,
-          maxCompletionTokens: 500,
-        });
-        enhancedText = result.responseText;
-      } catch (pollinationsError) {
-        const message = pollinationsError instanceof Error ? pollinationsError.message : String(pollinationsError);
-        if (message.includes('Input text exceeds maximum length')) {
-          console.warn('Pollinations prompt too long, returning original prompt without enhancement.');
-          enhancedText = prompt;
-        } else {
-          throw pollinationsError;
-        }
+      enhancedText = result.responseText;
+    } catch (pollinationsError) {
+      const message = pollinationsError instanceof Error ? pollinationsError.message : String(pollinationsError);
+      if (message.includes('Input text exceeds maximum length')) {
+        console.warn('Pollinations prompt too long, returning original prompt without enhancement.');
+        enhancedText = prompt;
+      } else {
+        throw pollinationsError;
       }
     }
 
@@ -178,8 +158,8 @@ export async function POST(request: NextRequest) {
       enhancedPrompt: cleaned,
       originalPrompt: prompt,
       modelId,
-      usedModel: DEFAULT_OPENAI_MODEL,
-      via: openaiKey ? 'openai' : 'pollinations',
+      usedModel: 'claude',
+      via: 'pollinations',
     });
 
   } catch (error) {

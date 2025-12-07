@@ -205,9 +205,6 @@ export const translations = {
     'tool.about.importText': 'import [Neugier, Interesse]',
     'tool.about.exportText': 'export [Transparenz, Kontext, Verständnis]',
 
-    // Nonogram Page
-    'nonogram.title': 'Nonogramm Pro',
-    'nonogram.description': 'Ein minimalistisches, werbefreies Nonogramm zum Ausprobieren direkt im Browser.',
     'nonogram.instructions': 'Klick -> gefüllt -> markiert -> leer',
     'nonogram.reset': 'Zurücksetzen',
     'nonogram.hintEmpty': '0',
@@ -631,9 +628,6 @@ Stil:
    'tool.about.importText': 'import [curiosity, interest]',
    'tool.about.exportText': 'export [transparency, context, understanding]',
 
-    // Nonogram Page
-    'nonogram.title': 'Nonogram Pro',
-    'nonogram.description': 'A minimalist, ad-free Nonogram you can solve right in the browser.',
     'nonogram.instructions': 'Click -> filled -> marked -> empty',
     'nonogram.reset': 'Reset',
     'nonogram.hintEmpty': '0',

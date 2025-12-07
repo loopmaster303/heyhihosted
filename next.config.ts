@@ -24,13 +24,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'fal.media',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'v3.fal.media',
+        hostname: 'enter.pollinations.ai',
         port: '',
         pathname: '/**',
       }

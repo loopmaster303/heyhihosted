@@ -1,26 +1,30 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useContext, createContext } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+
+import React, { useCallback, useContext, createContext } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from './LanguageProvider';
 import { generateUUID } from '@/lib/uuid';
-import useEscapeKey from '@/hooks/useEscapeKey';
 
 import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
 import type { 
   PollinationsChatCompletionResponse, 
   ImageGenerationResponse, 
   TitleGenerationResponse,
-  ImageModelsResponse,
-  TTSResponse,
-  STTResponse,
   ApiErrorResponse,
 } from '@/types/api';
 import { isApiErrorResponse, isPollinationsChatResponse } from '@/types/api';
-import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES, FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL, CODE_REASONING_SYSTEM_PROMPT } from '@/config/chat-options';
+import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, CODE_REASONING_SYSTEM_PROMPT } from '@/config/chat-options';
 
+// Import extracted hooks and helpers
+import { useChatState } from '@/hooks/useChatState';
+import { useChatAudio } from '@/hooks/useChatAudio';
+import { useChatRecording } from '@/hooks/useChatRecording';
+import { useChatEffects } from '@/hooks/useChatEffects';
+import { toDate, processSseStream } from '@/utils/chatHelpers';
 
 export interface UseChatLogicProps {
   userDisplayName?: string;
@@ -28,143 +32,82 @@ export interface UseChatLogicProps {
 }
 
 const MAX_STORED_CONVERSATIONS = 50;
-const CHAT_HISTORY_STORAGE_KEY = 'fluxflow-chatHistory';
-
-// Helper to ensure dates are handled correctly (outside of component to avoid re-creation)
-const toDate = (timestamp: Date | string | undefined | null): Date => {
-    if (!timestamp) return new Date();
-    if (typeof timestamp === 'string') return new Date(timestamp);
-    return timestamp as Date;
-};
-
-const getTextFromContentParts = (content: unknown): string => {
-    if (!content) return '';
-    if (typeof content === 'string') return content;
-    if (Array.isArray(content)) {
-        return (content as Array<any>).map(part => {
-            if (!part) return '';
-            if (typeof part === 'string') return part;
-            if (typeof part.text === 'string') return part.text;
-            if (part.content) return getTextFromContentParts(part.content);
-            return '';
-        }).join('');
-    }
-    if (typeof content === 'object' && content !== null) {
-        const maybeText = (content as Record<string, unknown>).text;
-        if (typeof maybeText === 'string') return maybeText;
-        const nested = (content as Record<string, unknown>).content;
-        if (nested) return getTextFromContentParts(nested);
-    }
-    return '';
-};
-
-const extractTextFromSsePayload = (payload: any): string => {
-    const choices = payload?.choices;
-    if (!Array.isArray(choices) || choices.length === 0) return '';
-    const target = choices[0]?.delta ?? choices[0]?.message;
-    if (!target) return '';
-    const content = target.content ?? target;
-    return getTextFromContentParts(content);
-};
-
-const processSseStream = async (
-    stream: ReadableStream<Uint8Array>,
-    onChunk: (text: string) => void | Promise<void>
-) => {
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    try {
-        while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            let delimiterIndex;
-            while ((delimiterIndex = buffer.indexOf('\n\n')) !== -1) {
-                let rawEvent = buffer.slice(0, delimiterIndex);
-                buffer = buffer.slice(delimiterIndex + 2);
-                rawEvent = rawEvent.replace(/\r/g, '').trim();
-                if (!rawEvent) continue;
-                const dataLines = rawEvent
-                    .split('\n')
-                    .filter(line => line.startsWith('data:'))
-                    .map(line => line.replace(/^data:\s*/, ''));
-                if (dataLines.length === 0) continue;
-                const payload = dataLines.join('\n').trim();
-                if (!payload) continue;
-                if (payload === '[DONE]') {
-                    return;
-                }
-                try {
-                    const parsed = JSON.parse(payload);
-                    const text = extractTextFromSsePayload(parsed);
-                    if (text) {
-                        await onChunk(text);
-                    }
-                } catch (error) {
-                    console.warn('Failed to parse SSE payload', payload, error);
-                }
-            }
-        }
-    } finally {
-        reader.releaseLock();
-    }
-};
 
 export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLogicProps) {
-    // --- State Declarations ---
-    const [allConversations, setAllConversations] = useLocalStorageState<Conversation[]>(CHAT_HISTORY_STORAGE_KEY, []);
-    const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+    // --- State Management (extracted to hook) ---
+    const state = useChatState();
+    const {
+        allConversations,
+        setAllConversations,
+        activeConversation,
+        setActiveConversation,
+        isInitialLoadComplete,
+        setIsInitialLoadComplete,
+        isAiResponding,
+        setIsAiResponding,
+        isHistoryPanelOpen,
+        setIsHistoryPanelOpen,
+        isAdvancedPanelOpen,
+        setIsAdvancedPanelOpen,
+        isEditTitleDialogOpen,
+        setIsEditTitleDialogOpen,
+        chatToEditId,
+        setChatToEditId,
+        editingTitle,
+        setEditingTitle,
+        chatInputValue,
+        setChatInputValue,
+        playingMessageId,
+        setPlayingMessageId,
+        isTtsLoadingForId,
+        setIsTtsLoadingForId,
+        audioRef,
+        selectedVoice,
+        setSelectedVoice,
+        isRecording,
+        setIsRecording,
+        isTranscribing,
+        setIsTranscribing,
+        mediaRecorderRef,
+        audioChunksRef,
+        isCameraOpen,
+        setIsCameraOpen,
+        lastUserMessageId,
+        setLastUserMessageId,
+        availableImageModels,
+        setAvailableImageModels,
+        selectedImageModelId,
+        setSelectedImageModelId,
+        lastFailedRequest,
+        setLastFailedRequest,
+        retryLastRequestRef,
+        isImageMode,
+        webBrowsingEnabled,
+    } = state;
 
-    const [isAiResponding, setIsAiResponding] = useState(false);
-    const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
-    
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [chatToDeleteId, setChatToDeleteId] = useState<string | null>(null);
-    
-    const [isEditTitleDialogOpen, setIsEditTitleDialogOpen] = useState(false);
-    const [chatToEditId, setChatToEditId] = useState<string | null>(null);
-    const [editingTitle, setEditingTitle] = useState('');
-    
-    const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
-    const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
-  
-    const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
-    const [isTtsLoadingForId, setIsTtsLoadingForId] = useState<string | null>(null);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [chatInputValue, setChatInputValue] = useState('');
-
-    const [selectedVoice, setSelectedVoice] = useState<string>(AVAILABLE_TTS_VOICES[0].id);
-
-    // Retry State for failed requests
-    const [lastFailedRequest, setLastFailedRequest] = useState<{
-        messageText: string;
-        options?: { isImageModeIntent?: boolean; isRegeneration?: boolean; messagesForApi?: ChatMessage[] };
-        timestamp: number;
-    } | null>(null);
-
-    // STT State
-    const [isRecording, setIsRecording] = useState(false);
-    const [isTranscribing, setIsTranscribing] = useState(false);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null); // Korrekte Typisierung und Initialisierung
-    const audioChunksRef = useRef<Blob[]>([]);
-
-    // Camera State
-    const [isCameraOpen, setIsCameraOpen] = useState(false);
-    
-    // New state to track the ID of the last user message for scrolling
-    const [lastUserMessageId, setLastUserMessageId] = useState<string | null>(null);
-
-    // Image Model State
-    const [availableImageModels, setAvailableImageModels] = useState<string[]>([]);
-    const [selectedImageModelId, setSelectedImageModelId] = useLocalStorageState<string>('chatSelectedImageModel', DEFAULT_IMAGE_MODEL);
-    
-    const isImageMode = activeConversation?.isImageMode ?? false;
-    const webBrowsingEnabled = activeConversation?.webBrowsingEnabled ?? false;
-    
-    
     const { toast } = useToast();
     const { t } = useLanguage();
+
+    // --- Audio Hook ---
+    const { handlePlayAudio } = useChatAudio({
+        playingMessageId,
+        setPlayingMessageId,
+        isTtsLoadingForId,
+        setIsTtsLoadingForId,
+        audioRef,
+        selectedVoice,
+    });
+
+    // --- Recording Hook ---
+    const { startRecording, stopRecording } = useChatRecording({
+        isRecording,
+        setIsRecording,
+        isTranscribing,
+        setIsTranscribing,
+        mediaRecorderRef,
+        audioChunksRef,
+        setChatInputValue,
+    });
 
     // --- Helper Functions / Callbacks (defined early for dependencies) ---
 
@@ -209,10 +152,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
     const closeAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(false), []);
 
-    // ESC Key handlers for panels
-    useEscapeKey(closeHistoryPanel, isHistoryPanelOpen);
-    useEscapeKey(closeAdvancedPanel, isAdvancedPanelOpen);
-
     // Core Chat Logic Functions (can now reference helpers defined above)
 
     const toggleImageMode = useCallback(() => {
@@ -224,56 +163,99 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         }
     }, [activeConversation, handleFileSelect, setActiveConversation]);
 
-    const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]): Promise<string> => { // Rückgabetyp hinzugefügt
+    const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]): Promise<string> => {
       const convToUpdate = allConversations.find(c => c.id === conversationId) ?? activeConversation;
-      
-      // Korrektur: Wenn convToUpdate null ist, einen Standardtitel zurückgeben
       if (!convToUpdate || convToUpdate.toolType !== 'long language loops') {
-          return activeConversation?.title || t('nav.newConversation'); // Sicherer Fallback
+        return activeConversation?.title || t('nav.newConversation');
       }
-  
-      const isDefaultTitle = convToUpdate.title === t('nav.newConversation') || convToUpdate.title.toLowerCase().startsWith("new ") || convToUpdate.title === "Chat";
-  
+
+      // Early return if title is already good (not default)
+      const isDefaultTitle =
+        convToUpdate.title === t('nav.newConversation') ||
+        convToUpdate.title.toLowerCase().startsWith("new ") ||
+        convToUpdate.title === "Chat";
+      
+      // If title is already set and not default, don't regenerate
+      if (!isDefaultTitle && convToUpdate.title && convToUpdate.title.length > 2) {
+        return convToUpdate.title;
+      }
+
+      const fallbackFromUser = (() => {
+        const firstUser = messagesForTitleGen.find(msg => msg.role === 'user');
+        if (!firstUser) return '';
+        if (typeof firstUser.content === 'string') return firstUser.content.split(/\s+/).slice(0, 6).join(' ');
+        const textPart = firstUser.content.find(p => p.type === 'text');
+        return textPart?.text?.split(/\s+/).slice(0, 6).join(' ') || '';
+      })();
+
       if (messagesForTitleGen.length >= 1 && isDefaultTitle) {
         const firstUserMessage = messagesForTitleGen.find(msg => msg.role === 'user');
-        if (firstUserMessage) {
-            const textContent = typeof firstUserMessage.content === 'string'
-              ? firstUserMessage.content
-              : firstUserMessage.content.find(p => p.type === 'text')?.text || '';
-            
-            if (textContent.trim()) {
-                try {
-                  const response = await fetch('/api/chat/title', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messages: textContent }),
-                  });
-                  const result: TitleGenerationResponse | ApiErrorResponse = await response.json();
-                  if (!response.ok || isApiErrorResponse(result)) {
-                    const errorMsg = isApiErrorResponse(result) ? result.error : 'Failed to generate title.';
-                    throw new Error(errorMsg);
-                  }
-                  
-                  const titleResult = result as TitleGenerationResponse;
-                  const newTitle = titleResult.title || "Chat";
-                  const finalTitle = newTitle.replace(/^"|"$/g, '').trim();
+        const firstAssistantMessage = messagesForTitleGen.find(msg => msg.role === 'assistant');
 
-                  setActiveConversation(prev => prev ? { ...prev, title: finalTitle } : null);
-                  return finalTitle;
+        const extractText = (msg?: ChatMessage) => {
+          if (!msg) return '';
+          if (typeof msg.content === 'string') return msg.content;
+          const textPart = msg.content.find(p => p.type === 'text');
+          return textPart?.text || '';
+        };
 
-                } catch (error) { 
-                    console.error("Failed to generate chat title:", error); 
-                    return convToUpdate.title; // Fallback bei Fehler
-                }
+        const userText = extractText(firstUserMessage).trim();
+        const assistantText = extractText(firstAssistantMessage).trim();
+        const contextForTitle = [userText, assistantText].filter(Boolean).join('\n');
+
+        if (!contextForTitle && fallbackFromUser) {
+          setActiveConversation(prev => prev ? { ...prev, title: fallbackFromUser } : null);
+          return fallbackFromUser;
+        }
+
+        if (contextForTitle) {
+          try {
+            const response = await fetch('/api/chat/title', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ messages: contextForTitle }),
+            });
+            const result: TitleGenerationResponse | ApiErrorResponse = await response.json();
+            if (!response.ok || isApiErrorResponse(result)) {
+              const errorMsg = isApiErrorResponse(result) ? result.error : 'Failed to generate title.';
+              console.warn('[updateConversationTitle] API error:', errorMsg, 'Status:', response.status);
+              throw new Error(errorMsg);
             }
+
+            const titleResult = result as TitleGenerationResponse;
+            const newTitle = titleResult.title || "Chat";
+            const finalTitle = newTitle.replace(/^"|"$/g, '').trim();
+            
+            // Use fallback if title is generic or empty
+            const titleToSet = finalTitle && finalTitle.toLowerCase() !== 'chat' && finalTitle.length > 2
+              ? finalTitle 
+              : (fallbackFromUser || "Chat");
+
+            if (titleToSet && titleToSet !== convToUpdate.title) {
+              console.log('[updateConversationTitle] Title updated:', titleToSet);
+              setActiveConversation(prev => prev ? { ...prev, title: titleToSet } : null);
+            }
+            return titleToSet;
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error('[updateConversationTitle] Failed to generate title:', errorMessage);
+            const titleToSet = fallbackFromUser || convToUpdate.title;
+            if (titleToSet && titleToSet !== convToUpdate.title) {
+              console.log('[updateConversationTitle] Using fallback title:', titleToSet);
+              setActiveConversation(prev => prev ? { ...prev, title: titleToSet } : null);
+            }
+            return titleToSet;
+          }
         }
       }
+
+      if (isDefaultTitle && fallbackFromUser) {
+        setActiveConversation(prev => prev ? { ...prev, title: fallbackFromUser } : null);
+        return fallbackFromUser;
+      }
+
       return convToUpdate.title;
-    }, [allConversations, activeConversation, setActiveConversation]);
-    
-
-
-    const retryLastRequestRef = useRef<(() => Promise<void>) | null>(null);
+    }, [allConversations, activeConversation, setActiveConversation, t]);
 
     const sendMessage = useCallback(async (
       _messageText: string,
@@ -377,9 +359,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       
       let finalMessages = updatedMessagesForState;
       let finalTitle = activeConversation.title;
+      let shouldUpdateTitle = false; // Only update title if needed
 
       try {
           let aiMessage: ChatMessage;
+          
+          // Image Mode and Code Mode are mutually exclusive - Image Mode takes precedence
           if (isImagePrompt && chatInputValue.trim()) {
               const endpoint = '/api/generate';
               const response = await fetch(endpoint, {
@@ -402,7 +387,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           } else {
               
               // Override model and system prompt when Code Mode is enabled
-              const isCodeMode = !!activeConversation.isCodeMode;
+              // Note: Image Mode takes precedence over Code Mode (handled above)
+              const isCodeMode = !!activeConversation.isCodeMode && !isImagePrompt;
               const modelIdForRequest = isCodeMode ? 'qwen-coder' : currentModel.id;
               let systemPromptForRequest = effectiveSystemPrompt;
               if (isCodeMode) {
@@ -459,21 +445,27 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                   finalMessages = [...updatedMessagesForState, baseAssistantMessage];
                   setActiveConversation(prev => prev ? { ...prev, messages: finalMessages } : null);
 
-                  await processSseStream(response.body, async (delta) => {
-                      streamedContent += delta;
-                      const updatedAssistantMessage: ChatMessage = { ...baseAssistantMessage, content: streamedContent, isStreaming: true };
-                      finalMessages = [...updatedMessagesForState, updatedAssistantMessage];
-                      setActiveConversation(prev => prev ? { ...prev, messages: finalMessages } : null);
-                  });
+                  try {
+                    await processSseStream(response.body, async (delta) => {
+                        streamedContent += delta;
+                        const updatedAssistantMessage: ChatMessage = { ...baseAssistantMessage, content: streamedContent, isStreaming: true };
+                        finalMessages = [...updatedMessagesForState, updatedAssistantMessage];
+                        setActiveConversation(prev => prev ? { ...prev, messages: finalMessages } : null);
+                    });
 
-                  const completedAssistantMessage: ChatMessage = { 
-                    ...baseAssistantMessage, 
-                    content: streamedContent.trim() || "Sorry, I couldn't get a response.", 
-                    isStreaming: false 
-                  };
-                  aiMessage = completedAssistantMessage;
-                  finalMessages = [...updatedMessagesForState, completedAssistantMessage];
-                  setActiveConversation(prev => prev ? { ...prev, messages: finalMessages } : null);
+                    const completedAssistantMessage: ChatMessage = { 
+                      ...baseAssistantMessage, 
+                      content: streamedContent.trim() || "Sorry, I couldn't get a response.", 
+                      isStreaming: false 
+                    };
+                    aiMessage = completedAssistantMessage;
+                    finalMessages = [...updatedMessagesForState, completedAssistantMessage];
+                    setActiveConversation(prev => prev ? { ...prev, messages: finalMessages } : null);
+                  } catch (streamError) {
+                    // Fallback: If streaming fails, try non-streaming response
+                    console.warn('Streaming failed, falling back to non-streaming:', streamError);
+                    throw streamError; // Will be caught by outer try-catch
+                  }
               } else {
                   const result: PollinationsChatCompletionResponse | ApiErrorResponse = await response.json();
                   
@@ -503,33 +495,42 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                   finalMessages = [...updatedMessagesForState, aiMessage];
               }
           }
-          finalTitle = await updateConversationTitle(convId, finalMessages);
+          
+          // Only update title if this is the first message pair (User + Assistant) or title is still default
+          const userMessageCount = finalMessages.filter(m => m.role === 'user').length;
+          const assistantMessageCount = finalMessages.filter(m => m.role === 'assistant').length;
+          const isFirstMessagePair = userMessageCount === 1 && assistantMessageCount === 1;
+          const isDefaultTitle = activeConversation.title === t('nav.newConversation') || 
+                                 activeConversation.title.toLowerCase().startsWith("new ") || 
+                                 activeConversation.title === "Chat";
+          
+          if (isFirstMessagePair || isDefaultTitle) {
+            finalTitle = await updateConversationTitle(convId, finalMessages);
+          }
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         console.error("Chat API Error:", error); // Debug logging
         
-        // Store failed request for retry
-        if (!options.isRegeneration) {
-            setLastFailedRequest({
-                messageText: chatInputValue.trim(),
-                options,
-                timestamp: Date.now()
-            });
-        }
+        // Store failed request for retry (works for both normal and regeneration)
+        setLastFailedRequest({
+            messageText: options.isRegeneration ? '' : chatInputValue.trim(),
+            options,
+            timestamp: Date.now()
+        });
         
         toast({ 
             title: "Fehler beim Senden", 
             description: errorMessage, 
             variant: "destructive",
-            action: !options.isRegeneration ? (
+            action: (
                 <button
                     onClick={() => retryLastRequestRef.current?.()}
                     className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
                 >
                     Erneut versuchen
                 </button>
-            ) : undefined
+            )
         });
         const errorMsg: ChatMessage = {id: generateUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date().toISOString(), toolType: 'long language loops'};
         finalMessages = [...updatedMessagesForState, errorMsg];
@@ -615,11 +616,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }, [chatToEditId, editingTitle, setAllConversations, setActiveConversation, toast]);
   
     const cancelEditTitle = useCallback(() => setIsEditTitleDialogOpen(false), []);
-  
-    const requestDeleteChat = useCallback((conversationId: string) => {
-      setChatToDeleteId(conversationId);
-      setIsDeleteDialogOpen(true);
-    }, []);
     
     const deleteChat = useCallback((conversationId: string) => {
         const wasActive = activeConversation?.id === conversationId;
@@ -639,14 +635,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
         toast({ title: "Chat Deleted" });
     }, [activeConversation?.id, allConversations, selectChat, setAllConversations, toast, startNewChat]);
-  
-    const confirmDeleteChat = useCallback(() => {
-      if (!chatToDeleteId) return;
-      deleteChat(chatToDeleteId);
-      setIsDeleteDialogOpen(false);
-    }, [chatToDeleteId, deleteChat]);
-  
-    const cancelDeleteChat = useCallback(() => setIsDeleteDialogOpen(false), []);
     
     const handleModelChange = useCallback((modelId: string) => {
       if (activeConversation) {
@@ -675,68 +663,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const toggleWebBrowsing = useCallback(() => {
       setActiveConversation(prev => prev ? { ...prev, webBrowsingEnabled: !(prev.webBrowsingEnabled ?? false) } : prev);
     }, [setActiveConversation]);
-  
-    const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-        const previouslyPlayingId = playingMessageId;
-        setPlayingMessageId(null);
-        if (previouslyPlayingId === messageId) {
-          setIsTtsLoadingForId(null);
-          return;
-        }
-      }
-      
-      if (!text || !text.trim()) return;
-      
-      setIsTtsLoadingForId(messageId);
-      
-      try {
-            const response = await fetch('/api/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, voice: selectedVoice }),
-            });
-            const result: TTSResponse | ApiErrorResponse = await response.json();
-            if (!response.ok || isApiErrorResponse(result)) {
-                const errorMsg = isApiErrorResponse(result) ? result.error : "Failed to generate audio.";
-                throw new Error(errorMsg);
-            }
-
-            const ttsResult = result as TTSResponse;
-            const { audioDataUri } = ttsResult;
-        const audio = new Audio(audioDataUri);
-        audioRef.current = audio;
-        
-        setIsTtsLoadingForId(null);
-        setPlayingMessageId(messageId);
-
-        audio.play();
-        
-        audio.onended = () => {
-          if (audioRef.current === audio) {
-            audioRef.current = null;
-            setPlayingMessageId(null);
-          }
-        };
-        
-        audio.onerror = (e) => {
-          toast({ title: "Audio Playback Error", variant: "destructive" });
-          if (audioRef.current === audio) {
-            audioRef.current = null;
-            setPlayingMessageId(null);
-          }
-        };
-      } catch (error) {
-        console.error("TTS Error:", error);
-        toast({ title: "Text-to-Speech Error", description: error instanceof Error ? error.message : "Could not generate audio.", variant: "destructive" });
-        setIsTtsLoadingForId(null);
-        if (playingMessageId === messageId) {
-            setPlayingMessageId(null);
-        }
-      }
-    }, [playingMessageId, toast, selectedVoice, setIsTtsLoadingForId, setPlayingMessageId]);
   
     const handleCopyToClipboard = useCallback((text: string) => {
       if (!text) return;
@@ -771,164 +697,41 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const retryLastRequest = useCallback(async () => {
         if (!lastFailedRequest) return;
         
+        const requestToRetry = { ...lastFailedRequest };
         setLastFailedRequest(null); // Clear before retry
         
-        // Re-populate the input with the failed message
-        setChatInputValue(lastFailedRequest.messageText);
+        // Re-populate the input with the failed message (only if not regeneration)
+        if (!requestToRetry.options?.isRegeneration && requestToRetry.messageText) {
+            setChatInputValue(requestToRetry.messageText);
+        }
         
-        // Send the message again
-        await sendMessage(lastFailedRequest.messageText, lastFailedRequest.options);
+        // Send the message again with original options
+        await sendMessage(requestToRetry.messageText, requestToRetry.options);
     }, [lastFailedRequest, sendMessage, setChatInputValue]);
 
-    // Update ref for toast callback
-    useEffect(() => {
-        retryLastRequestRef.current = retryLastRequest;
-    }, [retryLastRequest]);
-
-    const startRecording = useCallback(async () => { // In useCallback gewickelt
-        if (isRecording) return;
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            mediaRecorderRef.current = recorder; // mediaRecorderRef ist jetzt korrekt typisiert und zugreifbar
-            audioChunksRef.current = [];
-
-            recorder.ondataavailable = (event) => {
-                audioChunksRef.current.push(event.data);
-            };
-
-            recorder.onstart = () => {
-                setIsRecording(true);
-            };
-
-            recorder.onstop = async () => {
-                setIsRecording(false);
-                setIsTranscribing(true);
-
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
-                
-                try {
-                    const formData = new FormData();
-                    formData.append('audioFile', audioFile);
-
-                    const response = await fetch('/api/stt', {
-                        method: 'POST',
-                        body: formData,
-                    });
-                    const result: STTResponse | ApiErrorResponse = await response.json();
-
-                    if (!response.ok || isApiErrorResponse(result)) {
-                        const errorMsg = isApiErrorResponse(result) ? result.error : 'Speech-to-text failed.';
-                        throw new Error(errorMsg);
-                    }
-                    
-                    const sttResult = result as STTResponse;
-                    if (sttResult.transcription && sttResult.transcription.trim() !== '') {
-                        setChatInputValue(prev => prev + sttResult.transcription);
-                    }
-                } catch (err) {
-                    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-                    toast({ title: 'Transcription Error', description: errorMessage, variant: 'destructive' });
-                } finally {
-                    setIsTranscribing(false);
-                    // Clean up the stream tracks
-                    stream.getTracks().forEach(track => track.stop());
-                }
-            };
-            recorder.start();
-        } catch (error) {
-            console.error('Error starting recording:', error);
-            toast({ title: 'Microphone Access Denied', description: 'Please allow microphone access in your browser settings.', variant: 'destructive' });
-        }
-    }, [isRecording, toast, setChatInputValue, setIsRecording, setIsTranscribing]);
-
-    const stopRecording = useCallback(() => { // In useCallback gewickelt
-        if (mediaRecorderRef.current && isRecording) {
-            mediaRecorderRef.current.stop();
-        }
-    }, [isRecording]);
-  
     const openCamera = useCallback(() => setIsCameraOpen(true), []);
     const closeCamera = useCallback(() => setIsCameraOpen(false), []);
 
-    // --- Effects ---
-    // Fetch available image models on initial load
-    useEffect(() => {
-        const fetchImageModels = async () => {
-          try {
-            const res = await fetch('/api/image/models', {
-              headers: {
-                'Cache-Control': 'no-cache'
-              }
-            });
-            
-            if (!res.ok) {
-              console.warn('Image models API returned non-OK status:', res.status);
-              setAvailableImageModels(FALLBACK_IMAGE_MODELS);
-              setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
-              return;
-            }
-            
-            const data: ImageModelsResponse | ApiErrorResponse = await res.json();
-            
-            if (isApiErrorResponse(data) || !('models' in data) || !Array.isArray(data.models)) {
-              console.warn('Invalid response format from image models API:', data);
-              setAvailableImageModels(FALLBACK_IMAGE_MODELS);
-              setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
-              return;
-            }
-            
-            const modelsResult = data as ImageModelsResponse;
-            setAvailableImageModels(modelsResult.models);
-            
-            // Ensure the selected model is valid
-            if (!modelsResult.models.includes(selectedImageModelId)) {
-              setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
-            }
-          } catch (error) {
-            console.error("Error fetching image models for chat:", error);
-            setAvailableImageModels(FALLBACK_IMAGE_MODELS);
-            setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
-          }
-        };
-        fetchImageModels();
-    }, [selectedImageModelId, setSelectedImageModelId]);
-
-
-    // Initial load from localStorage is now handled by the useLocalStorageState hook directly.
-    // This effect now focuses on setting the active conversation on first load.
-    useEffect(() => {
-        if (!isInitialLoadComplete) { // Only run once on initial load
-            const relevantConversations = allConversations.filter(c => c.toolType === 'long language loops');
-            if (activeConversation === null && relevantConversations.length > 0) {
-                const sortedConvs = [...relevantConversations].sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
-                setActiveConversation(sortedConvs[0]);
-            } else if (activeConversation === null && relevantConversations.length === 0) {
-                startNewChat(); // startNewChat ist jetzt bekannt
-            }
-            setIsInitialLoadComplete(true);
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [allConversations, isInitialLoadComplete, activeConversation, startNewChat]);
-
-
-    // Effect to update the allConversations in localStorage whenever active one changes
-    useEffect(() => {
-        if (activeConversation && isInitialLoadComplete) { // Ensure initial load is complete
-            setAllConversations(prevAll => {
-                const existingIndex = prevAll.findIndex(c => c.id === activeConversation.id);
-                if (existingIndex > -1) {
-                    const newAll = [...prevAll];
-                    newAll[existingIndex] = { ...activeConversation, updatedAt: new Date().toISOString() }; // Update timestamp for active chat
-                    return newAll.sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
-                } else {
-                    const newAll = [activeConversation, ...prevAll];
-                    return newAll.sort((a,b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
-                }
-            });
-        }
-    }, [activeConversation, setAllConversations, isInitialLoadComplete]);
+    // --- Effects Hook ---
+    useChatEffects({
+        isHistoryPanelOpen,
+        isAdvancedPanelOpen,
+        isInitialLoadComplete,
+        setIsInitialLoadComplete,
+        allConversations,
+        activeConversation,
+        selectedImageModelId,
+        setIsHistoryPanelOpen,
+        setIsAdvancedPanelOpen,
+        setActiveConversation,
+        setAllConversations,
+        setAvailableImageModels,
+        setSelectedImageModelId,
+        setLastUserMessageId,
+        startNewChat,
+        retryLastRequest,
+        retryLastRequestRef,
+    });
 
 
     // --- Return Value ---
@@ -936,7 +739,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       activeConversation, allConversations,
       isAiResponding, isImageMode,
       isHistoryPanelOpen, isAdvancedPanelOpen,
-      isDeleteDialogOpen, isEditTitleDialogOpen, editingTitle,
+      isEditTitleDialogOpen, editingTitle,
       playingMessageId, isTtsLoadingForId, chatInputValue,
       selectedVoice,
       isInitialLoadComplete,
@@ -946,7 +749,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       availableImageModels, selectedImageModelId,
       selectChat, startNewChat, deleteChat, sendMessage,
       requestEditTitle, confirmEditTitle, cancelEditTitle, setEditingTitle,
-      requestDeleteChat, confirmDeleteChat, cancelDeleteChat, toggleImageMode,
+      toggleImageMode,
       handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
       handleVoiceChange, handleImageModelChange,
       toggleHistoryPanel, closeHistoryPanel, 

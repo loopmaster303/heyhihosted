@@ -28,16 +28,22 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
 
   // Google Gemini
   { id: "gemini", name: "Gemini 2.5 Flash Lite", description: "Gemini Lite mit Vision und Tools", vision: true },
+  { id: "gemini-large", name: "Gemini 2.5 Pro", description: "Größeres Gemini mit Vision", vision: true },
   { id: "gemini-search", name: "Gemini 2.5 Flash + Search", description: "Gemini Flash mit Google-Suche", vision: true, webBrowsing: true },
+
+  // Anthropic Claude
+  { id: "claude-fast", name: "Claude 3.7 Haiku", description: "Schnelles Claude-Modell", vision: true },
+  { id: "claude", name: "Claude 3.7 Sonnet", description: "Balanced Claude mit Vision", vision: true },
+  { id: "claude-large", name: "Claude 3.7 Opus", description: "Großes Claude-Modell", vision: true },
 
   // Alternative Modelle
   { id: "deepseek", name: "DeepSeek V3.1", description: "DeepSeek V3.1 Reasoning", vision: false },
   { id: "mistral", name: "Mistral Small 3.2 24B", description: "Mistral Small 24B", vision: false },
   { id: "qwen-coder", name: "Qwen 2.5 Coder 32B", description: "Code- und Reasoning-Modell", vision: false },
-
-  // Uncensored / Spezial
-  { id: "evil", name: "Evil", description: "Evil (Uncensored)", vision: true },
-  { id: "unity", name: "Unity Unrestricted Agent", description: "Unity Unrestricted Agent (Uncensored)", vision: true },
+  { id: "grok", name: "Grok", description: "Grok (xAI)", vision: false },
+  { id: "perplexity-fast", name: "Perplexity Fast", description: "Schnelles PPLX-Modell", vision: false },
+  { id: "perplexity-reasoning", name: "Perplexity Reasoning", description: "Reasoning mit Search", vision: false, webBrowsing: true },
+  { id: "kimi-k2-thinking", name: "Kimi K2 Thinking", description: "Reasoning-Modell von Kimi", vision: false },
 ];
 
 // Stil-Profile (ResponseStyles)
@@ -189,14 +195,15 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
   { id: 'R8_8CZH4KMY', name: 'Dev' },
 ];
 
-// Default to OpenAI GPT-5 Chat for new users/chats
-export const DEFAULT_POLLINATIONS_MODEL_ID = 'openai-large';
+// Default model for new users/chats
+export const DEFAULT_POLLINATIONS_MODEL_ID = 'claude';
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // For in-chat image generation (align with bild.gen.lite)
 // Keep in sync with `/api/image/models` and VisualizingLoopsTool
-export const FALLBACK_IMAGE_MODELS = ['flux', 'kontext', 'turbo', 'gptimage'];
-export const DEFAULT_IMAGE_MODEL = 'flux'; // A safe default
+// NOTE: Only IMAGE models - NO video models (seedance, seedance-pro, veo) for chat
+export const FALLBACK_IMAGE_MODELS = ['kontext', 'nanobanana', 'nanobanana-pro', 'seedream', 'seedream-pro'];
+export const DEFAULT_IMAGE_MODEL = 'nanobanana'; // A safe default for Pollen image-lite
 
 // Code reasoning system prompt used when Code Mode is enabled
 export const CODE_REASONING_SYSTEM_PROMPT = "You are a world-class software engineer and reasoning expert. Provide clear, concise, and accurate explanations and code. Prefer step-by-step reasoning when helpful. Always format code with fenced code blocks and correct language tags. Avoid hallucinations; if unsure, state assumptions and ask for missing details.";

@@ -3,9 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChatProvider } from '@/components/ChatProvider';
 import ChatInterface from '@/components/page/ChatInterface';
-import NewAppHeader from '@/components/page/NewAppHeader';
-import type { TileItem } from '@/types';
-import DeleteChatDialog from '@/components/dialogs/DeleteChatDialog';
+import AppLayout from '@/components/layout/AppLayout';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import CameraCaptureDialog from '@/components/dialogs/CameraCaptureDialog';
 import { useChat } from '@/components/ChatProvider';
@@ -13,18 +11,9 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import PageLoader from '@/components/ui/PageLoader';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
-const toolTileItems: TileItem[] = [
-    { id: 'long language loops', title: '</chat.talk.discuss>', href: '/chat' },
-    { id: 'nocost imagination', title: '</generate.visuals.lite>', href: '/image-gen/no-cost' },
-    { id: 'premium imagination', title: '</generate.visuals.raw>', href: '/image-gen/raw' },
-    { id: 'personalization', title: '</settings.user.preferences>', href: '/settings' },
-    { id: 'about', title: '</about.system.readme>', href: '/about' },
-];
-
 function ChatPageContent() {
     const chat = useChat();
     const [isClient, setIsClient] = useState(false);
-    const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
     
     useEffect(() => {
         setIsClient(true);
@@ -34,18 +23,18 @@ function ChatPageContent() {
         return <PageLoader text="Chat wird geladen..." />;
     }
 
+    // Get chat history from ChatProvider
+    const chatHistory = chat.allConversations.filter(c => c.toolType === 'long language loops');
+
     return (
-        <div className="relative flex flex-col h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
-            <NewAppHeader toolTileItems={toolTileItems} userDisplayName={userDisplayName || 'user'} />
-            <main className="flex flex-col flex-grow pt-16">
+        <AppLayout
+            onNewChat={chat.startNewChat}
+            chatHistory={chatHistory}
+            onSelectChat={chat.selectChat}
+        >
+            <div className="flex flex-col h-full">
                 <ChatInterface />
-            </main>
-            <DeleteChatDialog
-                isOpen={chat.isDeleteDialogOpen}
-                onOpenChange={chat.cancelDeleteChat}
-                onConfirm={chat.confirmDeleteChat}
-                onCancel={chat.cancelDeleteChat}
-            />
+            </div>
             <EditTitleDialog
                 isOpen={chat.isEditTitleDialogOpen}
                 onOpenChange={chat.cancelEditTitle}
@@ -59,7 +48,7 @@ function ChatPageContent() {
                 onOpenChange={chat.closeCamera}
                 onCapture={(dataUri) => chat.handleFileSelect(dataUri, 'image/jpeg')}
             />
-        </div>
+        </AppLayout>
     );
 }
 

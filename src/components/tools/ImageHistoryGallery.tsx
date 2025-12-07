@@ -3,7 +3,7 @@
 
 import type { FC } from 'react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import NextImage from 'next/image';
 import { Trash2, X, Download } from 'lucide-react';
 import { format } from 'date-fns';
@@ -71,7 +71,7 @@ const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectIm
             </Button>
         </div>
       </div>
-      <ScrollArea className="flex-grow overflow-y-auto">
+      <ScrollArea className="flex-grow overflow-y-auto no-scrollbar">
         {history.length === 0 ? (
            <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
              {t('imageGen.noImages')}
@@ -88,6 +88,7 @@ const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectIm
                   src={item.videoUrl ? 'https://placehold.co/400x400.png' : item.imageUrl}
                   alt={item.prompt}
                   fill
+                  unoptimized
                   sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
                   style={{ objectFit: 'cover' }}
                   className="bg-muted/30"
@@ -115,7 +116,6 @@ const ImageHistoryGallery: FC<ImageHistoryGalleryProps> = ({ history, onSelectIm
             ))}
           </div>
         )}
-        <ScrollBar orientation="vertical" />
       </ScrollArea>
     </div>
   );

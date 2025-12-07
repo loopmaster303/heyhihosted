@@ -6,9 +6,19 @@ import { handleApiError, requireEnv, ApiError, apiErrors } from '@/lib/api-error
 import type { ReplicatePrediction } from '@/types/api';
 
 const MODEL_ENDPOINTS: Record<string, string> = {
+  // New Unified Models - Images
+  "flux-2-pro": "black-forest-labs/flux-2-pro",
+  "nano-banana-pro": "google/nano-banana-pro",
+  "z-image-turbo": "prunaai/z-image-turbo",
+  "qwen-image-edit-plus": "qwen/qwen-image-edit-plus",
+  "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
+
+  // New Unified Models - Videos
+  "veo-3.1-fast": "google/veo-3.1-fast",
+  
+  // Old Models (for backward compatibility)
   "wan-2.2-image": "prunaai/wan-2.2-image",
   "nano-banana": "google/nano-banana",
-  "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
   "flux-krea-dev": "black-forest-labs/flux-krea-dev",
   "runway-gen4": "runwayml/gen4-image",
   "qwen-image": "qwen/qwen-image",

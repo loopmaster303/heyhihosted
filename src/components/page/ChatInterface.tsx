@@ -29,7 +29,7 @@ const ChatInterface: React.FC = () => {
         allConversations,
         selectChat,
         requestEditTitle,
-        requestDeleteChat,
+        deleteChat,
         startNewChat,
         toDate,
         handleModelChange,
@@ -112,7 +112,7 @@ const ChatInterface: React.FC = () => {
                     selectChat={selectChat}
                     closeHistoryPanel={closeHistoryPanel}
                     requestEditTitle={requestEditTitle}
-                    requestDeleteChat={requestDeleteChat}
+                    deleteChat={deleteChat}
                     startNewChat={startNewChat}
                     closeAdvancedPanel={closeAdvancedPanel}
                     toDate={toDate}

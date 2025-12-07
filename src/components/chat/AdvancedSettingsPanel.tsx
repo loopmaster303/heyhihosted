@@ -53,7 +53,7 @@ const AdvancedSettingsPanel: React.FC<AdvancedSettingsPanelProps> = ({
           {t('imageGen.close')}
         </Button>
       </div>
-      <ScrollArea className="flex-grow pr-1">
+      <ScrollArea className="flex-grow pr-1 no-scrollbar">
         <div className="grid gap-4 p-2 pb-4">
             <div className="space-y-2">
                 <p className="font-medium leading-none text-sm flex items-center gap-2"><Brain className="w-4 h-4" />{t('settings.aiModelText') || 'AI Model (Text)'}</p>

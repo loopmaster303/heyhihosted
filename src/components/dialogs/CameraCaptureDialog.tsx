@@ -1,6 +1,8 @@
 
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import {

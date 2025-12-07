@@ -43,7 +43,7 @@ interface ChatInputProps {
   selectChat: (id: string) => void;
   closeHistoryPanel: () => void;
   requestEditTitle: (id: string) => void;
-  requestDeleteChat: (id: string) => void;
+  deleteChat: (id: string) => void;
   startNewChat: () => void;
   closeAdvancedPanel: () => void;
   toDate: (timestamp: Date | string | undefined | null) => Date;
@@ -90,7 +90,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   selectChat,
   closeHistoryPanel,
   requestEditTitle,
-  requestDeleteChat,
+  deleteChat,
   startNewChat,
   closeAdvancedPanel,
   toDate,
@@ -195,6 +195,33 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const displayTitle = chatTitle === "default.long.language.loop" || !chatTitle ? "New Chat" : chatTitle;
   const showChatTitle = chatTitle !== "default.long.language.loop" && !!chatTitle;
 
+  // Listen for reuse prompt (sidebar / entry draft)
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<string>;
+      if (typeof custom.detail === 'string') {
+        onInputChange(custom.detail);
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+        }
+      }
+    };
+    window.addEventListener('sidebar-reuse-prompt', handler);
+    try {
+      const storedTarget = localStorage.getItem('sidebar-preload-target');
+      const storedPrompt = localStorage.getItem('sidebar-preload-prompt');
+      if (storedPrompt && storedTarget === 'chat') {
+        onInputChange(storedPrompt);
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+        }
+        localStorage.removeItem('sidebar-preload-prompt');
+        localStorage.removeItem('sidebar-preload-target');
+      }
+    } catch {}
+    return () => window.removeEventListener('sidebar-reuse-prompt', handler);
+  }, [onInputChange]);
+
 
   return (
     <div className="relative">
@@ -209,7 +236,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                           closeHistoryPanel();
                       }}
                       onRequestEditTitle={requestEditTitle}
-                      onRequestDeleteChat={requestDeleteChat}
+                      onDeleteChat={deleteChat}
                       onStartNewChat={() => {
                           startNewChat();
                           closeHistoryPanel();
@@ -244,7 +271,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         onChange={handleTextareaInput}
                         onKeyDown={handleKeyDown}
                         placeholder={placeholderText}
-                         className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-y-auto"
+                         className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-hidden"
                         rows={1}
                         disabled={isLoading || isRecording || isTranscribing}
                         aria-label="Chat message input"

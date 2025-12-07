@@ -1,9 +1,11 @@
 
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { handleApiError, validateRequest, requireEnv, ApiError } from '@/lib/api-error-handler';
+import { handleApiError, validateRequest, ApiError, requireEnv } from '@/lib/api-error-handler';
 
-const POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
+const POLLEN_CHAT_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
+const LEGACY_POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
+const LEGACY_FALLBACK_MODELS = new Set(['openai-large', 'gemini-search']);
 
 // Validation schema
 const ChatCompletionSchema = z.object({
@@ -114,65 +116,187 @@ export async function POST(request: Request) {
       });
     }
 
+    const pollenApiKey = process.env.POLLEN_API_KEY;
+    const legacyApiKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_API_TOKEN;
+    const allowLegacyFallback = LEGACY_FALLBACK_MODELS.has(effectiveModelId);
+
+    if (!pollenApiKey && !(allowLegacyFallback && legacyApiKey)) {
+      throw new ApiError(500, 'Server configuration error: POLLEN_API_KEY is not set', 'MISSING_ENV_VAR');
+    }
+
     const payload: Record<string, any> = {
-        model: effectiveModelId,
+      model: effectiveModelId,
       messages: messages,
     };
+
+    if (systemPrompt && systemPrompt.trim() !== "") {
+      const trimmedSystem = systemPrompt.trim();
+      payload.messages = [{ role: 'system', content: trimmedSystem }, ...messages];
+    }
 
     if (streamEnabled) {
       payload.stream = true;
     }
 
-    if (systemPrompt && systemPrompt.trim() !== "") {
-      payload.system = systemPrompt;
-    }
-
-    // Securely get the API key from server-side environment variables.
-    const apiKey = requireEnv('POLLINATIONS_API_TOKEN');
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+    type EndpointTarget = {
+      name: 'pollen' | 'legacy';
+      url: string;
+      apiKey: string;
     };
 
-    if (streamEnabled) {
-      headers['Accept'] = 'text/event-stream';
+    const targets: EndpointTarget[] = [];
+    if (pollenApiKey) {
+      targets.push({ name: 'pollen', url: POLLEN_CHAT_API_URL, apiKey: pollenApiKey });
+    }
+    if (allowLegacyFallback && legacyApiKey) {
+      targets.push({ name: 'legacy', url: LEGACY_POLLINATIONS_API_URL, apiKey: legacyApiKey });
     }
 
-    const response = await fetch(POLLINATIONS_API_URL, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(payload),
-    });
+    let lastError: Error | null = null;
 
-    // Handle non-OK responses
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Pollinations API error (${response.status}):`, errorText);
-      throw new ApiError(
-        502,
-        `Pollinations API returned status ${response.status}`,
-        'POLLINATIONS_API_ERROR'
-      );
-    }
+    const mapModelForLegacy = (model: string) => {
+      if (model === 'openai-large') return 'openai';
+      if (model === 'gemini-search') return 'gemini';
+      return model;
+    };
 
-    if (streamEnabled) {
-      const bodyStream = response.body;
-      if (!bodyStream) {
-        throw new ApiError(502, 'Pollinations stream did not return a body', 'POLLINATIONS_STREAM_ERROR');
-      }
-      return new Response(bodyStream, {
-        status: 200,
-        headers: {
-          'Content-Type': response.headers.get('content-type') ?? 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        },
-      });
-    }
+    for (const target of targets) {
+      try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${target.apiKey}`,
+        };
     
-    const result = await response.json();
-    return NextResponse.json(result);
+        if (streamEnabled) {
+          headers['Accept'] = 'text/event-stream';
+        }
+    
+        const payloadForTarget = {
+          ...payload,
+          model: target.name === 'legacy' ? mapModelForLegacy(payload.model) : payload.model,
+        };
+
+        const response = await fetch(target.url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payloadForTarget),
+        });
+    
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Chat API (${target.name}) error (${response.status}):`, errorText);
+          const detail = errorText || 'Unknown error';
+          
+          // Check if this is a content filter error (Azure OpenAI content management policy)
+          let isContentFilterError = false;
+          if (response.status === 400) {
+            try {
+              const errorJson = JSON.parse(errorText);
+              const errorMessage = errorJson?.error?.message || errorJson?.message || '';
+              isContentFilterError = errorMessage.toLowerCase().includes('content management policy') ||
+                                   errorMessage.toLowerCase().includes('content filtering') ||
+                                   errorMessage.toLowerCase().includes('content filter');
+            } catch {
+              // If parsing fails, check string directly
+              isContentFilterError = errorText.toLowerCase().includes('content management policy') ||
+                                   errorText.toLowerCase().includes('content filtering');
+            }
+          }
+          
+          // If content filter error and using OpenAI model, fallback to Claude
+          if (isContentFilterError && target.name === 'pollen' && 
+              (effectiveModelId.startsWith('openai') || effectiveModelId.includes('openai'))) {
+            console.warn(`[Chat API] Content filter triggered for ${effectiveModelId}, falling back to Claude Sonnet 3.7`);
+            // Retry with Claude
+            const claudePayload = {
+              ...payload,
+              model: 'claude',
+            };
+            
+            const claudeResponse = await fetch(POLLEN_CHAT_API_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${pollenApiKey}`,
+                ...(streamEnabled ? { 'Accept': 'text/event-stream' } : {}),
+              },
+              body: JSON.stringify(claudePayload),
+            });
+            
+            if (!claudeResponse.ok) {
+              // If Claude also fails, throw original error
+              const apiError = new ApiError(
+                response.status,
+                `Chat API (${target.name}) returned status ${response.status}: ${detail}`,
+                `${target.name.toUpperCase()}_CHAT_API_ERROR`
+              );
+              throw apiError;
+            }
+            
+            if (streamEnabled) {
+              const bodyStream = claudeResponse.body;
+              if (!bodyStream) {
+                throw new ApiError(502, `Chat API (claude fallback) stream did not return a body`, 'CLAUDE_FALLBACK_STREAM_ERROR');
+              }
+              return new Response(bodyStream, {
+                status: 200,
+                headers: {
+                  'Content-Type': claudeResponse.headers.get('content-type') ?? 'text/event-stream',
+                  'Cache-Control': 'no-cache',
+                  Connection: 'keep-alive',
+                },
+              });
+            }
+            
+            const claudeResult = await claudeResponse.json();
+            return NextResponse.json(claudeResult);
+          }
+          
+          const apiError = new ApiError(
+            response.status,
+            `Chat API (${target.name}) returned status ${response.status}: ${detail}`,
+            `${target.name.toUpperCase()}_CHAT_API_ERROR`
+          );
+          // Only attempt legacy fallback if pollen returns 5xx; for 4xx bubble up immediately.
+          if (target.name === 'pollen' && response.status >= 500) {
+            lastError = apiError;
+            continue;
+          }
+          throw apiError;
+        }
+    
+        if (streamEnabled) {
+          const bodyStream = response.body;
+          if (!bodyStream) {
+            throw new ApiError(502, `Chat API (${target.name}) stream did not return a body`, `${target.name.toUpperCase()}_CHAT_STREAM_ERROR`);
+          }
+          return new Response(bodyStream, {
+            status: 200,
+            headers: {
+              'Content-Type': response.headers.get('content-type') ?? 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            },
+          });
+        }
+        
+        const result = await response.json();
+        return NextResponse.json(result);
+      } catch (err) {
+        // For pollen 4xx errors, stop and bubble up immediately.
+        if (target.name === 'pollen' && err instanceof ApiError && err.statusCode < 500) {
+          throw err;
+        }
+        lastError = err instanceof Error ? err : new Error(String(err));
+        // Try next target if available
+      }
+    }
+
+    if (lastError) {
+      throw lastError;
+    }
+
+    throw new ApiError(503, 'No chat backend available', 'CHAT_BACKEND_UNAVAILABLE');
 
   } catch (error) {
     return handleApiError(error);

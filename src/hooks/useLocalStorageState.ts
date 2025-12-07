@@ -7,32 +7,54 @@ function useLocalStorageState<T>(
   key: string,
   defaultValue: T
 ): [T, React.Dispatch<React.SetStateAction<T>>] {
-  const [value, setValue] = useState<T>(() => {
-    // This function now runs only on the client during initial state creation.
-    // It prevents the server from trying to access localStorage.
-    if (typeof window === 'undefined') {
-      return defaultValue;
-    }
+  // Initialize with default; hydrate from storage after mount to avoid SSR mismatch
+  const [value, setValueState] = useState<T>(defaultValue);
+
+  // Load from localStorage after mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     try {
       const storedValue = localStorage.getItem(key);
-      return storedValue ? JSON.parse(storedValue) : defaultValue;
+      if (storedValue) {
+        setValueState(JSON.parse(storedValue));
+      }
     } catch (error) {
       console.error(`Error reading localStorage key “${key}”:`, error);
-      return defaultValue;
     }
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
-  useEffect(() => {
-    // This effect handles saving the value to localStorage whenever it changes.
-    // It also only runs on the client.
-    if (typeof window !== 'undefined') {
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-        } catch (error) {
+  const setValue = useCallback(
+    (updater: React.SetStateAction<T>) => {
+      setValueState((prev) => {
+        const next = typeof updater === 'function' ? (updater as (prevState: T) => T)(prev) : updater;
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(key, JSON.stringify(next));
+            window.dispatchEvent(new CustomEvent(`local-storage-${key}`, { detail: next }));
+          } catch (error) {
             console.error(`Error setting localStorage key “${key}”:`, error);
+          }
         }
-    }
-  }, [key, value]);
+        return next;
+      });
+    },
+    [key]
+  );
+
+  // Sync across components in the same tab
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent;
+      if (custom.detail !== undefined) {
+        // Defer to avoid setState during another component render
+        setTimeout(() => setValueState(custom.detail), 0);
+      }
+    };
+    const eventName = `local-storage-${key}`;
+    window.addEventListener(eventName, handler);
+    return () => window.removeEventListener(eventName, handler);
+  }, [key]);
 
   return [value, setValue];
 }

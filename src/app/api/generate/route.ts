@@ -8,7 +8,20 @@ import { handleApiError, validateRequest, apiErrors } from '@/lib/api-error-hand
 
 const ImageGenerationSchema = z.object({
   prompt: z.string().min(1, 'Prompt is required'),
-  model: z.string().default('flux'),
+  model: z.enum([
+    'flux',
+    'kontext',
+    'turbo',
+    'nanobanana',
+    'nanobanana-pro',
+    'seedream',
+    'seedream-pro',
+    'gptimage',
+    'gpt-image',
+    'veo',
+    'seedance',
+    'seedance-pro',
+  ]),
   width: z.number().positive().default(1024),
   height: z.number().positive().default(1024),
   seed: z.number().optional(),
@@ -16,7 +29,12 @@ const ImageGenerationSchema = z.object({
   enhance: z.boolean().default(false),
   private: z.boolean().default(false),
   transparent: z.boolean().default(false),
+  aspectRatio: z.string().optional(),
+  duration: z.number().optional(),
+  audio: z.boolean().optional(),
 });
+
+const VIDEO_MODELS = new Set(['seedance', 'seedance-pro', 'veo']);
 
 export async function POST(request: Request) {
   try {
@@ -33,38 +51,53 @@ export async function POST(request: Request) {
       enhance,
       private: isPrivate,
       transparent,
+      aspectRatio,
+      duration,
+      audio,
     } = validateRequest(ImageGenerationSchema, body);
 
-    const token = process.env.POLLINATIONS_API_TOKEN;
+    // Map model aliases for Pollen endpoint
+    const modelId = model === 'gpt-image' ? 'gptimage' : model;
+
+    const token = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_TOKEN;
     if (!token) {
-        console.warn("POLLINATIONS_API_TOKEN is not set. Image generation might fail.");
+        console.warn("POLLEN_API_KEY is not set. Image generation might fail.");
     }
 
-    // --- Pollinations.ai API Logic ---
+    const isVideoModel = VIDEO_MODELS.has(model);
+
+    // --- Pollinations Pollen API Logic ---
     const params = new URLSearchParams();
-    params.append('width', String(width));
-    params.append('height', String(height));
-    params.append('model', model || 'flux');
+    params.append('model', modelId || 'flux');
+    if (!isVideoModel) {
+      params.append('width', String(width));
+      params.append('height', String(height));
+    }
     if (seed !== undefined && seed !== null && String(seed).trim() !== '') {
-        const seedNum = parseInt(String(seed).trim(), 10);
-        if (!isNaN(seedNum)) {
-             params.append('seed', String(seedNum));
-        }
+      const seedNum = parseInt(String(seed).trim(), 10);
+      if (!isNaN(seedNum)) {
+          params.append('seed', String(seedNum));
+      }
     }
     if (nologo) params.append('nologo', 'true');
     if (enhance) params.append('enhance', 'true');
     if (isPrivate) params.append('private', 'true');
-    if (transparent) params.append('transparent', 'true'); // For Pollinations models that support it
-
-    const encodedPrompt = encodeURIComponent(prompt.trim());
-    let imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
-
-    // Add API token if available
-    if (token) {
-      imageUrl += `&token=${token}`;
+    if (transparent) params.append('transparent', 'true'); // For models that support it
+    if (isVideoModel) {
+      if (aspectRatio) params.append('aspectRatio', aspectRatio);
+      if (typeof duration === 'number') params.append('duration', String(duration));
+      if (audio) params.append('audio', 'true');
     }
 
-    console.log(`Requesting image from Pollinations (model: ${model}):`, imageUrl);
+    const encodedPrompt = encodeURIComponent(prompt.trim());
+    let imageUrl = `https://enter.pollinations.ai/api/generate/image/${encodedPrompt}?${params.toString()}`;
+
+    // Add API token if available (passed as query for direct <img> access)
+    if (token) {
+      imageUrl += `&key=${token}`;
+    }
+
+    console.log(`Requesting image from Pollen (model: ${model}):`, imageUrl);
 
     // Return the image URL with token for authenticated access
     return NextResponse.json({ imageUrl });
