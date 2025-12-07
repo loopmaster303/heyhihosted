@@ -92,7 +92,7 @@ export async function POST(request: Request) {
     // Reference images (supports arrays or single URL)
     if (body.image) {
       const images = Array.isArray(body.image) ? body.image : [body.image];
-      images.forEach((imgUrl) => {
+      images.forEach((imgUrl: string) => {
         if (typeof imgUrl === 'string' && imgUrl.trim().length > 0) {
           params.append('image', imgUrl.trim());
         }
