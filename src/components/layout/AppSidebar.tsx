@@ -28,6 +28,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ onNewChat, onNewImage }) => {
   const router = useRouter();
   const { language } = useLanguage();
   const [isExpanded, setIsExpanded] = useLocalStorageState<boolean>('sidebarExpanded', true);
+  const [userDisplayName] = useLocalStorageState<string>('userDisplayName', 'User');
 
   const isGerman = language === 'de';
   const labels = {
@@ -49,16 +50,23 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ onNewChat, onNewImage }) => {
         isExpanded ? "w-64" : "w-16"
       )}
     >
-      {/* Toggle Button */}
-      <div className="p-4 border-b border-border">
+      {/* Header */}
+      <div className="p-4 border-b border-border flex items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full"
         >
           <Menu className="w-5 h-5" />
         </Button>
+
+        {isExpanded && (
+          <div className="font-mono text-sm flex-1">
+            <span className="text-foreground">(!hey.hi = </span>
+            <span className="text-pink-500 font-semibold">'{userDisplayName}'</span>
+            <span className="text-foreground">)</span>
+          </div>
+        )}
       </div>
 
       {/* Main Content */}

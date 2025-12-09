@@ -35,10 +35,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         <AppSidebar
           onNewChat={onNewChat}
           onNewImage={onNewImage}
-          chatHistory={chatHistory}
-          imageHistory={imageHistory}
-          onSelectChat={onSelectChat}
-          onSelectImage={onSelectImage}
         />
         <main className={cn(
           "flex-1 overflow-y-auto transition-all duration-300 relative bg-background"
