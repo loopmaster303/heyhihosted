@@ -63,7 +63,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ onNewChat, onNewImage }) => {
         {isExpanded && (
           <div className="font-mono text-sm flex-1">
             <span className="text-foreground">(!hey.hi = </span>
-            <span className="text-pink-500 font-semibold">'{userDisplayName}'</span>
+            <span className="text-pink-500 font-semibold">&apos;{userDisplayName}&apos;</span>
             <span className="text-foreground">)</span>
           </div>
         )}
