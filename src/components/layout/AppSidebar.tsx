@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
@@ -29,6 +29,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ onNewChat, onNewImage }) => {
   const { language } = useLanguage();
   const [isExpanded, setIsExpanded] = useLocalStorageState<boolean>('sidebarExpanded', true);
   const [userDisplayName] = useLocalStorageState<string>('userDisplayName', 'User');
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure client-side rendering
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const isGerman = language === 'de';
   const labels = {
@@ -43,6 +49,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ onNewChat, onNewImage }) => {
     visualize: isGerman ? 'VISUALISIEREN' : 'VISUALIZE',
   };
 
+  const handleToggle = () => {
+    setIsExpanded(!isExpanded);
+  };
+
   return (
     <div
       className={cn(
@@ -55,7 +65,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ onNewChat, onNewImage }) => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={handleToggle}
         >
           <Menu className="w-5 h-5" />
         </Button>
