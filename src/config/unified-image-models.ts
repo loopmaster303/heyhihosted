@@ -37,43 +37,24 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
  * Replicate Models (Premium tier)
  */
 const REPLICATE_MODELS: UnifiedImageModel[] = [
-  // New Unified Models (for /visualizepro)
-  // Image Models - Replicate
-  { id: 'flux-2-pro', name: 'Flux 2 Pro', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true },
+  // --- New User Requested Models ---
+  // Video Generation (Wan 2.5)
+  { id: 'wan-video/wan-2.5-t2v', name: 'Wan 2.5 T2V', provider: 'replicate', kind: 'video', requiresPassword: true, description: 'Text to Video' },
+  { id: 'wan-video/wan-2.5-i2v', name: 'Wan 2.5 I2V', provider: 'replicate', kind: 'video', supportsReference: true, requiresPassword: true, description: 'Image to Video' },
+
+  // Video Generation (Veo)
+  { id: 'google/veo-3.1-fast', name: 'Veo 3.1 Fast', provider: 'replicate', kind: 'video', supportsReference: true, requiresPassword: true, description: 'Fast Video Generation' },
+
+  // Image Generation (Flux)
+  { id: 'black-forest-labs/flux-2-pro', name: 'Flux 2 Pro', provider: 'replicate', kind: 'image', requiresPassword: true, description: 'High Quality Image Generation' },
+  { id: 'black-forest-labs/flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true, description: 'Context Aware Generation' },
+
+  // Image Generation (Turbo)
+  { id: 'prunaai/z-image-turbo', name: 'Z-Image Turbo', provider: 'replicate', kind: 'image', requiresPassword: true, description: 'Fast Image Generation' },
+
+
+  // --- Legacy / Other Models (Kept for compatibility if needed, but deprioritized) ---
   { id: 'nano-banana-pro', name: 'Nano Banana Pro', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true },
-  { id: 'z-image-turbo', name: 'Z-Image-Turbo', provider: 'replicate', kind: 'image', requiresPassword: true },
-  { id: 'qwen-image-edit-plus', name: 'Qwen Image Edit Plus', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true },
-  { id: 'flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true },
-  
-  // Video Models - Replicate
-  { id: 'wan-2.5-t2v', name: 'Wan 2.5 T2V', provider: 'replicate', kind: 'video', requiresPassword: true },
-  { id: 'wan-video', name: 'Wan 2.5 I2V', provider: 'replicate', kind: 'video', supportsReference: true, requiresPassword: true },
-  { id: 'veo-3.1-fast', name: 'Veo 3.1 Fast', provider: 'replicate', kind: 'video', supportsReference: true, requiresPassword: true },
-  
-  // Image Models - Pollinations
-  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
-  
-  // Video Models - Pollinations
-  { id: 'seedance-pro', name: 'Seedance Pro', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true },
-  { id: 'veo', name: 'Veo', provider: 'pollinations', kind: 'video', isFree: true },
-  
-  // Old Models (for /image-gen/raw - kept for backward compatibility)
-  { id: 'wan-2.2-image', name: 'WAN 2.2 Image', provider: 'replicate', kind: 'image', requiresPassword: true },
-  { id: 'flux-krea-dev', name: 'Flux Krea Dev', provider: 'replicate', kind: 'image', requiresPassword: true },
-  { id: 'flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true },
-  { id: 'qwen-image', name: 'Qwen Image', provider: 'replicate', kind: 'image', requiresPassword: true },
-  { id: 'nano-banana', name: 'Nano Banana', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true },
-  { id: 'runway-gen4', name: 'Runway Gen4', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true },
-  { id: 'ideogram-character', name: 'Ideogram Character', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true },
-  
-  // Image Editors
-  { id: 'qwen-image-edit', name: 'Qwen Image Edit', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true },
-  
-  // Video Generators
-  { id: 'wan-video', name: 'WAN Video', provider: 'replicate', kind: 'video', requiresPassword: true },
-  { id: 'wan-2.5-t2v', name: 'WAN 2.5 T2V', provider: 'replicate', kind: 'video', requiresPassword: true },
-  { id: 'veo-3-fast', name: 'Veo 3 Fast', provider: 'replicate', kind: 'video', requiresPassword: true },
-  { id: 'hailuo-02', name: 'Hailuo 02', provider: 'replicate', kind: 'video', requiresPassword: true },
 ];
 
 /**

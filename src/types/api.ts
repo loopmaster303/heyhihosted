@@ -99,12 +99,6 @@ export interface TitleGenerationResponse {
   title: string;
 }
 
-// ===== Image Models API =====
-
-export interface ImageModelsResponse {
-  models: string[];
-}
-
 // ===== Error Response =====
 
 export interface ApiErrorResponse {

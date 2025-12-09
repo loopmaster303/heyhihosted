@@ -6,28 +6,24 @@ import { handleApiError, requireEnv, ApiError, apiErrors } from '@/lib/api-error
 import type { ReplicatePrediction } from '@/types/api';
 
 const MODEL_ENDPOINTS: Record<string, string> = {
-  // New Unified Models - Images
-  "flux-2-pro": "black-forest-labs/flux-2-pro",
-  "nano-banana-pro": "google/nano-banana-pro",
-  "z-image-turbo": "prunaai/z-image-turbo",
-  "qwen-image-edit-plus": "qwen/qwen-image-edit-plus",
-  "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
+  // --- Video Models ---
+  "wan-video/wan-2.5-t2v": "wan-video/wan-2.5-t2v",
+  "wan-video/wan-2.5-i2v": "wan-video/wan-2.5-i2v",
+  "google/veo-3.1-fast": "google/veo-3.1-fast",
 
-  // New Unified Models - Videos
+  // --- Image Models (Flux/Turbo) ---
+  "black-forest-labs/flux-2-pro": "black-forest-labs/flux-2-pro",
+  "black-forest-labs/flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
+  "prunaai/z-image-turbo": "prunaai/z-image-turbo",
+
+  // --- Legacy Mappings (if still referenced) ---
+  "nano-banana-pro": "google/nano-banana-pro",
+  "flux-2-pro": "black-forest-labs/flux-2-pro", // Fallback for old refs
+  "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
   "veo-3.1-fast": "google/veo-3.1-fast",
-  
-  // Old Models (for backward compatibility)
-  "wan-2.2-image": "prunaai/wan-2.2-image",
-  "nano-banana": "google/nano-banana",
-  "flux-krea-dev": "black-forest-labs/flux-krea-dev",
-  "runway-gen4": "runwayml/gen4-image",
-  "qwen-image": "qwen/qwen-image",
-  "qwen-image-edit": "qwen/qwen-image-edit",
-  // Wan 2.5 image-to-video
-  "wan-video": "wan-video/wan-2.5-i2v",
+  "z-image-turbo": "prunaai/z-image-turbo",
   "wan-2.5-t2v": "wan-video/wan-2.5-t2v",
-  "veo-3-fast": "google/veo-3-fast",
-  "ideogram-character": "ideogram-ai/ideogram-character",
+  "wan-video": "wan-video/wan-2.5-i2v",
   "hailuo-02": "minimax/hailuo-02",
   "seedream-4": "bytedance/seedream-4",
 };
@@ -36,9 +32,9 @@ export async function POST(request: NextRequest) {
   try {
     // --- Simple Password Check ---
     const masterPassword = process.env.REPLICATE_TOOL_PASSWORD;
-    
+
     const body = await request.json();
-    
+
     // If a master password is set in the environment, we must validate it.
     if (masterPassword) {
       const { password: userPassword } = body;
@@ -48,40 +44,40 @@ export async function POST(request: NextRequest) {
     }
 
     const replicateApiToken = requireEnv('REPLICATE_API_TOKEN');
-    
+
     const { model: modelKey, password, ...inputParams } = body;
 
     if (!modelKey || typeof modelKey !== 'string' || !MODEL_ENDPOINTS[modelKey]) {
       throw apiErrors.badRequest(`Unknown or invalid model: ${modelKey}. Available: ${Object.keys(MODEL_ENDPOINTS).join(', ')}`);
     }
 
-  const endpoint = `https://api.replicate.com/v1/models/${MODEL_ENDPOINTS[modelKey]}/predictions`;
+    const endpoint = `https://api.replicate.com/v1/models/${MODEL_ENDPOINTS[modelKey]}/predictions`;
 
-  const sanitizedInput: Record<string, string | number | boolean | string[]> = {};
-  for (const key in inputParams) {
-    const value = inputParams[key];
-    if (value !== null && value !== undefined) {
-      // Convert specific parameters to correct types based on model
-      if (key === "megapixels") {
-        // WAN models expect integer, Flux models expect string
-        if (modelKey.includes("wan") || modelKey.includes("ideogram")) {
-          sanitizedInput[key] = typeof value === "string" ? parseInt(value, 10) : value;
+    const sanitizedInput: Record<string, string | number | boolean | string[]> = {};
+    for (const key in inputParams) {
+      const value = inputParams[key];
+      if (value !== null && value !== undefined) {
+        // Convert specific parameters to correct types based on model
+        if (key === "megapixels") {
+          // WAN models expect integer, Flux models expect string
+          if (modelKey.includes("wan") || modelKey.includes("ideogram")) {
+            sanitizedInput[key] = typeof value === "string" ? parseInt(value, 10) : value;
+          } else {
+            // Keep as string for Flux models
+            sanitizedInput[key] = String(value);
+          }
+        } else if ((key === "seed" || key === "duration") && typeof value === "string") {
+          const parsed = parseInt(value, 10);
+          if (!Number.isNaN(parsed)) {
+            sanitizedInput[key] = parsed;
+          }
+        } else if (key === "output_quality" && typeof value === "string") {
+          sanitizedInput[key] = parseInt(value, 10);
         } else {
-          // Keep as string for Flux models
-          sanitizedInput[key] = String(value);
+          sanitizedInput[key] = value;
         }
-      } else if ((key === "seed" || key === "duration") && typeof value === "string") {
-        const parsed = parseInt(value, 10);
-        if (!Number.isNaN(parsed)) {
-          sanitizedInput[key] = parsed;
-        }
-      } else if (key === "output_quality" && typeof value === "string") {
-        sanitizedInput[key] = parseInt(value, 10);
-      } else {
-        sanitizedInput[key] = value;
       }
     }
-  }
 
     const startResponse = await fetch(endpoint, {
       method: 'POST',
@@ -152,4 +148,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
-    
+

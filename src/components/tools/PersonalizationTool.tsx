@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useEffect } from "react";
-import { AVAILABLE_RESPONSE_STYLES } from "@/config/chat-options";
+import { AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from "@/config/chat-options";
+import { getImageModels } from "@/config/unified-image-models";
 import { useLanguage } from '@/components/LanguageProvider';
 import { useTheme } from 'next-themes';
 import { cn } from "@/lib/utils";
@@ -20,6 +21,12 @@ interface PersonalizationToolProps {
   setCustomSystemPrompt: (prompt: string) => void;
   replicateToolPassword?: string;
   setReplicateToolPassword?: (password: string) => void;
+  selectedModelId?: string;
+  onModelChange?: (modelId: string) => void;
+  selectedVoice?: string;
+  onVoiceChange?: (voiceId: string) => void;
+  selectedImageModelId?: string;
+  onImageModelChange?: (modelId: string) => void;
 }
 
 const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
@@ -29,6 +36,12 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   setCustomSystemPrompt,
   replicateToolPassword,
   setReplicateToolPassword,
+  selectedModelId,
+  onModelChange,
+  selectedVoice,
+  onVoiceChange,
+  selectedImageModelId,
+  onImageModelChange,
 }) => {
   const [selectedResponseStyle, setSelectedResponseStyle] = useState("Precise");
   const { t, language } = useLanguage();
@@ -63,7 +76,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
     if (customSystemPrompt.trim() !== "") {
       return customSystemPrompt;
     }
-    
+
     // Verwende übersetzte System Prompts
     const styleKey = selectedResponseStyle.toLowerCase().replace(' ', '');
     const systemPromptKey = `systemPrompt.${styleKey}`;
@@ -71,7 +84,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   };
 
   const responseStyles = getResponseStyles();
-  
+
   // Warte bis das Theme geladen ist, um Hydration-Fehler zu vermeiden
   if (!isClient) {
     return (
@@ -101,7 +114,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
       <div className="max-w-6xl mx-auto">
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
+
           {/* Left Column - Questions */}
           <div className="space-y-8">
             <div>
@@ -115,7 +128,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                 {t('settings.nameDescription')}
               </p>
             </div>
-            
+
             <div>
               <h2 className="text-2xl md:text-3xl font-code text-glow mb-2">
                 {t('settings.responseStyleQuestion')}
@@ -127,7 +140,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                 {t('settings.responseStyleDescription')}
               </p>
             </div>
-            
+
             <div>
               <h2 className="text-2xl md:text-3xl font-code text-glow mb-2">
                 {t('settings.aiInstructions')}
@@ -143,7 +156,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
               </div>
             </div>
           </div>
-          
+
           {/* Right Column - Input Fields */}
           <div className="space-y-8">
             <div>
@@ -154,18 +167,18 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                 placeholder={t('settings.namePlaceholder')}
                 className={cn(
                   "w-full transition-colors",
-                  isDark 
+                  isDark
                     ? "bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-pink-500 focus:ring-pink-500"
                     : "bg-gray-50 border-gray-300 text-black placeholder-gray-500 focus:border-pink-500 focus:ring-pink-500"
                 )}
               />
             </div>
-            
+
             <div>
               <Select value={selectedResponseStyle} onValueChange={setSelectedResponseStyle}>
                 <SelectTrigger className={cn(
                   "w-full transition-colors",
-                  isDark 
+                  isDark
                     ? "bg-gray-900 border-gray-700 text-white focus:border-pink-500 focus:ring-pink-500"
                     : "bg-gray-50 border-gray-300 text-black focus:border-pink-500 focus:ring-pink-500"
                 )}>
@@ -192,7 +205,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Textarea
                 value={getCurrentSystemPrompt()}
@@ -200,7 +213,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                 placeholder={t('settings.aiPromptPlaceholder')}
                 className={cn(
                   "w-full min-h-[200px] resize-none transition-colors",
-                  isDark 
+                  isDark
                     ? "bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-pink-500 focus:ring-pink-500"
                     : "bg-gray-50 border-gray-300 text-black placeholder-gray-500 focus:border-pink-500 focus:ring-pink-500"
                 )}
@@ -208,6 +221,99 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
               />
             </div>
           </div>
+
+          {/* Advanced Settings - Only show if props provided */}
+          {(onModelChange || onVoiceChange || onImageModelChange) && (
+            <>
+              <div className="col-span-full border-t border-border my-6" />
+
+              <div className="col-span-full mb-4">
+                <h2 className="text-2xl md:text-3xl font-code text-glow">
+                  Erweiterte Einstellungen
+                </h2>
+              </div>
+
+              {/* LLM Model */}
+              {onModelChange && selectedModelId && (
+                <>
+                  <div>
+                    <h3 className="text-xl font-code text-glow mb-2">KI-Modell</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Wähle das Sprachmodell für deine Konversationen
+                    </p>
+                  </div>
+
+                  <div>
+                    <Select value={selectedModelId} onValueChange={onModelChange}>
+                      <SelectTrigger className={cn("w-full", isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-gray-50 border-gray-300 text-black")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className={cn("max-h-[400px]", isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-300")}>
+                        {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
+                          <SelectItem key={model.id} value={model.id} className={isDark ? "text-white hover:bg-gray-800" : "text-black hover:bg-gray-100"}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{model.name}</span>
+                              {model.description && <span className="text-xs text-muted-foreground">{model.description}</span>}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {/* Voice */}
+              {onVoiceChange && selectedVoice && (
+                <>
+                  <div>
+                    <h3 className="text-xl font-code text-glow mb-2">Stimme</h3>
+                    <p className="text-sm text-muted-foreground">Wähle die Stimme für Text-to-Speech</p>
+                  </div>
+
+                  <div>
+                    <Select value={selectedVoice} onValueChange={onVoiceChange}>
+                      <SelectTrigger className={cn("w-full", isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-gray-50 border-gray-300 text-black")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className={isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-300"}>
+                        {AVAILABLE_TTS_VOICES.map((voice) => (
+                          <SelectItem key={voice.id} value={voice.id} className={isDark ? "text-white hover:bg-gray-800" : "text-black hover:bg-gray-100"}>
+                            {voice.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {/* Image Model */}
+              {onImageModelChange && selectedImageModelId && (
+                <>
+                  <div>
+                    <h3 className="text-xl font-code text-glow mb-2">Bild-Modell</h3>
+                    <p className="text-sm text-muted-foreground">Wähle das Modell für Bildgenerierung im Chat</p>
+                  </div>
+
+                  <div>
+                    <Select value={selectedImageModelId} onValueChange={onImageModelChange}>
+                      <SelectTrigger className={cn("w-full", isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-gray-50 border-gray-300 text-black")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className={cn("max-h-[300px]", isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-300")}>
+                        {getImageModels().map((model) => (
+                          <SelectItem key={model.id} value={model.id} className={isDark ? "text-white hover:bg-gray-800" : "text-black hover:bg-gray-100"}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </div>
       </div>
 

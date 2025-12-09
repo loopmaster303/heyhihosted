@@ -49,18 +49,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const isStreaming = Boolean(message.isStreaming);
 
   const getTextContent = (): string | null => {
-      if (typeof message.content === 'string') return message.content;
-      if (Array.isArray(message.content)) {
-          const textPart = message.content.find(p => p.type === 'text');
-          return textPart?.text || null;
-      }
-      return null;
+    if (typeof message.content === 'string') return message.content;
+    if (Array.isArray(message.content)) {
+      const textPart = message.content.find(p => p.type === 'text');
+      return textPart?.text || null;
+    }
+    return null;
   }
 
   const textContent = getTextContent();
   const shouldUseTypewriter = Boolean(shouldAnimate && isAssistant && textContent && message.id !== 'loading' && !skipAnimation && !isStreaming);
-  
-  
+
+
   const { displayedText, isTyping, isComplete } = useTypewriter({
     text: textContent || '',
     speed: 25, // milliseconds per character
@@ -113,22 +113,22 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   }
 
   const hasAudioContent = isAssistant && !!getTextContent();
-  
+
   const renderContent = (content: string | ChatMessageContentPart[]) => {
     if (message.id === 'loading') {
       return (
         <div className="flex items-center gap-2 p-2">
           <div className="flex gap-1">
-            <span 
-              className="w-2 h-2 bg-current rounded-full animate-bounce" 
+            <span
+              className="w-2 h-2 bg-current rounded-full animate-bounce"
               style={{ animationDelay: '0ms', animationDuration: '1s' }}
             />
-            <span 
-              className="w-2 h-2 bg-current rounded-full animate-bounce" 
+            <span
+              className="w-2 h-2 bg-current rounded-full animate-bounce"
               style={{ animationDelay: '150ms', animationDuration: '1s' }}
             />
-            <span 
-              className="w-2 h-2 bg-current rounded-full animate-bounce" 
+            <span
+              className="w-2 h-2 bg-current rounded-full animate-bounce"
               style={{ animationDelay: '300ms', animationDuration: '1s' }}
             />
           </div>
@@ -136,7 +136,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         </div>
       );
     }
-    
+
     if (typeof content === 'string') {
       if (message.role === 'assistant' && (!content || content.trim() === '')) {
         // Show blinking cursor while AI is responding
@@ -155,7 +155,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </p>
         );
       }
-      
+
       // If content contains fenced code blocks, render via Markdown for nicer code display
       if (/```/.test(content)) {
         return <MarkdownRenderer content={content} />;
@@ -164,20 +164,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       // Use typewriter effect for assistant messages
       if (shouldUseTypewriter) {
         return (
-          <p className="text-sm whitespace-pre-wrap font-mono">
+          <p className="text-[15px] leading-7 whitespace-pre-wrap font-mono">
             {displayedText}
             {isTyping && <BlinkingCursor className="text-primary ml-1" />}
           </p>
         );
       }
 
-      return <p className="text-sm whitespace-pre-wrap">{content}</p>;
+      return <p className="text-[15px] leading-7 whitespace-pre-wrap">{content}</p>;
     }
 
     return content.map((part, index) => {
       if (part.type === 'text') {
-        return <p key={index} className="text-sm whitespace-pre-wrap mb-2">{part.text}</p>;
-      } 
+        return <p key={index} className="text-[15px] leading-7 whitespace-pre-wrap mb-2">{part.text}</p>;
+      }
       if (part.type === 'image_url') {
         const altText =
           part.image_url.altText ||
@@ -244,20 +244,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     >
       <div
         className={cn(
-          'max-w-[85%] relative p-3 rounded-xl', 
+          'max-w-[85%] relative p-3 rounded-2xl px-5 py-3.5',
           isUser
-            ? 'bg-pink-200 dark:bg-gray-600 text-gray-800 dark:text-white shadow-md'
-            : 'bg-transparent text-gray-800 dark:text-white'
+            ? 'bg-secondary text-secondary-foreground shadow-sm'
+            : 'bg-transparent text-foreground'
         )}
       >
         <div className="flex flex-col">
           {renderContent(message.content)}
         </div>
-        
+
         {isAssistant && message.id !== 'loading' && (
           <div className="absolute top-full mt-1 left-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             {hasAudioContent && onPlayAudio && (
-              <Button 
+              <Button
                 variant="ghost"
                 size="icon"
                 onClick={handlePlayClick}
@@ -271,9 +271,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 {isLoadingAudio ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : isPlaying ? (
-                  <StopCircle className="h-4 w-4"/>
+                  <StopCircle className="h-4 w-4" />
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 10v4M7 6v12M11 2v20M15 6v12M19 10v4"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 10v4M7 6v12M11 2v20M15 6v12M19 10v4" /></svg>
                 )}
               </Button>
             )}

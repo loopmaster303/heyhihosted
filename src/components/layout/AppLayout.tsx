@@ -41,9 +41,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           onSelectImage={onSelectImage}
         />
         <main className={cn(
-          "flex-1 overflow-y-auto transition-all duration-300"
+          "flex-1 overflow-y-auto transition-all duration-300 relative bg-background"
         )}>
-          {children}
+          <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full shadow-sm bg-background">
+            {children}
+          </div>
         </main>
       </div>
     </div>
