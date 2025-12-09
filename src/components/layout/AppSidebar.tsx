@@ -27,14 +27,31 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ onNewChat, onNewImage }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { language } = useLanguage();
-  const [isExpanded, setIsExpanded] = useLocalStorageState<boolean>('sidebarExpanded', true);
-  const [userDisplayName] = useLocalStorageState<string>('userDisplayName', 'User');
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [userDisplayName, setUserDisplayName] = useState('User');
   const [isMounted, setIsMounted] = useState(false);
 
-  // Ensure client-side rendering
+  // Load from localStorage on mount
   useEffect(() => {
+    const savedExpanded = localStorage.getItem('sidebarExpanded');
+    const savedName = localStorage.getItem('userDisplayName');
+
+    if (savedExpanded !== null) {
+      setIsExpanded(savedExpanded === 'true');
+    }
+    if (savedName) {
+      setUserDisplayName(savedName);
+    }
+
     setIsMounted(true);
   }, []);
+
+  // Save to localStorage when changed
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem('sidebarExpanded', String(isExpanded));
+    }
+  }, [isExpanded, isMounted]);
 
   const isGerman = language === 'de';
   const labels = {
@@ -50,7 +67,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ onNewChat, onNewImage }) => {
   };
 
   const handleToggle = () => {
-    setIsExpanded(!isExpanded);
+    setIsExpanded(prev => !prev);
   };
 
   return (
