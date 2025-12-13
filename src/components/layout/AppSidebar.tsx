@@ -17,19 +17,44 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { ThemeToggle } from '../ThemeToggle';
 import LanguageToggle from '../LanguageToggle';
 import { useLanguage } from '../LanguageProvider';
+import SidebarHistoryPanel from '../chat/SidebarHistoryPanel';
+import SidebarGalleryPanel from '../chat/SidebarGalleryPanel';
+import { useImageHistory } from '@/hooks/useImageHistory';
 
 interface AppSidebarProps {
   onNewChat?: () => void;
-  onNewImage?: () => void;
+  onToggleHistoryPanel?: () => void;
+  onToggleGalleryPanel?: () => void;
+  currentPath?: string;
+  isHistoryPanelOpen?: boolean;
+  isGalleryPanelOpen?: boolean;
+  allConversations?: any[];
+  activeConversation?: any;
+  onSelectChat?: (id: string) => void;
+  onRequestEditTitle?: (id: string) => void;
+  onDeleteChat?: (id: string) => void;
 }
 
-const AppSidebar: React.FC<AppSidebarProps> = ({ onNewChat, onNewImage }) => {
+const AppSidebar: React.FC<AppSidebarProps> = ({
+  onNewChat,
+  onToggleHistoryPanel,
+  onToggleGalleryPanel,
+  currentPath,
+  isHistoryPanelOpen = false,
+  isGalleryPanelOpen = false,
+  allConversations = [],
+  activeConversation = null,
+  onSelectChat,
+  onRequestEditTitle,
+  onDeleteChat
+}) => {
   const pathname = usePathname();
   const router = useRouter();
   const { language } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(true);
   const [userDisplayName, setUserDisplayName] = useState('User');
   const [isMounted, setIsMounted] = useState(false);
+  const { imageHistory, clearImageHistory } = useImageHistory();
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -90,123 +115,199 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ onNewChat, onNewImage }) => {
         {isExpanded && (
           <div className="font-mono text-sm flex-1">
             <span className="text-foreground">(!hey.hi = </span>
-            <span className="text-pink-500 font-semibold">&apos;{userDisplayName}&apos;</span>
+            <span className="text-pink-500 font-semibold">'{userDisplayName}'</span>
             <span className="text-foreground">)</span>
           </div>
         )}
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-8">
-        {/* GESPRÄCHE Section */}
-        <div>
-          {isExpanded && (
-            <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">
-              {labels.conversations}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-y-auto p-4 space-y-8">
+          {/* GESPRÄCHE Section */}
+          <div>
+            {isExpanded && (
+              <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">
+                {labels.conversations}
+              </div>
+            )}
+
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start gap-3",
+                !isExpanded && "justify-center px-0"
+              )}
+              onClick={() => {
+                console.log('New Chat button clicked');
+                // Auto-expand sidebar if collapsed
+                if (!isExpanded) {
+                  setIsExpanded(true);
+                }
+                // Start new chat and navigate to chat tool
+                if (onNewChat) {
+                  onNewChat();
+                  // Navigate to chat tool if not already there
+                  if (currentPath !== '/chat') {
+                    router.push('/chat');
+                  }
+                } else {
+                  console.error('onNewChat is not defined');
+                }
+              }}
+            >
+              <MessageCirclePlus className="w-5 h-5 shrink-0" />
+              {isExpanded && <span>{labels.newConversation}</span>}
+            </Button>
+
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start gap-3",
+                !isExpanded && "justify-center px-0",
+                isHistoryPanelOpen && "bg-accent text-accent-foreground"
+              )}
+              onClick={() => {
+                console.log('History button clicked');
+                // Auto-expand sidebar if collapsed
+                if (!isExpanded) {
+                  setIsExpanded(true);
+                }
+                if (onToggleHistoryPanel) {
+                  onToggleHistoryPanel();
+                } else {
+                  console.error('onToggleHistoryPanel is not defined');
+                }
+              }}
+            >
+              <History className="w-5 h-5 shrink-0" />
+              {isExpanded && (
+                <>
+                  <span className="flex-1 text-left">{labels.history}</span>
+                  <ChevronRight className={cn(
+                    "w-4 h-4 shrink-0 transition-transform",
+                    isHistoryPanelOpen && "rotate-90"
+                  )} />
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* VISUALISIEREN Section */}
+          <div>
+            {isExpanded && (
+              <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">
+                {labels.visualize}
+              </div>
+            )}
+
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start gap-3",
+                !isExpanded && "justify-center px-0"
+              )}
+              onClick={() => {
+                if (currentPath !== '/visualizepro') {
+                  router.push('/visualizepro');
+                }
+                onToggleGalleryPanel?.();
+              }}
+            >
+              <WandSparkles className="w-5 h-5 shrink-0" />
+              {isExpanded && <span>{labels.newImage}</span>}
+            </Button>
+
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start gap-3",
+                !isExpanded && "justify-center px-0",
+                isGalleryPanelOpen && "bg-accent text-accent-foreground"
+              )}
+              onClick={() => {
+                console.log('Gallery button clicked');
+                // Auto-expand sidebar if collapsed
+                if (!isExpanded) {
+                  setIsExpanded(true);
+                }
+                if (onToggleGalleryPanel) {
+                  onToggleGalleryPanel();
+                } else {
+                  console.error('onToggleGalleryPanel is not defined');
+                }
+              }}
+            >
+              <Images className="w-5 h-5 shrink-0" />
+              {isExpanded && (
+                <>
+                  <span className="flex-1 text-left">{labels.gallery}</span>
+                  <ChevronRight className={cn(
+                    "w-4 h-4 shrink-0 transition-transform",
+                    isGalleryPanelOpen && "rotate-90"
+                  )} />
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* History Panel */}
+          {isHistoryPanelOpen && isExpanded && (
+            <div className="mt-2">
+              <SidebarHistoryPanel
+                allConversations={allConversations}
+                activeConversation={activeConversation}
+                onSelectChat={onSelectChat || (() => { })}
+                onRequestEditTitle={onRequestEditTitle || (() => { })}
+                onDeleteChat={onDeleteChat || (() => { })}
+                onClose={onToggleHistoryPanel || (() => { })}
+              />
             </div>
           )}
 
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-3",
-              !isExpanded && "justify-center px-0"
-            )}
-            onClick={() => {
-              router.push('/chat');
-              onNewChat?.();
-            }}
-          >
-            <MessageCirclePlus className="w-5 h-5 shrink-0" />
-            {isExpanded && <span>{labels.newConversation}</span>}
-          </Button>
-
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-3",
-              !isExpanded && "justify-center px-0"
-            )}
-            onClick={() => router.push('/chat')}
-          >
-            <History className="w-5 h-5 shrink-0" />
-            {isExpanded && (
-              <>
-                <span className="flex-1 text-left">{labels.history}</span>
-                <ChevronRight className="w-4 h-4 shrink-0" />
-              </>
-            )}
-          </Button>
+          {/* Gallery Panel */}
+          {isGalleryPanelOpen && isExpanded && (
+            <div className="mt-2">
+              <SidebarGalleryPanel
+                history={imageHistory}
+                onSelectImage={(item) => {
+                  // Handle image selection - could emit event or update state
+                  console.log('Selected image:', item);
+                }}
+                onClearHistory={clearImageHistory}
+                onClose={onToggleGalleryPanel || (() => { })}
+              />
+            </div>
+          )}
         </div>
 
-        {/* VISUALISIEREN Section */}
-        <div>
+        {/* Bottom Section */}
+        <div className="p-4 border-t border-border space-y-2">
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start gap-3",
+              !isExpanded && "justify-center px-0"
+            )}
+            onClick={() => router.push('/settings')}
+          >
+            <UserRoundPen className="w-5 h-5 shrink-0" />
+            {isExpanded && <span>{labels.personalization}</span>}
+          </Button>
+
           {isExpanded && (
-            <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">
-              {labels.visualize}
-            </div>
+            <>
+              <div className="flex items-center justify-between px-2 py-1 text-sm">
+                <span className="text-muted-foreground">{labels.languageLabel}</span>
+                <LanguageToggle />
+              </div>
+              <div className="flex items-center justify-between px-2 py-1 text-sm">
+                <span className="text-muted-foreground">{labels.themeLabel}</span>
+                <ThemeToggle />
+              </div>
+            </>
           )}
-
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-3",
-              !isExpanded && "justify-center px-0"
-            )}
-            onClick={() => {
-              router.push('/visualizepro');
-              onNewImage?.();
-            }}
-          >
-            <WandSparkles className="w-5 h-5 shrink-0" />
-            {isExpanded && <span>{labels.newImage}</span>}
-          </Button>
-
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-3",
-              !isExpanded && "justify-center px-0"
-            )}
-            onClick={() => router.push('/visualizepro')}
-          >
-            <Images className="w-5 h-5 shrink-0" />
-            {isExpanded && (
-              <>
-                <span className="flex-1 text-left">{labels.gallery}</span>
-                <ChevronRight className="w-4 h-4 shrink-0" />
-              </>
-            )}
-          </Button>
         </div>
-      </div>
-
-      {/* Bottom Section */}
-      <div className="p-4 border-t border-border space-y-2">
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start gap-3",
-            !isExpanded && "justify-center px-0"
-          )}
-          onClick={() => router.push('/settings')}
-        >
-          <UserRoundPen className="w-5 h-5 shrink-0" />
-          {isExpanded && <span>{labels.personalization}</span>}
-        </Button>
-
-        {isExpanded && (
-          <>
-            <div className="flex items-center justify-between px-2 py-1 text-sm">
-              <span className="text-muted-foreground">{labels.languageLabel}</span>
-              <LanguageToggle />
-            </div>
-            <div className="flex items-center justify-between px-2 py-1 text-sm">
-              <span className="text-muted-foreground">{labels.themeLabel}</span>
-              <ThemeToggle />
-            </div>
-          </>
-        )}
       </div>
     </div>
   );

@@ -8,21 +8,33 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 interface AppLayoutProps {
   children: React.ReactNode;
   onNewChat?: () => void;
-  onNewImage?: () => void;
+  onToggleHistoryPanel?: () => void;
+  onToggleGalleryPanel?: () => void;
+  currentPath?: string;
   chatHistory?: any[];
-  imageHistory?: any[];
   onSelectChat?: (id: string) => void;
-  onSelectImage?: (item: any) => void;
+  isHistoryPanelOpen?: boolean;
+  isGalleryPanelOpen?: boolean;
+  allConversations?: any[];
+  activeConversation?: any;
+  onRequestEditTitle?: (id: string) => void;
+  onDeleteChat?: (id: string) => void;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({
   children,
   onNewChat,
-  onNewImage,
+  onToggleHistoryPanel,
+  onToggleGalleryPanel,
+  currentPath,
   chatHistory = [],
-  imageHistory = [],
   onSelectChat,
-  onSelectImage
+  isHistoryPanelOpen = false,
+  isGalleryPanelOpen = false,
+  allConversations = [],
+  activeConversation = null,
+  onRequestEditTitle,
+  onDeleteChat
 }) => {
   const [sidebarExpanded, setSidebarExpanded] = useLocalStorageState<boolean>('sidebarExpanded', true);
 
@@ -34,7 +46,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar
           onNewChat={onNewChat}
-          onNewImage={onNewImage}
+          onToggleHistoryPanel={onToggleHistoryPanel}
+          onToggleGalleryPanel={onToggleGalleryPanel}
+          currentPath={currentPath}
+          isHistoryPanelOpen={isHistoryPanelOpen}
+          isGalleryPanelOpen={isGalleryPanelOpen}
+          allConversations={allConversations}
+          activeConversation={activeConversation}
+          onSelectChat={onSelectChat}
+          onRequestEditTitle={onRequestEditTitle}
+          onDeleteChat={onDeleteChat}
         />
         <main className={cn(
           "flex-1 overflow-y-auto transition-all duration-300 relative bg-background"

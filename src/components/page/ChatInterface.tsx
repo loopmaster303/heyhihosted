@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -51,13 +50,10 @@ const ChatInterface: React.FC = () => {
         setActiveConversation,
     } = useChat();
 
-    const historyPanelRef = React.useRef<HTMLDivElement>(null);
     const advancedPanelRef = React.useRef<HTMLDivElement>(null);
 
     // This hook now correctly ignores clicks inside any Radix UI Select/Dropdown content
-    useOnClickOutside([historyPanelRef], closeHistoryPanel, 'radix-select-content');
     useOnClickOutside([advancedPanelRef], closeAdvancedPanel, 'radix-select-content');
-
 
     if (!activeConversation) {
         return null; // Don't show anything while loading to prevent flicker
@@ -123,10 +119,11 @@ const ChatInterface: React.FC = () => {
                         }}
                         chatTitle={title}
                         onToggleHistoryPanel={toggleHistoryPanel}
+                        onToggleGalleryPanel={() => { }}
                         onToggleAdvancedPanel={toggleAdvancedPanel}
+                        isGalleryPanelOpen={false}
                         isHistoryPanelOpen={isHistoryPanelOpen}
                         isAdvancedPanelOpen={isAdvancedPanelOpen}
-                        historyPanelRef={historyPanelRef}
                         advancedPanelRef={advancedPanelRef}
                         allConversations={allConversations}
                         activeConversation={activeConversation}

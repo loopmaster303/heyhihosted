@@ -84,6 +84,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     retryLastRequestRef,
     isImageMode,
     webBrowsingEnabled,
+    isGalleryPanelOpen,
+    setIsGalleryPanelOpen,
   } = state;
 
   const { toast } = useToast();
@@ -516,6 +518,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
   // startNewChat muss vor dem useEffect definiert werden, der es aufruft
   const startNewChat = useCallback(() => {
+    // If current conversation has no messages, don't create a new one
+    // Just make sure we're on an empty conversation
+    if (activeConversation && activeConversation.messages.length === 0) {
+      // Already on an empty conversation, do nothing
+      return;
+    }
+
     const newConversationId = generateUUID();
     const newConversationData: Conversation = {
       id: newConversationId,
@@ -612,6 +621,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   }, []);
 
   const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), []);
+  const toggleGalleryPanel = useCallback(() => setIsGalleryPanelOpen(prev => !prev), []);
   const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), []);
   const toggleWebBrowsing = useCallback(() => {
     setActiveConversation(prev => prev ? { ...prev, webBrowsingEnabled: !(prev.webBrowsingEnabled ?? false) } : prev);
@@ -669,6 +679,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   useChatEffects({
     isHistoryPanelOpen,
     isAdvancedPanelOpen,
+    isGalleryPanelOpen,
     isInitialLoadComplete,
     setIsInitialLoadComplete,
     allConversations,
@@ -676,6 +687,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     selectedImageModelId,
     setIsHistoryPanelOpen,
     setIsAdvancedPanelOpen,
+    setIsGalleryPanelOpen,
     setActiveConversation,
     setAllConversations,
     setAvailableImageModels,
@@ -691,7 +703,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   return {
     activeConversation, allConversations,
     isAiResponding, isImageMode,
-    isHistoryPanelOpen, isAdvancedPanelOpen,
+    isHistoryPanelOpen, isAdvancedPanelOpen, isGalleryPanelOpen,
     isEditTitleDialogOpen, editingTitle,
     playingMessageId, isTtsLoadingForId, chatInputValue,
     selectedVoice,
@@ -706,6 +718,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
     handleVoiceChange, handleImageModelChange,
     toggleHistoryPanel, closeHistoryPanel,
+    toggleGalleryPanel,
     toggleAdvancedPanel, closeAdvancedPanel,
     toggleWebBrowsing, webBrowsingEnabled,
     handlePlayAudio,
@@ -723,7 +736,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
 
 interface ChatContextValue extends ReturnType<typeof useChatLogic> {
-  // No extra fields needed, everything is in useChatLogic
+  // Explicitly declare toggleGalleryPanel to ensure it's available
+  toggleGalleryPanel: () => void;
 }
 
 
@@ -744,6 +758,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const chatContextValue: ChatContextValue = {
     ...chatLogic,
     setChatInputValue: setChatInputValueWrapper,
+    toggleGalleryPanel: chatLogic.toggleGalleryPanel,
   };
 
   return (

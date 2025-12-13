@@ -9,8 +9,11 @@ import PageLoader from '@/components/ui/PageLoader';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import AppLayout from '@/components/layout/AppLayout';
 import { DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
+import { ChatProvider } from '@/components/ChatProvider';
+import { useChat } from '@/components/ChatProvider';
 
-export default function SettingsPage() {
+function SettingsPageContent() {
+  const chat = useChat();
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "john");
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
   const [replicateToolPassword, setReplicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
@@ -32,28 +35,49 @@ export default function SettingsPage() {
   const isDark = theme === 'dark';
 
   return (
+    <AppLayout
+      onNewChat={chat.startNewChat}
+      onToggleHistoryPanel={chat.toggleHistoryPanel}
+      onToggleGalleryPanel={chat.toggleGalleryPanel}
+      currentPath="/settings"
+      chatHistory={chat.allConversations.filter(c => c.toolType === 'long language loops')}
+      onSelectChat={chat.selectChat}
+      onRequestEditTitle={chat.requestEditTitle}
+      onDeleteChat={chat.deleteChat}
+      isHistoryPanelOpen={chat.isHistoryPanelOpen}
+      isGalleryPanelOpen={chat.isGalleryPanelOpen}
+      allConversations={chat.allConversations}
+      activeConversation={chat.activeConversation}
+    >
+      <main className="flex flex-col flex-grow p-4">
+        <PersonalizationTool
+          userDisplayName={userDisplayName}
+          setUserDisplayName={setUserDisplayName}
+          customSystemPrompt={customSystemPrompt}
+          setCustomSystemPrompt={setCustomSystemPrompt}
+          replicateToolPassword={replicateToolPassword}
+          setReplicateToolPassword={setReplicateToolPassword}
+          selectedModelId={selectedModelId}
+          onModelChange={setSelectedModelId}
+          selectedVoice={selectedVoice}
+          onVoiceChange={setSelectedVoice}
+          selectedImageModelId={selectedImageModelId}
+          onImageModelChange={setSelectedImageModelId}
+        />
+      </main>
+    </AppLayout>
+  );
+}
+
+export default function SettingsPage() {
+  return (
     <ErrorBoundary
       fallbackTitle="Einstellungen konnten nicht geladen werden"
       fallbackMessage="Es gab ein Problem beim Laden der Einstellungen. Bitte versuche es erneut."
     >
-      <AppLayout>
-        <main className="flex flex-col flex-grow p-4">
-          <PersonalizationTool
-            userDisplayName={userDisplayName}
-            setUserDisplayName={setUserDisplayName}
-            customSystemPrompt={customSystemPrompt}
-            setCustomSystemPrompt={setCustomSystemPrompt}
-            replicateToolPassword={replicateToolPassword}
-            setReplicateToolPassword={setReplicateToolPassword}
-            selectedModelId={selectedModelId}
-            onModelChange={setSelectedModelId}
-            selectedVoice={selectedVoice}
-            onVoiceChange={setSelectedVoice}
-            selectedImageModelId={selectedImageModelId}
-            onImageModelChange={setSelectedImageModelId}
-          />
-        </main>
-      </AppLayout>
+      <ChatProvider>
+        <SettingsPageContent />
+      </ChatProvider>
     </ErrorBoundary>
   );
 }

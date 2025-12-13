@@ -15,6 +15,7 @@ interface UseChatEffectsProps {
     // State
     isHistoryPanelOpen: boolean;
     isAdvancedPanelOpen: boolean;
+    isGalleryPanelOpen: boolean;
     isInitialLoadComplete: boolean;
     setIsInitialLoadComplete: (complete: boolean) => void;
     allConversations: Conversation[];
@@ -24,6 +25,7 @@ interface UseChatEffectsProps {
     // Setters
     setIsHistoryPanelOpen: (open: boolean) => void;
     setIsAdvancedPanelOpen: (open: boolean) => void;
+    setIsGalleryPanelOpen: (open: boolean) => void;
     setActiveConversation: React.Dispatch<React.SetStateAction<Conversation | null>>;
     setAllConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
     setAvailableImageModels: (models: string[]) => void;
@@ -31,7 +33,7 @@ interface UseChatEffectsProps {
     setLastUserMessageId: (id: string | null) => void;
 
     // Actions
-    startNewChat: () => Conversation;
+    startNewChat: () => Conversation | undefined;
     retryLastRequest: () => Promise<void>;
     retryLastRequestRef: React.MutableRefObject<(() => Promise<void>) | null>;
 }
@@ -39,6 +41,7 @@ interface UseChatEffectsProps {
 export function useChatEffects({
     isHistoryPanelOpen,
     isAdvancedPanelOpen,
+    isGalleryPanelOpen,
     isInitialLoadComplete,
     setIsInitialLoadComplete,
     allConversations,
@@ -46,6 +49,7 @@ export function useChatEffects({
     selectedImageModelId,
     setIsHistoryPanelOpen,
     setIsAdvancedPanelOpen,
+    setIsGalleryPanelOpen,
     setActiveConversation,
     setAllConversations,
     setAvailableImageModels,
@@ -58,6 +62,7 @@ export function useChatEffects({
     // ESC Key handlers for panels
     useEscapeKey(() => setIsHistoryPanelOpen(false), isHistoryPanelOpen);
     useEscapeKey(() => setIsAdvancedPanelOpen(false), isAdvancedPanelOpen);
+    useEscapeKey(() => setIsGalleryPanelOpen(false), isGalleryPanelOpen);
 
     // Initialize available image models from config
     useEffect(() => {

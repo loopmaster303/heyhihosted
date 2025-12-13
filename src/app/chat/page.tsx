@@ -14,7 +14,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 function ChatPageContent() {
     const chat = useChat();
     const [isClient, setIsClient] = useState(false);
-    
+
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -29,8 +29,17 @@ function ChatPageContent() {
     return (
         <AppLayout
             onNewChat={chat.startNewChat}
+            onToggleHistoryPanel={chat.toggleHistoryPanel}
+            onToggleGalleryPanel={chat.toggleGalleryPanel}
+            currentPath="/chat"
             chatHistory={chatHistory}
             onSelectChat={chat.selectChat}
+            onRequestEditTitle={chat.requestEditTitle}
+            onDeleteChat={chat.deleteChat}
+            isHistoryPanelOpen={chat.isHistoryPanelOpen}
+            isGalleryPanelOpen={chat.isGalleryPanelOpen}
+            allConversations={chat.allConversations}
+            activeConversation={chat.activeConversation}
         >
             <div className="flex flex-col h-full">
                 <ChatInterface />
@@ -54,14 +63,14 @@ function ChatPageContent() {
 
 
 export default function ChatPage() {
-  return (
-    <ErrorBoundary 
-      fallbackTitle="Chat konnte nicht geladen werden"
-      fallbackMessage="Es gab ein Problem beim Laden des Chats. Bitte versuche es erneut."
-    >
-      <ChatProvider>
-          <ChatPageContent />
-      </ChatProvider>
-    </ErrorBoundary>
-  );
+    return (
+        <ErrorBoundary
+            fallbackTitle="Chat konnte nicht geladen werden"
+            fallbackMessage="Es gab ein Problem beim Laden des Chats. Bitte versuche es erneut."
+        >
+            <ChatProvider>
+                <ChatPageContent />
+            </ChatProvider>
+        </ErrorBoundary>
+    );
 }

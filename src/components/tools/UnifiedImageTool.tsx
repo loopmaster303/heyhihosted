@@ -43,18 +43,18 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
   const { toast } = useToast();
   const { language, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
-  
+
   // Model selection
   const availableModels = Object.keys(unifiedModelConfigs);
   const [selectedModelId, setSelectedModelId] = useState<string>(availableModels[0] || 'flux-2-pro');
   const currentModelConfig = getUnifiedModelConfig(selectedModelId);
-  
+
   // Form state
   const [prompt, setPrompt] = useState('');
   const [formFields, setFormFields] = useState<Record<string, any>>({});
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const isGptImage = selectedModelId === 'gpt-image';
   const isSeedream = selectedModelId === 'seedream' || selectedModelId === 'seedream-pro';
   const isNanoPollen = selectedModelId === 'nanobanana' || selectedModelId === 'nanobanana-pro';
@@ -101,7 +101,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
     if (selectedModelId === 'nanobanana' || selectedModelId === 'nanobanana-pro') return 8;
     return 0; // Other models don't support images
   }, [selectedModelId, supportsReference]);
-  
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +115,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [openConfigParam, setOpenConfigParam] = useState<'aspect_ratio' | 'resolution' | 'output_format' | null>(null);
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
-  
+
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const configPanelRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -137,7 +137,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
 
   useEffect(() => {
     setMounted(true);
-    
+
     // Load history from localStorage
     try {
       const stored = localStorage.getItem(IMAGE_HISTORY_KEY);
@@ -172,7 +172,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
   // Initialize form fields when model changes
   useEffect(() => {
     if (!currentModelConfig) return;
-    
+
     const initialFields: Record<string, any> = {};
     currentModelConfig.inputs.forEach(input => {
       if (!input.isPrompt && !input.hidden) {
@@ -254,7 +254,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
         localStorage.removeItem('sidebar-preload-prompt');
         localStorage.removeItem('sidebar-preload-target');
       }
-    } catch {}
+    } catch { }
     return () => window.removeEventListener('sidebar-reuse-prompt', handler);
   }, []);
 
@@ -262,7 +262,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.type.startsWith('image/')) {
       toast({ title: "Invalid File", description: "Please upload an image file.", variant: "destructive" });
       return;
@@ -314,7 +314,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       });
     };
     reader.readAsDataURL(file);
-    
+
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -355,7 +355,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
     const aspectRatio = formFields.aspect_ratio || '1:1';
     return aspectRatio !== 'custom';
   }, [formFields.aspect_ratio]);
-  
+
   // Update resolution when aspect_ratio changes to match_input_image
   useEffect(() => {
     if (formFields.aspect_ratio === 'match_input_image' && formFields.resolution !== 'match_input_image') {
@@ -373,7 +373,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
   // Handle form submission
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!prompt.trim() && uploadedImages.length === 0) {
       toast({ title: "Prompt Required", description: "Please enter a prompt or upload images.", variant: "destructive" });
       return;
@@ -389,18 +389,18 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       // Build payload based on provider
       const modelInfo = getUnifiedModel(selectedModelId);
       const isPollinationsModel = modelInfo?.provider === 'pollinations';
-      
-      const payload: Record<string, any> = isPollinationsModel 
+
+      const payload: Record<string, any> = isPollinationsModel
         ? {
-            model: selectedModelId,
-            prompt: prompt.trim() || '',
-            private: true,
-          }
+          model: selectedModelId,
+          prompt: prompt.trim() || '',
+          private: true,
+        }
         : {
-            model: selectedModelId,
-            password: password || '',
-            prompt: prompt.trim() || '',
-          };
+          model: selectedModelId,
+          password: password || '',
+          prompt: prompt.trim() || '',
+        };
 
       // Add input images if uploaded (field name depends on model)
       if (uploadedImages.length > 0) {
@@ -505,7 +505,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       // Determine endpoint based on provider
       const model = getUnifiedModel(selectedModelId);
       const endpoint = model?.provider === 'pollinations' ? '/api/generate' : '/api/replicate';
-      
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -513,7 +513,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || data.detail || `API request failed with status ${response.status}`);
       }
@@ -521,7 +521,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       if (data.output || data.imageUrl) {
         const resultUrl = data.imageUrl || (Array.isArray(data.output) ? data.output[0] : data.output);
         const isVideo = currentModelConfig?.outputType === 'video';
-        
+
         if (typeof resultUrl === 'string' && resultUrl.trim() !== '') {
           const newHistoryItem: ImageHistoryItem = {
             id: generateUUID(),
@@ -664,9 +664,9 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
               <div className="w-full h-full flex items-center justify-center">
                 <div className="relative w-full h-full max-w-4xl mx-auto">
                   {selectedImage.videoUrl ? (
-                    <video 
-                      src={selectedImage.videoUrl} 
-                      controls 
+                    <video
+                      src={selectedImage.videoUrl}
+                      controls
                       className="w-full h-full rounded-lg"
                       style={{ objectFit: 'contain' }}
                     />
@@ -709,7 +709,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                   {t('imageGen.modal.close')}
                 </Button>
               </div>
-              
+
               <div className="space-y-6">
                 {/* TEXT/IMAGE → IMAGE (multi-ref) */}
                 <div>
@@ -791,14 +791,14 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                   </div>
                 </div>
               </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* Config Panel */}
-      {isConfigPanelOpen && currentModelConfig && (
-        <div 
-          ref={configPanelRef}
-          className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
+          {/* Config Panel */}
+          {isConfigPanelOpen && currentModelConfig && (
+            <div
+              ref={configPanelRef}
+              className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
             >
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-sm font-semibold">{t('imageGen.modal.title')}</h3>
@@ -807,7 +807,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                   {t('imageGen.modal.close')}
                 </Button>
               </div>
-              
+
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                 {/* Aspect Ratio */}
                 {/* Aspect Ratio / Size */}
@@ -1049,10 +1049,10 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                   Close
                 </Button>
               </div>
-              
+
               {/* Upload Area */}
               {uploadedImages.length < maxImages && (
-                <div 
+                <div
                   className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer mb-4"
                   onClick={() => fileInputRef.current?.click()}
                 >
@@ -1134,7 +1134,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                     disabled={!prompt.trim() || loading || isEnhancing || isUploading}
                     className="text-sm font-medium text-gray-800 dark:text-white hover:opacity-70 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                  {isEnhancing ? `${t('action.enhancePrompt')}...` : t('action.enhancePrompt')}
+                    {isEnhancing ? `${t('action.enhancePrompt')}...` : t('action.enhancePrompt')}
                   </button>
 
                   {/* Generate - Text only */}
@@ -1153,54 +1153,41 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
               ref={fileInputRef}
               onChange={handleFileChange}
               accept="image/*"
-            multiple
-            className="hidden"
-          />
-        </form>
+              multiple
+              className="hidden"
+            />
+          </form>
 
-        {/* Bottom utility bar under prompt */}
-        <div className="mt-3 px-1">
-          <div className="flex items-center justify-between gap-4 text-sm font-medium text-foreground">
-            <button
-              type="button"
-              onClick={() => setIsConfigPanelOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              <span>{t('imageGen.configure')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsModelSelectorOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition"
-            >
-              <span className="text-foreground/80">{currentModelConfig?.name || 'Select model'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsImageUploadOpen(true)}
-              disabled={!supportsReference || loading || isUploading}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition disabled:opacity-40"
-            >
-              <span>+</span>
-              <ImageIcon className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-          {isHistoryPanelOpen && (
-            <div 
-              ref={historyPanelRef}
-              className="absolute bottom-full mb-2 left-0 w-full bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2 z-30 animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
-            >
-              <ImageHistoryGallery
-                history={history}
-                onSelectImage={handleSelectHistoryItem}
-                onClearHistory={handleClearHistory}
-                onClose={() => setIsHistoryPanelOpen(false)}
-              />
+          {/* Bottom utility bar under prompt */}
+          <div className="mt-3 px-1">
+            <div className="flex items-center justify-between gap-4 text-sm font-medium text-foreground">
+              <button
+                type="button"
+                onClick={() => setIsConfigPanelOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                <span>{t('imageGen.configure')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsModelSelectorOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition"
+              >
+                <span className="text-foreground/80">{currentModelConfig?.name || 'Select model'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsImageUploadOpen(true)}
+                disabled={!supportsReference || loading || isUploading}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition disabled:opacity-40"
+              >
+                <span>+</span>
+                <ImageIcon className="h-4 w-4" />
+              </button>
             </div>
-          )}
+          </div>
+
         </div>
       </footer>
     </div>

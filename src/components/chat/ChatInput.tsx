@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle, Code2, MoreHorizontal, Palette, Globe, Settings, MoreVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types';
-import HistoryPanel from './HistoryPanel';
 import AdvancedSettingsPanel from './AdvancedSettingsPanel';
 import { useLanguage } from '../LanguageProvider';
 import {
@@ -34,10 +33,11 @@ interface ChatInputProps {
     onToggleCodeMode?: () => void;
     chatTitle: string;
     onToggleHistoryPanel: () => void;
+    onToggleGalleryPanel: () => void;
     onToggleAdvancedPanel: () => void;
     isHistoryPanelOpen: boolean;
+    isGalleryPanelOpen: boolean;
     isAdvancedPanelOpen: boolean;
-    historyPanelRef: React.RefObject<HTMLDivElement>;
     advancedPanelRef: React.RefObject<HTMLDivElement>;
     allConversations: Conversation[];
     activeConversation: Conversation | null;
@@ -79,12 +79,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
     onToggleImageMode,
     chatTitle,
     onToggleHistoryPanel,
+    onToggleGalleryPanel,
     onToggleAdvancedPanel,
     webBrowsingEnabled,
     onToggleWebBrowsing,
     isHistoryPanelOpen,
+    isGalleryPanelOpen,
     isAdvancedPanelOpen,
-    historyPanelRef,
     advancedPanelRef,
     allConversations,
     activeConversation,
@@ -233,26 +234,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     return (
         <div className="relative">
             <div className="relative">
-                {isHistoryPanelOpen && (
-                    <div ref={historyPanelRef} className="absolute bottom-full mb-2 left-0 w-full z-30">
-                        <HistoryPanel
-                            allConversations={allConversations}
-                            activeConversation={activeConversation}
-                            onSelectChat={(id) => {
-                                selectChat(id);
-                                closeHistoryPanel();
-                            }}
-                            onRequestEditTitle={requestEditTitle}
-                            onDeleteChat={deleteChat}
-                            onStartNewChat={() => {
-                                startNewChat();
-                                closeHistoryPanel();
-                            }}
-                            toDate={toDate}
-                            onClose={closeHistoryPanel}
-                        />
-                    </div>
-                )}
                 {/* ThreeDots Quick Menu */}
                 {isAdvancedPanelOpen && (
                     <div ref={advancedPanelRef} className="absolute bottom-full mb-2 left-0 w-64 z-30">
@@ -316,6 +297,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 <Camera className="w-4 h-4" />
                                 <span>Kamera aufnehmen</span>
                             </button>
+
+                            <div className="my-1 border-t border-border" />
                         </div>
                     </div>
                 )}

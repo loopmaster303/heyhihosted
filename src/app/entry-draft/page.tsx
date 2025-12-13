@@ -2,12 +2,15 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ChatProvider } from '@/components/ChatProvider';
 import AppLayout from '@/components/layout/AppLayout';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/LanguageProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
+import { useChat } from '@/components/ChatProvider';
+import PageLoader from '@/components/ui/PageLoader';
 
 const quickChatPrompts = {
   de: [
@@ -35,15 +38,22 @@ const quickVisualPrompts = {
   ],
 };
 
-export default function EntryDraftPage() {
+function EntryDraftPageContent() {
   const router = useRouter();
   const { language } = useLanguage();
+  const chat = useChat();
   const [userDisplayName] = useLocalStorageState<string>('userDisplayName', 'user');
   const isGerman = language === 'de';
   const [mode, setMode] = useState<'chat' | 'visualize'>('chat');
   const [prompt, setPrompt] = useState('');
   const [typed, setTyped] = useState('');
   const [phase, setPhase] = useState<'idle' | 'typing' | 'ready'>('idle');
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const targetLine = useMemo(
     () => `(!hey.hi = '${(userDisplayName || 'user').trim() || 'user'}')`,
     [userDisplayName]
@@ -63,7 +73,7 @@ export default function EntryDraftPage() {
     try {
       localStorage.setItem('sidebar-preload-prompt', prompt.trim());
       localStorage.setItem('sidebar-preload-target', mode);
-    } catch {}
+    } catch { }
     const event = new CustomEvent('sidebar-reuse-prompt', { detail: prompt.trim() });
     window.dispatchEvent(event);
     router.push(mode === 'chat' ? '/chat' : '/visualizepro');
@@ -88,8 +98,25 @@ export default function EntryDraftPage() {
     return () => clearInterval(timer);
   }, [phase, targetLine]);
 
+  if (!isClient) {
+    return <PageLoader text="Lade Startseite..." />;
+  }
+
   return (
-    <AppLayout>
+    <AppLayout
+      onNewChat={chat.startNewChat}
+      onToggleHistoryPanel={chat.toggleHistoryPanel}
+      onToggleGalleryPanel={chat.toggleGalleryPanel}
+      currentPath="/"
+      chatHistory={chat.allConversations.filter(c => c.toolType === 'long language loops')}
+      onSelectChat={chat.selectChat}
+      onRequestEditTitle={chat.requestEditTitle}
+      onDeleteChat={chat.deleteChat}
+      isHistoryPanelOpen={chat.isHistoryPanelOpen}
+      isGalleryPanelOpen={chat.isGalleryPanelOpen}
+      allConversations={chat.allConversations}
+      activeConversation={chat.activeConversation}
+    >
       <div className="relative flex flex-col items-center justify-center h-full px-4 py-10 overflow-hidden">
         {/* Typewriter overlay */}
         {phase !== 'ready' && (
@@ -148,8 +175,8 @@ export default function EntryDraftPage() {
                   ? 'Worüber möchtest du sprechen?'
                   : 'What do you want to talk about?'
                 : isGerman
-                ? 'Beschreibe, was du sehen willst...'
-                : 'Describe what you want to see...'
+                  ? 'Beschreibe, was du sehen willst...'
+                  : 'Describe what you want to see...'
             }
             className="min-h-[140px] bg-background/80"
           />
@@ -174,5 +201,13 @@ export default function EntryDraftPage() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+export default function EntryDraftPage() {
+  return (
+    <ChatProvider>
+      <EntryDraftPageContent />
+    </ChatProvider>
   );
 }
