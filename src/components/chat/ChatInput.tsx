@@ -68,6 +68,8 @@ interface ChatInputProps {
     onToggleAdvancedPanel: () => void;
     isHistoryPanelOpen: boolean;
     isGalleryPanelOpen: boolean;
+    isAdvancedPanelOpen: boolean;
+    advancedPanelRef: React.RefObject<HTMLDivElement>;
     allConversations: Conversation[];
     activeConversation: Conversation | null;
     selectChat: (id: string) => void;
@@ -110,6 +112,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
     onToggleHistoryPanel,
     onToggleGalleryPanel,
     onToggleAdvancedPanel,
+    isAdvancedPanelOpen,
+    advancedPanelRef,
     webBrowsingEnabled,
     onToggleWebBrowsing,
     isHistoryPanelOpen,
