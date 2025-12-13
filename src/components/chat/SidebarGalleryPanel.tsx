@@ -1,6 +1,7 @@
 "use client";
 
 import type { FC } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Images, Trash2, Download, X } from 'lucide-react';
@@ -96,11 +97,13 @@ const SidebarGalleryPanel: FC<SidebarGalleryPanelProps> = ({
                                     className="group relative aspect-square rounded-md overflow-hidden cursor-pointer shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1"
                                     onClick={() => onSelectImage(item)}
                                 >
-                                    <img
+                                    <Image
                                         src={item.videoUrl ? 'https://placehold.co/200x200.png' : item.imageUrl}
                                         alt={item.prompt}
                                         className="w-full h-full object-cover bg-muted/30"
                                         loading="lazy"
+                                        width={200}
+                                        height={200}
                                     />
                                     {item.videoUrl && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
