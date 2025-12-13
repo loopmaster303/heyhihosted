@@ -280,10 +280,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     setIsAiResponding(true);
     if (!options.isRegeneration) {
       setChatInputValue('');
-      // Mark that user has interacted (persists across new chats, resets on page reload)
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('hasInteracted', 'true');
-      }
+      // Removed hasInteracted logic for cleaner new chat experience
     }
 
     const isImagePrompt = options.isImageModeIntent || false;

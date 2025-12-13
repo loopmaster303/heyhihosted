@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { handleApiError, validateRequest, ApiError, requireEnv } from '@/lib/api-error-handler';
+import { SearchService } from '@/lib/services/search-service';
 
 const POLLEN_CHAT_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
 const LEGACY_POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
@@ -19,20 +20,43 @@ const ChatCompletionSchema = z.object({
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     // Validate request
     const { messages, modelId, systemPrompt, webBrowsingEnabled, stream } = validateRequest(ChatCompletionSchema, body);
 
-    // If web browsing is enabled, route through Gemini Search variant
-    const effectiveModelId = webBrowsingEnabled ? "gemini-search" : modelId;
+    // Plan A: Simple Perplexity-only WebBrowsing
+    // When WebBrowsing is enabled, use perplexity-fast regardless of user's model choice
+    const effectiveModelId = webBrowsingEnabled ? 'perplexity-fast' : modelId;
+
+    let enhancedMessages = messages;
+
+    if (webBrowsingEnabled) {
+      console.log('[Chat API] WebBrowsing enabled - using Perplexity-only approach');
+      console.log(`[Chat API] Switched from ${modelId} to perplexity-fast for web browsing`);
+
+      // Add a simple indicator that web browsing is enabled
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.role === 'user') {
+        const enhancedContent = `${lastMessage.content}
+
+Please provide a comprehensive answer using current web information. Focus on accuracy and recent developments.`;
+
+        enhancedMessages = [
+          ...messages.slice(0, -1),
+          { ...lastMessage, content: enhancedContent }
+        ];
+      }
+    } else {
+      console.log(`[Chat API] WebBrowsing disabled - using user's chosen model: ${modelId}`);
+    }
     const streamEnabled = Boolean(stream) && effectiveModelId !== "gpt-oss-120b";
 
     // Handle GPT-OSS-120b model with Replicate API
     if (effectiveModelId === "gpt-oss-120b") {
       console.log("Using GPT-OSS-120b via Replicate API");
-      
+
       const REPLICATE_API_TOKEN = requireEnv('REPLICATE_API_TOKEN');
-      
+
       const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: {
@@ -42,7 +66,7 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           version: "openai/gpt-oss-120b",
           input: {
-            prompt: messages.map((m: any) => `${m.role}: ${m.content}`).join('\n'),
+            prompt: enhancedMessages.map((m: any) => `${m.role}: ${m.content}`).join('\n'),
             system_prompt: systemPrompt || "",
             temperature: 0.7,
             top_p: 0.9,
@@ -63,48 +87,48 @@ export async function POST(request: Request) {
       }
 
       const replicateData = await replicateResponse.json();
-      
+
       // Poll for completion
       let result = null;
       let attempts = 0;
       const maxAttempts = 30;
-      
+
       while (!result && attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         const statusResponse = await fetch(replicateData.urls.get, {
           headers: {
             "Authorization": `Token ${REPLICATE_API_TOKEN}`,
           }
         });
-        
+
         const statusData = await statusResponse.json();
-        
+
         if (statusData.status === "succeeded") {
           result = statusData.output;
         } else if (statusData.status === "failed") {
           throw new ApiError(500, "Replicate prediction failed", 'PREDICTION_FAILED');
         }
-        
+
         attempts++;
       }
-      
+
       if (!result) {
         throw new ApiError(504, "Replicate prediction timed out", 'PREDICTION_TIMEOUT');
       }
-      
-      // Log the result for debugging
+
+      // Log result for debugging
       console.log("Replicate API result:", result);
-      
-      // Clean up the response text
+
+      // Clean up response text
       let cleanedResult = Array.isArray(result) ? result.join('\n') : result;
-      
+
       // Remove excessive whitespace and normalize line breaks
       cleanedResult = cleanedResult
         .replace(/\n\s*\n\s*\n/g, '\n\n') // Remove multiple consecutive empty lines
         .replace(/\s+/g, ' ') // Replace multiple spaces with single space
         .trim(); // Remove leading/trailing whitespace
-      
+
       return NextResponse.json({
         choices: [{
           message: {
@@ -126,12 +150,12 @@ export async function POST(request: Request) {
 
     const payload: Record<string, any> = {
       model: effectiveModelId,
-      messages: messages,
+      messages: enhancedMessages, // Use enhanced messages with search results
     };
 
     if (systemPrompt && systemPrompt.trim() !== "") {
       const trimmedSystem = systemPrompt.trim();
-      payload.messages = [{ role: 'system', content: trimmedSystem }, ...messages];
+      payload.messages = [{ role: 'system', content: trimmedSystem }, ...enhancedMessages];
     }
 
     if (streamEnabled) {
@@ -166,11 +190,11 @@ export async function POST(request: Request) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${target.apiKey}`,
         };
-    
+
         if (streamEnabled) {
           headers['Accept'] = 'text/event-stream';
         }
-    
+
         const payloadForTarget = {
           ...payload,
           model: target.name === 'legacy' ? mapModelForLegacy(payload.model) : payload.model,
@@ -181,12 +205,12 @@ export async function POST(request: Request) {
           headers,
           body: JSON.stringify(payloadForTarget),
         });
-    
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`Chat API (${target.name}) error (${response.status}):`, errorText);
           const detail = errorText || 'Unknown error';
-          
+
           // Check if this is a content filter error (Azure OpenAI content management policy)
           let isContentFilterError = false;
           if (response.status === 400) {
@@ -194,25 +218,25 @@ export async function POST(request: Request) {
               const errorJson = JSON.parse(errorText);
               const errorMessage = errorJson?.error?.message || errorJson?.message || '';
               isContentFilterError = errorMessage.toLowerCase().includes('content management policy') ||
-                                   errorMessage.toLowerCase().includes('content filtering') ||
-                                   errorMessage.toLowerCase().includes('content filter');
+                errorMessage.toLowerCase().includes('content filtering') ||
+                errorMessage.toLowerCase().includes('content filter');
             } catch {
               // If parsing fails, check string directly
               isContentFilterError = errorText.toLowerCase().includes('content management policy') ||
-                                   errorText.toLowerCase().includes('content filtering');
+                errorText.toLowerCase().includes('content filtering');
             }
           }
-          
+
           // If content filter error and using OpenAI model, fallback to Claude
-          if (isContentFilterError && target.name === 'pollen' && 
-              (effectiveModelId.startsWith('openai') || effectiveModelId.includes('openai'))) {
+          if (isContentFilterError && target.name === 'pollen' &&
+            (effectiveModelId.startsWith('openai') || effectiveModelId.includes('openai'))) {
             console.warn(`[Chat API] Content filter triggered for ${effectiveModelId}, falling back to Claude Sonnet 3.7`);
             // Retry with Claude
             const claudePayload = {
               ...payload,
               model: 'claude',
             };
-            
+
             const claudeResponse = await fetch(POLLEN_CHAT_API_URL, {
               method: 'POST',
               headers: {
@@ -222,7 +246,7 @@ export async function POST(request: Request) {
               },
               body: JSON.stringify(claudePayload),
             });
-            
+
             if (!claudeResponse.ok) {
               // If Claude also fails, throw original error
               const apiError = new ApiError(
@@ -232,7 +256,7 @@ export async function POST(request: Request) {
               );
               throw apiError;
             }
-            
+
             if (streamEnabled) {
               const bodyStream = claudeResponse.body;
               if (!bodyStream) {
@@ -247,11 +271,11 @@ export async function POST(request: Request) {
                 },
               });
             }
-            
+
             const claudeResult = await claudeResponse.json();
             return NextResponse.json(claudeResult);
           }
-          
+
           const apiError = new ApiError(
             response.status,
             `Chat API (${target.name}) returned status ${response.status}: ${detail}`,
@@ -264,7 +288,7 @@ export async function POST(request: Request) {
           }
           throw apiError;
         }
-    
+
         if (streamEnabled) {
           const bodyStream = response.body;
           if (!bodyStream) {
@@ -279,7 +303,7 @@ export async function POST(request: Request) {
             },
           });
         }
-        
+
         const result = await response.json();
         return NextResponse.json(result);
       } catch (err) {
@@ -303,4 +327,4 @@ export async function POST(request: Request) {
   }
 }
 
-    
+

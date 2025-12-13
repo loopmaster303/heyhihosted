@@ -1,102 +1,53 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChatProvider } from '@/components/ChatProvider';
 import AppLayout from '@/components/layout/AppLayout';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useLanguage } from '@/components/LanguageProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { useChat } from '@/components/ChatProvider';
 import PageLoader from '@/components/ui/PageLoader';
-
-const quickChatPrompts = {
-  de: [
-    'Fasse die wichtigsten Schlagzeilen von heute in 2 Sätzen zusammen.',
-    'Erkläre mir in einfachen Worten, wie Quantencomputer funktionieren.',
-    'Gib mir 3 Ideen für ein Wochenende in Berlin, Indoor & Outdoor gemischt.',
-  ],
-  en: [
-    'Summarize today’s top headlines in two sentences.',
-    'Explain quantum computers in simple words.',
-    'Give me 3 ideas for a weekend in Berlin, mixed indoor & outdoor.',
-  ],
-};
-
-const quickVisualPrompts = {
-  de: [
-    'Hochformat-Portrait einer Person im warmen Studiolicht, analoger Look, 50mm.',
-    'Weitwinkel-Stadtansicht bei Sonnenaufgang, leichter Nebel, Pastellfarben, 16:9.',
-    'Cinematic Produktshot eines Smartphones auf Marmortisch, weiches Rim-Light, 3:2.',
-  ],
-  en: [
-    'Portrait, warm studio light, analog look, 50mm, shoulder-up, soft background.',
-    'Wide cityscape at sunrise with light fog, pastel palette, 16:9.',
-    'Cinematic product shot of a smartphone on marble, soft rim light, 3:2.',
-  ],
-};
 
 function EntryDraftPageContent() {
   const router = useRouter();
-  const { language } = useLanguage();
-  const chat = useChat();
   const [userDisplayName] = useLocalStorageState<string>('userDisplayName', 'user');
-  const isGerman = language === 'de';
   const [mode, setMode] = useState<'chat' | 'visualize'>('chat');
-  const [prompt, setPrompt] = useState('');
   const [typed, setTyped] = useState('');
-  const [phase, setPhase] = useState<'idle' | 'typing' | 'ready'>('idle');
+  const [isTyping, setIsTyping] = useState(false);
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
   const [isClient, setIsClient] = useState(false);
+
+  const targetLine = "(!hey.hi = '" + ((userDisplayName || 'user').trim() || 'user') + "')";
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const targetLine = useMemo(
-    () => `(!hey.hi = '${(userDisplayName || 'user').trim() || 'user'}')`,
-    [userDisplayName]
-  );
-
-  const chips = useMemo(() => {
-    const lang = isGerman ? 'de' : 'en';
-    return mode === 'chat' ? quickChatPrompts[lang] : quickVisualPrompts[lang];
-  }, [isGerman, mode]);
-
+  // Simplified typewriter effect
   useEffect(() => {
-    setPrompt('');
-  }, [mode]);
+    if (!isClient) return;
 
-  const handleSubmit = () => {
-    if (!prompt.trim()) return;
-    try {
-      localStorage.setItem('sidebar-preload-prompt', prompt.trim());
-      localStorage.setItem('sidebar-preload-target', mode);
-    } catch { }
-    const event = new CustomEvent('sidebar-reuse-prompt', { detail: prompt.trim() });
-    window.dispatchEvent(event);
-    router.push(mode === 'chat' ? '/chat' : '/visualizepro');
-  };
+    setIsTyping(true);
+    setIsTypingComplete(false);
+    setTyped('');
 
-  // Delay then type full line
-  useEffect(() => {
-    if (phase === 'idle') {
-      const delay = setTimeout(() => setPhase('typing'), 5000);
-      return () => clearTimeout(delay);
-    }
-    if (phase !== 'typing') return;
     let idx = 0;
     const timer = setInterval(() => {
       idx += 1;
       setTyped(targetLine.slice(0, idx));
       if (idx >= targetLine.length) {
         clearInterval(timer);
-        setTimeout(() => setPhase('ready'), 800);
+        setIsTyping(false);
+        setIsTypingComplete(true);
       }
-    }, 200);
+    }, 100);
+
     return () => clearInterval(timer);
-  }, [phase, targetLine]);
+  }, [isClient, targetLine]);
+
+  const handleNavigate = () => {
+    router.push(mode === 'chat' ? '/chat' : '/visualizepro');
+  };
 
   if (!isClient) {
     return <PageLoader text="Lade Startseite..." />;
@@ -104,101 +55,85 @@ function EntryDraftPageContent() {
 
   return (
     <AppLayout
-      onNewChat={chat.startNewChat}
-      onToggleHistoryPanel={chat.toggleHistoryPanel}
-      onToggleGalleryPanel={chat.toggleGalleryPanel}
+      onNewChat={() => { }}
+      onToggleHistoryPanel={() => { }}
+      onToggleGalleryPanel={() => { }}
       currentPath="/"
-      chatHistory={chat.allConversations.filter(c => c.toolType === 'long language loops')}
-      onSelectChat={chat.selectChat}
-      onRequestEditTitle={chat.requestEditTitle}
-      onDeleteChat={chat.deleteChat}
-      isHistoryPanelOpen={chat.isHistoryPanelOpen}
-      isGalleryPanelOpen={chat.isGalleryPanelOpen}
-      allConversations={chat.allConversations}
-      activeConversation={chat.activeConversation}
+      chatHistory={[]}
+      onSelectChat={() => { }}
+      onRequestEditTitle={() => { }}
+      onDeleteChat={() => { }}
+      isHistoryPanelOpen={false}
+      isGalleryPanelOpen={false}
+      allConversations={[]}
+      activeConversation={null}
     >
-      <div className="relative flex flex-col items-center justify-center h-full px-4 py-10 overflow-hidden">
-        {/* Typewriter overlay */}
-        {phase !== 'ready' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur-sm">
-            <div className="font-code text-4xl sm:text-5xl md:text-6xl font-bold text-foreground drop-shadow-[0_0_16px_rgba(255,105,180,0.55)]">
-              <span className="text-transparent bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text">
-                {typed}
-              </span>
-              <span className="animate-pulse text-foreground">|</span>
-            </div>
-          </div>
-        )}
-
-        {/* Persistent typed line */}
-        {phase === 'ready' && (
-          <div className="mb-10 font-code text-4xl sm:text-5xl md:text-6xl font-bold text-center text-foreground drop-shadow-[0_0_20px_rgba(255,105,180,0.65)]">
-            <span className="text-transparent bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text">
-              {targetLine}
-            </span>
-          </div>
-        )}
-
-        <div
-          className={cn(
-            "max-w-2xl w-full bg-card/60 border border-border rounded-3xl shadow-2xl p-6 space-y-6 transition-all duration-300",
-            phase === 'ready' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
-          )}
-        >
-          <div className="flex items-center justify-center gap-3">
-            <button
-              className={cn(
-                'px-4 py-2 rounded-full text-sm font-medium transition',
-                mode === 'chat' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground/80'
-              )}
-              onClick={() => setMode('chat')}
-            >
-              {isGerman ? 'Gespräch' : 'Chat'}
-            </button>
-            <button
-              className={cn(
-                'px-4 py-2 rounded-full text-sm font-medium transition',
-                mode === 'visualize' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground/80'
-              )}
-              onClick={() => setMode('visualize')}
-            >
-              {isGerman ? 'Visualisieren' : 'Visualize'}
-            </button>
-          </div>
-
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder={
-              mode === 'chat'
-                ? isGerman
-                  ? 'Worüber möchtest du sprechen?'
-                  : 'What do you want to talk about?'
-                : isGerman
-                  ? 'Beschreibe, was du sehen willst...'
-                  : 'Describe what you want to see...'
-            }
-            className="min-h-[140px] bg-background/80"
-          />
-
-          <div className="flex flex-wrap gap-2">
-            {chips.map((c, idx) => (
-              <button
-                key={idx}
-                className="text-xs px-3 py-1 rounded-full bg-muted text-muted-foreground hover:text-foreground"
-                onClick={() => setPrompt(c)}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex justify-end">
-            <Button disabled={!prompt.trim()} onClick={handleSubmit}>
-              {isGerman ? 'Los geht’s' : "Let's go"}
-            </Button>
-          </div>
+      <div className="flex flex-col items-center justify-center h-full px-4 py-10">
+        {/* Typewriter-Effekt */}
+        <div className="mb-10 font-code text-4xl sm:text-5xl md:text-6xl font-bold text-center">
+          <span className="text-transparent bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text">
+            {typed}
+            {isTyping && <span className="animate-pulse">|</span>}
+          </span>
         </div>
+
+        {/* Modus-Toggle - nur wenn Typewriter komplett */}
+        {isTypingComplete && (
+          <>
+            <div className="flex gap-4 mb-8">
+              <button
+                className={cn(
+                  'px-6 py-2 rounded-full text-sm font-medium transition border-2',
+                  mode === 'chat'
+                    ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25 dark:shadow-primary/50 dark:shadow-primary/30'
+                    : 'bg-muted/50 text-foreground/60 border-transparent hover:border-primary/50 dark:hover:border-primary/70 dark:bg-muted/30 dark:hover:bg-muted/40'
+                )}
+                onClick={() => setMode('chat')}
+              >
+                Gespräch
+              </button>
+              <button
+                className={cn(
+                  'px-6 py-2 rounded-full text-sm font-medium transition border-2',
+                  mode === 'visualize'
+                    ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25 dark:shadow-primary/50 dark:shadow-primary/30'
+                    : 'bg-muted/50 text-foreground/60 border-transparent hover:border-primary/50 dark:hover:border-primary/70 dark:bg-muted/30 dark:hover:bg-muted/40'
+                )}
+                onClick={() => setMode('visualize')}
+              >
+                Visualisieren
+              </button>
+            </div>
+
+            {/* Platzhalter-Text */}
+            <div className="mb-8 text-center text-muted-foreground max-w-md">
+              {mode === 'chat' ? (
+                <>
+                  Worüber möchtest du sprechen?
+                  <br /><br />
+                  Ob man es nun KI, Künstliche Intelligenz oder Artificial Intelligence nennt - am Ende ist es einfach nur ein Computerprogramm. Und nein, davor muss man absolut keine Angst haben!
+                  Zwar schreibt und spricht eine KI oft verblüffend ähnlich wie ein echter Mensch, aber im Kern bleibt sie eine Maschine. Sie ist ein Werkzeug, das über unsere ganz normale Sprache Zugriff auf Wissen und Fähigkeiten aus der ganzen Welt bietet.
+                  Sag Hey. Hi zur AI
+                </>
+              ) : (
+                <>
+                  Was möchtest du erschaffen?
+                  <br /><br />
+                  Die Künstliche Intelligenz kann nicht nur via Text mit dir kommunizieren, sie kann auch Kunst. Über ganz normale Sprache kannst du Bilder erschaffen – und dabei gibt es keine Limits.
+                  Du musst dafür keinen Pinsel in die Hand nehmen: Beschreibe einfach deine Idee und lass die KI deine Gedanken direkt sichtbar machen. Egal wie verrückt deine Vorstellung ist, sag es der Maschine und sieh zu, wie dein Bild entsteht.
+                </>
+              )}
+            </div>
+
+            {/* Los geht's Button */}
+            <button
+              onClick={handleNavigate}
+              className="px-8 py-3 rounded-lg bg-primary text-primary-foreground font-medium transition-colors hover:bg-primary/90"
+            >
+              {"Los geht's"}
+            </button>
+          </>
+        )}
       </div>
     </AppLayout>
   );
@@ -206,8 +141,6 @@ function EntryDraftPageContent() {
 
 export default function EntryDraftPage() {
   return (
-    <ChatProvider>
-      <EntryDraftPageContent />
-    </ChatProvider>
+    <EntryDraftPageContent />
   );
 }

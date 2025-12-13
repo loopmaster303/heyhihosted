@@ -6,6 +6,10 @@ export interface PollinationsModel {
   description?: string;
   vision?: boolean;
   webBrowsing?: boolean;
+  category?: string; // New: Model category for better organization
+  contextWindow?: number; // New: Context window size
+  maxTokens?: number; // New: Maximum output tokens
+  costPerToken?: number; // New: Cost per million tokens
 }
 
 export interface ResponseStyle {
@@ -18,32 +22,196 @@ export interface VoiceOption {
   name: string; // Display name, e.g., "German (Female, Natural)"
 }
 
-// Curated model list - Standard: GPT-5 Chat (large), Rest: Selected models
+// Curated model list with new Pollinations.ai models
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-  // OpenAI Stack
-  { id: "openai-large", name: "OpenAI GPT-5 Chat", description: "Großes Generalmodell mit Vision", vision: true },
-  { id: "openai", name: "OpenAI GPT-5 Nano", description: "Schnelle GPT-5 Nano Variante mit Vision", vision: true },
-  { id: "openai-fast", name: "OpenAI GPT-4.1 Nano", description: "Kostengünstiges OpenAI-Modell mit Vision", vision: true },
-  { id: "openai-reasoning", name: "OpenAI o4 Mini", description: "Reasoning-orientiertes OpenAI-Modell", vision: true },
+  // OpenAI Stack - Updated with GPT-5.2
+  {
+    id: "openai-large",
+    name: "OpenAI GPT-5.2",
+    description: "Most Powerful & Intelligent Model with Vision",
+    vision: true,
+    category: "Premium",
+    contextWindow: 200000,
+    maxTokens: 8192,
+    costPerToken: 15.0
+  },
+  {
+    id: "openai",
+    name: "OpenAI GPT-5.1 Turbo",
+    description: "Fast GPT-5.1 with Vision",
+    vision: true,
+    category: "Premium",
+    contextWindow: 128000,
+    maxTokens: 4096,
+    costPerToken: 5.0
+  },
+  {
+    id: "openai-fast",
+    name: "OpenAI GPT-4.1 Turbo",
+    description: "Cost-effective with Vision",
+    vision: true,
+    category: "Standard",
+    contextWindow: 128000,
+    maxTokens: 4096,
+    costPerToken: 2.5
+  },
+  {
+    id: "openai-reasoning",
+    name: "OpenAI o4 Pro",
+    description: "Advanced Reasoning with Vision",
+    vision: true,
+    category: "Premium",
+    contextWindow: 128000,
+    maxTokens: 32768,
+    costPerToken: 15.0
+  },
 
-  // Google Gemini
-  { id: "gemini", name: "Gemini 2.5 Flash Lite", description: "Gemini Lite mit Vision und Tools", vision: true },
-  { id: "gemini-large", name: "Gemini 2.5 Pro", description: "Größeres Gemini mit Vision", vision: true },
-  { id: "gemini-search", name: "Gemini 2.5 Flash + Search", description: "Gemini Flash mit Google-Suche", vision: true, webBrowsing: true },
+  // Anthropic Claude - Updated with Claude Sonnet 4.5 as default
+  {
+    id: "claude",
+    name: "Claude Sonnet 4.5",
+    description: "Most Capable & Balanced Model with Vision",
+    vision: true,
+    category: "Premium",
+    contextWindow: 200000,
+    maxTokens: 8192,
+    costPerToken: 7.5
+  },
+  {
+    id: "claude-fast",
+    name: "Claude Haiku 4.1",
+    description: "Fastest Claude with Vision",
+    vision: true,
+    category: "Standard",
+    contextWindow: 200000,
+    maxTokens: 4096,
+    costPerToken: 1.25
+  },
+  {
+    id: "claude-large",
+    name: "Claude Opus 4.5",
+    description: "Most Intelligent Claude with Vision",
+    vision: true,
+    category: "Premium",
+    contextWindow: 200000,
+    maxTokens: 4096,
+    costPerToken: 15.0
+  },
 
-  // Anthropic Claude
-  { id: "claude-fast", name: "Claude 3.7 Haiku", description: "Schnelles Claude-Modell", vision: true },
-  { id: "claude", name: "Claude 3.7 Sonnet", description: "Balanced Claude mit Vision", vision: true },
-  { id: "claude-large", name: "Claude 3.7 Opus", description: "Großes Claude-Modell", vision: true },
+  // Google Gemini - Updated with Gemini 3 Pro
+  {
+    id: "gemini-large",
+    name: "Google Gemini 3 Pro",
+    description: "Most Intelligent Model with Vision",
+    vision: true,
+    category: "Premium",
+    contextWindow: 2000000,
+    maxTokens: 8192,
+    costPerToken: 3.5
+  },
+  {
+    id: "gemini",
+    name: "Google Gemini 2.5 Flash",
+    description: "Fast with Vision & Tools",
+    vision: true,
+    category: "Standard",
+    contextWindow: 1000000,
+    maxTokens: 8192,
+    costPerToken: 0.075
+  },
+  {
+    id: "gemini-search",
+    name: "Google Gemini 2.5 Flash + Search",
+    description: "Gemini with Google Search",
+    vision: true,
+    webBrowsing: true,
+    category: "Standard",
+    contextWindow: 1000000,
+    maxTokens: 8192,
+    costPerToken: 0.075
+  },
 
-  // Alternative Modelle
-  { id: "deepseek", name: "DeepSeek V3.1", description: "DeepSeek V3.1 Reasoning", vision: false },
-  { id: "mistral", name: "Mistral Small 3.2 24B", description: "Mistral Small 24B", vision: false },
-  { id: "qwen-coder", name: "Qwen 2.5 Coder 32B", description: "Code- und Reasoning-Modell", vision: false },
-  { id: "grok", name: "Grok", description: "Grok (xAI)", vision: false },
-  { id: "perplexity-fast", name: "Perplexity Fast", description: "Schnelles PPLX-Modell", vision: false },
-  { id: "perplexity-reasoning", name: "Perplexity Reasoning", description: "Reasoning mit Search", vision: false, webBrowsing: true },
-  { id: "kimi-k2-thinking", name: "Kimi K2 Thinking", description: "Reasoning-Modell von Kimi", vision: false },
+  // Perplexity - Web Browsing Specialists
+  {
+    id: "perplexity-reasoning",
+    name: "Perplexity Sonnet Reasoning",
+    description: "Advanced Reasoning with Web Search",
+    vision: false,
+    webBrowsing: true,
+    category: "Premium",
+    contextWindow: 200000,
+    maxTokens: 8192,
+    costPerToken: 5.0
+  },
+  {
+    id: "perplexity-fast",
+    name: "Perplexity Sonnet Fast",
+    description: "Fast with Web Search",
+    vision: false,
+    webBrowsing: true,
+    category: "Standard",
+    contextWindow: 200000,
+    maxTokens: 4096,
+    costPerToken: 2.5
+  },
+
+  // DeepSeek - Cost-Effective Reasoning
+  {
+    id: "deepseek",
+    name: "DeepSeek V3.1 Reasoning",
+    description: "Advanced Reasoning at Low Cost",
+    vision: false,
+    category: "Standard",
+    contextWindow: 128000,
+    maxTokens: 8192,
+    costPerToken: 0.55
+  },
+
+  // xAI Grok
+  {
+    id: "grok",
+    name: "Grok 3.1 Mini",
+    description: "Fast with Real-time Knowledge",
+    vision: false,
+    category: "Standard",
+    contextWindow: 131072,
+    maxTokens: 8192,
+    costPerToken: 0.50
+  },
+
+  // Moonshot AI
+  {
+    id: "moonshot",
+    name: "Moonshot Kimi K2 Thinking",
+    description: "Advanced Reasoning Model",
+    vision: false,
+    category: "Premium",
+    contextWindow: 128000,
+    maxTokens: 4096,
+    costPerToken: 4.0
+  },
+
+  // Specialized Models
+  {
+    id: "qwen-coder",
+    name: "Qwen 2.5 Coder 32B",
+    description: "Specialized for Code Generation",
+    vision: false,
+    category: "Specialized",
+    contextWindow: 32768,
+    maxTokens: 8192,
+    costPerToken: 0.30
+  },
+  {
+    id: "mistral",
+    name: "Mistral Small 3.2 24B",
+    description: "Efficient Multilingual Model",
+    vision: false,
+    category: "Standard",
+    contextWindow: 32000,
+    maxTokens: 8192,
+    costPerToken: 0.10
+  },
 ];
 
 // Stil-Profile (ResponseStyles)
@@ -90,7 +258,7 @@ Stilregeln:
 	•	Genderneutral, diskriminierungsfrei
 	•	Bei kritischen Themen: kurz erklären, warum es relevant/grenzwertig ist`,
   },
- {
+  {
     name: "Deep Dive",
     systemPrompt: `Du bist ein analytischer Deep-Diving-Assistent für den User.
 Erkläre komplexe Themen tiefgehend, verständlich und strukturiert.
@@ -115,7 +283,7 @@ Stilregeln:
 	•	Gehe bei Bedarf auf Grenzen/ethische Aspekte ein
 	•	Frag nach, wenn Infos fehlen oder du vertiefen sollst`,
   },
- {
+  {
     name: "Emotional Support",
     systemPrompt: `Du bist ein emotionaler 24/7-Support für den User – empathisch, unterstützend, liebevoll, aber nie aufdringlich.
 
@@ -195,8 +363,8 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
   { id: 'R8_8CZH4KMY', name: 'Dev' },
 ];
 
-// Default model for new users/chats
-export const DEFAULT_POLLINATIONS_MODEL_ID = 'claude';
+// Default model for new users/chats - Claude Sonnet 4.5 is the best balance
+export const DEFAULT_POLLINATIONS_MODEL_ID = 'claude'; // Claude Sonnet 4.5 as default
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // For in-chat image generation (align with bild.gen.lite)

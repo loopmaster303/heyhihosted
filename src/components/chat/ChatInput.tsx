@@ -254,8 +254,18 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition text-left"
                             >
                                 <Globe className="w-4 h-4" />
-                                <span className="flex-1">{webBrowsingEnabled ? 'Web-Suche An' : 'Web-Suche Aus'}</span>
-                                {webBrowsingEnabled && <span className="text-xs text-green-500">●</span>}
+                                <span className="flex-1">
+                                    {webBrowsingEnabled
+                                        ? 'Web-Suche An (Perplexity Fast)'
+                                        : `Web-Suche Aus (${selectedModelId})`
+                                    }
+                                </span>
+                                {webBrowsingEnabled && (
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-xs text-green-500">●</span>
+                                        <span className="text-xs text-muted-foreground">WebBrowsing</span>
+                                    </div>
+                                )}
                             </button>
 
                             {/* Code Mode Toggle */}
