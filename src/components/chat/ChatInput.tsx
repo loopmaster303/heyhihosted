@@ -6,17 +6,48 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle, Code2, MoreHorizontal, Palette, Globe, Settings, MoreVertical } from 'lucide-react';
+import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle, Code2, MoreHorizontal, Palette, Globe, Settings, MoreVertical, ChevronUp, Plus, MessageSquare, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types';
-import AdvancedSettingsPanel from './AdvancedSettingsPanel';
 import { useLanguage } from '../LanguageProvider';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
+
+// Model Icons
+import ClaudeIcon from '../../../icons models/claude-color.png';
+import DeepSeekIcon from '../../../icons models/deepseek-color.png';
+import GeminiIcon from '../../../icons models/gemini-color.png';
+import GrokIcon from '../../../icons models/grok.png';
+import KimiIcon from '../../../icons models/kimi-color.png';
+import MistralIcon from '../../../icons models/mistral-color.png';
+import OpenAIIcon from '../../../icons models/openai.png';
+import PerplexityIcon from '../../../icons models/perplexity-color.png';
+import QwenIcon from '../../../icons models/qwen-color.png';
+
+// Model Icon Mapping
+const modelIcons: Record<string, any> = {
+    'claude': ClaudeIcon,
+    'claude-fast': ClaudeIcon,
+    'claude-large': ClaudeIcon,
+    'deepseek': DeepSeekIcon,
+    'gemini-large': GeminiIcon,
+    'gemini': GeminiIcon,
+    'gemini-search': GeminiIcon,
+    'openai-large': OpenAIIcon,
+    'openai-reasoning': OpenAIIcon,
+    'grok': GrokIcon,
+    'moonshot': KimiIcon, // Moonshot Kimi uses kimi icon
+    'perplexity-reasoning': PerplexityIcon,
+    'perplexity-fast': PerplexityIcon,
+    'qwen-coder': QwenIcon,
+    'mistral': MistralIcon,
+};
 
 interface ChatInputProps {
     onSendMessage: (message: string, options?: { isImageModeIntent?: boolean }) => void;
@@ -37,8 +68,6 @@ interface ChatInputProps {
     onToggleAdvancedPanel: () => void;
     isHistoryPanelOpen: boolean;
     isGalleryPanelOpen: boolean;
-    isAdvancedPanelOpen: boolean;
-    advancedPanelRef: React.RefObject<HTMLDivElement>;
     allConversations: Conversation[];
     activeConversation: Conversation | null;
     selectChat: (id: string) => void;
@@ -85,8 +114,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     onToggleWebBrowsing,
     isHistoryPanelOpen,
     isGalleryPanelOpen,
-    isAdvancedPanelOpen,
-    advancedPanelRef,
     allConversations,
     activeConversation,
     selectChat,
@@ -94,7 +121,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     requestEditTitle,
     deleteChat,
     startNewChat,
-    closeAdvancedPanel,
     toDate,
     selectedModelId,
     handleModelChange,
@@ -115,6 +141,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
 }) => {
     const { t } = useLanguage();
     const [isMobile, setIsMobile] = useState(false);
+    const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
+    const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+    const [isExpandedModelSelectorOpen, setIsExpandedModelSelectorOpen] = useState(false);
 
     // Mobile detection
     useEffect(() => {
@@ -194,10 +223,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
         : isTranscribing
             ? t('chat.transcribing')
             : isImageMode
-                ? `Imagination using ${selectedImageModelId}...`
-                : isCodeMode
-                    ? `Coding & reasoning with qwen-coder...`
-                    : t('chat.placeholder');
+                ? `Du bist jetzt in der INchat-Visualisierung . Tippe hier ein, was du sehen willst und die Maschine erstellt ein Bild.`
+                : webBrowsingEnabled
+                    ? `Du nutzt jetzt die Web-Recherche`
+                    : isCodeMode
+                        ? `Du bist jetzt im Code-Assistenz-Modus`
+                        : t('chat.placeholder');
 
     const iconColorClass = "text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white";
     const displayTitle = chatTitle === "default.long.language.loop" || !chatTitle ? "New Chat" : chatTitle;
@@ -234,86 +265,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
     return (
         <div className="relative">
             <div className="relative">
-                {/* ThreeDots Quick Menu */}
-                {isAdvancedPanelOpen && (
-                    <div ref={advancedPanelRef} className="absolute bottom-full mb-2 left-0 w-64 z-30">
-                        <div className="bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-2">
-                            {/* Image Mode Toggle */}
-                            <button
-                                onClick={onToggleImageMode}
-                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition text-left"
-                            >
-                                <ImageIcon className="w-4 h-4" />
-                                <span className="flex-1">{isImageMode ? 'Bild-Modus An' : 'Bild-Modus Aus'}</span>
-                                {isImageMode && <span className="text-xs text-blue-500">●</span>}
-                            </button>
-
-                            {/* Web Browsing Toggle */}
-                            <button
-                                onClick={onToggleWebBrowsing}
-                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition text-left"
-                            >
-                                <Globe className="w-4 h-4" />
-                                <span className="flex-1">
-                                    {webBrowsingEnabled
-                                        ? 'Web-Suche An (Perplexity Fast)'
-                                        : `Web-Suche Aus (${selectedModelId})`
-                                    }
-                                </span>
-                                {webBrowsingEnabled && (
-                                    <div className="flex items-center gap-1">
-                                        <span className="text-xs text-green-500">●</span>
-                                        <span className="text-xs text-muted-foreground">WebBrowsing</span>
-                                    </div>
-                                )}
-                            </button>
-
-                            {/* Code Mode Toggle */}
-                            <button
-                                onClick={onToggleCodeMode}
-                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition text-left"
-                            >
-                                <Code2 className="w-4 h-4" />
-                                <span className="flex-1">{isCodeMode ? 'Code-Modus An' : 'Code-Modus Aus'}</span>
-                                {isCodeMode && <span className="text-xs text-purple-500">●</span>}
-                            </button>
-
-                            <div className="my-1 border-t border-border" />
-
-                            {/* File Attachments */}
-                            <button
-                                onClick={() => docInputRef.current?.click()}
-                                disabled={isLoading || isImageMode}
-                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition text-left disabled:opacity-40"
-                            >
-                                <File className="w-4 h-4" />
-                                <span>Dokument hochladen</span>
-                            </button>
-
-                            <button
-                                onClick={() => imageInputRef.current?.click()}
-                                disabled={isLoading || isImageMode}
-                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition text-left disabled:opacity-40"
-                            >
-                                <FileImage className="w-4 h-4" />
-                                <span>Bild hochladen</span>
-                            </button>
-
-                            <button
-                                onClick={openCamera}
-                                disabled={isLoading || isImageMode}
-                                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition text-left disabled:opacity-40"
-                            >
-                                <Camera className="w-4 h-4" />
-                                <span>Kamera aufnehmen</span>
-                            </button>
-
-                            <div className="my-1 border-t border-border" />
-                        </div>
-                    </div>
-                )}
                 <form onSubmit={handleSubmit} className="w-full">
-                    <div className="bg-pink-100 dark:bg-[#252525] rounded-2xl p-3 shadow-xl flex flex-col min-h-0">
+                    <div className="bg-white dark:bg-[#252525] rounded-2xl p-3 shadow-xl flex flex-col min-h-0">
                         <div className="flex-grow">
                             <Textarea
                                 ref={textareaRef}
@@ -329,7 +282,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             />
                         </div>
                         <div className="flex w-full items-center justify-between gap-1">
-                            {/* Left Side: Gear + ThreeDots */}
+                            {/* Left Side: Gear + Plus Menu + Mode Selector */}
                             <div className="flex items-center gap-0">
                                 <Link href="/settings">
                                     <Button
@@ -341,19 +294,297 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                         <Settings className="w-[20px] h-[20px]" />
                                     </Button>
                                 </Link>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={onToggleAdvancedPanel}
-                                    className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
-                                    aria-label="Open menu"
-                                >
-                                    <MoreVertical className="w-[20px] h-[20px]" />
-                                </Button>
+
+                                {/* Plus Menu for Upload Functions */}
+                                <DropdownMenu open={isPlusMenuOpen} onOpenChange={setIsPlusMenuOpen}>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
+                                            aria-label="Upload menu"
+                                        >
+                                            <Plus className="w-[20px] h-[20px]" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-56" align="start">
+                                        <DropdownMenuItem
+                                            onClick={() => imageInputRef.current?.click()}
+                                            disabled={isLoading || isImageMode}
+                                            className="flex items-center gap-3 p-3 cursor-pointer disabled:opacity-40"
+                                        >
+                                            <ImageIcon className="w-4 h-4" />
+                                            <span className="text-sm">Bild hochladen</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={() => docInputRef.current?.click()}
+                                            disabled={isLoading || isImageMode}
+                                            className="flex items-center gap-3 p-3 cursor-pointer disabled:opacity-40"
+                                        >
+                                            <FileText className="w-4 h-4" />
+                                            <span className="text-sm">Dokument hochladen</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={openCamera}
+                                            disabled={isLoading || isImageMode}
+                                            className="flex items-center gap-3 p-3 cursor-pointer disabled:opacity-40"
+                                        >
+                                            <Camera className="w-4 h-4" />
+                                            <span className="text-sm">Kamera aufnehmen</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+
+                                {/* Tools Menu */}
+                                <DropdownMenu open={isToolsMenuOpen} onOpenChange={setIsToolsMenuOpen}>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            className="group rounded-lg h-14 w-auto px-4 md:h-12 transition-all duration-300 relative text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
+                                            aria-label="Tools menu"
+                                        >
+                                            <div className="flex items-center gap-1 truncate">
+                                                <span className={cn(
+                                                    "text-xs md:text-sm font-medium",
+                                                    isImageMode ? "text-purple-500" :
+                                                        isCodeMode ? "text-blue-500" :
+                                                            webBrowsingEnabled ? "text-green-500" :
+                                                                ""
+                                                )}>
+                                                    {isImageMode ? "Visualize" :
+                                                        isCodeMode ? "Coding" :
+                                                            webBrowsingEnabled ? "Web Research" : "Tools"}
+                                                </span>
+                                                <ChevronUp className="w-3 h-3 flex-shrink-0" />
+                                            </div>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-72" align="start">
+                                        <div className="px-3 py-2 text-sm font-medium text-muted-foreground border-b">
+                                            Tools & Modi
+                                        </div>
+
+                                        {/* Image Generation Mode */}
+                                        <DropdownMenuItem
+                                            onClick={() => {
+                                                // Toggle off all modes first
+                                                if (isImageMode) onToggleImageMode();
+                                                if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
+                                                if (webBrowsingEnabled) onToggleWebBrowsing();
+                                                // Then toggle image mode
+                                                if (!isImageMode) onToggleImageMode();
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-3 p-3 cursor-pointer transition-all duration-200",
+                                                isImageMode && "bg-purple-50 dark:bg-purple-900/20 border-l-2 border-purple-500"
+                                            )}
+                                        >
+                                            <ImageIcon className={cn("w-4 h-4", isImageMode ? "text-purple-600" : "text-purple-500")} />
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium">Image Generation Mode</span>
+                                                <span className="text-xs text-muted-foreground">Bilder und Visualisierungen erstellen</span>
+                                            </div>
+                                            {isImageMode && (
+                                                <div className="ml-auto w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+                                            )}
+                                        </DropdownMenuItem>
+
+                                        {/* Web Research Mode */}
+                                        <DropdownMenuItem
+                                            onClick={() => {
+                                                // Toggle off all modes first
+                                                if (isImageMode) onToggleImageMode();
+                                                if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
+                                                if (webBrowsingEnabled) onToggleWebBrowsing();
+                                                // Then toggle web browsing
+                                                if (!webBrowsingEnabled) onToggleWebBrowsing();
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-3 p-3 cursor-pointer transition-all duration-200",
+                                                webBrowsingEnabled && "bg-green-50 dark:bg-green-900/20 border-l-2 border-green-500"
+                                            )}
+                                        >
+                                            <Globe className={cn("w-4 h-4", webBrowsingEnabled ? "text-green-600" : "text-green-500")} />
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium">Web Research Mode</span>
+                                                <span className="text-xs text-muted-foreground">Web-Recherche und aktuelle Informationen</span>
+                                            </div>
+                                            {webBrowsingEnabled && (
+                                                <div className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                            )}
+                                        </DropdownMenuItem>
+
+                                        {/* Coding Assist Mode */}
+                                        {onToggleCodeMode && (
+                                            <DropdownMenuItem
+                                                onClick={() => {
+                                                    // Toggle off all modes first
+                                                    if (isImageMode) onToggleImageMode();
+                                                    if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
+                                                    if (webBrowsingEnabled) onToggleWebBrowsing();
+                                                    // Then toggle code mode
+                                                    if (!isCodeMode) onToggleCodeMode();
+                                                }}
+                                                className={cn(
+                                                    "flex items-center gap-3 p-3 cursor-pointer transition-all duration-200",
+                                                    isCodeMode && "bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500"
+                                                )}
+                                            >
+                                                <Code2 className={cn("w-4 h-4", isCodeMode ? "text-blue-600" : "text-blue-500")} />
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium">Coding Assist Mode</span>
+                                                    <span className="text-xs text-muted-foreground">Code-Erstellung und Analyse</span>
+                                                </div>
+                                                {isCodeMode && (
+                                                    <div className="ml-auto w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                                                )}
+                                            </DropdownMenuItem>
+                                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
 
-                            {/* Right Side: Mic + Send */}
+                            {/* Right Side: Model Selector + Mic + Send */}
                             <div className="flex items-center gap-0">
+                                {/* Compact Model Selector */}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            className="group rounded-lg h-14 w-auto px-4 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white min-w-[120px] max-w-[220px] md:max-w-[250px]"
+                                            aria-label="Select model"
+                                        >
+                                            <div className="flex items-center gap-1 truncate">
+                                                {/* Model Icon */}
+                                                <div className="w-4 h-4 flex-shrink-0">
+                                                    {modelIcons[selectedModelId] ? (
+                                                        <Image
+                                                            src={modelIcons[selectedModelId]}
+                                                            alt={selectedModelId}
+                                                            width={16}
+                                                            height={16}
+                                                            className="rounded-sm"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-4 h-4 rounded-sm bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                                                            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+                                                                {selectedModelId?.charAt(0)?.toUpperCase() || 'A'}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs md:text-sm font-medium truncate">
+                                                    {(() => {
+                                                        const modelDisplayMap: Record<string, string> = {
+                                                            'claude': 'Claude Sonnet 4.5',
+                                                            'gemini-large': 'Gemini 3',
+                                                            'openai-large': 'GPT 5.2',
+                                                            'deepseek': 'DeepSeek'
+                                                        };
+                                                        return modelDisplayMap[selectedModelId] ||
+                                                            AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId)?.name.split(' ')[0] ||
+                                                            'Claude';
+                                                    })()}
+                                                </span>
+                                                <ChevronUp className="w-3 h-3 flex-shrink-0" />
+                                            </div>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto" align="end">
+                                        <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground border-b">
+                                            Chat Model Selection
+                                        </div>
+
+                                        {/* Main Models */}
+                                        <div className="p-2">
+                                            <div className="grid grid-cols-1 gap-1">
+                                                {[
+                                                    { id: 'claude', displayName: 'Claude Sonnet 4.5' },
+                                                    { id: 'gemini-large', displayName: 'Gemini 3' },
+                                                    { id: 'openai-large', displayName: 'GPT 5.2' },
+                                                    { id: 'deepseek', displayName: 'DeepSeek' }
+                                                ].map((modelConfig) => {
+                                                    const model = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === modelConfig.id);
+                                                    if (!model) return null;
+                                                    return (
+                                                        <DropdownMenuItem
+                                                            key={model.id}
+                                                            onClick={() => handleModelChange(model.id)}
+                                                            className={cn(
+                                                                "flex flex-col items-start p-3 cursor-pointer",
+                                                                selectedModelId === model.id && "bg-accent"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center gap-2 w-full">
+                                                                {/* Model Icon in Dropdown */}
+                                                                <div className="w-5 h-5 flex-shrink-0">
+                                                                    {modelIcons[model.id] ? (
+                                                                        <Image
+                                                                            src={modelIcons[model.id]}
+                                                                            alt={model.id}
+                                                                            width={20}
+                                                                            height={20}
+                                                                            className="rounded-sm"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-5 h-5 rounded-sm bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                                                                            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+                                                                                {model.id?.charAt(0)?.toUpperCase() || 'A'}
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <span className="font-medium text-sm">{model.name}</span>
+                                                                {model.category && (
+                                                                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                                                                        {model.category}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {model.description && (
+                                                                <span className="text-xs text-muted-foreground mt-1">
+                                                                    {model.description}
+                                                                </span>
+                                                            )}
+                                                            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                                                                {model.vision && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                                        Vision
+                                                                    </span>
+                                                                )}
+                                                                {model.webBrowsing && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                                        Web Search
+                                                                    </span>
+                                                                )}
+                                                                {model.contextWindow && (
+                                                                    <span>{(model.contextWindow / 1000).toFixed(0)}K context</span>
+                                                                )}
+                                                            </div>
+                                                        </DropdownMenuItem>
+                                                    );
+                                                })}
+
+                                                {/* More Models Button */}
+                                                <DropdownMenuItem
+                                                    className="flex items-center gap-2 p-2 cursor-pointer text-muted-foreground hover:text-foreground"
+                                                    onClick={() => {
+                                                        // Open expanded model selector modal
+                                                        setIsExpandedModelSelectorOpen(true);
+                                                    }}
+                                                >
+                                                    <span className="text-sm">Weitere Modelle...</span>
+                                                    <span className="text-xs text-muted-foreground">({AVAILABLE_POLLINATIONS_MODELS.length - 4} weitere)</span>
+                                                </DropdownMenuItem>
+                                            </div>
+                                        </div>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -366,6 +597,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 >
                                     <Mic className="w-[18px] h-[18px]" style={{ maxWidth: '500px', width: '100%' }} />
                                 </Button>
+
                                 <Button
                                     type="submit"
                                     variant="ghost"
@@ -387,6 +619,100 @@ const ChatInput: React.FC<ChatInputProps> = ({
             </div>
             <input type="file" ref={docInputRef} onChange={(e) => handleFileChange(e, 'document')} accept="image/*,application/pdf" className="hidden" disabled={isLoading || !isLongLanguageLoopActive || isImageMode} />
             <input type="file" ref={imageInputRef} onChange={(e) => handleFileChange(e, 'image')} accept="image/*" className="hidden" disabled={isLoading || !isLongLanguageLoopActive || isImageMode} />
+
+            {/* Expanded Model Selector Modal */}
+            {isExpandedModelSelectorOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-[#252525] rounded-2xl shadow-2xl max-w-4xl max-h-[80vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Alle Modelle auswählen</h2>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setIsExpandedModelSelectorOpen(false)}
+                                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                >
+                                    <XCircle className="w-5 h-5" />
+                                </Button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
+                                    <div
+                                        key={model.id}
+                                        onClick={() => {
+                                            handleModelChange(model.id);
+                                            setIsExpandedModelSelectorOpen(false);
+                                        }}
+                                        className={cn(
+                                            "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md",
+                                            selectedModelId === model.id
+                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                                        )}
+                                    >
+                                        {/* Model Icon */}
+                                        <div className="w-8 h-8 flex-shrink-0">
+                                            {modelIcons[model.id] ? (
+                                                <Image
+                                                    src={modelIcons[model.id]}
+                                                    alt={model.id}
+                                                    width={32}
+                                                    height={32}
+                                                    className="rounded-lg"
+                                                />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-lg bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                                                    <span className="text-sm font-bold text-gray-600 dark:text-gray-300">
+                                                        {model.id?.charAt(0)?.toUpperCase() || 'A'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium text-gray-900 dark:text-white">{model.name}</span>
+                                                {model.category && (
+                                                    <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                                                        {model.category}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {model.description && (
+                                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                    {model.description}
+                                                </p>
+                                            )}
+
+                                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-500">
+                                                {model.vision && (
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                                        Vision
+                                                    </span>
+                                                )}
+                                                {model.webBrowsing && (
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                                        Web Search
+                                                    </span>
+                                                )}
+                                                {model.contextWindow && (
+                                                    <span>{(model.contextWindow / 1000).toFixed(0)}K context</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

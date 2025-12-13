@@ -6,7 +6,7 @@ import { SearchService } from '@/lib/services/search-service';
 
 const POLLEN_CHAT_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
 const LEGACY_POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
-const LEGACY_FALLBACK_MODELS = new Set(['openai-large', 'gemini-search']);
+const LEGACY_FALLBACK_MODELS = new Set(['openai-large', 'openai-reasoning', 'gemini-search']);
 
 // Validation schema
 const ChatCompletionSchema = z.object({
@@ -180,6 +180,7 @@ Please provide a comprehensive answer using current web information. Focus on ac
 
     const mapModelForLegacy = (model: string) => {
       if (model === 'openai-large') return 'openai';
+      if (model === 'openai-reasoning') return 'openai';
       if (model === 'gemini-search') return 'gemini';
       return model;
     };
@@ -229,7 +230,7 @@ Please provide a comprehensive answer using current web information. Focus on ac
 
           // If content filter error and using OpenAI model, fallback to Claude
           if (isContentFilterError && target.name === 'pollen' &&
-            (effectiveModelId.startsWith('openai') || effectiveModelId.includes('openai'))) {
+            (effectiveModelId.startsWith('openai-large') || effectiveModelId.startsWith('openai-reasoning'))) {
             console.warn(`[Chat API] Content filter triggered for ${effectiveModelId}, falling back to Claude Sonnet 3.7`);
             // Retry with Claude
             const claudePayload = {

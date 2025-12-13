@@ -68,9 +68,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick, onMode
                 {/* Neon Branding */}
                 <h1 className="font-code text-4xl md:text-6xl font-bold tracking-tight text-center">
                     <span className="text-muted-foreground opacity-50">(</span>
-                    <span className="text-pink-500 shadow-pink-500/50 drop-shadow-[0_0_10px_rgba(236,72,153,0.6)]">!hey.hi</span>
+                    <span className="text-white shadow-white/50 drop-shadow-[0_0_10px_rgba(255,255,255,0.6)]">!hey.hi</span>
                     <span className="text-muted-foreground opacity-50 mx-3">=</span>
-                    <span className="text-purple-500 shadow-purple-500/50 drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]">
+                    <span className="text-white shadow-white/50 drop-shadow-[0_0_10px_rgba(255,255,255,0.6)]">
                         {`'${userDisplayName?.toLowerCase() || 'john'}'`}
                     </span>
                     <span className="text-muted-foreground opacity-50">)</span>
@@ -109,7 +109,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick, onMode
 
                 {/* Central Input Box */}
                 <div className="w-full relative group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-500/20 to-purple-600/20 rounded-[2rem] blur opacity-30 group-hover:opacity-75 transition duration-500" />
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-white/20 to-white/20 rounded-[2rem] blur opacity-30 group-hover:opacity-75 transition duration-500" />
                     <div className="relative bg-muted/40 backdrop-blur-xl border border-border/50 rounded-[2rem] p-2 pl-4 shadow-lg ring-1 ring-black/5 dark:ring-white/5">
                         <Textarea
                             value={inputValue}

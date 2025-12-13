@@ -113,10 +113,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         </Button>
 
         {isExpanded && (
-          <div className="font-mono text-sm flex-1">
-            <span className="text-foreground">{'(!hey.hi = '}</span>
-            <span className="text-pink-500 font-semibold">{userDisplayName}</span>
-            <span className="text-foreground">{')'}</span>
+          <div className="font-mono text-sm flex-1 flex items-center whitespace-nowrap">
+            <span className="text-foreground text-lg font-bold">{'(!hey.hi = '}</span>
+            <span className="text-transparent bg-gradient-to-r from-purple-300 to-purple-600 bg-clip-text text-lg font-bold">{userDisplayName}</span>
+            <span className="text-foreground text-lg font-bold">{')'}</span>
           </div>
         )}
       </div>

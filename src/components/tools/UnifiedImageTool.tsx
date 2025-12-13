@@ -1096,7 +1096,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="bg-pink-100 dark:bg-[#252525] text-gray-800 dark:text-white rounded-3xl shadow-lg relative">
+            <div className="bg-white dark:bg-[#252525] text-gray-800 dark:text-white rounded-3xl shadow-lg relative">
               {loading && (
                 <div className="absolute inset-x-4 top-3 z-10">
                   <div className="rounded-xl bg-black/70 text-white px-4 py-3 text-sm md:text-base shadow-lg flex items-start gap-2">

@@ -71,7 +71,7 @@ function EntryDraftPageContent() {
       <div className="flex flex-col items-center justify-center h-full px-4 py-10">
         {/* Typewriter-Effekt */}
         <div className="mb-10 font-code text-4xl sm:text-5xl md:text-6xl font-bold text-center">
-          <span className="text-transparent bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text">
+          <span className="text-transparent bg-gradient-to-r from-purple-300 to-purple-600 bg-clip-text">
             {typed}
             {isTyping && <span className="animate-pulse">|</span>}
           </span>

@@ -143,8 +143,8 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                 className={cn(
                   "w-full h-12 transition-colors",
                   isDark
-                    ? "bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-pink-500 focus:ring-pink-500"
-                    : "bg-gray-50 border-gray-300 text-black placeholder-gray-500 focus:border-pink-500 focus:ring-pink-500"
+                    ? "bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-white focus:ring-white"
+                    : "bg-gray-50 border-gray-300 text-black placeholder-gray-500 focus:border-white focus:ring-white"
                 )}
               />
             </div>
@@ -163,8 +163,8 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                 <SelectTrigger className={cn(
                   "w-full h-12 transition-colors",
                   isDark
-                    ? "bg-gray-900 border-gray-700 text-white focus:border-pink-500 focus:ring-pink-500"
-                    : "bg-gray-50 border-gray-300 text-black focus:border-pink-500 focus:ring-pink-500"
+                    ? "bg-gray-900 border-gray-700 text-white focus:border-white focus:ring-white"
+                    : "bg-gray-50 border-gray-300 text-black focus:border-white focus:ring-white"
                 )}>
                   <SelectValue placeholder={t('settings.stylePlaceholder')} />
                 </SelectTrigger>
@@ -207,8 +207,8 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                 className={cn(
                   "w-full min-h-[120px] resize-none transition-colors",
                   isDark
-                    ? "bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-pink-500 focus:ring-pink-500"
-                    : "bg-gray-50 border-gray-300 text-black placeholder-gray-500 focus:border-pink-500 focus:ring-pink-500"
+                    ? "bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-white focus:ring-white"
+                    : "bg-gray-50 border-gray-300 text-black placeholder-gray-500 focus:border-white focus:ring-white"
                 )}
                 readOnly={customSystemPrompt.trim() === ""}
               />

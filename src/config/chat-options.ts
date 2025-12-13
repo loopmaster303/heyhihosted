@@ -24,7 +24,7 @@ export interface VoiceOption {
 
 // Curated model list with new Pollinations.ai models
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-  // OpenAI Stack - Updated with GPT-5.2
+  // OpenAI Stack - Only GPT-5.2 and o4 Pro models
   {
     id: "openai-large",
     name: "OpenAI GPT-5.2",
@@ -34,26 +34,6 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     contextWindow: 200000,
     maxTokens: 8192,
     costPerToken: 15.0
-  },
-  {
-    id: "openai",
-    name: "OpenAI GPT-5.1 Turbo",
-    description: "Fast GPT-5.1 with Vision",
-    vision: true,
-    category: "Premium",
-    contextWindow: 128000,
-    maxTokens: 4096,
-    costPerToken: 5.0
-  },
-  {
-    id: "openai-fast",
-    name: "OpenAI GPT-4.1 Turbo",
-    description: "Cost-effective with Vision",
-    vision: true,
-    category: "Standard",
-    contextWindow: 128000,
-    maxTokens: 4096,
-    costPerToken: 2.5
   },
   {
     id: "openai-reasoning",
