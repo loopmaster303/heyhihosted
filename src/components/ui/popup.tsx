@@ -42,18 +42,52 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
     const [popupStyle, setPopupStyle] = React.useState<React.CSSProperties>({});
 
     React.useEffect(() => {
-        // Quick Settings öffnet sich immer in der Mitte der gesamten UI
+        // Position popup relative to trigger (like other dropdowns)
         if (triggerRef?.current) {
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
+            const updatePosition = () => {
+                const rect = triggerRef.current!.getBoundingClientRect();
+                const popupWidth = 340; // min-w-[340px] from Quick Settings
+                const popupHeight = 350; // approximate height
+                const gap = 8; // spacing from trigger
 
-            setPopupStyle({
-                position: 'fixed',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                zIndex: 99 // Gleich wie DropdownMenu
-            });
+                // Calculate position above the trigger
+                let top = rect.top - popupHeight - gap;
+                let left = rect.left;
+
+                // For "top-center" position, center horizontally relative to trigger
+                if (position === 'top-center') {
+                    left = rect.left + (rect.width / 2) - (popupWidth / 2);
+                }
+
+                // Adjust if popup would go off-screen horizontally
+                if (left < gap) {
+                    left = gap;
+                } else if (left + popupWidth > window.innerWidth - gap) {
+                    left = window.innerWidth - popupWidth - gap;
+                }
+
+                // Adjust if popup would go off-screen vertically
+                if (top < gap) {
+                    // If not enough space above, position below
+                    top = rect.bottom + gap;
+                }
+
+                setPopupStyle({
+                    position: 'fixed',
+                    top: `${top}px`,
+                    left: `${left}px`,
+                    zIndex: 50,
+                });
+            };
+
+            updatePosition();
+            window.addEventListener('scroll', updatePosition);
+            window.addEventListener('resize', updatePosition);
+
+            return () => {
+                window.removeEventListener('scroll', updatePosition);
+                window.removeEventListener('resize', updatePosition);
+            };
         }
     }, [triggerRef, position]);
 

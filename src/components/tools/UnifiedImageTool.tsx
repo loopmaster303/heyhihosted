@@ -35,6 +35,27 @@ import { useLanguage } from '../LanguageProvider';
 
 const IMAGE_HISTORY_KEY = 'imageHistory';
 
+// Define which models need image upload
+const pollinationUploadModels = [
+  'gpt-image',
+  'seedream-pro',
+  'seedream',
+  'nanobanana',
+  'nanobanana-pro',
+  'seedance-pro',
+  'seedance',
+  'veo'
+];
+
+const replicateUploadModels = [
+  'flux-2-pro',
+  'qwen-image-edit-plus',
+  'flux-kontext-pro',
+  'wan-video',
+  'veo-3.1-fast',
+  'z-image-turbo'
+];
+
 interface UnifiedImageToolProps {
   password?: string;
 }
@@ -88,7 +109,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
   const maxImages = useMemo(() => {
     if (!supportsReference) return 0;
     if (selectedModelId === 'flux-2-pro') return 8;
-    if (selectedModelId === 'nano-banana-pro') return 14;
+    if (selectedModelId === 'nanobanana-pro') return 14;
     if (selectedModelId === 'qwen-image-edit-plus') return 3;
     if (selectedModelId === 'flux-kontext-pro') return 1;
     if (selectedModelId === 'wan-video') return 1; // I2V needs 1 image
@@ -212,6 +233,21 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
     }
   }, [selectedModelId, supportsReference]);
 
+  // Clear uploaded images when switching between models with different field requirements
+  useEffect(() => {
+    setUploadedImages([]);
+    setFormFields(prevFields => {
+      const newFields = { ...prevFields };
+      // Clear all image-related fields when switching models
+      delete newFields.input_images;
+      delete newFields.image_input;
+      delete newFields.input_image;
+      delete newFields.image;
+      delete newFields.referenceImage;
+      return newFields;
+    });
+  }, [selectedModelId]);
+
   const TEXTAREA_MIN_HEIGHT = 100;
   const TEXTAREA_MAX_HEIGHT = 260; // allow scrolling beyond this height
 
@@ -268,8 +304,11 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       return;
     }
 
-    const pollinationUploadModels = ['gpt-image', 'seedream-pro', 'seedream', 'nanobanana', 'nanobanana-pro'];
-    if (pollinationUploadModels.includes(selectedModelId)) {
+    const modelInfo = getUnifiedModel(selectedModelId);
+    const needsUpload = modelInfo?.provider === 'replicate' && modelInfo?.supportsReference;
+
+    const allUploadModels = [...pollinationUploadModels, ...replicateUploadModels];
+    if (needsUpload || allUploadModels.includes(selectedModelId)) {
       setIsUploading(true);
       const formData = new FormData();
       formData.append('file', file);
@@ -307,8 +346,14 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
         // Set field name based on model
         if (selectedModelId === 'flux-2-pro') {
           setFormFields(prevFields => ({ ...prevFields, input_images: newImages }));
-        } else if (selectedModelId === 'nano-banana-pro') {
+        } else if (selectedModelId === 'nanobanana-pro') {
           setFormFields(prevFields => ({ ...prevFields, image_input: newImages }));
+        } else if (selectedModelId === 'qwen-image-edit-plus') {
+          setFormFields(prevFields => ({ ...prevFields, image_input: newImages }));
+        } else if (selectedModelId === 'flux-kontext-pro') {
+          setFormFields(prevFields => ({ ...prevFields, input_image: newImages[0] }));
+        } else if (selectedModelId === 'wan-video' || selectedModelId === 'veo-3.1-fast') {
+          setFormFields(prevFields => ({ ...prevFields, image: newImages[0] }));
         }
         return newImages;
       });
@@ -329,16 +374,24 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
           const newFields = { ...prevFields };
           if (selectedModelId === 'flux-2-pro') {
             delete newFields.input_images;
-          } else if (selectedModelId === 'nano-banana-pro') {
+          } else if (selectedModelId === 'nanobanana-pro' || selectedModelId === 'qwen-image-edit-plus') {
             delete newFields.image_input;
+          } else if (selectedModelId === 'flux-kontext-pro') {
+            delete newFields.input_image;
+          } else if (selectedModelId === 'wan-video' || selectedModelId === 'veo-3.1-fast') {
+            delete newFields.image;
           }
           return newFields;
         });
       } else {
         if (selectedModelId === 'flux-2-pro') {
           setFormFields(prevFields => ({ ...prevFields, input_images: newImages }));
-        } else if (selectedModelId === 'nano-banana-pro') {
+        } else if (selectedModelId === 'nanobanana-pro' || selectedModelId === 'qwen-image-edit-plus') {
           setFormFields(prevFields => ({ ...prevFields, image_input: newImages }));
+        } else if (selectedModelId === 'flux-kontext-pro') {
+          setFormFields(prevFields => ({ ...prevFields, input_image: newImages[0] }));
+        } else if (selectedModelId === 'wan-video' || selectedModelId === 'veo-3.1-fast') {
+          setFormFields(prevFields => ({ ...prevFields, image: newImages[0] }));
         }
       }
       return newImages;
@@ -406,7 +459,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       if (uploadedImages.length > 0) {
         if (selectedModelId === 'flux-2-pro') {
           payload.input_images = uploadedImages;
-        } else if (selectedModelId === 'nano-banana-pro' || selectedModelId === 'qwen-image-edit-plus') {
+        } else if (selectedModelId === 'nanobanana-pro' || selectedModelId === 'qwen-image-edit-plus') {
           payload.image_input = uploadedImages;
         } else if (selectedModelId === 'flux-kontext-pro') {
           payload.input_image = uploadedImages[0];
@@ -475,7 +528,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
         if (selectedModelId === 'flux-2-pro') {
           payload.safety_tolerance = 5;
           payload.output_quality = 100;
-        } else if (selectedModelId === 'nano-banana-pro') {
+        } else if (selectedModelId === 'nanobanana-pro') {
           payload.safety_filter_level = 'block_only_high';
         } else if (selectedModelId === 'z-image-turbo') {
           payload.output_quality = 100;
@@ -492,7 +545,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       if (!isPollinationsModel) {
         if (selectedModelId === 'flux-2-pro') {
           payload.output_format = formFields.output_format || 'webp';
-        } else if (selectedModelId === 'nano-banana-pro' || selectedModelId === 'qwen-image-edit-plus') {
+        } else if (selectedModelId === 'nanobanana-pro' || selectedModelId === 'qwen-image-edit-plus') {
           payload.output_format = formFields.output_format || 'jpg';
         } else if (selectedModelId === 'z-image-turbo') {
           payload.output_format = formFields.output_format || 'jpg';
@@ -895,7 +948,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                   <div className="space-y-2">
                     <Label>{t('field.resolution')}</Label>
                     <Select
-                      value={formFields.resolution || (selectedModelId === 'nano-banana-pro' ? '2K' : '1 MP')}
+                      value={formFields.resolution || (selectedModelId === 'nanobanana-pro' ? '2K' : '1 MP')}
                       onValueChange={(value) => handleFieldChange('resolution', value)}
                       disabled={loading}
                     >
@@ -914,7 +967,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                             <SelectItem value="4 MP">4 MP</SelectItem>
                           </>
                         )}
-                        {selectedModelId === 'nano-banana-pro' && (
+                        {selectedModelId === 'nanobanana-pro' && (
                           <>
                             <SelectItem value="1K">1K</SelectItem>
                             <SelectItem value="2K">2K</SelectItem>
@@ -960,7 +1013,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                             <SelectItem value="png">PNG</SelectItem>
                           </>
                         )}
-                        {(selectedModelId === 'nano-banana-pro' || selectedModelId === 'qwen-image-edit-plus' || isGptImage) && (
+                        {(selectedModelId === 'nanobanana-pro' || selectedModelId === 'qwen-image-edit-plus' || isGptImage) && (
                           <>
                             <SelectItem value="jpg">JPG</SelectItem>
                             <SelectItem value="png">PNG</SelectItem>
@@ -1060,7 +1113,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                   <p className="text-sm text-muted-foreground">Click to upload or drag & drop</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {selectedModelId === 'flux-2-pro' && 'Up to 8 images supported'}
-                    {selectedModelId === 'nano-banana-pro' && 'Up to 14 images supported'}
+                    {selectedModelId === 'nanobanana-pro' && 'Up to 14 images supported'}
                     {selectedModelId === 'qwen-image-edit-plus' && 'Up to 3 images supported'}
                     {selectedModelId === 'flux-kontext-pro' && 'One image required for editing'}
                     {selectedModelId === 'wan-video' && 'One image required for animation'}

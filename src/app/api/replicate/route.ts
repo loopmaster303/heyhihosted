@@ -17,7 +17,8 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "prunaai/z-image-turbo": "prunaai/z-image-turbo",
 
   // --- Legacy Mappings (if still referenced) ---
-  "nano-banana-pro": "google/nano-banana-pro",
+  "nanobanana-pro": "google/nano-banana-pro",
+  "nano-banana-pro": "google/nano-banana-pro", // Fallback für alte Referenzen
   "flux-2-pro": "black-forest-labs/flux-2-pro", // Fallback for old refs
   "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
   "veo-3.1-fast": "google/veo-3.1-fast",
@@ -57,8 +58,16 @@ export async function POST(request: NextRequest) {
     for (const key in inputParams) {
       const value = inputParams[key];
       if (value !== null && value !== undefined) {
-        // Convert specific parameters to correct types based on model
-        if (key === "megapixels") {
+        // Handle image parameters - ensure they are passed through correctly
+        if (key === "input_images" || key === "image_input" || key === "input_image" || key === "image") {
+          // For image arrays, ensure they are passed as arrays
+          if (Array.isArray(value)) {
+            sanitizedInput[key] = value;
+          } else {
+            // For single images, ensure they are passed as strings
+            sanitizedInput[key] = String(value);
+          }
+        } else if (key === "megapixels") {
           // WAN models expect integer, Flux models expect string
           if (modelKey.includes("wan") || modelKey.includes("ideogram")) {
             sanitizedInput[key] = typeof value === "string" ? parseInt(value, 10) : value;

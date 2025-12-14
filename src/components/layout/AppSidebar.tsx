@@ -55,7 +55,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const [userDisplayName, setUserDisplayName] = useState('User');
   const [isMounted, setIsMounted] = useState(false);
-  const { imageHistory, clearImageHistory } = useImageHistory();
+  const { imageHistory, clearImageHistory, removeImageFromHistory } = useImageHistory();
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -295,6 +295,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                   console.log('Selected image:', item);
                 }}
                 onClearHistory={clearImageHistory}
+                onDeleteSingleImage={removeImageFromHistory}
                 onClose={onToggleGalleryPanel || (() => { })}
               />
             </div>

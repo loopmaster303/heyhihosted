@@ -10,6 +10,7 @@ export interface PollinationsModel {
   contextWindow?: number; // New: Context window size
   maxTokens?: number; // New: Maximum output tokens
   costPerToken?: number; // New: Cost per million tokens
+  useCases?: string[]; // User-friendly: What is this model good for?
 }
 
 export interface ResponseStyle {
@@ -33,7 +34,8 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     category: "Premium",
     contextWindow: 200000,
     maxTokens: 8192,
-    costPerToken: 15.0
+    costPerToken: 15.0,
+    useCases: ["Komplexe Aufgaben", "Bilder & Video", "Mehrstufiges Denken"]
   },
   {
     id: "openai-reasoning",
@@ -55,7 +57,8 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     category: "Premium",
     contextWindow: 200000,
     maxTokens: 8192,
-    costPerToken: 7.5
+    costPerToken: 7.5,
+    useCases: ["Bilder analysieren", "Lange Dokumente", "Kreatives Schreiben"]
   },
   {
     id: "claude-fast",
@@ -87,7 +90,8 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     category: "Premium",
     contextWindow: 2000000,
     maxTokens: 8192,
-    costPerToken: 3.5
+    costPerToken: 3.5,
+    useCases: ["Riesige Dokumente", "Bilder analysieren", "Lange Kontexte"]
   },
   {
     id: "gemini",
@@ -144,7 +148,8 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     category: "Standard",
     contextWindow: 128000,
     maxTokens: 8192,
-    costPerToken: 0.55
+    costPerToken: 0.55,
+    useCases: ["Logik & Mathe", "Code verstehen", "Günstiger Allrounder"]
   },
 
   // xAI Grok

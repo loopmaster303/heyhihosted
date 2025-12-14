@@ -39,22 +39,22 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
 const REPLICATE_MODELS: UnifiedImageModel[] = [
   // --- New User Requested Models ---
   // Video Generation (Wan 2.5)
-  { id: 'wan-video/wan-2.5-t2v', name: 'Wan 2.5 T2V', provider: 'replicate', kind: 'video', requiresPassword: true, description: 'Text to Video' },
-  { id: 'wan-video/wan-2.5-i2v', name: 'Wan 2.5 I2V', provider: 'replicate', kind: 'video', supportsReference: true, requiresPassword: true, description: 'Image to Video' },
+  { id: 'wan-2.5-t2v', name: 'Wan 2.5 T2V', provider: 'replicate', kind: 'video', requiresPassword: false, description: 'Text to Video' },
+  { id: 'wan-video', name: 'Wan 2.5 I2V', provider: 'replicate', kind: 'video', supportsReference: true, requiresPassword: false, description: 'Image to Video' },
 
   // Video Generation (Veo)
-  { id: 'google/veo-3.1-fast', name: 'Veo 3.1 Fast', provider: 'replicate', kind: 'video', supportsReference: true, requiresPassword: true, description: 'Fast Video Generation' },
+  { id: 'veo-3.1-fast', name: 'Veo 3.1 Fast', provider: 'replicate', kind: 'video', supportsReference: true, requiresPassword: false, description: 'Fast Video Generation' },
 
   // Image Generation (Flux)
-  { id: 'black-forest-labs/flux-2-pro', name: 'Flux 2 Pro', provider: 'replicate', kind: 'image', requiresPassword: true, description: 'High Quality Image Generation' },
-  { id: 'black-forest-labs/flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true, description: 'Context Aware Generation' },
+  { id: 'flux-2-pro', name: 'Flux 2 Pro', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: false, description: 'High Quality Image Generation' },
+  { id: 'flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: false, description: 'Context Aware Generation' },
 
   // Image Generation (Turbo)
-  { id: 'prunaai/z-image-turbo', name: 'Z-Image Turbo', provider: 'replicate', kind: 'image', requiresPassword: true, description: 'Fast Image Generation' },
+  { id: 'z-image-turbo', name: 'Z-Image Turbo', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: false, description: 'Fast Image Generation' },
 
 
   // --- Legacy / Other Models (Kept for compatibility if needed, but deprioritized) ---
-  { id: 'nano-banana-pro', name: 'Nano Banana Pro', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: true },
+  // Note: nano-banana-pro is a Pollinations model, not Replicate
 ];
 
 /**

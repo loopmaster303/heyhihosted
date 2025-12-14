@@ -109,17 +109,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'seed' },
     ],
   },
-  'nano-banana-pro': {
-    id: 'nano-banana-pro',
-    name: 'Nano Banana Pro',
-    inputs: [
-      { name: 'prompt', isPrompt: true },
-      { name: 'aspect_ratio', default: '1:1' },
-      { name: 'resolution', default: '2K' },
-      { name: 'output_format', default: 'jpg' },
-      { name: 'seed' },
-    ],
-  },
   'z-image-turbo': {
     id: 'z-image-turbo',
     name: 'Z-Image-Turbo',

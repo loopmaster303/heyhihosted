@@ -311,83 +311,97 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                         <Settings2 className="w-[20px] h-[20px]" />
                                     </Button>
 
-                                    {/* Quick Settings Popup */}
+                                    {/* Quick Settings Popup - Unified Design */}
                                     {isQuickSettingsOpen && (
-                                        <ContextualPopup position="top-center" triggerRef={quickSettingsButtonRef} className="min-w-[320px]">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h3 className="text-sm font-semibold">Quick Settings</h3>
+                                        <ContextualPopup position="top-center" triggerRef={quickSettingsButtonRef} className="min-w-[340px] p-0">
+                                            {/* Header */}
+                                            <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+                                                <div className="flex items-center gap-2">
+                                                    <Settings2 className="w-4 h-4 text-muted-foreground" />
+                                                    <h3 className="text-sm font-semibold">Quick Settings</h3>
+                                                </div>
                                                 <Button
                                                     type="button"
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => setIsQuickSettingsOpen(false)}
-                                                    className="h-6 w-6"
+                                                    className="h-7 w-7 rounded-full hover:bg-muted"
                                                 >
                                                     <XCircle className="w-4 h-4" />
                                                 </Button>
                                             </div>
 
-                                            <div className="space-y-4">
+                                            {/* Content */}
+                                            <div className="p-4 space-y-4">
                                                 {/* Voice Selection */}
-                                                <div>
-                                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Stimme (Voice Mode)</label>
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                                        <Mic className="w-4 h-4" />
+                                                        Stimme
+                                                    </label>
                                                     <Select
                                                         value={selectedVoice}
                                                         onValueChange={handleVoiceChange}
                                                     >
-                                                        <SelectTrigger>
+                                                        <SelectTrigger className="h-9 text-sm bg-muted/30 border-border/50 hover:bg-muted/50 transition-colors text-muted-foreground">
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="English_ConfidentWoman">Luca</SelectItem>
-                                                            <SelectItem value="Japanese_CalmLady">Sky</SelectItem>
-                                                            <SelectItem value="French_Female_News Anchor">Charlie</SelectItem>
-                                                            <SelectItem value="German_FriendlyMan">Mika</SelectItem>
-                                                            <SelectItem value="German_PlayfulMan">Casey</SelectItem>
-                                                            <SelectItem value="Korean_ReliableYouth">Taylor</SelectItem>
-                                                            <SelectItem value="Japanese_InnocentBoy">Jamie</SelectItem>
-                                                            <SelectItem value="R8_8CZH4KMY">Dev</SelectItem>
+                                                            <SelectItem value="English_ConfidentWoman">🎙️ Luca</SelectItem>
+                                                            <SelectItem value="Japanese_CalmLady">🎙️ Sky</SelectItem>
+                                                            <SelectItem value="French_Female_News Anchor">🎙️ Charlie</SelectItem>
+                                                            <SelectItem value="German_FriendlyMan">🎙️ Mika</SelectItem>
+                                                            <SelectItem value="German_PlayfulMan">🎙️ Casey</SelectItem>
+                                                            <SelectItem value="Korean_ReliableYouth">🎙️ Taylor</SelectItem>
+                                                            <SelectItem value="Japanese_InnocentBoy">🎙️ Jamie</SelectItem>
+                                                            <SelectItem value="R8_8CZH4KMY">🎙️ Dev</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
 
                                                 {/* Image Model Selection */}
-                                                <div>
-                                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Bildmodell (In-Chat)</label>
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                                        <ImageIcon className="w-4 h-4" />
+                                                        Bildmodell
+                                                    </label>
                                                     <Select
                                                         value={selectedImageModelId}
                                                         onValueChange={handleImageModelChange}
                                                     >
-                                                        <SelectTrigger>
+                                                        <SelectTrigger className="h-9 text-sm bg-muted/30 border-border/50 hover:bg-muted/50 transition-colors text-muted-foreground">
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="nanobanana">Nanobanana (Standard)</SelectItem>
-                                                            <SelectItem value="kontext">Kontext</SelectItem>
-                                                            <SelectItem value="nanobanana-pro">Nanobanana Pro</SelectItem>
-                                                            <SelectItem value="seedream">Seedream</SelectItem>
-                                                            <SelectItem value="seedream-pro">Seedream Pro</SelectItem>
+                                                            <SelectItem value="nanobanana">🎨 Nanobanana (Standard)</SelectItem>
+                                                            <SelectItem value="kontext">🎨 Kontext</SelectItem>
+                                                            <SelectItem value="nanobanana-pro">✨ Nanobanana Pro</SelectItem>
+                                                            <SelectItem value="seedream">🎨 Seedream</SelectItem>
+                                                            <SelectItem value="seedream-pro">✨ Seedream Pro</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
 
                                                 {/* Response Style Selection */}
-                                                <div>
-                                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Antwortstil</label>
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                                        <MessageSquare className="w-4 h-4" />
+                                                        Antwortstil
+                                                    </label>
                                                     <Select
                                                         value={selectedResponseStyleName}
                                                         onValueChange={handleStyleChange}
                                                     >
-                                                        <SelectTrigger>
+                                                        <SelectTrigger className="h-9 text-sm bg-muted/30 border-border/50 hover:bg-muted/50 transition-colors text-muted-foreground">
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="Basic">Basic</SelectItem>
-                                                            <SelectItem value="Precise">Präzise</SelectItem>
-                                                            <SelectItem value="Deep Dive">Deep Dive</SelectItem>
-                                                            <SelectItem value="Emotional Support">Emotional Support</SelectItem>
-                                                            <SelectItem value="Philosophical">Philosophical</SelectItem>
-                                                            <SelectItem value="User Default">User Default</SelectItem>
+                                                            <SelectItem value="Basic">💬 Basic</SelectItem>
+                                                            <SelectItem value="Precise">🎯 Präzise</SelectItem>
+                                                            <SelectItem value="Deep Dive">🔬 Deep Dive</SelectItem>
+                                                            <SelectItem value="Emotional Support">💝 Emotional Support</SelectItem>
+                                                            <SelectItem value="Philosophical">🤔 Philosophical</SelectItem>
+                                                            <SelectItem value="User Default">⭐ User Default</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
@@ -396,7 +410,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                     )}
                                 </div>
 
-                                {/* Plus Menu for Upload Functions */}
+                                {/* Plus Menu for Upload Functions - Unified Design */}
                                 <DropdownMenu open={isPlusMenuOpen} onOpenChange={setIsPlusMenuOpen}>
                                     <DropdownMenuTrigger asChild>
                                         <Button
@@ -408,169 +422,269 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                             <Plus className="w-[20px] h-[20px]" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-56" align="start" side="top">
-                                        <DropdownMenuItem
-                                            onClick={() => imageInputRef.current?.click()}
-                                            disabled={isLoading || isImageMode}
-                                            className="flex items-center gap-3 p-3 cursor-pointer disabled:opacity-40"
-                                        >
-                                            <ImageIcon className="w-4 h-4" />
-                                            <span className="text-sm">Bild hochladen</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            onClick={() => docInputRef.current?.click()}
-                                            disabled={isLoading || isImageMode}
-                                            className="flex items-center gap-3 p-3 cursor-pointer disabled:opacity-40"
-                                        >
-                                            <FileText className="w-4 h-4" />
-                                            <span className="text-sm">Dokument hochladen</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            onClick={openCamera}
-                                            disabled={isLoading || isImageMode}
-                                            className="flex items-center gap-3 p-3 cursor-pointer disabled:opacity-40"
-                                        >
-                                            <Camera className="w-4 h-4" />
-                                            <span className="text-sm">Kamera aufnehmen</span>
-                                        </DropdownMenuItem>
+                                    <DropdownMenuContent className="w-64 p-0" align="start" side="top">
+                                        {/* Header */}
+                                        <div className="px-4 py-3 border-b border-border/50">
+                                            <div className="flex items-center gap-2">
+                                                <Paperclip className="w-4 h-4 text-muted-foreground" />
+                                                <span className="text-sm font-semibold">Anhang hinzufügen</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="p-2">
+                                            <DropdownMenuItem
+                                                onClick={() => imageInputRef.current?.click()}
+                                                disabled={isLoading || isImageMode}
+                                                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer disabled:opacity-40 rounded-lg hover:bg-muted/50 transition-colors"
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                                    <ImageIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium">Bild hochladen</span>
+                                                    <span className="text-xs text-muted-foreground">PNG, JPG, GIF, WebP</span>
+                                                </div>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() => docInputRef.current?.click()}
+                                                disabled={isLoading || isImageMode}
+                                                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer disabled:opacity-40 rounded-lg hover:bg-muted/50 transition-colors"
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                                                    <FileText className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium">Dokument hochladen</span>
+                                                    <span className="text-xs text-muted-foreground">PDF, Bilder</span>
+                                                </div>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={openCamera}
+                                                disabled={isLoading || isImageMode}
+                                                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer disabled:opacity-40 rounded-lg hover:bg-muted/50 transition-colors"
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                                    <Camera className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium">Kamera aufnehmen</span>
+                                                    <span className="text-xs text-muted-foreground">Direkt fotografieren</span>
+                                                </div>
+                                            </DropdownMenuItem>
+                                        </div>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
 
-                                {/* Tools Menu */}
+                                {/* Tools Menu - Unified Design */}
                                 <DropdownMenu open={isToolsMenuOpen} onOpenChange={setIsToolsMenuOpen}>
                                     <DropdownMenuTrigger asChild>
                                         <Button
                                             type="button"
                                             variant="ghost"
-                                            className="group rounded-lg h-14 w-auto px-4 md:h-12 transition-all duration-300 relative text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
+                                            className={cn(
+                                                "group rounded-lg h-14 w-auto px-3 md:h-12 transition-all duration-300 relative",
+                                                isImageMode || isCodeMode || webBrowsingEnabled
+                                                    ? "bg-muted/50"
+                                                    : "text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
+                                            )}
                                             aria-label="Tools menu"
                                         >
-                                            <div className="flex items-center gap-1 truncate">
+                                            <div className="flex items-center gap-1.5 truncate">
+                                                {/* Mode Icon */}
+                                                {isImageMode ? (
+                                                    <Palette className="w-4 h-4 text-purple-500" />
+                                                ) : isCodeMode ? (
+                                                    <Code2 className="w-4 h-4 text-blue-500" />
+                                                ) : webBrowsingEnabled ? (
+                                                    <Globe className="w-4 h-4 text-green-500" />
+                                                ) : null}
                                                 <span className={cn(
                                                     "text-xs md:text-sm font-medium",
-                                                    isImageMode ? "text-purple-500" :
-                                                        isCodeMode ? "text-blue-500" :
-                                                            webBrowsingEnabled ? "text-green-500" :
+                                                    isImageMode ? "text-purple-600 dark:text-purple-400" :
+                                                        isCodeMode ? "text-blue-600 dark:text-blue-400" :
+                                                            webBrowsingEnabled ? "text-green-600 dark:text-green-400" :
                                                                 ""
                                                 )}>
                                                     {isImageMode ? "Visualize" :
                                                         isCodeMode ? "Coding" :
-                                                            webBrowsingEnabled ? "Web Research" : "Tools"}
+                                                            webBrowsingEnabled ? "Web" : "Tools"}
                                                 </span>
-                                                <ChevronUp className="w-3 h-3 flex-shrink-0" />
+                                                <ChevronUp className="w-3 h-3 flex-shrink-0 opacity-60" />
                                             </div>
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-72" align="start" side="top">
-                                        <div className="px-3 py-2 text-sm font-medium text-muted-foreground border-b">
-                                            Tools & Modi
+                                    <DropdownMenuContent className="w-80 p-0" align="start" side="top">
+                                        {/* Header */}
+                                        <div className="px-4 py-3 border-b border-border/50">
+                                            <div className="flex items-center gap-2">
+                                                <Settings className="w-4 h-4 text-muted-foreground" />
+                                                <span className="text-sm font-semibold">Tools & Modi</span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mt-1">Wähle einen Modus für dein Gespräch</p>
                                         </div>
 
-                                        {/* Image Generation Mode */}
-                                        <DropdownMenuItem
-                                            onClick={() => {
-                                                // Toggle off all modes first
-                                                if (isImageMode) onToggleImageMode();
-                                                if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
-                                                if (webBrowsingEnabled) onToggleWebBrowsing();
-                                                // Then toggle image mode
-                                                if (!isImageMode) onToggleImageMode();
-                                            }}
-                                            className={cn(
-                                                "flex items-center gap-3 p-3 cursor-pointer transition-all duration-200",
-                                                isImageMode && "bg-purple-50 dark:bg-purple-900/20 border-l-2 border-purple-500"
-                                            )}
-                                        >
-                                            <ImageIcon className={cn("w-4 h-4", isImageMode ? "text-purple-600" : "text-purple-500")} />
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium">Image Generation Mode</span>
-                                                <span className="text-xs text-muted-foreground">Bilder und Visualisierungen erstellen</span>
-                                            </div>
-                                            {isImageMode && (
-                                                <div className="ml-auto w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
-                                            )}
-                                        </DropdownMenuItem>
-
-                                        {/* Web Research Mode */}
-                                        <DropdownMenuItem
-                                            onClick={() => {
-                                                // Toggle off all modes first
-                                                if (isImageMode) onToggleImageMode();
-                                                if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
-                                                if (webBrowsingEnabled) onToggleWebBrowsing();
-                                                // Then toggle web browsing
-                                                if (!webBrowsingEnabled) onToggleWebBrowsing();
-                                            }}
-                                            className={cn(
-                                                "flex items-center gap-3 p-3 cursor-pointer transition-all duration-200",
-                                                webBrowsingEnabled && "bg-green-50 dark:bg-green-900/20 border-l-2 border-green-500"
-                                            )}
-                                        >
-                                            <Globe className={cn("w-4 h-4", webBrowsingEnabled ? "text-green-600" : "text-green-500")} />
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium">Web Research Mode</span>
-                                                <span className="text-xs text-muted-foreground">Web-Recherche und aktuelle Informationen</span>
-                                            </div>
-                                            {webBrowsingEnabled && (
-                                                <div className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                            )}
-                                        </DropdownMenuItem>
-
-                                        {/* Coding Assist Mode */}
-                                        {onToggleCodeMode && (
+                                        {/* Content */}
+                                        <div className="p-2 space-y-1">
+                                            {/* Standard Chat (Default) */}
                                             <DropdownMenuItem
                                                 onClick={() => {
-                                                    // Toggle off all modes first
+                                                    // Turn off all modes
                                                     if (isImageMode) onToggleImageMode();
                                                     if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
                                                     if (webBrowsingEnabled) onToggleWebBrowsing();
-                                                    // Then toggle code mode
-                                                    if (!isCodeMode) onToggleCodeMode();
                                                 }}
                                                 className={cn(
-                                                    "flex items-center gap-3 p-3 cursor-pointer transition-all duration-200",
-                                                    isCodeMode && "bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500"
+                                                    "flex items-center gap-3 px-3 py-3 cursor-pointer rounded-lg transition-all duration-200",
+                                                    !isImageMode && !isCodeMode && !webBrowsingEnabled
+                                                        ? "bg-accent border border-border/50"
+                                                        : "hover:bg-muted/50"
                                                 )}
                                             >
-                                                <Code2 className={cn("w-4 h-4", isCodeMode ? "text-blue-600" : "text-blue-500")} />
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-medium">Coding Assist Mode</span>
-                                                    <span className="text-xs text-muted-foreground">Code-Erstellung und Analyse</span>
+                                                <div className={cn(
+                                                    "w-9 h-9 rounded-lg flex items-center justify-center",
+                                                    !isImageMode && !isCodeMode && !webBrowsingEnabled
+                                                        ? "bg-foreground/10"
+                                                        : "bg-muted"
+                                                )}>
+                                                    <MessageSquare className="w-4 h-4" />
                                                 </div>
-                                                {isCodeMode && (
-                                                    <div className="ml-auto w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                                                <div className="flex-1">
+                                                    <span className="text-sm font-medium block">Standard Chat</span>
+                                                    <span className="text-xs text-muted-foreground">Normale Unterhaltung</span>
+                                                </div>
+                                                {!isImageMode && !isCodeMode && !webBrowsingEnabled && (
+                                                    <div className="w-2 h-2 rounded-full bg-foreground/50"></div>
                                                 )}
                                             </DropdownMenuItem>
-                                        )}
+
+                                            {/* Image Generation Mode */}
+                                            <DropdownMenuItem
+                                                onClick={() => {
+                                                    if (isImageMode) onToggleImageMode();
+                                                    if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
+                                                    if (webBrowsingEnabled) onToggleWebBrowsing();
+                                                    if (!isImageMode) onToggleImageMode();
+                                                }}
+                                                className={cn(
+                                                    "flex items-center gap-3 px-3 py-3 cursor-pointer rounded-lg transition-all duration-200",
+                                                    isImageMode
+                                                        ? "bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800"
+                                                        : "hover:bg-muted/50"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "w-9 h-9 rounded-lg flex items-center justify-center",
+                                                    isImageMode
+                                                        ? "bg-purple-100 dark:bg-purple-900/50"
+                                                        : "bg-purple-50 dark:bg-purple-900/20"
+                                                )}>
+                                                    <Palette className={cn("w-4 h-4", isImageMode ? "text-purple-600" : "text-purple-500")} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <span className="text-sm font-medium block">Visualize Mode</span>
+                                                    <span className="text-xs text-muted-foreground">Bilder erstellen</span>
+                                                </div>
+                                                {isImageMode && (
+                                                    <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+                                                )}
+                                            </DropdownMenuItem>
+
+                                            {/* Web Research Mode */}
+                                            <DropdownMenuItem
+                                                onClick={() => {
+                                                    if (isImageMode) onToggleImageMode();
+                                                    if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
+                                                    if (webBrowsingEnabled) onToggleWebBrowsing();
+                                                    if (!webBrowsingEnabled) onToggleWebBrowsing();
+                                                }}
+                                                className={cn(
+                                                    "flex items-center gap-3 px-3 py-3 cursor-pointer rounded-lg transition-all duration-200",
+                                                    webBrowsingEnabled
+                                                        ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+                                                        : "hover:bg-muted/50"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "w-9 h-9 rounded-lg flex items-center justify-center",
+                                                    webBrowsingEnabled
+                                                        ? "bg-green-100 dark:bg-green-900/50"
+                                                        : "bg-green-50 dark:bg-green-900/20"
+                                                )}>
+                                                    <Globe className={cn("w-4 h-4", webBrowsingEnabled ? "text-green-600" : "text-green-500")} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <span className="text-sm font-medium block">Web Research</span>
+                                                    <span className="text-xs text-muted-foreground">Aktuelle Informationen</span>
+                                                </div>
+                                                {webBrowsingEnabled && (
+                                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                                )}
+                                            </DropdownMenuItem>
+
+                                            {/* Coding Assist Mode */}
+                                            {onToggleCodeMode && (
+                                                <DropdownMenuItem
+                                                    onClick={() => {
+                                                        if (isImageMode) onToggleImageMode();
+                                                        if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
+                                                        if (webBrowsingEnabled) onToggleWebBrowsing();
+                                                        if (!isCodeMode) onToggleCodeMode();
+                                                    }}
+                                                    className={cn(
+                                                        "flex items-center gap-3 px-3 py-3 cursor-pointer rounded-lg transition-all duration-200",
+                                                        isCodeMode
+                                                            ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                                                            : "hover:bg-muted/50"
+                                                    )}
+                                                >
+                                                    <div className={cn(
+                                                        "w-9 h-9 rounded-lg flex items-center justify-center",
+                                                        isCodeMode
+                                                            ? "bg-blue-100 dark:bg-blue-900/50"
+                                                            : "bg-blue-50 dark:bg-blue-900/20"
+                                                    )}>
+                                                        <Code2 className={cn("w-4 h-4", isCodeMode ? "text-blue-600" : "text-blue-500")} />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <span className="text-sm font-medium block">Coding Assist</span>
+                                                        <span className="text-xs text-muted-foreground">Code-Erstellung</span>
+                                                    </div>
+                                                    {isCodeMode && (
+                                                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                                                    )}
+                                                </DropdownMenuItem>
+                                            )}
+                                        </div>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
 
                             {/* Right Side: Model Selector + Mic + Send */}
                             <div className="flex items-center gap-0">
-                                {/* Compact Model Selector */}
+                                {/* Compact Model Selector - Unified Design */}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button
                                             type="button"
                                             variant="ghost"
-                                            className="group rounded-lg h-14 w-auto px-4 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white min-w-[120px] max-w-[220px] md:max-w-[250px]"
+                                            className="group rounded-lg h-14 w-auto px-3 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white min-w-[100px] max-w-[180px] md:max-w-[200px]"
                                             aria-label="Select model"
                                         >
-                                            <div className="flex items-center gap-1 truncate">
+                                            <div className="flex items-center gap-1.5 truncate">
                                                 {/* Model Icon */}
-                                                <div className="w-4 h-4 flex-shrink-0">
+                                                <div className="w-5 h-5 flex-shrink-0">
                                                     {modelIcons[selectedModelId] ? (
                                                         <Image
                                                             src={modelIcons[selectedModelId]}
                                                             alt={selectedModelId}
-                                                            width={16}
-                                                            height={16}
-                                                            className="rounded-sm"
+                                                            width={20}
+                                                            height={20}
+                                                            className="rounded-md"
                                                         />
                                                     ) : (
-                                                        <div className="w-4 h-4 rounded-sm bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                                                            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+                                                        <div className="w-5 h-5 rounded-md bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center">
+                                                            <span className="text-[10px] font-bold text-white">
                                                                 {selectedModelId?.charAt(0)?.toUpperCase() || 'A'}
                                                             </span>
                                                         </div>
@@ -579,109 +693,130 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                                 <span className="text-xs md:text-sm font-medium truncate">
                                                     {(() => {
                                                         const modelDisplayMap: Record<string, string> = {
-                                                            'claude': 'Claude Sonnet 4.5',
+                                                            'claude': 'Claude',
+                                                            'claude-fast': 'Haiku',
+                                                            'claude-large': 'Opus',
                                                             'gemini-large': 'Gemini 3',
+                                                            'gemini': 'Gemini',
+                                                            'gemini-search': 'Gemini+',
                                                             'openai-large': 'GPT 5.2',
-                                                            'deepseek': 'DeepSeek'
+                                                            'openai-reasoning': 'o4 Pro',
+                                                            'deepseek': 'DeepSeek',
+                                                            'grok': 'Grok',
+                                                            'moonshot': 'Kimi',
+                                                            'perplexity-reasoning': 'Perplexity',
+                                                            'perplexity-fast': 'Perplexity',
+                                                            'qwen-coder': 'Qwen',
+                                                            'mistral': 'Mistral'
                                                         };
-                                                        return modelDisplayMap[selectedModelId] ||
-                                                            AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId)?.name.split(' ')[0] ||
-                                                            'Claude';
+                                                        return modelDisplayMap[selectedModelId] || 'Claude';
                                                     })()}
                                                 </span>
-                                                <ChevronUp className="w-3 h-3 flex-shrink-0" />
+                                                <ChevronUp className="w-3 h-3 flex-shrink-0 opacity-60" />
                                             </div>
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto" align="end" side="top">
-                                        <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground border-b">
-                                            Chat Model Selection
+                                    <DropdownMenuContent className="w-[340px] p-0 max-h-[420px] overflow-y-auto" align="end" side="top">
+                                        {/* Header */}
+                                        <div className="px-4 py-3 border-b border-border/50 sticky top-0 bg-popover z-10">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-4 h-4 rounded bg-gradient-to-br from-purple-500 to-blue-500" />
+                                                <span className="text-sm font-semibold">KI-Modell wählen</span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mt-1">Beliebte Modelle für dein Gespräch</p>
                                         </div>
 
-                                        {/* Main Models */}
-                                        <div className="p-2">
-                                            <div className="grid grid-cols-1 gap-1">
-                                                {[
-                                                    { id: 'claude', displayName: 'Claude Sonnet 4.5' },
-                                                    { id: 'gemini-large', displayName: 'Gemini 3' },
-                                                    { id: 'openai-large', displayName: 'GPT 5.2' },
-                                                    { id: 'deepseek', displayName: 'DeepSeek' }
-                                                ].map((modelConfig) => {
-                                                    const model = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === modelConfig.id);
-                                                    if (!model) return null;
-                                                    return (
-                                                        <DropdownMenuItem
-                                                            key={model.id}
-                                                            onClick={() => handleModelChange(model.id)}
-                                                            className={cn(
-                                                                "flex flex-col items-start p-3 cursor-pointer",
-                                                                selectedModelId === model.id && "bg-accent"
+                                        {/* Featured Models */}
+                                        <div className="p-2 space-y-1">
+                                            {[
+                                                { id: 'claude', emoji: '🧠', highlight: 'Empfohlen' },
+                                                { id: 'openai-large', emoji: '⚡', highlight: 'Powerhouse' },
+                                                { id: 'gemini-large', emoji: '🌟', highlight: 'Kontext-King' },
+                                                { id: 'deepseek', emoji: '💎', highlight: 'Günstig & Gut' }
+                                            ].map((modelConfig) => {
+                                                const model = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === modelConfig.id);
+                                                if (!model) return null;
+                                                return (
+                                                    <DropdownMenuItem
+                                                        key={model.id}
+                                                        onClick={() => handleModelChange(model.id)}
+                                                        className={cn(
+                                                            "flex items-center gap-3 px-3 py-3 cursor-pointer rounded-lg transition-all duration-200",
+                                                            selectedModelId === model.id
+                                                                ? "bg-accent border border-border/50"
+                                                                : "hover:bg-muted/50"
+                                                        )}
+                                                    >
+                                                        {/* Model Icon */}
+                                                        <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
+                                                            {modelIcons[model.id] ? (
+                                                                <Image
+                                                                    src={modelIcons[model.id]}
+                                                                    alt={model.id}
+                                                                    width={28}
+                                                                    height={28}
+                                                                    className="rounded-lg"
+                                                                />
+                                                            ) : (
+                                                                <span className="text-lg">{modelConfig.emoji}</span>
                                                             )}
-                                                        >
-                                                            <div className="flex items-center gap-2 w-full">
-                                                                {/* Model Icon in Dropdown */}
-                                                                <div className="w-5 h-5 flex-shrink-0">
-                                                                    {modelIcons[model.id] ? (
-                                                                        <Image
-                                                                            src={modelIcons[model.id]}
-                                                                            alt={model.id}
-                                                                            width={20}
-                                                                            height={20}
-                                                                            className="rounded-sm"
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="w-5 h-5 rounded-sm bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                                                                            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
-                                                                                {model.id?.charAt(0)?.toUpperCase() || 'A'}
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <span className="font-medium text-sm">{model.name}</span>
-                                                                {model.category && (
-                                                                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-                                                                        {model.category}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            {model.description && (
-                                                                <span className="text-xs text-muted-foreground mt-1">
-                                                                    {model.description}
-                                                                </span>
-                                                            )}
-                                                            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                                                                {model.vision && (
-                                                                    <span className="flex items-center gap-1">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                                                        Vision
-                                                                    </span>
-                                                                )}
-                                                                {model.webBrowsing && (
-                                                                    <span className="flex items-center gap-1">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                                                        Web Search
-                                                                    </span>
-                                                                )}
-                                                                {model.contextWindow && (
-                                                                    <span>{(model.contextWindow / 1000).toFixed(0)}K context</span>
-                                                                )}
-                                                            </div>
-                                                        </DropdownMenuItem>
-                                                    );
-                                                })}
+                                                        </div>
 
-                                                {/* More Models Button */}
-                                                <DropdownMenuItem
-                                                    className="flex items-center gap-2 p-2 cursor-pointer text-muted-foreground hover:text-foreground"
-                                                    onClick={() => {
-                                                        // Open expanded model selector modal
-                                                        setIsExpandedModelSelectorOpen(true);
-                                                    }}
-                                                >
-                                                    <span className="text-sm">Weitere Modelle...</span>
-                                                    <span className="text-xs text-muted-foreground">({AVAILABLE_POLLINATIONS_MODELS.length - 4} weitere)</span>
-                                                </DropdownMenuItem>
-                                            </div>
+                                                        {/* Model Info */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-medium text-sm truncate">{model.name}</span>
+                                                                {modelConfig.highlight && selectedModelId !== model.id && (
+                                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                                                                        {modelConfig.highlight}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                                {model.useCases && model.useCases.length > 0 ? (
+                                                                    // Show use cases if available
+                                                                    model.useCases.map((useCase, idx) => (
+                                                                        <span key={idx} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                                                            {useCase}
+                                                                        </span>
+                                                                    ))
+                                                                ) : (
+                                                                    // Fallback to technical tags if no use cases
+                                                                    <>
+                                                                        {model.vision && (
+                                                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                                                                                👁️ Bilder
+                                                                            </span>
+                                                                        )}
+                                                                        {model.webBrowsing && (
+                                                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                                                                                🌐 Web
+                                                                            </span>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Selection indicator */}
+                                                        {selectedModelId === model.id && (
+                                                            <div className="w-2 h-2 rounded-full bg-primary"></div>
+                                                        )}
+                                                    </DropdownMenuItem>
+                                                );
+                                            })}
+
+                                            {/* Divider */}
+                                            <div className="my-2 border-t border-border/50" />
+
+                                            {/* More Models Button */}
+                                            <DropdownMenuItem
+                                                className="flex items-center justify-center gap-2 px-3 py-2.5 cursor-pointer rounded-lg hover:bg-muted/50 transition-colors"
+                                                onClick={() => setIsExpandedModelSelectorOpen(true)}
+                                            >
+                                                <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                                                <span className="text-sm text-muted-foreground">Alle {AVAILABLE_POLLINATIONS_MODELS.length} Modelle anzeigen</span>
+                                            </DropdownMenuItem>
                                         </div>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
@@ -721,93 +856,128 @@ const ChatInput: React.FC<ChatInputProps> = ({
             <input type="file" ref={docInputRef} onChange={(e) => handleFileChange(e, 'document')} accept="image/*,application/pdf" className="hidden" disabled={isLoading || !isLongLanguageLoopActive || isImageMode} />
             <input type="file" ref={imageInputRef} onChange={(e) => handleFileChange(e, 'image')} accept="image/*" className="hidden" disabled={isLoading || !isLongLanguageLoopActive || isImageMode} />
 
-            {/* Expanded Model Selector Modal */}
+            {/* Expanded Model Selector Modal - Unified Design */}
             {isExpandedModelSelectorOpen && (
                 <ModalPopup maxWidth="4xl">
-                    <div className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Alle Modelle auswählen</h2>
+                    <div className="p-0">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+                            <div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                                        <span className="text-white text-sm">🤖</span>
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-semibold">Alle KI-Modelle</h2>
+                                        <p className="text-xs text-muted-foreground">{AVAILABLE_POLLINATIONS_MODELS.length} Modelle verfügbar</p>
+                                    </div>
+                                </div>
+                            </div>
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setIsExpandedModelSelectorOpen(false)}
-                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                className="h-8 w-8 rounded-full hover:bg-muted"
                             >
                                 <XCircle className="w-5 h-5" />
                             </Button>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
-                                <div
-                                    key={model.id}
-                                    onClick={() => {
-                                        handleModelChange(model.id);
-                                        setIsExpandedModelSelectorOpen(false);
-                                    }}
-                                    className={cn(
-                                        "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md",
-                                        selectedModelId === model.id
-                                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                                            : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                                    )}
-                                >
-                                    {/* Model Icon */}
-                                    <div className="w-8 h-8 flex-shrink-0">
-                                        {modelIcons[model.id] ? (
-                                            <Image
-                                                src={modelIcons[model.id]}
-                                                alt={model.id}
-                                                width={32}
-                                                height={32}
-                                                className="rounded-lg"
-                                            />
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-lg bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                                                <span className="text-sm font-bold text-gray-600 dark:text-gray-300">
-                                                    {model.id?.charAt(0)?.toUpperCase() || 'A'}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
+                        {/* Content */}
+                        <div className="p-6 max-h-[60vh] overflow-y-auto">
+                            {/* Category Groups */}
+                            {['Premium', 'Standard', 'Specialized'].map((category) => {
+                                const categoryModels = AVAILABLE_POLLINATIONS_MODELS.filter(m => m.category === category);
+                                if (categoryModels.length === 0) return null;
 
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium text-gray-900 dark:text-white">{model.name}</span>
-                                            {model.category && (
-                                                <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                                                    {model.category}
-                                                </span>
-                                            )}
+                                return (
+                                    <div key={category} className="mb-6 last:mb-0">
+                                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                                            {category === 'Premium' && '⭐'}
+                                            {category === 'Standard' && '🔷'}
+                                            {category === 'Specialized' && '🔧'}
+                                            {category}
+                                        </h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {categoryModels.map((model) => (
+                                                <div
+                                                    key={model.id}
+                                                    onClick={() => {
+                                                        handleModelChange(model.id);
+                                                        setIsExpandedModelSelectorOpen(false);
+                                                    }}
+                                                    className={cn(
+                                                        "flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01]",
+                                                        selectedModelId === model.id
+                                                            ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                                                            : "border-border/50 hover:border-border hover:bg-muted/30"
+                                                    )}
+                                                >
+                                                    {/* Model Icon */}
+                                                    <div className="w-12 h-12 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
+                                                        {modelIcons[model.id] ? (
+                                                            <Image
+                                                                src={modelIcons[model.id]}
+                                                                alt={model.id}
+                                                                width={36}
+                                                                height={36}
+                                                                className="rounded-lg"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+                                                                <span className="text-lg font-bold text-gray-500 dark:text-gray-400">
+                                                                    {model.id?.charAt(0)?.toUpperCase() || 'A'}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="font-semibold text-sm">{model.name}</span>
+                                                            {selectedModelId === model.id && (
+                                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">
+                                                                    Aktiv
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {model.description && (
+                                                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                                                {model.description}
+                                                            </p>
+                                                        )}
+
+                                                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                                            {model.vision && (
+                                                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium">
+                                                                    👁️ Vision
+                                                                </span>
+                                                            )}
+                                                            {model.webBrowsing && (
+                                                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium">
+                                                                    🌐 Web
+                                                                </span>
+                                                            )}
+                                                            {model.contextWindow && (
+                                                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                                                                    📝 {(model.contextWindow / 1000).toFixed(0)}K
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Selection indicator */}
+                                                    {selectedModelId === model.id && (
+                                                        <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0"></div>
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
-
-                                        {model.description && (
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                {model.description}
-                                            </p>
-                                        )}
-
-                                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-500">
-                                            {model.vision && (
-                                                <span className="flex items-center gap-1">
-                                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                                    Vision
-                                                </span>
-                                            )}
-                                            {model.webBrowsing && (
-                                                <span className="flex items-center gap-1">
-                                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                                    Web Search
-                                                </span>
-                                            )}
-                                            {model.contextWindow && (
-                                                <span>{(model.contextWindow / 1000).toFixed(0)}K context</span>
-                                            )}
-                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </ModalPopup>
