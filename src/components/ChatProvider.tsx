@@ -127,23 +127,107 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     return new File([u8arr], filename, { type: mime });
   }, []);
 
+  // Bildanalyse Funktion
+  const analyzeImage = useCallback(async (imageDataUrl: string, imageFile?: File) => {
+    if (!activeConversation) return;
+    
+    try {
+      // Upload the image to get a public URL
+      let imageUrl = imageDataUrl;
+      
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          imageUrl = uploadResult.url;
+        }
+      }
+      
+      // Call vision analysis API
+      const visionResponse = await fetch('/api/vision', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl,
+          prompt: `Analysiere dieses Bild detailliert. Beschreibe was du siehst, was darauf zu sehen ist, und gib relevante Details an.`,
+          modelId: activeConversation.selectedModelId || 'claude',
+        }),
+      });
+      
+      if (!visionResponse.ok) {
+        throw new Error(`Vision API Fehler: ${visionResponse.status}`);
+      }
+      
+      const result = await visionResponse.json();
+      
+      if (result.success) {
+        // Add AI message with the analysis to the chat
+        const analysisMessage: ChatMessage = {
+          id: generateUUID(),
+          role: 'assistant',
+          content: result.analysis,
+          timestamp: new Date().toISOString(),
+          toolType: 'long language loops',
+        };
+        
+        setActiveConversation(prev => prev ? {
+          ...prev,
+          messages: [...prev.messages, analysisMessage],
+          uploadedFile: null,
+          uploadedFilePreview: null
+        } : null);
+      } else {
+        throw new Error(result.error || 'Bildanalyse fehlgeschlagen');
+      }
+      
+    } catch (error) {
+      console.error('Bildanalyse Fehler:', error);
+      toast({
+        title: "Bildanalyse fehlgeschlagen",
+        description: error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten.",
+        variant: "destructive",
+      });
+      
+      // Clear the uploaded image on error
+      setActiveConversation(prev => prev ? {
+        ...prev,
+        uploadedFile: null,
+        uploadedFilePreview: null
+      } : null);
+    }
+  }, [activeConversation, toast, setActiveConversation]);
+
   const handleFileSelect = useCallback((fileOrDataUri: File | string | null, fileType: string | null) => {
     if (!activeConversation) return; // Stellen Sie sicher, dass activeConversation existiert
     if (fileOrDataUri) {
       if (typeof fileOrDataUri === 'string') {
         const file = dataURItoFile(fileOrDataUri, `capture-${Date.now()}.jpg`);
         setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: file, uploadedFilePreview: fileOrDataUri } : null);
+        // Start image analysis automatically for camera captures
+        analyzeImage(fileOrDataUri, file);
       } else {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: fileOrDataUri, uploadedFilePreview: reader.result as string } : null);
+          const dataUrl = reader.result as string;
+          setActiveConversation(prev => prev ? { ...prev, isImageMode: false, uploadedFile: fileOrDataUri, uploadedFilePreview: dataUrl } : null);
+          // Start image analysis automatically for uploaded files
+          analyzeImage(dataUrl, fileOrDataUri);
         };
         reader.readAsDataURL(fileOrDataUri);
       }
     } else {
       setActiveConversation(prev => prev ? { ...prev, uploadedFile: null, uploadedFilePreview: null } : null);
     }
-  }, [activeConversation, dataURItoFile, setActiveConversation]);
+  }, [activeConversation, dataURItoFile, setActiveConversation, analyzeImage]);
 
   const clearUploadedImage = useCallback(() => {
     if (activeConversation) {
