@@ -237,7 +237,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         : isTranscribing
             ? t('chat.transcribing')
             : isImageMode
-                ? `Du bist jetzt in der INchat-Visualisierung . Tippe hier ein, was du sehen willst und die Maschine erstellt ein Bild.`
+                ? `Du bist jetzt in der INchat-Visualisierung. Tippe hier ein, was du sehen willst und die Maschine erstellt ein Bild.`
                 : webBrowsingEnabled
                     ? `Du nutzt jetzt die Web-Recherche`
                     : isCodeMode
@@ -387,7 +387,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                                             <SelectItem value="Deep Dive">Deep Dive</SelectItem>
                                                             <SelectItem value="Emotional Support">Emotional Support</SelectItem>
                                                             <SelectItem value="Philosophical">Philosophical</SelectItem>
-                                                            <SelectItem value="User's Default">User's Default</SelectItem>
+                                                            <SelectItem value="User Default">User Default</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
