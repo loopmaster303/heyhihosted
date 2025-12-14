@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle, Code2, MoreHorizontal, Palette, Globe, Settings, MoreVertical, ChevronUp, Plus, MessageSquare, FileText } from 'lucide-react';
+import { Send, Mic, ImageIcon, Paperclip, Camera, File, FileImage, XCircle, Code2, MoreHorizontal, Palette, Globe, Settings, MoreVertical, ChevronUp, Plus, MessageSquare, FileText, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types';
 import { useLanguage } from '../LanguageProvider';
@@ -17,6 +17,14 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { ContextualPopup, ModalPopup } from "@/components/ui/popup";
 import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 
 // Model Icons
@@ -148,6 +156,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
     const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
     const [isExpandedModelSelectorOpen, setIsExpandedModelSelectorOpen] = useState(false);
+    const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState(false);
 
     // Mobile detection
     useEffect(() => {
@@ -162,6 +171,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     const docInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const quickSettingsButtonRef = useRef<HTMLButtonElement>(null);
     const [isTitleHovered, setIsTitleHovered] = useState(false);
 
     const TEXTAREA_MIN_HEIGHT = 80;
@@ -286,18 +296,105 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             />
                         </div>
                         <div className="flex w-full items-center justify-between gap-1">
-                            {/* Left Side: Gear + Plus Menu + Mode Selector */}
+                            {/* Left Side: Quick Settings + Plus Menu + Mode Selector */}
                             <div className="flex items-center gap-0">
-                                <Link href="/settings">
+                                {/* Quick Settings Button */}
+                                <div className="relative">
                                     <Button
+                                        ref={quickSettingsButtonRef}
                                         type="button"
                                         variant="ghost"
+                                        onClick={() => setIsQuickSettingsOpen(!isQuickSettingsOpen)}
                                         className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
-                                        aria-label="Open personalization settings"
+                                        aria-label="Quick settings"
                                     >
-                                        <Settings className="w-[20px] h-[20px]" />
+                                        <Settings2 className="w-[20px] h-[20px]" />
                                     </Button>
-                                </Link>
+
+                                    {/* Quick Settings Popup */}
+                                    {isQuickSettingsOpen && (
+                                        <ContextualPopup position="top-center" triggerRef={quickSettingsButtonRef} className="min-w-[320px]">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-sm font-semibold">Quick Settings</h3>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setIsQuickSettingsOpen(false)}
+                                                    className="h-6 w-6"
+                                                >
+                                                    <XCircle className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                {/* Voice Selection */}
+                                                <div>
+                                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Stimme (Voice Mode)</label>
+                                                    <Select
+                                                        value={selectedVoice}
+                                                        onValueChange={handleVoiceChange}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="English_ConfidentWoman">Luca</SelectItem>
+                                                            <SelectItem value="Japanese_CalmLady">Sky</SelectItem>
+                                                            <SelectItem value="French_Female_News Anchor">Charlie</SelectItem>
+                                                            <SelectItem value="German_FriendlyMan">Mika</SelectItem>
+                                                            <SelectItem value="German_PlayfulMan">Casey</SelectItem>
+                                                            <SelectItem value="Korean_ReliableYouth">Taylor</SelectItem>
+                                                            <SelectItem value="Japanese_InnocentBoy">Jamie</SelectItem>
+                                                            <SelectItem value="R8_8CZH4KMY">Dev</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                {/* Image Model Selection */}
+                                                <div>
+                                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Bildmodell (In-Chat)</label>
+                                                    <Select
+                                                        value={selectedImageModelId}
+                                                        onValueChange={handleImageModelChange}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="nanobanana">Nanobanana (Standard)</SelectItem>
+                                                            <SelectItem value="kontext">Kontext</SelectItem>
+                                                            <SelectItem value="nanobanana-pro">Nanobanana Pro</SelectItem>
+                                                            <SelectItem value="seedream">Seedream</SelectItem>
+                                                            <SelectItem value="seedream-pro">Seedream Pro</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                {/* Response Style Selection */}
+                                                <div>
+                                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Antwortstil</label>
+                                                    <Select
+                                                        value={selectedResponseStyleName}
+                                                        onValueChange={handleStyleChange}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Basic">Basic</SelectItem>
+                                                            <SelectItem value="Precise">Präzise</SelectItem>
+                                                            <SelectItem value="Deep Dive">Deep Dive</SelectItem>
+                                                            <SelectItem value="Emotional Support">Emotional Support</SelectItem>
+                                                            <SelectItem value="Philosophical">Philosophical</SelectItem>
+                                                            <SelectItem value="User's Default">User's Default</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                        </ContextualPopup>
+                                    )}
+                                </div>
 
                                 {/* Plus Menu for Upload Functions */}
                                 <DropdownMenu open={isPlusMenuOpen} onOpenChange={setIsPlusMenuOpen}>
@@ -311,7 +408,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                             <Plus className="w-[20px] h-[20px]" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-56" align="start">
+                                    <DropdownMenuContent className="w-56" align="start" side="top">
                                         <DropdownMenuItem
                                             onClick={() => imageInputRef.current?.click()}
                                             disabled={isLoading || isImageMode}
@@ -364,7 +461,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                             </div>
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-72" align="start">
+                                    <DropdownMenuContent className="w-72" align="start" side="top">
                                         <div className="px-3 py-2 text-sm font-medium text-muted-foreground border-b">
                                             Tools & Modi
                                         </div>
@@ -496,7 +593,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                             </div>
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto" align="end">
+                                    <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto" align="end" side="top">
                                         <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground border-b">
                                             Chat Model Selection
                                         </div>
@@ -626,96 +723,94 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
             {/* Expanded Model Selector Modal */}
             {isExpandedModelSelectorOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-[#252525] rounded-2xl shadow-2xl max-w-4xl max-h-[80vh] overflow-y-auto">
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Alle Modelle auswählen</h2>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setIsExpandedModelSelectorOpen(false)}
-                                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                                >
-                                    <XCircle className="w-5 h-5" />
-                                </Button>
-                            </div>
+                <ModalPopup maxWidth="4xl">
+                    <div className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Alle Modelle auswählen</h2>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsExpandedModelSelectorOpen(false)}
+                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                            >
+                                <XCircle className="w-5 h-5" />
+                            </Button>
+                        </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
-                                    <div
-                                        key={model.id}
-                                        onClick={() => {
-                                            handleModelChange(model.id);
-                                            setIsExpandedModelSelectorOpen(false);
-                                        }}
-                                        className={cn(
-                                            "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md",
-                                            selectedModelId === model.id
-                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                                                : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
+                                <div
+                                    key={model.id}
+                                    onClick={() => {
+                                        handleModelChange(model.id);
+                                        setIsExpandedModelSelectorOpen(false);
+                                    }}
+                                    className={cn(
+                                        "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md",
+                                        selectedModelId === model.id
+                                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                            : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                                    )}
+                                >
+                                    {/* Model Icon */}
+                                    <div className="w-8 h-8 flex-shrink-0">
+                                        {modelIcons[model.id] ? (
+                                            <Image
+                                                src={modelIcons[model.id]}
+                                                alt={model.id}
+                                                width={32}
+                                                height={32}
+                                                className="rounded-lg"
+                                            />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-lg bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                                                <span className="text-sm font-bold text-gray-600 dark:text-gray-300">
+                                                    {model.id?.charAt(0)?.toUpperCase() || 'A'}
+                                                </span>
+                                            </div>
                                         )}
-                                    >
-                                        {/* Model Icon */}
-                                        <div className="w-8 h-8 flex-shrink-0">
-                                            {modelIcons[model.id] ? (
-                                                <Image
-                                                    src={modelIcons[model.id]}
-                                                    alt={model.id}
-                                                    width={32}
-                                                    height={32}
-                                                    className="rounded-lg"
-                                                />
-                                            ) : (
-                                                <div className="w-8 h-8 rounded-lg bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                                                    <span className="text-sm font-bold text-gray-600 dark:text-gray-300">
-                                                        {model.id?.charAt(0)?.toUpperCase() || 'A'}
-                                                    </span>
-                                                </div>
+                                    </div>
+
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium text-gray-900 dark:text-white">{model.name}</span>
+                                            {model.category && (
+                                                <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                                                    {model.category}
+                                                </span>
                                             )}
                                         </div>
 
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-gray-900 dark:text-white">{model.name}</span>
-                                                {model.category && (
-                                                    <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                                                        {model.category}
-                                                    </span>
-                                                )}
-                                            </div>
+                                        {model.description && (
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                {model.description}
+                                            </p>
+                                        )}
 
-                                            {model.description && (
-                                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                    {model.description}
-                                                </p>
+                                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-500">
+                                            {model.vision && (
+                                                <span className="flex items-center gap-1">
+                                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                                    Vision
+                                                </span>
                                             )}
-
-                                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-500">
-                                                {model.vision && (
-                                                    <span className="flex items-center gap-1">
-                                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                                        Vision
-                                                    </span>
-                                                )}
-                                                {model.webBrowsing && (
-                                                    <span className="flex items-center gap-1">
-                                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                                        Web Search
-                                                    </span>
-                                                )}
-                                                {model.contextWindow && (
-                                                    <span>{(model.contextWindow / 1000).toFixed(0)}K context</span>
-                                                )}
-                                            </div>
+                                            {model.webBrowsing && (
+                                                <span className="flex items-center gap-1">
+                                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                                    Web Search
+                                                </span>
+                                            )}
+                                            {model.contextWindow && (
+                                                <span>{(model.contextWindow / 1000).toFixed(0)}K context</span>
+                                            )}
                                         </div>
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
-                </div>
+                </ModalPopup>
             )}
         </div>
     );

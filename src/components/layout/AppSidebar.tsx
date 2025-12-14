@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import {
   Menu,
@@ -95,12 +96,29 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     setIsExpanded(prev => !prev);
   };
 
+  // Close sidebar when clicking outside (only when expanded and not clicking on sidebar content)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isExpanded && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isExpanded]);
+
+  const sidebarRef = React.useRef<HTMLDivElement>(null);
+
   return (
     <div
       className={cn(
         "h-screen bg-background border-r border-border flex flex-col transition-all duration-300",
         isExpanded ? "w-64" : "w-16"
       )}
+      ref={sidebarRef}
     >
       {/* Header */}
       <div className="p-4 border-b border-border flex items-center gap-3">
@@ -113,11 +131,13 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         </Button>
 
         {isExpanded && (
-          <div className="font-mono text-sm flex-1 flex items-center whitespace-nowrap">
-            <span className="text-foreground text-lg font-bold">{'(!hey.hi = '}</span>
-            <span className="text-transparent bg-gradient-to-r from-purple-300 to-purple-600 bg-clip-text text-lg font-bold">{userDisplayName}</span>
-            <span className="text-foreground text-lg font-bold">{')'}</span>
-          </div>
+          <Link href="/" className="flex-1">
+            <div className="font-mono text-sm flex items-center whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity">
+              <span className="text-foreground text-lg font-bold">{'(!hey.hi = '}</span>
+              <span className="text-transparent bg-gradient-to-r from-purple-300 to-purple-600 bg-clip-text text-lg font-bold">{userDisplayName}</span>
+              <span className="text-foreground text-lg font-bold">{')'}</span>
+            </div>
+          </Link>
         )}
       </div>
 
