@@ -23,179 +23,45 @@ export interface VoiceOption {
   name: string; // Display name, e.g., "German (Female, Natural)"
 }
 
-// Curated model list with new Pollinations.ai models
+// Only Mistral models from Mistral API
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-  // OpenAI Stack - Only GPT-5.2 and o4 Pro models
+  // Mistral Large - Most powerful model
   {
-    id: "openai-large",
-    name: "OpenAI GPT-5.2",
+    id: "mistral-large",
+    name: "Mistral Large",
     description: "Most Powerful & Intelligent Model with Vision",
     vision: true,
     category: "Premium",
-    contextWindow: 200000,
+    contextWindow: 262144,
     maxTokens: 8192,
-    costPerToken: 15.0,
-    useCases: ["Komplexe Aufgaben", "Bilder & Video", "Mehrstufiges Denken"]
+    costPerToken: 0.30,
+    useCases: ["Komplexe Aufgaben", "Bilder analysieren", "Mathematik", "Langdokumente"]
   },
+
+  // Mistral Medium - Advanced reasoning
   {
-    id: "openai-reasoning",
-    name: "OpenAI o4 Pro",
+    id: "mistral-medium",
+    name: "Mistral Medium",
     description: "Advanced Reasoning with Vision",
     vision: true,
-    category: "Premium",
-    contextWindow: 128000,
-    maxTokens: 32768,
-    costPerToken: 15.0
-  },
-
-  // Anthropic Claude - Updated with Claude Sonnet 4.5 as default
-  {
-    id: "claude",
-    name: "Claude Sonnet 4.5",
-    description: "Most Capable & Balanced Model with Vision",
-    vision: true,
-    category: "Premium",
-    contextWindow: 200000,
-    maxTokens: 8192,
-    costPerToken: 7.5,
-    useCases: ["Bilder analysieren", "Lange Dokumente", "Kreatives Schreiben"]
-  },
-  {
-    id: "claude-fast",
-    name: "Claude Haiku 4.1",
-    description: "Fastest Claude with Vision",
-    vision: true,
     category: "Standard",
-    contextWindow: 200000,
+    contextWindow: 131072,
     maxTokens: 4096,
-    costPerToken: 1.25
-  },
-  {
-    id: "claude-large",
-    name: "Claude Opus 4.5",
-    description: "Most Intelligent Claude with Vision",
-    vision: true,
-    category: "Premium",
-    contextWindow: 200000,
-    maxTokens: 4096,
-    costPerToken: 15.0
+    costPerToken: 0.10,
+    useCases: ["Programmierung", "Mathematik", "Dialoge", "Allround"]
   },
 
-  // Google Gemini - Updated with Gemini 3 Pro
+  // Mistral Small - Fast and efficient
   {
-    id: "gemini-large",
-    name: "Google Gemini 3 Pro",
-    description: "Most Intelligent Model with Vision",
+    id: "mistral-small",
+    name: "Mistral Small",
+    description: "Fast & Efficient Multilingual Model",
     vision: true,
-    category: "Premium",
-    contextWindow: 2000000,
-    maxTokens: 8192,
-    costPerToken: 3.5,
-    useCases: ["Riesige Dokumente", "Bilder analysieren", "Lange Kontexte"]
-  },
-  {
-    id: "gemini",
-    name: "Google Gemini 2.5 Flash",
-    description: "Fast with Vision & Tools",
-    vision: true,
-    category: "Standard",
-    contextWindow: 1000000,
-    maxTokens: 8192,
-    costPerToken: 0.075
-  },
-  {
-    id: "gemini-search",
-    name: "Google Gemini 2.5 Flash + Search",
-    description: "Gemini with Google Search",
-    vision: true,
-    webBrowsing: true,
-    category: "Standard",
-    contextWindow: 1000000,
-    maxTokens: 8192,
-    costPerToken: 0.075
-  },
-
-  // Perplexity - Web Browsing Specialists
-  {
-    id: "perplexity-reasoning",
-    name: "Perplexity Sonnet Reasoning",
-    description: "Advanced Reasoning with Web Search",
-    vision: false,
-    webBrowsing: true,
-    category: "Premium",
-    contextWindow: 200000,
-    maxTokens: 8192,
-    costPerToken: 5.0
-  },
-  {
-    id: "perplexity-fast",
-    name: "Perplexity Sonnet Fast",
-    description: "Fast with Web Search",
-    vision: false,
-    webBrowsing: true,
-    category: "Standard",
-    contextWindow: 200000,
-    maxTokens: 4096,
-    costPerToken: 2.5
-  },
-
-  // DeepSeek - Cost-Effective Reasoning
-  {
-    id: "deepseek",
-    name: "DeepSeek V3.1 Reasoning",
-    description: "Advanced Reasoning at Low Cost",
-    vision: false,
-    category: "Standard",
-    contextWindow: 128000,
-    maxTokens: 8192,
-    costPerToken: 0.55,
-    useCases: ["Logik & Mathe", "Code verstehen", "Günstiger Allrounder"]
-  },
-
-  // xAI Grok
-  {
-    id: "grok",
-    name: "Grok 3.1 Mini",
-    description: "Fast with Real-time Knowledge",
-    vision: false,
     category: "Standard",
     contextWindow: 131072,
     maxTokens: 8192,
-    costPerToken: 0.50
-  },
-
-  // Moonshot AI
-  {
-    id: "moonshot",
-    name: "Moonshot Kimi K2 Thinking",
-    description: "Advanced Reasoning Model",
-    vision: false,
-    category: "Premium",
-    contextWindow: 128000,
-    maxTokens: 4096,
-    costPerToken: 4.0
-  },
-
-  // Specialized Models
-  {
-    id: "qwen-coder",
-    name: "Qwen 2.5 Coder 32B",
-    description: "Specialized for Code Generation",
-    vision: false,
-    category: "Specialized",
-    contextWindow: 32768,
-    maxTokens: 8192,
-    costPerToken: 0.30
-  },
-  {
-    id: "mistral",
-    name: "Mistral Small 3.2 24B",
-    description: "Efficient Multilingual Model",
-    vision: false,
-    category: "Standard",
-    contextWindow: 32000,
-    maxTokens: 8192,
-    costPerToken: 0.10
+    costPerToken: 0.02,
+    useCases: ["Schnelle Antworten", "Edge", "SaaS", "Einfache Aufgaben"]
   },
 ];
 
@@ -348,15 +214,17 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
   { id: 'R8_8CZH4KMY', name: 'Dev' },
 ];
 
-// Default model for new users/chats - Claude Sonnet 4.5 is the best balance
-export const DEFAULT_POLLINATIONS_MODEL_ID = 'claude'; // Claude Sonnet 4.5 as default
+// Default model for new users/chats - Mistral Large for direct Mistral usage
+export const DEFAULT_POLLINATIONS_MODEL_ID = 'mistral-large'; // Mistral Large as default
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // For in-chat image generation (align with bild.gen.lite)
 // Keep in sync with `/api/image/models` and VisualizingLoopsTool
 // NOTE: Only IMAGE models - NO video models (seedance, seedance-pro, veo) for chat
-export const FALLBACK_IMAGE_MODELS = ['kontext', 'nanobanana', 'nanobanana-pro', 'seedream', 'seedream-pro'];
-export const DEFAULT_IMAGE_MODEL = 'nanobanana'; // A safe default for Pollen image-lite
+// Filter out disabled models
+import { getImageModels } from './unified-image-models';
+export const FALLBACK_IMAGE_MODELS = getImageModels().map(m => m.id);
+export const DEFAULT_IMAGE_MODEL = getImageModels()[0]?.id || 'flux-2-pro'; // Use first enabled image model
 
 // Code reasoning system prompt used when Code Mode is enabled
 export const CODE_REASONING_SYSTEM_PROMPT = "You are a world-class software engineer and reasoning expert. Provide clear, concise, and accurate explanations and code. Prefer step-by-step reasoning when helpful. Always format code with fenced code blocks and correct language tags. Avoid hallucinations; if unsure, state assumptions and ask for missing details.";

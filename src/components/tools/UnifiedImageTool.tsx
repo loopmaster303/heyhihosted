@@ -94,7 +94,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
   const [mounted, setMounted] = useState(false);
 
   // Model selection
-  const availableModels = Object.keys(unifiedModelConfigs);
+  const availableModels = Object.keys(unifiedModelConfigs).filter(id => getUnifiedModel(id)?.enabled ?? true);
   const [selectedModelId, setSelectedModelId] = useState<string>(availableModels[0] || 'flux-2-pro');
   const currentModelConfig = getUnifiedModelConfig(selectedModelId);
 

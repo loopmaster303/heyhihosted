@@ -86,6 +86,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     webBrowsingEnabled,
     isGalleryPanelOpen,
     setIsGalleryPanelOpen,
+    mistralFallbackEnabled,
+    setMistralFallbackEnabled,
   } = state;
 
   const { toast } = useToast();
@@ -203,7 +205,20 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
       const userText = extractText(firstUserMessage).trim();
       const assistantText = extractText(firstAssistantMessage).trim();
-      const contextForTitle = [userText, assistantText].filter(Boolean).join('\n');
+
+      // Don't use error messages for title generation
+      const isErrorResponse = assistantText && (
+        assistantText.includes("couldn't get a response") ||
+        assistantText.includes("error occurred") ||
+        assistantText.includes("Sorry") ||
+        assistantText.includes("failed") ||
+        assistantText.length < 10 // Very short responses are often errors
+      );
+
+      let contextForTitle = userText;
+      if (assistantText && !isErrorResponse) {
+        contextForTitle += '\n' + assistantText;
+      }
 
       if (!contextForTitle && fallbackFromUser) {
         setActiveConversation(prev => prev ? { ...prev, title: fallbackFromUser } : null);
@@ -212,7 +227,17 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
       if (contextForTitle) {
         try {
-          const finalTitle = await ChatService.generateTitle(contextForTitle);
+          // Convert to proper messages array format for the API
+          const messagesForTitleApi: ApiChatMessage[] = [];
+
+          if (userText) {
+            messagesForTitleApi.push({ role: 'user', content: userText });
+          }
+          if (assistantText) {
+            messagesForTitleApi.push({ role: 'assistant', content: assistantText });
+          }
+
+          const finalTitle = await ChatService.generateTitle(messagesForTitleApi);
 
           // Use fallback if title is generic or empty
           const titleToSet = finalTitle && finalTitle.toLowerCase() !== 'chat' && finalTitle.length > 2
@@ -391,6 +416,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
         const isCodeMode = !!activeConversation.isCodeMode && !isImagePrompt;
         const modelIdForRequest = isCodeMode ? 'qwen-coder' : currentModel.id;
+
+        // DEBUG: Force Mistral for testing
+        // const modelIdForRequest = 'mistral-large';
         let systemPromptForRequest = effectiveSystemPrompt;
         if (isCodeMode) {
           systemPromptForRequest = CODE_REASONING_SYSTEM_PROMPT;
@@ -416,6 +444,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           modelId: modelIdForRequest,
           systemPrompt: systemPromptForRequest,
           webBrowsingEnabled,
+          mistralFallbackEnabled: mistralFallbackEnabled,
         }, (delta: string) => {
           // onStream callback
           streamedContent = delta;
@@ -449,7 +478,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         setActiveConversation(prev => prev ? { ...prev, messages: finalMessages } : null);
       }
 
-      // Title generation logic
+      // Title generation logic - only for first message pair or default titles
       const userMessageCount = finalMessages.filter(m => m.role === 'user').length;
       const assistantMessageCount = finalMessages.filter(m => m.role === 'assistant').length;
       const isFirstMessagePair = userMessageCount === 1 && assistantMessageCount === 1;
@@ -457,6 +486,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         activeConversation.title.toLowerCase().startsWith("new ") ||
         activeConversation.title === "Chat";
 
+      // Only generate title for first message pair or if title is still default
       if (isFirstMessagePair || isDefaultTitle) {
         finalTitle = await updateConversationTitle(convId, finalMessages);
       }
@@ -506,6 +536,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         isImageMode: conversationToSelect.isImageMode ?? false,
         isCodeMode: conversationToSelect.isCodeMode ?? false,
         webBrowsingEnabled: conversationToSelect.webBrowsingEnabled ?? false,
+        mistralFallbackEnabled: conversationToSelect.mistralFallbackEnabled ?? false,
         uploadedFile: null,
         uploadedFilePreview: null
       });
@@ -533,6 +564,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       isImageMode: false,
       isCodeMode: false,
       webBrowsingEnabled: false,
+      mistralFallbackEnabled: true,
       selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
       selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
     };
@@ -622,6 +654,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), []);
   const toggleWebBrowsing = useCallback(() => {
     setActiveConversation(prev => prev ? { ...prev, webBrowsingEnabled: !(prev.webBrowsingEnabled ?? false) } : prev);
+  }, [setActiveConversation]);
+
+  const toggleMistralFallback = useCallback(() => {
+    setActiveConversation(prev => prev ? { ...prev, mistralFallbackEnabled: !(prev.mistralFallbackEnabled ?? false) } : prev);
   }, [setActiveConversation]);
 
   const handleCopyToClipboard = useCallback((text: string) => {
@@ -718,6 +754,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     toggleGalleryPanel,
     toggleAdvancedPanel, closeAdvancedPanel,
     toggleWebBrowsing, webBrowsingEnabled,
+    toggleMistralFallback, mistralFallbackEnabled,
     handlePlayAudio,
     setChatInputValue,
     handleCopyToClipboard,
@@ -772,9 +809,3 @@ export const useChat = (): ChatContextValue => {
   }
   return context;
 };
-
-
-
-
-
-

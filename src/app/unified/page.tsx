@@ -7,6 +7,7 @@ import UnifiedImageTool from '@/components/tools/UnifiedImageTool';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import CameraCaptureDialog from '@/components/dialogs/CameraCaptureDialog';
 import AppLayout from '@/components/layout/AppLayout';
+import ChatInput from '@/components/chat/ChatInput';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -34,6 +35,7 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
     const [landingMode, setLandingMode] = useState<LandingMode>('chat');
     const [draftPrompt, setDraftPrompt] = useState('');
     const [phase, setPhase] = useState<'idle' | 'transitioning'>('idle');
+    const advancedPanelRef = React.useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -295,109 +297,57 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
                                         </div>
                                     </div>
                                 ) : (
-                                    // Original style for Chat mode
-                                    <>
-                                        <div className="absolute -inset-0.5 bg-gradient-to-r from-white/10 to-white/10 rounded-[2rem] blur opacity-30" />
-                                        <div className="relative bg-muted/40 backdrop-blur-xl border border-border/50 rounded-[2rem] p-3 sm:p-4 shadow-lg">
-                                            <Textarea
-                                                value={draftPrompt}
-                                                onChange={(e) => setDraftPrompt(e.target.value)}
-                                                onKeyDown={handleKeyDown}
-                                                placeholder={placeholder}
-                                                className="w-full bg-transparent border-none shadow-none resize-none placeholder:text-muted-foreground focus-visible:ring-0 p-2 min-h-[70px] max-h-[220px]"
-                                                style={{ lineHeight: '1.5rem', fontSize: '16px' }}
-                                                disabled={phase === 'transitioning'}
-                                            />
-
-                                            <div className="flex w-full items-center justify-between gap-2 mt-2">
-                                                {/* Left cluster */}
-                                                <div className="flex items-center gap-1">
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        className="rounded-lg h-12 w-12 text-muted-foreground hover:text-foreground"
-                                                        onClick={() => {
-                                                            // Toggle settings panel (placeholder for now)
-                                                            console.log('Settings clicked');
-                                                        }}
-                                                        aria-label="Quick settings"
-                                                    >
-                                                        <Settings2 className="w-5 h-5" />
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        className="rounded-lg h-12 w-12 text-muted-foreground hover:text-foreground"
-                                                        onClick={() => {
-                                                            // Handle file upload (placeholder for now)
-                                                            console.log('Plus clicked');
-                                                        }}
-                                                        aria-label="Plus"
-                                                    >
-                                                        <Plus className="w-5 h-5" />
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        className="rounded-lg h-12 px-3 text-muted-foreground hover:text-foreground"
-                                                        onClick={() => {
-                                                            // Toggle tools panel (placeholder for now)
-                                                            console.log('Tools clicked');
-                                                        }}
-                                                        aria-label="Tools"
-                                                    >
-                                                        <span className="text-sm font-medium">Tools</span>
-                                                        <ChevronUp className="w-3 h-3 opacity-60 ml-1" />
-                                                    </Button>
-                                                </div>
-
-                                                {/* Right cluster */}
-                                                <div className="flex items-center gap-1">
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        className="rounded-lg h-12 px-3 text-muted-foreground hover:text-foreground"
-                                                        onClick={() => {
-                                                            // Toggle model selector (placeholder for now)
-                                                            console.log('Model selector clicked');
-                                                        }}
-                                                        aria-label="Model"
-                                                    >
-                                                        <span className="text-sm font-medium">{rightModelLabel}</span>
-                                                        <ChevronUp className="w-3 h-3 opacity-60 ml-1" />
-                                                    </Button>
-
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        className="rounded-lg h-12 w-12 text-muted-foreground hover:text-foreground"
-                                                        onClick={() => {
-                                                            // Handle mic input (placeholder for now)
-                                                            console.log('Mic clicked');
-                                                        }}
-                                                        disabled={landingMode === 'chat'}
-                                                        aria-label="Mic"
-                                                    >
-                                                        <Mic className="w-5 h-5" />
-                                                    </Button>
-
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        onClick={beginTransition}
-                                                        className={cn(
-                                                            'rounded-lg h-12 w-12',
-                                                            canSubmit ? 'text-blue-500 hover:text-blue-600' : 'text-muted-foreground'
-                                                        )}
-                                                        disabled={!canSubmit}
-                                                        aria-label={rightCtaLabel}
-                                                    >
-                                                        <Send className="w-6 h-6" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </>
+                                    // Chat mode - using actual ChatInput component
+                                    <ChatInput
+                                        onSendMessage={(message) => {
+                                            setDraftPrompt(message);
+                                            beginTransition();
+                                        }}
+                                        isLoading={phase === 'transitioning'}
+                                        uploadedFilePreviewUrl={null}
+                                        onFileSelect={() => { }}
+                                        onClearUploadedImage={() => { }}
+                                        isLongLanguageLoopActive={false}
+                                        inputValue={draftPrompt}
+                                        onInputChange={setDraftPrompt}
+                                        isImageMode={false}
+                                        onToggleImageMode={() => { }}
+                                        chatTitle=""
+                                        onToggleHistoryPanel={() => { }}
+                                        onToggleGalleryPanel={() => { }}
+                                        onToggleAdvancedPanel={() => { }}
+                                        isAdvancedPanelOpen={false}
+                                        advancedPanelRef={advancedPanelRef}
+                                        isHistoryPanelOpen={false}
+                                        isGalleryPanelOpen={false}
+                                        allConversations={[]}
+                                        activeConversation={null}
+                                        selectChat={() => { }}
+                                        closeHistoryPanel={() => { }}
+                                        requestEditTitle={() => { }}
+                                        deleteChat={() => { }}
+                                        startNewChat={() => { }}
+                                        closeAdvancedPanel={() => { }}
+                                        toDate={() => new Date()}
+                                        selectedModelId="mistral-large"
+                                        handleModelChange={() => { }}
+                                        selectedResponseStyleName="Basic"
+                                        handleStyleChange={() => { }}
+                                        selectedVoice="English_ConfidentWoman"
+                                        handleVoiceChange={() => { }}
+                                        webBrowsingEnabled={false}
+                                        onToggleWebBrowsing={() => { }}
+                                        mistralFallbackEnabled={true}
+                                        onToggleMistralFallback={() => { }}
+                                        isRecording={false}
+                                        isTranscribing={false}
+                                        startRecording={() => { }}
+                                        stopRecording={() => { }}
+                                        openCamera={() => { }}
+                                        availableImageModels={[]}
+                                        selectedImageModelId="flux-2-pro"
+                                        handleImageModelChange={() => { }}
+                                    />
                                 )}
                             </div>
                         )}
@@ -408,17 +358,6 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             {/* Chat State */}
             {appState === 'chat' && (
                 <div className="flex flex-col h-full">
-                    {/* Back to Landing Button */}
-                    <div className="absolute top-4 left-4 z-10">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={goToLanding}
-                            className="rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
-                        >
-                            <SmilePlus className="w-5 h-5" />
-                        </Button>
-                    </div>
                     <ChatInterface />
                 </div>
             )}
@@ -426,17 +365,6 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             {/* Visualize State */}
             {appState === 'visualize' && (
                 <div className="flex flex-col h-full bg-background text-foreground">
-                    {/* Back to Landing Button */}
-                    <div className="absolute top-4 left-4 z-10">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={goToLanding}
-                            className="rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
-                        >
-                            <SmilePlus className="w-5 h-5" />
-                        </Button>
-                    </div>
                     <UnifiedImageTool password={replicateToolPassword} />
                 </div>
             )}

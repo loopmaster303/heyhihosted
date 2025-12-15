@@ -50,6 +50,9 @@ export function useChatState() {
     const [availableImageModels, setAvailableImageModels] = useState<string[]>([]);
     const [selectedImageModelId, setSelectedImageModelId] = useLocalStorageState<string>('chatSelectedImageModel', DEFAULT_IMAGE_MODEL);
 
+    // Mistral Fallback State
+    const [mistralFallbackEnabled, setMistralFallbackEnabled] = useLocalStorageState<boolean>('mistralFallbackEnabled', true);
+
     // Retry State
     const [lastFailedRequest, setLastFailedRequest] = useState<{
         messageText: string;
@@ -63,6 +66,7 @@ export function useChatState() {
     // Computed values
     const isImageMode = activeConversation?.isImageMode ?? false;
     const webBrowsingEnabled = activeConversation?.webBrowsingEnabled ?? false;
+    const mistralFallbackEnabledComputed = activeConversation?.mistralFallbackEnabled ?? false;
 
     return {
         // Conversation State
@@ -124,6 +128,10 @@ export function useChatState() {
         selectedImageModelId,
         setSelectedImageModelId,
 
+        // Mistral Fallback State
+        mistralFallbackEnabled: mistralFallbackEnabledComputed,
+        setMistralFallbackEnabled,
+
         // Retry State
         lastFailedRequest,
         setLastFailedRequest,
@@ -134,4 +142,3 @@ export function useChatState() {
         webBrowsingEnabled,
     };
 }
-

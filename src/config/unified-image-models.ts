@@ -3,7 +3,7 @@
  * Combines Pollinations and Replicate models into a single registry
  */
 
-export type ImageProvider = 'pollinations' | 'replicate';
+export type ImageProvider = 'pollinations' | 'replicate' | 'mistral';
 export type ImageKind = 'image' | 'video';
 
 export interface UnifiedImageModel {
@@ -15,22 +15,23 @@ export interface UnifiedImageModel {
   supportsReference?: boolean; // Can use reference images
   isFree?: boolean; // Free tier available (Pollinations)
   requiresPassword?: boolean; // Requires password (Replicate premium)
+  enabled?: boolean; // Whether the model is enabled (default true)
 }
 
 /**
  * Pollinations Models (Free tier)
  */
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
-  { id: 'kontext', name: 'Kontext', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
-  { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
-  { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
-  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
-  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
-  { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true },
+  { id: 'kontext', name: 'Kontext', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
+  { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
+  { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
+  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
+  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
+  { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
   // Video models excluded for chat, but available for image-gen tools
-  { id: 'seedance', name: 'Seedance', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true },
-  { id: 'seedance-pro', name: 'Seedance Pro', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true },
-  { id: 'veo', name: 'Veo', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true },
+  { id: 'seedance', name: 'Seedance', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true, enabled: false },
+  { id: 'seedance-pro', name: 'Seedance Pro', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true, enabled: false },
+  { id: 'veo', name: 'Veo', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true, enabled: false },
 ];
 
 /**
@@ -58,11 +59,49 @@ const REPLICATE_MODELS: UnifiedImageModel[] = [
 ];
 
 /**
+ * Mistral Models (for image generation capabilities)
+ * Note: Mistral models are primarily for text but can be used for prompt enhancement
+ */
+const MISTRAL_MODELS: UnifiedImageModel[] = [
+  {
+    id: 'mistral-large-3',
+    name: 'Mistral Large 3',
+    provider: 'mistral',
+    kind: 'image',
+    description: 'Advanced prompt enhancement for image generation',
+    supportsReference: false,
+    isFree: false,
+    enabled: true
+  },
+  {
+    id: 'mistral-medium-3.1',
+    name: 'Mistral Medium 3.1',
+    provider: 'mistral',
+    kind: 'image',
+    description: 'Balanced prompt enhancement for image generation',
+    supportsReference: false,
+    isFree: false,
+    enabled: true
+  },
+  {
+    id: 'mistral-small-3',
+    name: 'Mistral Small 3',
+    provider: 'mistral',
+    kind: 'image',
+    description: 'Fast prompt enhancement for image generation',
+    supportsReference: false,
+    isFree: false,
+    enabled: true
+  },
+];
+
+/**
  * All unified models
  */
 export const UNIFIED_IMAGE_MODELS: UnifiedImageModel[] = [
   ...POLLINATIONS_MODELS,
   ...REPLICATE_MODELS,
+  ...MISTRAL_MODELS,
 ];
 
 /**
@@ -76,33 +115,33 @@ export function getUnifiedModel(modelId: string): UnifiedImageModel | undefined 
  * Get models by provider
  */
 export function getModelsByProvider(provider: ImageProvider): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m => m.provider === provider);
+  return UNIFIED_IMAGE_MODELS.filter(m => m.provider === provider && (m.enabled ?? true));
 }
 
 /**
  * Get models by kind
  */
 export function getModelsByKind(kind: ImageKind): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m => m.kind === kind);
+  return UNIFIED_IMAGE_MODELS.filter(m => m.kind === kind && (m.enabled ?? true));
 }
 
 /**
  * Get image-only models (for chat)
  */
 export function getImageModels(): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m => m.kind === 'image');
+  return UNIFIED_IMAGE_MODELS.filter(m => m.kind === 'image' && (m.enabled ?? true));
 }
 
 /**
  * Get free models (Pollinations)
  */
 export function getFreeModels(): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m => m.isFree === true);
+  return UNIFIED_IMAGE_MODELS.filter(m => m.isFree === true && (m.enabled ?? true));
 }
 
 /**
  * Get premium models (Replicate)
  */
 export function getPremiumModels(): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m => m.provider === 'replicate');
+  return UNIFIED_IMAGE_MODELS.filter(m => m.provider === 'replicate' && (m.enabled ?? true));
 }

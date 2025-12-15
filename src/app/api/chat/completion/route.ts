@@ -3,10 +3,34 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { handleApiError, validateRequest, ApiError, requireEnv } from '@/lib/api-error-handler';
 import { SearchService } from '@/lib/services/search-service';
+import { getMistralChatCompletion, getMistralChatCompletionStream } from '@/ai/flows/mistral-chat-flow';
+import { mapPollinationsToMistralModel } from '@/config/mistral-models';
 
 const POLLEN_CHAT_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
 const LEGACY_POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
 const LEGACY_FALLBACK_MODELS = new Set(['openai-large', 'openai-reasoning', 'gemini-search']);
+
+// Fallback condition checker for Mistral
+const shouldFallbackToMistral = (error: any): boolean => {
+  // Bei Timeouts
+  if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+    return true;
+  }
+
+  // Bei 5xx Serverfehlern
+  if (error.statusCode >= 500) {
+    return true;
+  }
+
+  // Bei spezifischen Pollinations-Fehlern
+  if (error.message?.includes('pollinations') &&
+    (error.message?.includes('unavailable') ||
+      error.message?.includes('maintenance'))) {
+    return true;
+  }
+
+  return false;
+};
 
 // Validation schema
 const ChatCompletionSchema = z.object({
@@ -15,6 +39,7 @@ const ChatCompletionSchema = z.object({
   systemPrompt: z.string().optional(),
   webBrowsingEnabled: z.boolean().optional(),
   stream: z.boolean().optional(),
+  mistralFallbackEnabled: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -22,11 +47,25 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // Validate request
-    const { messages, modelId, systemPrompt, webBrowsingEnabled, stream } = validateRequest(ChatCompletionSchema, body);
+    const { messages, modelId, systemPrompt, webBrowsingEnabled, stream, mistralFallbackEnabled } = validateRequest(ChatCompletionSchema, body);
 
     // Plan A: Simple Perplexity-only WebBrowsing
     // When WebBrowsing is enabled, use perplexity-fast regardless of user's model choice
     const effectiveModelId = webBrowsingEnabled ? 'perplexity-fast' : modelId;
+
+    // Check if we should use Mistral directly (manual override)
+    const useMistralDirectly = mistralFallbackEnabled ||
+      effectiveModelId.startsWith('mistral-') ||
+      effectiveModelId.startsWith('mistral-large-3') ||
+      effectiveModelId.startsWith('mistral-medium-3.1') ||
+      effectiveModelId.startsWith('mistral-small-3');
+
+    console.log('[Chat API] Model decision:', {
+      effectiveModelId,
+      mistralFallbackEnabled,
+      useMistralDirectly,
+      webBrowsingEnabled
+    });
 
     let enhancedMessages = messages;
 
@@ -49,7 +88,101 @@ Please provide a comprehensive answer using current web information. Focus on ac
     } else {
       console.log(`[Chat API] WebBrowsing disabled - using user's chosen model: ${modelId}`);
     }
-    const streamEnabled = Boolean(stream) && effectiveModelId !== "gpt-oss-120b";
+    const streamEnabled = Boolean(stream) && effectiveModelId !== "gpt-oss-120b" && !useMistralDirectly;
+
+    // Handle direct Mistral usage
+    if (useMistralDirectly) {
+      const mistralApiKey = process.env.MISTRAL_API_KEY;
+
+      if (!mistralApiKey) {
+        throw new ApiError(500, 'Mistral API key is not configured', 'MISTRAL_API_KEY_MISSING');
+      }
+
+      console.log(`[Chat API] Using Mistral directly for model: ${effectiveModelId}`);
+
+      try {
+        // Map the model ID to Mistral format
+        const mistralModelId = mapPollinationsToMistralModel(effectiveModelId);
+
+        if (streamEnabled) {
+          // Handle streaming for Mistral
+          let fullContent = '';
+          const stream = new ReadableStream({
+            start(controller) {
+              getMistralChatCompletionStream({
+                messages: enhancedMessages,
+                modelId: mistralModelId,
+                systemPrompt: systemPrompt,
+                apiKey: mistralApiKey,
+                maxCompletionTokens: 4096,
+                temperature: 0.7
+              }, (chunk: string) => {
+                fullContent = chunk;
+                const sseData = `data: ${JSON.stringify({
+                  choices: [{
+                    delta: { content: chunk.slice(-1) }, // Send only the new character
+                    finish_reason: null
+                  }]
+                })}\n\n`;
+                controller.enqueue(new TextEncoder().encode(sseData));
+              }).then(() => {
+                // Send final message
+                const finalData = `data: ${JSON.stringify({
+                  choices: [{
+                    delta: {},
+                    finish_reason: 'stop'
+                  }],
+                  usage: { prompt_tokens: 10, completion_tokens: fullContent.length, total_tokens: 10 + fullContent.length }
+                })}\n\n`;
+                controller.enqueue(new TextEncoder().encode(finalData));
+                controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+                controller.close();
+              }).catch((error) => {
+                console.error('Mistral streaming error:', error);
+                controller.error(error);
+              });
+            }
+          });
+
+          return new Response(stream, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+            },
+          });
+        } else {
+          // Handle non-streaming for Mistral
+          const mistralResult = await getMistralChatCompletion({
+            messages: enhancedMessages,
+            modelId: mistralModelId,
+            systemPrompt: systemPrompt,
+            apiKey: mistralApiKey,
+            maxCompletionTokens: 4096,
+            temperature: 0.7
+          });
+
+          return NextResponse.json({
+            choices: [{
+              message: {
+                content: mistralResult.responseText,
+                role: "assistant"
+              }
+            }],
+            model: mistralResult.modelUsed,
+            usage: mistralResult.tokensUsed ? {
+              prompt_tokens: mistralResult.tokensUsed.prompt,
+              completion_tokens: mistralResult.tokensUsed.completion,
+              total_tokens: mistralResult.tokensUsed.total
+            } : undefined
+          });
+        }
+
+      } catch (mistralError) {
+        console.error('[Chat API] Direct Mistral call failed:', mistralError);
+        throw new ApiError(500, `Mistral API error: ${mistralError instanceof Error ? mistralError.message : String(mistralError)}`, 'MISTRAL_API_ERROR');
+      }
+    }
 
     // Handle GPT-OSS-120b model with Replicate API
     if (effectiveModelId === "gpt-oss-120b") {
@@ -317,6 +450,59 @@ Please provide a comprehensive answer using current web information. Focus on ac
       }
     }
 
+    // Mistral Fallback Logic
+    if (lastError && shouldFallbackToMistral(lastError)) {
+      const mistralApiKey = process.env.MISTRAL_API_KEY;
+
+      if (mistralApiKey) {
+        try {
+          console.log(`[Chat API] Fallback to Mistral for model: ${effectiveModelId}`);
+
+          // Map the model ID to Mistral format
+          const mistralModelId = mapPollinationsToMistralModel(effectiveModelId);
+
+          const mistralResult = await getMistralChatCompletion({
+            messages: enhancedMessages,
+            modelId: mistralModelId,
+            systemPrompt: systemPrompt,
+            apiKey: mistralApiKey,
+            maxCompletionTokens: payload.max_tokens,
+            temperature: payload.temperature
+          });
+
+          // Log successful fallback
+          console.warn(`[FALLBACK] Pollinations ${effectiveModelId} failed, using Mistral ${mistralResult.modelUsed}`, {
+            error: lastError.message,
+            timestamp: new Date().toISOString(),
+            originalProvider: 'pollinations',
+            fallbackProvider: 'mistral'
+          });
+
+          // Return in the same format as Pollinations
+          return NextResponse.json({
+            choices: [{
+              message: {
+                content: mistralResult.responseText,
+                role: "assistant"
+              }
+            }],
+            model: mistralResult.modelUsed,
+            usage: mistralResult.tokensUsed ? {
+              prompt_tokens: mistralResult.tokensUsed.prompt,
+              completion_tokens: mistralResult.tokensUsed.completion,
+              total_tokens: mistralResult.tokensUsed.total
+            } : undefined
+          });
+
+        } catch (mistralError) {
+          console.error('[Chat API] Mistral fallback also failed:', mistralError);
+          // Return original error
+        }
+      } else {
+        console.warn('[Chat API] No Mistral API key available for fallback');
+      }
+    }
+
     if (lastError) {
       throw lastError;
     }
@@ -327,5 +513,3 @@ Please provide a comprehensive answer using current web information. Focus on ac
     return handleApiError(error);
   }
 }
-
-

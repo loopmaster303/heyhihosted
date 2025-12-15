@@ -38,10 +38,10 @@ const ChatView: React.FC<ChatViewProps> = ({
   const { t } = useLanguage();
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const animatedAssistantMessagesRef = useRef<Set<string>>(new Set());
-  
+
   // Pagination state
   const [visibleMessageCount, setVisibleMessageCount] = useState(INITIAL_MESSAGES_TO_SHOW);
-  
+
   // Reset visible count when switching conversations (messages length changes dramatically)
   const prevMessagesLength = useRef(messages.length);
   useEffect(() => {
@@ -60,7 +60,7 @@ const ChatView: React.FC<ChatViewProps> = ({
       if (node) {
         // We use requestAnimationFrame to ensure the DOM has updated before we scroll.
         requestAnimationFrame(() => {
-            node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          node.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
       }
     }
@@ -70,13 +70,13 @@ const ChatView: React.FC<ChatViewProps> = ({
     // A message is the "last" for regeneration purposes if it's from the assistant
     // and there are no newer messages from the assistant.
     if (messages[index].role !== 'assistant') return false;
-    
+
     // Find the index of the very last assistant message in the array
     const lastAssistantMessageIndex = messages.slice().reverse().findIndex(m => m.role === 'assistant');
     if (lastAssistantMessageIndex === -1) return false;
 
     const actualLastIndex = messages.length - 1 - lastAssistantMessageIndex;
-    
+
     return index === actualLastIndex;
   };
 
@@ -85,7 +85,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   const hasOlderMessages = totalMessages > visibleMessageCount;
   const startIndex = Math.max(0, totalMessages - visibleMessageCount);
   const visibleMessages = messages.slice(startIndex);
-  
+
   const loadMoreMessages = () => {
     setVisibleMessageCount(prev => Math.min(prev + LOAD_MORE_INCREMENT, totalMessages));
   };
@@ -109,20 +109,21 @@ const ChatView: React.FC<ChatViewProps> = ({
           </Button>
         </div>
       )}
-      
+
       <div className="flex-grow space-y-0">
         {visibleMessages.map((msg, index) => {
           // Adjust index for original array position
           const originalIndex = startIndex + index;
           const isLast = originalIndex === messages.length - 1;
-          const shouldAnimate = msg.role === 'assistant' && msg.id !== 'loading' && isLast && !animatedAssistantMessagesRef.current.has(msg.id);
+          // Only animate if this is a genuinely new message being generated, not recalled messages
+          const shouldAnimate = msg.role === 'assistant' && msg.id !== 'loading' && isLast && !animatedAssistantMessagesRef.current.has(msg.id) && isAiResponding;
 
           return (
-            <div 
-              key={msg.id} 
+            <div
+              key={msg.id}
               ref={el => { messageRefs.current[msg.id] = el; }}
             >
-              <MessageBubble 
+              <MessageBubble
                 message={msg}
                 onPlayAudio={onPlayAudio}
                 isPlaying={playingMessageId === msg.id}
@@ -139,10 +140,10 @@ const ChatView: React.FC<ChatViewProps> = ({
           );
         })}
         {isAiResponding && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
-           <MessageBubble 
-             message={{ id: 'loading', role: 'assistant', content: '', timestamp: new Date().toISOString() }} 
-             isAiResponding={true}
-           />
+          <MessageBubble
+            message={{ id: 'loading', role: 'assistant', content: '', timestamp: new Date().toISOString() }}
+            isAiResponding={true}
+          />
         )}
       </div>
     </div>

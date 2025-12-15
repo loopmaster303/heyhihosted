@@ -14,12 +14,12 @@ export interface ChatMessage {
 
 // Represents a message format compatible with APIs that only accept user/assistant roles
 export interface ApiChatMessage {
- role: 'user' | 'assistant';
- content: string | ChatMessageContentPart[];
+  role: 'user' | 'assistant';
+  content: string | ChatMessageContentPart[];
 }
 
 export interface Conversation {
-  id:string;
+  id: string;
   title: string;
   messages: ChatMessage[];
   createdAt: string; // ISO string for easy storage/retrieval
@@ -28,6 +28,7 @@ export interface Conversation {
   isImageMode?: boolean;
   isCodeMode?: boolean;
   webBrowsingEnabled?: boolean;
+  mistralFallbackEnabled?: boolean;
   // These are client-side only and will not be persisted
   uploadedFile?: File | null;
   uploadedFilePreview?: string | null;
@@ -40,7 +41,7 @@ export type ToolType = 'premium imagination' | 'long language loops' | 'personal
 export interface TileItem {
   id: ToolType;
   title: string;
-  icon?: React.ElementType; 
+  icon?: React.ElementType;
   description?: string;
   href?: string;
 }
@@ -55,4 +56,4 @@ export interface ImageHistoryItem {
   videoUrl?: string;
 }
 
-    
+

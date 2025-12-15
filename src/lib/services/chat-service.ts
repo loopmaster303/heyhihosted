@@ -19,6 +19,7 @@ export interface SendMessageOptions {
     modelId: string;
     systemPrompt?: string;
     webBrowsingEnabled?: boolean;
+    mistralFallbackEnabled?: boolean;
 }
 
 export interface GenerateImageOptions {
@@ -48,13 +49,14 @@ export class ChatService {
         options: SendMessageOptions,
         onStream?: (chunk: string) => void
     ): Promise<string> {
-        const { messages, modelId, systemPrompt, webBrowsingEnabled } = options;
+        const { messages, modelId, systemPrompt, webBrowsingEnabled, mistralFallbackEnabled } = options;
 
         const body = {
             messages,
             modelId,
             systemPrompt,
             webBrowsingEnabled,
+            mistralFallbackEnabled,
             stream: !!onStream,
         };
 
@@ -110,6 +112,14 @@ export class ChatService {
                     .replace(/\s+/g, ' ')
                     .trim();
             }
+
+            // If streaming was requested but we got a non-streaming response,
+            // call the onStream callback with the full content to simulate streaming
+            if (onStream) {
+                console.log('[ChatService] Simulating streaming with content:', aiResponseText.substring(0, 100) + '...');
+                onStream(aiResponseText);
+            }
+
             return aiResponseText;
         }
     }
@@ -205,11 +215,16 @@ export class ChatService {
         return (result as ImageGenerationResponse).imageUrl;
     }
 
-    static async generateTitle(messages: string): Promise<string> {
+    static async generateTitle(messages: string | ApiChatMessage[]): Promise<string> {
+        // Convert string to messages array if needed
+        const messagesArray = typeof messages === 'string'
+            ? [{ role: 'user' as const, content: messages }]
+            : messages;
+
         const response = await fetch('/api/chat/title', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages }),
+            body: JSON.stringify({ messages: messagesArray }),
         });
 
         const result: TitleGenerationResponse | ApiErrorResponse = await response.json();
