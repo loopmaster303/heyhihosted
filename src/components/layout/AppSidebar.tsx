@@ -12,6 +12,8 @@ import {
   WandSparkles,
   UserRoundPen,
   ChevronRight,
+  SmilePlus,
+  Home,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -81,9 +83,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
   const isGerman = language === 'de';
   const labels = {
-    newConversation: isGerman ? 'Neues Gespräch' : 'New conversation',
+    newInteraction: isGerman ? 'New Interaction' : 'New Interaction',
     history: isGerman ? 'Gesprächs-Archiv' : 'Conversation history',
-    newImage: isGerman ? 'Neue Visualisierung' : 'New visualization',
     gallery: isGerman ? 'Galerie' : 'Gallery',
     personalization: isGerman ? 'Personalisierung' : 'Personalization',
     languageLabel: isGerman ? 'Sprache' : 'Language',
@@ -144,6 +145,22 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
       {/* Main Content */}
       <div className="flex-1 overflow-hidden flex flex-col">
         <div className="flex-1 overflow-y-auto p-4 space-y-8">
+          {/* New Interaction Button */}
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start gap-3",
+              !isExpanded && "justify-center px-0"
+            )}
+            onClick={() => {
+              // Navigate to landing page
+              router.push('/');
+            }}
+          >
+            <SmilePlus className="w-5 h-5 shrink-0" />
+            {isExpanded && <span>{labels.newInteraction}</span>}
+          </Button>
+
           {/* GESPRÄCHE Section */}
           <div>
             {isExpanded && (
@@ -151,34 +168,6 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                 {labels.conversations}
               </div>
             )}
-
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start gap-3",
-                !isExpanded && "justify-center px-0"
-              )}
-              onClick={() => {
-                console.log('New Chat button clicked');
-                // Auto-expand sidebar if collapsed
-                if (!isExpanded) {
-                  setIsExpanded(true);
-                }
-                // Start new chat and navigate to chat tool
-                if (onNewChat) {
-                  onNewChat();
-                  // Navigate to chat tool if not already there
-                  if (currentPath !== '/chat') {
-                    router.push('/chat');
-                  }
-                } else {
-                  console.error('onNewChat is not defined');
-                }
-              }}
-            >
-              <MessageCirclePlus className="w-5 h-5 shrink-0" />
-              {isExpanded && <span>{labels.newConversation}</span>}
-            </Button>
 
             <Button
               variant="ghost"
@@ -220,23 +209,6 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                 {labels.visualize}
               </div>
             )}
-
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start gap-3",
-                !isExpanded && "justify-center px-0"
-              )}
-              onClick={() => {
-                if (currentPath !== '/visualizepro') {
-                  router.push('/visualizepro');
-                }
-                onToggleGalleryPanel?.();
-              }}
-            >
-              <WandSparkles className="w-5 h-5 shrink-0" />
-              {isExpanded && <span>{labels.newImage}</span>}
-            </Button>
 
             <Button
               variant="ghost"

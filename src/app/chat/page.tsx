@@ -1,6 +1,7 @@
 
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ChatProvider } from '@/components/ChatProvider';
 import ChatInterface from '@/components/page/ChatInterface';
 import AppLayout from '@/components/layout/AppLayout';
@@ -13,11 +14,33 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 
 function ChatPageContent() {
     const chat = useChat();
+    const searchParams = useSearchParams();
     const [isClient, setIsClient] = useState(false);
+
+    const draft = useMemo(() => {
+        const value = searchParams.get('draft');
+        return value ? value : '';
+    }, [searchParams]);
 
     useEffect(() => {
         setIsClient(true);
     }, []);
+
+    // Prefill draft prompt from landing (no auto-send)
+    useEffect(() => {
+        if (!draft) return;
+        // Set input in provider
+        chat.setChatInputValue(draft);
+        // Clean URL to avoid re-prefill on refresh
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('draft');
+            window.history.replaceState({}, '', url.toString());
+        } catch {
+            // ignore
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [draft]);
 
     if (!isClient) {
         return <PageLoader text="Chat wird geladen..." />;
@@ -69,7 +92,9 @@ export default function ChatPage() {
             fallbackMessage="Es gab ein Problem beim Laden des Chats. Bitte versuche es erneut."
         >
             <ChatProvider>
-                <ChatPageContent />
+                <Suspense fallback={<PageLoader text="Chat wird geladen..." />}>
+                    <ChatPageContent />
+                </Suspense>
             </ChatProvider>
         </ErrorBoundary>
     );

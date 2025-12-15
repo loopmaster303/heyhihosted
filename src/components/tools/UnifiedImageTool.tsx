@@ -33,6 +33,34 @@ import type { ImageHistoryItem } from '@/types';
 import ImageHistoryGallery from './ImageHistoryGallery';
 import { useLanguage } from '../LanguageProvider';
 
+// Model Icons
+import OpenAIIcon from '../../../icons models/openai.png';
+import GoogleIcon from '../../../icons models/google-color.png';
+import ByteDanceIcon from '../../../icons models/bytedance-color.png';
+import FluxIcon from '../../../icons models/flux.png';
+import BFLIcon from '../../../icons models/bfl.png';
+import QwenIcon from '../../../icons models/qwen-color.png';
+import WANIcon from '../../../icons models/wan.png';
+
+// Model Icon Mapping for Image Models
+const imageModelIcons: Record<string, any> = {
+  'gpt-image': OpenAIIcon,
+  'seedream': ByteDanceIcon,
+  'seedream-pro': ByteDanceIcon,
+  'seedance': ByteDanceIcon, // Added missing seedance icon
+  'seedance-pro': ByteDanceIcon,
+  'nanobanana': '🍌', // Banana emoji for nanobanana
+  'nanobanana-pro': '🍌', // Banana emoji for nanobanana pro
+  'flux-2-pro': BFLIcon,
+  'flux-kontext-pro': BFLIcon,
+  'veo': GoogleIcon,
+  'veo-3.1-fast': GoogleIcon,
+  'wan-2.5-t2v': WANIcon, // Updated to use WAN icon
+  'wan-video': WANIcon, // Updated to use WAN icon
+  'z-image-turbo': WANIcon, // Updated to use WAN icon (Alibaba/WAN)
+  'qwen-image-edit-plus': QwenIcon,
+};
+
 const IMAGE_HISTORY_KEY = 'imageHistory';
 
 // Define which models need image upload
@@ -263,7 +291,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
     }
   }, [prompt]);
 
-  // Listen for reuse prompt from sidebar/gallery
+  // Listen for reuse prompt from sidebar/gallery and draft from landing page
   useEffect(() => {
     const handler = (event: Event) => {
       const custom = event as CustomEvent<string>;
@@ -281,7 +309,36 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       }
     };
     window.addEventListener('sidebar-reuse-prompt', handler);
-    // preload prompt once from storage if destined for visualize
+    return () => window.removeEventListener('sidebar-reuse-prompt', handler);
+  }, []);
+
+  // Load draft prompt from localStorage (set by visualizepro page)
+  useEffect(() => {
+    try {
+      const storedDraft = localStorage.getItem('unified-image-tool-draft');
+      if (storedDraft) {
+        setPrompt(storedDraft);
+        localStorage.removeItem('unified-image-tool-draft');
+        // Auto-focus and resize textarea
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            textareaRef.current.style.height = 'auto';
+            const newHeight = Math.min(
+              Math.max(textareaRef.current.scrollHeight, TEXTAREA_MIN_HEIGHT),
+              TEXTAREA_MAX_HEIGHT
+            );
+            textareaRef.current.style.height = `${newHeight}px`;
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Failed to load draft from localStorage:', error);
+    }
+  }, []);
+
+  // preload prompt once from storage if destined for visualize
+  useEffect(() => {
     try {
       const storedTarget = localStorage.getItem('sidebar-preload-target');
       const storedPrompt = localStorage.getItem('sidebar-preload-prompt');
@@ -291,7 +348,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
         localStorage.removeItem('sidebar-preload-target');
       }
     } catch { }
-    return () => window.removeEventListener('sidebar-reuse-prompt', handler);
   }, []);
 
   // Handle file upload (only one image)
@@ -742,105 +798,344 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                 </div>
               </div>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground font-code">
-                <p className="text-lg">{t('imageGen.outputPlaceholder')}</p>
-              </div>
+              // Completely empty area - no branding, no text, nothing
+              <div className="h-full"></div>
             )}
           </CardContent>
         </Card>
       </main>
 
-      <footer className="px-6 sm:px-12 md:px-20 lg:px-32 xl:px-48 pt-2 pb-4 shrink-0">
-        <div className="max-w-4xl mx-auto relative">
+      <footer className="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-32 pt-2 pb-4 shrink-0">
+        <div className="max-w-6xl mx-auto relative">
           {/* Model Selector Popup */}
           {isModelSelectorOpen && (
-            <div className="mb-4 bg-popover text-popover-foreground rounded-xl shadow-xl border border-border p-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">{t('modelSelect.title')}</h3>
-                <Button variant="ghost" size="sm" onClick={() => setIsModelSelectorOpen(false)}>
-                  <X className="w-4 h-4 mr-1.5" />
-                  {t('imageGen.modal.close')}
+            <div className="mb-4 bg-popover text-popover-foreground rounded-xl shadow-xl border border-border p-0 animate-in fade-in-0 slide-in-from-bottom-4 duration-300 max-h-[520px] overflow-y-auto">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 sticky top-0 bg-popover z-10">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                      <ImageIcon className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold">{t('modelSelect.title')}</h2>
+                      <p className="text-xs text-muted-foreground">{availableModels.length} Modelle verfügbar</p>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsModelSelectorOpen(false)}
+                  className="h-8 w-8 rounded-full hover:bg-muted"
+                >
+                  <X className="w-5 h-5" />
                 </Button>
               </div>
 
-              <div className="space-y-6">
-                {/* TEXT/IMAGE → IMAGE (multi-ref) */}
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">{t('modelSelect.textImage')}</h4>
-                  <div className="space-y-1">
-                    {['gpt-image', 'seedream-pro', 'seedream', 'nanobanana', 'nanobanana-pro'].map(id => (
-                      <button
-                        key={id}
-                        onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
-                        className="block w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-lg transition-colors"
-                      >
-                        {getUnifiedModelConfig(id)?.name}
-                      </button>
-                    ))}
+              {/* Content */}
+              <div className="p-6">
+                <div className="space-y-6">
+                  {/* TEXT/IMAGE → IMAGE (multi-ref) */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textImage')}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {['gpt-image', 'seedream-pro', 'seedream', 'nanobanana', 'nanobanana-pro'].map(id => {
+                        const config = getUnifiedModelConfig(id);
+                        const model = getUnifiedModel(id);
+                        return (
+                          <div
+                            key={id}
+                            onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
+                            className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] ${selectedModelId === id
+                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                              : 'border-border/50 hover:border-border hover:bg-muted/30'
+                              }`}
+                          >
+                            <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
+                              {imageModelIcons[id] ? (
+                                typeof imageModelIcons[id] === 'string' ? (
+                                  <span className="text-2xl">{imageModelIcons[id]}</span>
+                                ) : (
+                                  <NextImage
+                                    src={imageModelIcons[id]}
+                                    alt={id}
+                                    width={32}
+                                    height={32}
+                                    className="rounded-lg"
+                                  />
+                                )
+                              ) : (
+                                <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm truncate">{config?.name}</span>
+                                {selectedModelId === id && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">
+                                    Aktiv
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {model?.supportsReference && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium">
+                                    📷 Multi-Image
+                                  </span>
+                                )}
+                                {model?.provider === 'pollinations' && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium">
+                                    ⚡ Fast
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {selectedModelId === id && (
+                              <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0"></div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                {/* TEXT → IMAGE */}
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">{t('modelSelect.textToImage')}</h4>
-                  <div className="space-y-1">
-                    {['flux-kontext-pro', 'z-image-turbo'].map(id => (
-                      <button
-                        key={id}
-                        onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
-                        className="block w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-lg transition-colors"
-                      >
-                        {getUnifiedModelConfig(id)?.name}
-                      </button>
-                    ))}
+                  {/* TEXT → IMAGE */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textToImage')}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {['flux-kontext-pro', 'z-image-turbo'].map(id => {
+                        const config = getUnifiedModelConfig(id);
+                        const model = getUnifiedModel(id);
+                        return (
+                          <div
+                            key={id}
+                            onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
+                            className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] ${selectedModelId === id
+                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                              : 'border-border/50 hover:border-border hover:bg-muted/30'
+                              }`}
+                          >
+                            <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
+                              {imageModelIcons[id] ? (
+                                typeof imageModelIcons[id] === 'string' ? (
+                                  <span className="text-2xl">{imageModelIcons[id]}</span>
+                                ) : (
+                                  <NextImage
+                                    src={imageModelIcons[id]}
+                                    alt={id}
+                                    width={32}
+                                    height={32}
+                                    className="rounded-lg"
+                                  />
+                                )
+                              ) : (
+                                <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm truncate">{config?.name}</span>
+                                {selectedModelId === id && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">
+                                    Aktiv
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {model?.provider === 'replicate' && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-medium">
+                                    ⚡ Premium
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {selectedModelId === id && (
+                              <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0"></div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                {/* TEXT + MULTI-IMAGE → IMAGE */}
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">{t('modelSelect.textMultiImage')}</h4>
-                  <div className="space-y-1">
-                    {['flux-2-pro'].map(id => (
-                      <button
-                        key={id}
-                        onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
-                        className="block w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-lg transition-colors"
-                      >
-                        {getUnifiedModelConfig(id)?.name}
-                      </button>
-                    ))}
+                  {/* TEXT + MULTI-IMAGE → IMAGE */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textMultiImage')}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {['flux-2-pro'].map(id => {
+                        const config = getUnifiedModelConfig(id);
+                        const model = getUnifiedModel(id);
+                        return (
+                          <div
+                            key={id}
+                            onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
+                            className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] ${selectedModelId === id
+                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                              : 'border-border/50 hover:border-border hover:bg-muted/30'
+                              }`}
+                          >
+                            <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
+                              {imageModelIcons[id] ? (
+                                typeof imageModelIcons[id] === 'string' ? (
+                                  <span className="text-2xl">{imageModelIcons[id]}</span>
+                                ) : (
+                                  <NextImage
+                                    src={imageModelIcons[id]}
+                                    alt={id}
+                                    width={32}
+                                    height={32}
+                                    className="rounded-lg"
+                                  />
+                                )
+                              ) : (
+                                <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm truncate">{config?.name}</span>
+                                {selectedModelId === id && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">
+                                    Aktiv
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-medium">
+                                  📸 8 Images
+                                </span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-medium">
+                                  ⭐ Pro
+                                </span>
+                              </div>
+                            </div>
+                            {selectedModelId === id && (
+                              <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0"></div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                {/* IMAGE → IMAGE (EDIT / I2I) */}
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">{t('modelSelect.imageEdit')}</h4>
-                  <div className="space-y-1">
-                    {['flux-kontext-pro', 'qwen-image-edit-plus'].map(id => (
-                      <button
-                        key={id}
-                        onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
-                        className="block w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-lg transition-colors"
-                      >
-                        {getUnifiedModelConfig(id)?.name}
-                      </button>
-                    ))}
+                  {/* IMAGE → IMAGE (EDIT / I2I) */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.imageEdit')}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {['flux-kontext-pro', 'qwen-image-edit-plus'].map(id => {
+                        const config = getUnifiedModelConfig(id);
+                        return (
+                          <div
+                            key={id}
+                            onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
+                            className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] ${selectedModelId === id
+                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                              : 'border-border/50 hover:border-border hover:bg-muted/30'
+                              }`}
+                          >
+                            <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
+                              {imageModelIcons[id] ? (
+                                typeof imageModelIcons[id] === 'string' ? (
+                                  <span className="text-2xl">{imageModelIcons[id]}</span>
+                                ) : (
+                                  <NextImage
+                                    src={imageModelIcons[id]}
+                                    alt={id}
+                                    width={32}
+                                    height={32}
+                                    className="rounded-lg"
+                                  />
+                                )
+                              ) : (
+                                <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm truncate">{config?.name}</span>
+                                {selectedModelId === id && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">
+                                    Aktiv
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 font-medium">
+                                  ✏️ Edit
+                                </span>
+                              </div>
+                            </div>
+                            {selectedModelId === id && (
+                              <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0"></div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                {/* TEXT + IMAGE → VIDEO */}
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">{t('modelSelect.textImageVideo')}</h4>
-                  <div className="space-y-1">
-                    {['seedance-pro', 'veo', 'wan-2.5-t2v', 'wan-video', 'veo-3.1-fast'].map(id => (
-                      <button
-                        key={id}
-                        onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
-                        className="block w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-lg transition-colors"
-                      >
-                        {getUnifiedModelConfig(id)?.name}
-                      </button>
-                    ))}
+                  {/* TEXT + IMAGE → VIDEO */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textImageVideo')}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {['seedance-pro', 'veo', 'wan-2.5-t2v', 'wan-video', 'veo-3.1-fast'].map(id => {
+                        const config = getUnifiedModelConfig(id);
+                        const model = getUnifiedModel(id);
+                        return (
+                          <div
+                            key={id}
+                            onClick={() => { setSelectedModelId(id); setIsModelSelectorOpen(false); }}
+                            className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] ${selectedModelId === id
+                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                              : 'border-border/50 hover:border-border hover:bg-muted/30'
+                              }`}
+                          >
+                            <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
+                              {imageModelIcons[id] ? (
+                                typeof imageModelIcons[id] === 'string' ? (
+                                  <span className="text-2xl">{imageModelIcons[id]}</span>
+                                ) : (
+                                  <NextImage
+                                    src={imageModelIcons[id]}
+                                    alt={id}
+                                    width={32}
+                                    height={32}
+                                    className="rounded-lg"
+                                  />
+                                )
+                              ) : (
+                                <span className="text-xl">🎬</span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm truncate">{config?.name}</span>
+                                {selectedModelId === id && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">
+                                    Aktiv
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-medium">
+                                  🎥 Video
+                                </span>
+                                {model?.provider === 'pollinations' && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium">
+                                    ⚡ Fast
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {selectedModelId === id && (
+                              <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0"></div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1149,7 +1444,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="bg-white dark:bg-[#252525] text-gray-800 dark:text-white rounded-3xl shadow-lg relative">
+            <div className="bg-white dark:bg-[#252525] rounded-2xl p-3 shadow-xl flex flex-col min-h-0">
               {loading && (
                 <div className="absolute inset-x-4 top-3 z-10">
                   <div className="rounded-xl bg-black/70 text-white px-4 py-3 text-sm md:text-base shadow-lg flex items-start gap-2">
@@ -1162,42 +1457,108 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
                   </div>
                 </div>
               )}
-              {/* Main content area */}
-              <div className="px-6 pt-5 pb-16">
+
+              <div className="flex-grow">
                 <Textarea
                   ref={textareaRef}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={placeholderText}
-                  className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none px-0 py-0 m-0 leading-relaxed resize-none overflow-auto font-normal min-h-[100px] max-h-[260px]"
+                  className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-auto min-h-[80px] max-h-[220px]"
                   rows={1}
                   disabled={loading}
-                  style={{ fontSize: '20px', lineHeight: '1.6' }}
+                  style={{ lineHeight: '1.5rem', fontSize: '17px' }}
                 />
               </div>
 
-              {/* Fixed bottom area */}
-              <div className="absolute bottom-0 left-0 right-0 px-6 pb-4 flex items-center justify-end">
-                {/* Right: Text Buttons - ALWAYS TEXT, NO ICONS */}
-                <div className="flex items-center gap-5">
-                  {/* Enhance Prompt - Text only */}
-                  <button
+              <div className="flex w-full items-center justify-between gap-1">
+                {/* Left Side: Settings + Plus Menu */}
+                <div className="flex items-center gap-0">
+                  {/* Settings Button */}
+                  <Button
                     type="button"
+                    variant="ghost"
+                    onClick={toggleConfigPanel}
+                    className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
+                    aria-label="Settings"
+                  >
+                    <SlidersHorizontal className="w-[20px] h-[20px]" />
+                  </Button>
+
+                  {/* Plus Menu for Image Upload */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => supportsReference ? setIsImageUploadOpen(!isImageUploadOpen) : fileInputRef.current?.click()}
+                    disabled={loading || isUploading}
+                    className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
+                    aria-label="Upload image"
+                  >
+                    <Plus className="w-[20px] h-[20px]" />
+                  </Button>
+                </div>
+
+                {/* Right Side: Model Select + Enhance + Generate */}
+                <div className="flex items-center gap-0">
+                  {/* Model Selector */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsModelSelectorOpen(!isModelSelectorOpen)}
+                    className="group rounded-lg h-14 w-auto px-3 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white min-w-[120px] max-w-[200px]"
+                    aria-label="Select model"
+                  >
+                    <div className="flex items-center gap-1.5 truncate">
+                      {/* Model Icon - Now using the correct icon from imageModelIcons */}
+                      <div className="w-5 h-5 flex-shrink-0">
+                        {imageModelIcons[selectedModelId] ? (
+                          typeof imageModelIcons[selectedModelId] === 'string' ? (
+                            <span className="text-lg">{imageModelIcons[selectedModelId]}</span>
+                          ) : (
+                            <NextImage
+                              src={imageModelIcons[selectedModelId]}
+                              alt={selectedModelId}
+                              width={20}
+                              height={20}
+                              className="rounded-md"
+                            />
+                          )
+                        ) : (
+                          <ImageIcon className="w-5 h-5" />
+                        )}
+                      </div>
+                      <span className="text-xs md:text-sm font-medium truncate">
+                        {currentModelConfig?.name || 'Select model'}
+                      </span>
+                    </div>
+                  </Button>
+
+                  {/* Enhance Button */}
+                  <Button
+                    type="button"
+                    variant="ghost"
                     onClick={handleEnhancePrompt}
                     disabled={!prompt.trim() || loading || isEnhancing || isUploading}
-                    className="text-sm font-medium text-gray-800 dark:text-white hover:opacity-70 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="group rounded-lg h-14 w-auto px-3 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
+                    aria-label="Enhance prompt"
                   >
-                    {isEnhancing ? `${t('action.enhancePrompt')}...` : t('action.enhancePrompt')}
-                  </button>
+                    <span className="text-xs md:text-sm font-medium">
+                      {isEnhancing ? 'Enhancing...' : 'Enhance'}
+                    </span>
+                  </Button>
 
-                  {/* Generate - Text only */}
-                  <button
+                  {/* Generate Button */}
+                  <Button
                     type="submit"
+                    variant="ghost"
                     disabled={loading || isUploading || (!prompt.trim() && uploadedImages.length === 0)}
-                    className="text-sm font-medium text-gray-800 dark:text-white hover:opacity-70 transition-opacity disabled:opacity-40"
+                    className="group rounded-lg h-14 w-auto px-4 md:h-12 transition-colors duration-300 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-40 disabled:text-gray-600"
+                    aria-label="Generate"
                   >
-                    {loading ? `${t('action.generate')}...` : t('action.generate')}
-                  </button>
+                    <span className="text-xs md:text-sm font-medium">
+                      {loading ? 'Generating...' : 'Generate'}
+                    </span>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1210,36 +1571,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
               className="hidden"
             />
           </form>
-
-          {/* Bottom utility bar under prompt */}
-          <div className="mt-3 px-1">
-            <div className="flex items-center justify-between gap-4 text-sm font-medium text-foreground">
-              <button
-                type="button"
-                onClick={() => setIsConfigPanelOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                <span>{t('imageGen.configure')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsModelSelectorOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition"
-              >
-                <span className="text-foreground/80">{currentModelConfig?.name || 'Select model'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsImageUploadOpen(true)}
-                disabled={!supportsReference || loading || isUploading}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent transition disabled:opacity-40"
-              >
-                <span>+</span>
-                <ImageIcon className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
 
         </div>
       </footer>
