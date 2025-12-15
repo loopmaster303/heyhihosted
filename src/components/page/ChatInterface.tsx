@@ -47,6 +47,8 @@ const ChatInterface: React.FC = () => {
         selectedImageModelId,
         handleImageModelChange,
         setActiveConversation,
+        mistralFallbackEnabled,
+        toggleMistralFallback,
     } = useChat();
 
     const advancedPanelRef = React.useRef<HTMLDivElement>(null);
@@ -134,6 +136,8 @@ const ChatInterface: React.FC = () => {
                     availableImageModels={availableImageModels}
                     selectedImageModelId={selectedImageModelId}
                     handleImageModelChange={handleImageModelChange}
+                    mistralFallbackEnabled={mistralFallbackEnabled}
+                    onToggleMistralFallback={toggleMistralFallback}
                 />
             </div>
         </div>
