@@ -112,7 +112,7 @@ function EntryDraftPageContent() {
         >
           {/* Hero / Typewriter */}
           <div className="mb-6 font-code text-4xl sm:text-5xl md:text-6xl font-bold text-center">
-            <span className="text-transparent bg-gradient-to-r from-purple-300 to-purple-600 bg-clip-text">
+            <span className="text-transparent bg-gradient-to-r bg-clip-text" style={{ backgroundImage: 'linear-gradient(to right, hsl(330 70% 75%), hsl(330 65% 62%))' }}>
               {displayedText}
               {isTyping && <span className="animate-pulse">|</span>}
             </span>
@@ -127,8 +127,8 @@ function EntryDraftPageContent() {
                 className={cn(
                   'px-3 py-1 rounded-md border transition-colors',
                   mode === 'chat'
-                    ? 'border-purple-500/80 text-foreground shadow-[0_0_0_1px_rgba(168,85,247,0.35)]'
-                    : 'border-border/60 hover:border-purple-500/40'
+                    ? 'border-primary/80 text-foreground shadow-[0_0_0_1px_rgba(232,154,184,0.35)]'
+                    : 'border-border/60 hover:border-primary/40'
                 )}
               >
                 Chatten
@@ -139,8 +139,8 @@ function EntryDraftPageContent() {
                 className={cn(
                   'px-3 py-1 rounded-md border transition-colors',
                   mode === 'visualize'
-                    ? 'border-purple-500/80 text-foreground shadow-[0_0_0_1px_rgba(168,85,247,0.35)]'
-                    : 'border-border/60 hover:border-purple-500/40'
+                    ? 'border-primary/80 text-foreground shadow-[0_0_0_1px_rgba(232,154,184,0.35)]'
+                    : 'border-border/60 hover:border-primary/40'
                 )}
               >
                 Visualisieren

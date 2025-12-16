@@ -153,8 +153,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
               "w-full justify-start gap-2 h-8",
               !isExpanded && "justify-center px-0"
             )}
-            onClick={() => {
-              // Navigate to landing page
+            onClick={(e) => {
+              e.stopPropagation();
               router.push('/');
             }}
           >

@@ -237,7 +237,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             messagesForTitleApi.push({ role: 'assistant', content: assistantText });
           }
 
-          const finalTitle = await ChatService.generateTitle(messagesForTitleApi);
+          const finalTitle = await ChatService.generateTitle(
+            messagesForTitleApi,
+            activeConversation?.mistralFallbackEnabled
+          );
 
           // Use fallback if title is generic or empty
           const titleToSet = finalTitle && finalTitle.toLowerCase() !== 'chat' && finalTitle.length > 2

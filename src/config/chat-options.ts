@@ -23,22 +23,64 @@ export interface VoiceOption {
   name: string; // Display name, e.g., "German (Female, Natural)"
 }
 
-// Only Mistral models from Mistral API
+// Pollinations Models - Diverse provider ecosystem
+// Featured models (top 3 in dropdown): Claude, GPT-4o, Gemini 2.5
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-  // Mistral Large - Most powerful model
+  // Claude - Premium models (FEATURED #1)
   {
-    id: "mistral-large",
-    name: "Mistral Large",
+    id: "claude",
+    name: "Claude Sonnet 4.5",
     description: "Most Powerful & Intelligent Model with Vision",
     vision: true,
     category: "Premium",
+    contextWindow: 200000,
+    maxTokens: 8192,
+    costPerToken: 0.30,
+    useCases: ["Komplexe Aufgaben", "Bilder analysieren", "Mathematik", "Langdokumente"]
+  },
+
+  // OpenAI Models (FEATURED #2)
+  {
+    id: "openai-large",
+    name: "GPT-4o",
+    description: "Advanced Vision & Reasoning",
+    vision: true,
+    category: "Premium",
+    contextWindow: 128000,
+    maxTokens: 4096,
+    costPerToken: 0.15,
+    useCases: ["Vision", "Komplexe Aufgaben", "Bilder analysieren"]
+  },
+
+  // Gemini Models (FEATURED #3)
+  {
+    id: "gemini",
+    name: "Gemini 2.5",
+    description: "Advanced Reasoning Model",
+    vision: true,
+    category: "Premium",
+    contextWindow: 1000000,
+    maxTokens: 8192,
+    costPerToken: 0.10,
+    useCases: ["Lange Kontexte", "Multimodal", "Allround"]
+  },
+
+  // Rest of models under "Weitere Modelle"
+
+  // Mistral Large
+  {
+    id: "mistral-large",
+    name: "Mistral Large",
+    description: "Powerful Reasoning with Vision",
+    vision: true,
+    category: "Standard",
     contextWindow: 262144,
     maxTokens: 8192,
     costPerToken: 0.30,
     useCases: ["Komplexe Aufgaben", "Bilder analysieren", "Mathematik", "Langdokumente"]
   },
 
-  // Mistral Medium - Advanced reasoning
+  // Mistral Medium
   {
     id: "mistral-medium",
     name: "Mistral Medium",
@@ -51,7 +93,7 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     useCases: ["Programmierung", "Mathematik", "Dialoge", "Allround"]
   },
 
-  // Mistral Small - Fast and efficient
+  // Mistral Small
   {
     id: "mistral-small",
     name: "Mistral Small",
@@ -62,6 +104,72 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     maxTokens: 8192,
     costPerToken: 0.02,
     useCases: ["Schnelle Antworten", "Edge", "SaaS", "Einfache Aufgaben"]
+  },
+
+  // Deepseek
+  {
+    id: "deepseek",
+    name: "Deepseek-V3",
+    description: "Efficient Reasoning Model",
+    vision: false,
+    category: "Standard",
+    contextWindow: 64000,
+    maxTokens: 4096,
+    costPerToken: 0.08,
+    useCases: ["Code", "Mathematik", "Schnelle Antworten"]
+  },
+
+  // Grok
+  {
+    id: "grok",
+    name: "Grok-3",
+    description: "Real-time & Sarcastic",
+    vision: true,
+    category: "Standard",
+    contextWindow: 128000,
+    maxTokens: 4096,
+    costPerToken: 0.08,
+    useCases: ["Aktuelle Infos", "Sarkasmus", "Allround"]
+  },
+
+  // Moonshot (Kimi)
+  {
+    id: "moonshot",
+    name: "Kimi",
+    description: "Chinese Language Specialist",
+    vision: true,
+    category: "Standard",
+    contextWindow: 200000,
+    maxTokens: 4096,
+    costPerToken: 0.08,
+    useCases: ["Chinesisch", "Lange Texte", "Allround"]
+  },
+
+  // Perplexity
+  {
+    id: "perplexity-fast",
+    name: "Perplexity Fast",
+    description: "Web-aware Reasoning",
+    vision: true,
+    webBrowsing: true,
+    category: "Standard",
+    contextWindow: 200000,
+    maxTokens: 4096,
+    costPerToken: 0.08,
+    useCases: ["Web-Recherche", "Aktuelle Infos", "Reasoning"]
+  },
+
+  // Qwen Coder
+  {
+    id: "qwen-coder",
+    name: "Qwen Coder",
+    description: "Code Generation Specialist",
+    vision: false,
+    category: "Specialized",
+    contextWindow: 128000,
+    maxTokens: 4096,
+    costPerToken: 0.05,
+    useCases: ["Code", "Programmierung", "Debugging"]
   },
 ];
 
@@ -214,8 +322,8 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
   { id: 'R8_8CZH4KMY', name: 'Dev' },
 ];
 
-// Default model for new users/chats - Mistral Large for direct Mistral usage
-export const DEFAULT_POLLINATIONS_MODEL_ID = 'mistral-large'; // Mistral Large as default
+// Default model for new users/chats - Claude Sonnet 4.5
+export const DEFAULT_POLLINATIONS_MODEL_ID = 'claude'; // Claude Sonnet 4.5 as default
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // For in-chat image generation (align with bild.gen.lite)

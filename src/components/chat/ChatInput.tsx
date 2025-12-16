@@ -31,10 +31,10 @@ import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import ClaudeIcon from '../../../icons models/claude-color.png';
 import DeepSeekIcon from '../../../icons models/deepseek-color.png';
 import GeminiIcon from '../../../icons models/gemini-color.png';
-import GrokIcon from '../../../icons models/grok.png';
-import KimiIcon from '../../../icons models/kimi-color.png';
+import GrokIcon from '../../../icons models/grokfarbe.png';
+import KimiIcon from '../../../icons models/kimifarbe.png';
 import MistralIcon from '../../../icons models/mistral-color.png';
-import OpenAIIcon from '../../../icons models/openai.png';
+import OpenAIIcon from '../../../icons models/openfarbe.png';
 import PerplexityIcon from '../../../icons models/perplexity-color.png';
 import QwenIcon from '../../../icons models/qwen-color.png';
 
@@ -537,7 +537,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                             <div className="flex items-center gap-1.5 truncate">
                                                 {/* Mode Icon */}
                                                 {isImageMode ? (
-                                                    <Palette className="w-4 h-4 text-purple-500" />
+                                                    <Palette className="w-4 h-4" style={{ color: 'hsl(330 65% 62%)' }} />
                                                 ) : isCodeMode ? (
                                                     <Code2 className="w-4 h-4 text-blue-500" />
                                                 ) : webBrowsingEnabled ? (
@@ -545,7 +545,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                                 ) : null}
                                                 <span className={cn(
                                                     "text-xs md:text-sm font-medium",
-                                                    isImageMode ? "text-purple-600 dark:text-purple-400" :
+                                                    isImageMode ? "dark:text-purple-400" :
                                                         isCodeMode ? "text-blue-600 dark:text-blue-400" :
                                                             webBrowsingEnabled ? "text-green-600 dark:text-green-400" :
                                                                 ""
@@ -613,24 +613,24 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                                 className={cn(
                                                     "flex items-center gap-3 px-3 py-3 cursor-pointer rounded-lg transition-all duration-200",
                                                     isImageMode
-                                                        ? "bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800"
+                                                        ? "dark:bg-purple-900/20 border dark:border-purple-800"
                                                         : "hover:bg-muted/50"
                                                 )}
                                             >
                                                 <div className={cn(
                                                     "w-9 h-9 rounded-lg flex items-center justify-center",
                                                     isImageMode
-                                                        ? "bg-purple-100 dark:bg-purple-900/50"
-                                                        : "bg-purple-50 dark:bg-purple-900/20"
+                                                        ? "dark:bg-purple-900/50"
+                                                        : "dark:bg-purple-900/20"
                                                 )}>
-                                                    <Palette className={cn("w-4 h-4", isImageMode ? "text-purple-600" : "text-purple-500")} />
+                                                    <Palette className={cn("w-4 h-4")} style={{ color: isImageMode ? 'hsl(330 65% 62%)' : 'hsl(330 65% 62%)' }} />
                                                 </div>
                                                 <div className="flex-1">
                                                     <span className="text-sm font-medium block">Visualize Mode</span>
                                                     <span className="text-xs text-muted-foreground">Bilder erstellen</span>
                                                 </div>
                                                 {isImageMode && (
-                                                    <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+                                                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'hsl(330 65% 62%)' }}></div>
                                                 )}
                                             </DropdownMenuItem>
 
@@ -767,7 +767,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                         {/* Header */}
                                         <div className="px-4 py-3 border-b border-border/50 sticky top-0 bg-popover z-10">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-4 h-4 rounded bg-gradient-to-br from-purple-500 to-blue-500" />
+                                                <div className="w-4 h-4 rounded bg-gradient-to-br" style={{ backgroundImage: 'linear-gradient(to bottom right, hsl(330 65% 62%), rgb(59, 130, 246))' }} />
                                                 <span className="text-sm font-semibold">KI-Modell wählen</span>
                                             </div>
                                             <p className="text-xs text-muted-foreground mt-1">Beliebte Modelle für dein Gespräch</p>
@@ -776,12 +776,32 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                         {/* Featured Models */}
                                         <div className="p-2 space-y-1">
                                             {[
-                                                { id: 'mistral-large', emoji: '🚀', highlight: 'Premium' },
-                                                { id: 'mistral-medium', emoji: '🧠', highlight: 'Ausgewogen' },
-                                                { id: 'mistral-small', emoji: '⚡', highlight: 'Schnell' }
+                                                { id: 'claude', emoji: '🧠', highlight: 'Best' },
+                                                { id: 'openai-large', emoji: '🚀', highlight: 'Premium' },
+                                                { id: 'gemini', emoji: '✨', highlight: 'Advanced' }
                                             ].map((modelConfig) => {
                                                 const model = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === modelConfig.id);
                                                 if (!model) return null;
+                                                const modelDisplayMap: Record<string, string> = {
+                                                    'claude': 'Claude',
+                                                    'claude-fast': 'Haiku',
+                                                    'claude-large': 'Opus',
+                                                    'gemini-large': 'Gemini 3',
+                                                    'gemini': 'Gemini',
+                                                    'gemini-search': 'Gemini+',
+                                                    'openai-large': 'GPT 5.2',
+                                                    'openai-reasoning': 'o4 Pro',
+                                                    'deepseek': 'DeepSeek',
+                                                    'grok': 'Grok',
+                                                    'moonshot': 'Kimi',
+                                                    'perplexity-reasoning': 'Perplexity',
+                                                    'perplexity-fast': 'Perplexity',
+                                                    'qwen-coder': 'Qwen',
+                                                    'mistral': 'Mistral',
+                                                    'mistral-large': 'Mistral L',
+                                                    'mistral-medium': 'Mistral M',
+                                                    'mistral-small': 'Mistral S'
+                                                };
                                                 return (
                                                     <DropdownMenuItem
                                                         key={model.id}
@@ -811,7 +831,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                                         {/* Model Info */}
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2">
-                                                                <span className="font-medium text-sm truncate">{model.name}</span>
+                                                                <span className="font-medium text-sm truncate">{modelDisplayMap[model.id] || model.name}</span>
                                                                 {modelConfig.highlight && selectedModelId !== model.id && (
                                                                     <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
                                                                         {modelConfig.highlight}

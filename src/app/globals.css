@@ -16,24 +16,24 @@
     /* #fce7f3 - Rosa für Popover */
     --popover-foreground: 240 15% 15%;
     /* #374151 - dunkler Text */
-    --primary: 258 85% 60%;
-    /* #7c3aed - Primary Violett */
+    --primary: 330 70% 65%;
+    /* #E89AB8 - Soft Rosa */
     --primary-foreground: 340 100% 98%;
-    /* #fef7f2 - sehr helles Rosa für Text auf Violett */
-    --primary-hover: 258 85% 55%;
-    /* #6b46d3 - hellere Violett */
-    --primary-active: 258 85% 65%;
-    /* #8d5bf1 - dunklere Violett */
-    --secondary: 258 85% 45%;
-    /* #4a3d7a - sekundäres Violett */
+    /* #fef7f2 - sehr helles Rosa für Text auf Soft Rosa */
+    --primary-hover: 330 70% 60%;
+    /* Dunkleres Soft Rosa */
+    --primary-active: 330 70% 70%;
+    /* Helleres Soft Rosa */
+    --secondary: 330 60% 55%;
+    /* Sekundäres Soft Rosa */
     --secondary-foreground: 340 100% 98%;
     /* #fef7f2 - sehr helles Rosa */
     --muted: 340 20% 92%;
     /* #f3e6e6 - sehr dezent helles Rosa */
     --muted-foreground: 240 10% 25%;
     /* #404040 - sehr dunkler Text */
-    --accent: 258 85% 50%;
-    /* #57458c - Akzent-Violett */
+    --accent: 330 65% 62%;
+    /* #E8A0C3 - Soft Rosa für Accent */
     --accent-foreground: 340 100% 98%;
     /* #fef7f2 - sehr helles Rosa */
     --destructive: 0 84.2% 60.2%;

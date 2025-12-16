@@ -41,7 +41,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   return (
     <div
       className="relative flex flex-col h-screen bg-background text-foreground"
-      onClick={() => setSidebarExpanded(false)}
     >
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar
@@ -57,9 +56,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           onRequestEditTitle={onRequestEditTitle}
           onDeleteChat={onDeleteChat}
         />
-        <main className={cn(
-          "flex-1 overflow-y-auto transition-all duration-300 relative bg-background"
-        )}>
+        <main
+          className={cn(
+            "flex-1 overflow-y-auto transition-all duration-300 relative bg-background"
+          )}
+          onClick={() => setSidebarExpanded(false)}
+        >
           <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full shadow-sm bg-background">
             {children}
           </div>

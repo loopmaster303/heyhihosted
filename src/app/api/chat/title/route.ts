@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMistralChatCompletion } from '@/ai/flows/mistral-chat-flow';
-import { getMistralModel } from '@/config/mistral-models';
+import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handler';
+import { z } from 'zod';
+
+const POLLEN_CHAT_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
+
+// Validation schema
+const TitleGenerationSchema = z.object({
+  messages: z.array(z.any()).min(1, 'At least one message is required'),
+  mistralFallbackEnabled: z.boolean().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages } = await request.json();
-
-    if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: 'Messages array is required' },
-        { status: 400 }
-      );
-    }
-
-    console.log('[Title API] Using Mistral directly for title generation');
+    const body = await request.json();
+    const { messages, mistralFallbackEnabled } = validateRequest(TitleGenerationSchema, body);
 
     // Extract user message for title generation
     const userMessage = messages
-      .filter(m => m.role === 'user')
+      .filter((m: any) => m.role === 'user')
       .pop()?.content || '';
 
     if (!userMessage.trim()) {
@@ -28,19 +29,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Use Mistral directly for title generation
-    const mistralApiKey = process.env.MISTRAL_API_KEY;
-
-    if (!mistralApiKey) {
-      return NextResponse.json({
-        success: false,
-        error: 'Mistral API key is not configured',
-        title: 'New Chat'
-      }, { status: 500 });
-    }
-
-    try {
-      const titlePrompt = `Generate a short, descriptive title (max 5 words) for this conversation. The title should capture the main topic or theme.
+    // Create title generation prompt
+    const titlePrompt = `Generate a short, descriptive title (max 5 words) for this conversation. The title should capture the main topic or theme.
 
 Last message: "${userMessage}"
 
@@ -52,46 +42,125 @@ Rules:
 
 Return ONLY the title, nothing else.`;
 
-      const mistralResponse = await getMistralChatCompletion({
-        messages: [{ role: 'user', content: titlePrompt }],
-        modelId: 'mistral-medium', // Maps to mistral-large-latest
-        apiKey: mistralApiKey,
-        maxCompletionTokens: 50,
-        temperature: 0.3
+    // Check if we should use Mistral directly
+    const useMistralDirectly = mistralFallbackEnabled === true;
+
+    if (useMistralDirectly) {
+      console.log('[Title API] Using Mistral directly (user preference)');
+      return await generateTitleWithMistral(titlePrompt);
+    }
+
+    // Try Pollinations first
+    console.log('[Title API] Using Pollinations for title generation');
+
+    const pollenApiKey = process.env.POLLEN_API_KEY;
+
+    if (!pollenApiKey) {
+      console.warn('[Title API] POLLEN_API_KEY not set, falling back to Mistral');
+      return await generateTitleWithMistral(titlePrompt);
+    }
+
+    try {
+      const response = await fetch(POLLEN_CHAT_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${pollenApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'claude', // Fast and reliable for short responses
+          messages: [{ role: 'user', content: titlePrompt }],
+          max_tokens: 50,
+          temperature: 0.3,
+        }),
       });
 
-      const title = mistralResponse.responseText.trim()
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[Title API] Pollinations error (${response.status}):`, errorText);
+
+        // Fall back to Mistral on error
+        console.log('[Title API] Falling back to Mistral due to Pollinations error');
+        return await generateTitleWithMistral(titlePrompt);
+      }
+
+      const result = await response.json();
+      const title = result.choices?.[0]?.message?.content?.trim()
         .replace(/^["']|["']$/g, '') // Remove quotes
-        .substring(0, 50); // Limit length
+        .substring(0, 50) || 'New Chat'; // Limit length
 
       return NextResponse.json({
         success: true,
-        title: title || 'New Chat',
-        provider: 'mistral'
+        title,
+        provider: 'pollinations'
       });
 
-    } catch (mistralError) {
-      console.error('Mistral title generation failed:', mistralError);
+    } catch (pollinationsError) {
+      console.error('[Title API] Pollinations request failed:', pollinationsError);
 
-      // Fallback to simple title from user message
-      const fallbackTitle = userMessage.split(/\s+/).slice(0, 6).join(' ') || 'New Chat';
-
-      return NextResponse.json({
-        success: false,
-        error: 'Mistral title generation failed',
-        title: fallbackTitle,
-        provider: 'fallback'
-      }, { status: 500 });
+      // Fall back to Mistral
+      console.log('[Title API] Falling back to Mistral due to Pollinations failure');
+      return await generateTitleWithMistral(titlePrompt);
     }
 
   } catch (error) {
-    console.error('Title generation error:', error);
+    console.error('[Title API] Unexpected error:', error);
+    return handleApiError(error);
+  }
+}
+
+/**
+ * Helper function to generate title using Mistral
+ */
+async function generateTitleWithMistral(titlePrompt: string): Promise<NextResponse> {
+  const mistralApiKey = process.env.MISTRAL_API_KEY;
+
+  if (!mistralApiKey) {
+    console.error('[Title API] Mistral API key is not configured');
+
+    // Final fallback: extract from prompt
+    const match = titlePrompt.match(/Last message: "(.+?)"/);
+    const fallbackTitle = match?.[1]?.split(/\s+/).slice(0, 6).join(' ') || 'New Chat';
 
     return NextResponse.json({
       success: false,
-      error: 'Failed to generate title',
-      title: 'New Chat',
-      provider: 'error'
+      error: 'No API keys configured',
+      title: fallbackTitle,
+      provider: 'fallback'
+    }, { status: 500 });
+  }
+
+  try {
+    const mistralResponse = await getMistralChatCompletion({
+      messages: [{ role: 'user', content: titlePrompt }],
+      modelId: 'mistral-small', // Fast and cost-effective for titles
+      apiKey: mistralApiKey,
+      maxCompletionTokens: 50,
+      temperature: 0.3
+    });
+
+    const title = mistralResponse.responseText.trim()
+      .replace(/^["']|["']$/g, '') // Remove quotes
+      .substring(0, 50); // Limit length
+
+    return NextResponse.json({
+      success: true,
+      title: title || 'New Chat',
+      provider: 'mistral'
+    });
+
+  } catch (mistralError) {
+    console.error('[Title API] Mistral title generation failed:', mistralError);
+
+    // Final fallback to simple title from prompt
+    const match = titlePrompt.match(/Last message: "(.+?)"/);
+    const fallbackTitle = match?.[1]?.split(/\s+/).slice(0, 6).join(' ') || 'New Chat';
+
+    return NextResponse.json({
+      success: false,
+      error: 'All title generation methods failed',
+      title: fallbackTitle,
+      provider: 'fallback'
     }, { status: 500 });
   }
 }

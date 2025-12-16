@@ -215,7 +215,10 @@ export class ChatService {
         return (result as ImageGenerationResponse).imageUrl;
     }
 
-    static async generateTitle(messages: string | ApiChatMessage[]): Promise<string> {
+    static async generateTitle(
+        messages: string | ApiChatMessage[],
+        mistralFallbackEnabled?: boolean
+    ): Promise<string> {
         // Convert string to messages array if needed
         const messagesArray = typeof messages === 'string'
             ? [{ role: 'user' as const, content: messages }]
@@ -224,7 +227,10 @@ export class ChatService {
         const response = await fetch('/api/chat/title', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages: messagesArray }),
+            body: JSON.stringify({
+                messages: messagesArray,
+                mistralFallbackEnabled
+            }),
         });
 
         const result: TitleGenerationResponse | ApiErrorResponse = await response.json();
