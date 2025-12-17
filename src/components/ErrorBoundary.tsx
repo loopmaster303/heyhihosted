@@ -10,6 +10,7 @@ interface ErrorBoundaryProps {
   fallbackTitle?: string;
   fallbackMessage?: string;
   showHomeButton?: boolean;
+  onReset?: () => void;
 }
 
 interface ErrorBoundaryState {
@@ -42,7 +43,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       error,
       errorInfo,
     });
-    
+
     // Optional: Send to error tracking service (Sentry, LogRocket, etc.)
     // if (typeof window !== 'undefined') {
     //   // Sentry.captureException(error, { extra: errorInfo });
@@ -55,6 +56,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       error: null,
       errorInfo: null,
     });
+    // Call custom reset handler if provided
+    this.props.onReset?.();
   };
 
   handleReload = () => {
@@ -83,7 +86,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                {fallbackMessage || 
+                {fallbackMessage ||
                   'Die Seite konnte nicht geladen werden. Bitte versuche es erneut oder kehre zur Startseite zurück.'}
               </p>
 
@@ -134,5 +137,3 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 export default ErrorBoundary;
-
-

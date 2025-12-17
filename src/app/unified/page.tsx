@@ -31,6 +31,20 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
         setIsClient(true);
     }, []);
 
+    // Listen for prompt reuse from gallery - should navigate to VisualizePro
+    useEffect(() => {
+        const handler = (event: Event) => {
+            const custom = event as CustomEvent<string>;
+            if (typeof custom.detail === 'string') {
+                // Store prompt for VisualizePro and navigate
+                localStorage.setItem('unified-image-tool-draft', custom.detail);
+                setAppState('visualize');
+            }
+        };
+        window.addEventListener('sidebar-reuse-prompt', handler);
+        return () => window.removeEventListener('sidebar-reuse-prompt', handler);
+    }, []);
+
     // Navigate to Chat
     const handleNavigateToChat = useCallback((initialMessage: string) => {
         if (initialMessage) {

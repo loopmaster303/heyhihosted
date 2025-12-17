@@ -14,11 +14,13 @@ import { modelIcons, modelDisplayMap, featuredModels } from '@/config/ui-constan
 interface ModelSelectorProps {
     selectedModelId: string;
     onModelChange: (modelId: string) => void;
+    isMobile?: boolean;
 }
 
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
     selectedModelId,
-    onModelChange
+    onModelChange,
+    isMobile = false
 }) => {
     const [expanded, setExpanded] = useState(false);
 
@@ -33,7 +35,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 <Button
                     type="button"
                     variant="ghost"
-                    className="group rounded-lg h-14 w-auto px-3 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white min-w-[100px] max-w-[180px] md:max-w-[200px]"
+                    className={`group rounded-lg h-14 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white ${isMobile ? 'w-12 px-0' : 'w-auto px-3 min-w-[100px] max-w-[180px] md:max-w-[200px]'
+                        }`}
                     aria-label="Select model"
                 >
                     <div className="flex items-center gap-1.5 truncate">
@@ -55,10 +58,15 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                 </div>
                             )}
                         </div>
-                        <span className="text-xs md:text-sm font-medium truncate">
-                            {modelDisplayMap[selectedModelId] || 'Claude'}
-                        </span>
-                        <ChevronUp className="w-3 h-3 flex-shrink-0 opacity-60" />
+                        {/* Model Name - Hidden on mobile */}
+                        {!isMobile && (
+                            <>
+                                <span className="text-xs md:text-sm font-medium truncate">
+                                    {modelDisplayMap[selectedModelId] || 'Claude'}
+                                </span>
+                                <ChevronUp className="w-3 h-3 flex-shrink-0 opacity-60" />
+                            </>
+                        )}
                     </div>
                 </Button>
             </DropdownMenuTrigger>
@@ -67,7 +75,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     "p-0 overflow-y-auto transition-all duration-300 ease-in-out",
                     expanded
                         ? "w-[95vw] md:w-[850px] max-h-[80vh]"
-                        : "w-[340px] max-h-[500px]"
+                        : "w-[90vw] sm:w-[340px] max-h-[500px]"
                 )}
                 align="end"
                 side="top"

@@ -4,13 +4,14 @@ import type React from 'react';
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings2, Mic, Square } from 'lucide-react';
+import { Settings2, Mic, Square, ArrowUp } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
 import type { Conversation } from '@/types';
 import { QuickSettingsMenu } from './input/QuickSettingsMenu';
 import { UploadMenu } from './input/UploadMenu';
 import { ToolsMenu } from './input/ToolsMenu';
 import { ModelSelector } from './input/ModelSelector';
+import { MobileOptionsMenu } from './input/MobileOptionsMenu';
 
 interface ChatInputProps {
     onSendMessage: (message: string, options?: { isImageModeIntent?: boolean }) => void;
@@ -172,11 +173,15 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         ? t('chat.placeholder.code')
                         : t('chat.placeholder.standard');
 
-    // Listen for reuse prompt
+    // Listen for reuse prompt (from gallery - should also activate Image Mode)
     useEffect(() => {
         const handler = (event: Event) => {
             const custom = event as CustomEvent<string>;
             if (typeof custom.detail === 'string') {
+                // Activate Image Mode when reusing a prompt from gallery
+                if (!isImageMode && onToggleImageMode) {
+                    onToggleImageMode();
+                }
                 onInputChange(custom.detail);
                 if (textareaRef.current) textareaRef.current.focus();
             }
@@ -193,7 +198,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             }
         } catch { }
         return () => window.removeEventListener('sidebar-reuse-prompt', handler);
-    }, [onInputChange]);
+    }, [onInputChange, isImageMode, onToggleImageMode]);
 
     return (
         <div className="relative">
@@ -217,23 +222,19 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         <div className="flex w-full items-center justify-between gap-1">
                             {/* Left Side: Quick Settings + Plus Menu + Mode Selector */}
                             <div className="flex items-center gap-0">
-                                {/* Quick Settings Button */}
-                                <div className="relative">
-                                    <Button
-                                        ref={quickSettingsButtonRef}
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={() => setIsQuickSettingsOpen(!isQuickSettingsOpen)}
-                                        className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
-                                        aria-label="Quick settings"
-                                    >
-                                        <Settings2 className="w-[20px] h-[20px]" />
-                                    </Button>
-
-                                    <QuickSettingsMenu
-                                        isOpen={isQuickSettingsOpen}
-                                        onClose={() => setIsQuickSettingsOpen(false)}
-                                        triggerRef={quickSettingsButtonRef}
+                                {isMobile ? (
+                                    /* Mobile: Consolidated three-dot menu */
+                                    <MobileOptionsMenu
+                                        isLoading={isLoading}
+                                        isImageMode={isImageMode}
+                                        onImageUploadClick={() => imageInputRef.current?.click()}
+                                        onDocUploadClick={() => docInputRef.current?.click()}
+                                        onCameraClick={openCamera}
+                                        onToggleImageMode={onToggleImageMode}
+                                        isCodeMode={isCodeMode || false}
+                                        onToggleCodeMode={onToggleCodeMode}
+                                        webBrowsingEnabled={webBrowsingEnabled}
+                                        onToggleWebBrowsing={onToggleWebBrowsing}
                                         selectedVoice={selectedVoice}
                                         onVoiceChange={handleVoiceChange}
                                         selectedImageModelId={selectedImageModelId}
@@ -243,34 +244,66 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                         mistralFallbackEnabled={mistralFallbackEnabled}
                                         onToggleMistralFallback={onToggleMistralFallback}
                                     />
-                                </div>
+                                ) : (
+                                    /* Desktop: Separate buttons */
+                                    <>
+                                        {/* Quick Settings Button */}
+                                        <div className="relative">
+                                            <Button
+                                                ref={quickSettingsButtonRef}
+                                                type="button"
+                                                variant="ghost"
+                                                onClick={() => setIsQuickSettingsOpen(!isQuickSettingsOpen)}
+                                                className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
+                                                aria-label="Quick settings"
+                                            >
+                                                <Settings2 className="w-[20px] h-[20px]" />
+                                            </Button>
 
-                                <UploadMenu
-                                    isOpen={isPlusMenuOpen}
-                                    onOpenChange={setIsPlusMenuOpen}
-                                    isLoading={isLoading}
-                                    isImageMode={isImageMode}
-                                    onImageUploadClick={() => imageInputRef.current?.click()}
-                                    onDocUploadClick={() => docInputRef.current?.click()}
-                                    onCameraClick={openCamera}
-                                />
+                                            <QuickSettingsMenu
+                                                isOpen={isQuickSettingsOpen}
+                                                onClose={() => setIsQuickSettingsOpen(false)}
+                                                triggerRef={quickSettingsButtonRef}
+                                                selectedVoice={selectedVoice}
+                                                onVoiceChange={handleVoiceChange}
+                                                selectedImageModelId={selectedImageModelId}
+                                                onImageModelChange={handleImageModelChange}
+                                                selectedResponseStyleName={selectedResponseStyleName}
+                                                onStyleChange={handleStyleChange}
+                                                mistralFallbackEnabled={mistralFallbackEnabled}
+                                                onToggleMistralFallback={onToggleMistralFallback}
+                                            />
+                                        </div>
 
-                                <ToolsMenu
-                                    isOpen={isToolsMenuOpen}
-                                    onOpenChange={setIsToolsMenuOpen}
-                                    isImageMode={isImageMode}
-                                    onToggleImageMode={onToggleImageMode}
-                                    isCodeMode={isCodeMode || false}
-                                    onToggleCodeMode={onToggleCodeMode}
-                                    webBrowsingEnabled={webBrowsingEnabled}
-                                    onToggleWebBrowsing={onToggleWebBrowsing}
-                                />
+                                        <UploadMenu
+                                            isOpen={isPlusMenuOpen}
+                                            onOpenChange={setIsPlusMenuOpen}
+                                            isLoading={isLoading}
+                                            isImageMode={isImageMode}
+                                            onImageUploadClick={() => imageInputRef.current?.click()}
+                                            onDocUploadClick={() => docInputRef.current?.click()}
+                                            onCameraClick={openCamera}
+                                        />
+
+                                        <ToolsMenu
+                                            isOpen={isToolsMenuOpen}
+                                            onOpenChange={setIsToolsMenuOpen}
+                                            isImageMode={isImageMode}
+                                            onToggleImageMode={onToggleImageMode}
+                                            isCodeMode={isCodeMode || false}
+                                            onToggleCodeMode={onToggleCodeMode}
+                                            webBrowsingEnabled={webBrowsingEnabled}
+                                            onToggleWebBrowsing={onToggleWebBrowsing}
+                                        />
+                                    </>
+                                )}
                             </div>
 
                             <div className="flex items-center gap-0">
                                 <ModelSelector
                                     selectedModelId={selectedModelId}
                                     onModelChange={handleModelChange}
+                                    isMobile={isMobile}
                                 />
 
                                 {/* Mic / Stop Button */}
@@ -288,17 +321,22 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                     )}
                                 </Button>
 
-                                {/* Send Button */}
+                                {/* Send Button - Arrow on mobile */}
                                 <Button
                                     type="submit"
                                     disabled={isLoading || isRecording || (!inputValue.trim() && !uploadedFilePreviewUrl)}
-                                    className={`ml-2 h-10 px-6 rounded-xl transition-all duration-300 font-medium ${inputValue.trim() || uploadedFilePreviewUrl
-                                        ? 'bg-black dark:bg-white text-white dark:text-black hover:opacity-90 shadow-md'
-                                        : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600'
+                                    className={`ml-2 transition-all duration-300 font-medium ${isMobile ? 'h-10 w-10 p-0 rounded-lg' : 'h-10 px-6 rounded-xl'
+                                        } ${inputValue.trim() || uploadedFilePreviewUrl
+                                            ? 'bg-black dark:bg-white text-white dark:text-black hover:opacity-90 shadow-md'
+                                            : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600'
                                         }`}
                                     aria-label="Send message"
                                 >
-                                    {t('chat.send')}
+                                    {isMobile ? (
+                                        <ArrowUp className="w-5 h-5" />
+                                    ) : (
+                                        t('chat.send')
+                                    )}
                                 </Button>
                             </div>
                         </div>

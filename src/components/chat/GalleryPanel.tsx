@@ -9,6 +9,7 @@ import { Trash2, X, Download, Image as ImageIcon, Maximize2, Trash } from 'lucid
 import { format } from 'date-fns';
 import type { ImageHistoryItem } from '@/types';
 import { useLanguage } from '../LanguageProvider';
+import ErrorBoundary from '../ErrorBoundary';
 
 interface GalleryPanelProps {
     history: ImageHistoryItem[];
@@ -108,44 +109,50 @@ const GalleryPanel: FC<GalleryPanelProps> = ({ history, onSelectImage, onClearHi
                             <p className="text-sm">{t('imageGen.noImages')}</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-3 p-4">
-                            {history.map((item) => (
-                                <div
-                                    key={item.id}
-                                    className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1"
-                                    onClick={() => onSelectImage(item)}
-                                >
-                                    <NextImage
-                                        src={item.videoUrl ? 'https://placehold.co/400x400.png' : item.imageUrl}
-                                        alt={item.prompt}
-                                        fill
-                                        unoptimized
-                                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                                        style={{ objectFit: 'cover' }}
-                                        className="bg-muted/30"
-                                        data-ai-hint="gallery thumbnail"
-                                    />
-                                    {item.videoUrl && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8 text-white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                                        </div>
-                                    )}
-                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                                        <p className="text-white text-xs font-medium truncate">{item.prompt}</p>
-                                        <p className="text-white/80 text-[10px]">{format(new Date(item.timestamp), "dd/MM/yy HH:mm")}</p>
-                                    </div>
-                                    <Button
-                                        variant="secondary"
-                                        size="icon"
-                                        className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                        onClick={(e) => handleDownload(e, item)}
-                                        aria-label="Download"
+                        <ErrorBoundary
+                            fallbackTitle="Galerie konnte nicht geladen werden"
+                            fallbackMessage="Es gab ein Problem beim Laden der Bilder."
+                            showHomeButton={false}
+                        >
+                            <div className="grid grid-cols-2 gap-3 p-4">
+                                {history.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1"
+                                        onClick={() => onSelectImage(item)}
                                     >
-                                        <Download className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
+                                        <NextImage
+                                            src={item.videoUrl ? 'https://placehold.co/400x400.png' : item.imageUrl}
+                                            alt={item.prompt}
+                                            fill
+                                            unoptimized
+                                            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                                            style={{ objectFit: 'cover' }}
+                                            className="bg-muted/30"
+                                            data-ai-hint="gallery thumbnail"
+                                        />
+                                        {item.videoUrl && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8 text-white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                            </div>
+                                        )}
+                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                                            <p className="text-white text-xs font-medium truncate">{item.prompt}</p>
+                                            <p className="text-white/80 text-[10px]">{format(new Date(item.timestamp), "dd/MM/yy HH:mm")}</p>
+                                        </div>
+                                        <Button
+                                            variant="secondary"
+                                            size="icon"
+                                            className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                            onClick={(e) => handleDownload(e, item)}
+                                            aria-label="Download"
+                                        >
+                                            <Download className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </ErrorBoundary>
                     )}
                 </ScrollArea>
             </div>

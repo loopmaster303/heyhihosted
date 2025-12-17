@@ -1,10 +1,10 @@
-"use client";
-
 import React from 'react';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import { useChat } from '@/components/ChatProvider';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const ChatInterface: React.FC = () => {
     const {
@@ -56,6 +56,15 @@ const ChatInterface: React.FC = () => {
     // This hook now correctly ignores clicks inside any Radix UI Select/Dropdown content
     useOnClickOutside([advancedPanelRef], closeAdvancedPanel, 'radix-select-content');
 
+    // Keyboard shortcuts: Cmd+K = new chat
+    useKeyboardShortcuts({
+        onNewChat: startNewChat,
+        onEscape: () => {
+            closeHistoryPanel();
+            closeAdvancedPanel();
+        },
+    });
+
     if (!activeConversation) {
         return null; // Don't show anything while loading to prevent flicker
     }
@@ -68,16 +77,22 @@ const ChatInterface: React.FC = () => {
         <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
             <div className="flex-grow overflow-y-auto pt-[72px] pb-4 px-4 no-scrollbar">
                 {messages && messages.length > 0 ? (
-                    <ChatView
-                        messages={messages}
-                        lastUserMessageId={lastUserMessageId}
-                        isAiResponding={isAiResponding}
-                        onPlayAudio={handlePlayAudio}
-                        playingMessageId={playingMessageId}
-                        isTtsLoadingForId={isTtsLoadingForId}
-                        onCopyToClipboard={handleCopyToClipboard}
-                        onRegenerate={regenerateLastResponse}
-                    />
+                    <ErrorBoundary
+                        fallbackTitle="Chat konnte nicht geladen werden"
+                        fallbackMessage="Es gab ein Problem beim Anzeigen der Nachrichten. Versuche die Seite neu zu laden."
+                        showHomeButton={false}
+                    >
+                        <ChatView
+                            messages={messages}
+                            lastUserMessageId={lastUserMessageId}
+                            isAiResponding={isAiResponding}
+                            onPlayAudio={handlePlayAudio}
+                            playingMessageId={playingMessageId}
+                            isTtsLoadingForId={isTtsLoadingForId}
+                            onCopyToClipboard={handleCopyToClipboard}
+                            onRegenerate={regenerateLastResponse}
+                        />
+                    </ErrorBoundary>
                 ) : (
                     // Completely empty area - no branding, no text, nothing
                     <div className="h-full"></div>

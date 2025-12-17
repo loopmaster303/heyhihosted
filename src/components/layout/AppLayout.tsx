@@ -1,9 +1,12 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import AppSidebar from './AppSidebar';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
+import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -37,6 +40,18 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   onDeleteChat
 }) => {
   const [sidebarExpanded, setSidebarExpanded] = useLocalStorageState<boolean>('sidebarExpanded', true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   return (
     <div
@@ -55,18 +70,30 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           onSelectChat={onSelectChat}
           onRequestEditTitle={onRequestEditTitle}
           onDeleteChat={onDeleteChat}
+          isExpanded={sidebarExpanded}
+          onToggle={() => setSidebarExpanded(!sidebarExpanded)}
         />
         <main
-          className={cn(
-            "flex-1 overflow-y-auto transition-all duration-300 relative bg-background"
-          )}
-          onClick={() => setSidebarExpanded(false)}
+          className="flex-1 overflow-y-auto transition-all duration-300 relative bg-background w-full"
         >
-          <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full shadow-sm bg-background">
+          {/* Mobile Menu Button */}
+          {isMobile && !sidebarExpanded && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="fixed top-4 left-4 z-30 md:hidden bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg"
+              onClick={() => setSidebarExpanded(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          )}
+
+          <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full px-2 md:px-4 bg-background">
             {children}
           </div>
         </main>
       </div>
+      <OfflineIndicator />
     </div>
   );
 };

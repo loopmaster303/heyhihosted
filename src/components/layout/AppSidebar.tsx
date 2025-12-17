@@ -36,6 +36,8 @@ interface AppSidebarProps {
   onSelectChat?: (id: string) => void;
   onRequestEditTitle?: (id: string) => void;
   onDeleteChat?: (id: string) => void;
+  isExpanded?: boolean;
+  onToggle?: () => void;
 }
 
 const AppSidebar: React.FC<AppSidebarProps> = ({
@@ -49,37 +51,48 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   activeConversation = null,
   onSelectChat,
   onRequestEditTitle,
-  onDeleteChat
+  onDeleteChat,
+  isExpanded: externalIsExpanded,
+  onToggle: externalOnToggle
 }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { language, t } = useLanguage();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [internalIsExpanded, setInternalIsExpanded] = useState(false); // Default to collapsed
   const [userDisplayName, setUserDisplayName] = useState('User');
   const [isMounted, setIsMounted] = useState(false);
   const { imageHistory, clearImageHistory, removeImageFromHistory } = useImageHistory();
+
+  // Use external state if provided, otherwise use internal state
+  const isExpanded = externalIsExpanded !== undefined ? externalIsExpanded : internalIsExpanded;
+  const setIsExpanded = externalOnToggle ? () => externalOnToggle() : setInternalIsExpanded;
 
   // Load from localStorage on mount
   useEffect(() => {
     const savedExpanded = localStorage.getItem('sidebarExpanded');
     const savedName = localStorage.getItem('userDisplayName');
 
-    if (savedExpanded !== null) {
-      setIsExpanded(savedExpanded === 'true');
+    // On mobile, always start collapsed
+    const isMobile = window.innerWidth < 768;
+    if (savedExpanded !== null && !isMobile && externalIsExpanded === undefined) {
+      setInternalIsExpanded(savedExpanded === 'true');
+    } else if (!isMobile && externalIsExpanded === undefined) {
+      setInternalIsExpanded(true); // Desktop default: expanded
     }
+
     if (savedName) {
       setUserDisplayName(savedName);
     }
 
     setIsMounted(true);
-  }, []);
+  }, [externalIsExpanded]);
 
-  // Save to localStorage when changed
+  // Save to localStorage when changed (only for internal state)
   useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('sidebarExpanded', String(isExpanded));
+    if (isMounted && externalIsExpanded === undefined) {
+      localStorage.setItem('sidebarExpanded', String(internalIsExpanded));
     }
-  }, [isExpanded, isMounted]);
+  }, [internalIsExpanded, isMounted, externalIsExpanded]);
 
   const labels = {
     newInteraction: t('nav.newInteraction'),
@@ -130,178 +143,196 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   const sidebarRef = React.useRef<HTMLDivElement>(null);
 
   return (
-    <div
-      className={cn(
-        "h-screen bg-background border-r border-border flex flex-col transition-all duration-300",
-        isExpanded ? "w-64" : "w-16"
+    <>
+      {/* Mobile backdrop */}
+      {isExpanded && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsExpanded(false)}
+        />
       )}
-      ref={sidebarRef}
-    >
-      {/* Header */}
-      <div className="p-4 border-b border-border flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleToggle}
-        >
-          <Menu className="w-5 h-5" />
-        </Button>
 
-        {isExpanded && (
-          <Link href="/" className="flex-1">
-            <div className="font-mono text-sm flex items-center whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity">
-              <span className="text-foreground text-lg font-bold">{'(!hey.hi = '}</span>
-              <span className="text-muted-foreground text-lg font-bold">{userDisplayName}</span>
-              <span className="text-foreground text-lg font-bold">{')'}</span>
-            </div>
-          </Link>
+      <div
+        className={cn(
+          "h-screen bg-background border-r border-border flex flex-col transition-all duration-300",
+          // Mobile: fixed overlay, Desktop: static sidebar
+          "fixed md:relative z-50 md:z-auto",
+          // Mobile: completely hidden when collapsed (w-0), Desktop: collapsed to icon-only width (w-16)
+          isExpanded ? "w-64" : "w-0 md:w-16",
+          // Mobile: slide off-screen when collapsed, Desktop: always visible
+          !isExpanded && "-translate-x-full md:translate-x-0"
         )}
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex flex-col relative">
-        <div className="flex-1 overflow-y-auto p-2 space-y-2">
-          {/* New Interaction Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "w-full justify-start gap-2 h-8",
-              !isExpanded && "justify-center px-0"
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push('/');
-            }}
-          >
-            <SmilePlus className="w-4 h-4 shrink-0" />
-            {isExpanded && <span className="text-xs">{labels.newInteraction}</span>}
-          </Button>
-
-          {/* History Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "w-full justify-start gap-2 h-8 relative z-10",
-              !isExpanded && "justify-center px-0",
-              isHistoryPanelOpen && "bg-accent text-accent-foreground"
-            )}
-            onClick={() => {
-              // Auto-expand sidebar if collapsed
-              if (!isExpanded) {
-                setIsExpanded(true);
-              }
-              if (onToggleHistoryPanel) {
-                onToggleHistoryPanel();
-              }
-            }}
-          >
-            <History className="w-4 h-4 shrink-0" />
-            {isExpanded && (
-              <>
-                <span className="flex-1 text-left text-xs">{labels.history}</span>
-                <ChevronRight className={cn(
-                  "w-3 h-3 shrink-0 transition-transform",
-                  isHistoryPanelOpen && "rotate-90"
-                )} />
-              </>
-            )}
-          </Button>
-
-          {/* Gallery Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "w-full justify-start gap-2 h-8 relative z-10",
-              !isExpanded && "justify-center px-0",
-              isGalleryPanelOpen && "bg-accent text-accent-foreground"
-            )}
-            onClick={() => {
-              // Auto-expand sidebar if collapsed
-              if (!isExpanded) {
-                setIsExpanded(true);
-              }
-              if (onToggleGalleryPanel) {
-                onToggleGalleryPanel();
-              }
-            }}
-          >
-            <Images className="w-4 h-4 shrink-0" />
-            {isExpanded && (
-              <>
-                <span className="flex-1 text-left text-xs">{labels.gallery}</span>
-                <ChevronRight className={cn(
-                  "w-3 h-3 shrink-0 transition-transform",
-                  isGalleryPanelOpen && "rotate-90"
-                )} />
-              </>
-            )}
-          </Button>
-        </div>
-
-        {/* Panels - Positioned absolutely to overlay with sidebar outline */}
-        {isHistoryPanelOpen && isExpanded && (
-          <div className="absolute top-[120px] left-0 right-0 bottom-0 z-20 px-2 pb-16">
-            <div className="bg-muted/30 border-t border-border/50 rounded-b-lg overflow-hidden h-full">
-              <SidebarHistoryPanel
-                allConversations={allConversations}
-                activeConversation={activeConversation}
-                onSelectChat={onSelectChat || (() => { })}
-                onRequestEditTitle={onRequestEditTitle || (() => { })}
-                onDeleteChat={onDeleteChat || (() => { })}
-                onClose={onToggleHistoryPanel || (() => { })}
-              />
-            </div>
-          </div>
-        )}
-
-        {isGalleryPanelOpen && isExpanded && (
-          <div className="absolute top-[160px] left-0 right-0 bottom-0 z-20 px-2 pb-16">
-            <div className="bg-muted/30 border-t border-border/50 rounded-b-lg overflow-hidden h-full">
-              <SidebarGalleryPanel
-                history={imageHistory}
-                onSelectImage={(item) => {
-                  // Placeholder for future image selection handling
-                }}
-                onClearHistory={clearImageHistory}
-                onDeleteSingleImage={removeImageFromHistory}
-                onClose={onToggleGalleryPanel || (() => { })}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Bottom Section - Higher z-index to stay above panels */}
-        <div className="p-4 border-t border-border space-y-2 relative z-30 bg-background">
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-3",
-              !isExpanded && "justify-center px-0"
-            )}
-            onClick={() => router.push('/settings')}
-          >
-            <UserRoundPen className="w-5 h-5 shrink-0" />
-            {isExpanded && <span>{labels.personalization}</span>}
-          </Button>
+        ref={sidebarRef}
+      >
+        {/* Header */}
+        <div className="p-4 border-b border-border flex items-center gap-3">
+          {/* Only show menu button when sidebar is expanded, since AppLayout shows a floating button when collapsed */}
+          {isExpanded && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleToggle}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          )}
 
           {isExpanded && (
-            <>
-              <div className="flex items-center justify-between px-2 py-1 text-sm">
-                <span className="text-muted-foreground">{labels.languageLabel}</span>
-                <LanguageToggle />
+            <Link href="/" className="flex-1">
+              <div className="font-mono text-sm flex items-center whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity">
+                <span className="text-foreground text-lg font-bold">{'(!hey.hi = '}</span>
+                <span className="text-muted-foreground text-lg font-bold">{userDisplayName}</span>
+                <span className="text-foreground text-lg font-bold">{')'}</span>
               </div>
-              <div className="flex items-center justify-between px-2 py-1 text-sm">
-                <span className="text-muted-foreground">{labels.themeLabel}</span>
-                <ThemeToggle />
-              </div>
-            </>
+            </Link>
           )}
         </div>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden flex flex-col relative">
+          <div className="flex-1 overflow-y-auto p-2 space-y-2">
+            {/* New Interaction Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "w-full justify-start gap-2 h-8",
+                !isExpanded && "justify-center px-0"
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push('/');
+              }}
+            >
+              <SmilePlus className="w-4 h-4 shrink-0" />
+              {isExpanded && <span className="text-xs">{labels.newInteraction}</span>}
+            </Button>
+
+            {/* History Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "w-full justify-start gap-2 h-8 relative z-10",
+                !isExpanded && "justify-center px-0",
+                isHistoryPanelOpen && "bg-accent text-accent-foreground"
+              )}
+              onClick={() => {
+                // Auto-expand sidebar if collapsed
+                if (!isExpanded) {
+                  setIsExpanded(true);
+                }
+                if (onToggleHistoryPanel) {
+                  onToggleHistoryPanel();
+                }
+              }}
+            >
+              <History className="w-4 h-4 shrink-0" />
+              {isExpanded && (
+                <>
+                  <span className="flex-1 text-left text-xs">{labels.history}</span>
+                  <ChevronRight className={cn(
+                    "w-3 h-3 shrink-0 transition-transform",
+                    isHistoryPanelOpen && "rotate-90"
+                  )} />
+                </>
+              )}
+            </Button>
+
+            {/* Gallery Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "w-full justify-start gap-2 h-8 relative z-10",
+                !isExpanded && "justify-center px-0",
+                isGalleryPanelOpen && "bg-accent text-accent-foreground"
+              )}
+              onClick={() => {
+                // Auto-expand sidebar if collapsed
+                if (!isExpanded) {
+                  setIsExpanded(true);
+                }
+                if (onToggleGalleryPanel) {
+                  onToggleGalleryPanel();
+                }
+              }}
+            >
+              <Images className="w-4 h-4 shrink-0" />
+              {isExpanded && (
+                <>
+                  <span className="flex-1 text-left text-xs">{labels.gallery}</span>
+                  <ChevronRight className={cn(
+                    "w-3 h-3 shrink-0 transition-transform",
+                    isGalleryPanelOpen && "rotate-90"
+                  )} />
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Panels - Positioned absolutely to overlay with sidebar outline */}
+          {isHistoryPanelOpen && isExpanded && (
+            <div className="absolute top-[120px] left-0 right-0 bottom-0 z-20 px-2 pb-16">
+              <div className="bg-muted/30 border-t border-border/50 rounded-b-lg overflow-hidden h-full">
+                <SidebarHistoryPanel
+                  allConversations={allConversations}
+                  activeConversation={activeConversation}
+                  onSelectChat={onSelectChat || (() => { })}
+                  onRequestEditTitle={onRequestEditTitle || (() => { })}
+                  onDeleteChat={onDeleteChat || (() => { })}
+                  onClose={onToggleHistoryPanel || (() => { })}
+                />
+              </div>
+            </div>
+          )}
+
+          {isGalleryPanelOpen && isExpanded && (
+            <div className="absolute top-[160px] left-0 right-0 bottom-0 z-20 px-2 pb-16">
+              <div className="bg-muted/30 border-t border-border/50 rounded-b-lg overflow-hidden h-full">
+                <SidebarGalleryPanel
+                  history={imageHistory}
+                  onSelectImage={(item) => {
+                    // Placeholder for future image selection handling
+                  }}
+                  onClearHistory={clearImageHistory}
+                  onDeleteSingleImage={removeImageFromHistory}
+                  onClose={onToggleGalleryPanel || (() => { })}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Bottom Section - Higher z-index to stay above panels */}
+          <div className="p-4 border-t border-border space-y-2 relative z-30 bg-background">
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start gap-3",
+                !isExpanded && "justify-center px-0"
+              )}
+              onClick={() => router.push('/settings')}
+            >
+              <UserRoundPen className="w-5 h-5 shrink-0" />
+              {isExpanded && <span>{labels.personalization}</span>}
+            </Button>
+
+            {isExpanded && (
+              <>
+                <div className="flex items-center justify-between px-2 py-1 text-sm">
+                  <span className="text-muted-foreground">{labels.languageLabel}</span>
+                  <LanguageToggle />
+                </div>
+                <div className="flex items-center justify-between px-2 py-1 text-sm">
+                  <span className="text-muted-foreground">{labels.themeLabel}</span>
+                  <ThemeToggle />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

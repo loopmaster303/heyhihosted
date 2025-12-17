@@ -63,8 +63,8 @@ const SidebarHistoryPanel: FC<SidebarHistoryPanelProps> = ({
                                     className={`p-2 rounded cursor-pointer transition-colors hover:bg-accent/50 ${activeConversation?.id === conversation.id ? 'bg-accent' : ''}`}
                                     onClick={() => handleSelectChat(conversation.id)}
                                 >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex-1 min-w-0 overflow-hidden">
                                             <p className="text-xs font-medium truncate">
                                                 {conversation.title}
                                             </p>
@@ -72,7 +72,18 @@ const SidebarHistoryPanel: FC<SidebarHistoryPanelProps> = ({
                                                 {format(new Date(conversation.updatedAt), 'dd.MM. HH:mm')}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-1 relative z-40">
+                                        <div className="flex items-center gap-0.5 shrink-0">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 opacity-60 hover:opacity-100"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onRequestEditTitle(conversation.id);
+                                                }}
+                                            >
+                                                <Edit className="w-3 h-3" />
+                                            </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -82,7 +93,7 @@ const SidebarHistoryPanel: FC<SidebarHistoryPanelProps> = ({
                                                     onDeleteChat(conversation.id);
                                                 }}
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                <Trash2 className="w-3 h-3" />
                                             </Button>
                                         </div>
                                     </div>

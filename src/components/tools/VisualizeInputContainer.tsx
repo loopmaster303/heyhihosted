@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { SlidersHorizontal, Plus, ImageIcon, Loader2 } from 'lucide-react';
+import { SlidersHorizontal, Plus, ImageIcon, Loader2, ArrowUp } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
 import { type UnifiedModelConfig } from '@/config/unified-model-configs';
 import { imageModelIcons } from '@/config/ui-constants';
@@ -12,6 +12,7 @@ import { imageModelIcons } from '@/config/ui-constants';
 import { VisualModelSelector } from './visualize/VisualModelSelector';
 import { VisualConfigPanel } from './visualize/VisualConfigPanel';
 import { VisualUploadModal } from './visualize/VisualUploadModal';
+import { VisualizeMobileMenu } from './visualize/VisualizeMobileMenu';
 
 interface VisualizeInputContainerProps {
     prompt: string;
@@ -100,6 +101,15 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Mobile detection
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 640);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     const placeholderText = placeholder || t('imageGen.placeholder.gptImage');
 
     const displayModelName = currentModelConfig?.name || t('label.selectModel');
@@ -112,6 +122,8 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
             textareaRef.current.style.height = `${newHeight}px`;
         }
     }, [prompt]);
+
+    const canSubmit = !loading && !isUploading && (prompt.trim() || uploadedImages.length > 0) && !disabled;
 
     return (
         <div className="w-full relative">
@@ -178,44 +190,62 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                     </div>
 
                     <div className="flex w-full items-center justify-between gap-1">
-                        {/* Left Side: Settings + Plus Menu */}
+                        {/* Left Side: Settings + Upload (or Mobile Menu) */}
                         <div className="flex items-center gap-0">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={onConfigPanelToggle}
-                                className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
-                                aria-label="Settings"
-                            >
-                                <SlidersHorizontal className="w-[20px] h-[20px]" />
-                            </Button>
+                            {isMobile ? (
+                                <VisualizeMobileMenu
+                                    onConfigPanelToggle={onConfigPanelToggle}
+                                    onUploadClick={() => supportsReference ? onImageUploadToggle() : fileInputRef.current?.click()}
+                                    uploadedImagesCount={uploadedImages.length}
+                                    maxImages={maxImages}
+                                    supportsReference={supportsReference}
+                                    isUploading={isUploading}
+                                    disabled={disabled}
+                                    loading={loading}
+                                    onEnhancePrompt={onEnhancePrompt}
+                                    canEnhance={!!prompt.trim()}
+                                    isEnhancing={isEnhancing}
+                                />
+                            ) : (
+                                <>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={onConfigPanelToggle}
+                                        className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
+                                        aria-label="Settings"
+                                    >
+                                        <SlidersHorizontal className="w-[20px] h-[20px]" />
+                                    </Button>
 
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={() => supportsReference ? onImageUploadToggle() : fileInputRef.current?.click()}
-                                disabled={loading || isUploading || disabled}
-                                className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
-                                aria-label="Upload image"
-                            >
-                                <Plus className="w-[20px] h-[20px]" />
-                            </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => supportsReference ? onImageUploadToggle() : fileInputRef.current?.click()}
+                                        disabled={loading || isUploading || disabled}
+                                        className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
+                                        aria-label="Upload image"
+                                    >
+                                        <Plus className="w-[20px] h-[20px]" />
+                                    </Button>
+                                </>
+                            )}
                         </div>
 
-                        {/* Right Side: Model Select + Enhance + Generate */}
+                        {/* Right Side: Model Select + Enhance (desktop only) + Generate */}
                         <div className="flex items-center gap-0">
                             <Button
                                 type="button"
                                 variant="ghost"
                                 onClick={onModelSelectorToggle}
-                                className="group rounded-lg h-14 w-auto px-3 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white min-w-[120px] max-w-[200px]"
+                                className="group rounded-lg h-14 w-auto px-2 sm:px-3 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white min-w-[80px] sm:min-w-[120px] max-w-[160px] sm:max-w-[200px]"
                                 aria-label="Select model"
                             >
-                                <div className="flex items-center gap-1.5 truncate">
-                                    <div className="w-5 h-5 flex-shrink-0">
+                                <div className="flex items-center gap-1 sm:gap-1.5 truncate">
+                                    <div className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0">
                                         {imageModelIcons[selectedModelId] ? (
                                             typeof imageModelIcons[selectedModelId] === 'string' ? (
-                                                <span className="text-lg">{imageModelIcons[selectedModelId]}</span>
+                                                <span className="text-base sm:text-lg">{imageModelIcons[selectedModelId]}</span>
                                             ) : (
                                                 <Image
                                                     src={imageModelIcons[selectedModelId]}
@@ -226,38 +256,51 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                                                 />
                                             )
                                         ) : (
-                                            <ImageIcon className="w-5 h-5" />
+                                            <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                                         )}
                                     </div>
-                                    <span className="text-xs md:text-sm font-medium truncate">
+                                    <span className="text-[10px] sm:text-xs md:text-sm font-medium truncate">
                                         {displayModelName}
                                     </span>
                                 </div>
                             </Button>
 
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={onEnhancePrompt}
-                                disabled={!prompt.trim() || loading || isEnhancing || isUploading || disabled}
-                                className="group rounded-lg h-14 w-auto px-3 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
-                                aria-label="Enhance prompt"
-                            >
-                                <span className="text-xs md:text-sm font-medium">
-                                    {isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
-                                </span>
-                            </Button>
+                            {/* Enhance - Desktop only */}
+                            {!isMobile && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={onEnhancePrompt}
+                                    disabled={!prompt.trim() || loading || isEnhancing || isUploading || disabled}
+                                    className="group rounded-lg h-14 w-auto px-3 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
+                                    aria-label="Enhance prompt"
+                                >
+                                    <span className="text-xs md:text-sm font-medium">
+                                        {isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
+                                    </span>
+                                </Button>
+                            )}
 
+                            {/* Generate Button - Arrow on mobile, text on desktop */}
                             <Button
                                 type="submit"
-                                variant="ghost"
-                                disabled={loading || isUploading || (!prompt.trim() && uploadedImages.length === 0) || disabled}
-                                className="group rounded-lg h-14 w-auto px-4 md:h-12 transition-colors duration-300 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-40 disabled:text-gray-600"
+                                disabled={!canSubmit}
+                                className={`group rounded-lg transition-all duration-300 ${isMobile
+                                        ? 'h-10 w-10 p-0'
+                                        : 'h-14 w-auto px-4 md:h-12'
+                                    } ${canSubmit
+                                        ? 'bg-black dark:bg-white text-white dark:text-black hover:opacity-90 shadow-md'
+                                        : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600'
+                                    }`}
                                 aria-label="Generate"
                             >
-                                <span className="text-xs md:text-sm font-medium">
-                                    {loading ? t('message.loading') : t('action.generate')}
-                                </span>
+                                {isMobile ? (
+                                    <ArrowUp className="w-5 h-5" />
+                                ) : (
+                                    <span className="text-xs md:text-sm font-medium">
+                                        {loading ? t('message.loading') : t('action.generate')}
+                                    </span>
+                                )}
                             </Button>
                         </div>
                     </div>
@@ -276,3 +319,4 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
 };
 
 export default VisualizeInputContainer;
+

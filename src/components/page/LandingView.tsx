@@ -26,6 +26,7 @@ const LandingView: React.FC<LandingViewProps> = ({
     const [chatDraft, setChatDraft] = useState(''); // Separate draft for chat
     const [phase, setPhase] = useState<'idle' | 'transitioning'>('idle');
     const [landingSelectedModelId, setLandingSelectedModelId] = useState<string>('claude');
+    const [showInputContainer, setShowInputContainer] = useState(false);
 
     // Use shared hook for Visualize Mode
     const visualizeState = useUnifiedImageToolState();
@@ -35,7 +36,7 @@ const LandingView: React.FC<LandingViewProps> = ({
 
     const advancedPanelRef = React.useRef<HTMLDivElement>(null);
 
-    // Typewriter
+    // Typewriter for main line
     const targetLine = useMemo(() => {
         const safeName = ((userDisplayName || 'user').trim() || 'user').toLowerCase();
         return `(!hey.hi = '${safeName}')`;
@@ -43,12 +44,35 @@ const LandingView: React.FC<LandingViewProps> = ({
 
     const { displayedText, isTyping, isComplete } = useTypewriter({
         text: targetLine,
-        speed: 55,
+        speed: 200, // Even slower for terminal effect
         delay: 150,
         skipAnimation: false,
     });
 
+    // Typewriter for subtitle (starts after main line completes)
+    const subtitleText = t('home.subtitle');
+    const { displayedText: displayedSubtitle, isTyping: isSubtitleTyping, isComplete: isSubtitleComplete } = useTypewriter({
+        text: subtitleText,
+        speed: 50, // Faster for subtitle
+        delay: isComplete ? 300 : 999999, // Start after main text completes
+        skipAnimation: false,
+    });
+
     const canSubmit = (landingMode === 'chat' ? chatDraft.trim().length > 0 : visualizeState.prompt.trim().length > 0) && phase === 'idle';
+
+    // Show input container with good timing
+    useEffect(() => {
+        if (isTyping) {
+            const halfwayPoint = (targetLine.length / 2) * 200; // speed * half the characters
+            const timer = setTimeout(() => {
+                setShowInputContainer(true);
+            }, halfwayPoint);
+            return () => clearTimeout(timer);
+        }
+        if (isComplete) {
+            setShowInputContainer(true);
+        }
+    }, [isTyping, isComplete, targetLine.length]);
 
     // Transition to Chat or Visualize
     const beginTransition = useCallback(() => {
@@ -76,67 +100,67 @@ const LandingView: React.FC<LandingViewProps> = ({
     }, [canSubmit, chatDraft, landingMode, onNavigateToChat, onNavigateToVisualize, visualizeState]);
 
     return (
-        <div className="relative flex flex-col items-center justify-center h-full px-4 py-10 overflow-hidden">
-
-
-            <div
-                className={cn(
-                    'relative w-full max-w-4xl flex flex-col items-center transition-transform duration-500 ease-out',
-                    phase === 'transitioning' && 'translate-y-16 opacity-90'
-                )}
-            >
-                {/* Hero / Typewriter */}
-                <div className="mb-6 font-code text-4xl sm:text-5xl md:text-6xl font-bold text-center">
+        <div className="relative h-full px-4 py-10 overflow-hidden">
+            {/* Terminal text - top left */}
+            <div className="absolute top-10 left-4 max-w-4xl">
+                {/* Hero / Typewriter - Terminal style, top-left aligned */}
+                <div className="mb-4 font-code text-4xl sm:text-5xl md:text-6xl font-bold text-left">
                     <span className="text-transparent bg-gradient-to-r bg-clip-text" style={{ backgroundImage: 'linear-gradient(to right, hsl(330 70% 75%), hsl(330 65% 62%))' }}>
                         {displayedText}
                         {isTyping && <span className="animate-pulse">|</span>}
                     </span>
                 </div>
 
-                {/* Subtitle */}
+                {/* Subtitle - typewriter effect, positioned lower */}
                 {isComplete && (
-                    <div className="mb-8 text-center max-w-2xl px-4 animate-in fade-in slide-in-from-bottom-3 duration-700 delay-300">
-                        <p className="text-muted-foreground/80 text-sm md:text-base leading-relaxed">
-                            {t('home.subtitle')}
+                    <div className="mb-12 text-left max-w-2xl mt-8">
+                        <p className="text-muted-foreground/80 text-sm md:text-base leading-relaxed font-mono">
+                            {displayedSubtitle}
+                            {isSubtitleTyping && <span className="animate-pulse">|</span>}
                         </p>
                     </div>
                 )}
 
+            </div>
 
-                {/* Toggle line */}
-                {isComplete && (
-                    <div className="mb-6 flex items-center justify-center gap-3 text-muted-foreground/80 text-base sm:text-lg animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
-                        <span>Lass uns</span>
-                        <button
-                            onClick={() => setLandingMode('chat')}
-                            className={cn(
-                                'px-4 py-1.5 rounded-full border transition-all duration-300',
-                                landingMode === 'chat'
-                                    ? 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_10px_rgba(232,154,184,0.2)]'
-                                    : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
-                            )}
-                        >
-                            {t('home.mode.chat')}
-                        </button>
-                        <span>oder</span>
-                        <button
-                            onClick={() => setLandingMode('visualize')}
-                            className={cn(
-                                'px-4 py-1.5 rounded-full border transition-all duration-300',
-                                landingMode === 'visualize'
-                                    ? 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_10px_rgba(232,154,184,0.2)]'
-                                    : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
-                            )}
-                        >
-                            {t('home.mode.visualize')}
-                        </button>
-                    </div>
-                )}
+            {/* Input Container - Vertically centered, independent of text */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className={cn(
+                    "w-full max-w-4xl px-4 transition-opacity duration-[2000ms] ease-out pointer-events-auto",
+                    showInputContainer ? "opacity-100" : "opacity-0"
+                )}>
+                    {/* Toggle line - at top of input container */}
+                    {showInputContainer && (
+                        <div className="mb-6 flex items-center justify-start gap-3 text-muted-foreground/80 text-base sm:text-lg">
+                            <span>Lass uns</span>
+                            <button
+                                onClick={() => setLandingMode('chat')}
+                                className={cn(
+                                    'px-4 py-1.5 rounded-full border transition-all duration-300',
+                                    landingMode === 'chat'
+                                        ? 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_10px_rgba(232,154,184,0.2)]'
+                                        : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
+                                )}
+                            >
+                                {t('home.mode.chat')}
+                            </button>
+                            <span>oder</span>
+                            <button
+                                onClick={() => setLandingMode('visualize')}
+                                className={cn(
+                                    'px-4 py-1.5 rounded-full border transition-all duration-300',
+                                    landingMode === 'visualize'
+                                        ? 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_10px_rgba(232,154,184,0.2)]'
+                                        : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
+                                )}
+                            >
+                                {t('home.mode.visualize')}
+                            </button>
+                        </div>
+                    )}
 
-                {/* Prompt Card */}
-                {isComplete && (
-                    <div className="w-full relative animate-in fade-in slide-in-from-bottom-5 duration-700 delay-700">
-                        {landingMode === 'visualize' ? (
+                    {showInputContainer && (
+                        landingMode === 'visualize' ? (
                             // Visualize mode
                             <VisualizeInputContainer
                                 // Spread hook state
@@ -209,9 +233,9 @@ const LandingView: React.FC<LandingViewProps> = ({
                                 selectedImageModelId="flux-2-pro"
                                 handleImageModelChange={() => { }}
                             />
-                        )}
-                    </div>
-                )}
+                        )
+                    )}
+                </div>
             </div>
         </div>
     );
