@@ -166,16 +166,18 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
       >
         {/* Header */}
         <div className="p-4 border-b border-border flex items-center gap-3">
-          {/* Only show menu button when sidebar is expanded, since AppLayout shows a floating button when collapsed */}
-          {isExpanded && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleToggle}
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-          )}
+          {/* Menu button - only visible on desktop (hidden on mobile to avoid duplicate) */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleToggle}
+            className={cn(
+              !isExpanded && "mx-auto",
+              "hidden md:block" // Hide on mobile, show on desktop
+            )}
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
 
           {isExpanded && (
             <Link href="/" className="flex-1">

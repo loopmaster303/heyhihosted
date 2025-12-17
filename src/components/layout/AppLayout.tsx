@@ -76,12 +76,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         <main
           className="flex-1 overflow-y-auto transition-all duration-300 relative bg-background w-full"
         >
-          {/* Mobile Menu Button */}
-          {isMobile && !sidebarExpanded && (
+          {/* Mobile Menu Button - only visible on mobile when sidebar is collapsed */}
+          {!sidebarExpanded && (
             <Button
               variant="ghost"
               size="icon"
-              className="fixed top-4 left-4 z-30 md:hidden bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg"
+              className={cn(
+                "fixed top-4 left-4 z-30 bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg transition-all duration-300",
+                // Only show on mobile, hide on desktop since sidebar has its own button
+                "md:hidden"
+              )}
               onClick={() => setSidebarExpanded(true)}
             >
               <Menu className="w-5 h-5" />
