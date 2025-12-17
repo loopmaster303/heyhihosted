@@ -188,15 +188,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
               isHistoryPanelOpen && "bg-accent text-accent-foreground"
             )}
             onClick={() => {
-              console.log('History button clicked');
               // Auto-expand sidebar if collapsed
               if (!isExpanded) {
                 setIsExpanded(true);
               }
               if (onToggleHistoryPanel) {
                 onToggleHistoryPanel();
-              } else {
-                console.error('onToggleHistoryPanel is not defined');
               }
             }}
           >
@@ -222,15 +219,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
               isGalleryPanelOpen && "bg-accent text-accent-foreground"
             )}
             onClick={() => {
-              console.log('Gallery button clicked');
               // Auto-expand sidebar if collapsed
               if (!isExpanded) {
                 setIsExpanded(true);
               }
               if (onToggleGalleryPanel) {
                 onToggleGalleryPanel();
-              } else {
-                console.error('onToggleGalleryPanel is not defined');
               }
             }}
           >
@@ -269,8 +263,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
               <SidebarGalleryPanel
                 history={imageHistory}
                 onSelectImage={(item) => {
-                  // Handle image selection - could emit event or update state
-                  console.log('Selected image:', item);
+                  // Placeholder for future image selection handling
                 }}
                 onClearHistory={clearImageHistory}
                 onDeleteSingleImage={removeImageFromHistory}

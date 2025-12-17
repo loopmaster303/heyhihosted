@@ -3,7 +3,7 @@ import DeepSeekIcon from '../../icons models/deepseek-color.png';
 import GeminiIcon from '../../icons models/gemini-color.png';
 import GrokIcon from '../../icons models/grokfarbe.png';
 import KimiIcon from '../../icons models/kimifarbe.png';
-// import MistralIcon from '../../icons models/mistral-color.png'; // Removed Mistral for now
+
 import OpenAIIcon from '../../icons models/openfarbe.png';
 import PerplexityIcon from '../../icons models/perplexity-color.png';
 import QwenIcon from '../../icons models/qwen-color.png';

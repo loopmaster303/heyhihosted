@@ -248,7 +248,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             : (fallbackFromUser || "Chat");
 
           if (titleToSet && titleToSet !== convToUpdate.title) {
-            console.log('[updateConversationTitle] Title updated:', titleToSet);
             setActiveConversation(prev => prev ? { ...prev, title: titleToSet } : null);
           }
           return titleToSet;
@@ -257,7 +256,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           console.error('[updateConversationTitle] Failed to generate title:', errorMessage);
           const titleToSet = fallbackFromUser || convToUpdate.title;
           if (titleToSet && titleToSet !== convToUpdate.title) {
-            console.log('[updateConversationTitle] Using fallback title:', titleToSet);
             setActiveConversation(prev => prev ? { ...prev, title: titleToSet } : null);
           }
           return titleToSet;

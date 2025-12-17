@@ -44,12 +44,12 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
 }) => {
     const { t } = useLanguage();
 
-    if (!isOpen || !currentModelConfig) return null;
-
     const shouldShowResolution = React.useMemo(() => {
         const aspectRatio = formFields.aspect_ratio || '1:1';
         return aspectRatio !== 'custom';
     }, [formFields.aspect_ratio]);
+
+    if (!isOpen || !currentModelConfig) return null;
 
     return (
         <div className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
