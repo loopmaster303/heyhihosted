@@ -101,19 +101,19 @@ const LandingView: React.FC<LandingViewProps> = ({
 
     return (
         <div className="relative h-full px-4 py-10 overflow-hidden">
-            {/* Terminal text - top left */}
-            <div className="absolute top-10 left-4 max-w-4xl">
+            {/* Terminal Header - Always visible, responsive sizing */}
+            <div className="absolute top-6 sm:top-8 md:top-10 left-4 max-w-4xl">
                 {/* Hero / Typewriter - Terminal style, top-left aligned */}
-                <div className="mb-4 font-code text-4xl sm:text-5xl md:text-6xl font-bold text-left">
+                <div className="mb-4 font-code text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-left">
                     <span className="text-transparent bg-gradient-to-r bg-clip-text" style={{ backgroundImage: 'linear-gradient(to right, hsl(330 70% 75%), hsl(330 65% 62%))' }}>
                         {displayedText}
                         {isTyping && <span className="animate-pulse">|</span>}
                     </span>
                 </div>
 
-                {/* Subtitle - typewriter effect, positioned lower */}
+                {/* Subtitle - typewriter effect, HIDDEN ON MOBILE */}
                 {isComplete && (
-                    <div className="mb-12 text-left max-w-2xl mt-8">
+                    <div className="hidden md:block mb-12 text-left max-w-2xl mt-8">
                         <p className="text-muted-foreground/80 text-sm md:text-base leading-relaxed font-mono">
                             {displayedSubtitle}
                             {isSubtitleTyping && <span className="animate-pulse">|</span>}
@@ -123,7 +123,7 @@ const LandingView: React.FC<LandingViewProps> = ({
 
             </div>
 
-            {/* Input Container - Vertically centered, independent of text */}
+            {/* Input Container - Vertically centered on mobile, independent of text on desktop */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className={cn(
                     "w-full max-w-4xl px-4 transition-opacity duration-[2000ms] ease-out pointer-events-auto",
@@ -131,12 +131,12 @@ const LandingView: React.FC<LandingViewProps> = ({
                 )}>
                     {/* Toggle line - at top of input container */}
                     {showInputContainer && (
-                        <div className="mb-6 flex items-center justify-start gap-3 text-muted-foreground/80 text-base sm:text-lg">
-                            <span>Lass uns</span>
+                        <div className="mb-6 flex items-center justify-start gap-2 sm:gap-3 text-muted-foreground/80 text-sm sm:text-base md:text-lg flex-wrap">
+                            <span className="hidden sm:inline">Lass uns</span>
                             <button
                                 onClick={() => setLandingMode('chat')}
                                 className={cn(
-                                    'px-4 py-1.5 rounded-full border transition-all duration-300',
+                                    'px-3 sm:px-4 py-1.5 rounded-full border transition-all duration-300 text-sm sm:text-base',
                                     landingMode === 'chat'
                                         ? 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_10px_rgba(232,154,184,0.2)]'
                                         : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
@@ -144,11 +144,11 @@ const LandingView: React.FC<LandingViewProps> = ({
                             >
                                 {t('home.mode.chat')}
                             </button>
-                            <span>oder</span>
+                            <span className="hidden sm:inline">oder</span>
                             <button
                                 onClick={() => setLandingMode('visualize')}
                                 className={cn(
-                                    'px-4 py-1.5 rounded-full border transition-all duration-300',
+                                    'px-3 sm:px-4 py-1.5 rounded-full border transition-all duration-300 text-sm sm:text-base',
                                     landingMode === 'visualize'
                                         ? 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_10px_rgba(232,154,184,0.2)]'
                                         : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
