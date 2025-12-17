@@ -97,8 +97,17 @@ const SidebarGalleryPanel: FC<SidebarGalleryPanelProps> = ({
                             >
                                 <Trash2 className="w-3 h-3" />
                             </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-muted-foreground"
+                                onClick={() => setIsFullscreen(true)}
+                                title={t('gallery.fullscreen') || "Fullscreen"}
+                            >
+                                <Maximize2 className="w-3.5 h-3.5" />
+                            </Button>
                             <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground" onClick={onClose}>
-                                ×
+                                <X className="w-4 h-4" />
                             </Button>
                         </div>
                     </div>
@@ -133,111 +142,112 @@ const SidebarGalleryPanel: FC<SidebarGalleryPanelProps> = ({
             </div>
 
             {/* Fullscreen Gallery Modal */}
-            {isFullscreen && (
-                <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm">
-                    <div className="flex flex-col h-full">
-                        {/* Fullscreen Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-white/10">
-                            <div className="flex items-center gap-3">
-                                <Images className="w-6 h-6 text-white" />
-                                <h2 className="text-2xl font-semibold text-white">Galerie</h2>
-                                <span className="text-sm text-white/60">({history.length} {history.length === 1 ? 'Bild' : 'Bilder'})</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={onClearHistory}
-                                    className="text-white/80 hover:text-white hover:bg-white/10"
-                                >
-                                    <Trash2 className="w-5 h-5 mr-2" />
-                                    Alle löschen
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setIsFullscreen(false)}
-                                    className="text-white/80 hover:text-white hover:bg-white/10"
-                                >
-                                    <X className="w-5 h-5" />
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* Fullscreen Content */}
-                        <ScrollArea className="flex-1 overflow-y-auto p-6">
-                            {history.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-white/60">
-                                    <Images className="w-20 h-20 mb-6 opacity-30" />
-                                    <p className="text-lg">Keine Bilder vorhanden</p>
+            {
+                isFullscreen && (
+                    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm">
+                        <div className="flex flex-col h-full">
+                            {/* Fullscreen Header */}
+                            <div className="flex items-center justify-between p-6 border-b border-white/10">
+                                <div className="flex items-center gap-3">
+                                    <Images className="w-6 h-6 text-white" />
+                                    <h2 className="text-2xl font-semibold text-white">Galerie</h2>
+                                    <span className="text-sm text-white/60">({history.length} {history.length === 1 ? 'Bild' : 'Bilder'})</span>
                                 </div>
-                            ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 max-w-[1800px] mx-auto">
-                                    {history.map((item) => (
-                                        <div
-                                            key={item.id}
-                                            className="group relative aspect-square rounded-xl overflow-hidden cursor-pointer shadow-2xl hover:shadow-3xl transition-all transform hover:scale-105"
-                                            onClick={(e) => handleImageClick(e, item)}
-                                        >
-                                            <NextImage
-                                                src={item.videoUrl ? 'https://placehold.co/600x600.png' : item.imageUrl}
-                                                alt={item.prompt}
-                                                fill
-                                                unoptimized
-                                                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
-                                                style={{ objectFit: 'cover' }}
-                                                className="bg-muted/30"
-                                            />
-                                            {item.videoUrl && (
-                                                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-12 w-12 text-white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={onClearHistory}
+                                        className="text-white/80 hover:text-white hover:bg-white/10"
+                                    >
+                                        <Trash2 className="w-5 h-5 mr-2" />
+                                        Alle löschen
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setIsFullscreen(false)}
+                                        className="text-white/80 hover:text-white hover:bg-white/10"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Fullscreen Content */}
+                            <ScrollArea className="flex-1 overflow-y-auto p-6">
+                                {history.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-full text-white/60">
+                                        <Images className="w-20 h-20 mb-6 opacity-30" />
+                                        <p className="text-lg">Keine Bilder vorhanden</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 max-w-[1800px] mx-auto">
+                                        {history.map((item) => (
+                                            <div
+                                                key={item.id}
+                                                className="group relative aspect-square rounded-xl overflow-hidden cursor-pointer shadow-2xl hover:shadow-3xl transition-all transform hover:scale-105"
+                                                onClick={(e) => handleImageClick(e, item)}
+                                            >
+                                                <NextImage
+                                                    src={item.videoUrl ? 'https://placehold.co/600x600.png' : item.imageUrl}
+                                                    alt={item.prompt}
+                                                    fill
+                                                    unoptimized
+                                                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+                                                    className="object-contain bg-black/60"
+                                                />
+                                                {item.videoUrl && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-12 w-12 text-white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                                    </div>
+                                                )}
+
+                                                {/* Image Info Overlay */}
+                                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                    <p className="text-white text-sm font-medium line-clamp-2 mb-1">{item.prompt}</p>
+                                                    <p className="text-white/70 text-xs">{format(new Date(item.timestamp), "dd.MM.yyyy HH:mm")}</p>
                                                 </div>
-                                            )}
 
-                                            {/* Image Info Overlay */}
-                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                <p className="text-white text-sm font-medium line-clamp-2 mb-1">{item.prompt}</p>
-                                                <p className="text-white/70 text-xs">{format(new Date(item.timestamp), "dd.MM.yyyy HH:mm")}</p>
-                                            </div>
-
-                                            {/* Action Buttons */}
-                                            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                <Button
-                                                    variant="secondary"
-                                                    size="icon"
-                                                    className="h-9 w-9 rounded-full bg-white/90 hover:bg-white shadow-lg"
-                                                    onClick={(e) => handleDownload(e, item)}
-                                                    aria-label="Download"
-                                                >
-                                                    <Download className="h-4 w-4 text-gray-900" />
-                                                </Button>
-                                                {onDeleteSingleImage && (
+                                                {/* Action Buttons */}
+                                                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                                     <Button
                                                         variant="secondary"
                                                         size="icon"
-                                                        className="h-9 w-9 rounded-full bg-red-500/90 hover:bg-red-500 shadow-lg"
-                                                        onClick={(e) => handleDeleteSingle(e, item.id)}
-                                                        aria-label="Delete"
+                                                        className="h-9 w-9 rounded-full bg-white/90 hover:bg-white shadow-lg"
+                                                        onClick={(e) => handleDownload(e, item)}
+                                                        aria-label="Download"
                                                     >
-                                                        <Trash className="h-4 w-4 text-white" />
+                                                        <Download className="h-4 w-4 text-gray-900" />
                                                     </Button>
-                                                )}
-                                            </div>
+                                                    {onDeleteSingleImage && (
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="icon"
+                                                            className="h-9 w-9 rounded-full bg-red-500/90 hover:bg-red-500 shadow-lg"
+                                                            onClick={(e) => handleDeleteSingle(e, item.id)}
+                                                            aria-label="Delete"
+                                                        >
+                                                            <Trash className="h-4 w-4 text-white" />
+                                                        </Button>
+                                                    )}
+                                                </div>
 
-                                            {/* Click to reuse prompt hint */}
-                                            <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                <div className="bg-white/90 text-gray-900 text-xs font-medium px-2 py-1 rounded-full shadow-lg">
-                                                    Klick = Prompt wiederverwenden
+                                                {/* Click to reuse prompt hint */}
+                                                <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                    <div className="bg-white/90 text-gray-900 text-xs font-medium px-2 py-1 rounded-full shadow-lg">
+                                                        Klick = Prompt wiederverwenden
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </ScrollArea>
+                                        ))}
+                                    </div>
+                                )}
+                            </ScrollArea>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
         </>
     );
 };

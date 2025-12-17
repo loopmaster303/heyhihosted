@@ -31,7 +31,7 @@ export class SearchService {
     static async webSearch(query: string): Promise<SearchResult[]> {
         try {
             // Use Pollinations.ai web search API
-            console.log(`[SearchService] Using Pollinations.ai web search for: "${query}"`);
+
 
             const apiKey = process.env.POLLEN_API_KEY;
             if (!apiKey) {
@@ -84,7 +84,7 @@ export class SearchService {
             // Parse search results from the response
             const results = this.parseSearchResults(content, query);
 
-            console.log(`[SearchService] Found ${results.length} results for: "${query}"`);
+
             return results;
 
         } catch (error) {

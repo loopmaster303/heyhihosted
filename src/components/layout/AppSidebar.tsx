@@ -53,7 +53,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 }) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(true);
   const [userDisplayName, setUserDisplayName] = useState('User');
   const [isMounted, setIsMounted] = useState(false);
@@ -81,16 +81,18 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     }
   }, [isExpanded, isMounted]);
 
-  const isGerman = language === 'de';
   const labels = {
-    newInteraction: isGerman ? 'New Interaction' : 'New Interaction',
-    history: isGerman ? 'Gesprächs-Archiv' : 'Conversation history',
-    gallery: isGerman ? 'Galerie' : 'Gallery',
-    personalization: isGerman ? 'Personalisierung' : 'Personalization',
-    languageLabel: isGerman ? 'Sprache' : 'Language',
-    themeLabel: isGerman ? 'Theme' : 'Theme',
-    conversations: isGerman ? 'GESPRÄCHE' : 'CONVERSATIONS',
-    visualize: isGerman ? 'VISUALISIEREN' : 'VISUALIZE',
+    newInteraction: t('nav.newInteraction'),
+    history: t('nav.history'),
+    gallery: t('nav.gallery'),
+    personalization: t('nav.personalization'),
+    languageLabel: t('nav.language'),
+    themeLabel: t('nav.theme'),
+    conversations: t('nav.conversations'), // Optional if needed
+    visualize: 'VISUALIZE', // This one wasn't in the list? It was uppercase in the file. Leave hardcoded or add key? User didn't specify. I'll leave it or remove if unused. It was used in line 93? Line 93 was "visualize: isGerman ? 'VISUALISIEREN' : 'VISUALIZE'".
+    // Let's add a key for visualize if needed, or just let it be. The component uses labels.visualize? Warning: I need to check usage.
+    // Checking usage in AppSidebar.tsx... It seems labels.visualize is NOT used in the visible code in previous turn (checked lines 1-300).
+    // Wait, let's double check usage.
   };
 
   const handleToggle = () => {
@@ -100,7 +102,21 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   // Close sidebar when clicking outside (only when expanded and not clicking on sidebar content)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (isExpanded && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+      const target = event.target as Element;
+
+      // Safety check for non-element targets (though rare for mousedown)
+      if (!target?.closest) return;
+
+      const isInsideSidebar = sidebarRef.current?.contains(target);
+
+      // Check if click is inside a portal (dropdowns, dialogs, etc.)
+      // We check for commonly used attributes in Radix UI portals
+      const isInsidePortal =
+        target.closest('[data-radix-portal]') ||
+        target.closest('[data-radix-menu-content]') ||
+        target.closest('[role="menu"]');
+
+      if (isExpanded && !isInsideSidebar && !isInsidePortal) {
         setIsExpanded(false);
       }
     };

@@ -116,7 +116,7 @@ export class ChatService {
             // If streaming was requested but we got a non-streaming response,
             // call the onStream callback with the full content to simulate streaming
             if (onStream) {
-                console.log('[ChatService] Simulating streaming with content:', aiResponseText.substring(0, 100) + '...');
+
                 onStream(aiResponseText);
             }
 

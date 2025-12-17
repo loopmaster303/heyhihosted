@@ -125,6 +125,24 @@ export function useUnifiedImageToolState() {
         }
     }, [selectedModelId, supportsReference]);
 
+    // Handle Model Switching - Truncate if necessary (Strict Pollinations Limit)
+    useEffect(() => {
+        if (!currentModelConfig) return;
+        const modelInfo = getUnifiedModel(selectedModelId);
+        // Only enforce strict truncation for Pollinations to avoid accidentally sending hidden images
+        if (modelInfo?.provider === 'pollinations') {
+            if (uploadedImages.length > maxImages) {
+                // Truncate to maxImages
+                const keptImages = uploadedImages.slice(0, maxImages);
+                setUploadedImages(keptImages);
+
+                // Optional: We could delete the extras here, but it's safer to just let them drop from state for now
+                // as we don't want to accidentally delete a shared blob if the user just switched models back and forth.
+                // The explicit delete happens on "Remove" or "Replace".
+            }
+        }
+    }, [selectedModelId, maxImages, uploadedImages, currentModelConfig]);
+
     // Handle File Change
     const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -138,9 +156,26 @@ export function useUnifiedImageToolState() {
         const modelInfo = getUnifiedModel(selectedModelId);
         const needsUpload = modelInfo?.provider === 'replicate' && modelInfo?.supportsReference;
         const allUploadModels = [...pollinationUploadModels, ...replicateUploadModels];
+        const isPollinations = modelInfo?.provider === 'pollinations';
 
         if (needsUpload || allUploadModels.includes(selectedModelId)) {
             setIsUploading(true);
+
+            // Strict Polinations Check for Replace Behavior
+            // If Pollinations AND maxImages is 1 (Single Image Mode), we DELETE the old one and REPLACE it.
+            // If Replicate, we stick to APPEND as requested.
+            const shouldReplace = isPollinations && maxImages === 1 && uploadedImages.length >= 1;
+
+            if (shouldReplace) {
+                // Delete the existing image first
+                const oldUrl = uploadedImages[0];
+                fetch('/api/upload', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: oldUrl })
+                }).catch(err => console.error("Failed to delete old image blob:", err));
+            }
+
             const formData = new FormData();
             formData.append('file', file);
             fetch('/api/upload', { method: 'POST', body: formData })
@@ -153,7 +188,16 @@ export function useUnifiedImageToolState() {
                 })
                 .then((data) => {
                     if (data?.url) {
-                        setUploadedImages((prev) => [...prev, data.url]);
+                        if (shouldReplace) {
+                            setUploadedImages([data.url]); // REPLACE
+                        } else {
+                            // Check max before appending? Just in case, though UI limits it usually.
+                            if (uploadedImages.length < maxImages) {
+                                setUploadedImages((prev) => [...prev, data.url]); // APPEND
+                            } else {
+                                toast({ title: "Limit Reached", description: `Maximum ${maxImages} images allowed.`, variant: "destructive" });
+                            }
+                        }
                     } else {
                         throw new Error('No URL returned from upload');
                     }
@@ -169,20 +213,33 @@ export function useUnifiedImageToolState() {
             return;
         }
 
-        // Local read (data uri) fallback if needed, but the original code mostly uploads now or reads data URI
+        // Local read fallback
         const reader = new FileReader();
         reader.onloadend = () => {
             const dataUri = reader.result as string;
+            // Here too, if we wanted to support local replace for Pollinations, we'd add logic, but most models use upload now.
             setUploadedImages(prev => [...prev, dataUri]);
         };
         reader.readAsDataURL(file);
 
-    }, [selectedModelId, toast]);
+    }, [selectedModelId, toast, maxImages, uploadedImages]);
 
     // Handle Remove Image
     const handleRemoveImage = useCallback((index: number) => {
+        const imageToRemove = uploadedImages[index];
+        const modelInfo = getUnifiedModel(selectedModelId);
+
+        // Strict: Only delete from blob if it is a Pollinations model (as per requirements)
+        if (modelInfo?.provider === 'pollinations' && imageToRemove && imageToRemove.startsWith('http')) {
+            fetch('/api/upload', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: imageToRemove })
+            }).catch(err => console.error("Failed to delete image blob:", err));
+        }
+
         setUploadedImages(prev => prev.filter((_, i) => i !== index));
-    }, []);
+    }, [uploadedImages, selectedModelId]);
 
     // Handle Field Change
     const handleFieldChange = useCallback((name: string, value: any) => {

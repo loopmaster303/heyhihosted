@@ -5,10 +5,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { LanguageProvider } from '@/components/LanguageProvider';
-// Import test utilities for development
-import '@/utils/test-mistral-direct';
-import '@/utils/test-image-tools';
-import '@/utils/test-chat-mistral';
+
 
 export const metadata: Metadata = {
   title: 'HeyHi',

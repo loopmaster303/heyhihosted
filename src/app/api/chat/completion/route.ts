@@ -60,18 +60,12 @@ export async function POST(request: Request) {
       effectiveModelId.startsWith('mistral-medium-3.1') ||
       effectiveModelId.startsWith('mistral-small-3');
 
-    console.log('[Chat API] Model decision:', {
-      effectiveModelId,
-      mistralFallbackEnabled,
-      useMistralDirectly,
-      webBrowsingEnabled
-    });
+
 
     let enhancedMessages = messages;
 
     if (webBrowsingEnabled) {
-      console.log('[Chat API] WebBrowsing enabled - using Perplexity-only approach');
-      console.log(`[Chat API] Switched from ${modelId} to perplexity-fast for web browsing`);
+
 
       // Add a simple indicator that web browsing is enabled
       const lastMessage = messages[messages.length - 1];
@@ -86,7 +80,7 @@ Please provide a comprehensive answer using current web information. Focus on ac
         ];
       }
     } else {
-      console.log(`[Chat API] WebBrowsing disabled - using user's chosen model: ${modelId}`);
+
     }
     const streamEnabled = Boolean(stream) && effectiveModelId !== "gpt-oss-120b" && !useMistralDirectly;
 
@@ -98,7 +92,7 @@ Please provide a comprehensive answer using current web information. Focus on ac
         throw new ApiError(500, 'Mistral API key is not configured', 'MISTRAL_API_KEY_MISSING');
       }
 
-      console.log(`[Chat API] Using Mistral directly for model: ${effectiveModelId}`);
+
 
       try {
         // Map the model ID to Mistral format
@@ -186,7 +180,7 @@ Please provide a comprehensive answer using current web information. Focus on ac
 
     // Handle GPT-OSS-120b model with Replicate API
     if (effectiveModelId === "gpt-oss-120b") {
-      console.log("Using GPT-OSS-120b via Replicate API");
+
 
       const REPLICATE_API_TOKEN = requireEnv('REPLICATE_API_TOKEN');
 
@@ -251,7 +245,7 @@ Please provide a comprehensive answer using current web information. Focus on ac
       }
 
       // Log result for debugging
-      console.log("Replicate API result:", result);
+
 
       // Clean up response text
       let cleanedResult = Array.isArray(result) ? result.join('\n') : result;
@@ -456,7 +450,7 @@ Please provide a comprehensive answer using current web information. Focus on ac
 
       if (mistralApiKey) {
         try {
-          console.log(`[Chat API] Fallback to Mistral for model: ${effectiveModelId}`);
+
 
           // Map the model ID to Mistral format
           const mistralModelId = mapPollinationsToMistralModel(effectiveModelId);

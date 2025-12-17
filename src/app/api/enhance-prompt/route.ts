@@ -53,8 +53,8 @@ function sanitizeEnhancedPrompt(text: string): string {
   const cleanedLines: string[] = [];
   const labelRegex = /^(Referenz|Änderung|Änderungen|Zielobjekt|Zielbild|Motiv|Stiltransfer|Charakterstruktur|Perspektive|Texturen|Humor|Ergebnis|Ausgabe|Output|Prompt|Szene|Setting|Komposition|Farbpalette|Reference|Target object|Target|Subject|Change|Changes|Identity|Identity preserved|Style transfer|Scene|Setting|Composition|Palette|Color palette|Perspective|Textures|Result|Background|Lighting|Wardrobe|Eyes|Skin tones|Crop)\s*:/i;
   const labelTokens = new Set([
-    'referenz','änderung','änderungen','zielobjekt','zielbild','motiv','stiltransfer','charakterstruktur','perspektive','texturen','humor','ergebnis','ausgabe','output','prompt','szene','setting','komposition','farbpalette',
-    'reference','target object','target','subject','change','changes','identity','identity preserved','style transfer','scene','setting','composition','palette','color palette','perspective','textures','result','background','lighting','wardrobe','eyes','skin tones','crop'
+    'referenz', 'änderung', 'änderungen', 'zielobjekt', 'zielbild', 'motiv', 'stiltransfer', 'charakterstruktur', 'perspektive', 'texturen', 'humor', 'ergebnis', 'ausgabe', 'output', 'prompt', 'szene', 'setting', 'komposition', 'farbpalette',
+    'reference', 'target object', 'target', 'subject', 'change', 'changes', 'identity', 'identity preserved', 'style transfer', 'scene', 'setting', 'composition', 'palette', 'color palette', 'perspective', 'textures', 'result', 'background', 'lighting', 'wardrobe', 'eyes', 'skin tones', 'crop'
   ]);
   for (let line of lines) {
     // Strip leading numeric list markers first (handles "1Target ..." cases)
@@ -87,10 +87,10 @@ function sanitizeEnhancedPrompt(text: string): string {
 
   // Drop common prefixes
   out = out.replace(/^Verbesserter Prompt:\s*/i, '')
-           .replace(/^Enhanced Prompt:\s*/i, '')
-           .replace(/^Improved:\s*/i, '')
-           .replace(/^Result:\s*/i, '')
-           .trim();
+    .replace(/^Enhanced Prompt:\s*/i, '')
+    .replace(/^Improved:\s*/i, '')
+    .replace(/^Result:\s*/i, '')
+    .trim();
   // Remove mid-sentence labels like "... Change: ..." or "... Target object: ..."
   out = out.replace(/(^|[\.;,!?\)])\s*(Referenz|Änderung|Änderungen|Zielobjekt|Zielbild|Motiv|Stiltransfer|Charakterstruktur|Perspektive|Texturen|Humor|Ergebnis|Ausgabe|Output|Prompt|Szene|Setting|Komposition|Farbpalette|Reference|Target object|Target|Subject|Change|Changes|Identity|Identity preserved|Style transfer|Scene|Setting|Composition|Palette|Color palette|Perspective|Textures|Result|Background|Lighting|Wardrobe|Eyes|Skin tones|Crop)\s*:\s*/gi, '$1 ');
   // Collapse whitespace/newlines
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Enhancing prompt:', { prompt: prompt.substring(0, 50) + '...', modelId, language });
+
 
     // Get model-specific enhancement guidelines and build strict instruction
     const baseGuidelines = selectGuidelines(modelId);
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
 
     const cleaned = sanitizeEnhancedPrompt(enhancedText || prompt);
 
-    console.log('Enhanced prompt:', cleaned.substring(0, 100) + (cleaned.length > 100 ? '...' : ''));
+
 
     return NextResponse.json({
       enhancedPrompt: cleaned,

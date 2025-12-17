@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Sparkles, ArrowRight } from 'lucide-react';
 
+import { useLanguage } from '../LanguageProvider';
+
 interface WelcomeScreenProps {
     onSuggestionClick: (text: string) => void;
     onModeChange: (mode: 'chat' | 'visualize') => void;
@@ -15,6 +17,7 @@ interface WelcomeScreenProps {
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick, onModeChange, userDisplayName = 'John', activeMode = 'chat' }) => {
     const router = useRouter();
+    const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<'chat' | 'visualize'>(activeMode);
     const [inputValue, setInputValue] = useState('');
 
@@ -43,19 +46,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick, onMode
         }
     };
 
-    const suggestions = [
-        "Erkläre mir, wie 'Large Language Models' eigentlich funktionieren.",
-        "Zeig mir ein einfaches Python-Skript für meinen ersten Discord-Bot.",
-        "Was sind 'Prompt Injection' Angriffe und wie schütze ich mich?",
-        "Visualiziere die Architektur eines neuronalen Netzes."
-    ];
-
-    const imageSuggestions = [
-        "Eine futuristische Stadt im Neon-Cyberpunk Stil, Regen, Nacht",
-        "Ein Portrait einer Katze als Astronaut im Weltraum, digital art",
-        "Abstrakte 3D-Formen aus Glas und Licht, 8k render"
-    ];
-
     return (
         <div className="flex flex-col items-center justify-center h-full p-4 md:p-8 animate-in fade-in-50 zoom-in-95 duration-500">
 
@@ -77,8 +67,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick, onMode
                 </h1>
 
                 <p className="text-center text-muted-foreground max-w-lg mx-auto -mt-4 text-sm md:text-base">
-                    Zugang zu Wissen und Werkzeugen für alle. <br />
-                    Experimentiere, lerne und erschaffe Neues – ohne Barrieren.
+                    {t('home.subtitle')}
                 </p>
 
                 {/* Mode Toggle */}
@@ -92,7 +81,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick, onMode
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                         )}
                     >
-                        Gespräch
+                        {t('home.mode.chat')}
                     </button>
                     <button
                         onClick={() => handleTabChange('visualize')}
@@ -103,7 +92,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick, onMode
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                         )}
                     >
-                        Visualisieren
+                        {t('home.mode.visualize')}
                     </button>
                 </div>
 
@@ -115,27 +104,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick, onMode
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder={activeTab === 'chat' ? "Worüber möchtest du sprechen?" : "Was möchtest du erschaffen? Beschreibe dein Bild..."}
+                            placeholder={activeTab === 'chat' ? t('home.placeholder.chat') : t('home.placeholder.image')}
                             className="w-full bg-transparent border-none shadow-none resize-none placeholder:text-muted-foreground focus-visible:ring-0 p-2 min-h-[50px] max-h-[220px]"
                             style={{ lineHeight: '1.5rem', fontSize: '16px' }}
                         />
 
-                        {/* Suggestion Chips (inside or directly below input for quick access) */}
-                        <div className="mt-4 flex flex-wrap gap-2">
-                            {(activeTab === 'chat' ? suggestions : imageSuggestions).map((s, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => {
-                                        setInputValue(s);
-                                        // Optional: auto-submit on chip click? user might want to edit.
-                                        // Let's just set value for now.
-                                    }}
-                                    className="bg-muted/40 hover:bg-muted/70 text-xs md:text-sm px-3 py-1.5 rounded-lg text-muted-foreground transition-colors text-left"
-                                >
-                                    {s}
-                                </button>
-                            ))}
-                        </div>
+                        {/* Suggestion Chips removed */}
 
                         <div className="flex justify-end mt-4">
                             <Button
@@ -146,7 +120,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick, onMode
                                     inputValue.trim() ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
                                 )}
                             >
-                                Los geht&apos;s
+                                {t('home.letsGo')}
                             </Button>
                         </div>
                     </div>

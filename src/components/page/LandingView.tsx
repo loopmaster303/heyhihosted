@@ -6,6 +6,7 @@ import VisualizeInputContainer from '@/components/tools/VisualizeInputContainer'
 import { cn } from '@/lib/utils';
 import { useTypewriter } from '@/hooks/useTypewriter';
 import { useUnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
+import { useLanguage } from '@/components/LanguageProvider';
 
 type LandingMode = 'chat' | 'visualize';
 
@@ -20,6 +21,7 @@ const LandingView: React.FC<LandingViewProps> = ({
     onNavigateToChat,
     onNavigateToVisualize
 }) => {
+    const { t } = useLanguage();
     const [landingMode, setLandingMode] = useState<LandingMode>('chat');
     const [chatDraft, setChatDraft] = useState(''); // Separate draft for chat
     const [phase, setPhase] = useState<'idle' | 'transitioning'>('idle');
@@ -91,39 +93,49 @@ const LandingView: React.FC<LandingViewProps> = ({
                     </span>
                 </div>
 
+                {/* Subtitle */}
+                {isComplete && (
+                    <div className="mb-8 text-center max-w-2xl px-4 animate-in fade-in slide-in-from-bottom-3 duration-700 delay-300">
+                        <p className="text-muted-foreground/80 text-sm md:text-base leading-relaxed">
+                            {t('home.subtitle')}
+                        </p>
+                    </div>
+                )}
+
+
                 {/* Toggle line */}
                 {isComplete && (
-                    <div className="mb-6 text-center text-muted-foreground/80 text-base sm:text-lg">
-                        <span>Hier </span>
+                    <div className="mb-6 flex items-center justify-center gap-3 text-muted-foreground/80 text-base sm:text-lg animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
+                        <span>Lass uns</span>
                         <button
                             onClick={() => setLandingMode('chat')}
                             className={cn(
-                                'px-3 py-1 rounded-md border transition-colors',
+                                'px-4 py-1.5 rounded-full border transition-all duration-300',
                                 landingMode === 'chat'
-                                    ? 'border-primary/80 text-foreground shadow-[0_0_0_1px_rgba(232,154,184,0.35)]'
-                                    : 'border-border/60 hover:border-primary/40'
+                                    ? 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_10px_rgba(232,154,184,0.2)]'
+                                    : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
                             )}
                         >
-                            Chatten
+                            {t('home.mode.chat')}
                         </button>
-                        <span> und da </span>
+                        <span>oder</span>
                         <button
                             onClick={() => setLandingMode('visualize')}
                             className={cn(
-                                'px-3 py-1 rounded-md border transition-colors',
+                                'px-4 py-1.5 rounded-full border transition-all duration-300',
                                 landingMode === 'visualize'
-                                    ? 'border-primary/80 text-foreground shadow-[0_0_0_1px_rgba(232,154,184,0.35)]'
-                                    : 'border-border/60 hover:border-primary/40'
+                                    ? 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_10px_rgba(232,154,184,0.2)]'
+                                    : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
                             )}
                         >
-                            Visualisieren
+                            {t('home.mode.visualize')}
                         </button>
                     </div>
                 )}
 
                 {/* Prompt Card */}
                 {isComplete && (
-                    <div className="w-full relative">
+                    <div className="w-full relative animate-in fade-in slide-in-from-bottom-5 duration-700 delay-700">
                         {landingMode === 'visualize' ? (
                             // Visualize mode
                             <VisualizeInputContainer

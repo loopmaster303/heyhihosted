@@ -40,7 +40,7 @@ const VIDEO_MODELS = new Set(['seedance', 'seedance-pro', 'veo']);
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     // Validate request
     const {
       prompt,
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
     const token = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_TOKEN;
     if (!token) {
-        console.warn("POLLEN_API_KEY is not set. Image generation might fail.");
+      console.warn("POLLEN_API_KEY is not set. Image generation might fail.");
     }
 
     const isVideoModel = VIDEO_MODELS.has(model);
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     if (seed !== undefined && seed !== null && String(seed).trim() !== '') {
       const seedNum = parseInt(String(seed).trim(), 10);
       if (!isNaN(seedNum)) {
-          params.append('seed', String(seedNum));
+        params.append('seed', String(seedNum));
       }
     }
     if (nologo) params.append('nologo', 'true');
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
       imageUrl += `&key=${token}`;
     }
 
-    console.log(`Requesting image from Pollen (model: ${model}):`, imageUrl);
+
 
     // Return the image URL with token for authenticated access
     return NextResponse.json({ imageUrl });

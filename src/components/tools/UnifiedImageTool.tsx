@@ -165,7 +165,11 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       } else {
         if (formFields.aspect_ratio) payload.aspect_ratio = formFields.aspect_ratio;
         if (formFields.size) payload.size = formFields.size;
-        if (formFields.duration) payload.duration = formFields.duration;
+        if (formFields.aspect_ratio) payload.aspect_ratio = formFields.aspect_ratio;
+        if (formFields.size) payload.size = formFields.size;
+
+        // Pass duration for Replicate models if present (e.g. wan, veo-replicate)
+        if (formFields.duration) payload.duration = Number(formFields.duration);
 
         if (formFields.aspect_ratio === 'match_input_image') {
           payload.resolution = 'match_input_image';

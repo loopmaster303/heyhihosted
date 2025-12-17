@@ -11,6 +11,7 @@ export interface PollinationsModel {
   maxTokens?: number; // New: Maximum output tokens
   costPerToken?: number; // New: Cost per million tokens
   useCases?: string[]; // User-friendly: What is this model good for?
+  reasoning?: boolean; // New: Whether the model supports reasoning
 }
 
 export interface ResponseStyle {
@@ -23,153 +24,139 @@ export interface VoiceOption {
   name: string; // Display name, e.g., "German (Female, Natural)"
 }
 
-// Pollinations Models - Diverse provider ecosystem
-// Featured models (top 3 in dropdown): Claude, GPT-4o, Gemini 2.5
+// Pollinations Models - New simplified structure
 export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
-  // Claude - Premium models (FEATURED #1)
+  // FEATURED - Standard Models
   {
-    id: "claude",
-    name: "Claude Sonnet 4.5",
-    description: "Most Powerful & Intelligent Model with Vision",
-    vision: true,
-    category: "Premium",
-    contextWindow: 200000,
-    maxTokens: 8192,
-    costPerToken: 0.30,
-    useCases: ["Komplexe Aufgaben", "Bilder analysieren", "Mathematik", "Langdokumente"]
-  },
-
-  // OpenAI Models (FEATURED #2)
-  {
-    id: "openai-large",
-    name: "GPT-4o",
-    description: "Advanced Vision & Reasoning",
-    vision: true,
-    category: "Premium",
-    contextWindow: 128000,
-    maxTokens: 4096,
-    costPerToken: 0.15,
-    useCases: ["Vision", "Komplexe Aufgaben", "Bilder analysieren"]
-  },
-
-  // Gemini Models (FEATURED #3)
-  {
-    id: "gemini",
-    name: "Gemini 2.5",
-    description: "Advanced Reasoning Model",
-    vision: true,
-    category: "Premium",
-    contextWindow: 1000000,
-    maxTokens: 8192,
-    costPerToken: 0.10,
-    useCases: ["Lange Kontexte", "Multimodal", "Allround"]
-  },
-
-  // Rest of models under "Weitere Modelle"
-
-  // Mistral Large
-  {
-    id: "mistral-large",
-    name: "Mistral Large",
-    description: "Powerful Reasoning with Vision",
-    vision: true,
-    category: "Standard",
-    contextWindow: 262144,
-    maxTokens: 8192,
-    costPerToken: 0.30,
-    useCases: ["Komplexe Aufgaben", "Bilder analysieren", "Mathematik", "Langdokumente"]
-  },
-
-  // Mistral Medium
-  {
-    id: "mistral-medium",
-    name: "Mistral Medium",
-    description: "Advanced Reasoning with Vision",
-    vision: true,
-    category: "Standard",
-    contextWindow: 131072,
-    maxTokens: 4096,
-    costPerToken: 0.10,
-    useCases: ["Programmierung", "Mathematik", "Dialoge", "Allround"]
-  },
-
-  // Mistral Small
-  {
-    id: "mistral-small",
-    name: "Mistral Small",
-    description: "Fast & Efficient Multilingual Model",
-    vision: true,
-    category: "Standard",
-    contextWindow: 131072,
-    maxTokens: 8192,
-    costPerToken: 0.02,
-    useCases: ["Schnelle Antworten", "Edge", "SaaS", "Einfache Aufgaben"]
-  },
-
-  // Deepseek
-  {
-    id: "deepseek",
-    name: "Deepseek-V3",
-    description: "Efficient Reasoning Model",
-    vision: false,
-    category: "Standard",
-    contextWindow: 64000,
-    maxTokens: 4096,
-    costPerToken: 0.08,
-    useCases: ["Code", "Mathematik", "Schnelle Antworten"]
-  },
-
-  // Grok
-  {
-    id: "grok",
-    name: "Grok-3",
-    description: "Real-time & Sarcastic",
-    vision: true,
-    category: "Standard",
-    contextWindow: 128000,
-    maxTokens: 4096,
-    costPerToken: 0.08,
-    useCases: ["Aktuelle Infos", "Sarkasmus", "Allround"]
-  },
-
-  // Moonshot (Kimi)
-  {
-    id: "moonshot",
-    name: "Kimi",
-    description: "Chinese Language Specialist",
+    id: "claude-fast",
+    name: "Claude Haiku 4.5",
+    description: "Schnell und intelligent für effiziente Aufgaben.",
     vision: true,
     category: "Standard",
     contextWindow: 200000,
     maxTokens: 4096,
-    costPerToken: 0.08,
-    useCases: ["Chinesisch", "Lange Texte", "Allround"]
   },
-
-  // Perplexity
   {
-    id: "perplexity-fast",
-    name: "Perplexity Fast",
-    description: "Web-aware Reasoning",
+    id: "gemini-search",
+    name: "Gemini 2.5 Flash Lite Search",
+    description: "Wie Flash Lite, aber mit integrierter Google Suche.",
     vision: true,
     webBrowsing: true,
     category: "Standard",
-    contextWindow: 200000,
+    contextWindow: 1000000,
+    maxTokens: 8192,
+  },
+  {
+    id: "openai-fast",
+    name: "GPT-5 Nano",
+    description: "Extrem schnell und preiswert.",
+    vision: true,
+    category: "Standard",
+    contextWindow: 128000,
     maxTokens: 4096,
-    costPerToken: 0.08,
-    useCases: ["Web-Recherche", "Aktuelle Infos", "Reasoning"]
+  },
+  {
+    id: "grok",
+    name: "xAI Grok 4 Fast",
+    description: "Hohe Geschwindigkeit mit Fokus auf Echtzeit-Informationen.",
+    vision: true,
+    category: "Standard",
+    contextWindow: 128000,
+    maxTokens: 4096,
   },
 
-  // Qwen Coder
+  // EXPANDED - Advanced Models
+  {
+    id: "openai-large",
+    name: "GPT-5.2",
+    description: "Das leistungsstärkste Modell mit Reasoning-Fähigkeiten.",
+    vision: true,
+    category: "Advanced",
+    contextWindow: 128000,
+    maxTokens: 4096,
+  },
+  {
+    id: "claude-large",
+    name: "Claude Opus 4.5",
+    description: "Das intelligenteste Modell von Anthropic.",
+    vision: true,
+    category: "Advanced",
+    contextWindow: 200000,
+    maxTokens: 4096,
+  },
+  {
+    id: "claude",
+    name: "Claude Sonnet 4.5",
+    description: "Die beste Balance zwischen Leistung und Geschwindigkeit.",
+    vision: true,
+    category: "Advanced",
+    contextWindow: 200000,
+    maxTokens: 8192,
+  },
+  {
+    id: "gemini-large",
+    name: "Gemini 3 Pro",
+    description: "Das intelligenteste Modell mit 1 Mio. Kontextfenster und Reasoning (Preview).",
+    vision: true,
+    category: "Advanced",
+    contextWindow: 1000000,
+    maxTokens: 8192,
+  },
+  {
+    id: "gemini",
+    name: "Gemini 2.5 Flash Lite",
+    description: "Schnell und multimodal (Text & Bild).",
+    vision: true,
+    category: "Advanced",
+    contextWindow: 1000000,
+    maxTokens: 8192,
+  },
+  {
+    id: "deepseek",
+    name: "DeepSeek V3.1",
+    description: "Fortgeschrittenes Reasoning und spezialisiert auf Coding.",
+    vision: false,
+    category: "Advanced",
+    contextWindow: 64000,
+    maxTokens: 4096,
+  },
+  {
+    id: "perplexity-reasoning",
+    name: "Sonar Reasoning",
+    description: "Fortgeschrittenes Reasoning kombiniert mit Websuche.",
+    vision: false,
+    webBrowsing: true,
+    category: "Advanced",
+    contextWindow: 128000,
+    maxTokens: 4096,
+  },
+  {
+    id: "perplexity-fast",
+    name: "Sonar",
+    description: "Schnelle Websuche zum günstigen Preis.",
+    vision: false,
+    webBrowsing: true,
+    category: "Advanced",
+    contextWindow: 128000,
+    maxTokens: 4096,
+  },
+  {
+    id: "kimi-k2-thinking",
+    name: "Moonshot Kimi K2 Thinking",
+    description: "Tiefgehendes Reasoning und Tool-Orchestrierung.",
+    vision: false,
+    category: "Advanced",
+    contextWindow: 200000,
+    maxTokens: 4096,
+  },
   {
     id: "qwen-coder",
-    name: "Qwen Coder",
-    description: "Code Generation Specialist",
+    name: "Qwen 2.5 Coder 32B",
+    description: "Spezialisiert auf die Generierung von Programmcode.",
     vision: false,
     category: "Specialized",
     contextWindow: 128000,
     maxTokens: 4096,
-    costPerToken: 0.05,
-    useCases: ["Code", "Programmierung", "Debugging"]
   },
 ];
 
@@ -322,8 +309,8 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
   { id: 'R8_8CZH4KMY', name: 'Dev' },
 ];
 
-// Default model for new users/chats - Claude Sonnet 4.5
-export const DEFAULT_POLLINATIONS_MODEL_ID = 'claude'; // Claude Sonnet 4.5 as default
+// Default model for new users/chats - NEW DEFAULT: Claude Haiku 4.5
+export const DEFAULT_POLLINATIONS_MODEL_ID = 'claude-fast';
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // For in-chat image generation (align with bild.gen.lite)

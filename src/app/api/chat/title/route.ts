@@ -46,12 +46,12 @@ Return ONLY the title, nothing else.`;
     const useMistralDirectly = mistralFallbackEnabled === true;
 
     if (useMistralDirectly) {
-      console.log('[Title API] Using Mistral directly (user preference)');
+
       return await generateTitleWithMistral(titlePrompt);
     }
 
     // Try Pollinations first
-    console.log('[Title API] Using Pollinations for title generation');
+
 
     const pollenApiKey = process.env.POLLEN_API_KEY;
 
@@ -80,7 +80,7 @@ Return ONLY the title, nothing else.`;
         console.error(`[Title API] Pollinations error (${response.status}):`, errorText);
 
         // Fall back to Mistral on error
-        console.log('[Title API] Falling back to Mistral due to Pollinations error');
+
         return await generateTitleWithMistral(titlePrompt);
       }
 
@@ -99,7 +99,7 @@ Return ONLY the title, nothing else.`;
       console.error('[Title API] Pollinations request failed:', pollinationsError);
 
       // Fall back to Mistral
-      console.log('[Title API] Falling back to Mistral due to Pollinations failure');
+
       return await generateTitleWithMistral(titlePrompt);
     }
 

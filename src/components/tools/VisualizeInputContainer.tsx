@@ -4,46 +4,14 @@ import React, { useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SlidersHorizontal, Plus, ImageIcon, Loader2, X, FileImage } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { SlidersHorizontal, Plus, ImageIcon, Loader2 } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
-import { getUnifiedModelConfig, type UnifiedModelConfig } from '@/config/unified-model-configs';
-import { getUnifiedModel } from '@/config/unified-image-models';
-import NextImage from 'next/image';
+import { type UnifiedModelConfig } from '@/config/unified-model-configs';
+import { imageModelIcons } from '@/config/ui-constants';
 
-// Model Icons
-import OpenAIIcon from '../../../icons models/openfarbe.png';
-import GoogleIcon from '../../../icons models/google-color.png';
-import ByteDanceIcon from '../../../icons models/bytedance-color.png';
-import BFLIcon from '../../../icons models/bfl.png';
-import QwenIcon from '../../../icons models/qwen-color.png';
-import WANIcon from '../../../icons models/wan.png';
-
-// Import Presets from Hook (or duplicate if easier to keep pure component, opting to duplicate minor consts or import)
-// For cleaner import, let's redefine or import. Since I just created the hook file and exposed them, I can import.
-import { gptImagePresets } from '@/hooks/useUnifiedImageToolState';
-
-// Model Icon Mapping for Image Models
-const imageModelIcons: Record<string, any> = {
-    'gpt-image': OpenAIIcon,
-    'seedream': ByteDanceIcon,
-    'seedream-pro': ByteDanceIcon,
-    'seedance': ByteDanceIcon,
-    'seedance-pro': ByteDanceIcon,
-    'nanobanana': '🍌',
-    'nanobanana-pro': '🍌',
-    'flux-2-pro': BFLIcon,
-    'flux-kontext-pro': BFLIcon,
-    'veo': GoogleIcon,
-    'veo-3.1-fast': GoogleIcon,
-    'wan-2.5-t2v': WANIcon,
-    'wan-video': WANIcon,
-    'z-image-turbo': WANIcon,
-    'qwen-image-edit-plus': QwenIcon,
-};
+import { VisualModelSelector } from './visualize/VisualModelSelector';
+import { VisualConfigPanel } from './visualize/VisualConfigPanel';
+import { VisualUploadModal } from './visualize/VisualUploadModal';
 
 interface VisualizeInputContainerProps {
     prompt: string;
@@ -55,7 +23,7 @@ interface VisualizeInputContainerProps {
     onModelChange: (modelId: string) => void;
     formFields: Record<string, any>;
     handleFieldChange: (name: string, value: any) => void;
-    setFormFields: React.Dispatch<React.SetStateAction<Record<string, any>>>; // For direct updates like preset logic
+    setFormFields: React.Dispatch<React.SetStateAction<Record<string, any>>>;
 
     uploadedImages: string[];
     handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -76,7 +44,7 @@ interface VisualizeInputContainerProps {
     isUploading?: boolean;
     onEnhancePrompt: () => void;
 
-    // Computed (Passed down to avoid re-calculating inside UI)
+    // Computed
     currentModelConfig?: UnifiedModelConfig;
     supportsReference: boolean;
     maxImages: number;
@@ -132,11 +100,9 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const placeholderText = placeholder || (language === 'de'
-        ? 'Beschreib deine Idee – vielseitig, schnell, gut für Drafts, Skizzen, Comics, Manga und fotorealistische Experimente.'
-        : 'Describe your idea – versatile, fast, great for drafts, sketches, comics, manga, and photorealistic experiments.');
+    const placeholderText = placeholder || t('imageGen.placeholder.gptImage');
 
-    const displayModelName = currentModelConfig?.name || 'Select model';
+    const displayModelName = currentModelConfig?.name || t('label.selectModel');
 
     // Auto-resize textarea
     useEffect(() => {
@@ -147,402 +113,43 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
         }
     }, [prompt]);
 
-    const shouldShowResolution = React.useMemo(() => {
-        const aspectRatio = formFields.aspect_ratio || '1:1';
-        return aspectRatio !== 'custom';
-    }, [formFields.aspect_ratio]);
-
     return (
         <div className="w-full relative">
             {/* Model Selector Popup */}
-            {isModelSelectorOpen && (
-                <div className="mb-4 bg-popover text-popover-foreground rounded-xl shadow-xl border border-border p-0 animate-in fade-in-0 slide-in-from-bottom-4 duration-300 max-h-[520px] overflow-y-auto">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 sticky top-0 bg-popover z-10">
-                        <div>
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br flex items-center justify-center" style={{ backgroundImage: 'linear-gradient(to bottom right, hsl(330 65% 62%), rgb(59, 130, 246))' }}>
-                                    <ImageIcon className="w-4 h-4 text-white" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-semibold">{t('modelSelect.title') || 'Select Model'}</h2>
-                                    <p className="text-xs text-muted-foreground">{t('modelSelect.subtitle') || 'Choose your image generation model'}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={onModelSelectorToggle}
-                            className="h-8 w-8 rounded-full hover:bg-muted"
-                        >
-                            <X className="w-5 h-5" />
-                        </Button>
-                    </div>
-
-                    {/* Content - Using the exact same categories as original */}
-                    <div className="p-6">
-                        <div className="space-y-6">
-                            {/* Categories rendering logic... reused from Tool */}
-                            {/* TEXT/IMAGE → IMAGE (multi-ref) */}
-                            <div>
-                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textImage') || 'Text/Image → Image'}</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {['gpt-image', 'seedream-pro', 'seedream', 'nanobanana', 'nanobanana-pro'].map(id => {
-                                        const config = getUnifiedModelConfig(id);
-                                        const model = getUnifiedModel(id);
-                                        return (
-                                            <div
-                                                key={id}
-                                                onClick={() => { onModelChange(id); onModelSelectorToggle(); }}
-                                                className={cn(
-                                                    'flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01]',
-                                                    selectedModelId === id
-                                                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                                                        : 'border-border/50 hover:border-border hover:bg-muted/30'
-                                                )}
-                                            >
-                                                <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
-                                                    {imageModelIcons[id] ? (
-                                                        typeof imageModelIcons[id] === 'string' ? (
-                                                            <span className="text-2xl">{imageModelIcons[id]}</span>
-                                                        ) : (
-                                                            <Image src={imageModelIcons[id]} alt={id} width={32} height={32} className="rounded-lg" />
-                                                        )
-                                                    ) : <ImageIcon className="w-5 h-5 text-muted-foreground" />}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-semibold text-sm truncate">{config?.name}</span>
-                                                        {selectedModelId === id && <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">Active</span>}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                        {model?.supportsReference && <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium">📷 Multi</span>}
-                                                        {model?.provider === 'pollinations' && <span className="text-[10px] px-2 py-0.5 rounded-md bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium">⚡ Fast</span>}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* TEXT → IMAGE */}
-                            <div>
-                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textToImage') || 'Text → Image'}</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {['flux-kontext-pro', 'z-image-turbo'].map(id => {
-                                        const config = getUnifiedModelConfig(id);
-                                        const model = getUnifiedModel(id);
-                                        return (
-                                            <div
-                                                key={id}
-                                                onClick={() => { onModelChange(id); onModelSelectorToggle(); }}
-                                                className={cn(
-                                                    'flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01]',
-                                                    selectedModelId === id
-                                                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                                                        : 'border-border/50 hover:border-border hover:bg-muted/30'
-                                                )}
-                                            >
-                                                <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
-                                                    {imageModelIcons[id] ? (
-                                                        typeof imageModelIcons[id] === 'string' ? <span className="text-2xl">{imageModelIcons[id]}</span> : <Image src={imageModelIcons[id]} alt={id} width={32} height={32} className="rounded-lg" />
-                                                    ) : <ImageIcon className="w-5 h-5 text-muted-foreground" />}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-semibold text-sm truncate">{config?.name}</span>
-                                                        {selectedModelId === id && <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">Active</span>}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                        {model?.provider === 'replicate' && <span className="text-[10px] px-2 py-0.5 rounded-md dark:bg-purple-900/30 dark:text-purple-400 font-medium">⚡ Premium</span>}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* TEXT + MULTI-IMAGE → IMAGE */}
-                            <div>
-                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textMultiImage') || 'Text + Multi-Image → Image'}</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {['flux-2-pro'].map(id => {
-                                        const config = getUnifiedModelConfig(id);
-                                        return (
-                                            <div
-                                                key={id}
-                                                onClick={() => { onModelChange(id); onModelSelectorToggle(); }}
-                                                className={cn(
-                                                    'flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01]',
-                                                    selectedModelId === id
-                                                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                                                        : 'border-border/50 hover:border-border hover:bg-muted/30'
-                                                )}
-                                            >
-                                                <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
-                                                    <Image src={imageModelIcons[id]} alt={id} width={32} height={32} className="rounded-lg" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-semibold text-sm truncate">{config?.name}</span>
-                                                        {selectedModelId === id && <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">Active</span>}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-medium">📸 8 Images</span>
-                                                        <span className="text-[10px] px-2 py-0.5 rounded-md dark:bg-purple-900/30 dark:text-purple-400 font-medium">⭐ Pro</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* IMAGE → IMAGE (EDIT) */}
-                            <div>
-                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.imageEdit') || 'Image → Image (Edit)'}</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {['flux-kontext-pro', 'qwen-image-edit-plus'].map(id => {
-                                        const config = getUnifiedModelConfig(id);
-                                        return (
-                                            <div key={id} onClick={() => { onModelChange(id); onModelSelectorToggle(); }} className={cn('flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01]', selectedModelId === id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border/50 hover:border-border hover:bg-muted/30')}>
-                                                <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
-                                                    <Image src={imageModelIcons[id]} alt={id} width={32} height={32} className="rounded-lg" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-semibold text-sm truncate">{config?.name}</span>
-                                                        {selectedModelId === id && <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">Active</span>}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 font-medium">✏️ Edit</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* VIDEO */}
-                            <div>
-                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textImageVideo') || 'Text + Image → Video'}</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {['seedance-pro', 'veo', 'wan-2.5-t2v', 'wan-video', 'veo-3.1-fast'].map(id => {
-                                        const config = getUnifiedModelConfig(id);
-                                        const model = getUnifiedModel(id);
-                                        return (
-                                            <div key={id} onClick={() => { onModelChange(id); onModelSelectorToggle(); }} className={cn('flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01]', selectedModelId === id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border/50 hover:border-border hover:bg-muted/30')}>
-                                                <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
-                                                    {imageModelIcons[id] ? (typeof imageModelIcons[id] === 'string' ? <span className="text-2xl">{imageModelIcons[id]}</span> : <Image src={imageModelIcons[id]} alt={id} width={32} height={32} className="rounded-lg" />) : <span className="text-xl">🎬</span>}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-semibold text-sm truncate">{config?.name}</span>
-                                                        {selectedModelId === id && <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">Active</span>}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-medium">🎥 Video</span>
-                                                        {model?.provider === 'pollinations' && <span className="text-[10px] px-2 py-0.5 rounded-md bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium">⚡ Fast</span>}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <VisualModelSelector
+                isOpen={isModelSelectorOpen}
+                onClose={onModelSelectorToggle}
+                selectedModelId={selectedModelId}
+                onModelChange={onModelChange}
+            />
 
             {/* Config Panel */}
-            {isConfigPanelOpen && currentModelConfig && (
-                <div className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-sm font-semibold">{t('imageGen.modal.title') || 'Settings'}</h3>
-                        <Button variant="ghost" size="sm" onClick={onConfigPanelToggle}>
-                            <X className="w-4 h-4 mr-1.5" />
-                            {t('imageGen.modal.close') || 'Close'}
-                        </Button>
-                    </div>
-
-                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                        {/* Aspect Ratio */}
-                        {(isGptImage || isSeedream || isNanoPollen || currentModelConfig.inputs.find(i => i.name === 'aspect_ratio')) && (
-                            <div className="space-y-2">
-                                <Label>{t('imageGen.aspectRatioLabel') || 'Aspect Ratio'}</Label>
-                                {(isGptImage || isSeedream || isNanoPollen) ? (
-                                    <Select
-                                        value={formFields.aspect_ratio || '1:1'}
-                                        onValueChange={(value) => {
-                                            const preset = gptImagePresets[value] || gptImagePresets['1:1'];
-                                            setFormFields(prev => ({
-                                                ...prev,
-                                                aspect_ratio: value,
-                                                width: preset.width,
-                                                height: preset.height,
-                                            }));
-                                        }}
-                                        disabled={loading}
-                                    >
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {Object.keys(gptImagePresets).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                ) : currentModelConfig.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations' ? (
-                                    <Select value={formFields.aspect_ratio || '16:9'} onValueChange={(v) => handleFieldChange('aspect_ratio', v)} disabled={loading}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="16:9">16:9</SelectItem>
-                                            <SelectItem value="9:16">9:16</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                ) : (
-                                    <Select value={formFields.aspect_ratio || '1:1'} onValueChange={(v) => handleFieldChange('aspect_ratio', v)} disabled={loading}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {selectedModelId === 'z-image-turbo' ? (
-                                                <>
-                                                    <SelectItem value="1:1">1:1 (1024×1024)</SelectItem>
-                                                    <SelectItem value="4:3">4:3 (1024×768)</SelectItem>
-                                                    <SelectItem value="3:4">3:4 (768×1024)</SelectItem>
-                                                    <SelectItem value="16:9">16:9 (1344×768)</SelectItem>
-                                                    <SelectItem value="9:16">9:16 (768×1344)</SelectItem>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <SelectItem value="match_input_image">Match Input Image</SelectItem>
-                                                    <SelectItem value="custom">Custom</SelectItem>
-                                                    <SelectItem value="1:1">1:1</SelectItem>
-                                                    <SelectItem value="16:9">16:9</SelectItem>
-                                                    <SelectItem value="3:2">3:2</SelectItem>
-                                                    <SelectItem value="2:3">2:3</SelectItem>
-                                                    <SelectItem value="4:5">4:5</SelectItem>
-                                                    <SelectItem value="5:4">5:4</SelectItem>
-                                                    <SelectItem value="9:16">9:16</SelectItem>
-                                                    <SelectItem value="3:4">3:4</SelectItem>
-                                                    <SelectItem value="4:3">4:3</SelectItem>
-                                                </>
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Resolution */}
-                        {selectedModelId !== 'z-image-turbo' && !isGptImage && !isPollinationsVideo && shouldShowResolution && currentModelConfig.inputs.find(i => i.name === 'resolution') && (
-                            <div className="space-y-2">
-                                <Label>{t('field.resolution') || 'Resolution'}</Label>
-                                <Select
-                                    value={formFields.resolution || (selectedModelId === 'nanobanana-pro' ? '2K' : '1 MP')}
-                                    onValueChange={(value) => handleFieldChange('resolution', value)}
-                                    disabled={loading}
-                                >
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {selectedModelId === 'flux-2-pro' && (
-                                            <>
-                                                {formFields.aspect_ratio === 'match_input_image' && <SelectItem value="match_input_image">Match Input Image</SelectItem>}
-                                                <SelectItem value="0.5 MP">0.5 MP</SelectItem>
-                                                <SelectItem value="1 MP">1 MP</SelectItem>
-                                                <SelectItem value="2 MP">2 MP</SelectItem>
-                                                <SelectItem value="4 MP">4 MP</SelectItem>
-                                            </>
-                                        )}
-                                        {selectedModelId === 'nanobanana-pro' && (
-                                            <>
-                                                <SelectItem value="1K">1K</SelectItem>
-                                                <SelectItem value="2K">2K</SelectItem>
-                                                <SelectItem value="4K">4K</SelectItem>
-                                            </>
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-
-                        {/* Seed */}
-                        {currentModelConfig.inputs.find(i => i.name === 'seed') && !isPollinationsVideo && (
-                            <div className="space-y-2">
-                                <Label>{t('field.seed') || 'Seed'}</Label>
-                                <Input type="number" placeholder="Random" value={formFields.seed || ''} onChange={(e) => handleFieldChange('seed', e.target.value)} disabled={loading} />
-                            </div>
-                        )}
-
-                        {/* Output Format */}
-                        {(!isPollenModel && !isPollinationsVideo && currentModelConfig.inputs.find(i => i.name === 'output_format')) && (
-                            <div className="space-y-2">
-                                <Label>Output Format</Label>
-                                <Select
-                                    value={formFields.output_format || (currentModelConfig.outputType === 'video' ? 'mp4' : (selectedModelId === 'flux-2-pro' ? 'webp' : 'jpg'))}
-                                    onValueChange={(value) => handleFieldChange('output_format', value)}
-                                    disabled={loading}
-                                >
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="jpg">JPG</SelectItem>
-                                        <SelectItem value="png">PNG</SelectItem>
-                                        <SelectItem value="webp">WebP</SelectItem>
-                                        {currentModelConfig.outputType === 'video' && <SelectItem value="mp4">MP4</SelectItem>}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+            <VisualConfigPanel
+                isOpen={isConfigPanelOpen}
+                onClose={onConfigPanelToggle}
+                currentModelConfig={currentModelConfig}
+                selectedModelId={selectedModelId}
+                formFields={formFields}
+                handleFieldChange={handleFieldChange}
+                setFormFields={setFormFields}
+                loading={loading}
+                isGptImage={isGptImage}
+                isSeedream={isSeedream}
+                isNanoPollen={isNanoPollen}
+                isPollenModel={isPollenModel}
+                isPollinationsVideo={isPollinationsVideo}
+            />
 
             {/* Image Upload Pop-up */}
-            {isImageUploadOpen && supportsReference && (
-                <div className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-sm font-semibold">Upload Images ({uploadedImages.length}/{maxImages})</h3>
-                        <Button variant="ghost" size="sm" onClick={onImageUploadToggle}>
-                            <X className="w-4 h-4 mr-1.5" />
-                            Close
-                        </Button>
-                    </div>
-
-                    {uploadedImages.length < maxImages && (
-                        <div
-                            className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer mb-4"
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <FileImage className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                            <p className="text-sm text-muted-foreground">Click to upload or drag & drop</p>
-                        </div>
-                    )}
-
-                    {/* Uploaded Images Grid */}
-                    {uploadedImages.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                            {uploadedImages.map((img, index) => (
-                                <div key={index} className="space-y-1">
-                                    <div className="relative w-full h-24 rounded-lg overflow-hidden border border-border">
-                                        <NextImage src={img} alt={`Image ${index + 1}`} fill style={{ objectFit: 'cover' }} />
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            size="icon"
-                                            className="absolute top-1 right-1 w-5 h-5 rounded-full"
-                                            onClick={() => handleRemoveImage(index)}
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
+            <VisualUploadModal
+                isOpen={isImageUploadOpen}
+                onClose={onImageUploadToggle}
+                uploadedImages={uploadedImages}
+                maxImages={maxImages}
+                handleRemoveImage={handleRemoveImage}
+                onUploadClick={() => fileInputRef.current?.click()}
+                supportsReference={supportsReference}
+            />
 
             <form onSubmit={onSubmit}>
                 <div className="bg-white dark:bg-[#252525] rounded-2xl p-3 shadow-xl flex flex-col min-h-0">
@@ -551,9 +158,7 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                             <div className="rounded-xl bg-black/70 text-white px-4 py-3 text-sm md:text-base shadow-lg flex items-start gap-2">
                                 <Loader2 className="h-4 w-4 mt-0.5 animate-spin" />
                                 <div className="leading-snug">
-                                    {language === 'de'
-                                        ? 'Generierung läuft …'
-                                        : 'Generating…'}
+                                    {t('message.generating')}
                                 </div>
                             </div>
                         </div>
@@ -639,7 +244,7 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                                 aria-label="Enhance prompt"
                             >
                                 <span className="text-xs md:text-sm font-medium">
-                                    {isEnhancing ? 'Enhancing...' : 'Enhance'}
+                                    {isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
                                 </span>
                             </Button>
 
@@ -651,7 +256,7 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                                 aria-label="Generate"
                             >
                                 <span className="text-xs md:text-sm font-medium">
-                                    {loading ? 'Generating...' : 'Generate'}
+                                    {loading ? t('message.loading') : t('action.generate')}
                                 </span>
                             </Button>
                         </div>
