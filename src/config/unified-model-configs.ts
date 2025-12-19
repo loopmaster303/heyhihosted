@@ -65,8 +65,8 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     name: 'Nano Banana Pro',
     inputs: [
       { name: 'prompt', isPrompt: true },
-      { name: 'width', default: 1024 },
-      { name: 'height', default: 1024 },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'resolution', default: '2K' },
       { name: 'seed' },
       { name: 'output_format', default: 'jpg', hidden: true },
     ],
@@ -109,19 +109,21 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'seed' },
     ],
   },
+  // Pollinations zimage (different from Replicate z-image-turbo)
+  'zimage': {
+    id: 'zimage',
+    name: 'Z-Image Turbo',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
   'z-image-turbo': {
     id: 'z-image-turbo',
     name: 'Z-Image-Turbo',
-    inputs: [
-      { name: 'prompt', isPrompt: true },
-      { name: 'aspect_ratio', default: '1:1' },
-      { name: 'output_format', default: 'jpg' },
-      { name: 'seed' },
-    ],
-  },
-  'qwen-image-edit-plus': {
-    id: 'qwen-image-edit-plus',
-    name: 'Qwen Image Edit Plus',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '1:1' },

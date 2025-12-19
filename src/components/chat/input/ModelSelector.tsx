@@ -10,6 +10,7 @@ import { ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { modelIcons, modelDisplayMap, featuredModels } from '@/config/ui-constants';
+import { ParticleText } from '@/components/particle-text';
 
 interface ModelSelectorProps {
     selectedModelId: string;
@@ -35,50 +36,44 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 <Button
                     type="button"
                     variant="ghost"
-                    className={`group rounded-lg h-14 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white ${isMobile ? 'w-12 px-0' : 'w-auto px-3 min-w-[100px] max-w-[180px] md:max-w-[200px]'
+                    className={`group rounded-lg h-14 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white ${isMobile ? 'w-12 px-0' : 'w-auto px-1'
                         }`}
                     aria-label="Select model"
                 >
                     <div className="flex items-center gap-1.5 truncate">
-                        {/* Model Icon */}
-                        <div className="w-5 h-5 flex-shrink-0">
-                            {modelIcons[selectedModelId] ? (
-                                <Image
-                                    src={modelIcons[selectedModelId]}
-                                    alt={selectedModelId}
-                                    width={20}
-                                    height={20}
-                                    className="rounded-md"
-                                />
-                            ) : (
-                                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center">
-                                    <span className="text-[10px] font-bold text-white">
-                                        {selectedModelId?.charAt(0)?.toUpperCase() || 'A'}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                        {/* Model Name - Hidden on mobile */}
+                        {/* Model Icon - REMOVED for clean shader look as per mock */}
+
+                        {/* Model Name Shader - Hidden on mobile */}
                         {!isMobile && (
-                            <>
-                                <span className="text-xs md:text-sm font-medium truncate">
-                                    {modelDisplayMap[selectedModelId] || 'Claude'}
-                                </span>
-                                <ChevronUp className="w-3 h-3 flex-shrink-0 opacity-60" />
-                            </>
+                            <div className="flex items-center gap-1">
+                                <div className="w-[480px] h-12 flex items-center justify-center relative">
+                                    <ParticleText
+                                        key={selectedModelId}
+                                        text={AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId)?.name || 'Claude'}
+                                        fontSize={32}
+                                        canvasHeight={48}
+                                        baseSpacing={3}
+                                        particleSize={2.5}
+                                        mouseRepelRadius={60}
+                                        className="pointer-events-auto"
+                                    />
+                                </div>
+                                <ChevronDown className="w-6 h-6 flex-shrink-0 text-pink-500 opacity-100" />
+                            </div>
                         )}
                     </div>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 className={cn(
-                    "p-0 overflow-y-auto transition-all duration-300 ease-in-out",
+                    "p-0 overflow-y-auto transition-all duration-300 ease-in-out z-[110]",
                     expanded
                         ? "w-[95vw] md:w-[850px] max-h-[80vh]"
                         : "w-[90vw] sm:w-[340px] max-h-[500px]"
                 )}
-                align="end"
-                side="top"
+                align="center"
+                side="bottom"
+                sideOffset={10}
             >
                 {/* Header */}
                 <div className="px-4 py-3 border-b border-border/50 sticky top-0 bg-popover z-10 flex items-center justify-between">

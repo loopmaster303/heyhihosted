@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
   Menu,
@@ -14,6 +15,7 @@ import {
   ChevronRight,
   SmilePlus,
   Home,
+  Heart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -77,7 +79,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     if (savedExpanded !== null && !isMobile && externalIsExpanded === undefined) {
       setInternalIsExpanded(savedExpanded === 'true');
     } else if (!isMobile && externalIsExpanded === undefined) {
-      setInternalIsExpanded(true); // Desktop default: expanded
+      setInternalIsExpanded(false); // Desktop default: collapsed (like mobile)
     }
 
     if (savedName) {
@@ -95,17 +97,13 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   }, [internalIsExpanded, isMounted, externalIsExpanded]);
 
   const labels = {
-    newInteraction: t('nav.newInteraction'),
-    history: t('nav.history'),
-    gallery: t('nav.gallery'),
-    personalization: t('nav.personalization'),
-    languageLabel: t('nav.language'),
-    themeLabel: t('nav.theme'),
-    conversations: t('nav.conversations'), // Optional if needed
-    visualize: 'VISUALIZE', // This one wasn't in the list? It was uppercase in the file. Leave hardcoded or add key? User didn't specify. I'll leave it or remove if unused. It was used in line 93? Line 93 was "visualize: isGerman ? 'VISUALISIEREN' : 'VISUALIZE'".
-    // Let's add a key for visualize if needed, or just let it be. The component uses labels.visualize? Warning: I need to check usage.
-    // Checking usage in AppSidebar.tsx... It seems labels.visualize is NOT used in the visible code in previous turn (checked lines 1-300).
-    // Wait, let's double check usage.
+    newInteraction: t('nav.newInteraction') || 'Neuer Chat',
+    history: t('nav.history') || 'Historie',
+    gallery: t('nav.gallery') || 'Meine Inhalte',
+    personalization: t('nav.personalization') || 'Personalisierung',
+    languageLabel: t('nav.language') || 'Sprache',
+    themeLabel: t('nav.theme') || 'Theme',
+    conversations: 'Chats',
   };
 
   const handleToggle = () => {
@@ -155,12 +153,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
       <div
         className={cn(
           "h-screen bg-background border-r border-border flex flex-col transition-all duration-300",
-          // Mobile: fixed overlay, Desktop: static sidebar
-          "fixed md:relative z-50 md:z-auto",
-          // Mobile: completely hidden when collapsed (w-0), Desktop: collapsed to icon-only width (w-16)
-          isExpanded ? "w-64" : "w-0 md:w-16",
-          // Mobile: slide off-screen when collapsed, Desktop: always visible
-          !isExpanded && "-translate-x-full md:translate-x-0"
+          // Mobile: fixed overlay, Desktop: static sidebar but still z-50 to overlay header
+          "fixed md:relative z-50",
+          // Mobile & Desktop: completely hidden when collapsed (w-0)
+          isExpanded ? "w-72" : "w-0 overflow-hidden",
+          // Slide off-screen when collapsed
+          !isExpanded && "-translate-x-full"
         )}
         ref={sidebarRef}
       >
@@ -172,7 +170,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
             size="icon"
             onClick={handleToggle}
             className={cn(
-              !isExpanded && "mx-auto",
+              !isExpanded && "hidden",
               "hidden md:block" // Hide on mobile, show on desktop
             )}
           >
@@ -181,10 +179,9 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
           {isExpanded && (
             <Link href="/" className="flex-1">
-              <div className="font-mono text-sm flex items-center whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity">
-                <span className="text-foreground text-lg font-bold">{'(!hey.hi = '}</span>
-                <span className="text-muted-foreground text-lg font-bold">{userDisplayName}</span>
-                <span className="text-foreground text-lg font-bold">{')'}</span>
+              <div className="font-mono text-sm flex items-center whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity gap-2">
+                <span className="text-muted-foreground text-xs">coded with</span>
+                <Heart className="w-3 h-3 text-pink-500 fill-pink-500" />
               </div>
             </Link>
           )}
@@ -192,118 +189,147 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
         {/* Main Content */}
         <div className="flex-1 overflow-hidden flex flex-col relative">
-          <div className="flex-1 overflow-y-auto p-2 space-y-2">
+          <div className="flex-1 overflow-y-auto pt-2 space-y-2">
             {/* New Interaction Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "w-full justify-start gap-2 h-8",
-                !isExpanded && "justify-center px-0"
-              )}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push('/');
-              }}
-            >
-              <SmilePlus className="w-4 h-4 shrink-0" />
-              {isExpanded && <span className="text-xs">{labels.newInteraction}</span>}
-            </Button>
+            <div className="px-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "w-full justify-start gap-2 h-8",
+                  !isExpanded && "justify-center px-0"
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push('/');
+                }}
+              >
+                <SmilePlus className="w-4 h-4 shrink-0" />
+                {isExpanded && <span className="text-xs">{labels.newInteraction}</span>}
+              </Button>
+            </div>
 
-            {/* History Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "w-full justify-start gap-2 h-8 relative z-10",
-                !isExpanded && "justify-center px-0",
-                isHistoryPanelOpen && "bg-accent text-accent-foreground"
-              )}
-              onClick={() => {
-                // Auto-expand sidebar if collapsed
-                if (!isExpanded) {
-                  setIsExpanded(true);
-                }
-                if (onToggleHistoryPanel) {
-                  onToggleHistoryPanel();
-                }
-              }}
-            >
-              <History className="w-4 h-4 shrink-0" />
-              {isExpanded && (
-                <>
-                  <span className="flex-1 text-left text-xs">{labels.history}</span>
-                  <ChevronRight className={cn(
-                    "w-3 h-3 shrink-0 transition-transform",
-                    isHistoryPanelOpen && "rotate-90"
-                  )} />
-                </>
-              )}
-            </Button>
+            {/* Meine Inhalte (Gallery) Section */}
+            <div className="space-y-1">
+              <div className="px-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "w-full justify-start gap-2 h-8 relative z-10",
+                    !isExpanded && "justify-center px-0",
+                    isGalleryPanelOpen && "bg-accent text-accent-foreground"
+                  )}
+                  onClick={() => {
+                    if (!isExpanded) setIsExpanded(true);
+                    if (onToggleGalleryPanel) onToggleGalleryPanel();
+                  }}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2">
+                      <Images className="w-4 h-4 shrink-0" />
+                      {isExpanded && <span className="text-[13px] font-medium">{labels.gallery}</span>}
+                    </div>
+                    {isExpanded && (
+                      <ChevronRight className={cn(
+                        "w-3.5 h-3.5 shrink-0 transition-transform text-muted-foreground",
+                        isGalleryPanelOpen && "rotate-90"
+                      )} />
+                    )}
+                  </div>
+                </Button>
+              </div>
 
-            {/* Gallery Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "w-full justify-start gap-2 h-8 relative z-10",
-                !isExpanded && "justify-center px-0",
-                isGalleryPanelOpen && "bg-accent text-accent-foreground"
+              {/* Inline Gallery Panel */}
+              {isGalleryPanelOpen && isExpanded && (
+                <div className="mt-1">
+                  <SidebarGalleryPanel
+                    history={imageHistory}
+                    onSelectImage={(item) => {
+                      window.dispatchEvent(new CustomEvent('sidebar-reuse-prompt', { detail: item.prompt }));
+                      setIsExpanded(false);
+                      if (onToggleGalleryPanel) onToggleGalleryPanel();
+                    }}
+                    onClearHistory={clearImageHistory}
+                    onDeleteSingleImage={removeImageFromHistory}
+                    onClose={onToggleGalleryPanel || (() => { })}
+                  />
+                </div>
               )}
-              onClick={() => {
-                // Auto-expand sidebar if collapsed
-                if (!isExpanded) {
-                  setIsExpanded(true);
-                }
-                if (onToggleGalleryPanel) {
-                  onToggleGalleryPanel();
-                }
-              }}
-            >
-              <Images className="w-4 h-4 shrink-0" />
-              {isExpanded && (
-                <>
-                  <span className="flex-1 text-left text-xs">{labels.gallery}</span>
-                  <ChevronRight className={cn(
-                    "w-3 h-3 shrink-0 transition-transform",
-                    isGalleryPanelOpen && "rotate-90"
-                  )} />
-                </>
+
+              {/* 3-Image Preview Grid (Gemini Style) */}
+              {isExpanded && imageHistory.length > 0 && !isGalleryPanelOpen && (
+                <div className="grid grid-cols-3 gap-1.5 px-2 mt-1 mb-4">
+                  {imageHistory.slice(0, 3).map((item) => (
+                    <div
+                      key={item.id}
+                      className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all border border-border/10 shadow-sm"
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('sidebar-reuse-prompt', { detail: item.prompt }));
+                        if (isGalleryPanelOpen && onToggleGalleryPanel) onToggleGalleryPanel();
+                        setIsExpanded(false);
+                      }}
+                      title={item.prompt}
+                    >
+                      <Image
+                        src={item.videoUrl ? 'https://placehold.co/150x150.png' : item.imageUrl}
+                        alt={item.prompt}
+                        fill
+                        className="object-cover"
+                        sizes="80px"
+                      />
+                    </div>
+                  ))}
+                </div>
               )}
-            </Button>
+            </div>
+
+            {/* History Section */}
+            <div className="space-y-1">
+              <div className="px-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "w-full justify-start gap-2 h-8 relative z-10",
+                    !isExpanded && "justify-center px-0",
+                    isHistoryPanelOpen && "bg-accent text-accent-foreground"
+                  )}
+                  onClick={() => {
+                    if (!isExpanded) setIsExpanded(true);
+                    if (onToggleHistoryPanel) onToggleHistoryPanel();
+                  }}
+                >
+                  <History className="w-4 h-4 shrink-0" />
+                  {isExpanded && (
+                    <>
+                      <span className="flex-1 text-left text-xs">{labels.history}</span>
+                      <ChevronRight className={cn(
+                        "w-3 h-3 shrink-0 transition-transform",
+                        isHistoryPanelOpen && "rotate-90"
+                      )} />
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Inline History Panel */}
+              {isHistoryPanelOpen && isExpanded && (
+                <div className="mt-1">
+                  <SidebarHistoryPanel
+                    allConversations={allConversations}
+                    activeConversation={activeConversation}
+                    onSelectChat={onSelectChat || (() => { })}
+                    onRequestEditTitle={onRequestEditTitle || (() => { })}
+                    onDeleteChat={onDeleteChat || (() => { })}
+                    onClose={onToggleHistoryPanel || (() => { })}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Panels - Positioned absolutely to overlay with sidebar outline */}
-          {isHistoryPanelOpen && isExpanded && (
-            <div className="absolute top-[120px] left-0 right-0 bottom-0 z-20 px-2 pb-16">
-              <div className="bg-muted/30 border-t border-border/50 rounded-b-lg overflow-hidden h-full">
-                <SidebarHistoryPanel
-                  allConversations={allConversations}
-                  activeConversation={activeConversation}
-                  onSelectChat={onSelectChat || (() => { })}
-                  onRequestEditTitle={onRequestEditTitle || (() => { })}
-                  onDeleteChat={onDeleteChat || (() => { })}
-                  onClose={onToggleHistoryPanel || (() => { })}
-                />
-              </div>
-            </div>
-          )}
 
-          {isGalleryPanelOpen && isExpanded && (
-            <div className="absolute top-[160px] left-0 right-0 bottom-0 z-20 px-2 pb-16">
-              <div className="bg-muted/30 border-t border-border/50 rounded-b-lg overflow-hidden h-full">
-                <SidebarGalleryPanel
-                  history={imageHistory}
-                  onSelectImage={(item) => {
-                    // Placeholder for future image selection handling
-                  }}
-                  onClearHistory={clearImageHistory}
-                  onDeleteSingleImage={removeImageFromHistory}
-                  onClose={onToggleGalleryPanel || (() => { })}
-                />
-              </div>
-            </div>
-          )}
 
           {/* Bottom Section - Higher z-index to stay above panels */}
           <div className="p-4 border-t border-border space-y-2 relative z-30 bg-background">

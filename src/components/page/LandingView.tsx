@@ -4,7 +4,6 @@ import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import ChatInput from '@/components/chat/ChatInput';
 import VisualizeInputContainer from '@/components/tools/VisualizeInputContainer';
 import { cn } from '@/lib/utils';
-import { useTypewriter } from '@/hooks/useTypewriter';
 import { useUnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import { useLanguage } from '@/components/LanguageProvider';
 
@@ -14,65 +13,44 @@ interface LandingViewProps {
     userDisplayName: string;
     onNavigateToChat: (initialMessage: string) => void;
     onNavigateToVisualize: (draftPrompt: string) => void;
+    selectedModelId: string;
+    onModelChange: (modelId: string) => void;
+    landingMode: LandingMode;
+    setLandingMode: (mode: LandingMode) => void;
 }
 
 const LandingView: React.FC<LandingViewProps> = ({
     userDisplayName,
     onNavigateToChat,
-    onNavigateToVisualize
+    onNavigateToVisualize,
+    selectedModelId,
+    onModelChange,
+    landingMode,
+    setLandingMode
 }) => {
     const { t } = useLanguage();
-    const [landingMode, setLandingMode] = useState<LandingMode>('chat');
     const [chatDraft, setChatDraft] = useState(''); // Separate draft for chat
     const [phase, setPhase] = useState<'idle' | 'transitioning'>('idle');
-    const [landingSelectedModelId, setLandingSelectedModelId] = useState<string>('claude');
     const [showInputContainer, setShowInputContainer] = useState(false);
 
     // Use shared hook for Visualize Mode
     const visualizeState = useUnifiedImageToolState();
 
-    // Sync visualize prompt with local draft if needed, or just use hook's prompt
-    // Hook has its own 'prompt' state.
-
     const advancedPanelRef = React.useRef<HTMLDivElement>(null);
 
-    // Typewriter for main line
-    const targetLine = useMemo(() => {
-        const safeName = ((userDisplayName || 'user').trim() || 'user').toLowerCase();
-        return `(!hey.hi = '${safeName}')`;
-    }, [userDisplayName]);
-
-    const { displayedText, isTyping, isComplete } = useTypewriter({
-        text: targetLine,
-        speed: 200, // Even slower for terminal effect
-        delay: 150,
-        skipAnimation: false,
-    });
-
-    // Typewriter for subtitle (starts after main line completes)
-    const subtitleText = t('home.subtitle');
-    const { displayedText: displayedSubtitle, isTyping: isSubtitleTyping, isComplete: isSubtitleComplete } = useTypewriter({
-        text: subtitleText,
-        speed: 50, // Faster for subtitle
-        delay: isComplete ? 300 : 999999, // Start after main text completes
-        skipAnimation: false,
-    });
 
     const canSubmit = (landingMode === 'chat' ? chatDraft.trim().length > 0 : visualizeState.prompt.trim().length > 0) && phase === 'idle';
 
-    // Show input container with good timing
+    // Show input container after a delay (synced with particle formation)
     useEffect(() => {
-        if (isTyping) {
-            const halfwayPoint = (targetLine.length / 2) * 200; // speed * half the characters
-            const timer = setTimeout(() => {
-                setShowInputContainer(true);
-            }, halfwayPoint);
-            return () => clearTimeout(timer);
-        }
-        if (isComplete) {
+        const timer = setTimeout(() => {
             setShowInputContainer(true);
-        }
-    }, [isTyping, isComplete, targetLine.length]);
+        }, 1200); // Show after particles start forming
+
+        return () => {
+            clearTimeout(timer);
+        };
+    }, []);
 
     // Transition to Chat or Visualize
     const beginTransition = useCallback(() => {
@@ -101,27 +79,7 @@ const LandingView: React.FC<LandingViewProps> = ({
 
     return (
         <div className="relative h-full px-4 py-10 overflow-hidden">
-            {/* Terminal Header - Always visible, responsive sizing */}
-            <div className="absolute top-6 sm:top-8 md:top-10 left-4 max-w-4xl">
-                {/* Hero / Typewriter - Terminal style, top-left aligned */}
-                <div className="mb-4 font-code text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-left">
-                    <span className="text-transparent bg-gradient-to-r bg-clip-text" style={{ backgroundImage: 'linear-gradient(to right, hsl(330 70% 75%), hsl(330 65% 62%))' }}>
-                        {displayedText}
-                        {isTyping && <span className="animate-pulse">|</span>}
-                    </span>
-                </div>
-
-                {/* Subtitle - typewriter effect, HIDDEN ON MOBILE */}
-                {isComplete && (
-                    <div className="hidden md:block mb-12 text-left max-w-2xl mt-8">
-                        <p className="text-muted-foreground/80 text-sm md:text-base leading-relaxed font-mono">
-                            {displayedSubtitle}
-                            {isSubtitleTyping && <span className="animate-pulse">|</span>}
-                        </p>
-                    </div>
-                )}
-
-            </div>
+            {/* Particle Header - Moved to Layout for persistence */}
 
             {/* Input Container - Vertically centered on mobile, independent of text on desktop */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -214,8 +172,8 @@ const LandingView: React.FC<LandingViewProps> = ({
                                 startNewChat={() => { }}
                                 closeAdvancedPanel={() => { }}
                                 toDate={() => new Date()}
-                                selectedModelId={landingSelectedModelId}
-                                handleModelChange={(modelId) => setLandingSelectedModelId(modelId)}
+                                selectedModelId={selectedModelId}
+                                handleModelChange={onModelChange}
                                 selectedResponseStyleName="Basic"
                                 handleStyleChange={() => { }}
                                 selectedVoice="English_ConfidentWoman"

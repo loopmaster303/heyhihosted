@@ -128,7 +128,7 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                 )}
 
                 {/* Resolution */}
-                {selectedModelId !== 'z-image-turbo' && !isGptImage && !isPollinationsVideo && shouldShowResolution && currentModelConfig.inputs.find(i => i.name === 'resolution') && (
+                {selectedModelId !== 'z-image-turbo' && !isGptImage && !isSeedream && !isPollinationsVideo && shouldShowResolution && currentModelConfig.inputs.find(i => i.name === 'resolution') && (
                     <div className="space-y-2">
                         <Label>{t('field.resolution') || 'Resolution'}</Label>
                         <Select
@@ -181,7 +181,7 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                                         <SelectItem value="6">6s</SelectItem>
                                         <SelectItem value="8">8s</SelectItem>
                                     </>
-                                ) : (selectedModelId === 'seedance-pro' || selectedModelId === 'seedance') ? (
+                                ) : (selectedModelId === 'seedance-pro') ? (
                                     <>
                                         {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => (
                                             <SelectItem key={s} value={String(s)}>{s}s</SelectItem>
@@ -227,6 +227,6 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

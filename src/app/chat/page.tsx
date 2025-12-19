@@ -51,6 +51,7 @@ function ChatPageContent() {
 
     return (
         <AppLayout
+            appState="chat"
             onNewChat={chat.startNewChat}
             onToggleHistoryPanel={chat.toggleHistoryPanel}
             onToggleGalleryPanel={chat.toggleGalleryPanel}
@@ -63,6 +64,9 @@ function ChatPageContent() {
             isGalleryPanelOpen={chat.isGalleryPanelOpen}
             allConversations={chat.allConversations}
             activeConversation={chat.activeConversation}
+            // Chat Model Props
+            selectedModelId={chat.activeConversation?.selectedModelId || 'claude-fast'}
+            onModelChange={chat.handleModelChange}
         >
             <div className="flex flex-col h-full">
                 <ChatInterface />

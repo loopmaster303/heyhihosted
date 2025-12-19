@@ -546,11 +546,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   }, [allConversations, setActiveConversation, setLastUserMessageId]);
 
   // startNewChat muss vor dem useEffect definiert werden, der es aufruft
-  const startNewChat = useCallback(() => {
-    // If current conversation has no messages, don't create a new one
-    // Just make sure we're on an empty conversation
+  const startNewChat = useCallback((initialModelId?: string) => {
+    // If current conversation has no messages, don't create a new one, 
+    // BUT update the model if one was specified from landing
     if (activeConversation && activeConversation.messages.length === 0) {
-      // Already on an empty conversation, do nothing
+      if (initialModelId) {
+        setActiveConversation(prev => prev ? { ...prev, selectedModelId: initialModelId } : null);
+      }
       return;
     }
 
@@ -566,7 +568,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       isCodeMode: false,
       webBrowsingEnabled: false,
       mistralFallbackEnabled: true,
-      selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID,
+      selectedModelId: initialModelId || DEFAULT_POLLINATIONS_MODEL_ID,
       selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
     };
 

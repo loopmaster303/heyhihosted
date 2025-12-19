@@ -20,7 +20,6 @@ export const pollinationUploadModels = [
 
 export const replicateUploadModels = [
     'flux-2-pro',
-    'qwen-image-edit-plus',
     'flux-kontext-pro',
     'wan-video',
     'veo-3.1-fast',
@@ -28,11 +27,11 @@ export const replicateUploadModels = [
 ];
 
 export const gptImagePresets: Record<string, { width: number; height: number }> = {
-    '1:1': { width: 1440, height: 1440 },
-    '3:4': { width: 1248, height: 1664 },
-    '4:3': { width: 1664, height: 1248 },
-    '16:9': { width: 1920, height: 1080 },
-    '9:16': { width: 1080, height: 1920 },
+    '1:1': { width: 1024, height: 1024 },
+    '3:4': { width: 1024, height: 1536 },
+    '4:3': { width: 1536, height: 1024 },
+    '16:9': { width: 1536, height: 1024 },  // Closest valid option
+    '9:16': { width: 1024, height: 1536 },  // Closest valid option
 };
 
 export function useUnifiedImageToolState() {

@@ -68,10 +68,12 @@ export const imageModelIcons: Record<string, any> = {
     'nanobanana-pro': '🍌',
     'flux-2-pro': FluxFarbeIcon,
     'flux-kontext-pro': FluxFarbeIcon,
+    'kontext': FluxFarbeIcon,
     'veo': GoogleIcon,
     'veo-3.1-fast': GoogleIcon,
     'wan-2.5-t2v': WANIcon,
     'wan-video': WANIcon,
     'z-image-turbo': WANIcon,
+    'zimage': WANIcon,
     'qwen-image-edit-plus': QwenIcon,
 };

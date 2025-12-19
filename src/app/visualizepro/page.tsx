@@ -9,12 +9,16 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import AppLayout from '@/components/layout/AppLayout';
 import { useChat } from '@/components/ChatProvider';
 import PageLoader from '@/components/ui/PageLoader';
+import { useUnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 
 function VisualizeProPageContent() {
   const chat = useChat();
   const searchParams = useSearchParams();
   const [isClient, setIsClient] = useState(false);
   const [replicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
+
+  // Use the SHARED hook for model state - this is the same hook UnifiedImageTool uses
+  const visualizeToolState = useUnifiedImageToolState();
 
   const draft = useMemo(() => {
     const value = searchParams.get('draft');
@@ -28,11 +32,7 @@ function VisualizeProPageContent() {
   // Prefill draft prompt from landing (no auto-send)
   useEffect(() => {
     if (!draft) return;
-    // Set input in UnifiedImageTool via localStorage or state
-    // Since UnifiedImageTool doesn't have direct access to ChatProvider,
-    // we'll use localStorage to communicate the draft
     localStorage.setItem('unified-image-tool-draft', draft);
-    // Clean URL to avoid re-prefill on refresh
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete('draft');
@@ -40,8 +40,18 @@ function VisualizeProPageContent() {
     } catch {
       // ignore
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft]);
+
+  // Sync model from URL on mount
+  useEffect(() => {
+    const modelFromUrl = searchParams.get('model');
+    if (modelFromUrl && modelFromUrl !== visualizeToolState.selectedModelId) {
+      visualizeToolState.setSelectedModelId(modelFromUrl);
+    }
+  }, [searchParams]);
+
+  // Local state for selector popup visibility
+  const [isVisualSelectorOpen, setIsVisualSelectorOpen] = useState(false);
 
   if (!isClient) {
     return <PageLoader text="VisualizePro wird geladen..." />;
@@ -49,6 +59,7 @@ function VisualizeProPageContent() {
 
   return (
     <AppLayout
+      appState="visualize"
       onNewChat={chat.startNewChat}
       onToggleHistoryPanel={chat.toggleHistoryPanel}
       onToggleGalleryPanel={chat.toggleGalleryPanel}
@@ -61,10 +72,24 @@ function VisualizeProPageContent() {
       isGalleryPanelOpen={chat.isGalleryPanelOpen}
       allConversations={chat.allConversations}
       activeConversation={chat.activeConversation}
+      // USE THE SHARED HOOK STATE - now TopModelBar and UnifiedImageTool use the same state
+      visualSelectedModelId={visualizeToolState.selectedModelId}
+      onVisualModelChange={(id) => {
+        visualizeToolState.setSelectedModelId(id);
+        setIsVisualSelectorOpen(false);
+        // Also update URL to stay in sync
+        const url = new URL(window.location.href);
+        url.searchParams.set('model', id);
+        window.history.pushState({}, '', url.toString());
+      }}
+      isVisualModelSelectorOpen={isVisualSelectorOpen}
+      onVisualModelSelectorToggle={() => setIsVisualSelectorOpen(!isVisualSelectorOpen)}
     >
       <div className="flex flex-col h-full bg-background text-foreground">
         <UnifiedImageTool
           password={replicateToolPassword}
+          // Pass the shared tool state so UnifiedImageTool uses the SAME state
+          sharedToolState={visualizeToolState}
         />
       </div>
     </AppLayout>

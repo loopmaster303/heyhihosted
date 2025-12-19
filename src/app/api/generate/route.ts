@@ -12,6 +12,7 @@ const ImageGenerationSchema = z.object({
     'flux',
     'kontext',
     'turbo',
+    'zimage',
     'nanobanana',
     'nanobanana-pro',
     'seedream',
@@ -19,8 +20,8 @@ const ImageGenerationSchema = z.object({
     'gptimage',
     'gpt-image',
     'veo',
-    'seedance',
     'seedance-pro',
+    'wan-2.5-t2v',
   ]),
   width: z.number().positive().default(1024),
   height: z.number().positive().default(1024),
@@ -35,7 +36,7 @@ const ImageGenerationSchema = z.object({
   image: z.union([z.string().url(), z.array(z.string().url())]).optional(),
 });
 
-const VIDEO_MODELS = new Set(['seedance', 'seedance-pro', 'veo']);
+const VIDEO_MODELS = new Set(['seedance-pro', 'veo', 'wan-2.5-t2v']);
 
 export async function POST(request: Request) {
   try {
@@ -71,8 +72,27 @@ export async function POST(request: Request) {
     const params = new URLSearchParams();
     params.append('model', modelId || 'flux');
     if (!isVideoModel) {
-      params.append('width', String(width));
-      params.append('height', String(height));
+      // Clamp sizes for gptimage (Azure GPT Image API only supports 1024x1024, 1024x1536, 1536x1024)
+      const safeWidth = width ?? 1024;
+      const safeHeight = height ?? 1024;
+      let finalWidth = safeWidth;
+      let finalHeight = safeHeight;
+      if (modelId === 'gptimage') {
+        const isPortrait = safeHeight > safeWidth;
+        const isLandscape = safeWidth > safeHeight;
+        if (isPortrait) {
+          finalWidth = 1024;
+          finalHeight = 1536;
+        } else if (isLandscape) {
+          finalWidth = 1536;
+          finalHeight = 1024;
+        } else {
+          finalWidth = 1024;
+          finalHeight = 1024;
+        }
+      }
+      params.append('width', String(finalWidth));
+      params.append('height', String(finalHeight));
     }
     if (seed !== undefined && seed !== null && String(seed).trim() !== '') {
       const seedNum = parseInt(String(seed).trim(), 10);

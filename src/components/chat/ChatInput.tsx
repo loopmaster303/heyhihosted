@@ -204,7 +204,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         <div className="relative">
             <div className="relative">
                 <form onSubmit={handleSubmit} className="w-full">
-                    <div className="bg-white dark:bg-[#252525] rounded-2xl p-3 shadow-xl flex flex-col min-h-0">
+                    <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-3 shadow-xl border border-black/5 dark:border-white/10 transition-all duration-300 hover:shadow-2xl hover:border-black/10 dark:hover:border-white/20 flex flex-col min-h-0">
                         <div className="flex-grow">
                             <Textarea
                                 ref={textareaRef}
@@ -300,11 +300,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
                             </div>
 
                             <div className="flex items-center gap-0">
-                                <ModelSelector
-                                    selectedModelId={selectedModelId}
-                                    onModelChange={handleModelChange}
-                                    isMobile={isMobile}
-                                />
 
                                 {/* Mic / Stop Button */}
                                 <Button

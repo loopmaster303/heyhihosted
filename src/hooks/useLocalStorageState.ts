@@ -19,9 +19,13 @@ function useLocalStorageState<T>(
         setValueState(JSON.parse(storedValue));
       }
     } catch (error) {
-      console.error(`Error reading localStorage key “${key}”:`, error);
+      console.warn(`Error reading localStorage key “${key}”:`, error);
+      // If parsing fails (e.g. invalid JSON), we stick to defaultValue
+      // Optionally we could verify if it's a raw string, but standard is JSON.
+      // If the value is critically corrupt, we might want to clear it:
+      // localStorage.removeItem(key); 
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   const setValue = useCallback(

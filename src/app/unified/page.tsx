@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState, Suspense } from 'react';
+import React, { useCallback, useEffect, useState, Suspense, useMemo } from 'react';
 import { ChatProvider, useChat } from '@/components/ChatProvider';
 import ChatInterface from '@/components/page/ChatInterface';
 import UnifiedImageTool from '@/components/tools/UnifiedImageTool';
@@ -10,7 +10,10 @@ import AppLayout from '@/components/layout/AppLayout';
 import PageLoader from '@/components/ui/PageLoader';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
+import { DEFAULT_POLLINATIONS_MODEL_ID } from '@/config/chat-options';
+import { useUnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import LandingView from '@/components/page/LandingView';
+import { cn } from '@/lib/utils';
 
 // App States
 type AppState = 'landing' | 'chat' | 'visualize';
@@ -21,11 +24,14 @@ interface UnifiedAppContentProps {
 
 function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps) {
     const chat = useChat();
+    const visualizeToolState = useUnifiedImageToolState();
     const [userDisplayName] = useLocalStorageState<string>('userDisplayName', 'user');
     const [replicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
 
     const [isClient, setIsClient] = useState(false);
     const [appState, setAppState] = useState<AppState>(initialState);
+    const [landingMode, setLandingMode] = useState<'chat' | 'visualize'>('chat');
+    const [landingSelectedModelId, setLandingSelectedModelId] = useState<string>(DEFAULT_POLLINATIONS_MODEL_ID);
 
     useEffect(() => {
         setIsClient(true);
@@ -36,22 +42,23 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
         const handler = (event: Event) => {
             const custom = event as CustomEvent<string>;
             if (typeof custom.detail === 'string') {
-                // Store prompt for VisualizePro and navigate
-                localStorage.setItem('unified-image-tool-draft', custom.detail);
+                // Set prompt directly on the shared state and navigate
+                visualizeToolState.setPrompt(custom.detail);
                 setAppState('visualize');
             }
         };
         window.addEventListener('sidebar-reuse-prompt', handler);
         return () => window.removeEventListener('sidebar-reuse-prompt', handler);
-    }, []);
+    }, [visualizeToolState]);
 
     // Navigate to Chat
     const handleNavigateToChat = useCallback((initialMessage: string) => {
         if (initialMessage) {
             chat.setChatInputValue(initialMessage);
         }
+        chat.startNewChat(landingSelectedModelId);
         setAppState('chat');
-    }, [chat]);
+    }, [chat, landingSelectedModelId]);
 
     // Navigate to Visualize
     const handleNavigateToVisualize = useCallback((draftPrompt: string) => {
@@ -79,6 +86,7 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
 
     return (
         <AppLayout
+            appState={appState}
             onNewChat={handleNewChat}
             onToggleHistoryPanel={chat.toggleHistoryPanel}
             onToggleGalleryPanel={chat.toggleGalleryPanel}
@@ -94,6 +102,14 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             isGalleryPanelOpen={chat.isGalleryPanelOpen}
             allConversations={chat.allConversations}
             activeConversation={chat.activeConversation}
+            // Chat Model Props
+            selectedModelId={appState === 'landing' ? landingSelectedModelId : (chat.activeConversation?.selectedModelId || 'claude')}
+            onModelChange={appState === 'landing' ? setLandingSelectedModelId : chat.handleModelChange}
+            // Visualize Model Props
+            visualSelectedModelId={visualizeToolState.selectedModelId}
+            onVisualModelChange={visualizeToolState.setSelectedModelId}
+            isVisualModelSelectorOpen={visualizeToolState.isModelSelectorOpen}
+            onVisualModelSelectorToggle={() => visualizeToolState.setIsModelSelectorOpen(!visualizeToolState.isModelSelectorOpen)}
         >
             {/* Landing State */}
             {appState === 'landing' && (
@@ -101,6 +117,10 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
                     userDisplayName={userDisplayName}
                     onNavigateToChat={handleNavigateToChat}
                     onNavigateToVisualize={handleNavigateToVisualize}
+                    selectedModelId={landingSelectedModelId}
+                    onModelChange={setLandingSelectedModelId}
+                    landingMode={landingMode}
+                    setLandingMode={setLandingMode}
                 />
             )}
 
@@ -114,7 +134,7 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             {/* Visualize State */}
             {appState === 'visualize' && (
                 <div className="flex flex-col h-full bg-background text-foreground">
-                    <UnifiedImageTool password={replicateToolPassword} />
+                    <UnifiedImageTool password={replicateToolPassword} sharedToolState={visualizeToolState} />
                 </div>
             )}
 

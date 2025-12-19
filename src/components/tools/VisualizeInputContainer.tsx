@@ -232,38 +232,8 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                             )}
                         </div>
 
-                        {/* Right Side: Model Select + Enhance (desktop only) + Generate */}
+                        {/* Right Side: Enhance (desktop only) + Generate */}
                         <div className="flex items-center gap-0">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={onModelSelectorToggle}
-                                className="group rounded-lg h-14 w-auto px-2 sm:px-3 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white min-w-[80px] sm:min-w-[120px] max-w-[160px] sm:max-w-[200px]"
-                                aria-label="Select model"
-                            >
-                                <div className="flex items-center gap-1 sm:gap-1.5 truncate">
-                                    <div className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0">
-                                        {imageModelIcons[selectedModelId] ? (
-                                            typeof imageModelIcons[selectedModelId] === 'string' ? (
-                                                <span className="text-base sm:text-lg">{imageModelIcons[selectedModelId]}</span>
-                                            ) : (
-                                                <Image
-                                                    src={imageModelIcons[selectedModelId]}
-                                                    alt={selectedModelId}
-                                                    width={20}
-                                                    height={20}
-                                                    className="rounded-md"
-                                                />
-                                            )
-                                        ) : (
-                                            <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                                        )}
-                                    </div>
-                                    <span className="text-[10px] sm:text-xs md:text-sm font-medium truncate">
-                                        {displayModelName}
-                                    </span>
-                                </div>
-                            </Button>
 
                             {/* Enhance - Desktop only */}
                             {!isMobile && (
@@ -286,8 +256,8 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                                 type="submit"
                                 disabled={!canSubmit}
                                 className={`group rounded-lg transition-all duration-300 ${isMobile
-                                        ? 'h-10 w-10 p-0'
-                                        : 'h-14 w-auto px-4 md:h-12'
+                                    ? 'h-10 w-10 p-0'
+                                    : 'h-14 w-auto px-4 md:h-12'
                                     } ${canSubmit
                                         ? 'bg-black dark:bg-white text-white dark:text-black hover:opacity-90 shadow-md'
                                         : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600'

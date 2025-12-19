@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { X, ImageIcon } from 'lucide-react';
+import { X, ImageIcon, ChevronDown, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/LanguageProvider';
-import { getUnifiedModel } from '@/config/unified-image-models';
+import { getUnifiedModel, getStandardModels, getAdvancedModels } from '@/config/unified-image-models';
 import { getUnifiedModelConfig } from '@/config/unified-model-configs';
 import { imageModelIcons } from '@/config/ui-constants';
 
@@ -22,11 +22,18 @@ export const VisualModelSelector: React.FC<VisualModelSelectorProps> = ({
     onModelChange
 }) => {
     const { t } = useLanguage();
+    const [expanded, setExpanded] = useState(false);
+
+    // Get models by category
+    const standardImageModels = getStandardModels('image');
+    const standardVideoModels = getStandardModels('video');
+    const advancedImageModels = getAdvancedModels('image');
+    const advancedVideoModels = getAdvancedModels('video');
 
     if (!isOpen) return null;
 
     return (
-        <div className="mb-4 bg-popover text-popover-foreground rounded-xl shadow-xl border border-border p-0 animate-in fade-in-0 slide-in-from-bottom-4 duration-300 max-h-[520px] overflow-y-auto">
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[320px] max-w-[90vw] z-[110] bg-popover text-popover-foreground rounded-xl shadow-xl border border-border p-0 animate-in fade-in-0 slide-in-from-top-2 duration-300 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 sticky top-0 bg-popover z-10">
                 <div>
@@ -35,8 +42,8 @@ export const VisualModelSelector: React.FC<VisualModelSelectorProps> = ({
                             <ImageIcon className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold">{t('modelSelect.title') || 'Select Model'}</h2>
-                            <p className="text-xs text-muted-foreground">{t('modelSelect.subtitle') || 'Choose your image generation model'}</p>
+                            <h2 className="text-lg font-semibold">{t('modelSelect.title') || 'Modell wählen'}</h2>
+                            <p className="text-xs text-muted-foreground">{t('modelSelect.subtitle') || 'Bild- & Video-Generierung'}</p>
                         </div>
                     </div>
                 </div>
@@ -52,73 +59,136 @@ export const VisualModelSelector: React.FC<VisualModelSelectorProps> = ({
             </div>
 
             {/* Content */}
-            <div className="p-6">
-                <div className="space-y-6">
-                    {/* TEXT/IMAGE → IMAGE (multi-ref) */}
+            <div className="p-4 max-h-[400px] overflow-y-auto">
+                {/* STANDARD MODELS - Always visible */}
+                <div className="space-y-4">
+                    {/* Standard Image */}
                     <div>
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textImage') || 'Text/Image → Image'}</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {['gpt-image', 'seedream-pro', 'seedream', 'nanobanana', 'nanobanana-pro'].map(id => (
-                                <ModelCard key={id} id={id} selectedModelId={selectedModelId} onSelect={() => { onModelChange(id); onClose(); }} />
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <ImageIcon className="w-3 h-3" /> Bild
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {standardImageModels.map(model => (
+                                <ModelCard
+                                    key={model.id}
+                                    id={model.id}
+                                    selectedModelId={selectedModelId}
+                                    onSelect={() => { onModelChange(model.id); onClose(); }}
+                                    compact
+                                />
                             ))}
                         </div>
                     </div>
 
-                    {/* TEXT → IMAGE */}
+                    {/* Standard Video */}
                     <div>
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textToImage') || 'Text → Image'}</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {['flux-kontext-pro', 'z-image-turbo'].map(id => (
-                                <ModelCard key={id} id={id} selectedModelId={selectedModelId} onSelect={() => { onModelChange(id); onClose(); }} />
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* TEXT + MULTI-IMAGE → IMAGE */}
-                    <div>
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textMultiImage') || 'Text + Multi-Image → Image'}</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {['flux-2-pro'].map(id => (
-                                <ModelCard key={id} id={id} selectedModelId={selectedModelId} onSelect={() => { onModelChange(id); onClose(); }} />
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* IMAGE → IMAGE (EDIT) */}
-                    <div>
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.imageEdit') || 'Image → Image (Edit)'}</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {['flux-kontext-pro', 'qwen-image-edit-plus'].map(id => (
-                                <ModelCard key={id} id={id} selectedModelId={selectedModelId} onSelect={() => { onModelChange(id); onClose(); }} />
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* VIDEO */}
-                    <div>
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t('modelSelect.textImageVideo') || 'Text + Image → Video'}</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {['seedance-pro', 'veo', 'wan-2.5-t2v', 'wan-video', 'veo-3.1-fast'].map(id => (
-                                <ModelCard key={id} id={id} selectedModelId={selectedModelId} onSelect={() => { onModelChange(id); onClose(); }} />
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <Video className="w-3 h-3" /> Video
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {standardVideoModels.map(model => (
+                                <ModelCard
+                                    key={model.id}
+                                    id={model.id}
+                                    selectedModelId={selectedModelId}
+                                    onSelect={() => { onModelChange(model.id); onClose(); }}
+                                    compact
+                                />
                             ))}
                         </div>
                     </div>
                 </div>
+
+                {/* Expand Button */}
+                <button
+                    onClick={() => setExpanded(!expanded)}
+                    className="w-full mt-4 py-2 px-3 text-xs font-medium text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 border border-dashed border-border/50 rounded-lg hover:bg-muted/30 transition-colors"
+                >
+                    {expanded ? 'Weniger anzeigen' : 'Mehr Modelle'}
+                    <ChevronDown className={cn("w-4 h-4 transition-transform", expanded && "rotate-180")} />
+                </button>
+
+                {/* ADVANCED MODELS - Expandable */}
+                {expanded && (
+                    <div className="mt-4 pt-4 border-t border-border/50 space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                        {/* Advanced Image */}
+                        <div>
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <ImageIcon className="w-3 h-3" /> Bild (Advanced)
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {advancedImageModels.map(model => (
+                                    <ModelCard
+                                        key={model.id}
+                                        id={model.id}
+                                        selectedModelId={selectedModelId}
+                                        onSelect={() => { onModelChange(model.id); onClose(); }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Advanced Video */}
+                        <div>
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <Video className="w-3 h-3" /> Video (Advanced)
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {advancedVideoModels.map(model => (
+                                    <ModelCard
+                                        key={model.id}
+                                        id={model.id}
+                                        selectedModelId={selectedModelId}
+                                        onSelect={() => { onModelChange(model.id); onClose(); }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
-const ModelCard = ({ id, selectedModelId, onSelect }: { id: string, selectedModelId: string, onSelect: () => void }) => {
+const ModelCard = ({ id, selectedModelId, onSelect, compact = false }: { id: string, selectedModelId: string, onSelect: () => void, compact?: boolean }) => {
     const config = getUnifiedModelConfig(id);
     const model = getUnifiedModel(id);
     const icon = imageModelIcons[id];
+
+    if (compact) {
+        return (
+            <div
+                onClick={onSelect}
+                className={cn(
+                    'flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md',
+                    selectedModelId === id
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                        : 'border-border/50 hover:border-border hover:bg-muted/30'
+                )}
+            >
+                <div className="w-7 h-7 flex-shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                    {icon ? (
+                        typeof icon === 'string' ? (
+                            <span className="text-lg">{icon}</span>
+                        ) : (
+                            <Image src={icon} alt={id} width={24} height={24} className="rounded" />
+                        )
+                    ) : <ImageIcon className="w-4 h-4 text-muted-foreground" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <span className="font-medium text-xs truncate block">{config?.name || model?.name}</span>
+                    {model?.description && <span className="text-[10px] text-muted-foreground truncate block">{model.description}</span>}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div
             onClick={onSelect}
             className={cn(
-                'flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01]',
+                'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01]',
                 selectedModelId === id
                     ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                     : 'border-border/50 hover:border-border hover:bg-muted/30'
@@ -135,19 +205,13 @@ const ModelCard = ({ id, selectedModelId, onSelect }: { id: string, selectedMode
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm truncate">{config?.name}</span>
+                    <span className="font-semibold text-sm truncate">{config?.name || model?.name}</span>
                     {selectedModelId === id && <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-medium">Active</span>}
                 </div>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {model?.supportsReference && <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium">📷 Multi</span>}
-                    {model?.provider === 'pollinations' && <span className="text-[10px] px-2 py-0.5 rounded-md bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium">⚡ Fast</span>}
-                    {model?.provider === 'replicate' && <span className="text-[10px] px-2 py-0.5 rounded-md dark:bg-purple-900/30 dark:text-purple-400 font-medium">⚡ Premium</span>}
-                    {config?.outputType === 'video' && <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-medium">🎥 Video</span>}
-                    {/* Specific Tags */}
-                    {id === 'flux-kontext-pro' && <span className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 font-medium">✏️ Edit</span>}
-                    {id === 'qwen-image-edit-plus' && <span className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 font-medium">✏️ Edit</span>}
-                    {id === 'flux-2-pro' && <span className="text-[10px] px-2 py-0.5 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-medium">📸 8 Images</span>}
-                    {id === 'flux-2-pro' && <span className="text-[10px] px-2 py-0.5 rounded-md dark:bg-purple-900/30 dark:text-purple-400 font-medium">⭐ Pro</span>}
+                    {model?.description && <span className="text-[10px] text-muted-foreground">{model.description}</span>}
+                    {model?.supportsReference && <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium">📷 Ref</span>}
+                    {model?.kind === 'video' && <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-medium">🎥</span>}
                 </div>
             </div>
         </div>

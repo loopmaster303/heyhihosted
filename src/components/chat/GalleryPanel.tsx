@@ -64,6 +64,9 @@ const GalleryPanel: FC<GalleryPanelProps> = ({ history, onSelectImage, onClearHi
             event.stopPropagation();
             // Dispatch custom event to reuse prompt (similar to sidebar)
             window.dispatchEvent(new CustomEvent('sidebar-reuse-prompt', { detail: item.prompt }));
+            // Close fullscreen and panel
+            setIsFullscreen(false);
+            onClose();
         } else {
             onSelectImage(item);
         }

@@ -7,9 +7,13 @@ import { Button } from '@/components/ui/button';
 import AppSidebar from './AppSidebar';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
+import { ParticleText } from '@/components/particle-text';
+import { TopModelBar } from '@/components/layout/TopModelBar';
+import { useMemo } from 'react';
 
 interface AppLayoutProps {
   children: React.ReactNode;
+  appState?: 'landing' | 'chat' | 'visualize';
   onNewChat?: () => void;
   onToggleHistoryPanel?: () => void;
   onToggleGalleryPanel?: () => void;
@@ -22,10 +26,19 @@ interface AppLayoutProps {
   activeConversation?: any;
   onRequestEditTitle?: (id: string) => void;
   onDeleteChat?: (id: string) => void;
+  // Chat Model Props
+  selectedModelId?: string;
+  onModelChange?: (modelId: string) => void;
+  // Visualize Model Props
+  visualSelectedModelId?: string;
+  onVisualModelChange?: (modelId: string) => void;
+  isVisualModelSelectorOpen?: boolean;
+  onVisualModelSelectorToggle?: () => void;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({
   children,
+  appState,
   onNewChat,
   onToggleHistoryPanel,
   onToggleGalleryPanel,
@@ -37,9 +50,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   allConversations = [],
   activeConversation = null,
   onRequestEditTitle,
-  onDeleteChat
+  onDeleteChat,
+  selectedModelId,
+  onModelChange,
+  visualSelectedModelId,
+  onVisualModelChange,
+  isVisualModelSelectorOpen,
+  onVisualModelSelectorToggle,
 }) => {
-  const [sidebarExpanded, setSidebarExpanded] = useLocalStorageState<boolean>('sidebarExpanded', true);
+  const [sidebarExpanded, setSidebarExpanded] = useLocalStorageState<boolean>('sidebarExpanded', false);
   const [isMobile, setIsMobile] = useState(false);
 
   // Detect mobile on mount and resize
@@ -53,10 +72,37 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Get username for heart icon
+  const [userDisplayName, setUserDisplayName] = useState('user');
+  useEffect(() => {
+    const savedName = localStorage.getItem('userDisplayName');
+    if (savedName) setUserDisplayName(savedName);
+  }, []);
+
+  // Header text for ParticleText
+  const headerText = useMemo(() => {
+    const safeName = ((userDisplayName || 'user').trim() || 'user').toLowerCase();
+    return `(!hey.hi = '${safeName}')`;
+  }, [userDisplayName]);
+
   return (
     <div
       className="relative flex flex-col h-screen bg-background text-foreground"
     >
+      {/* GLOBAL TOP MODEL BAR - Sibling to all other content */}
+      {appState && appState !== 'landing' && (
+        <TopModelBar
+          appState={appState as 'chat' | 'visualize'}
+          sidebarExpanded={sidebarExpanded}
+          selectedModelId={selectedModelId}
+          onModelChange={onModelChange}
+          visualSelectedModelId={visualSelectedModelId}
+          onVisualModelChange={onVisualModelChange}
+          isVisualModelSelectorOpen={isVisualModelSelectorOpen}
+          onVisualModelSelectorToggle={onVisualModelSelectorToggle}
+        />
+      )}
+
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar
           onNewChat={onNewChat}
@@ -76,23 +122,36 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         <main
           className="flex-1 overflow-y-auto transition-all duration-300 relative bg-background w-full"
         >
-          {/* Mobile Menu Button - only visible on mobile when sidebar is collapsed */}
+          {/* Particle Header - NUR in Landing View */}
+          {appState === 'landing' && (
+            <div className={cn(
+              "fixed top-16 sm:top-20 md:top-24 right-4 z-40 transition-all duration-700 pointer-events-none",
+              sidebarExpanded ? "left-4 md:left-72" : "left-4"
+            )}>
+              <ParticleText
+                text={headerText}
+                className="w-full pointer-events-auto"
+                particleColor="255, 105, 180"
+              />
+            </div>
+          )}
+
+          {/* Top Model Bar moved up to global level */}
+
+          {/* Mobile User Icon - only visible on mobile when sidebar is collapsed */}
+          {/* Mobile Menu Button */}
           {!sidebarExpanded && (
             <Button
               variant="ghost"
               size="icon"
-              className={cn(
-                "fixed top-4 left-4 z-30 bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg transition-all duration-300",
-                // Only show on mobile, hide on desktop since sidebar has its own button
-                "md:hidden"
-              )}
+              className="fixed top-4 left-4 z-30 bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg transition-all duration-300"
               onClick={() => setSidebarExpanded(true)}
             >
               <Menu className="w-5 h-5" />
             </Button>
           )}
 
-          <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full px-2 md:px-4 bg-background">
+          <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full px-2 md:px-4 bg-background pt-20 sm:pt-24">
             {children}
           </div>
         </main>

@@ -386,7 +386,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                       <SelectValue placeholder={t('label.selectModel')} />
                     </SelectTrigger>
                     <SelectContent className={cn("max-h-[300px] rounded-lg border shadow-lg", isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-100")}>
-                      {getImageModels().map((model) => (
+                      {getImageModels().map((model: { id: string; name: string }) => (
                         <SelectItem key={model.id} value={model.id} className={cn("py-2.5", isDark ? "text-white focus:bg-gray-800" : "text-black focus:bg-gray-100")}>
                           {model.name}
                         </SelectItem>

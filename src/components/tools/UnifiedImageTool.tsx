@@ -18,15 +18,24 @@ const IMAGE_HISTORY_KEY = 'imageHistory';
 
 interface UnifiedImageToolProps {
   password?: string;
+  sharedToolState?: ReturnType<typeof useUnifiedImageToolState>;
 }
 
-const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
+const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToolState }) => {
   const { toast } = useToast();
   const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
 
-  // Use the shared hook for input state
-  const toolState = useUnifiedImageToolState();
+  // Use shared state if provided, otherwise create local state
+  // This allows VisualizeProPage to pass its state so TopModelBar and this tool stay in sync
+  const localToolState = useUnifiedImageToolState();
+  const toolState = sharedToolState || localToolState;
+
+  // DEBUG
+  console.log('[DEBUG UnifiedImageTool] sharedToolState provided?', !!sharedToolState);
+  console.log('[DEBUG UnifiedImageTool] toolState.selectedModelId:', toolState.selectedModelId);
+  console.log('[DEBUG UnifiedImageTool] localToolState.selectedModelId:', localToolState.selectedModelId);
+
   const {
     selectedModelId,
     currentModelConfig,
@@ -118,22 +127,14 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
       if (uploadedImages.length > 0) {
         if (selectedModelId === 'flux-2-pro') {
           payload.input_images = uploadedImages;
-        } else if (selectedModelId === 'nanobanana-pro' || selectedModelId === 'qwen-image-edit-plus') {
-          payload.image_input = uploadedImages;
         } else if (selectedModelId === 'flux-kontext-pro') {
           payload.input_image = uploadedImages[0];
         } else if (selectedModelId === 'wan-video' || selectedModelId === 'veo-3.1-fast') {
           payload.image = uploadedImages[0];
-        } else if (selectedModelId === 'seedance-pro' || selectedModelId === 'veo') {
-          payload.image = uploadedImages.slice(0, 8).join(','); // maxImages check handled by UI/Hook limits usually
-        } else if (
-          selectedModelId === 'gpt-image' ||
-          selectedModelId === 'seedream-pro' ||
-          selectedModelId === 'seedream' ||
-          selectedModelId === 'nanobanana' ||
-          selectedModelId === 'nanobanana-pro'
-        ) {
-          payload.image = uploadedImages.slice(0, 8).join(',');
+        } else if (isPollinationsModel) {
+          // Pollinations models (gpt-image, seedream, seedream-pro, nanobanana, nanobanana-pro, seedance-pro, veo)
+          // expect image as array of URLs
+          payload.image = uploadedImages.slice(0, 8);
         }
       }
 
@@ -146,8 +147,25 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
             payload.audio = Boolean(formFields.audio);
           }
         } else {
-          if (formFields.width) payload.width = formFields.width;
-          if (formFields.height) payload.height = formFields.height;
+          // Validate width/height for Azure GPT Image API - only certain sizes are allowed
+          const validSizes = [
+            { width: 1024, height: 1024 },
+            { width: 1536, height: 1024 },
+            { width: 1024, height: 1536 },
+          ];
+          let width = formFields.width || 1024;
+          let height = formFields.height || 1024;
+
+          // Check if current size is valid, otherwise fallback to 1024x1024
+          const isValidSize = validSizes.some(s => s.width === width && s.height === height);
+          if (!isValidSize) {
+            console.warn(`Invalid size ${width}x${height}, falling back to 1024x1024`);
+            width = 1024;
+            height = 1024;
+          }
+
+          payload.width = width;
+          payload.height = height;
         }
         payload.quality = 'hd';
       } else if (selectedModelId === 'z-image-turbo') {
@@ -163,8 +181,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
         payload.width = dimensions.width;
         payload.height = dimensions.height;
       } else {
-        if (formFields.aspect_ratio) payload.aspect_ratio = formFields.aspect_ratio;
-        if (formFields.size) payload.size = formFields.size;
         if (formFields.aspect_ratio) payload.aspect_ratio = formFields.aspect_ratio;
         if (formFields.size) payload.size = formFields.size;
 
@@ -256,8 +272,12 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
   // The hook can handle initialization, but here we might need to handle the specific "passed from landing" event
   // However, since we refactored Landing to pass state via LocalStorage and the hook might not auto-read that specific "transition" state unless we teach it.
   // OR, we keep that logic here.
+  // IMPORTANT: Skip hydration if sharedToolState is provided - the parent owns the state!
 
   useEffect(() => {
+    // Skip hydration if using shared state from parent
+    if (sharedToolState) return;
+
     try {
       const storedState = localStorage.getItem('unified-image-tool-state');
       if (storedState) {
@@ -280,7 +300,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password }) => {
     } catch (error) {
       console.error("Failed to hydrate state", error);
     }
-  }, []); // Run once on mount
+  }, [sharedToolState]); // Run once on mount, skip if shared
 
   if (!mounted) {
     return <div className="p-10 text-center">Loading...</div>;

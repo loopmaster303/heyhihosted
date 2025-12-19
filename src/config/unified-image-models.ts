@@ -5,12 +5,14 @@
 
 export type ImageProvider = 'pollinations' | 'replicate' | 'mistral';
 export type ImageKind = 'image' | 'video';
+export type ImageCategory = 'Standard' | 'Advanced';
 
 export interface UnifiedImageModel {
   id: string; // Unique model identifier
   name: string; // Display name
   provider: ImageProvider;
   kind: ImageKind;
+  category?: ImageCategory; // Standard = featured, Advanced = expanded popup
   description?: string;
   supportsReference?: boolean; // Can use reference images
   isFree?: boolean; // Free tier available (Pollinations)
@@ -20,43 +22,46 @@ export interface UnifiedImageModel {
 
 /**
  * Pollinations Models (Free tier)
+ * Standard: seedream, gpt-image, nanobanana, zimage
+ * Advanced: kontext, nanobanana-pro, seedream-pro
  */
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
-  { id: 'kontext', name: 'Kontext', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
-  { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
-  { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
-  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
-  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
-  { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', supportsReference: true, isFree: true, enabled: false },
-  // Video models excluded for chat, but available for image-gen tools
-  { id: 'seedance', name: 'Seedance', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true, enabled: false },
-  { id: 'seedance-pro', name: 'Seedance Pro', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true, enabled: false },
-  { id: 'veo', name: 'Veo', provider: 'pollinations', kind: 'video', supportsReference: true, isFree: true, enabled: false },
+  // STANDARD Image Models
+  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'ByteDance ARK' },
+  { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'OpenAI Image' },
+  { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Gemini 2.5 Flash' },
+  { id: 'zimage', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, isFree: true, enabled: true, description: 'Fast 6B' },
+
+  // ADVANCED Image Models
+  { id: 'kontext', name: 'Kontext', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'Context-aware' },
+  { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'Gemini 3 Pro 4K' },
+  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'ByteDance 4K' },
+
+  // STANDARD Video Models
+  { id: 'veo', name: 'Veo 3.1', provider: 'pollinations', kind: 'video', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Google Video' },
+
+  // ADVANCED Video Models
+  { id: 'seedance-pro', name: 'Seedance Pro', provider: 'pollinations', kind: 'video', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'ByteDance Pro' },
 ];
 
 /**
  * Replicate Models (Premium tier)
+ * All Advanced category
  */
 const REPLICATE_MODELS: UnifiedImageModel[] = [
-  // --- New User Requested Models ---
-  // Video Generation (Wan 2.5)
-  { id: 'wan-2.5-t2v', name: 'Wan 2.5 T2V', provider: 'replicate', kind: 'video', requiresPassword: false, description: 'Text to Video' },
-  { id: 'wan-video', name: 'Wan 2.5 I2V', provider: 'replicate', kind: 'video', supportsReference: true, requiresPassword: false, description: 'Image to Video' },
+  // Video Generation (Advanced)
+  { id: 'wan-2.5-t2v', name: 'Wan 2.5 T2V', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: false, requiresPassword: false, description: 'Text to Video' },
+  { id: 'wan-video', name: 'Wan 2.5 I2V', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Image to Video' },
+  { id: 'veo-3.1-fast', name: 'Veo 3.1 Fast', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Fast Video' },
 
-  // Video Generation (Veo)
-  { id: 'veo-3.1-fast', name: 'Veo 3.1 Fast', provider: 'replicate', kind: 'video', supportsReference: true, requiresPassword: false, description: 'Fast Video Generation' },
+  // Image Generation (Standard - flux-kontext is featured)
+  { id: 'flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', category: 'Standard', supportsReference: true, requiresPassword: false, description: 'Context Edit' },
 
-  // Image Generation (Flux)
-  { id: 'flux-2-pro', name: 'Flux 2 Pro', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: false, description: 'High Quality Image Generation' },
-  { id: 'flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: false, description: 'Context Aware Generation' },
-
-  // Image Generation (Turbo)
-  { id: 'z-image-turbo', name: 'Z-Image Turbo', provider: 'replicate', kind: 'image', supportsReference: true, requiresPassword: false, description: 'Fast Image Generation' },
-
-
-  // --- Legacy / Other Models (Kept for compatibility if needed, but deprioritized) ---
-  // Note: nano-banana-pro is a Pollinations model, not Replicate
+  // Image Generation (Advanced)
+  { id: 'flux-2-pro', name: 'Flux 2 Pro', provider: 'replicate', kind: 'image', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'High Quality' },
+  { id: 'z-image-turbo', name: 'Z-Image Turbo (Replicate)', provider: 'replicate', kind: 'image', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Fast Image', enabled: false },
 ];
+
 
 /**
  * Mistral Models (for image generation capabilities)
@@ -144,4 +149,39 @@ export function getFreeModels(): UnifiedImageModel[] {
  */
 export function getPremiumModels(): UnifiedImageModel[] {
   return UNIFIED_IMAGE_MODELS.filter(m => m.provider === 'replicate' && (m.enabled ?? true));
+}
+
+/**
+ * Get Standard (featured) models by kind
+ */
+export function getStandardModels(kind?: ImageKind): UnifiedImageModel[] {
+  return UNIFIED_IMAGE_MODELS.filter(m =>
+    m.category === 'Standard' &&
+    (m.enabled ?? true) &&
+    (kind ? m.kind === kind : true)
+  );
+}
+
+/**
+ * Get Advanced models by kind
+ */
+export function getAdvancedModels(kind?: ImageKind): UnifiedImageModel[] {
+  return UNIFIED_IMAGE_MODELS.filter(m =>
+    m.category === 'Advanced' &&
+    (m.enabled ?? true) &&
+    (kind ? m.kind === kind : true)
+  );
+}
+
+/**
+ * Chat-only image models (limited selection)
+ * Only: seedream, zimage, nanobanana
+ */
+const CHAT_IMAGE_MODEL_IDS = ['seedream', 'zimage', 'nanobanana'];
+export function getChatImageModels(): UnifiedImageModel[] {
+  return UNIFIED_IMAGE_MODELS.filter(m =>
+    CHAT_IMAGE_MODEL_IDS.includes(m.id) &&
+    m.kind === 'image' &&
+    (m.enabled ?? true)
+  );
 }
