@@ -30,10 +30,8 @@ const SidebarHistoryPanel: FC<SidebarHistoryPanelProps> = ({
 
     const handleSelectChat = (conversationId: string) => {
         onSelectChat(conversationId);
-        // Wenn wir nicht im Chat sind, zur Chat-Seite navigieren
-        if (window.location.pathname !== '/chat') {
-            window.location.href = '/chat';
-        }
+        // Navigation is now handled by parent component (unified/page.tsx)
+        // which sets appState='chat' in onSelectChat callback
     };
 
     const filteredConversations = allConversations.filter(c => c.toolType === 'long language loops');
@@ -42,7 +40,7 @@ const SidebarHistoryPanel: FC<SidebarHistoryPanelProps> = ({
     );
 
     return (
-        <div className="w-full">
+        <div className="w-full overflow-hidden">
             <ScrollArea className="h-64 w-full">
                 {sortedConversations.length === 0 ? (
                     <div className="text-center text-muted-foreground text-xs py-4">
@@ -53,19 +51,20 @@ const SidebarHistoryPanel: FC<SidebarHistoryPanelProps> = ({
                         {sortedConversations.map((conversation) => (
                             <div
                                 key={conversation.id}
-                                className="px-2 py-1.5 flex justify-start w-full"
+                                className="px-2 py-1.5"
                             >
                                 <div
                                     onClick={() => handleSelectChat(conversation.id)}
                                     className={cn(
-                                        "group flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all border border-transparent",
-                                        "w-fit max-w-full",
+                                        "group flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-all border border-transparent",
+                                        "max-w-[240px]",
                                         activeConversation?.id === conversation.id
                                             ? 'bg-accent/80 border-accent-foreground/10 shadow-sm'
                                             : 'bg-muted/40 hover:bg-accent/50 hover:border-accent/20'
                                     )}
                                 >
-                                    <div className="flex-1 min-w-0">
+                                    {/* Text container with fixed max-width to ensure truncation */}
+                                    <div className="min-w-0 max-w-[140px] overflow-hidden">
                                         <p className="text-xs font-semibold truncate leading-tight">
                                             {conversation.title}
                                         </p>
@@ -74,6 +73,7 @@ const SidebarHistoryPanel: FC<SidebarHistoryPanelProps> = ({
                                         </p>
                                     </div>
 
+                                    {/* Action buttons - always visible on hover, never shrink */}
                                     <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Button
                                             variant="ghost"

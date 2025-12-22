@@ -72,23 +72,29 @@ export const TopModelBar: React.FC<TopModelBarProps> = ({
                             )}
                             aria-label="Select model"
                         >
-                            <div className="flex items-center gap-1.5 truncate">
+                            <div className="flex items-center truncate">
                                 {/* Visual Name Shader - Hidden on mobile */}
                                 {!isMobile && (
-                                    <div className="w-[480px] h-12 flex items-center justify-center relative">
-                                        <ParticleText
-                                            key={visualDisplayName}
-                                            text={visualDisplayName}
-                                            fontSize={32}
-                                            canvasHeight={48}
-                                            baseSpacing={3}
-                                            particleSize={2.5}
-                                            mouseRepelRadius={60}
-                                            className="pointer-events-auto"
-                                        />
+                                    <div className="flex items-center">
+                                        <div
+                                            className="h-14 flex items-center justify-center relative"
+                                            style={{ width: `${Math.max(visualDisplayName.length * 22, 150)}px` }}
+                                        >
+                                            <ParticleText
+                                                key={visualDisplayName}
+                                                text={visualDisplayName}
+                                                fontSize={42}
+                                                canvasHeight={56}
+                                                baseSpacing={3}
+                                                particleSize={2.5}
+                                                mouseRepelRadius={60}
+                                                className="pointer-events-auto"
+                                            />
+                                        </div>
+                                        <ChevronDown className="w-6 h-6 flex-shrink-0 text-pink-500 opacity-100 ml-1" />
                                     </div>
                                 )}
-                                <ChevronDown className="w-6 h-6 flex-shrink-0 text-pink-500 opacity-100 ml-1" />
+                                {isMobile && <ChevronDown className="w-6 h-6 flex-shrink-0 text-pink-500 opacity-100" />}
                             </div>
                         </Button>
 

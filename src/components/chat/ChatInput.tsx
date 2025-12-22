@@ -173,33 +173,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         ? t('chat.placeholder.code')
                         : t('chat.placeholder.standard');
 
-    // Listen for reuse prompt (from gallery - should also activate Image Mode)
-    useEffect(() => {
-        const handler = (event: Event) => {
-            const custom = event as CustomEvent<string>;
-            if (typeof custom.detail === 'string') {
-                // Activate Image Mode when reusing a prompt from gallery
-                if (!isImageMode && onToggleImageMode) {
-                    onToggleImageMode();
-                }
-                onInputChange(custom.detail);
-                if (textareaRef.current) textareaRef.current.focus();
-            }
-        };
-        window.addEventListener('sidebar-reuse-prompt', handler);
-        try {
-            const storedTarget = localStorage.getItem('sidebar-preload-target');
-            const storedPrompt = localStorage.getItem('sidebar-preload-prompt');
-            if (storedPrompt && storedTarget === 'chat') {
-                onInputChange(storedPrompt);
-                if (textareaRef.current) textareaRef.current.focus();
-                localStorage.removeItem('sidebar-preload-prompt');
-                localStorage.removeItem('sidebar-preload-target');
-            }
-        } catch { }
-        return () => window.removeEventListener('sidebar-reuse-prompt', handler);
-    }, [onInputChange, isImageMode, onToggleImageMode]);
-
     return (
         <div className="relative">
             <div className="relative">

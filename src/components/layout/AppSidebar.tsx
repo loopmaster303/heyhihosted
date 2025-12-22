@@ -16,6 +16,10 @@ import {
   SmilePlus,
   Home,
   Heart,
+  Download,
+  Trash2,
+  Languages,
+  SunMoon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -179,9 +183,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
           {isExpanded && (
             <Link href="/" className="flex-1">
-              <div className="font-mono text-sm flex items-center whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity gap-2">
-                <span className="text-muted-foreground text-xs">coded with</span>
-                <Heart className="w-3 h-3 text-pink-500 fill-pink-500" />
+              <div className="font-mono text-sm flex items-center whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity">
+                <span className="text-[rgb(255,105,180)] font-semibold tracking-tight">say hey.hi to ai</span>
               </div>
             </Link>
           )}
@@ -201,7 +204,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                 )}
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push('/');
+                  if (onNewChat) {
+                    onNewChat();
+                  }
+                  setIsExpanded(false);
                 }}
               >
                 <SmilePlus className="w-4 h-4 shrink-0" />
@@ -263,7 +269,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                   {imageHistory.slice(0, 3).map((item) => (
                     <div
                       key={item.id}
-                      className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all border border-border/10 shadow-sm"
+                      className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all border border-border/10 shadow-sm"
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('sidebar-reuse-prompt', { detail: item.prompt }));
                         if (isGalleryPanelOpen && onToggleGalleryPanel) onToggleGalleryPanel();
@@ -278,6 +284,43 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                         className="object-cover"
                         sizes="80px"
                       />
+                      {/* Hover action buttons */}
+                      <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          className="p-1.5 rounded-full bg-white/90 hover:bg-white text-gray-800 transition-colors"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const url = item.videoUrl || item.imageUrl;
+                            try {
+                              const response = await fetch(url);
+                              const blob = await response.blob();
+                              const objectUrl = window.URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = objectUrl;
+                              link.download = `image_${item.id}.${blob.type.split('/')[1] || 'png'}`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              window.URL.revokeObjectURL(objectUrl);
+                            } catch {
+                              window.open(url, '_blank');
+                            }
+                          }}
+                          title="Download"
+                        >
+                          <Download className="w-3 h-3" />
+                        </button>
+                        <button
+                          className="p-1.5 rounded-full bg-red-500/90 hover:bg-red-500 text-white transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeImageFromHistory(item.id);
+                          }}
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -332,31 +375,48 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
 
           {/* Bottom Section - Higher z-index to stay above panels */}
-          <div className="p-4 border-t border-border space-y-2 relative z-30 bg-background">
+          <div className="p-4 border-t border-border space-y-1 relative z-30 bg-background">
+            {/* Personalisierung */}
             <Button
               variant="ghost"
+              size="sm"
               className={cn(
-                "w-full justify-start gap-3",
+                "w-full justify-start gap-2 h-8",
                 !isExpanded && "justify-center px-0"
               )}
               onClick={() => router.push('/settings')}
             >
-              <UserRoundPen className="w-5 h-5 shrink-0" />
-              {isExpanded && <span>{labels.personalization}</span>}
+              <UserRoundPen className="w-4 h-4 shrink-0" />
+              {isExpanded && <span className="text-[13px] font-medium">{labels.personalization}</span>}
             </Button>
 
-            {isExpanded && (
-              <>
-                <div className="flex items-center justify-between px-2 py-1 text-sm">
-                  <span className="text-muted-foreground">{labels.languageLabel}</span>
+            {/* Sprache */}
+            <div className={cn(
+              "flex items-center h-8 px-2",
+              !isExpanded && "justify-center px-0"
+            )}>
+              <Languages className="w-4 h-4 shrink-0" />
+              {isExpanded && (
+                <>
+                  <span className="ml-2 flex-1 text-[13px] font-medium">{labels.languageLabel}</span>
                   <LanguageToggle />
-                </div>
-                <div className="flex items-center justify-between px-2 py-1 text-sm">
-                  <span className="text-muted-foreground">{labels.themeLabel}</span>
+                </>
+              )}
+            </div>
+
+            {/* App Design */}
+            <div className={cn(
+              "flex items-center h-8 px-2",
+              !isExpanded && "justify-center px-0"
+            )}>
+              <SunMoon className="w-4 h-4 shrink-0" />
+              {isExpanded && (
+                <>
+                  <span className="ml-2 flex-1 text-[13px] font-medium">{labels.themeLabel}</span>
                   <ThemeToggle />
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

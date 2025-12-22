@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState, Suspense, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import { ChatProvider, useChat } from '@/components/ChatProvider';
 import ChatInterface from '@/components/page/ChatInterface';
 import UnifiedImageTool from '@/components/tools/UnifiedImageTool';
@@ -25,6 +26,7 @@ interface UnifiedAppContentProps {
 function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps) {
     const chat = useChat();
     const visualizeToolState = useUnifiedImageToolState();
+    const pathname = usePathname();
     const [userDisplayName] = useLocalStorageState<string>('userDisplayName', 'user');
     const [replicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
 
@@ -36,6 +38,20 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
     useEffect(() => {
         setIsClient(true);
     }, []);
+
+    // URL-based state initialization - set appState based on pathname on FIRST mount only
+    useEffect(() => {
+        if (!isClient) return;
+
+        // Only set initial state based on URL, don't override user navigation
+        if (pathname === '/chat') {
+            setAppState('chat');
+        } else if (pathname === '/visualizepro') {
+            setAppState('visualize');
+        }
+        // else stay on landing (default)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isClient]); // Intentionally only depend on isClient to run once on mount
 
     // Listen for prompt reuse from gallery - should navigate to VisualizePro
     useEffect(() => {
@@ -49,7 +65,7 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
         };
         window.addEventListener('sidebar-reuse-prompt', handler);
         return () => window.removeEventListener('sidebar-reuse-prompt', handler);
-    }, [visualizeToolState]);
+    }, [visualizeToolState.setPrompt]);
 
     // Navigate to Chat
     const handleNavigateToChat = useCallback((initialMessage: string) => {

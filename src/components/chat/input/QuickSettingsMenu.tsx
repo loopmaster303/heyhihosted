@@ -127,43 +127,6 @@ export const QuickSettingsMenu: React.FC<QuickSettingsMenuProps> = ({
                         </SelectContent>
                     </Select>
                 </div>
-
-                {/* Provider Toggle */}
-                <div className="space-y-2">
-                    <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                        <Settings2 className="w-4 h-4" />
-                        Provider-Modus
-                    </label>
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border-border/50">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span className="text-xs text-muted-foreground">
-                                {mistralFallbackEnabled ? 'Mistral (Direct)' : 'Pollinations (Auto)'}
-                            </span>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={onToggleMistralFallback}
-                            className={cn(
-                                "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
-                                mistralFallbackEnabled ? "bg-blue-600" : "bg-gray-300"
-                            )}
-                        >
-                            <span
-                                className={cn(
-                                    "inline-block h-3 w-3 transform rounded-full bg-white transition-transform",
-                                    mistralFallbackEnabled ? "translate-x-5" : "translate-x-1"
-                                )}
-                            />
-                        </button>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground px-1">
-                        {mistralFallbackEnabled
-                            ? 'Direkte Mistral API Nutzung'
-                            : 'Automatischer Fallback bei Ausfällen'
-                        }
-                    </p>
-                </div>
             </div>
         </ContextualPopup>
     );

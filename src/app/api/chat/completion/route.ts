@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { handleApiError, validateRequest, ApiError, requireEnv } from '@/lib/api-error-handler';
 import { SearchService } from '@/lib/services/search-service';
+import { WebContextService } from '@/lib/services/web-context-service';
 import { getMistralChatCompletion, getMistralChatCompletionStream } from '@/ai/flows/mistral-chat-flow';
 import { mapPollinationsToMistralModel } from '@/config/mistral-models';
 
@@ -49,9 +50,8 @@ export async function POST(request: Request) {
     // Validate request
     const { messages, modelId, systemPrompt, webBrowsingEnabled, stream, mistralFallbackEnabled } = validateRequest(ChatCompletionSchema, body);
 
-    // Plan A: Simple Perplexity-only WebBrowsing
-    // When WebBrowsing is enabled, use perplexity-fast regardless of user's model choice
-    const effectiveModelId = webBrowsingEnabled ? 'perplexity-fast' : modelId;
+    // Always use the user's chosen model
+    const effectiveModelId = modelId;
 
     // Check if we should use Mistral directly (manual override)
     const useMistralDirectly = mistralFallbackEnabled ||
@@ -60,28 +60,19 @@ export async function POST(request: Request) {
       effectiveModelId.startsWith('mistral-medium-3.1') ||
       effectiveModelId.startsWith('mistral-small-3');
 
+    // === ALWAYS-ON WEB CONTEXT ===
+    // Fetch web context in parallel (Light mode by default, Deep if toggle enabled)
+    const lastUserMessage = messages[messages.length - 1];
+    const userQuery = typeof lastUserMessage?.content === 'string'
+      ? lastUserMessage.content
+      : '';
 
+    // Fetch context (will timeout gracefully)
+    const webContextMode = webBrowsingEnabled ? 'deep' : 'light';
+    let webContext = await WebContextService.getContext(userQuery, webContextMode);
 
+    // Messages remain unchanged
     let enhancedMessages = messages;
-
-    if (webBrowsingEnabled) {
-
-
-      // Add a simple indicator that web browsing is enabled
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage && lastMessage.role === 'user') {
-        const enhancedContent = `${lastMessage.content}
-
-Please provide a comprehensive answer using current web information. Focus on accuracy and recent developments.`;
-
-        enhancedMessages = [
-          ...messages.slice(0, -1),
-          { ...lastMessage, content: enhancedContent }
-        ];
-      }
-    } else {
-
-    }
     const streamEnabled = Boolean(stream) && effectiveModelId !== "gpt-oss-120b" && !useMistralDirectly;
 
     // Handle direct Mistral usage
@@ -281,8 +272,16 @@ Please provide a comprehensive answer using current web information. Focus on ac
     };
 
     if (systemPrompt && systemPrompt.trim() !== "") {
-      const trimmedSystem = systemPrompt.trim();
-      payload.messages = [{ role: 'system', content: trimmedSystem }, ...enhancedMessages];
+      // Inject web context into existing system prompt (additive)
+      const enhancedSystemPrompt = WebContextService.injectIntoSystemPrompt(
+        systemPrompt.trim(),
+        webContext
+      );
+      payload.messages = [{ role: 'system', content: enhancedSystemPrompt }, ...enhancedMessages];
+    } else if (webContext.facts.length > 0) {
+      // No system prompt but we have web context - add it as system message
+      const webContextBlock = WebContextService.buildContextBlock(webContext);
+      payload.messages = [{ role: 'system', content: webContextBlock }, ...enhancedMessages];
     }
 
     if (streamEnabled) {

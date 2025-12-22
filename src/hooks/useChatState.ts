@@ -51,7 +51,7 @@ export function useChatState() {
     const [selectedImageModelId, setSelectedImageModelId] = useLocalStorageState<string>('chatSelectedImageModel', DEFAULT_IMAGE_MODEL);
 
     // Mistral Fallback State
-    const [mistralFallbackEnabled, setMistralFallbackEnabled] = useLocalStorageState<boolean>('mistralFallbackEnabled', true);
+    const [mistralFallbackEnabled, setMistralFallbackEnabled] = useLocalStorageState<boolean>('mistralFallbackEnabled', false);
 
     // Retry State
     const [lastFailedRequest, setLastFailedRequest] = useState<{

@@ -44,23 +44,29 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                         {/* Model Icon - REMOVED for clean shader look as per mock */}
 
                         {/* Model Name Shader - Hidden on mobile */}
-                        {!isMobile && (
-                            <div className="flex items-center gap-1">
-                                <div className="w-[480px] h-12 flex items-center justify-center relative">
-                                    <ParticleText
-                                        key={selectedModelId}
-                                        text={AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId)?.name || 'Claude'}
-                                        fontSize={32}
-                                        canvasHeight={48}
-                                        baseSpacing={3}
-                                        particleSize={2.5}
-                                        mouseRepelRadius={60}
-                                        className="pointer-events-auto"
-                                    />
+                        {!isMobile && (() => {
+                            const modelName = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId)?.name || 'Claude';
+                            return (
+                                <div className="flex items-center">
+                                    <div
+                                        className="h-14 flex items-center justify-center relative"
+                                        style={{ width: `${Math.max(modelName.length * 22, 150)}px` }}
+                                    >
+                                        <ParticleText
+                                            key={selectedModelId}
+                                            text={modelName}
+                                            fontSize={42}
+                                            canvasHeight={56}
+                                            baseSpacing={3}
+                                            particleSize={2.5}
+                                            mouseRepelRadius={60}
+                                            className="pointer-events-auto"
+                                        />
+                                    </div>
+                                    <ChevronDown className="w-6 h-6 flex-shrink-0 text-pink-500 opacity-100 ml-1" />
                                 </div>
-                                <ChevronDown className="w-6 h-6 flex-shrink-0 text-pink-500 opacity-100" />
-                            </div>
-                        )}
+                            );
+                        })()}
                     </div>
                 </Button>
             </DropdownMenuTrigger>

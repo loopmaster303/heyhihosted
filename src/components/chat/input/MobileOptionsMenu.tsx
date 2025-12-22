@@ -200,7 +200,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                         {isImageMode && <div className="w-2 h-2 rounded-full animate-pulse ml-auto" style={{ backgroundColor: 'hsl(330 65% 62%)' }} />}
                     </DropdownMenuItem>
 
-                    {/* Web Research */}
+                    {/* Deep Research */}
                     <DropdownMenuItem
                         onClick={() => {
                             if (isImageMode) onToggleImageMode();
@@ -216,7 +216,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                         <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                             <Globe className="w-3.5 h-3.5 text-green-500" />
                         </div>
-                        <span className="text-sm">Web Research</span>
+                        <span className="text-sm">Deep Research</span>
                         {webBrowsingEnabled && <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse ml-auto" />}
                     </DropdownMenuItem>
 
@@ -306,35 +306,6 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                 <SelectItem value="Emotional Support">💝 Emotional</SelectItem>
                             </SelectContent>
                         </Select>
-                    </div>
-
-                    {/* Provider Toggle */}
-                    <div className="flex items-center justify-between pt-1">
-                        <div className="flex items-center gap-1.5">
-                            <Settings2 className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">
-                                {mistralFallbackEnabled ? 'Mistral Direct' : 'Pollinations'}
-                            </span>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onToggleMistralFallback();
-                            }}
-                            className={cn(
-                                "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
-                                mistralFallbackEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
-                            )}
-                        >
-                            <span
-                                className={cn(
-                                    "inline-block h-3 w-3 transform rounded-full bg-white transition-transform",
-                                    mistralFallbackEnabled ? "translate-x-5" : "translate-x-1"
-                                )}
-                            />
-                        </button>
                     </div>
                 </div>
             </DropdownMenuContent>

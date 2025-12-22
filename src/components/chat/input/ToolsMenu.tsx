@@ -168,8 +168,8 @@ export const ToolsMenu: React.FC<ToolsMenuProps> = ({
                             <Globe className={cn("w-4 h-4", webBrowsingEnabled ? "text-green-600" : "text-green-500")} />
                         </div>
                         <div className="flex-1">
-                            <span className="text-sm font-medium block">Web Research</span>
-                            <span className="text-xs text-muted-foreground">Aktuelle Informationen</span>
+                            <span className="text-sm font-medium block">Deep Research</span>
+                            <span className="text-xs text-muted-foreground">Tiefere Websuche mit Quellen</span>
                         </div>
                         {webBrowsingEnabled && (
                             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>

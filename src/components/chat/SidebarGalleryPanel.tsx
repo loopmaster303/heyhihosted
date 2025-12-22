@@ -97,7 +97,7 @@ const SidebarGalleryPanel: FC<SidebarGalleryPanelProps> = ({
                         {history.map((item) => (
                             <div
                                 key={item.id}
-                                className="relative aspect-square rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                                className="group relative aspect-square rounded overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                                 onClick={() => onSelectImage(item)}
                             >
                                 <Image
@@ -108,6 +108,31 @@ const SidebarGalleryPanel: FC<SidebarGalleryPanelProps> = ({
                                     width={150}
                                     height={150}
                                 />
+                                {/* Hover action buttons */}
+                                <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        className="p-1.5 rounded-full bg-white/90 hover:bg-white text-gray-800 transition-colors"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDownload(e, item);
+                                        }}
+                                        title="Download"
+                                    >
+                                        <Download className="w-3 h-3" />
+                                    </button>
+                                    {onDeleteSingleImage && (
+                                        <button
+                                            className="p-1.5 rounded-full bg-red-500/90 hover:bg-red-500 text-white transition-colors"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeleteSingleImage(item.id);
+                                            }}
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>
