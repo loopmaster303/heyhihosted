@@ -62,6 +62,7 @@ interface ChatInputProps {
     stopRecording: () => void;
     openCamera: () => void;
     visualizeToolState?: UnifiedImageToolState;
+    placeholder?: string;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -90,6 +91,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     isCodeMode = false,
     onToggleCodeMode,
     visualizeToolState,
+    placeholder,
 }) => {
     const { t } = useLanguage();
     const [isMobile, setIsMobile] = useState(false);
@@ -259,7 +261,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         setActiveBadgeRow(null);
     }, [onFileSelect, isImageMode, visualizeToolState]);
 
-    const placeholderText = isRecording
+    const placeholderText = placeholder || (isRecording
         ? t('chat.recording')
         : isTranscribing
             ? t('chat.transcribing')
@@ -269,7 +271,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     ? t('chat.placeholder.web')
                     : isCodeMode
                         ? t('chat.placeholder.code')
-                        : t('chat.placeholder.standard');
+                        : t('chat.placeholder.standard'));
 
     return (
         <div className="relative w-full"> 

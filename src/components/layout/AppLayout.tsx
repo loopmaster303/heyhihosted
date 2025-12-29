@@ -121,17 +121,22 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           {/* Particle Header - NUR in Landing View */}
           {appState === 'landing' && (
             <div className={cn(
-              "fixed top-16 sm:top-20 md:top-24 right-4 z-40 transition-all duration-700 pointer-events-none",
+              "fixed top-12 sm:top-16 md:top-20 right-4 z-40 transition-all duration-700 pointer-events-none flex flex-col items-center",
               sidebarExpanded ? "left-4 md:left-72" : "left-4"
             )}>
               {!isMobile ? (
-                <ParticleText
-                  text={headerText}
-                  className="w-full pointer-events-auto"
-                  particleColor="255, 105, 180"
-                />
+                <div className="flex flex-col items-center w-full">
+                  <ParticleText
+                    text={headerText}
+                    className="w-full pointer-events-auto"
+                    particleColor="255, 105, 180"
+                  />
+                  <div className="mt-2 text-[10px] sm:text-xs font-bold tracking-[0.3em] text-foreground/40 uppercase pointer-events-auto text-center w-full">
+                    EVERYONE CAN SAY HI TO AI
+                  </div>
+                </div>
               ) : (
-                <div className="w-full pointer-events-auto text-center flex justify-center">
+                <div className="w-full pointer-events-auto text-center flex flex-col items-center">
                    <h1 
                       className="text-2xl sm:text-3xl font-bold tracking-tight opacity-90" 
                       style={{ 
@@ -142,6 +147,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                    >
                       {headerText}
                    </h1>
+                   <div className="mt-2 text-[10px] font-bold tracking-[0.3em] text-foreground/40 uppercase">
+                     EVERYONE CAN SAY HI TO AI
+                   </div>
                 </div>
               )}
             </div>
