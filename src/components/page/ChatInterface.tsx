@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
+import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import { useChat } from '@/components/ChatProvider';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
-const ChatInterface: React.FC = () => {
+interface ChatInterfaceProps {
+    visualizeToolState: UnifiedImageToolState;
+}
+
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => {
     const {
         activeConversation,
         isAiResponding,
@@ -35,6 +40,7 @@ const ChatInterface: React.FC = () => {
         handleStyleChange,
         handleVoiceChange,
         selectedVoice,
+        selectedImageModelId,
         lastUserMessageId,
         handlePlayAudio,
         playingMessageId,
@@ -43,12 +49,10 @@ const ChatInterface: React.FC = () => {
         regenerateLastResponse,
         isRecording, isTranscribing, startRecording, stopRecording,
         openCamera,
-        availableImageModels,
-        selectedImageModelId,
-        handleImageModelChange,
         setActiveConversation,
         mistralFallbackEnabled,
         toggleMistralFallback,
+        handleImageModelChange,
     } = useChat();
 
     const advancedPanelRef = React.useRef<HTMLDivElement>(null);
@@ -65,13 +69,19 @@ const ChatInterface: React.FC = () => {
         },
     });
 
+    // Sync image model when in image mode
+    useEffect(() => {
+        if (!isImageMode) return;
+        if (visualizeToolState.selectedModelId !== selectedImageModelId) {
+            handleImageModelChange(visualizeToolState.selectedModelId);
+        }
+    }, [isImageMode, visualizeToolState.selectedModelId, selectedImageModelId, handleImageModelChange]);
+
     if (!activeConversation) {
         return null; // Don't show anything while loading to prevent flicker
     }
 
     const { messages, title, selectedModelId, selectedResponseStyleName, uploadedFilePreview } = activeConversation;
-    // Simplified logic - just check if there are messages
-    const shouldShowWelcome = !messages || messages.length === 0;
 
     return (
         <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
@@ -101,7 +111,14 @@ const ChatInterface: React.FC = () => {
 
             <div className="shrink-0 px-4 pb-4">
                 <ChatInput
-                    onSendMessage={(msg, opts) => sendMessage(msg, opts)}
+                    onSendMessage={(msg, opts) => sendMessage(msg, {
+                        ...opts,
+                        imageConfig: isImageMode ? {
+                            formFields: visualizeToolState.formFields,
+                            uploadedImages: visualizeToolState.uploadedImages,
+                            selectedModelId: visualizeToolState.selectedModelId
+                        } : undefined
+                    })}
                     isLoading={isAiResponding}
                     uploadedFilePreviewUrl={uploadedFilePreview || null}
                     onFileSelect={(file, type) => handleFileSelect(file, type)}
@@ -115,9 +132,7 @@ const ChatInterface: React.FC = () => {
                     onToggleWebBrowsing={toggleWebBrowsing}
                     isCodeMode={!!activeConversation.isCodeMode}
                     onToggleCodeMode={() => {
-                        // Flip code mode in the active conversation via context updater
                         const turnedOn = !activeConversation.isCodeMode;
-                        // Apply the toggle
                         setActiveConversation(prev => prev ? { ...prev, isCodeMode: turnedOn } : prev);
                     }}
                     chatTitle={title}
@@ -148,11 +163,9 @@ const ChatInterface: React.FC = () => {
                     startRecording={startRecording}
                     stopRecording={stopRecording}
                     openCamera={openCamera}
-                    availableImageModels={availableImageModels}
-                    selectedImageModelId={selectedImageModelId}
-                    handleImageModelChange={handleImageModelChange}
                     mistralFallbackEnabled={mistralFallbackEnabled}
                     onToggleMistralFallback={toggleMistralFallback}
+                    visualizeToolState={visualizeToolState}
                 />
             </div>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { ModelSelector } from '@/components/chat/input/ModelSelector';
 import { VisualModelSelector } from '@/components/tools/visualize/VisualModelSelector';
@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
 import { getUnifiedModel } from '@/config/unified-image-models';
+import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 interface TopModelBarProps {
     appState: 'chat' | 'visualize';
@@ -34,6 +35,7 @@ export const TopModelBar: React.FC<TopModelBarProps> = ({
     onVisualModelSelectorToggle,
 }) => {
     const [isMobile, setIsMobile] = useState(false);
+    const visualizePanelRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 640);
@@ -41,6 +43,12 @@ export const TopModelBar: React.FC<TopModelBarProps> = ({
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
+    useOnClickOutside([visualizePanelRef], () => {
+        if (isVisualModelSelectorOpen) {
+            onVisualModelSelectorToggle?.();
+        }
+    });
 
     // Get visual model display name
     const visualModelConfig = visualSelectedModelId ? getUnifiedModel(visualSelectedModelId) : null;
@@ -61,20 +69,20 @@ export const TopModelBar: React.FC<TopModelBarProps> = ({
                 )}
 
                 {appState === 'visualize' && (
-                    <div className="relative">
+                    <div ref={visualizePanelRef} className="relative">
                         <Button
                             type="button"
                             variant="ghost"
                             onClick={onVisualModelSelectorToggle}
                             className={cn(
                                 "group rounded-lg h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white",
-                                isMobile ? "w-12 px-0" : "w-auto px-4"
+                                isMobile ? "w-auto px-3" : "w-auto px-4"
                             )}
                             aria-label="Select model"
                         >
-                            <div className="flex items-center truncate">
-                                {/* Visual Name Shader - Hidden on mobile */}
-                                {!isMobile && (
+                            <div className="flex items-center truncate max-w-full">
+                                {/* Visual Name Shader - Hidden on mobile, replaced by static text */}
+                                {!isMobile ? (
                                     <div className="flex items-center">
                                         <div
                                             className="h-14 flex items-center justify-center relative"
@@ -83,18 +91,18 @@ export const TopModelBar: React.FC<TopModelBarProps> = ({
                                             <ParticleText
                                                 key={visualDisplayName}
                                                 text={visualDisplayName}
-                                                fontSize={42}
                                                 canvasHeight={56}
-                                                baseSpacing={3}
-                                                particleSize={2.5}
-                                                mouseRepelRadius={60}
                                                 className="pointer-events-auto"
                                             />
                                         </div>
                                         <ChevronDown className="w-6 h-6 flex-shrink-0 text-pink-500 opacity-100 ml-1" />
                                     </div>
+                                ) : (
+                                    <div className="flex items-center gap-1">
+                                         <span className="text-sm font-semibold truncate max-w-[120px]">{visualDisplayName}</span>
+                                         <ChevronDown className="w-5 h-5 flex-shrink-0 text-pink-500 opacity-100" />
+                                    </div>
                                 )}
-                                {isMobile && <ChevronDown className="w-6 h-6 flex-shrink-0 text-pink-500 opacity-100" />}
                             </div>
                         </Button>
 

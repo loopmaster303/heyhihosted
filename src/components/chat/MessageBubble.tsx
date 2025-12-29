@@ -3,17 +3,175 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, ChatMessageContentPart } from '@/types';
-import Image from 'next/image';
-import { Loader2, StopCircle, RefreshCw, Copy, Download } from 'lucide-react';
+import { Loader2, StopCircle, RefreshCw, Copy, Download, Maximize2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useTypewriter } from '@/hooks/useTypewriter';
 import { BlinkingCursor } from '@/components/ui/BlinkingCursor';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useLanguage } from '@/components/LanguageProvider';
-import { useState, useEffect } from 'react';
+
+const fitWithin = (ratio: number, maxWidth: number, maxHeight: number) => {
+  const safeRatio = ratio > 0 ? ratio : 1;
+  const maxRatio = maxWidth / maxHeight;
+  if (safeRatio >= maxRatio) {
+    return { width: maxWidth, height: Math.round(maxWidth / safeRatio) };
+  }
+  return { width: Math.round(maxHeight * safeRatio), height: maxHeight };
+};
+
+interface ChatImageCardProps {
+  url: string;
+  altText: string;
+  isGenerated?: boolean;
+  isUploaded?: boolean;
+}
+
+const ChatImageCard: React.FC<ChatImageCardProps> = ({
+  url,
+  altText,
+  isGenerated = false,
+  isUploaded = false,
+}) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const maxRetries = 8;
+  const maxWidth = isGenerated ? 320 : 120;
+  const maxHeight = isGenerated ? 240 : 120;
+  const ratio = aspectRatio || 1;
+  const size = fitWithin(ratio, maxWidth, maxHeight);
+ 
+  const canReload = url?.startsWith('http');
+
+  const imageUrl = canReload && reloadToken > 0
+    ? `${url}${url.includes('?') ? '&' : '?'}r=${reloadToken}`
+    : url;
+
+  useEffect(() => {
+    setIsLoaded(false);
+    setAspectRatio(null);
+    setRetryCount(0);
+    setReloadToken(0);
+  }, [url]);
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `${(altText || 'image').slice(0, 30)}.jpg`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
+  };
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img.naturalWidth && img.naturalHeight) {
+      setAspectRatio(img.naturalWidth / img.naturalHeight);
+    }
+    setIsLoaded(true);
+  };
+
+  const handleImageError = () => {
+    if (!isGenerated || !canReload) return;
+    if (retryCount >= maxRetries) return;
+    const next = retryCount + 1;
+    setRetryCount(next);
+    window.setTimeout(() => setReloadToken(next), 1200 * next);
+  };
+
+  const showLoading = isGenerated && !isLoaded;
+
+  return (
+    <>
+      <div
+        className={cn(
+          "relative group rounded-md border border-border/50 bg-muted/10 overflow-hidden",
+          isGenerated ? "shadow-sm" : "shadow-none"
+        )}
+        style={{ width: size.width, height: size.height }}
+      >
+        <img
+          src={imageUrl}
+          alt={altText}
+          className={cn(
+            "h-full w-full",
+            isUploaded ? "object-cover" : "object-contain",
+            isLoaded ? "opacity-100" : "opacity-0"
+          )}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          data-ai-hint={
+            isGenerated
+              ? 'illustration digital art'
+              : isUploaded
+                ? 'photo object'
+                : 'image'
+          }
+        />
+        {showLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/70">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        <div className="absolute bottom-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
+          <button
+            type="button"
+            onClick={() => setIsPreviewOpen(true)}
+            className="rounded-full bg-black/70 text-white p-2"
+            title="Expand"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="rounded-full bg-black/70 text-white p-2"
+            title="Download"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      {isPreviewOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
+          onClick={() => setIsPreviewOpen(false)}
+        >
+          <div
+            className="relative max-w-[90vw] max-h-[90vh] w-full h-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={url}
+              alt={altText}
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+            />
+            <button
+              type="button"
+              onClick={() => setIsPreviewOpen(false)}
+              className="absolute top-4 right-4 rounded-full bg-black/70 text-white p-2"
+              title="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -58,45 +216,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   }
 
   const textContent = getTextContent();
-  const shouldUseTypewriter = Boolean(shouldAnimate && isAssistant && textContent && message.id !== 'loading' && !skipAnimation && !isStreaming);
 
-
-  const { displayedText, isTyping, isComplete } = useTypewriter({
-    text: textContent || '',
-    speed: 25, // milliseconds per character
-    delay: 0,
-    skipAnimation: !shouldUseTypewriter,
-    onComplete: () => {
-      if (onTypewriterComplete) {
-        onTypewriterComplete(message.id);
-      }
-    }
-  });
-
-  // Click-to-skip functionality
-  useEffect(() => {
-    const handleClick = () => {
-      if (shouldUseTypewriter && isTyping) {
-        setSkipAnimation(true);
-      }
-    };
-
-    if (shouldUseTypewriter) {
-      document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
-    }
-  }, [shouldUseTypewriter, isTyping]);
-
+  // Call onTypewriterComplete immediately for animated messages (no effect now)
   React.useEffect(() => {
-    if (!shouldUseTypewriter && shouldAnimate && textContent) {
+    if (shouldAnimate && textContent && message.id !== 'loading') {
       onTypewriterComplete?.(message.id);
     }
-  }, [shouldUseTypewriter, shouldAnimate, textContent, onTypewriterComplete, message.id]);
-
-  // Reset skip animation when message changes
-  React.useEffect(() => {
-    setSkipAnimation(false);
-  }, [message.id]);
+  }, [shouldAnimate, textContent, onTypewriterComplete, message.id]);
 
   const handlePlayClick = () => {
     const textContent = getTextContent();
@@ -161,78 +287,45 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         return <MarkdownRenderer content={content} />;
       }
 
-      // Use typewriter effect for assistant messages
-      if (shouldUseTypewriter) {
-        return (
-          <p className="text-[15px] leading-7 whitespace-pre-wrap font-mono">
-            {displayedText}
-            {isTyping && <BlinkingCursor className="text-primary ml-1" />}
-          </p>
-        );
-      }
-
       return <p className="text-[15px] leading-7 whitespace-pre-wrap">{content}</p>;
     }
 
-    return content.map((part, index) => {
-      if (part.type === 'text') {
-        return <p key={index} className="text-[15px] leading-7 whitespace-pre-wrap mb-2">{part.text}</p>;
-      }
-      if (part.type === 'image_url') {
-        const altText =
-          part.image_url.altText ||
-          (part.image_url.isGenerated
-            ? 'Generated image'
-            : part.image_url.isUploaded
-              ? 'Uploaded image'
-              : 'Image');
+    const textParts = content.filter((part) => part.type === 'text');
+    const imageParts = content.filter((part) => part.type === 'image_url');
 
-        const handleDownload = async (e: React.MouseEvent) => {
-          e.stopPropagation();
-          try {
-            const res = await fetch(part.image_url.url);
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${(altText || 'image').slice(0, 30)}.jpg`;
-            link.click();
-            URL.revokeObjectURL(url);
-          } catch {
-            window.open(part.image_url.url, '_blank');
-          }
-        };
-
-        return (
-          <div
-            key={index}
-            className="mt-2 mb-1 w-[300px] max-w-full relative group"
-          >
-            <img
-              src={part.image_url.url}
-              alt={altText}
-              className="w-full max-h-[220px] rounded-md object-contain border border-border/50 bg-muted/20"
-              data-ai-hint={
-                part.image_url.isGenerated
-                  ? 'illustration digital art'
+    return (
+      <div className="flex flex-col">
+        {textParts.map((part, index) => (
+          <p key={`text-${index}`} className="text-[15px] leading-7 whitespace-pre-wrap mb-2">
+            {part.type === 'text' ? part.text : ''}
+          </p>
+        ))}
+        {imageParts.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {imageParts.map((part, index) => {
+              if (part.type !== 'image_url') return null;
+              const altText =
+                part.image_url.altText ||
+                (part.image_url.isGenerated
+                  ? 'Generated image'
                   : part.image_url.isUploaded
-                    ? 'photo object'
-                    : 'image'
-              }
-            />
-            <button
-              type="button"
-              onClick={handleDownload}
-              className="absolute bottom-2 right-2 rounded-full bg-black/70 text-white p-2 opacity-0 group-hover:opacity-100 transition"
-              title="Download"
-            >
-              <Download className="h-4 w-4" />
-            </button>
+                    ? 'Uploaded image'
+                    : 'Image');
+
+              return (
+                <ChatImageCard
+                  key={`image-${index}`}
+                  url={part.image_url.url}
+                  altText={altText}
+                  isGenerated={part.image_url.isGenerated}
+                  isUploaded={part.image_url.isUploaded}
+                />
+              );
+            })}
           </div>
-        );
-      }
-      return null;
-    });
+        )}
+      </div>
+    );
   };
 
   return (

@@ -37,6 +37,10 @@ export interface GenerateImageOptions {
     frames?: number; // Video specific: length/frames (e.g. 81)
     fps?: number; // Video specific: frames per second
     aspect_ratio?: string; // Explicit override
+    resolution?: string;   // For Replicate models
+    output_format?: string;
+    input_images?: string[]; // For Flux
+    input_image?: string;    // Alternative for some models
     password?: string; // For protected routes (Replicate)
 }
 
@@ -153,19 +157,21 @@ export class ChatService {
             if (modelInfo?.kind === 'video') {
                 // Map specific params for Veo
                 if (options.modelId.includes('veo')) {
-                    if (options.first_frame_image) body.image = options.first_frame_image; // Veo 3 often uses 'image' or 'input_image' for start
-                    // If explict first_frame field exists in specific model definition (rare), we can map it, but 'image' is safest default
-                    if (options.last_frame_image) body.last_frame_image = options.last_frame_image; // Veo 3 suppports this
+                    if (options.first_frame_image) body.image = options.first_frame_image; 
+                    if (options.last_frame_image) body.last_frame_image = options.last_frame_image; 
                 } else if (options.modelId.includes('wan')) {
                     // Wan Image-to-Video
                     if (options.image_url) body.image = options.image_url;
-                    if (options.first_frame_image) body.image = options.first_frame_image; // Treat first frame as the main input image
+                    if (options.first_frame_image) body.image = options.first_frame_image; 
                 } else {
                     // Generic fallback
                     if (options.image_url) body.image = options.image_url;
                 }
             } else {
                 if (options.image_url) body.image = options.image_url;
+                // Studio sync: input_images is common for Flux
+                if (options.input_images) body.input_images = options.input_images;
+                if (options.input_image) body.input_image = options.input_image;
             }
 
 
@@ -206,13 +212,20 @@ export class ChatService {
             body: JSON.stringify(body),
         });
 
-        const result: ImageGenerationResponse | ApiErrorResponse = await response.json();
+        const result: any = await response.json();
         if (!response.ok || isApiErrorResponse(result)) {
             const errorMsg = isApiErrorResponse(result) ? result.error : 'Failed to generate image.';
             throw new Error(errorMsg);
         }
 
-        return (result as ImageGenerationResponse).imageUrl;
+        // Replicate sync: check for 'output' as well as 'imageUrl'
+        // 'output' can be a string or an array of strings
+        if (result.imageUrl) return result.imageUrl;
+        if (result.output) {
+            return Array.isArray(result.output) ? result.output[0] : result.output;
+        }
+
+        return result.imageUrl || '';
     }
 
     static async generateTitle(

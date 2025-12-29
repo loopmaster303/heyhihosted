@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import useLocalStorageState from './useLocalStorageState';
 import { generateUUID } from '@/lib/uuid';
 import type { ImageHistoryItem } from '@/types';
@@ -22,6 +22,26 @@ export function useImageHistory() {
             // Keep only the most recent items
             return newHistory.slice(0, MAX_HISTORY_ITEMS);
         });
+    }, [setImageHistory]);
+
+    // Listen for external updates (e.g. from UnifiedImageTool)
+    // using a custom event since 'storage' event only works across tabs
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const handleExternalUpdate = () => {
+                try {
+                    const item = window.localStorage.getItem('imageHistory');
+                    if (item) {
+                        setImageHistory(JSON.parse(item));
+                    }
+                } catch (e) {
+                    console.error("Failed to sync image history:", e);
+                }
+            };
+            
+            window.addEventListener('imageHistoryUpdated', handleExternalUpdate);
+            return () => window.removeEventListener('imageHistoryUpdated', handleExternalUpdate);
+        }
     }, [setImageHistory]);
 
     const clearImageHistory = useCallback(() => {

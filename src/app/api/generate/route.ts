@@ -19,7 +19,9 @@ const ImageGenerationSchema = z.object({
     'seedream-pro',
     'gptimage',
     'gpt-image',
+    'gptimage-large',
     'veo',
+    'seedance',
     'seedance-pro',
     'wan-2.5-t2v',
   ]),
@@ -34,9 +36,10 @@ const ImageGenerationSchema = z.object({
   duration: z.number().optional(),
   audio: z.boolean().optional(),
   image: z.union([z.string().url(), z.array(z.string().url())]).optional(),
+  safe: z.boolean().default(false),
 });
 
-const VIDEO_MODELS = new Set(['seedance-pro', 'veo', 'wan-2.5-t2v']);
+const VIDEO_MODELS = new Set(['seedance', 'seedance-pro', 'veo', 'wan-2.5-t2v']);
 
 export async function POST(request: Request) {
   try {
@@ -56,6 +59,7 @@ export async function POST(request: Request) {
       aspectRatio,
       duration,
       audio,
+      safe,
     } = validateRequest(ImageGenerationSchema, body);
 
     // Map model aliases for Pollen endpoint
@@ -104,20 +108,31 @@ export async function POST(request: Request) {
     if (enhance) params.append('enhance', 'true');
     if (isPrivate) params.append('private', 'true');
     if (transparent) params.append('transparent', 'true'); // For models that support it
+    if (safe) {
+      params.append('safe', 'true');
+    } else {
+      params.append('safe', 'false');
+    }
     if (isVideoModel) {
       if (aspectRatio) params.append('aspectRatio', aspectRatio);
       if (typeof duration === 'number') params.append('duration', String(duration));
       if (audio) params.append('audio', 'true');
     }
     // Reference images (supports arrays or single URL)
+    // Standard Pollinations endpoint only supports ONE image or prompt injection.
+    // For this implementation, we take the FIRST image if multiple are provided, unless it's a specific model logic we haven't defined yet.
     if (body.image) {
       const images = Array.isArray(body.image) ? body.image : [body.image];
-      images.forEach((imgUrl: string) => {
-        if (typeof imgUrl === 'string' && imgUrl.trim().length > 0) {
-          params.append('image', imgUrl.trim());
-        }
-      });
+      const validImages = images.filter((img: any) => typeof img === 'string' && img.trim().length > 0);
+      
+      if (validImages.length > 0) {
+        // Pollinations "image" param is singular in standard API usage for image-to-image
+        params.append('image', validImages[0].trim());
+      }
     }
+
+    // Force HD quality
+    params.append('quality', 'hd');
 
     const encodedPrompt = encodeURIComponent(prompt.trim());
     let imageUrl = `https://enter.pollinations.ai/api/generate/image/${encodedPrompt}?${params.toString()}`;

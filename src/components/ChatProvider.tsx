@@ -9,7 +9,7 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from './LanguageProvider';
 import { generateUUID } from '@/lib/uuid';
 
-import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage } from '@/types';
+import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage, ImageHistoryItem } from '@/types';
 import type {
   PollinationsChatCompletionResponse,
   ImageGenerationResponse,
@@ -18,6 +18,7 @@ import type {
 } from '@/types/api';
 import { isApiErrorResponse, isPollinationsChatResponse } from '@/types/api';
 import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, CODE_REASONING_SYSTEM_PROMPT } from '@/config/chat-options';
+import { getUnifiedModel } from '@/config/unified-image-models';
 
 // Import extracted hooks and helpers
 import { useChatState } from '@/hooks/useChatState';
@@ -92,6 +93,27 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
   const { toast } = useToast();
   const { t } = useLanguage();
+
+  const addChatImageToHistory = useCallback((imageUrl: string, prompt: string, model: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const existing = window.localStorage.getItem('imageHistory');
+      const history = existing ? (JSON.parse(existing) as ImageHistoryItem[]) : [];
+      const newItem: ImageHistoryItem = {
+        id: generateUUID(),
+        imageUrl,
+        prompt,
+        model,
+        timestamp: new Date().toISOString(),
+        toolType: 'premium imagination',
+      };
+      const next = [newItem, ...history].slice(0, 100);
+      window.localStorage.setItem('imageHistory', JSON.stringify(next));
+      window.dispatchEvent(new Event('imageHistoryUpdated'));
+    } catch (error) {
+      console.error('Failed to update image history:', error);
+    }
+  }, []);
 
   // --- Audio Hook ---
   const { handlePlayAudio } = useChatAudio({
@@ -277,6 +299,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       isImageModeIntent?: boolean;
       isRegeneration?: boolean;
       messagesForApi?: ChatMessage[];
+      imageConfig?: {
+        formFields: Record<string, any>;
+        uploadedImages: string[];
+        selectedModelId: string;
+      };
     } = {}
   ) => {
     if (!activeConversation || activeConversation.toolType !== 'long language loops') return;
@@ -389,23 +416,106 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       // Image Mode and Code Mode are mutually exclusive - Image Mode takes precedence
       const effectivePrompt = messageText.trim() || chatInputValue.trim();
       if (isImagePrompt && effectivePrompt) {
-        // Parse aspect ratio from prompt if present (simple check)
         const promptText = effectivePrompt;
-        let width = 1024;
-        let height = 1024;
+        const imageParams: any = {
+          prompt: promptText.trim(),
+          modelId: selectedImageModelId,
+        };
 
-        if (promptText.includes('--ar 16:9')) {
-          width = 1216; height = 832; // Flux approximate landscape
-        } else if (promptText.includes('--ar 9:16')) {
-          width = 832; height = 1216; // Flux approximate portrait
+        const imageConfig = options.imageConfig;
+        const modelInfo = getUnifiedModel(selectedImageModelId);
+        const isPollinationsModel = modelInfo?.provider === 'pollinations';
+
+        if (imageConfig) {
+          const { formFields, uploadedImages } = imageConfig;
+          
+          // Image Inputs mapping from Studio
+          if (uploadedImages.length > 0) {
+            if (selectedImageModelId === 'flux-2-pro') {
+              imageParams.input_images = uploadedImages;
+            } else if (selectedImageModelId === 'flux-kontext-pro') {
+              imageParams.input_image = uploadedImages[0];
+            } else if (selectedImageModelId === 'wan-video' || selectedImageModelId === 'veo-3.1-fast') {
+              imageParams.image = uploadedImages[0];
+            } else if (isPollinationsModel) {
+              imageParams.image = uploadedImages.slice(0, 8);
+            }
+          }
+
+          // Dimensions / Aspect Ratio mapping from Studio
+          if (isPollinationsModel) {
+            if (modelInfo?.kind === 'video') {
+              if (formFields.aspect_ratio) imageParams.aspect_ratio = formFields.aspect_ratio;
+              if (formFields.duration) imageParams.duration = Number(formFields.duration);
+            } else {
+              imageParams.width = formFields.width || 1024;
+              imageParams.height = formFields.height || 1024;
+            }
+          } else if (selectedImageModelId === 'z-image-turbo') {
+            const aspectRatio = formFields.aspect_ratio || '1:1';
+            const aspectRatioMap: Record<string, { width: number; height: number }> = {
+              '1:1': { width: 1024, height: 1024 },
+              '4:3': { width: 1024, height: 768 },
+              '3:4': { width: 768, height: 1024 },
+              '16:9': { width: 1344, height: 768 },
+              '9:16': { width: 768, height: 1344 },
+            };
+            const dims = aspectRatioMap[aspectRatio] || { width: 1024, height: 1024 };
+            imageParams.width = dims.width;
+            imageParams.height = dims.height;
+          } else {
+             if (formFields.aspect_ratio) imageParams.aspect_ratio = formFields.aspect_ratio;
+             if (formFields.resolution) imageParams.resolution = formFields.resolution;
+             if (formFields.duration) imageParams.duration = Number(formFields.duration);
+          }
+
+          // Formats & Safety
+          if (!isPollinationsModel) {
+             imageParams.output_format = formFields.output_format;
+             if (selectedImageModelId === 'flux-2-pro') {
+                imageParams.safety_tolerance = 5;
+                imageParams.output_quality = 100;
+             }
+          }
+        } else {
+          // Fallback simple AR parsing if no config provided
+          if (promptText.includes('--ar 16:9')) {
+             imageParams.width = 1216; imageParams.height = 832;
+          } else if (promptText.includes('--ar 9:16')) {
+             imageParams.width = 832; imageParams.height = 1216;
+          }
         }
 
-        const imageUrl = await ChatService.generateImage({
-          prompt: promptText.replace(/--ar \d+:\d+/g, '').trim(), // Clean prompt
-          modelId: selectedImageModelId,
-          width,
-          height
-        });
+        const imageUrl = await ChatService.generateImage(imageParams);
+
+        // Pollinations Polling logic from Studio
+        if (isPollinationsModel && imageUrl) {
+            console.log("[ChatProvider] Polling for Pollinations content:", imageUrl);
+            const startTime = Date.now();
+            const POLL_TIMEOUT = 120000;
+            const pollResource = async (): Promise<boolean> => {
+               while (Date.now() - startTime < POLL_TIMEOUT) {
+                 try {
+                   const res = await fetch(imageUrl, { method: 'HEAD' });
+                   if (res.ok) {
+                     const contentType = res.headers.get('content-type');
+                     if (contentType && (contentType.startsWith('image/') || contentType.startsWith('video/'))) {
+                       return true; 
+                     }
+                   }
+                 } catch (e) {}
+                 await new Promise(r => setTimeout(r, 2000));
+               }
+               return false;
+            };
+            await pollResource();
+        }
+
+        addChatImageToHistory(
+          imageUrl,
+          promptText.replace(/--ar \d+:\d+/g, '').trim(),
+          selectedImageModelId
+        );
 
         const aiResponseContent: ChatMessageContentPart[] = [
           { type: 'text', text: `Your image generation with model "${selectedImageModelId}" started. It may take a few seconds to arrive.` },
@@ -518,12 +628,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       const errorMsg: ChatMessage = { id: generateUUID(), role: 'assistant', content: `Sorry, an error occurred: ${errorMessage}`, timestamp: new Date().toISOString(), toolType: 'long language loops' };
       finalMessages = [...updatedMessagesForState, errorMsg];
     } finally {
-      const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: new Date().toISOString(), isImageMode: false, uploadedFile: null, uploadedFilePreview: null };
+      const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: new Date().toISOString(), uploadedFile: null, uploadedFilePreview: null };
 
       setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
       setIsAiResponding(false);
     }
-  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, webBrowsingEnabled]);
+  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, webBrowsingEnabled, addChatImageToHistory]);
 
   const selectChat = useCallback((conversationId: string | null) => {
     if (conversationId === null) {

@@ -27,20 +27,23 @@ export interface UnifiedImageModel {
  */
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
-  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'ByteDance ARK' },
+  { id: 'flux', name: 'Flux1 Ultra', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
+  { id: 'kontext', name: 'Flux1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Context-aware' },
   { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'OpenAI Image' },
+  { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Large Context' },
+  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'ByteDance ARK' },
   { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Gemini 2.5 Flash' },
   { id: 'zimage', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, isFree: true, enabled: true, description: 'Fast 6B' },
 
   // ADVANCED Image Models
-  { id: 'kontext', name: 'Kontext', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'Context-aware' },
   { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'Gemini 3 Pro 4K' },
   { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'ByteDance 4K' },
 
   // STANDARD Video Models
-  { id: 'veo', name: 'Veo 3.1', provider: 'pollinations', kind: 'video', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Google Video' },
+  { id: 'seedance', name: 'Seedance', provider: 'pollinations', kind: 'video', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Reactive Video' },
 
   // ADVANCED Video Models
+  { id: 'veo', name: 'Veo 3.1', provider: 'pollinations', kind: 'video', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'Google Video' },
   { id: 'seedance-pro', name: 'Seedance Pro', provider: 'pollinations', kind: 'video', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'ByteDance Pro' },
 ];
 
@@ -55,7 +58,7 @@ const REPLICATE_MODELS: UnifiedImageModel[] = [
   { id: 'veo-3.1-fast', name: 'Veo 3.1 Fast', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Fast Video' },
 
   // Image Generation (Standard - flux-kontext is featured)
-  { id: 'flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', category: 'Standard', supportsReference: true, requiresPassword: false, description: 'Context Edit' },
+  { id: 'flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', category: 'Standard', supportsReference: true, requiresPassword: false, description: 'Context Edit', enabled: false },
 
   // Image Generation (Advanced)
   { id: 'flux-2-pro', name: 'Flux 2 Pro', provider: 'replicate', kind: 'image', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'High Quality' },
@@ -108,6 +111,54 @@ export const UNIFIED_IMAGE_MODELS: UnifiedImageModel[] = [
   ...REPLICATE_MODELS,
   ...MISTRAL_MODELS,
 ];
+
+export interface VisualizeModelGroup {
+  key: string;
+  label: string;
+  category: ImageCategory;
+  kind: ImageKind;
+  modelIds: string[];
+}
+
+const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
+  {
+    key: 'image-standard',
+    label: 'BILD',
+    category: 'Standard',
+    kind: 'image',
+    modelIds: ['flux', 'kontext', 'gpt-image', 'gptimage-large', 'seedream', 'nanobanana', 'zimage'],
+  },
+  {
+    key: 'video-standard',
+    label: 'VIDEO',
+    category: 'Standard',
+    kind: 'video',
+    modelIds: ['seedance'],
+  },
+  {
+    key: 'image-advanced',
+    label: 'BILD (ADVANCED)',
+    category: 'Advanced',
+    kind: 'image',
+    modelIds: ['nanobanana-pro', 'seedream-pro', 'flux-2-pro'],
+  },
+  {
+    key: 'video-advanced',
+    label: 'VIDEO (ADVANCED)',
+    category: 'Advanced',
+    kind: 'video',
+    modelIds: ['veo', 'seedance-pro', 'wan-2.5-t2v', 'wan-video', 'veo-3.1-fast'],
+  },
+];
+
+export function getVisualizeModelGroups(): Array<VisualizeModelGroup & { models: UnifiedImageModel[] }> {
+  return VISUALIZE_MODEL_GROUPS.map(group => ({
+    ...group,
+    models: group.modelIds
+      .map(id => UNIFIED_IMAGE_MODELS.find(model => model.id === id))
+      .filter((model): model is UnifiedImageModel => model !== undefined && (model.enabled ?? true)),
+  })).filter(group => group.models.length > 0);
+}
 
 /**
  * Get model by ID

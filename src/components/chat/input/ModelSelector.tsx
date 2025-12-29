@@ -36,16 +36,26 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 <Button
                     type="button"
                     variant="ghost"
-                    className={`group rounded-lg h-14 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white ${isMobile ? 'w-12 px-0' : 'w-auto px-1'
+                    className={`group rounded-lg h-14 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white ${isMobile ? 'w-auto px-2' : 'w-auto px-1'
                         }`}
                     aria-label="Select model"
                 >
-                    <div className="flex items-center gap-1.5 truncate">
+                    <div className="flex items-center gap-1.5 truncate max-w-full">
                         {/* Model Icon - REMOVED for clean shader look as per mock */}
 
                         {/* Model Name Shader - Hidden on mobile */}
-                        {!isMobile && (() => {
+                        {(() => {
                             const modelName = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId)?.name || 'Claude';
+                            
+                            if (isMobile) {
+                                return (
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-sm font-semibold truncate max-w-[120px]">{modelName}</span>
+                                        <ChevronDown className="w-5 h-5 flex-shrink-0 text-pink-500 opacity-100" />
+                                    </div>
+                                );
+                            }
+
                             return (
                                 <div className="flex items-center">
                                     <div
@@ -55,11 +65,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                         <ParticleText
                                             key={selectedModelId}
                                             text={modelName}
-                                            fontSize={42}
                                             canvasHeight={56}
-                                            baseSpacing={3}
-                                            particleSize={2.5}
-                                            mouseRepelRadius={60}
                                             className="pointer-events-auto"
                                         />
                                     </div>

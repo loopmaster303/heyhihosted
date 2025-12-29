@@ -5,7 +5,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import useEscapeKey from '@/hooks/useEscapeKey';
 import { getUnifiedModel } from '@/config/unified-image-models';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 import { generateUUID } from '@/lib/uuid';
@@ -86,6 +85,8 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       } else {
         localStorage.removeItem(IMAGE_HISTORY_KEY);
       }
+      // Dispatch event to sync sidebar
+      window.dispatchEvent(new Event('imageHistoryUpdated'));
     } catch (e) {
       console.error('Failed to save history to localStorage:', e);
     }
@@ -241,6 +242,44 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
         const isVideo = currentModelConfig?.outputType === 'video';
 
         if (typeof resultUrl === 'string' && resultUrl.trim() !== '') {
+          // If Pollinations, we must POLL the URL until it's actually ready.
+          // The API route returns the URL instantly, but generation happens on request.
+          // To improve UX, we wait until the resource is accessible (200 OK) before showing it.
+          if (isPollinationsModel) {
+            console.log("Polling for Pollinations content:", resultUrl);
+            const startTime = Date.now();
+            const POLL_TIMEOUT = 120000; // 2 minutes (video can be slow)
+            // Poll for both image and video logic
+            const pollResource = async (): Promise<boolean> => {
+               while (Date.now() - startTime < POLL_TIMEOUT) {
+                 try {
+                   // Using HEAD to check availability without downloading full content
+                   // verify cors? Pollinations usually supports CORS.
+                   const res = await fetch(resultUrl, { method: 'HEAD' });
+                   if (res.ok) {
+                     const contentType = res.headers.get('content-type');
+                     // Check for valid content type (not HTML error page)
+                     // Pollinations might return text/html if error
+                     if (contentType && (contentType.startsWith('image/') || contentType.startsWith('video/'))) {
+                       return true; 
+                     }
+                   }
+                 } catch (e) {
+                   // If CORS or network fail, usually means not ready or blocked, retry.
+                   // console.log("Polling check failed", e);
+                 }
+                 // Wait 1.5s before retry
+                 await new Promise(r => setTimeout(r, 1500));
+               }
+               return false;
+            };
+
+            const isReady = await pollResource();
+            if (!isReady) {
+               throw new Error("Generation timed out. The content could not be verified.");
+            }
+          }
+
           const newHistoryItem: ImageHistoryItem = {
             id: generateUUID(),
             imageUrl: isVideo ? '' : resultUrl,
@@ -344,7 +383,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
             {...toolState}
             onPromptChange={toolState.setPrompt}
             onModelChange={toolState.setSelectedModelId}
-            onModelSelectorToggle={() => toolState.setIsModelSelectorOpen(!toolState.isModelSelectorOpen)}
+            onModelSelectorToggle={() => toolState.setIsModelSelectorOpen(prev => !prev)}
             onConfigPanelToggle={() => toolState.setIsConfigPanelOpen(!toolState.isConfigPanelOpen)}
             onImageUploadToggle={() => toolState.setIsImageUploadOpen(!toolState.isImageUploadOpen)}
             onEnhancePrompt={toolState.handleEnhancePrompt}

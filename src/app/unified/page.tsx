@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useState, Suspense, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChatProvider, useChat } from '@/components/ChatProvider';
 import ChatInterface from '@/components/page/ChatInterface';
-import UnifiedImageTool from '@/components/tools/UnifiedImageTool';
 import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import CameraCaptureDialog from '@/components/dialogs/CameraCaptureDialog';
 import AppLayout from '@/components/layout/AppLayout';
@@ -14,10 +13,9 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { DEFAULT_POLLINATIONS_MODEL_ID } from '@/config/chat-options';
 import { useUnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import LandingView from '@/components/page/LandingView';
-import { cn } from '@/lib/utils';
 
-// App States
-type AppState = 'landing' | 'chat' | 'visualize';
+// App States - simplified: no more 'visualize' state
+type AppState = 'landing' | 'chat';
 
 interface UnifiedAppContentProps {
     initialState?: AppState;
@@ -28,61 +26,45 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
     const visualizeToolState = useUnifiedImageToolState();
     const pathname = usePathname();
     const [userDisplayName] = useLocalStorageState<string>('userDisplayName', 'user');
-    const [replicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
 
     const [isClient, setIsClient] = useState(false);
     const [appState, setAppState] = useState<AppState>(initialState);
-    const [landingMode, setLandingMode] = useState<'chat' | 'visualize'>('chat');
     const [landingSelectedModelId, setLandingSelectedModelId] = useState<string>(DEFAULT_POLLINATIONS_MODEL_ID);
 
     useEffect(() => {
         setIsClient(true);
     }, []);
 
-    // URL-based state initialization - set appState based on pathname on FIRST mount only
+    // URL-based state initialization
     useEffect(() => {
         if (!isClient) return;
 
-        // Only set initial state based on URL, don't override user navigation
         if (pathname === '/chat') {
             setAppState('chat');
-        } else if (pathname === '/visualizepro') {
-            setAppState('visualize');
         }
-        // else stay on landing (default)
+        // /visualizepro now redirects to /studio
+        else if (pathname === '/visualizepro') {
+            window.location.replace('/studio');
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isClient]); // Intentionally only depend on isClient to run once on mount
+    }, [isClient]);
 
-    // Listen for prompt reuse from gallery - should navigate to VisualizePro
-    useEffect(() => {
-        const handler = (event: Event) => {
-            const custom = event as CustomEvent<string>;
-            if (typeof custom.detail === 'string') {
-                // Set prompt directly on the shared state and navigate
-                visualizeToolState.setPrompt(custom.detail);
-                setAppState('visualize');
-            }
-        };
-        window.addEventListener('sidebar-reuse-prompt', handler);
-        return () => window.removeEventListener('sidebar-reuse-prompt', handler);
-    }, [visualizeToolState.setPrompt]);
-
-    // Navigate to Chat
+    // Navigate to Chat and send message
     const handleNavigateToChat = useCallback((initialMessage: string) => {
-        if (initialMessage) {
-            chat.setChatInputValue(initialMessage);
-        }
+        // Start new chat first
         chat.startNewChat(landingSelectedModelId);
         setAppState('chat');
+        
+        // Send the message after a short delay to let the chat initialize
+        // Pass isImageModeIntent if image mode is currently active
+        if (initialMessage) {
+            const isImageModeActive = chat.isImageMode;
+            setTimeout(() => {
+                chat.sendMessage(initialMessage, { isImageModeIntent: isImageModeActive });
+            }, 100);
+        }
     }, [chat, landingSelectedModelId]);
 
-    // Navigate to Visualize
-    const handleNavigateToVisualize = useCallback((draftPrompt: string) => {
-        if (draftPrompt) {
-            localStorage.setItem('unified-image-tool-draft', draftPrompt);
-        }
-        setAppState('visualize');
-    }, []);
 
     // Handle new chat (from sidebar) - reset to landing
     const handleNewChat = useCallback(() => {
@@ -95,7 +77,7 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
     }
 
     // Get current path for sidebar
-    const currentPath = appState === 'landing' ? '/' : appState === 'chat' ? '/chat' : '/visualizepro';
+    const currentPath = appState === 'landing' ? '/' : '/chat';
 
     // Get chat history from ChatProvider
     const chatHistory = chat.allConversations.filter(c => c.toolType === 'long language loops');
@@ -121,36 +103,22 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             // Chat Model Props
             selectedModelId={appState === 'landing' ? landingSelectedModelId : (chat.activeConversation?.selectedModelId || 'claude')}
             onModelChange={appState === 'landing' ? setLandingSelectedModelId : chat.handleModelChange}
-            // Visualize Model Props
-            visualSelectedModelId={visualizeToolState.selectedModelId}
-            onVisualModelChange={visualizeToolState.setSelectedModelId}
-            isVisualModelSelectorOpen={visualizeToolState.isModelSelectorOpen}
-            onVisualModelSelectorToggle={() => visualizeToolState.setIsModelSelectorOpen(!visualizeToolState.isModelSelectorOpen)}
         >
             {/* Landing State */}
             {appState === 'landing' && (
                 <LandingView
                     userDisplayName={userDisplayName}
                     onNavigateToChat={handleNavigateToChat}
-                    onNavigateToVisualize={handleNavigateToVisualize}
                     selectedModelId={landingSelectedModelId}
                     onModelChange={setLandingSelectedModelId}
-                    landingMode={landingMode}
-                    setLandingMode={setLandingMode}
+                    visualizeToolState={visualizeToolState}
                 />
             )}
 
             {/* Chat State */}
             {appState === 'chat' && (
                 <div className="flex flex-col h-full">
-                    <ChatInterface />
-                </div>
-            )}
-
-            {/* Visualize State */}
-            {appState === 'visualize' && (
-                <div className="flex flex-col h-full bg-background text-foreground">
-                    <UnifiedImageTool password={replicateToolPassword} sharedToolState={visualizeToolState} />
+                    <ChatInterface visualizeToolState={visualizeToolState} />
                 </div>
             )}
 

@@ -3,15 +3,18 @@
 import type React from 'react';
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Settings2, Mic, Square, ArrowUp } from 'lucide-react';
+import { UnifiedInput } from '@/components/ui/unified-input';
+import { Settings2, Mic, Square, ArrowUp, Plus, X } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
 import type { Conversation } from '@/types';
-import { QuickSettingsMenu } from './input/QuickSettingsMenu';
-import { UploadMenu } from './input/UploadMenu';
-import { ToolsMenu } from './input/ToolsMenu';
-import { ModelSelector } from './input/ModelSelector';
 import { MobileOptionsMenu } from './input/MobileOptionsMenu';
+import { QuickSettingsBadges } from './input/QuickSettingsBadges';
+import { ToolsBadges } from './input/ToolsBadges';
+import { UploadBadges } from './input/UploadBadges';
+import { VisualizeReferenceBadges } from './input/VisualizeReferenceBadges';
+import { VisualizeInlineHeader } from '@/components/tools/visualize/VisualizeInlineHeader';
+import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
+import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 interface ChatInputProps {
     onSendMessage: (message: string, options?: { isImageModeIntent?: boolean }) => void;
@@ -58,9 +61,7 @@ interface ChatInputProps {
     startRecording: () => void;
     stopRecording: () => void;
     openCamera: () => void;
-    availableImageModels: string[];
-    selectedImageModelId: string;
-    handleImageModelChange: (modelId: string) => void;
+    visualizeToolState?: UnifiedImageToolState;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -73,11 +74,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
     onInputChange,
     isImageMode,
     onToggleImageMode,
-    chatTitle,
     webBrowsingEnabled,
     onToggleWebBrowsing,
-    selectedModelId,
-    handleModelChange,
     selectedResponseStyleName,
     handleStyleChange,
     selectedVoice,
@@ -87,18 +85,115 @@ const ChatInput: React.FC<ChatInputProps> = ({
     startRecording,
     stopRecording,
     openCamera,
-    selectedImageModelId,
-    handleImageModelChange,
     mistralFallbackEnabled,
     onToggleMistralFallback,
     isCodeMode = false,
     onToggleCodeMode,
+    visualizeToolState,
 }) => {
     const { t } = useLanguage();
     const [isMobile, setIsMobile] = useState(false);
-    const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
-    const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
-    const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState(false);
+    const [activeBadgeRow, setActiveBadgeRow] = useState<'tools' | 'upload' | 'settings' | null>(null);
+    const badgePanelRef = useRef<HTMLDivElement>(null);
+    const badgeActionsRef = useRef<HTMLDivElement>(null);
+
+    const toggleBadgeRow = (row: 'tools' | 'upload' | 'settings') => {
+        setActiveBadgeRow(current => current === row ? null : row);
+    };
+
+    const renderTopBadges = () => {
+        const rows: React.ReactNode[] = [];
+        const panelRows: React.ReactNode[] = [];
+
+        // Image Mode Header + Reference Badges
+        if (isImageMode && visualizeToolState) {
+            rows.push(
+                <VisualizeInlineHeader
+                    key="visualize-header"
+                    selectedModelId={visualizeToolState.selectedModelId}
+                    onModelChange={visualizeToolState.setSelectedModelId}
+                    currentModelConfig={visualizeToolState.currentModelConfig}
+                    formFields={visualizeToolState.formFields}
+                    handleFieldChange={visualizeToolState.handleFieldChange}
+                    setFormFields={visualizeToolState.setFormFields}
+                    isGptImage={visualizeToolState.isGptImage}
+                    isSeedream={visualizeToolState.isSeedream}
+                    isNanoPollen={visualizeToolState.isNanoPollen}
+                    isPollenModel={visualizeToolState.isPollenModel}
+                    isPollinationsVideo={visualizeToolState.isPollinationsVideo}
+                    disabled={isLoading || isRecording || isTranscribing}
+                />
+            );
+
+            if (visualizeToolState.supportsReference) {
+                rows.push(
+                    <VisualizeReferenceBadges
+                        key="visualize-references"
+                        uploadedImages={visualizeToolState.uploadedImages}
+                        maxImages={visualizeToolState.maxImages}
+                        supportsReference={visualizeToolState.supportsReference}
+                        isUploading={visualizeToolState.isUploading}
+                        onRemove={visualizeToolState.handleRemoveImage}
+                        onUploadClick={() => imageInputRef.current?.click()}
+                        disabled={isLoading || isRecording || isTranscribing}
+                    />
+                );
+            }
+        }
+
+        if (activeBadgeRow === 'tools') {
+            panelRows.push(
+                <ToolsBadges
+                    key="tools-badges"
+                    isImageMode={isImageMode}
+                    onToggleImageMode={onToggleImageMode}
+                    isCodeMode={isCodeMode || false}
+                    onToggleCodeMode={onToggleCodeMode}
+                    webBrowsingEnabled={webBrowsingEnabled}
+                    onToggleWebBrowsing={onToggleWebBrowsing}
+                    onClose={() => setActiveBadgeRow(null)}
+                />
+            );
+        }
+        if (activeBadgeRow === 'upload') {
+            panelRows.push(
+                <UploadBadges
+                    key="upload-badges"
+                    isLoading={isLoading}
+                    isImageMode={isImageMode}
+                    onImageUploadClick={() => imageInputRef.current?.click()}
+                    onDocUploadClick={() => docInputRef.current?.click()}
+                    onCameraClick={openCamera}
+                    allowImageUploadInImageMode={!!(isImageMode && visualizeToolState?.supportsReference)}
+                    disableImageUpload={!!(
+                        isImageMode &&
+                        visualizeToolState?.supportsReference &&
+                        (visualizeToolState.isUploading || visualizeToolState.uploadedImages.length >= visualizeToolState.maxImages)
+                    )}
+                />
+            );
+        }
+        if (activeBadgeRow === 'settings') {
+            panelRows.push(
+                <QuickSettingsBadges
+                    key="quick-settings-badges"
+                    selectedVoice={selectedVoice}
+                    onVoiceChange={handleVoiceChange}
+                    selectedResponseStyleName={selectedResponseStyleName}
+                    onStyleChange={handleStyleChange}
+                />
+            );
+        }
+        if (panelRows.length > 0) {
+            rows.push(
+                <div key="badge-panel" ref={badgePanelRef} className="flex flex-col gap-2">
+                    {panelRows}
+                </div>
+            );
+        }
+        if (rows.length === 0) return null;
+        return <div className="flex flex-col gap-2">{rows}</div>;
+    };
 
     // Mobile detection
     useEffect(() => {
@@ -110,24 +205,19 @@ const ChatInput: React.FC<ChatInputProps> = ({
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
+    useEffect(() => {
+        if (isImageMode && activeBadgeRow === 'upload') {
+            setActiveBadgeRow(null);
+        }
+    }, [isImageMode, activeBadgeRow]);
+
     const docInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const quickSettingsButtonRef = useRef<HTMLButtonElement>(null);
 
-    const TEXTAREA_MIN_HEIGHT = 80;
-    const TEXTAREA_MAX_HEIGHT = 220;
-
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            const newHeight = Math.min(
-                Math.max(textareaRef.current.scrollHeight, TEXTAREA_MIN_HEIGHT),
-                TEXTAREA_MAX_HEIGHT
-            );
-            textareaRef.current.style.height = `${newHeight}px`;
-        }
-    }, [inputValue]);
+    useOnClickOutside([badgePanelRef, badgeActionsRef], () => {
+        if (activeBadgeRow) setActiveBadgeRow(null);
+    });
 
     const handleSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
         e?.preventDefault();
@@ -136,30 +226,38 @@ const ChatInput: React.FC<ChatInputProps> = ({
         if (canSendMessage) {
             onSendMessage(inputValue.trim(), { isImageModeIntent: isImageMode });
             onInputChange('');
-            if (textareaRef.current) {
-                textareaRef.current.style.height = 'auto';
-            }
+            setActiveBadgeRow(null);
         }
     }, [isLoading, isRecording, isLongLanguageLoopActive, uploadedFilePreviewUrl, inputValue, onSendMessage, isImageMode, onInputChange]);
 
-    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSubmit();
+    // Sync prompt with visualizeToolState when in image mode
+    useEffect(() => {
+        if (!isImageMode || !visualizeToolState) return;
+        if (visualizeToolState.prompt !== inputValue) {
+            onInputChange(visualizeToolState.prompt);
         }
-    }, [handleSubmit]);
-
-    const handleTextareaInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        onInputChange(e.target.value);
-    }, [onInputChange]);
+    }, [visualizeToolState?.prompt, isImageMode, inputValue, onInputChange]);
 
     const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>, fileType: 'document' | 'image') => {
         const file = event.target.files?.[0];
-        onFileSelect(file || null, fileType);
+        if (!file) return;
+
+        // In image mode with reference support, use visualize tool's handler
+        if (fileType === 'image' && isImageMode && visualizeToolState?.supportsReference) {
+            visualizeToolState.handleFileChange(event);
+            if (event.currentTarget) {
+                event.currentTarget.value = "";
+            }
+            setActiveBadgeRow(null);
+            return;
+        }
+
+        onFileSelect(file, fileType);
         if (event.currentTarget) {
             event.currentTarget.value = "";
         }
-    }, [onFileSelect]);
+        setActiveBadgeRow(null);
+    }, [onFileSelect, isImageMode, visualizeToolState]);
 
     const placeholderText = isRecording
         ? t('chat.recording')
@@ -174,150 +272,208 @@ const ChatInput: React.FC<ChatInputProps> = ({
                         : t('chat.placeholder.standard');
 
     return (
-        <div className="relative">
-            <div className="relative">
-                <form onSubmit={handleSubmit} className="w-full">
-                    <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-3 shadow-xl border border-black/5 dark:border-white/10 transition-all duration-300 hover:shadow-2xl hover:border-black/10 dark:hover:border-white/20 flex flex-col min-h-0">
-                        <div className="flex-grow">
-                            <Textarea
-                                ref={textareaRef}
-                                value={inputValue}
-                                onChange={handleTextareaInput}
-                                onKeyDown={handleKeyDown}
-                                placeholder={placeholderText}
-                                className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-auto min-h-[80px] max-h-[220px]"
-                                rows={1}
-                                disabled={isLoading || isRecording || isTranscribing}
-                                aria-label="Chat message input"
-                                style={{ lineHeight: '1.5rem', fontSize: '17px' }}
-                            />
-                        </div>
-                        <div className="flex w-full items-center justify-between gap-1">
-                            {/* Left Side: Quick Settings + Plus Menu + Mode Selector */}
-                            <div className="flex items-center gap-0">
-                                {isMobile ? (
-                                    /* Mobile: Consolidated three-dot menu */
-                                    <MobileOptionsMenu
-                                        isLoading={isLoading}
-                                        isImageMode={isImageMode}
-                                        onImageUploadClick={() => imageInputRef.current?.click()}
-                                        onDocUploadClick={() => docInputRef.current?.click()}
-                                        onCameraClick={openCamera}
-                                        onToggleImageMode={onToggleImageMode}
-                                        isCodeMode={isCodeMode || false}
-                                        onToggleCodeMode={onToggleCodeMode}
-                                        webBrowsingEnabled={webBrowsingEnabled}
-                                        onToggleWebBrowsing={onToggleWebBrowsing}
-                                        selectedVoice={selectedVoice}
-                                        onVoiceChange={handleVoiceChange}
-                                        selectedImageModelId={selectedImageModelId}
-                                        onImageModelChange={handleImageModelChange}
-                                        selectedResponseStyleName={selectedResponseStyleName}
-                                        onStyleChange={handleStyleChange}
-                                        mistralFallbackEnabled={mistralFallbackEnabled}
-                                        onToggleMistralFallback={onToggleMistralFallback}
-                                    />
-                                ) : (
-                                    /* Desktop: Separate buttons */
-                                    <>
-                                        {/* Quick Settings Button */}
-                                        <div className="relative">
-                                            <Button
-                                                ref={quickSettingsButtonRef}
-                                                type="button"
-                                                variant="ghost"
-                                                onClick={() => setIsQuickSettingsOpen(!isQuickSettingsOpen)}
-                                                className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
-                                                aria-label="Quick settings"
-                                            >
-                                                <Settings2 className="w-[20px] h-[20px]" />
-                                            </Button>
-
-                                            <QuickSettingsMenu
-                                                isOpen={isQuickSettingsOpen}
-                                                onClose={() => setIsQuickSettingsOpen(false)}
-                                                triggerRef={quickSettingsButtonRef}
-                                                selectedVoice={selectedVoice}
-                                                onVoiceChange={handleVoiceChange}
-                                                selectedImageModelId={selectedImageModelId}
-                                                onImageModelChange={handleImageModelChange}
-                                                selectedResponseStyleName={selectedResponseStyleName}
-                                                onStyleChange={handleStyleChange}
-                                                mistralFallbackEnabled={mistralFallbackEnabled}
-                                                onToggleMistralFallback={onToggleMistralFallback}
-                                            />
-                                        </div>
-
-                                        <UploadMenu
-                                            isOpen={isPlusMenuOpen}
-                                            onOpenChange={setIsPlusMenuOpen}
-                                            isLoading={isLoading}
-                                            isImageMode={isImageMode}
-                                            onImageUploadClick={() => imageInputRef.current?.click()}
-                                            onDocUploadClick={() => docInputRef.current?.click()}
-                                            onCameraClick={openCamera}
-                                        />
-
-                                        <ToolsMenu
-                                            isOpen={isToolsMenuOpen}
-                                            onOpenChange={setIsToolsMenuOpen}
-                                            isImageMode={isImageMode}
-                                            onToggleImageMode={onToggleImageMode}
-                                            isCodeMode={isCodeMode || false}
-                                            onToggleCodeMode={onToggleCodeMode}
-                                            webBrowsingEnabled={webBrowsingEnabled}
-                                            onToggleWebBrowsing={onToggleWebBrowsing}
-                                        />
-                                    </>
-                                )}
+        <div className="relative w-full"> 
+             <form onSubmit={handleSubmit} className="w-full">
+                <UnifiedInput
+                    value={inputValue}
+                    onChange={(val) => {
+                        onInputChange(val);
+                        if (isImageMode && visualizeToolState) {
+                            visualizeToolState.setPrompt(val);
+                        }
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSubmit();
+                        }
+                    }}
+                    placeholder={placeholderText}
+                    isLoading={isLoading}
+                    disabled={isLoading || isRecording || isTranscribing}
+                    topElements={renderTopBadges()}
+                    leftActions={
+                        isMobile ? (
+                            <div ref={badgeActionsRef}>
+                                <MobileOptionsMenu
+                                    isLoading={isLoading}
+                                    isImageMode={isImageMode}
+                                    onImageUploadClick={() => imageInputRef.current?.click()}
+                                    onDocUploadClick={() => docInputRef.current?.click()}
+                                    onCameraClick={openCamera}
+                                    allowImageUploadInImageMode={!!(isImageMode && visualizeToolState?.supportsReference)}
+                                    disableImageUpload={!!(
+                                        isImageMode &&
+                                        visualizeToolState?.supportsReference &&
+                                        (visualizeToolState.isUploading || visualizeToolState.uploadedImages.length >= visualizeToolState.maxImages)
+                                    )}
+                                    hideUploadSection={isImageMode}
+                                    onToggleImageMode={onToggleImageMode}
+                                    isCodeMode={isCodeMode || false}
+                                    onToggleCodeMode={onToggleCodeMode}
+                                    webBrowsingEnabled={webBrowsingEnabled}
+                                    onToggleWebBrowsing={onToggleWebBrowsing}
+                                    selectedVoice={selectedVoice}
+                                    onVoiceChange={handleVoiceChange}
+                                    selectedResponseStyleName={selectedResponseStyleName}
+                                    onStyleChange={handleStyleChange}
+                                    mistralFallbackEnabled={mistralFallbackEnabled}
+                                    onToggleMistralFallback={onToggleMistralFallback}
+                                />
                             </div>
+                        ) : (
+                            <div ref={badgeActionsRef} className="flex items-center gap-2">
+                                {/* Quick Settings Toggle */}
+                                <Button
+                                    ref={quickSettingsButtonRef}
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => toggleBadgeRow('settings')}
+                                    className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all ${
+                                        activeBadgeRow === 'settings' 
+                                            ? "text-foreground shadow-sm hover:shadow-md" 
+                                            : "bg-transparent text-foreground/80 hover:shadow-sm"
+                                    }`}
+                                    aria-label="Quick settings"
+                                >
+                                    <Settings2 className="w-4 h-4" />
+                                </Button>
 
-                            <div className="flex items-center gap-0">
+                                {/* Upload Toggle - hide in image mode */}
+                                {!isImageMode && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => toggleBadgeRow('upload')}
+                                        className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all ${
+                                            activeBadgeRow === 'upload'
+                                                ? "text-foreground shadow-sm hover:shadow-md"
+                                                : "bg-transparent text-foreground/80 hover:shadow-sm"
+                                        }`}
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </Button>
+                                )}
 
-                                {/* Mic / Stop Button */}
+                                {/* Tools Toggle */}
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    onClick={isRecording ? stopRecording : startRecording}
-                                    className={`group rounded-full h-12 w-12 transition-all duration-300 ${isRecording ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white'}`}
-                                    aria-label={isRecording ? "Stop recording" : "Start recording"}
+                                    onClick={() => toggleBadgeRow('tools')}
+                                    className={`flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-sm font-medium transition-all ${
+                                        activeBadgeRow === 'tools'
+                                            ? "text-foreground shadow-sm hover:shadow-md"
+                                            : "bg-transparent text-foreground/80 hover:shadow-sm"
+                                    }`}
                                 >
-                                    {isRecording ? (
-                                        <Square className="w-[20px] h-[20px] fill-current" />
-                                    ) : (
-                                        <Mic className="w-[20px] h-[20px]" />
-                                    )}
+                                    <span>Tools</span>
+                                    <svg
+                                        className={`h-4 w-4 transition-transform ${activeBadgeRow === 'tools' ? 'rotate-180' : ''}`}
+                                        fill="none"
+                                        strokeWidth="2"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path d="m19 9-7 7-7-7" />
+                                    </svg>
                                 </Button>
 
-                                {/* Send Button - Arrow on mobile */}
-                                <Button
-                                    type="submit"
-                                    disabled={isLoading || isRecording || (!inputValue.trim() && !uploadedFilePreviewUrl)}
-                                    className={`ml-2 transition-all duration-300 font-medium ${isMobile ? 'h-10 w-10 p-0 rounded-lg' : 'h-10 px-6 rounded-xl'
-                                        } ${inputValue.trim() || uploadedFilePreviewUrl
-                                            ? 'bg-black dark:bg-white text-white dark:text-black hover:opacity-90 shadow-md'
-                                            : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600'
-                                        }`}
-                                    aria-label="Send message"
-                                >
-                                    {isMobile ? (
-                                        <ArrowUp className="w-5 h-5" />
-                                    ) : (
-                                        t('chat.send')
-                                    )}
-                                </Button>
+                                {/* Active Mode Badges - Right of Tools */}
+                                {isImageMode && (
+                                    <button
+                                        type="button"
+                                        onClick={onToggleImageMode}
+                                        className="flex items-center gap-1.5 rounded-full border border-[#ff4ecd]/60 px-3 py-1.5 text-xs font-bold transition-all bg-[#ff4ecd]/5 text-[#ff4ecd]"
+                                    >
+                                        <span>Visualize</span>
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                )}
+                                {webBrowsingEnabled && (
+                                    <button
+                                        type="button"
+                                        onClick={onToggleWebBrowsing}
+                                        className="flex items-center gap-1.5 rounded-full border border-[#00d2ff]/60 px-3 py-1.5 text-xs font-bold transition-all bg-[#00d2ff]/5 text-[#00d2ff]"
+                                    >
+                                        <span>Research</span>
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                )}
+                                {isCodeMode && (
+                                    <button
+                                        type="button"
+                                        onClick={onToggleCodeMode}
+                                        className="flex items-center gap-1.5 rounded-full border border-[#00ff88]/60 px-3 py-1.5 text-xs font-bold transition-all bg-[#00ff88]/5 text-[#00ff88]"
+                                    >
+                                        <span>Code</span>
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                )}
                             </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
+                        )
+                    }
+                    rightActions={
+                         <>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={isRecording ? stopRecording : startRecording}
+                                className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all duration-300 ${
+                                    isRecording 
+                                        ? 'text-red-500 shadow-sm hover:shadow-md' 
+                                        : 'bg-transparent text-foreground/80 hover:shadow-sm'
+                                }`}
+                                aria-label={isRecording ? "Stop recording" : "Start recording"}
+                            >
+                                {isRecording ? (
+                                    <Square className="w-4 h-4 fill-current" />
+                                ) : (
+                                    <Mic className="w-4 h-4" />
+                                )}
+                            </Button>
 
+                            {/* Enhance Prompt Button - only in image mode */}
+                            {isImageMode && visualizeToolState && (
+                                <div className="hidden md:flex">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={visualizeToolState.handleEnhancePrompt}
+                                        disabled={!inputValue.trim() || isLoading || visualizeToolState.isEnhancing || visualizeToolState.isUploading || isRecording || isTranscribing}
+                                        className="group rounded-lg h-9 w-auto px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
+                                        aria-label="Enhance prompt"
+                                    >
+                                        <span className="text-xs md:text-sm font-medium">
+                                            {visualizeToolState.isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
+                                        </span>
+                                    </Button>
+                                </div>
+                            )}
+
+                            <Button
+                                type="submit"
+                                disabled={isLoading || isRecording || (!inputValue.trim() && !uploadedFilePreviewUrl)}
+                                className={`ml-1 rounded-full px-6 font-medium h-9 text-sm transition-all duration-300 ${
+                                    inputValue.trim() || uploadedFilePreviewUrl
+                                        ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-md'
+                                        : 'bg-muted text-muted-foreground'
+                                }`}
+                                aria-label="Send message"
+                            >
+                                {isMobile ? <ArrowUp className="w-5 h-5" /> : t('chat.send')}
+                            </Button>
+                         </>
+                    }
+                />
+            </form>
+            
             {/* Hidden Inputs */}
             <input
                 type="file"
                 ref={imageInputRef}
                 onChange={(e) => handleFileChange(e, 'image')}
                 accept="image/*"
+                multiple={!!(isImageMode && visualizeToolState?.supportsReference)}
                 className="hidden"
             />
             <input

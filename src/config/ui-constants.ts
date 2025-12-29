@@ -11,6 +11,7 @@ import QwenIcon from '../../icons models/qwen-color.png';
 import GoogleIcon from '../../icons models/google-color.png';
 import ByteDanceIcon from '../../icons models/bytedance-color.png';
 import FluxFarbeIcon from '../../icons models/fluxfarbe.png';
+import BFLIcon from '../../icons models/bfl.png';
 import WANIcon from '../../icons models/wan.png';
 
 // Model Icon Mapping (LLM)
@@ -60,12 +61,14 @@ export const featuredModels = [
 // Image Model Icon Mapping
 export const imageModelIcons: Record<string, any> = {
     'gpt-image': OpenAIIcon,
+    'gptimage-large': OpenAIIcon,
     'seedream': ByteDanceIcon,
     'seedream-pro': ByteDanceIcon,
     'seedance': ByteDanceIcon,
     'seedance-pro': ByteDanceIcon,
     'nanobanana': '🍌',
     'nanobanana-pro': '🍌',
+    'flux': BFLIcon,
     'flux-2-pro': FluxFarbeIcon,
     'flux-kontext-pro': FluxFarbeIcon,
     'kontext': FluxFarbeIcon,

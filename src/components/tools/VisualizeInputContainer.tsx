@@ -1,18 +1,13 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
-import Image from 'next/image';
+import React, { useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { SlidersHorizontal, Plus, ImageIcon, Loader2, ArrowUp } from 'lucide-react';
+import { UnifiedInput } from '@/components/ui/unified-input';
+import { SlidersHorizontal, Plus, Loader2, ArrowUp } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
 import { type UnifiedModelConfig } from '@/config/unified-model-configs';
-import { imageModelIcons } from '@/config/ui-constants';
-
-import { VisualModelSelector } from './visualize/VisualModelSelector';
-import { VisualConfigPanel } from './visualize/VisualConfigPanel';
-import { VisualUploadModal } from './visualize/VisualUploadModal';
-import { VisualizeMobileMenu } from './visualize/VisualizeMobileMenu';
+import { VisualizeInlineHeader } from './visualize/VisualizeInlineHeader';
 
 interface VisualizeInputContainerProps {
     prompt: string;
@@ -56,6 +51,7 @@ interface VisualizeInputContainerProps {
     isPollinationsVideo: boolean;
 
     placeholder?: string;
+    showInlineSettings?: boolean;
 }
 
 const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
@@ -73,13 +69,6 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
     handleFileChange,
     handleRemoveImage,
 
-    isModelSelectorOpen,
-    onModelSelectorToggle,
-    isConfigPanelOpen,
-    onConfigPanelToggle,
-    isImageUploadOpen,
-    onImageUploadToggle,
-
     loading = false,
     disabled = false,
     isEnhancing = false,
@@ -95,148 +84,68 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
     isPollenModel,
     isPollinationsVideo,
 
-    placeholder
+    placeholder,
+    showInlineSettings = false,
 }) => {
-    const { language, t } = useLanguage();
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const { t } = useLanguage();
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // Mobile detection
-    const [isMobile, setIsMobile] = useState(false);
-    useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 640);
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
 
     const placeholderText = placeholder || t('imageGen.placeholder.gptImage');
 
-    const displayModelName = currentModelConfig?.name || t('label.selectModel');
-
-    // Auto-resize textarea
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 80), 260);
-            textareaRef.current.style.height = `${newHeight}px`;
-        }
-    }, [prompt]);
-
     const canSubmit = !loading && !isUploading && (prompt.trim() || uploadedImages.length > 0) && !disabled;
+
+    // Drawer State for Shadcn Drawers
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
 
     return (
         <div className="w-full relative">
-            {/* Model Selector Popup */}
-            <VisualModelSelector
-                isOpen={isModelSelectorOpen}
-                onClose={onModelSelectorToggle}
-                selectedModelId={selectedModelId}
-                onModelChange={onModelChange}
-            />
-
-            {/* Config Panel */}
-            <VisualConfigPanel
-                isOpen={isConfigPanelOpen}
-                onClose={onConfigPanelToggle}
-                currentModelConfig={currentModelConfig}
-                selectedModelId={selectedModelId}
-                formFields={formFields}
-                handleFieldChange={handleFieldChange}
-                setFormFields={setFormFields}
-                loading={loading}
-                isGptImage={isGptImage}
-                isSeedream={isSeedream}
-                isNanoPollen={isNanoPollen}
-                isPollenModel={isPollenModel}
-                isPollinationsVideo={isPollinationsVideo}
-            />
-
-            {/* Image Upload Pop-up */}
-            <VisualUploadModal
-                isOpen={isImageUploadOpen}
-                onClose={onImageUploadToggle}
-                uploadedImages={uploadedImages}
-                maxImages={maxImages}
-                handleRemoveImage={handleRemoveImage}
-                onUploadClick={() => fileInputRef.current?.click()}
-                supportsReference={supportsReference}
-            />
-
             <form onSubmit={onSubmit}>
-                <div className="bg-white dark:bg-[#252525] rounded-2xl p-3 shadow-xl flex flex-col min-h-0">
-                    {loading && (
-                        <div className="absolute inset-x-4 top-3 z-10">
-                            <div className="rounded-xl bg-black/70 text-white px-4 py-3 text-sm md:text-base shadow-lg flex items-start gap-2">
-                                <Loader2 className="h-4 w-4 mt-0.5 animate-spin" />
-                                <div className="leading-snug">
-                                    {t('message.generating')}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex-grow">
-                        <Textarea
-                            ref={textareaRef}
-                            value={prompt}
-                            onChange={(e) => onPromptChange(e.target.value)}
-                            placeholder={placeholderText}
-                            className="w-full bg-transparent text-gray-800 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 border-0 shadow-none p-2 m-0 leading-tight resize-none overflow-auto min-h-[80px] max-h-[220px]"
-                            rows={1}
+                <UnifiedInput
+                    value={prompt}
+                    onChange={(val) => onPromptChange(val)}
+                    placeholder={placeholderText}
+                    isLoading={loading}
+                    disabled={loading || disabled}
+                    topElements={showInlineSettings ? (
+                        <VisualizeInlineHeader
+                            selectedModelId={selectedModelId}
+                            onModelChange={onModelChange}
+                            currentModelConfig={currentModelConfig}
+                            formFields={formFields}
+                            handleFieldChange={handleFieldChange}
+                            setFormFields={setFormFields}
+                            isGptImage={isGptImage}
+                            isSeedream={isSeedream}
+                            isNanoPollen={isNanoPollen}
+                            isPollenModel={isPollenModel}
+                            isPollinationsVideo={isPollinationsVideo}
                             disabled={loading || disabled}
-                            style={{ lineHeight: '1.5rem', fontSize: '17px' }}
                         />
-                    </div>
-
-                    <div className="flex w-full items-center justify-between gap-1">
-                        {/* Left Side: Settings + Upload (or Mobile Menu) */}
+                    ) : undefined}
+                    leftActions={
                         <div className="flex items-center gap-0">
-                            {isMobile ? (
-                                <VisualizeMobileMenu
-                                    onConfigPanelToggle={onConfigPanelToggle}
-                                    onUploadClick={() => supportsReference ? onImageUploadToggle() : fileInputRef.current?.click()}
-                                    uploadedImagesCount={uploadedImages.length}
-                                    maxImages={maxImages}
-                                    supportsReference={supportsReference}
-                                    isUploading={isUploading}
-                                    disabled={disabled}
-                                    loading={loading}
-                                    onEnhancePrompt={onEnhancePrompt}
-                                    canEnhance={!!prompt.trim()}
-                                    isEnhancing={isEnhancing}
-                                />
-                            ) : (
-                                <>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={onConfigPanelToggle}
-                                        className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white"
-                                        aria-label="Settings"
-                                    >
-                                        <SlidersHorizontal className="w-[20px] h-[20px]" />
-                                    </Button>
-
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={() => supportsReference ? onImageUploadToggle() : fileInputRef.current?.click()}
-                                        disabled={loading || isUploading || disabled}
-                                        className="group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
-                                        aria-label="Upload image"
-                                    >
-                                        <Plus className="w-[20px] h-[20px]" />
-                                    </Button>
-                                </>
-                            )}
+                            {/* Upload Button */}
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={loading || isUploading || disabled || (supportsReference && uploadedImages.length >= maxImages)}
+                                className={cn(
+                                    "group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300",
+                                    "text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
+                                )}
+                                aria-label="Upload image"
+                            >
+                                <Plus className="w-[20px] h-[20px]" />
+                            </Button>
                         </div>
+                    }
 
-                        {/* Right Side: Enhance (desktop only) + Generate */}
-                        <div className="flex items-center gap-0">
-
-                            {/* Enhance - Desktop only */}
-                            {!isMobile && (
+                    rightActions={
+                         <div className="flex items-center gap-0">
+                            {/* Enhance - Hidden on Mobile */}
+                            <div className="hidden md:flex">
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -249,32 +158,43 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                                         {isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
                                     </span>
                                 </Button>
-                            )}
+                            </div>
 
                             {/* Generate Button - Arrow on mobile, text on desktop */}
                             <Button
                                 type="submit"
                                 disabled={!canSubmit}
-                                className={`group rounded-lg transition-all duration-300 ${isMobile
-                                    ? 'h-10 w-10 p-0'
-                                    : 'h-14 w-auto px-4 md:h-12'
+                                className={`group rounded-lg transition-all duration-300 ${
+                                    'h-10 w-10 p-0 md:h-14 md:w-auto md:px-4 md:py-0' 
                                     } ${canSubmit
                                         ? 'bg-black dark:bg-white text-white dark:text-black hover:opacity-90 shadow-md'
                                         : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600'
                                     }`}
                                 aria-label="Generate"
                             >
-                                {isMobile ? (
-                                    <ArrowUp className="w-5 h-5" />
-                                ) : (
-                                    <span className="text-xs md:text-sm font-medium">
-                                        {loading ? t('message.loading') : t('action.generate')}
-                                    </span>
-                                )}
+                                {/* Mobile Icon */}
+                                <ArrowUp className="w-5 h-5 md:hidden" />
+                                {/* Desktop Text */}
+                                <span className="hidden md:inline text-xs md:text-sm font-medium">
+                                    {loading ? t('message.loading') : t('action.generate')}
+                                </span>
                             </Button>
                         </div>
-                    </div>
-                </div>
+                    }
+                >
+                    {/* Loading Overlay */}
+                    {loading && (
+                        <div className="absolute inset-x-4 top-3 z-10">
+                            <div className="rounded-xl bg-black/70 text-white px-4 py-3 text-sm md:text-base shadow-lg flex items-start gap-2">
+                                <Loader2 className="h-4 w-4 mt-0.5 animate-spin" />
+                                <div className="leading-snug">
+                                    {t('message.generating')}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </UnifiedInput>
+                
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -289,4 +209,3 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
 };
 
 export default VisualizeInputContainer;
-

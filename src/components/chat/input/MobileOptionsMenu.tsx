@@ -21,7 +21,6 @@ import {
     Globe,
     MessageSquare,
     Mic,
-    Settings2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +31,9 @@ interface MobileOptionsMenuProps {
     onImageUploadClick: () => void;
     onDocUploadClick: () => void;
     onCameraClick: () => void;
+    allowImageUploadInImageMode?: boolean;
+    disableImageUpload?: boolean;
+    hideUploadSection?: boolean;
 
     // Tools props
     onToggleImageMode: () => void;
@@ -43,8 +45,6 @@ interface MobileOptionsMenuProps {
     // Quick Settings props
     selectedVoice: string;
     onVoiceChange: (voiceId: string) => void;
-    selectedImageModelId: string;
-    onImageModelChange: (modelId: string) => void;
     selectedResponseStyleName: string;
     onStyleChange: (styleName: string) => void;
     mistralFallbackEnabled: boolean;
@@ -58,6 +58,9 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
     onImageUploadClick,
     onDocUploadClick,
     onCameraClick,
+    allowImageUploadInImageMode = false,
+    disableImageUpload = false,
+    hideUploadSection = false,
     // Tools
     onToggleImageMode,
     isCodeMode,
@@ -67,22 +70,10 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
     // Quick Settings
     selectedVoice,
     onVoiceChange,
-    selectedImageModelId,
-    onImageModelChange,
     selectedResponseStyleName,
-    onStyleChange,
-    mistralFallbackEnabled,
-    onToggleMistralFallback
+    onStyleChange
 }) => {
     const [isOpen, setIsOpen] = useState(false);
-
-    // Determine active mode for display
-    const getActiveModeIcon = () => {
-        if (isImageMode) return <Palette className="w-4 h-4" style={{ color: 'hsl(330 65% 62%)' }} />;
-        if (isCodeMode) return <Code2 className="w-4 h-4 text-blue-500" />;
-        if (webBrowsingEnabled) return <Globe className="w-4 h-4 text-green-500" />;
-        return null;
-    };
 
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -104,8 +95,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                         {(isImageMode || isCodeMode || webBrowsingEnabled) && (
                             <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full animate-pulse"
                                 style={{
-                                    backgroundColor: isImageMode ? 'hsl(330 65% 62%)' :
-                                        isCodeMode ? 'rgb(59, 130, 246)' : 'rgb(34, 197, 94)'
+                                    backgroundColor: 'hsl(var(--foreground) / 0.4)'
                                 }}
                             />
                         )}
@@ -118,128 +108,139 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                 side="top"
                 sideOffset={8}
             >
-                {/* Upload Section */}
-                <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Anhang
-                </DropdownMenuLabel>
-                <div className="px-2 pb-2">
-                    <DropdownMenuItem
-                        onClick={onImageUploadClick}
-                        disabled={isLoading || isImageMode}
-                        className="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg"
-                    >
-                        <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                            <ImageIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                {!hideUploadSection && (
+                    <>
+                        {/* Upload Section */}
+                        <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Anhang
+                        </DropdownMenuLabel>
+                        <div className="px-2 pb-2">
+                            <DropdownMenuItem
+                                onClick={onImageUploadClick}
+                                disabled={isLoading || (isImageMode && !allowImageUploadInImageMode) || disableImageUpload}
+                                className="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg"
+                            >
+                                <div className="w-7 h-7 rounded-lg bg-muted/60 flex items-center justify-center">
+                                    <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                                </div>
+                                <span className="text-sm">Bild hochladen</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={onDocUploadClick}
+                                disabled={isLoading || isImageMode}
+                                className="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg"
+                            >
+                                <div className="w-7 h-7 rounded-lg bg-muted/60 flex items-center justify-center">
+                                    <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                                </div>
+                                <span className="text-sm">Dokument</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={onCameraClick}
+                                disabled={isLoading || isImageMode}
+                                className="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg"
+                            >
+                                <div className="w-7 h-7 rounded-lg bg-muted/60 flex items-center justify-center">
+                                    <Camera className="w-3.5 h-3.5 text-muted-foreground" />
+                                </div>
+                                <span className="text-sm">Kamera</span>
+                            </DropdownMenuItem>
                         </div>
-                        <span className="text-sm">Bild hochladen</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onClick={onDocUploadClick}
-                        disabled={isLoading || isImageMode}
-                        className="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg"
-                    >
-                        <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                            <FileText className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
-                        </div>
-                        <span className="text-sm">Dokument</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onClick={onCameraClick}
-                        disabled={isLoading || isImageMode}
-                        className="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg"
-                    >
-                        <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <Camera className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                        </div>
-                        <span className="text-sm">Kamera</span>
-                    </DropdownMenuItem>
-                </div>
 
-                <DropdownMenuSeparator />
+                        <DropdownMenuSeparator />
+                    </>
+                )}
 
                 {/* Tools Section */}
                 <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Modus
                 </DropdownMenuLabel>
                 <div className="px-2 pb-2 space-y-0.5">
-                    {/* Standard Chat */}
-                    <DropdownMenuItem
-                        onClick={() => {
-                            if (isImageMode) onToggleImageMode();
-                            if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
-                            if (webBrowsingEnabled) onToggleWebBrowsing();
-                        }}
-                        className={cn(
-                            "flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg",
-                            !isImageMode && !isCodeMode && !webBrowsingEnabled && "bg-accent"
-                        )}
-                    >
-                        <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
-                            <MessageSquare className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-sm">Standard Chat</span>
-                    </DropdownMenuItem>
-
                     {/* Visualize Mode */}
                     <DropdownMenuItem
                         onClick={() => {
+                            if (isImageMode) {
+                                onToggleImageMode();
+                                return;
+                            }
                             if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
                             if (webBrowsingEnabled) onToggleWebBrowsing();
-                            if (!isImageMode) onToggleImageMode();
-                            else onToggleImageMode();
+                            onToggleImageMode();
                         }}
                         className={cn(
                             "flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg",
-                            isImageMode && "dark:bg-purple-900/20"
+                            isImageMode && "bg-muted/60"
                         )}
                     >
-                        <div className="w-7 h-7 rounded-lg dark:bg-purple-900/30 flex items-center justify-center">
-                            <Palette className="w-3.5 h-3.5" style={{ color: 'hsl(330 65% 62%)' }} />
+                        <div className="w-7 h-7 rounded-lg bg-muted/60 flex items-center justify-center">
+                            <Palette className="w-3.5 h-3.5" />
                         </div>
                         <span className="text-sm">Visualize</span>
-                        {isImageMode && <div className="w-2 h-2 rounded-full animate-pulse ml-auto" style={{ backgroundColor: 'hsl(330 65% 62%)' }} />}
+                        {isImageMode && <div className="w-2 h-2 rounded-full animate-pulse ml-auto bg-foreground/40" />}
                     </DropdownMenuItem>
 
-                    {/* Deep Research */}
-                    <DropdownMenuItem
-                        onClick={() => {
-                            if (isImageMode) onToggleImageMode();
-                            if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
-                            if (!webBrowsingEnabled) onToggleWebBrowsing();
-                            else onToggleWebBrowsing();
-                        }}
-                        className={cn(
-                            "flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg",
-                            webBrowsingEnabled && "bg-green-50 dark:bg-green-900/20"
-                        )}
-                    >
-                        <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <Globe className="w-3.5 h-3.5 text-green-500" />
-                        </div>
-                        <span className="text-sm">Deep Research</span>
-                        {webBrowsingEnabled && <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse ml-auto" />}
-                    </DropdownMenuItem>
+                    {!isImageMode && (
+                        <>
+                            {/* Standard Chat */}
+                            <DropdownMenuItem
+                                onClick={() => {
+                                    if (isImageMode) onToggleImageMode();
+                                    if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
+                                    if (webBrowsingEnabled) onToggleWebBrowsing();
+                                }}
+                                className={cn(
+                                    "flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg",
+                                    !isImageMode && !isCodeMode && !webBrowsingEnabled && "bg-muted/60"
+                                )}
+                            >
+                                <div className="w-7 h-7 rounded-lg bg-muted/60 flex items-center justify-center">
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                </div>
+                                <span className="text-sm">Standard Chat</span>
+                            </DropdownMenuItem>
 
-                    {/* Coding Assist */}
-                    {onToggleCodeMode && (
-                        <DropdownMenuItem
-                            onClick={() => {
-                                if (isImageMode) onToggleImageMode();
-                                if (webBrowsingEnabled) onToggleWebBrowsing();
-                                if (!isCodeMode) onToggleCodeMode();
-                                else onToggleCodeMode();
-                            }}
-                            className={cn(
-                                "flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg",
-                                isCodeMode && "bg-blue-50 dark:bg-blue-900/20"
+                            {/* Deep Research */}
+                            <DropdownMenuItem
+                                onClick={() => {
+                                    if (isImageMode) onToggleImageMode();
+                                    if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
+                                    if (!webBrowsingEnabled) onToggleWebBrowsing();
+                                    else onToggleWebBrowsing();
+                                }}
+                                className={cn(
+                                    "flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg",
+                                    webBrowsingEnabled && "bg-muted/60"
+                                )}
+                            >
+                                <div className="w-7 h-7 rounded-lg bg-muted/60 flex items-center justify-center">
+                                    <Globe className="w-3.5 h-3.5" />
+                                </div>
+                                <span className="text-sm">Deep Research</span>
+                                {webBrowsingEnabled && <div className="w-2 h-2 rounded-full bg-foreground/40 animate-pulse ml-auto" />}
+                            </DropdownMenuItem>
+
+                            {/* Coding Assist */}
+                            {onToggleCodeMode && (
+                                <DropdownMenuItem
+                                    onClick={() => {
+                                        if (isImageMode) onToggleImageMode();
+                                        if (webBrowsingEnabled) onToggleWebBrowsing();
+                                        if (!isCodeMode) onToggleCodeMode();
+                                        else onToggleCodeMode();
+                                    }}
+                                    className={cn(
+                                        "flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg",
+                                        isCodeMode && "bg-muted/60"
+                                    )}
+                                >
+                                    <div className="w-7 h-7 rounded-lg bg-muted/60 flex items-center justify-center">
+                                        <Code2 className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span className="text-sm">Coding Assist</span>
+                                    {isCodeMode && <div className="w-2 h-2 rounded-full bg-foreground/40 animate-pulse ml-auto" />}
+                                </DropdownMenuItem>
                             )}
-                        >
-                            <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                <Code2 className="w-3.5 h-3.5 text-blue-500" />
-                            </div>
-                            <span className="text-sm">Coding Assist</span>
-                            {isCodeMode && <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse ml-auto" />}
-                        </DropdownMenuItem>
+                        </>
                     )}
                 </div>
 
@@ -266,25 +267,6 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                 <SelectItem value="French_Female_News Anchor">🎙️ Charlie</SelectItem>
                                 <SelectItem value="German_FriendlyMan">🎙️ Mika</SelectItem>
                                 <SelectItem value="German_PlayfulMan">🎙️ Casey</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Image Model */}
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                            <ImageIcon className="w-3 h-3" />
-                            Bildmodell
-                        </label>
-                        <Select value={selectedImageModelId} onValueChange={onImageModelChange}>
-                            <SelectTrigger className="h-8 text-xs bg-muted/30">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="nanobanana">🎨 Nanobanana</SelectItem>
-                                <SelectItem value="kontext">🎨 Kontext</SelectItem>
-                                <SelectItem value="nanobanana-pro">✨ Nanobanana Pro</SelectItem>
-                                <SelectItem value="seedream">🎨 Seedream</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

@@ -17,7 +17,7 @@ const BasePopup: React.FC<BasePopupProps> = ({
 }) => {
     const baseClasses = "bg-popover text-popover-foreground border border-border shadow-xl";
     const roundedClasses = variant === 'modal' ? "rounded-2xl" : "rounded-xl";
-    const animationClasses = "animate-in fade-in-0 slide-in-from-bottom-4 duration-300";
+    const animationClasses = "animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-3 duration-200 ease-out";
 
     return (
         <div className={cn(baseClasses, roundedClasses, animationClasses, className)}>
@@ -49,6 +49,14 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
                 const popupWidth = 340; // min-w-[340px] from Quick Settings
                 const popupHeight = 350; // approximate height
                 const gap = 8; // spacing from trigger
+                const transformOrigin = {
+                    'top-left': 'left bottom',
+                    'top-right': 'right bottom',
+                    'top-center': 'center bottom',
+                    'bottom-left': 'left top',
+                    'bottom-right': 'right top',
+                    'bottom-center': 'center top'
+                }[position];
 
                 // Calculate position above the trigger
                 let top = rect.top - popupHeight - gap;
@@ -76,6 +84,7 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
                     position: 'fixed',
                     top: `${top}px`,
                     left: `${left}px`,
+                    transformOrigin,
                     zIndex: 50,
                 });
             };

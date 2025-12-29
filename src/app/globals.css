@@ -39,8 +39,8 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
-    --input: 240 4.8% 10%;
-    /* #f8f8f8 adjusted for input */
+    --input: 240 5.9% 90%;
+    /* Standardized border/input color */
     --ring: 240 4.8% 10%;
     /* #1a1a1a */
     --radius: 0.5rem;
@@ -62,6 +62,8 @@
 
     --tool-input-bg: 322 27% 93%;
     /* #f2e4ed */
+    --input-container-bg: 0 0% 100%;
+    /* Standardized white for inputs on light mode */
     --tool-button-bg: 322 27% 91%;
     /* #eed0e3 */
   }
@@ -115,6 +117,8 @@
 
     --tool-input-bg: 0 0% 14.5%;
     /* #252525 */
+    --input-container-bg: 0 0% 12%;
+    /* #1f1f1f - Standardized dark input bg */
     --tool-button-bg: 0 0% 16.9%;
     /* #2b2b2b */
   }
@@ -162,7 +166,8 @@ html {
 
 @layer utilities {
   .text-glow {
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.7), 0 0 20px rgba(255, 255, 255, 0.5), 0 0 30px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.7),
+      0 0 20px rgba(255, 255, 255, 0.5), 0 0 30px rgba(255, 255, 255, 0.3);
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -177,27 +182,35 @@ html {
   }
 
   .filter-neutral {
-    filter: invert(50%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
+    filter: invert(50%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%)
+      contrast(100%);
     opacity: 0.6;
   }
 
   .filter-purple {
     /* Generated with https://codepen.io/sosuke/pen/Pjoqqp */
     /* Target color: #8b5cf6 (purple-500) */
-    filter: invert(47%) sepia(87%) saturate(1437%) hue-rotate(228deg) brightness(97%) contrast(96%);
+    filter: invert(47%) sepia(87%) saturate(1437%) hue-rotate(228deg)
+      brightness(97%) contrast(96%);
   }
 
   .bg-radial-gradient-fog {
-    background-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85) 20%, rgba(0, 0, 0, 0) 70%);
+    background-image: radial-gradient(
+      ellipse at center,
+      rgba(0, 0, 0, 0.85) 20%,
+      rgba(0, 0, 0, 0) 70%
+    );
   }
 
   .matrix-rain {
-    background: linear-gradient(180deg,
-        transparent 0%,
-        rgba(236, 72, 153, 0.1) 10%,
-        rgba(147, 51, 234, 0.2) 20%,
-        rgba(236, 72, 153, 0.1) 30%,
-        transparent 40%);
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(236, 72, 153, 0.1) 10%,
+      rgba(147, 51, 234, 0.2) 20%,
+      rgba(236, 72, 153, 0.1) 30%,
+      transparent 40%
+    );
     background-size: 100% 200%;
     animation: matrix-fall 8s linear infinite;
   }
@@ -213,17 +226,19 @@ html {
   }
 
   .matrix-rain::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: repeating-linear-gradient(90deg,
-        transparent,
-        transparent 2px,
-        rgba(236, 72, 153, 0.05) 2px,
-        rgba(147, 51, 234, 0.05) 4px);
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(236, 72, 153, 0.05) 2px,
+      rgba(147, 51, 234, 0.05) 4px
+    );
     animation: matrix-scan 12s linear infinite;
   }
 
@@ -239,7 +254,6 @@ html {
 
   /* Typewriter cursor animation */
   @keyframes blink {
-
     0%,
     50% {
       opacity: 1;
@@ -285,7 +299,6 @@ h6 {
 
 /* Pulsierende Animationen */
 @keyframes pulse-purple {
-
   0%,
   100% {
     box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
@@ -299,7 +312,6 @@ h6 {
 }
 
 @keyframes pulse-green {
-
   0%,
   100% {
     box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
@@ -313,7 +325,6 @@ h6 {
 }
 
 @keyframes pulse-blue {
-
   0%,
   100% {
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);

@@ -1,44 +1,39 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
-  Menu,
-  MessageCirclePlus,
+  PlusIcon,
   History,
-  Images,
-  WandSparkles,
+  ImageIcon,
+  ChevronDown,
+  X,
   UserRoundPen,
-  ChevronRight,
-  SmilePlus,
-  Home,
-  Heart,
-  Download,
   Trash2,
+  Pencil,
+  Download,
   Languages,
   SunMoon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { ThemeToggle } from '../ThemeToggle';
 import LanguageToggle from '../LanguageToggle';
-import { useLanguage } from '../LanguageProvider';
-import SidebarHistoryPanel from '../chat/SidebarHistoryPanel';
-import SidebarGalleryPanel from '../chat/SidebarGalleryPanel';
 import { useImageHistory } from '@/hooks/useImageHistory';
+
+interface ConversationItem {
+  id: string;
+  title: string;
+  updatedAt?: Date | string;
+}
 
 interface AppSidebarProps {
   onNewChat?: () => void;
-  onToggleHistoryPanel?: () => void;
-  onToggleGalleryPanel?: () => void;
   currentPath?: string;
-  isHistoryPanelOpen?: boolean;
-  isGalleryPanelOpen?: boolean;
-  allConversations?: any[];
-  activeConversation?: any;
+  allConversations?: ConversationItem[];
+  activeConversation?: ConversationItem | null;
   onSelectChat?: (id: string) => void;
   onRequestEditTitle?: (id: string) => void;
   onDeleteChat?: (id: string) => void;
@@ -48,378 +43,265 @@ interface AppSidebarProps {
 
 const AppSidebar: React.FC<AppSidebarProps> = ({
   onNewChat,
-  onToggleHistoryPanel,
-  onToggleGalleryPanel,
-  currentPath,
-  isHistoryPanelOpen = false,
-  isGalleryPanelOpen = false,
   allConversations = [],
   activeConversation = null,
   onSelectChat,
   onRequestEditTitle,
   onDeleteChat,
-  isExpanded: externalIsExpanded,
-  onToggle: externalOnToggle
+  isExpanded = false,
+  onToggle
 }) => {
-  const pathname = usePathname();
   const router = useRouter();
-  const { language, t } = useLanguage();
-  const [internalIsExpanded, setInternalIsExpanded] = useState(false); // Default to collapsed
-  const [userDisplayName, setUserDisplayName] = useState('User');
-  const [isMounted, setIsMounted] = useState(false);
-  const { imageHistory, clearImageHistory, removeImageFromHistory } = useImageHistory();
+  const [historyExpanded, setHistoryExpanded] = useState(true);
+  const { imageHistory, removeImageFromHistory } = useImageHistory();
 
-  // Use external state if provided, otherwise use internal state
-  const isExpanded = externalIsExpanded !== undefined ? externalIsExpanded : internalIsExpanded;
-  const setIsExpanded = externalOnToggle ? () => externalOnToggle() : setInternalIsExpanded;
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    const savedExpanded = localStorage.getItem('sidebarExpanded');
-    const savedName = localStorage.getItem('userDisplayName');
-
-    // On mobile, always start collapsed
-    const isMobile = window.innerWidth < 768;
-    if (savedExpanded !== null && !isMobile && externalIsExpanded === undefined) {
-      setInternalIsExpanded(savedExpanded === 'true');
-    } else if (!isMobile && externalIsExpanded === undefined) {
-      setInternalIsExpanded(false); // Desktop default: collapsed (like mobile)
-    }
-
-    if (savedName) {
-      setUserDisplayName(savedName);
-    }
-
-    setIsMounted(true);
-  }, [externalIsExpanded]);
-
-  // Save to localStorage when changed (only for internal state)
-  useEffect(() => {
-    if (isMounted && externalIsExpanded === undefined) {
-      localStorage.setItem('sidebarExpanded', String(internalIsExpanded));
-    }
-  }, [internalIsExpanded, isMounted, externalIsExpanded]);
-
-  const labels = {
-    newInteraction: t('nav.newInteraction') || 'Neuer Chat',
-    history: t('nav.history') || 'Historie',
-    gallery: t('nav.gallery') || 'Meine Inhalte',
-    personalization: t('nav.personalization') || 'Personalisierung',
-    languageLabel: t('nav.language') || 'Sprache',
-    themeLabel: t('nav.theme') || 'Theme',
-    conversations: 'Chats',
+  const handleClose = () => {
+    if (onToggle) onToggle();
   };
 
-  const handleToggle = () => {
-    setIsExpanded(prev => !prev);
+  const formatTime = (date: Date | string | undefined): string => {
+    if (!date) return '';
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 1) return 'Jetzt';
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays === 1) return 'Gestern';
+    return `${diffDays}d`;
   };
 
-  // Close sidebar when clicking outside (only when expanded and not clicking on sidebar content)
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
+  const galleryImages = imageHistory.slice(0, 6);
 
-      // Safety check for non-element targets (though rare for mousedown)
-      if (!target?.closest) return;
-
-      const isInsideSidebar = sidebarRef.current?.contains(target);
-
-      // Check if click is inside a portal (dropdowns, dialogs, etc.)
-      // We check for commonly used attributes in Radix UI portals
-      const isInsidePortal =
-        target.closest('[data-radix-portal]') ||
-        target.closest('[data-radix-menu-content]') ||
-        target.closest('[role="menu"]');
-
-      if (isExpanded && !isInsideSidebar && !isInsidePortal) {
-        setIsExpanded(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isExpanded]);
-
-  const sidebarRef = React.useRef<HTMLDivElement>(null);
+  // Don't render anything if not expanded
+  if (!isExpanded) return null;
 
   return (
     <>
-      {/* Mobile backdrop */}
-      {isExpanded && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setIsExpanded(false)}
-        />
-      )}
-
+      {/* Backdrop */}
       <div
-        className={cn(
-          "h-screen bg-background border-r border-border flex flex-col transition-all duration-300",
-          // Mobile: fixed overlay, Desktop: static sidebar but still z-50 to overlay header
-          "fixed md:relative z-50",
-          // Mobile & Desktop: completely hidden when collapsed (w-0)
-          isExpanded ? "w-72" : "w-0 overflow-hidden",
-          // Slide off-screen when collapsed
-          !isExpanded && "-translate-x-full"
-        )}
-        ref={sidebarRef}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+        onClick={handleClose}
+      />
+
+      {/* Sidebar Panel */}
+      <aside
+        className="fixed inset-y-0 left-0 w-72 bg-background/95 backdrop-blur-xl border-r border-border/50 z-50 animate-in slide-in-from-left duration-200"
       >
-        {/* Header */}
-        <div className="p-4 border-b border-border flex items-center gap-3">
-          {/* Menu button - only visible on desktop (hidden on mobile to avoid duplicate) */}
+        <div className="h-full flex flex-col p-3">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-3">
+            <Link href="/" onClick={handleClose}>
+              <span className="text-xs font-medium text-primary">
+                say hey.hi to ai
+              </span>
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClose}
+              className="h-7 w-7 rounded-full hover:bg-accent/50"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* New Conversation */}
           <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleToggle}
-            className={cn(
-              !isExpanded && "hidden",
-              "hidden md:block" // Hide on mobile, show on desktop
-            )}
+            onClick={() => {
+              if (onNewChat) onNewChat();
+              handleClose();
+            }}
+            size="sm"
+            className="rounded-lg mb-3 h-8 text-xs bg-primary/90 hover:bg-primary"
           >
-            <Menu className="w-5 h-5" />
+            <PlusIcon className="h-3.5 w-3.5 mr-1.5" />
+            Neue Konversation
           </Button>
 
-          {isExpanded && (
-            <Link href="/" className="flex-1">
-              <div className="font-mono text-sm flex items-center whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity">
-                <span className="text-[rgb(255,105,180)] font-semibold tracking-tight">say hey.hi to ai</span>
-              </div>
-            </Link>
-          )}
-        </div>
+          {/* Conversations Section */}
+          <div className="flex-shrink-0">
+            <button
+              onClick={() => setHistoryExpanded(!historyExpanded)}
+              className="w-full flex items-center justify-between px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span className="flex items-center gap-1.5">
+                <History className="h-3.5 w-3.5" />
+                Konversationen
+              </span>
+              <ChevronDown className={cn("h-3 w-3 transition-transform", historyExpanded && "rotate-180")} />
+            </button>
 
-        {/* Main Content */}
-        <div className="flex-1 overflow-hidden flex flex-col relative">
-          <div className="flex-1 overflow-y-auto pt-2 space-y-2">
-            {/* New Interaction Button */}
-            <div className="px-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "w-full justify-start gap-2 h-8",
-                  !isExpanded && "justify-center px-0"
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onNewChat) {
-                    onNewChat();
-                  }
-                  setIsExpanded(false);
-                }}
-              >
-                <SmilePlus className="w-4 h-4 shrink-0" />
-                {isExpanded && <span className="text-xs">{labels.newInteraction}</span>}
-              </Button>
-            </div>
-
-            {/* Meine Inhalte (Gallery) Section */}
-            <div className="space-y-1">
-              <div className="px-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "w-full justify-start gap-2 h-8 relative z-10",
-                    !isExpanded && "justify-center px-0",
-                    isGalleryPanelOpen && "bg-accent text-accent-foreground"
-                  )}
-                  onClick={() => {
-                    if (!isExpanded) setIsExpanded(true);
-                    if (onToggleGalleryPanel) onToggleGalleryPanel();
-                  }}
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2">
-                      <Images className="w-4 h-4 shrink-0" />
-                      {isExpanded && <span className="text-[13px] font-medium">{labels.gallery}</span>}
-                    </div>
-                    {isExpanded && (
-                      <ChevronRight className={cn(
-                        "w-3.5 h-3.5 shrink-0 transition-transform text-muted-foreground",
-                        isGalleryPanelOpen && "rotate-90"
-                      )} />
+            {historyExpanded && allConversations.length > 0 && (
+              <div className="max-h-40 overflow-y-auto space-y-0.5 pr-1 mt-1">
+                {allConversations.map((conv) => (
+                  <div
+                    key={conv.id}
+                    className={cn(
+                      "group flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors",
+                      activeConversation?.id === conv.id
+                        ? "bg-accent"
+                        : "hover:bg-accent/40"
                     )}
+                  >
+                    <button
+                      onClick={() => {
+                        onSelectChat?.(conv.id);
+                        handleClose();
+                      }}
+                      className="flex-1 min-w-0 text-left"
+                    >
+                      <p className="text-xs font-medium truncate">{conv.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{formatTime(conv.updatedAt)}</p>
+                    </button>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {onRequestEditTitle && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRequestEditTitle(conv.id);
+                          }}
+                          className="h-5 w-5"
+                        >
+                          <Pencil className="h-2.5 w-2.5" />
+                        </Button>
+                      )}
+                      {onDeleteChat && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteChat(conv.id);
+                          }}
+                          className="h-5 w-5 hover:text-destructive"
+                        >
+                          <Trash2 className="h-2.5 w-2.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </Button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Gallery Section */}
+          {galleryImages.length > 0 && (
+            <div className="flex-shrink-0 mt-3 pt-3 border-t border-border/30">
+              <div className="flex items-center justify-between px-2 mb-2">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  Galerie
+                </span>
+                <span className="text-[10px] text-muted-foreground">{imageHistory.length}</span>
               </div>
 
-              {/* Inline Gallery Panel */}
-              {isGalleryPanelOpen && isExpanded && (
-                <div className="mt-1">
-                  <SidebarGalleryPanel
-                    history={imageHistory}
-                    onSelectImage={(item) => {
+              <div className="grid grid-cols-3 gap-1.5">
+                {galleryImages.map((item) => (
+                  <div
+                    key={item.id}
+                    className="group relative aspect-square rounded-lg overflow-hidden hover:ring-1 hover:ring-primary/50 transition-all cursor-pointer"
+                    onClick={() => {
                       window.dispatchEvent(new CustomEvent('sidebar-reuse-prompt', { detail: item.prompt }));
-                      setIsExpanded(false);
-                      if (onToggleGalleryPanel) onToggleGalleryPanel();
+                      handleClose();
                     }}
-                    onClearHistory={clearImageHistory}
-                    onDeleteSingleImage={removeImageFromHistory}
-                    onClose={onToggleGalleryPanel || (() => { })}
-                  />
-                </div>
-              )}
-
-              {/* 3-Image Preview Grid (Gemini Style) */}
-              {isExpanded && imageHistory.length > 0 && !isGalleryPanelOpen && (
-                <div className="grid grid-cols-3 gap-1.5 px-2 mt-1 mb-4">
-                  {imageHistory.slice(0, 3).map((item) => (
-                    <div
-                      key={item.id}
-                      className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all border border-border/10 shadow-sm"
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent('sidebar-reuse-prompt', { detail: item.prompt }));
-                        if (isGalleryPanelOpen && onToggleGalleryPanel) onToggleGalleryPanel();
-                        setIsExpanded(false);
-                      }}
-                      title={item.prompt}
-                    >
+                    title={item.prompt}
+                  >
+                    { (item.videoUrl || item.imageUrl) ? (
                       <Image
-                        src={item.videoUrl ? 'https://placehold.co/150x150.png' : item.imageUrl}
+                        src={item.videoUrl ? 'https://placehold.co/80x80.png' : item.imageUrl}
                         alt={item.prompt}
                         fill
                         className="object-cover"
-                        sizes="80px"
+                        sizes="60px"
                       />
-                      {/* Hover action buttons */}
-                      <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          className="p-1.5 rounded-full bg-white/90 hover:bg-white text-gray-800 transition-colors"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const url = item.videoUrl || item.imageUrl;
-                            try {
-                              const response = await fetch(url);
-                              const blob = await response.blob();
-                              const objectUrl = window.URL.createObjectURL(blob);
-                              const link = document.createElement('a');
-                              link.href = objectUrl;
-                              link.download = `image_${item.id}.${blob.type.split('/')[1] || 'png'}`;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                              window.URL.revokeObjectURL(objectUrl);
-                            } catch {
-                              window.open(url, '_blank');
-                            }
-                          }}
-                          title="Download"
-                        >
-                          <Download className="w-3 h-3" />
-                        </button>
-                        <button
-                          className="p-1.5 rounded-full bg-red-500/90 hover:bg-red-500 text-white transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeImageFromHistory(item.id);
-                          }}
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
                       </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        className="p-1 rounded-full bg-white/80 hover:bg-white text-gray-800"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const url = item.videoUrl || item.imageUrl;
+                          try {
+                            const response = await fetch(url);
+                            const blob = await response.blob();
+                            const objectUrl = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = objectUrl;
+                            link.download = `image_${item.id}.${blob.type.split('/')[1] || 'png'}`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(objectUrl);
+                          } catch {
+                            window.open(url, '_blank');
+                          }
+                        }}
+                      >
+                        <Download className="w-2.5 h-2.5" />
+                      </button>
+                      <button
+                        className="p-1 rounded-full bg-red-500/80 hover:bg-red-500 text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImageFromHistory(item.id);
+                        }}
+                      >
+                        <Trash2 className="w-2.5 h-2.5" />
+                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* History Section */}
-            <div className="space-y-1">
-              <div className="px-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "w-full justify-start gap-2 h-8 relative z-10",
-                    !isExpanded && "justify-center px-0",
-                    isHistoryPanelOpen && "bg-accent text-accent-foreground"
-                  )}
-                  onClick={() => {
-                    if (!isExpanded) setIsExpanded(true);
-                    if (onToggleHistoryPanel) onToggleHistoryPanel();
-                  }}
-                >
-                  <History className="w-4 h-4 shrink-0" />
-                  {isExpanded && (
-                    <>
-                      <span className="flex-1 text-left text-xs">{labels.history}</span>
-                      <ChevronRight className={cn(
-                        "w-3 h-3 shrink-0 transition-transform",
-                        isHistoryPanelOpen && "rotate-90"
-                      )} />
-                    </>
-                  )}
-                </Button>
+                  </div>
+                ))}
               </div>
-
-              {/* Inline History Panel */}
-              {isHistoryPanelOpen && isExpanded && (
-                <div className="mt-1">
-                  <SidebarHistoryPanel
-                    allConversations={allConversations}
-                    activeConversation={activeConversation}
-                    onSelectChat={onSelectChat || (() => { })}
-                    onRequestEditTitle={onRequestEditTitle || (() => { })}
-                    onDeleteChat={onDeleteChat || (() => { })}
-                    onClose={onToggleHistoryPanel || (() => { })}
-                  />
-                </div>
-              )}
             </div>
-          </div>
+          )}
 
+          {/* Spacer */}
+          <div className="flex-1" />
 
-
-          {/* Bottom Section - Higher z-index to stay above panels */}
-          <div className="p-4 border-t border-border space-y-1 relative z-30 bg-background">
+          {/* Bottom Section */}
+          <div className="pt-3 border-t border-border/30 space-y-0.5">
             {/* Personalisierung */}
             <Button
               variant="ghost"
               size="sm"
-              className={cn(
-                "w-full justify-start gap-2 h-8",
-                !isExpanded && "justify-center px-0"
-              )}
-              onClick={() => router.push('/settings')}
+              onClick={() => {
+                router.push('/settings');
+                handleClose();
+              }}
+              className="w-full justify-start gap-2 h-7 text-xs"
             >
-              <UserRoundPen className="w-4 h-4 shrink-0" />
-              {isExpanded && <span className="text-[13px] font-medium">{labels.personalization}</span>}
+              <UserRoundPen className="h-3.5 w-3.5 shrink-0" />
+              Personalisierung
             </Button>
 
             {/* Sprache */}
-            <div className={cn(
-              "flex items-center h-8 px-2",
-              !isExpanded && "justify-center px-0"
-            )}>
-              <Languages className="w-4 h-4 shrink-0" />
-              {isExpanded && (
-                <>
-                  <span className="ml-2 flex-1 text-[13px] font-medium">{labels.languageLabel}</span>
-                  <LanguageToggle />
-                </>
-              )}
+            <div className="flex items-center h-7 px-2 gap-2 text-xs">
+              <Languages className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="flex-1">Sprache</span>
+              <LanguageToggle />
             </div>
 
-            {/* App Design */}
-            <div className={cn(
-              "flex items-center h-8 px-2",
-              !isExpanded && "justify-center px-0"
-            )}>
-              <SunMoon className="w-4 h-4 shrink-0" />
-              {isExpanded && (
-                <>
-                  <span className="ml-2 flex-1 text-[13px] font-medium">{labels.themeLabel}</span>
-                  <ThemeToggle />
-                </>
-              )}
+            {/* Theme */}
+            <div className="flex items-center h-7 px-2 gap-2 text-xs">
+              <SunMoon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="flex-1">Theme</span>
+              <ThemeToggle />
             </div>
           </div>
         </div>
-      </div>
+      </aside>
     </>
   );
 };

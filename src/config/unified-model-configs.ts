@@ -27,6 +27,41 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'jpg', hidden: true },
     ],
   },
+  'gptimage-large': {
+    id: 'gptimage-large',
+    name: 'GPT-Image 1.5',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'flux': {
+    id: 'flux',
+    name: 'Flux1 Ultra',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'kontext': {
+    id: 'kontext',
+    name: 'Flux1 Kontext',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
   'seedream-pro': {
     id: 'seedream-pro',
     name: 'Seedream Pro',
@@ -74,6 +109,18 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   'seedance-pro': {
     id: 'seedance-pro',
     name: 'Seedance Pro',
+    outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 6 },
+      { name: 'output_format', default: 'mp4' },
+      { name: 'seed' },
+    ],
+  },
+  'seedance': {
+    id: 'seedance',
+    name: 'Seedance',
     outputType: 'video',
     inputs: [
       { name: 'prompt', isPrompt: true },

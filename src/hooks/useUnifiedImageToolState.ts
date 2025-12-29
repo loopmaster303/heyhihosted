@@ -8,7 +8,9 @@ import { getUnifiedModel } from '@/config/unified-image-models';
 
 // Define which models need image upload
 export const pollinationUploadModels = [
+    'flux',
     'gpt-image',
+    'gptimage-large',
     'seedream-pro',
     'seedream',
     'nanobanana',
@@ -58,10 +60,10 @@ export function useUnifiedImageToolState() {
     const [isUploading, setIsUploading] = useState(false);
 
     // Derived states
-    const isGptImage = selectedModelId === 'gpt-image';
+    const isGptImage = selectedModelId === 'gpt-image' || selectedModelId === 'gptimage-large';
     const isSeedream = selectedModelId === 'seedream' || selectedModelId === 'seedream-pro';
     const isNanoPollen = selectedModelId === 'nanobanana' || selectedModelId === 'nanobanana-pro';
-    const isPollenModel = isGptImage || isSeedream || isNanoPollen;
+    const isPollenModel = isGptImage || isSeedream || isNanoPollen || selectedModelId === 'flux' || selectedModelId === 'kontext' || selectedModelId === 'zimage';
     const isPollinationsVideo = currentModelConfig?.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations';
 
     // Supports Reference Check
@@ -80,11 +82,17 @@ export function useUnifiedImageToolState() {
         if (selectedModelId === 'wan-video') return 1;
         if (selectedModelId === 'veo-3.1-fast') return 1;
         if (selectedModelId === 'seedance-pro') return 1;
+        if (selectedModelId === 'seedance') return 1;
         if (selectedModelId === 'veo') return 1;
         if (selectedModelId === 'seedream-pro') return 8;
         if (selectedModelId === 'seedream') return 8;
         if (selectedModelId === 'gpt-image') return 8;
+        if (selectedModelId === 'gptimage-large') return 8;
         if (selectedModelId === 'nanobanana' || selectedModelId === 'nanobanana-pro') return 8;
+        
+        // Default for Pollinations flux/kontext is usually 1 (prompt injection or img2img)
+        if (selectedModelId === 'flux' || selectedModelId === 'kontext') return 1;
+
         return 0;
     }, [selectedModelId, supportsReference]);
 
@@ -102,7 +110,7 @@ export function useUnifiedImageToolState() {
                 }
             }
         });
-        if (isGptImage || isSeedream || isNanoPollen) {
+        if (isGptImage || isSeedream || isNanoPollen || selectedModelId === 'flux' || selectedModelId === 'kontext') {
             const preset = gptImagePresets['1:1'];
             initialFields.aspect_ratio = '1:1';
             initialFields.width = preset.width;
@@ -143,11 +151,12 @@ export function useUnifiedImageToolState() {
     }, [selectedModelId, maxImages, uploadedImages, currentModelConfig]);
 
     // Handle File Change
-    const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(event.target.files || []);
+        if (files.length === 0) return;
 
-        if (!file.type.startsWith('image/')) {
+        const imageFiles = files.filter(file => file.type.startsWith('image/'));
+        if (imageFiles.length === 0) {
             toast({ title: "Invalid File", description: "Please upload an image file.", variant: "destructive" });
             return;
         }
@@ -160,67 +169,68 @@ export function useUnifiedImageToolState() {
         if (needsUpload || allUploadModels.includes(selectedModelId)) {
             setIsUploading(true);
 
-            // Strict Polinations Check for Replace Behavior
-            // If Pollinations AND maxImages is 1 (Single Image Mode), we DELETE the old one and REPLACE it.
-            // If Replicate, we stick to APPEND as requested.
-            const shouldReplace = isPollinations && maxImages === 1 && uploadedImages.length >= 1;
+            if (isPollinations && maxImages === 1 && imageFiles.length > 1) {
+                toast({ title: "Limit Reached", description: "Only one reference image allowed for this model.", variant: "destructive" });
+            }
 
-            if (shouldReplace) {
-                // Delete the existing image first
-                const oldUrl = uploadedImages[0];
+            let currentImages = [...uploadedImages];
+            const targetFiles = isPollinations && maxImages === 1 ? imageFiles.slice(0, 1) : imageFiles;
+
+            if (isPollinations && maxImages === 1 && currentImages.length >= 1) {
+                const oldUrl = currentImages[0];
                 fetch('/api/upload', {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: oldUrl })
                 }).catch(err => console.error("Failed to delete old image blob:", err));
+                currentImages = [];
             }
 
-            const formData = new FormData();
-            formData.append('file', file);
-            fetch('/api/upload', { method: 'POST', body: formData })
-                .then(async (res) => {
+            try {
+                for (const file of targetFiles) {
+                    if (currentImages.length >= maxImages) {
+                        toast({ title: "Limit Reached", description: `Maximum ${maxImages} images allowed.`, variant: "destructive" });
+                        break;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const res = await fetch('/api/upload', { method: 'POST', body: formData });
                     if (!res.ok) {
                         const data = await res.json().catch(() => ({}));
                         throw new Error(data.error || 'Upload failed');
                     }
-                    return res.json();
-                })
-                .then((data) => {
-                    if (data?.url) {
-                        if (shouldReplace) {
-                            setUploadedImages([data.url]); // REPLACE
-                        } else {
-                            // Check max before appending? Just in case, though UI limits it usually.
-                            if (uploadedImages.length < maxImages) {
-                                setUploadedImages((prev) => [...prev, data.url]); // APPEND
-                            } else {
-                                toast({ title: "Limit Reached", description: `Maximum ${maxImages} images allowed.`, variant: "destructive" });
-                            }
-                        }
-                    } else {
+                    const data = await res.json();
+                    if (!data?.url) {
                         throw new Error('No URL returned from upload');
                     }
-                })
-                .catch((err) => {
-                    console.error('Upload error:', err);
-                    toast({ title: 'Upload failed', description: err.message || 'Could not upload image.', variant: 'destructive' });
-                })
-                .finally(() => {
-                    setIsUploading(false);
-                    // Reset input via ref in UI component
-                });
+                    currentImages.push(data.url);
+                }
+
+                setUploadedImages(currentImages);
+            } catch (err: any) {
+                console.error('Upload error:', err);
+                toast({ title: 'Upload failed', description: err.message || 'Could not upload image.', variant: 'destructive' });
+            } finally {
+                setIsUploading(false);
+            }
             return;
         }
 
         // Local read fallback
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const dataUri = reader.result as string;
-            // Here too, if we wanted to support local replace for Pollinations, we'd add logic, but most models use upload now.
-            setUploadedImages(prev => [...prev, dataUri]);
-        };
-        reader.readAsDataURL(file);
-
+        const localImages: string[] = [];
+        for (const file of imageFiles) {
+            const dataUri = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = () => reject(new Error('Failed to read image'));
+                reader.readAsDataURL(file);
+            });
+            localImages.push(dataUri);
+        }
+        if (localImages.length > 0) {
+            setUploadedImages(prev => [...prev, ...localImages].slice(0, maxImages));
+        }
     }, [selectedModelId, toast, maxImages, uploadedImages]);
 
     // Handle Remove Image
@@ -318,3 +328,5 @@ export function useUnifiedImageToolState() {
         handleEnhancePrompt,
     };
 }
+
+export type UnifiedImageToolState = ReturnType<typeof useUnifiedImageToolState>;

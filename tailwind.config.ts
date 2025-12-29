@@ -15,6 +15,7 @@ export default {
       fontFamily: {
         body: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
         code: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
+        mono: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
       },
       colors: {
         background: 'hsl(var(--background))',

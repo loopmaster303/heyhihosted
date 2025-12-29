@@ -13,7 +13,7 @@ import { useMemo } from 'react';
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  appState?: 'landing' | 'chat' | 'visualize';
+  appState?: 'landing' | 'chat' | 'visualize' | 'studio';
   onNewChat?: () => void;
   onToggleHistoryPanel?: () => void;
   onToggleGalleryPanel?: () => void;
@@ -90,7 +90,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
       className="relative flex flex-col h-screen bg-background text-foreground"
     >
       {/* GLOBAL TOP MODEL BAR - Sibling to all other content */}
-      {appState && appState !== 'landing' && (
+      {appState && (appState === 'chat' || appState === 'visualize') && (
         <TopModelBar
           appState={appState as 'chat' | 'visualize'}
           sidebarExpanded={sidebarExpanded}
@@ -106,11 +106,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar
           onNewChat={onNewChat}
-          onToggleHistoryPanel={onToggleHistoryPanel}
-          onToggleGalleryPanel={onToggleGalleryPanel}
           currentPath={currentPath}
-          isHistoryPanelOpen={isHistoryPanelOpen}
-          isGalleryPanelOpen={isGalleryPanelOpen}
           allConversations={allConversations}
           activeConversation={activeConversation}
           onSelectChat={onSelectChat}
@@ -128,11 +124,26 @@ const AppLayout: React.FC<AppLayoutProps> = ({
               "fixed top-16 sm:top-20 md:top-24 right-4 z-40 transition-all duration-700 pointer-events-none",
               sidebarExpanded ? "left-4 md:left-72" : "left-4"
             )}>
-              <ParticleText
-                text={headerText}
-                className="w-full pointer-events-auto"
-                particleColor="255, 105, 180"
-              />
+              {!isMobile ? (
+                <ParticleText
+                  text={headerText}
+                  className="w-full pointer-events-auto"
+                  particleColor="255, 105, 180"
+                />
+              ) : (
+                <div className="w-full pointer-events-auto text-center flex justify-center">
+                   <h1 
+                      className="text-2xl sm:text-3xl font-bold tracking-tight opacity-90" 
+                      style={{ 
+                        fontFamily: '"JetBrains Mono", monospace', 
+                        color: 'rgb(255, 105, 180)',
+                        textShadow: '0 0 10px rgba(255, 105, 180, 0.3)'
+                      }}
+                   >
+                      {headerText}
+                   </h1>
+                </div>
+              )}
             </div>
           )}
 

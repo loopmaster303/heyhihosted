@@ -3,8 +3,7 @@
  * Handles all useEffect logic for chat functionality
  */
 
-import { useEffect, useRef } from 'react';
-import useEscapeKey from '@/hooks/useEscapeKey';
+import { useEffect, useRef, useCallback } from 'react';
 import { toDate } from '@/utils/chatHelpers';
 import type { Conversation } from '@/types';
 import { FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
@@ -59,10 +58,17 @@ export function useChatEffects({
     retryLastRequest,
     retryLastRequestRef,
 }: UseChatEffectsProps) {
-    // ESC Key handlers for panels
-    useEscapeKey(() => setIsHistoryPanelOpen(false), isHistoryPanelOpen);
-    useEscapeKey(() => setIsAdvancedPanelOpen(false), isAdvancedPanelOpen);
-    useEscapeKey(() => setIsGalleryPanelOpen(false), isGalleryPanelOpen);
+    // ESC Key handler for all panels (inline, replacing deleted useEscapeKey hook)
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            if (isHistoryPanelOpen) setIsHistoryPanelOpen(false);
+            if (isAdvancedPanelOpen) setIsAdvancedPanelOpen(false);
+            if (isGalleryPanelOpen) setIsGalleryPanelOpen(false);
+        };
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, [isHistoryPanelOpen, isAdvancedPanelOpen, isGalleryPanelOpen, setIsHistoryPanelOpen, setIsAdvancedPanelOpen, setIsGalleryPanelOpen]);
 
     // Initialize available image models from config
     useEffect(() => {
