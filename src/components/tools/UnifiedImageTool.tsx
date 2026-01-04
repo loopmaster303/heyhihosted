@@ -30,11 +30,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
   const localToolState = useUnifiedImageToolState();
   const toolState = sharedToolState || localToolState;
 
-  // DEBUG
-  console.log('[DEBUG UnifiedImageTool] sharedToolState provided?', !!sharedToolState);
-  console.log('[DEBUG UnifiedImageTool] toolState.selectedModelId:', toolState.selectedModelId);
-  console.log('[DEBUG UnifiedImageTool] localToolState.selectedModelId:', localToolState.selectedModelId);
-
   const {
     selectedModelId,
     currentModelConfig,
@@ -246,7 +241,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
           // The API route returns the URL instantly, but generation happens on request.
           // To improve UX, we wait until the resource is accessible (200 OK) before showing it.
           if (isPollinationsModel) {
-            console.log("Polling for Pollinations content:", resultUrl);
             const startTime = Date.now();
             const POLL_TIMEOUT = 120000; // 2 minutes (video can be slow)
             // Poll for both image and video logic
@@ -266,7 +260,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
                    }
                  } catch (e) {
                    // If CORS or network fail, usually means not ready or blocked, retry.
-                   // console.log("Polling check failed", e);
                  }
                  // Wait 1.5s before retry
                  await new Promise(r => setTimeout(r, 1500));

@@ -492,7 +492,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
         // Pollinations Polling logic from Studio
         if (isPollinationsModel && imageUrl) {
-            console.log("[ChatProvider] Polling for Pollinations content:", imageUrl);
             const startTime = Date.now();
             const POLL_TIMEOUT = 120000;
             const pollResource = async (): Promise<boolean> => {

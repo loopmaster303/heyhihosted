@@ -1,18 +1,18 @@
-import ClaudeIcon from '../../icons models/claude-color.png';
-import DeepSeekIcon from '../../icons models/deepseek-color.png';
-import GeminiIcon from '../../icons models/gemini-color.png';
-import GrokIcon from '../../icons models/grokfarbe.png';
-import KimiIcon from '../../icons models/kimifarbe.png';
+import ClaudeIcon from '../assets/icons-models/claude-color.png';
+import DeepSeekIcon from '../assets/icons-models/deepseek-color.png';
+import GeminiIcon from '../assets/icons-models/gemini-color.png';
+import GrokIcon from '../assets/icons-models/grokfarbe.png';
+import KimiIcon from '../assets/icons-models/kimifarbe.png';
 
-import OpenAIIcon from '../../icons models/openfarbe.png';
-import PerplexityIcon from '../../icons models/perplexity-color.png';
-import QwenIcon from '../../icons models/qwen-color.png';
+import OpenAIIcon from '../assets/icons-models/openfarbe.png';
+import PerplexityIcon from '../assets/icons-models/perplexity-color.png';
+import QwenIcon from '../assets/icons-models/qwen-color.png';
 // Image Model specific icons
-import GoogleIcon from '../../icons models/google-color.png';
-import ByteDanceIcon from '../../icons models/bytedance-color.png';
-import FluxFarbeIcon from '../../icons models/fluxfarbe.png';
-import BFLIcon from '../../icons models/bfl.png';
-import WANIcon from '../../icons models/wan.png';
+import GoogleIcon from '../assets/icons-models/google-color.png';
+import ByteDanceIcon from '../assets/icons-models/bytedance-color.png';
+import FluxFarbeIcon from '../assets/icons-models/fluxfarbe.png';
+import BFLIcon from '../assets/icons-models/bfl.png';
+import WANIcon from '../assets/icons-models/wan.png';
 
 // Model Icon Mapping (LLM)
 export const modelIcons: Record<string, any> = {
