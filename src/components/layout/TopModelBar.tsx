@@ -95,12 +95,12 @@ export const TopModelBar: React.FC<TopModelBarProps> = ({
                                                 className="pointer-events-auto"
                                             />
                                         </div>
-                                        <ChevronDown className="w-6 h-6 flex-shrink-0 text-pink-500 opacity-100 ml-1" />
+                                        <ChevronDown className="w-6 h-6 flex-shrink-0 text-primary opacity-100 ml-1" />
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-1">
                                          <span className="text-sm font-semibold truncate max-w-[120px]">{visualDisplayName}</span>
-                                         <ChevronDown className="w-5 h-5 flex-shrink-0 text-pink-500 opacity-100" />
+                                         <ChevronDown className="w-5 h-5 flex-shrink-0 text-primary opacity-100" />
                                     </div>
                                 )}
                             </div>

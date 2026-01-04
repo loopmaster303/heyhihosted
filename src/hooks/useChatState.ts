@@ -14,6 +14,7 @@ export function useChatState() {
     // Conversation State
     const [allConversations, setAllConversations] = useLocalStorageState<Conversation[]>(CHAT_HISTORY_STORAGE_KEY, []);
     const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+    const [persistedActiveConversationId, setPersistedActiveConversationId] = useLocalStorageState<string | null>('activeConversationId', null);
     const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
     // UI State
@@ -74,6 +75,8 @@ export function useChatState() {
         setAllConversations,
         activeConversation,
         setActiveConversation,
+        persistedActiveConversationId,
+        setPersistedActiveConversationId,
         isInitialLoadComplete,
         setIsInitialLoadComplete,
 

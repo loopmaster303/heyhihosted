@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import { ChatProvider } from '@/components/ChatProvider';
 import { useChat } from '@/components/ChatProvider';
@@ -8,6 +9,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 
 function AboutPageContent() {
   const chat = useChat();
+  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -20,12 +22,18 @@ function AboutPageContent() {
 
   return (
     <AppLayout
-      onNewChat={chat.startNewChat}
+      onNewChat={() => {
+        chat.startNewChat();
+        router.push('/unified');
+      }}
       onToggleHistoryPanel={chat.toggleHistoryPanel}
       onToggleGalleryPanel={chat.toggleGalleryPanel}
       currentPath="/about"
       chatHistory={chat.allConversations.filter(c => c.toolType === 'long language loops')}
-      onSelectChat={chat.selectChat}
+      onSelectChat={(id) => {
+        chat.selectChat(id);
+        router.push('/unified');
+      }}
       onRequestEditTitle={chat.requestEditTitle}
       onDeleteChat={chat.deleteChat}
       isHistoryPanelOpen={chat.isHistoryPanelOpen}

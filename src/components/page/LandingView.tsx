@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import ChatInput from '@/components/chat/ChatInput';
 import { cn } from '@/lib/utils';
 import { useChat } from '@/components/ChatProvider';
@@ -56,10 +57,15 @@ const LandingView: React.FC<LandingViewProps> = ({
     return (
         <div className="relative h-full px-4 py-10 overflow-hidden">
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4">
-                <div className={cn(
-                    "w-full max-w-4xl transition-all duration-[2000ms] ease-out pointer-events-auto flex flex-col items-center",
-                    showInputContainer ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-                )}>
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ 
+                        opacity: showInputContainer ? 1 : 0, 
+                        y: showInputContainer ? 0 : 30 
+                    }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="w-full max-w-4xl pointer-events-auto flex flex-col items-center"
+                >
                     {/* ChatInput Bar */}
                     <div className="w-full">
                         {showInputContainer && (
@@ -117,7 +123,7 @@ const LandingView: React.FC<LandingViewProps> = ({
                             />
                         )}
                     </div>
-                </div>
+                </motion.div>
             </div>
         </div>
     );

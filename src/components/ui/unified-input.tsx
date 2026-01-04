@@ -73,12 +73,11 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
       {/* Container echoing the v0 design */}
       <div 
         className={cn(
-          "relative rounded-[32px] p-4 shadow-2xl backdrop-blur-sm transition-all duration-300",
-          "bg-background/80 dark:bg-[#1a1a1a]/90", // Using standardized backgrounds
-          "border border-primary/20 hover:border-primary/40 focus-within:border-primary/60",
-           // Add a subtle glow on focus/hover
-          "hover:shadow-[0_0_20px_rgba(232,154,184,0.1)] focus-within:shadow-[0_0_25px_rgba(232,154,184,0.15)]",
-          isDrawerOpen && "rounded-b-2xl rounded-t-2xl ring-1 ring-primary/20", // Adjust shape/ring when drawer is open
+          "relative rounded-[28px] p-5 transition-all duration-300",
+          "frosted-ice shadow-2xl", // Use greyish frosted ice utility
+          "hover:shadow-[0_0_30px_rgba(157,92,246,0.15)] focus-within:shadow-[0_0_40px_rgba(157,92,246,0.2)]",
+          isDrawerOpen && "rounded-b-xl rounded-t-[28px]", 
+          className
         )}
       >
         

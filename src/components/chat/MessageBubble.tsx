@@ -4,6 +4,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, ChatMessageContentPart } from '@/types';
 import { Loader2, StopCircle, RefreshCw, Copy, Download, Maximize2, X } from 'lucide-react';
@@ -329,18 +330,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 15, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.4, ease: [0.25, 0.4, 0.25, 1] }}
       className={cn(
-        'flex items-start gap-3 my-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out w-full group',
+        'flex items-start gap-3 my-4 w-full group',
         isUser ? 'justify-end' : 'justify-start'
       )}
     >
       <div
         className={cn(
-          'max-w-[85%] relative p-3 rounded-2xl px-5 py-3.5',
+          'max-w-[85%] relative p-4 rounded-3xl px-6 py-4 backdrop-blur-[40px] shadow-lg transition-all',
           isUser
-            ? 'bg-secondary text-secondary-foreground shadow-sm'
-            : 'bg-transparent text-foreground'
+            ? 'bg-primary/10 text-foreground'
+            : 'text-foreground frosted-ice'
         )}
       >
         <div className="flex flex-col">
@@ -395,7 +399,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

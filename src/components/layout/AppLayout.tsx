@@ -72,11 +72,23 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Get username for heart icon
+  // Get username for header display
   const [userDisplayName, setUserDisplayName] = useState('user');
   useEffect(() => {
     const savedName = localStorage.getItem('userDisplayName');
-    if (savedName) setUserDisplayName(savedName);
+    if (savedName) {
+      // Handle JSON-serialized strings (may have extra quotes)
+      let parsed = savedName;
+      try {
+        parsed = JSON.parse(savedName);
+      } catch {
+        // Not JSON, use as-is
+      }
+      // Only set if non-empty after trimming
+      if (typeof parsed === 'string' && parsed.trim()) {
+        setUserDisplayName(parsed.trim());
+      }
+    }
   }, []);
 
   // Header text for ParticleText
@@ -129,7 +141,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                   <ParticleText
                     text={headerText}
                     className="w-full pointer-events-auto"
-                    particleColor="255, 105, 180"
+                    particleColor="157, 92, 246"
                   />
                   <div className="mt-2 text-[10px] sm:text-xs font-bold tracking-[0.3em] text-foreground/40 uppercase pointer-events-auto text-center w-full">
                     EVERYONE CAN SAY HI TO AI
@@ -141,8 +153,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                       className="text-2xl sm:text-3xl font-bold tracking-tight opacity-90" 
                       style={{ 
                         fontFamily: '"JetBrains Mono", monospace', 
-                        color: 'rgb(255, 105, 180)',
-                        textShadow: '0 0 10px rgba(255, 105, 180, 0.3)'
+                        color: 'rgb(157, 92, 246)',
+                        textShadow: '0 0 10px rgba(157, 92, 246, 0.3)'
                       }}
                    >
                       {headerText}

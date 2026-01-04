@@ -385,7 +385,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                     <button
                                         type="button"
                                         onClick={onToggleImageMode}
-                                        className="flex items-center gap-1.5 rounded-full border border-[#ff4ecd]/60 px-3 py-1.5 text-xs font-bold transition-all bg-[#ff4ecd]/5 text-[#ff4ecd]"
+                                        className="flex items-center gap-1.5 rounded-full border border-primary/60 px-3 py-1.5 text-xs font-bold transition-all bg-primary/5 text-primary"
                                     >
                                         <span>Visualize</span>
                                         <X className="h-3 w-3" />

@@ -3,12 +3,10 @@
  * Handles all useEffect logic for chat functionality
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { toDate } from '@/utils/chatHelpers';
 import type { Conversation } from '@/types';
 import { FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
-
-const MAX_STORED_CONVERSATIONS = 50;
 
 interface UseChatEffectsProps {
     // State
@@ -16,16 +14,18 @@ interface UseChatEffectsProps {
     isAdvancedPanelOpen: boolean;
     isGalleryPanelOpen: boolean;
     isInitialLoadComplete: boolean;
-    setIsInitialLoadComplete: (complete: boolean) => void;
     allConversations: Conversation[];
     activeConversation: Conversation | null;
+    persistedActiveConversationId: string | null;
     selectedImageModelId: string;
 
     // Setters
+    setIsInitialLoadComplete: (complete: boolean) => void;
     setIsHistoryPanelOpen: (open: boolean) => void;
     setIsAdvancedPanelOpen: (open: boolean) => void;
     setIsGalleryPanelOpen: (open: boolean) => void;
     setActiveConversation: React.Dispatch<React.SetStateAction<Conversation | null>>;
+    setPersistedActiveConversationId: (id: string | null) => void;
     setAllConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
     setAvailableImageModels: (models: string[]) => void;
     setSelectedImageModelId: (modelId: string) => void;
@@ -42,14 +42,16 @@ export function useChatEffects({
     isAdvancedPanelOpen,
     isGalleryPanelOpen,
     isInitialLoadComplete,
-    setIsInitialLoadComplete,
     allConversations,
     activeConversation,
+    persistedActiveConversationId,
     selectedImageModelId,
+    setIsInitialLoadComplete,
     setIsHistoryPanelOpen,
     setIsAdvancedPanelOpen,
     setIsGalleryPanelOpen,
     setActiveConversation,
+    setPersistedActiveConversationId,
     setAllConversations,
     setAvailableImageModels,
     setSelectedImageModelId,
@@ -58,7 +60,7 @@ export function useChatEffects({
     retryLastRequest,
     retryLastRequestRef,
 }: UseChatEffectsProps) {
-    // ESC Key handler for all panels (inline, replacing deleted useEscapeKey hook)
+    // ESC Key handler for all panels
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key !== 'Escape') return;
@@ -84,7 +86,18 @@ export function useChatEffects({
     useEffect(() => {
         if (!isInitialLoadComplete) {
             const relevantConversations = allConversations.filter(c => c.toolType === 'long language loops');
-            if (activeConversation === null && relevantConversations.length > 0) {
+            
+            let conversationToRestore: Conversation | undefined;
+
+            // Try to restore from persisted ID
+            if (persistedActiveConversationId) {
+                conversationToRestore = relevantConversations.find(c => c.id === persistedActiveConversationId);
+            }
+
+            if (conversationToRestore) {
+                setActiveConversation(conversationToRestore);
+            } else if (activeConversation === null && relevantConversations.length > 0 && !persistedActiveConversationId) {
+                // Default to most recent ONLY if we don't have a persisted ID preference
                 const sortedConvs = [...relevantConversations].sort((a, b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
                 setActiveConversation(sortedConvs[0]);
             } else if (activeConversation === null && relevantConversations.length === 0) {
@@ -93,7 +106,14 @@ export function useChatEffects({
             setIsInitialLoadComplete(true);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [allConversations, isInitialLoadComplete, activeConversation, startNewChat, setIsInitialLoadComplete, setActiveConversation]);
+    }, [allConversations, isInitialLoadComplete, activeConversation, startNewChat, setIsInitialLoadComplete, setActiveConversation, persistedActiveConversationId]);
+
+    // Sync active conversation ID to persistence
+    useEffect(() => {
+        if (activeConversation) {
+            setPersistedActiveConversationId(activeConversation.id);
+        }
+    }, [activeConversation, setPersistedActiveConversationId]);
 
     // Effect to update the allConversations in localStorage whenever active one changes
     useEffect(() => {
@@ -117,4 +137,3 @@ export function useChatEffects({
         retryLastRequestRef.current = retryLastRequest;
     }, [retryLastRequest, retryLastRequestRef]);
 }
-

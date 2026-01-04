@@ -4,7 +4,8 @@ import PersonalizationTool from '@/components/tools/PersonalizationTool';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import PageLoader from '@/components/ui/PageLoader';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import AppLayout from '@/components/layout/AppLayout';
@@ -14,6 +15,7 @@ import { useChat } from '@/components/ChatProvider';
 
 function SettingsPageContent() {
   const chat = useChat();
+  const router = useRouter();
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "john");
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
   const [replicateToolPassword, setReplicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
@@ -36,12 +38,18 @@ function SettingsPageContent() {
 
   return (
     <AppLayout
-      onNewChat={chat.startNewChat}
+      onNewChat={() => {
+        chat.startNewChat();
+        router.push('/unified');
+      }}
       onToggleHistoryPanel={chat.toggleHistoryPanel}
       onToggleGalleryPanel={chat.toggleGalleryPanel}
       currentPath="/settings"
       chatHistory={chat.allConversations.filter(c => c.toolType === 'long language loops')}
-      onSelectChat={chat.selectChat}
+      onSelectChat={(id) => {
+        chat.selectChat(id);
+        router.push('/unified');
+      }}
       onRequestEditTitle={chat.requestEditTitle}
       onDeleteChat={chat.deleteChat}
       isHistoryPanelOpen={chat.isHistoryPanelOpen}

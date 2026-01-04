@@ -4,46 +4,43 @@
 
 @layer base {
   :root {
-    --background: 340 100% 98%;
-    /* #fef7f2 - sehr helles Rosa */
-    --foreground: 240 15% 15%;
-    /* #374151 - dunkler Text für Kontrast */
-    --card: 340 100% 96%;
-    /* #fce7f3 - Rosa für Karten */
-    --card-foreground: 240 15% 15%;
-    /* #374151 - dunkler Text */
-    --popover: 340 100% 96%;
-    /* #fce7f3 - Rosa für Popover */
-    --popover-foreground: 240 15% 15%;
-    /* #374151 - dunkler Text */
-    --primary: 330 70% 65%;
-    /* #E89AB8 - Soft Rosa */
-    --primary-foreground: 340 100% 98%;
-    /* #fef7f2 - sehr helles Rosa für Text auf Soft Rosa */
-    --primary-hover: 330 70% 60%;
-    /* Dunkleres Soft Rosa */
-    --primary-active: 330 70% 70%;
-    /* Helleres Soft Rosa */
-    --secondary: 330 60% 55%;
-    /* Sekundäres Soft Rosa */
-    --secondary-foreground: 340 100% 98%;
-    /* #fef7f2 - sehr helles Rosa */
-    --muted: 340 20% 92%;
-    /* #f3e6e6 - sehr dezent helles Rosa */
-    --muted-foreground: 240 10% 25%;
-    /* #404040 - sehr dunkler Text */
-    --accent: 330 65% 62%;
-    /* #E8A0C3 - Soft Rosa für Accent */
-    --accent-foreground: 340 100% 98%;
-    /* #fef7f2 - sehr helles Rosa */
+    --background: 340 100% 99%; /* Extremely light pink/white */
+    --foreground: 240 10% 3.9%; /* High contrast dark gray */
+    
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    
+    --primary: 267 83% 60%; /* #9D5CF6 - Elegant Electric Purple */
+    --primary-foreground: 210 40% 98%;
+    
+    --primary-hover: 267 83% 55%;
+    --primary-active: 267 83% 65%;
+    
+    --secondary: 330 30% 96%; /* Very light pink/gray for surfaces */
+    --secondary-foreground: 240 5.9% 10%;
+    
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
+    --accent: 330 65% 96%;
+    --accent-foreground: 240 5.9% 10%;
+    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
+
+    --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    /* Standardized border/input color */
-    --ring: 240 4.8% 10%;
-    /* #1a1a1a */
-    --radius: 0.5rem;
+    --ring: 267 83% 60%;
+    
+    --radius: 0.75rem; /* More rounded (12px) */
+
+    /* Glass Surfaces (Light) */
+    --surface-container-low: 0 0% 100%;
+    --surface-container: 340 100% 99%;
+    --surface-container-high: 330 20% 96%;
 
     --chart-1: 0 0% 40%;
     --chart-2: 0 0% 50%;
@@ -69,36 +66,38 @@
   }
 
   .dark {
-    --background: 240 2.8% 6.7%;
-    /* #111111 */
-    --foreground: 240 5.9% 94.1%;
-    /* #f0f0f0 */
-    --card: 240 2.8% 6.7%;
-    /* #111111 */
-    --card-foreground: 240 5.9% 94.1%;
-    /* #f0f0f0 */
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 94.1%;
-    --primary: 0 0% 16.9%;
-    /* #2b2b2b - user chat bubble */
-    --primary-foreground: 0 0% 85%;
-    /* #d9d9d9 - UNIFIED */
-    --secondary: 0 0% 14.5%;
-    /* #252525 - system chat bubble */
-    --secondary-foreground: 0 0% 85%;
-    /* #d9d9d9 - UNIFIED */
-    --muted: 0 0% 14.5%;
-    /* #252525 */
-    --muted-foreground: 0 0% 53.3%;
-    /* #888888 */
-    --accent: 0 0% 16.9%;
-    /* #2b2b2b */
-    --accent-foreground: 0 0% 94.1%;
-    --destructive: 0 84% 60%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 267 83% 60%;
+    --primary-foreground: 210 40% 98%;
+    
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 10%;
-    --ring: 0 0% 94.1%;
+    
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 267 83% 60%;
+
+    /* Glass Surfaces (Dark) */
+    --surface-container-low: 240 10% 4%;
+    --surface-container: 240 10% 6%;
+    --surface-container-high: 240 10% 9%;
 
     --chart-1: 0 0% 70%;
     --chart-2: 0 0% 60%;
@@ -128,9 +127,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-weight: 250;
-    /* Default font-weight for other text elements */
+    @apply bg-background text-foreground antialiased;
+    font-weight: 400;
   }
 }
 
@@ -364,4 +362,27 @@ h6 {
 .hover-glow-blue:hover {
   box-shadow: 0 0 25px rgba(59, 130, 246, 0.7);
   transition: all 0.3s ease;
+}
+
+/* Glass & Material Utilities */
+@layer utilities {
+  .glass-panel {
+    @apply bg-surface/10 backdrop-blur-3xl shadow-xl;
+  }
+  
+  .glass-button {
+    @apply bg-primary/10 hover:bg-primary/20 backdrop-blur-2xl text-foreground shadow-sm transition-all duration-200;
+  }
+
+  .glass-input {
+    @apply bg-surface/5 backdrop-blur-3xl focus:ring-1 focus:ring-primary/40 transition-colors duration-200;
+  }
+
+  .frosted-ice {
+    @apply bg-white/[0.06] backdrop-blur-[40px] shadow-[0_8px_32px_0_rgba(255,255,255,0.03)];
+  }
+
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  }
 }
