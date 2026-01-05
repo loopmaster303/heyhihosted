@@ -63,7 +63,14 @@ export async function POST(request: Request) {
     } = validateRequest(ImageGenerationSchema, body);
 
     // Map model aliases for Pollen endpoint
-    const modelId = model === 'gpt-image' ? 'gptimage' : model;
+    let modelId = model === 'gpt-image' ? 'gptimage' : model;
+
+    // IF image is provided but model is 'flux', force 'kontext' (or similar) 
+    // because flux does not support image input!
+    if (body.image && modelId === 'flux') {
+      console.log('[Pollinations] Switching from flux to kontext for image-to-image support');
+      modelId = 'kontext';
+    }
 
     const token = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_TOKEN;
     if (!token) {
@@ -110,7 +117,8 @@ export async function POST(request: Request) {
     if (transparent) params.append('transparent', 'true'); // For models that support it
     if (safe) {
       params.append('safe', 'true');
-    } else {
+    }
+    else {
       params.append('safe', 'false');
     }
     if (isVideoModel) {
@@ -119,15 +127,20 @@ export async function POST(request: Request) {
       if (audio) params.append('audio', 'true');
     }
     // Reference images (supports arrays or single URL)
-    // Standard Pollinations endpoint only supports ONE image or prompt injection.
-    // For this implementation, we take the FIRST image if multiple are provided, unless it's a specific model logic we haven't defined yet.
     if (body.image) {
       const images = Array.isArray(body.image) ? body.image : [body.image];
       const validImages = images.filter((img: any) => typeof img === 'string' && img.trim().length > 0);
       
       if (validImages.length > 0) {
-        // Pollinations "image" param is singular in standard API usage for image-to-image
-        params.append('image', validImages[0].trim());
+        // Add cache-buster to the Vercel Blob URL to ensure Pollinations fetches the fresh file
+        const freshImages = validImages.map(url => {
+            const separator = url.includes('?') ? '&' : '?';
+            return `${url}${separator}v=${Date.now()}`;
+        });
+        
+        const imageParam = freshImages.join(',');
+        params.append('image', imageParam);
+        console.log('[Pollinations] Using reference images (fresh):', imageParam);
       }
     }
 
@@ -135,7 +148,9 @@ export async function POST(request: Request) {
     params.append('quality', 'hd');
 
     const encodedPrompt = encodeURIComponent(prompt.trim());
-    let imageUrl = `https://enter.pollinations.ai/api/generate/image/${encodedPrompt}?${params.toString()}`;
+    // Use the correct 'gen' endpoint as per documentation
+    let imageUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?${params.toString()}`;
+    console.log('[Pollinations] Generated URL:', imageUrl);
 
     // Add API token if available (passed as query for direct <img> access)
     if (token) {

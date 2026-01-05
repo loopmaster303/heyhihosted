@@ -21,8 +21,9 @@ export async function POST(request: Request) {
     }
 
     // Create a unique path using UUID to prevent collisions between users
-    const filename = file.name ? file.name.replace(/\s+/g, '_') : 'upload.bin';
-    const key = `uploads/${crypto.randomUUID()}-${filename}`;
+    // Sanitize filename: remove all non-alphanumeric chars except dot, underscore, hyphen
+    const cleanName = file.name ? file.name.replace(/[^a-zA-Z0-9._-]/g, '_') : 'upload.bin';
+    const key = `uploads/${crypto.randomUUID()}-${cleanName}`;
 
     const blob = await put(key, file, {
       access: 'public',

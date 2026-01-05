@@ -96,7 +96,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   const { toast } = useToast();
   const { t } = useLanguage();
 
-  const addChatImageToHistory = useCallback((imageUrl: string, prompt: string, model: string) => {
+  const addChatImageToHistory = useCallback((imageUrl: string, prompt: string, model: string, conversationId?: string) => {
     if (typeof window === 'undefined') return;
     try {
       const existing = window.localStorage.getItem('imageHistory');
@@ -108,6 +108,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         model,
         timestamp: new Date().toISOString(),
         toolType: 'premium imagination',
+        conversationId, // Save origin conversation ID
       };
       const next = [newItem, ...history].slice(0, 100);
       window.localStorage.setItem('imageHistory', JSON.stringify(next));
@@ -313,6 +314,22 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const { id: convId, selectedModelId, selectedResponseStyleName, messages } = activeConversation;
     let currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
 
+    // --- Dynamic Context Engineering ---
+    const now = new Date();
+    const runtimeContext = `
+<runtime_context>
+    Current Date: ${now.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+    Current Time: ${now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+    Environment: hey.hi web-interface
+</runtime_context>`;
+
+    const internalReasoningDirective = `
+<internal_protocol>
+    - Before responding, perform a brief internal analysis of the user's intent.
+    - You MAY use hidden reasoning, but do not output any <thought> or <analysis> tags to the user.
+    - Final output must be clean and follow the selected persona's style.
+</internal_protocol>`;
+
     let effectiveSystemPrompt = '';
     const basicStylePrompt = (AVAILABLE_RESPONSE_STYLES.find(s => s.name === 'Basic') || AVAILABLE_RESPONSE_STYLES[0]).systemPrompt;
 
@@ -326,6 +343,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       const selectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName);
       effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
     }
+
+    // Combine Persona + Metadata + Reasoning Logic
+    effectiveSystemPrompt = `${effectiveSystemPrompt}\n${runtimeContext}\n${internalReasoningDirective}`;
 
     if (options.isRegeneration) {
       const regenerationInstruction = "Generiere eine neue, alternative Antwort auf die letzte Anfrage des Benutzers. Wiederhole deine vorherige Antwort nicht. Biete eine andere Perspektive oder einen anderen Stil.";
@@ -515,7 +535,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         addChatImageToHistory(
           imageUrl,
           promptText.replace(/--ar \d+:\d+/g, '').trim(),
-          selectedImageModelId
+          selectedImageModelId,
+          activeConversation?.id // Pass current chat ID
         );
 
         const aiResponseContent: ChatMessageContentPart[] = [

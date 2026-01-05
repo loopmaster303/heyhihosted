@@ -15,14 +15,14 @@ describe('sanitizeEnhancedPrompt', () => {
     const out = sanitizeEnhancedPrompt(input);
     expect(out).toContain('Nostalgic group portrait of sailors');
     expect(out).toContain('render in sepia with warm light');
-    expect(out).not.toMatch(/Target object|Change/);
+    expect(out).not.toMatch(/(Target object|Change):/i);
   });
 
   test('handles combined labels in header before colon', () => {
     const input = `Reference, change, identity preserved: sailors old headshot; change to weathered portrait.`;
     const out = sanitizeEnhancedPrompt(input);
     expect(out).toContain('sailors old headshot; change to weathered portrait');
-    expect(out).not.toMatch(/Reference|change|identity preserved:/i);
+    expect(out).not.toMatch(/(Reference|change|identity preserved):/i);
   });
 
   test('strips numeric prefixes like 1Target and 2remove', () => {

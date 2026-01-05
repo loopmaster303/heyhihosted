@@ -54,6 +54,7 @@ export interface ImageHistoryItem {
   timestamp: string; // ISO string for easy storage/retrieval
   toolType: 'premium imagination' | 'nocost imagination';
   videoUrl?: string;
+  conversationId?: string; // Link to origin chat
 }
 
 

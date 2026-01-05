@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 340 100% 99%; /* Extremely light pink/white */
+    --background: 267 25% 97%; /* Soft Lavender Background */
     --foreground: 240 10% 3.9%; /* High contrast dark gray */
     
     --card: 0 0% 100%;
@@ -19,13 +19,13 @@
     --primary-hover: 267 83% 55%;
     --primary-active: 267 83% 65%;
     
-    --secondary: 330 30% 96%; /* Very light pink/gray for surfaces */
+    --secondary: 267 15% 94%; /* Deeper soft purple for surfaces */
     --secondary-foreground: 240 5.9% 10%;
     
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
     
-    --accent: 330 65% 96%;
+    --accent: 267 30% 95%;
     --accent-foreground: 240 5.9% 10%;
     
     --destructive: 0 84.2% 60.2%;
@@ -39,8 +39,8 @@
 
     /* Glass Surfaces (Light) */
     --surface-container-low: 0 0% 100%;
-    --surface-container: 340 100% 99%;
-    --surface-container-high: 330 20% 96%;
+    --surface-container: 267 25% 97%;
+    --surface-container-high: 267 20% 94%;
 
     --chart-1: 0 0% 40%;
     --chart-2: 0 0% 50%;

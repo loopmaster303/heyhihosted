@@ -4,6 +4,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, ChatMessageContentPart } from '@/types';
@@ -130,7 +131,7 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
           <button
             type="button"
             onClick={() => setIsPreviewOpen(true)}
-            className="rounded-full bg-black/70 text-white p-2"
+            className="rounded-full bg-black/70 text-white p-2 hover:bg-black/90 transition-colors"
             title="Expand"
           >
             <Maximize2 className="h-4 w-4" />
@@ -138,37 +139,38 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
           <button
             type="button"
             onClick={handleDownload}
-            className="rounded-full bg-black/70 text-white p-2"
+            className="rounded-full bg-black/70 text-white p-2 hover:bg-black/90 transition-colors"
             title="Download"
           >
             <Download className="h-4 w-4" />
           </button>
         </div>
       </div>
-      {isPreviewOpen && (
+      {isPreviewOpen && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
+          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
           onClick={() => setIsPreviewOpen(false)}
         >
           <div
-            className="relative max-w-[90vw] max-h-[90vh] w-full h-full flex items-center justify-center"
+            className="relative max-w-full max-h-full w-auto h-auto flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={url}
+              src={canReload && reloadToken > 0 ? imageUrl : url}
               alt={altText}
-              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+              className="max-w-[95vw] max-h-[95vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
             />
             <button
               type="button"
               onClick={() => setIsPreviewOpen(false)}
-              className="absolute top-4 right-4 rounded-full bg-black/70 text-white p-2"
+              className="absolute -top-12 right-0 sm:top-4 sm:right-4 rounded-full bg-black/50 text-white p-2 hover:bg-black/70 transition-colors"
               title="Close"
             >
-              <X className="h-4 w-4" />
+              <X className="h-6 w-6" />
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

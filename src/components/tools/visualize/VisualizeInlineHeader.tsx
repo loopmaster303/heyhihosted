@@ -27,11 +27,11 @@ interface VisualizeInlineHeaderProps {
 }
 
 const badgeClass =
-  "flex items-center bg-background/40 border border-border/40 rounded-lg px-2 py-1.5 shrink-0 gap-2";
+  "flex items-center bg-transparent border-r border-border/20 px-3 py-1.5 shrink-0 gap-2 last:border-r-0";
 const labelClass =
-  "text-sm text-foreground/70 font-bold whitespace-nowrap uppercase tracking-tighter text-[10px]";
+  "text-[9px] text-muted-foreground font-bold whitespace-nowrap uppercase tracking-widest";
 const triggerClass =
-  "h-7 text-sm border-0 bg-transparent p-0 focus:ring-0 gap-1.5 w-auto min-w-[80px] text-foreground font-bold [&>span]:flex [&>span]:items-center [&>span]:gap-1.5";
+  "h-6 text-xs border-0 bg-transparent p-0 focus:ring-0 gap-1 w-auto min-w-[60px] text-foreground font-semibold hover:text-primary transition-colors [&>span]:flex [&>span]:items-center [&>span]:gap-1.5";
 
 export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   selectedModelId,
@@ -49,7 +49,8 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   className,
 }) => {
   const { t } = useLanguage();
-  const [expanded, setExpanded] = React.useState(true);
+  const [expanded, setExpanded] = React.useState(true); // For dropdown groups
+  const [isMinimized, setIsMinimized] = React.useState(false); // For toolbar visibility
 
   const modelGroups = React.useMemo(() => {
     return getVisualizeModelGroups()
@@ -73,16 +74,15 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
 
     if (icon) {
       if (typeof icon === 'string') {
-        return <span className={cn("text-base", dense && "text-sm")}>{icon}</span>;
+        return <span className={cn("text-base", dense && "text-xs")}>{icon}</span>;
       }
 
       return (
-        <Image
-          src={icon}
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={icon.src || icon}
           alt={modelId}
-          width={dense ? 18 : 22}
-          height={dense ? 18 : 22}
-          className="rounded"
+          className={cn("rounded-sm", dense ? "w-4 h-4" : "w-5 h-5")}
         />
       );
     }
@@ -92,17 +92,47 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
 
   if (!currentModelConfig) return null;
 
+  // Minimized View
+  if (isMinimized) {
+    return (
+      <div className={cn("flex items-center gap-2 mb-2", className)}>
+        <button
+          type="button"
+          onClick={() => setIsMinimized(false)}
+          className="flex items-center gap-2 bg-muted/30 hover:bg-muted/50 border border-border/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors group"
+        >
+          <span className="flex items-center gap-1.5 opacity-70 group-hover:opacity-100">
+            {renderModelIcon(selectedModelId, true)}
+            <span>{unifiedModelConfigs[selectedModelId]?.name || selectedModelId}</span>
+          </span>
+          <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-foreground transition-transform" />
+        </button>
+      </div>
+    );
+  }
+
+  // Maximized View (Full Toolbar)
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)}>
+    <div className={cn("relative flex flex-wrap items-center bg-muted/10 backdrop-blur-sm rounded-xl border border-border/30 overflow-hidden mb-2 pr-8", className)}>
+      
+      {/* Minimize Button */}
+      <button
+        type="button"
+        onClick={() => setIsMinimized(true)}
+        className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+        title="Minimize settings"
+      >
+        <ChevronDown className="w-3.5 h-3.5 rotate-180" />
+      </button>
 
       {/* Model */}
       <div className={badgeClass}>
         <span className={labelClass}>Modell</span>
         <Select value={selectedModelId} onValueChange={onModelChange} disabled={disabled}>
-          <SelectTrigger className={cn(triggerClass, "min-w-[100px]")}>
+          <SelectTrigger className={cn(triggerClass, "min-w-[90px]")}>
             <span className="flex items-center gap-1.5">
               {renderModelIcon(selectedModelId, true)}
-              <span className="truncate max-w-[120px]">
+              <span className="truncate max-w-[100px]">
                 {unifiedModelConfigs[selectedModelId]?.name || selectedModelId}
               </span>
             </span>
@@ -234,7 +264,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
       {/* Aspect Ratio */}
       {(isPollenModel || currentModelConfig.inputs.find(i => i.name === 'aspect_ratio')) && (
         <div className={badgeClass}>
-          <span className={labelClass}>Größe</span>
+          <span className={labelClass}>Ratio</span>
           {isPollenModel ? (
             <Select
               value={formFields.aspect_ratio || '1:1'}
@@ -292,7 +322,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                   </>
                 ) : (
                   <>
-                    <SelectItem value="match_input_image">Match Input Image</SelectItem>
+                    <SelectItem value="match_input_image">Match</SelectItem>
                     <SelectItem value="custom">Custom</SelectItem>
                     <SelectItem value="1:1">1:1</SelectItem>
                     <SelectItem value="16:9">16:9</SelectItem>
@@ -326,7 +356,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
             <SelectContent>
               {selectedModelId === 'flux-2-pro' && (
                 <>
-                  {formFields.aspect_ratio === 'match_input_image' && <SelectItem value="match_input_image">Match Input Image</SelectItem>}
+                  {formFields.aspect_ratio === 'match_input_image' && <SelectItem value="match_input_image">Match</SelectItem>}
                   <SelectItem value="0.5 MP">0.5 MP</SelectItem>
                   <SelectItem value="1 MP">1 MP</SelectItem>
                   <SelectItem value="2 MP">2 MP</SelectItem>
@@ -360,8 +390,8 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
             <SelectContent>
               {(selectedModelId === 'wan-2.5-t2v' || selectedModelId === 'wan-video') ? (
                 <>
-                  <SelectItem value="5">5s (Standard)</SelectItem>
-                  <SelectItem value="10">10s (High Quality)</SelectItem>
+                  <SelectItem value="5">5s</SelectItem>
+                  <SelectItem value="10">10s</SelectItem>
                 </>
               ) : (selectedModelId === 'veo' || selectedModelId === 'veo-3.1-fast') ? (
                 <>
@@ -392,11 +422,11 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
           <span className={labelClass}>Seed</span>
           <Input
             type="number"
-            placeholder="Random"
+            placeholder="Rand"
             value={formFields.seed || ''}
             onChange={(e) => handleFieldChange('seed', e.target.value)}
             disabled={disabled}
-            className="h-7 w-[80px] border-0 bg-transparent p-0 text-sm focus-visible:ring-0"
+            className="h-6 w-[60px] border-0 bg-transparent p-0 text-xs focus-visible:ring-0 font-semibold text-foreground"
           />
         </div>
       )}

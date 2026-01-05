@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import type { ChatMessage } from '@/types';
 import MessageBubble from './MessageBubble';
@@ -74,16 +74,19 @@ const ChatView: React.FC<ChatViewProps> = ({
   }, [messages]);
 
   // Prepare messages with loading indicator if needed
-  const displayMessages = [...messages];
-  const showLoadingBubble = isAiResponding && messages.length > 0 && messages[messages.length - 1]?.role === 'user';
-  if (showLoadingBubble) {
-    displayMessages.push({
-      id: 'loading',
-      role: 'assistant',
-      content: '',
-      timestamp: new Date().toISOString(),
-    });
-  }
+  const displayMessages = useMemo(() => {
+    const msgs = [...messages];
+    const showLoadingBubble = isAiResponding && messages.length > 0 && messages[messages.length - 1]?.role === 'user';
+    if (showLoadingBubble) {
+      msgs.push({
+        id: 'loading',
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toISOString(),
+      });
+    }
+    return msgs;
+  }, [messages, isAiResponding]);
 
   const itemContent = useCallback((index: number) => {
     const msg = displayMessages[index];

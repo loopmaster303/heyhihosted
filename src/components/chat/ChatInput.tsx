@@ -238,6 +238,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         if (visualizeToolState.prompt !== inputValue) {
             onInputChange(visualizeToolState.prompt);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visualizeToolState?.prompt, isImageMode, inputValue, onInputChange]);
 
     const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>, fileType: 'document' | 'image') => {

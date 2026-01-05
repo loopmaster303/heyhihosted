@@ -34,6 +34,7 @@ export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> =
           key={`${img}-${index}`}
           className="relative h-10 w-10 rounded-lg border border-border/40 overflow-hidden bg-muted/20"
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={img} alt={`Reference ${index + 1}`} className="h-full w-full object-cover" />
           <button
             type="button"

@@ -32,6 +32,7 @@ export interface GenerateImageOptions {
     num_inference_steps?: number;
     guidance_scale?: number;
     image_url?: string; // For i2v or img2img
+    image?: string | string[]; // For Pollinations or multi-image
     first_frame_image?: string; // For Veo/Wan start frame
     last_frame_image?: string; // For Veo end frame
     frames?: number; // Video specific: length/frames (e.g. 81)
@@ -135,8 +136,17 @@ export class ChatService {
         const isReplicate = modelInfo?.provider === 'replicate';
         const endpoint = isReplicate ? '/api/replicate' : '/api/generate';
 
+        // Prepend image URL to prompt for Pollinations to force recognition
+        let effectivePrompt = options.prompt;
+        if (!isReplicate && options.image) {
+            const firstImage = Array.isArray(options.image) ? options.image[0] : options.image;
+            if (firstImage && typeof firstImage === 'string') {
+                effectivePrompt = `${firstImage} ${options.prompt}`;
+            }
+        }
+
         let body: any = {
-            prompt: options.prompt,
+            prompt: effectivePrompt,
             model: options.modelId,
             private: true
         };
@@ -202,6 +212,13 @@ export class ChatService {
             // Pollinations
             body.width = options.width;
             body.height = options.height;
+            
+            // Pass the image reference correctly
+            if (options.image) body.image = options.image;
+            if (options.image_url) body.image = options.image_url;
+            if (options.input_image) body.image = options.input_image;
+            if (options.input_images) body.image = options.input_images;
+            
             // Also supports extras like negative_prompt in some endpoints, added for completeness
             if (options.negative_prompt) body.negative_prompt = options.negative_prompt;
         }
