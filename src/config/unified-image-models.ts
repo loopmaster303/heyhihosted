@@ -15,6 +15,7 @@ export interface UnifiedImageModel {
   category?: ImageCategory; // Standard = featured, Advanced = expanded popup
   description?: string;
   supportsReference?: boolean; // Can use reference images
+  maxImages?: number; // New: Maximum allowed reference images
   isFree?: boolean; // Free tier available (Pollinations)
   requiresPassword?: boolean; // Requires password (Replicate premium)
   enabled?: boolean; // Whether the model is enabled (default true)
@@ -27,17 +28,17 @@ export interface UnifiedImageModel {
  */
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
-  { id: 'flux', name: 'Flux1 Ultra', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
-  { id: 'kontext', name: 'Flux1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Context-aware' },
-  { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'OpenAI Image' },
-  { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Large Context' },
-  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'ByteDance ARK' },
-  { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Gemini 2.5 Flash' },
-  { id: 'zimage', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, isFree: true, enabled: true, description: 'Fast 6B' },
+  { id: 'flux', name: 'Flux1 Ultra', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
+  { id: 'kontext', name: 'Flux1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware' },
+  { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'OpenAI Image' },
+  { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: true, enabled: true, description: 'Large Context' },
+  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'ByteDance ARK' },
+  { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 2.5 Flash' },
+  { id: 'zimage', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast 6B' },
 
   // ADVANCED Image Models
-  { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'Gemini 3 Pro 4K' },
-  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'ByteDance 4K' },
+  { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3 Pro 4K' },
+  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'ByteDance 4K' },
 
   // STANDARD Video Models
   { id: 'seedance', name: 'Seedance', provider: 'pollinations', kind: 'video', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Reactive Video' },

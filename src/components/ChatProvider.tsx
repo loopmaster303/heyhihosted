@@ -1,4 +1,3 @@
-
 'use client';
 
 /* eslint-disable react-hooks/exhaustive-deps */
@@ -26,6 +25,8 @@ import { useChatAudio } from '@/hooks/useChatAudio';
 import { useChatRecording } from '@/hooks/useChatRecording';
 import { useChatEffects } from '@/hooks/useChatEffects';
 import { ChatService } from '@/lib/services/chat-service';
+import { MemoryService } from '@/lib/services/memory-service';
+import { DatabaseService } from '@/lib/services/database';
 import { toDate } from '@/utils/chatHelpers';
 
 export interface UseChatLogicProps {
@@ -87,8 +88,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     retryLastRequestRef,
     isImageMode,
     webBrowsingEnabled,
-    isGalleryPanelOpen,
-    setIsGalleryPanelOpen,
     mistralFallbackEnabled,
     setMistralFallbackEnabled,
   } = state;
@@ -96,22 +95,48 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   const { toast } = useToast();
   const { t } = useLanguage();
 
-  const addChatImageToHistory = useCallback((imageUrl: string, prompt: string, model: string, conversationId?: string) => {
+  const addChatImageToHistory = useCallback(async (imageUrl: string, prompt: string, model: string, conversationId?: string) => {
     if (typeof window === 'undefined') return;
     try {
+      const assetId = generateUUID();
+      
+      // 1. In die History eintragen (Remote URL als Fallback, ID ist der Anker)
       const existing = window.localStorage.getItem('imageHistory');
       const history = existing ? (JSON.parse(existing) as ImageHistoryItem[]) : [];
       const newItem: ImageHistoryItem = {
-        id: generateUUID(),
-        imageUrl,
+        id: assetId,
+        imageUrl: imageUrl, 
         prompt,
         model,
         timestamp: new Date().toISOString(),
-        toolType: 'premium imagination',
-        conversationId, // Save origin conversation ID
+        toolType: 'visualize',
+        conversationId,
       };
       const next = [newItem, ...history].slice(0, 100);
       window.localStorage.setItem('imageHistory', JSON.stringify(next));
+
+      // 2. Bild via Proxy herunterladen und im Vault sichern
+      try {
+        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+        const response = await fetch(proxyUrl);
+        if (response.ok) {
+          const blob = await response.blob();
+          await DatabaseService.saveAsset({
+            id: assetId,
+            blob,
+            contentType: blob.type,
+            prompt,
+            modelId: model,
+            conversationId,
+            timestamp: Date.now()
+          });
+          console.log(`🖼️ Bild via Proxy im Vault gesichert: ${assetId}`);
+        }
+      } catch (e) {
+        console.warn("Vault sync failed even with proxy:", e);
+      }
+
+      // 3. UI triggern
       window.dispatchEvent(new Event('imageHistoryUpdated'));
     } catch (error) {
       console.error('Failed to update image history:', error);
@@ -141,7 +166,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
   // --- Helper Functions / Callbacks (defined early for dependencies) ---
 
-  // Callback for file handling (used by toggleImageMode, clearUploadedImage)
   const dataURItoFile = useCallback((dataURI: string, filename: string): File => {
     const arr = dataURI.split(',');
     const mime = arr[0].match(/:(.*?);/)?.[1];
@@ -155,7 +179,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   }, []);
 
   const handleFileSelect = useCallback((fileOrDataUri: File | string | null, fileType: string | null) => {
-    if (!activeConversation) return; // Stellen Sie sicher, dass activeConversation existiert
+    if (!activeConversation) return; 
     if (fileOrDataUri) {
       if (typeof fileOrDataUri === 'string') {
         const file = dataURItoFile(fileOrDataUri, `capture-${Date.now()}.jpg`);
@@ -178,18 +202,15 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }
   }, [activeConversation]);
 
-  // Callbacks for panel toggles (used by other toggle functions)
   const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
   const closeAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(false), []);
-
-  // Core Chat Logic Functions (can now reference helpers defined above)
 
   const toggleImageMode = useCallback(() => {
     if (!activeConversation) return;
     const newImageModeState = !(activeConversation.isImageMode ?? false);
     setActiveConversation(prev => prev ? { ...prev, isImageMode: newImageModeState } : prev);
     if (newImageModeState) {
-      handleFileSelect(null, null); // handleFileSelect ist jetzt bekannt
+      handleFileSelect(null, null); 
     }
   }, [activeConversation, handleFileSelect, setActiveConversation]);
 
@@ -199,7 +220,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       return activeConversation?.title || t('nav.newConversation');
     }
 
-    // Early return if title is already good (not default)
     const isDefaultTitle =
       convToUpdate.title === t('nav.newConversation') ||
       convToUpdate.title.toLowerCase().startsWith("new ") ||
@@ -231,13 +251,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       const userText = extractText(firstUserMessage).trim();
       const assistantText = extractText(firstAssistantMessage).trim();
 
-      // Don't use error messages for title generation
       const isErrorResponse = assistantText && (
         assistantText.includes("couldn't get a response") ||
         assistantText.includes("error occurred") ||
         assistantText.includes("Sorry") ||
         assistantText.includes("failed") ||
-        assistantText.length < 10 // Very short responses are often errors
+        assistantText.length < 10 
       );
 
       let contextForTitle = userText;
@@ -252,7 +271,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
       if (contextForTitle) {
         try {
-          // Convert to proper messages array format for the API
           const messagesForTitleApi: ApiChatMessage[] = [];
 
           if (userText) {
@@ -267,7 +285,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             activeConversation?.mistralFallbackEnabled
           );
 
-          // Use fallback if title is generic or empty
           const titleToSet = finalTitle && finalTitle.toLowerCase() !== 'chat' && finalTitle.length > 2
             ? finalTitle
             : (fallbackFromUser || "Chat");
@@ -314,7 +331,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     const { id: convId, selectedModelId, selectedResponseStyleName, messages } = activeConversation;
     let currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
 
-    // --- Dynamic Context Engineering ---
     const now = new Date();
     const runtimeContext = `
 <runtime_context>
@@ -325,6 +341,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     const internalReasoningDirective = `
 <internal_protocol>
+    - You are equipped with vision capabilities. If the user provides an image, analyze it accurately.
     - Before responding, perform a brief internal analysis of the user's intent.
     - You MAY use hidden reasoning, but do not output any <thought> or <analysis> tags to the user.
     - Final output must be clean and follow the selected persona's style.
@@ -344,8 +361,17 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
     }
 
-    // Combine Persona + Metadata + Reasoning Logic
-    effectiveSystemPrompt = `${effectiveSystemPrompt}\n${runtimeContext}\n${internalReasoningDirective}`;
+    const userMemoriesContext = await MemoryService.getMemoriesAsContext();
+    
+    let globalContext = "";
+    const lowerText = (messageText || chatInputValue).toLowerCase();
+    const isAskingAboutPast = lowerText.includes("erinnerst") || lowerText.includes("remember") || lowerText.includes("früher") || lowerText.includes("vergangene");
+    
+    if (messages.length === 0 || isAskingAboutPast || messages.length % 50 === 0) {
+      globalContext = await MemoryService.getGlobalContextSummary();
+    }
+
+    effectiveSystemPrompt = `${effectiveSystemPrompt}\n${userMemoriesContext}\n${globalContext}\n${runtimeContext}\n${internalReasoningDirective}`;
 
     if (options.isRegeneration) {
       const regenerationInstruction = "Generiere eine neue, alternative Antwort auf die letzte Anfrage des Benutzers. Wiederhole deine vorherige Antwort nicht. Biete eine andere Perspektive oder einen anderen Stil.";
@@ -355,7 +381,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     setIsAiResponding(true);
     if (!options.isRegeneration) {
       setChatInputValue('');
-      // Removed hasInteracted logic for cleaner new chat experience
     }
 
     const isImagePrompt = options.isImageModeIntent || false;
@@ -369,7 +394,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           description: `Model '${currentModel.name}' doesn't support images. Using '${fallbackModel.name}' for this request.`,
           variant: "default"
         });
-        currentModel = fallbackModel; // Use fallback model for this request only
+        currentModel = fallbackModel;
       } else {
         toast({ title: "Model Incompatibility", description: `No available models support images.`, variant: "destructive" });
         setIsAiResponding(false);
@@ -380,21 +405,81 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     let updatedMessagesForState = options.messagesForApi || messages;
     let newUserMessageId: string | null = null;
 
+    // --- VISION UPLOAD LOGIC ---
+    let publicImageUrl: string | null = null;
+    let localAssetId: string | null = null;
+
+    if (isFileUpload && activeConversation.uploadedFile) {
+      try {
+        toast({ title: "Processing image...", description: "Saving locally and preparing for AI." });
+        localAssetId = generateUUID();
+        await DatabaseService.saveAsset({
+          id: localAssetId,
+          blob: activeConversation.uploadedFile,
+          contentType: activeConversation.uploadedFile.type,
+          timestamp: Date.now(),
+          conversationId: convId
+        });
+
+        const formData = new FormData();
+        formData.append('file', activeConversation.uploadedFile);
+        const uploadRes = await fetch('/api/upload/temp', { method: 'POST', body: formData });
+        const uploadData = await uploadRes.json();
+        
+        if (uploadData.url) {
+          publicImageUrl = uploadData.url;
+          console.log(`🔗 Temporäre URL für Pollen: ${publicImageUrl}`);
+        } else {
+          throw new Error("Relay upload failed");
+        }
+      } catch (e) {
+        console.error("Vision preparation failed", e);
+        toast({ title: "Vision Error", description: "Could not prepare image for AI.", variant: "destructive" });
+        setIsAiResponding(false);
+        return;
+      }
+    }
+
     if (!options.isRegeneration) {
       const textContent = messageText.trim() || chatInputValue.trim();
       let userMessageContent: string | ChatMessageContentPart[] = textContent;
-      if (isFileUpload && activeConversation.uploadedFilePreview) {
-        userMessageContent = [
-          { type: 'text', text: textContent || "Describe this image." },
-          { type: 'image_url', image_url: { url: activeConversation.uploadedFilePreview, altText: activeConversation.uploadedFile?.name, isUploaded: true } }
-        ];
-      }
+      
+      const hasStudioImages = options.imageConfig && options.imageConfig.uploadedImages.length > 0;
 
-      // Check if we have valid content to send
-      if (!userMessageContent && !isFileUpload) {
-        // Should usually be caught by UI, but as safety
-        setIsAiResponding(false);
-        return;
+      if (isFileUpload || hasStudioImages) {
+        const contentParts: ChatMessageContentPart[] = [];
+        let labelText = "Vision Context:\n";
+
+        if (isFileUpload && (activeConversation.uploadedFilePreview || localAssetId)) {
+          contentParts.push({
+            type: 'image_url',
+            image_url: {
+              url: activeConversation.uploadedFilePreview || '',
+              remoteUrl: publicImageUrl || undefined,
+              altText: activeConversation.uploadedFile?.name,
+              isUploaded: true,
+              metadata: { assetId: localAssetId }
+            }
+          });
+          labelText += `- IMAGE_0: Current Upload\n`;
+        }
+
+        if (hasStudioImages) {
+          options.imageConfig?.uploadedImages.forEach((url, i) => {
+            contentParts.push({
+              type: 'image_url',
+              image_url: {
+                url: url,
+                altText: `Studio Image ${i+1}`,
+                isUploaded: true
+              }
+            });
+            labelText += `- IMAGE_${i+1}: Reference Image\n`;
+          });
+        }
+
+        contentParts.unshift({ type: 'text', text: `${labelText}\n${textContent || "Analyze these images."}` });
+        userMessageContent = contentParts;
       }
 
       const userMessage: ChatMessage = { id: generateUUID(), role: 'user', content: userMessageContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
@@ -416,13 +501,24 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       .filter(msg => msg.role === 'user' || msg.role === 'assistant')
       .map(msg => {
         let content: string | ChatMessageContentPart[] = msg.content;
-        // If model doesn't support vision OR if the message is from assistant, filter out images.
-        if (!currentModel.vision || msg.role === 'assistant') {
-          if (Array.isArray(content)) {
+        
+        if (Array.isArray(content)) {
+          if (!currentModel.vision || msg.role === 'assistant') {
             const textParts = content.filter(part => part.type === 'text');
-            content = textParts.map(p => p.text).join('\n');
+            content = textParts.map(p => (p as any).text).join('\n');
+          } else {
+            content = content.map(part => {
+              if (part.type === 'image_url') {
+                return {
+                  type: 'image_url',
+                  image_url: { url: part.image_url.remoteUrl || part.image_url.url }
+                };
+              }
+              return part;
+            });
           }
         }
+        
         return {
           role: msg.role as 'user' | 'assistant',
           content: content,
@@ -435,23 +531,25 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     try {
       let aiMessage: ChatMessage;
 
-      // Image Mode and Code Mode are mutually exclusive - Image Mode takes precedence
       const effectivePrompt = messageText.trim() || chatInputValue.trim();
       if (isImagePrompt && effectivePrompt) {
-        const promptText = effectivePrompt;
-        const imageParams: any = {
-          prompt: promptText.trim(),
-          modelId: selectedImageModelId,
-        };
-
         const imageConfig = options.imageConfig;
         const modelInfo = getUnifiedModel(selectedImageModelId);
         const isPollinationsModel = modelInfo?.provider === 'pollinations';
 
+        let enrichedPrompt = effectivePrompt;
+        if (imageConfig && imageConfig.uploadedImages.length > 0) {
+            const imageList = imageConfig.uploadedImages.map((url, i) => `IMAGE_${i+1}: ${url}`).join('\n');
+            enrichedPrompt = `User provided the following reference images:\n${imageList}\n\nTask: ${effectivePrompt}`;
+        }
+
+        const imageParams: any = {
+          prompt: enrichedPrompt.trim(),
+          modelId: selectedImageModelId,
+        };
+
         if (imageConfig) {
           const { formFields, uploadedImages } = imageConfig;
-          
-          // Image Inputs mapping from Studio
           if (uploadedImages.length > 0) {
             if (selectedImageModelId === 'flux-2-pro') {
               imageParams.input_images = uploadedImages;
@@ -460,11 +558,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             } else if (selectedImageModelId === 'wan-video' || selectedImageModelId === 'veo-3.1-fast') {
               imageParams.image = uploadedImages[0];
             } else if (isPollinationsModel) {
-              imageParams.image = uploadedImages.slice(0, 8);
+              imageParams.image = uploadedImages; 
             }
           }
 
-          // Dimensions / Aspect Ratio mapping from Studio
           if (isPollinationsModel) {
             if (modelInfo?.kind === 'video') {
               if (formFields.aspect_ratio) imageParams.aspect_ratio = formFields.aspect_ratio;
@@ -491,7 +588,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
              if (formFields.duration) imageParams.duration = Number(formFields.duration);
           }
 
-          // Formats & Safety
           if (!isPollinationsModel) {
              imageParams.output_format = formFields.output_format;
              if (selectedImageModelId === 'flux-2-pro') {
@@ -499,18 +595,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
                 imageParams.output_quality = 100;
              }
           }
-        } else {
-          // Fallback simple AR parsing if no config provided
-          if (promptText.includes('--ar 16:9')) {
-             imageParams.width = 1216; imageParams.height = 832;
-          } else if (promptText.includes('--ar 9:16')) {
-             imageParams.width = 832; imageParams.height = 1216;
-          }
-        }
+        } 
 
         const imageUrl = await ChatService.generateImage(imageParams);
 
-        // Pollinations Polling logic from Studio
         if (isPollinationsModel && imageUrl) {
             const startTime = Date.now();
             const POLL_TIMEOUT = 120000;
@@ -534,13 +622,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
         addChatImageToHistory(
           imageUrl,
-          promptText.replace(/--ar \d+:\d+/g, '').trim(),
+          effectivePrompt.replace(/--ar \d+:\d+/g, '').trim(),
           selectedImageModelId,
-          activeConversation?.id // Pass current chat ID
+          activeConversation?.id 
         );
 
         const aiResponseContent: ChatMessageContentPart[] = [
-          { type: 'text', text: `Your image generation with model "${selectedImageModelId}" started. It may take a few seconds to arrive.` },
+          { type: 'text', text: `Your image generation with model "${selectedImageModelId}" started.` },
           { type: 'image_url', image_url: { url: imageUrl, altText: `Generated image (${selectedImageModelId})`, isGenerated: true } }
         ];
         aiMessage = { id: generateUUID(), role: 'assistant', content: aiResponseContent, timestamp: new Date().toISOString(), toolType: 'long language loops' };
@@ -550,8 +638,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         const isCodeMode = !!activeConversation.isCodeMode && !isImagePrompt;
         const modelIdForRequest = isCodeMode ? 'qwen-coder' : currentModel.id;
 
-        // DEBUG: Force Mistral for testing
-        // const modelIdForRequest = 'mistral-large';
         let systemPromptForRequest = effectiveSystemPrompt;
         if (isCodeMode) {
           systemPromptForRequest = CODE_REASONING_SYSTEM_PROMPT;
@@ -567,7 +653,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           isStreaming: true,
         };
 
-        // We'll optimistically add empty message for streaming
         finalMessages = [...updatedMessagesForState, baseAssistantMessage];
         setActiveConversation(prev => prev ? { ...prev, messages: finalMessages } : null);
 
@@ -579,47 +664,37 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
           webBrowsingEnabled,
           mistralFallbackEnabled: mistralFallbackEnabled,
         }, (delta: string) => {
-          // onStream callback
           streamedContent = delta;
           const updatedAssistantMessage: ChatMessage = { ...baseAssistantMessage, content: streamedContent, isStreaming: true };
-          // Update state on each chunk - optimizations might be needed for very large streams but this matches previous logic
-          // We re-create the array to force re-render
           setActiveConversation(prev => {
             if (!prev) return null;
             const paramsMessages = [...prev.messages];
-            // Replace the last message which is our streaming message
             if (paramsMessages.length > 0 && paramsMessages[paramsMessages.length - 1].id === streamingMessageId) {
               paramsMessages[paramsMessages.length - 1] = updatedAssistantMessage;
               return { ...prev, messages: paramsMessages };
             }
             return { ...prev, messages: [...paramsMessages, updatedAssistantMessage] };
           });
-          // Also update local finalMessages for final state
           finalMessages = [...updatedMessagesForState, updatedAssistantMessage];
         });
 
-        // Finalize message
         const completedAssistantMessage: ChatMessage = {
           ...baseAssistantMessage,
           content: streamedContent.trim() || "Sorry, I couldn't get a response.",
           isStreaming: false
         };
         aiMessage = completedAssistantMessage;
-
-        // Ensure final state update
         finalMessages = [...updatedMessagesForState, completedAssistantMessage];
         setActiveConversation(prev => prev ? { ...prev, messages: finalMessages } : null);
       }
 
-      // Title generation logic - only for first message pair or default titles
       const userMessageCount = finalMessages.filter(m => m.role === 'user').length;
-      const assistantMessageCount = finalMessages.filter(m => m.role === 'assistant').length;
+      const assistantMessageCount = finalMessages.filter(m => m.role === 'assistant') .length;
       const isFirstMessagePair = userMessageCount === 1 && assistantMessageCount === 1;
       const isDefaultTitle = activeConversation.title === t('nav.newConversation') ||
         activeConversation.title.toLowerCase().startsWith("new ") ||
         activeConversation.title === "Chat";
 
-      // Only generate title for first message pair or if title is still default
       if (isFirstMessagePair || isDefaultTitle) {
         finalTitle = await updateConversationTitle(convId, finalMessages);
       }
@@ -652,6 +727,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     } finally {
       const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: new Date().toISOString(), uploadedFile: null, uploadedFilePreview: null };
 
+      if (finalMessages.length >= 2) {
+        MemoryService.extractMemories(convId, finalMessages).catch(console.error);
+      }
+
       setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
       setIsAiResponding(false);
     }
@@ -673,14 +752,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
         uploadedFile: null,
         uploadedFilePreview: null
       });
-      setLastUserMessageId(null); // Reset scroll target on chat switch
+      setLastUserMessageId(null); 
     }
   }, [allConversations, setActiveConversation, setLastUserMessageId]);
 
-  // startNewChat muss vor dem useEffect definiert werden, der es aufruft
   const startNewChat = useCallback((initialModelId?: string) => {
-    // If current conversation has no messages, don't create a new one, 
-    // BUT update the model if one was specified from landing
     if (activeConversation && activeConversation.messages.length === 0) {
       if (initialModelId) {
         setActiveConversation(prev => prev ? { ...prev, selectedModelId: initialModelId } : null);
@@ -699,12 +775,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       isImageMode: false,
       isCodeMode: false,
       webBrowsingEnabled: false,
-      mistralFallbackEnabled: true,
+      mistralFallbackEnabled: false,
       selectedModelId: initialModelId || DEFAULT_POLLINATIONS_MODEL_ID,
       selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
     };
 
-    // Prune old conversations if necessary
     if (allConversations.length >= MAX_STORED_CONVERSATIONS) {
       const sortedConvs = [...allConversations].sort((a, b) => toDate(a.updatedAt).getTime() - toDate(b.updatedAt).getTime());
       const oldestConversation = sortedConvs[0];
@@ -714,7 +789,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     }
 
     setActiveConversation(newConversationData);
-    setLastUserMessageId(null); // Reset scroll target on new chat
+    setLastUserMessageId(null); 
 
     return newConversationData;
   }, [allConversations, setAllConversations, setActiveConversation, setLastUserMessageId]);
@@ -755,7 +830,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       if (nextChat) {
         selectChat(nextChat.id);
       } else {
-        startNewChat(); // startNewChat ist jetzt bekannt
+        startNewChat(); 
       }
     }
 
@@ -772,8 +847,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     setSelectedImageModelId(modelId);
   }, [setSelectedImageModelId]);
 
-
-
   const handleStyleChange = useCallback((styleName: string) => {
     if (activeConversation) {
       setActiveConversation(prev => prev ? { ...prev, selectedResponseStyleName: styleName } : null);
@@ -785,7 +858,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   }, []);
 
   const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), []);
-  const toggleGalleryPanel = useCallback(() => setIsGalleryPanelOpen(prev => !prev), []);
   const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), []);
   const toggleWebBrowsing = useCallback(() => {
     setActiveConversation(prev => prev ? { ...prev, webBrowsingEnabled: !(prev.webBrowsingEnabled ?? false) } : prev);
@@ -818,7 +890,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
     const messagesForRegeneration = activeConversation.messages.slice(0, lastMessageIndex);
 
-    await sendMessage("", { // `sendMessage` ist jetzt in Scope
+    await sendMessage("", { 
       isRegeneration: true,
       messagesForApi: messagesForRegeneration
     });
@@ -829,14 +901,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     if (!lastFailedRequest) return;
 
     const requestToRetry = { ...lastFailedRequest };
-    setLastFailedRequest(null); // Clear before retry
+    setLastFailedRequest(null); 
 
-    // Re-populate the input with the failed message (only if not regeneration)
     if (!requestToRetry.options?.isRegeneration && requestToRetry.messageText) {
       setChatInputValue(requestToRetry.messageText);
     }
 
-    // Send the message again with original options
     await sendMessage(requestToRetry.messageText, requestToRetry.options);
   }, [lastFailedRequest, sendMessage, setChatInputValue]);
 
@@ -847,7 +917,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   useChatEffects({
     isHistoryPanelOpen,
     isAdvancedPanelOpen,
-    isGalleryPanelOpen,
     isInitialLoadComplete,
     allConversations,
     activeConversation,
@@ -856,7 +925,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     setIsInitialLoadComplete,
     setIsHistoryPanelOpen,
     setIsAdvancedPanelOpen,
-    setIsGalleryPanelOpen,
     setActiveConversation,
     setPersistedActiveConversationId,
     setAllConversations,
@@ -873,12 +941,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   return {
     activeConversation, allConversations,
     isAiResponding, isImageMode,
-    isHistoryPanelOpen, isAdvancedPanelOpen, isGalleryPanelOpen,
+    isHistoryPanelOpen, isAdvancedPanelOpen,
     isEditTitleDialogOpen, editingTitle,
     playingMessageId, isTtsLoadingForId, chatInputValue,
     selectedVoice,
     isInitialLoadComplete,
-    lastUserMessageId, // Expose for the view
+    lastUserMessageId, 
     isRecording, isTranscribing,
     isCameraOpen,
     availableImageModels, selectedImageModelId,
@@ -888,14 +956,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
     handleVoiceChange, handleImageModelChange,
     toggleHistoryPanel, closeHistoryPanel,
-    toggleGalleryPanel,
     toggleAdvancedPanel, closeAdvancedPanel,
     toggleWebBrowsing, webBrowsingEnabled,
     toggleMistralFallback, mistralFallbackEnabled,
     handlePlayAudio,
     setChatInputValue,
     handleCopyToClipboard,
-    regenerateLastResponse, // regenerateLastResponse ist jetzt in Scope
+    regenerateLastResponse, 
     retryLastRequest,
     startRecording, stopRecording,
     openCamera, closeCamera,
@@ -907,8 +974,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
 
 interface ChatContextValue extends ReturnType<typeof useChatLogic> {
-  // Explicitly declare toggleGalleryPanel to ensure it's available
-  toggleGalleryPanel: () => void;
 }
 
 
@@ -917,11 +982,8 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userDisplayName] = useLocalStorageState<string>("userDisplayName", "User");
   const [customSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
-  // The API token is no longer needed on the client, it's handled by the backend API route.
   const chatLogic = useChatLogic({ userDisplayName, customSystemPrompt });
 
-  // This is a bit of a workaround to satisfy TypeScript's strictness
-  // for the setChatInputValue function passed to the input component.
   const setChatInputValueWrapper = useCallback((value: string | ((prev: string) => string)) => {
     chatLogic.setChatInputValue(value);
   }, [chatLogic]);
@@ -929,7 +991,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const chatContextValue: ChatContextValue = {
     ...chatLogic,
     setChatInputValue: setChatInputValueWrapper,
-    toggleGalleryPanel: chatLogic.toggleGalleryPanel,
   };
 
   return (

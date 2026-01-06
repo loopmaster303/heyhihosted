@@ -1,22 +1,34 @@
-# 🙌 Say Hey Hi to AI
+# hey.hi – the assistant computer.
 
-**Easy access to AI** — free, low-barrier, no data storage.  
-No paywalls. No subscriptions. No hidden conditions.
+**hey.hi** is a lightweight, privacy-focused, and fully transparent AI interface. It provides direct, frictionless access to state-of-the-art Large Language Models and Generative Media tools without paywalls, accounts, or server-side tracking.
 
-With natural language you can access a large part of human knowledge and capabilities.  
-AI can help you understand, learn, explore, build, and get creative.
+## 🚀 Vision
+To democratize artificial intelligence by creating a high-performance "Local-First" environment where users own their data and the machine acts as an honest, open-source-minded service.
 
-> Important: AI is not a human being. Not a creative soul, not a doctor, not a lawyer, not a friend or family member. It’s a tool. A machine. Nothing more, nothing less.
+## ✨ Key Features
+- **Multimodal Chat**: Discuss ideas with Claude, GPT, Gemini, or Grok. Full vision support included.
+- **Local Vault**: Generated images are stored directly in your browser's IndexedDB. They never expire and stay private.
+- **Anonymous Image Relay**: High-fidelity vision analysis via a temporary, privacy-respecting proxy.
+- **CRT Terminal Identity**: A specialized UI inspired by terminal aesthetics that provides real-time system feedback.
+- **No-Auth Architecture**: Instant utility. No sign-up, no logins, no BS.
 
-## 🔌 Models & APIs (Beta)
-This app integrates:
-- **Pollinations API** for free, open, creative generative AI (text & image). Pollinations focuses on democratizing AI and lowering barriers for experimentation — a rare platform that doesn’t hide behind paywalls and supports rapid prototyping, artists, educators, hackers, and everyday people. Without Pollinations, this project would not exist in this form. ❤️
-- **Premium models via Replicate**, where available (e.g. advanced image, audio, or video models).
+## 🛠 Tech Stack
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS (Glassmorphism & CRT effects)
+- **Storage**: IndexedDB (`idb-keyval`) + `localStorage`
+- **AI APIs**: Pollinations.ai (Pollen standard), Replicate
 
-All infrastructure and features are beta: no guarantees, no SLA, no perfect stability.  
-Models may change, fail, or be replaced at any time.
+## 📂 Project Structure
+- `/src/app`: Application routes and API endpoints.
+- `/src/components`: Reusable UI components (Radix UI / Shadcn).
+- `/src/hooks`: Advanced state management for local persistence.
+- `/src/lib/services`: Service layer for AI and storage orchestration.
 
-## 👤 Development
-This is a single-developer project — no corporate funding, no team, no VC.  
-Just tinkering, learning, and building tools that stay accessible to everyone.  
-Use it. Share it. Democratize AI.
+## 🔒 Privacy & Data
+- **Zero Server Storage**: Your chats are never saved on our servers.
+- **Local Ownership**: Media assets live in your browser's memory.
+- **Transparency**: Request the system prompt anytime. We hide nothing.
+
+---
+*Created with 💜 by [Loopmaster](https://github.com/johnmeckel) (John Meckel)*

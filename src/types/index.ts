@@ -36,7 +36,7 @@ export interface Conversation {
   selectedResponseStyleName?: string;
 }
 
-export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about';
+export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about' | 'visualize';
 
 export interface TileItem {
   id: ToolType;
@@ -52,7 +52,7 @@ export interface ImageHistoryItem {
   prompt: string;
   model: string;
   timestamp: string; // ISO string for easy storage/retrieval
-  toolType: 'premium imagination' | 'nocost imagination';
+  toolType: 'premium imagination' | 'nocost imagination' | 'visualize';
   videoUrl?: string;
   conversationId?: string; // Link to origin chat
 }

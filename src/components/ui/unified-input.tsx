@@ -1,8 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
+import { useLanguage } from '../LanguageProvider';
 
 interface UnifiedInputProps {
+// ... existing interface
   value: string;
   onChange: (value: string) => void;
   onSubmit?: (e?: React.FormEvent) => void;
@@ -38,6 +40,7 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
   autoFocus
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { t } = useLanguage();
 
   // Auto-resize logic from existing components
   useEffect(() => {
@@ -73,9 +76,9 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
       {/* Container echoing the v0 design */}
       <div 
         className={cn(
-          "relative rounded-[28px] p-5 transition-all duration-300",
-          "frosted-ice shadow-2xl", // Use greyish frosted ice utility
-          "hover:shadow-[0_0_30px_rgba(157,92,246,0.15)] focus-within:shadow-[0_0_40px_rgba(157,92,246,0.2)]",
+          "relative rounded-[28px] p-5 transition-all duration-500 ease-out",
+          "frosted-ice shadow-xl border border-white/10", 
+          "hover:shadow-[0_0_30px_rgba(157,92,246,0.1)] focus-within:shadow-[0_0_40px_rgba(157,92,246,0.2)] focus-within:border-primary/20",
           isDrawerOpen && "rounded-b-xl rounded-t-[28px]", 
           className
         )}
@@ -127,8 +130,8 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
       
       {/* Disclaimer */}
       <div className="mt-3 text-center">
-         <p className="text-[10px] md:text-xs text-muted-foreground/60">
-          AI kann Fehler machen. Bitte überprüfe wichtige Informationen.
+         <p className="text-[10px] md:text-xs text-muted-foreground/60 px-4">
+          {t('chat.disclaimer')}
         </p>
       </div>
     </div>

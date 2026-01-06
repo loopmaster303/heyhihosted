@@ -85,22 +85,29 @@ export function useChatEffects({
     // Initial load from localStorage
     useEffect(() => {
         if (!isInitialLoadComplete) {
-            const relevantConversations = allConversations.filter(c => c.toolType === 'long language loops');
+            // Filter out empty chats immediately (Zombie Cleanup)
+            const validConversations = allConversations.filter(c => c.messages.length > 0 && c.toolType === 'long language loops');
             
+            // If we found empty ones, clean up localStorage
+            if (validConversations.length !== allConversations.filter(c => c.toolType === 'long language loops').length) {
+                 setAllConversations(prev => prev.filter(c => c.messages.length > 0 || c.toolType !== 'long language loops'));
+            }
+
             let conversationToRestore: Conversation | undefined;
 
             // Try to restore from persisted ID
             if (persistedActiveConversationId) {
-                conversationToRestore = relevantConversations.find(c => c.id === persistedActiveConversationId);
+                conversationToRestore = validConversations.find(c => c.id === persistedActiveConversationId);
             }
 
             if (conversationToRestore) {
                 setActiveConversation(conversationToRestore);
-            } else if (activeConversation === null && relevantConversations.length > 0 && !persistedActiveConversationId) {
-                // Default to most recent ONLY if we don't have a persisted ID preference
-                const sortedConvs = [...relevantConversations].sort((a, b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
+            } else if (validConversations.length > 0) {
+                // Default to most recent if no ID or ID invalid
+                const sortedConvs = [...validConversations].sort((a, b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
                 setActiveConversation(sortedConvs[0]);
-            } else if (activeConversation === null && relevantConversations.length === 0) {
+            } else {
+                // Only start new chat if truly nothing valid exists
                 startNewChat();
             }
             setIsInitialLoadComplete(true);
@@ -118,6 +125,24 @@ export function useChatEffects({
     // Effect to update the allConversations in localStorage whenever active one changes
     useEffect(() => {
         if (activeConversation && isInitialLoadComplete) {
+            // Only persist if it has messages OR if it already exists in history (to allow deleting messages back to empty?)
+            // Actually, we want to prevent empty "New Chat" spam.
+            if (activeConversation.messages.length === 0) {
+                // If it's a new empty chat, do NOT add it to allConversations yet.
+                // If it was already there (cleared manually), we might want to keep it or remove it?
+                // Let's go with: Auto-delete empty chats from history list.
+                setAllConversations(prevAll => {
+                    const exists = prevAll.find(c => c.id === activeConversation.id);
+                    if (exists) {
+                        // If it exists but is now empty, remove it? Or keep it?
+                        // User preference: "empty chats not kept". So remove it.
+                        return prevAll.filter(c => c.id !== activeConversation.id);
+                    }
+                    return prevAll;
+                });
+                return;
+            }
+
             setAllConversations(prevAll => {
                 const existingIndex = prevAll.findIndex(c => c.id === activeConversation.id);
                 if (existingIndex > -1) {

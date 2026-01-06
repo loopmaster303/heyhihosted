@@ -3,19 +3,65 @@
  * Manages all useState and useRef declarations for chat functionality
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import type { Conversation, ChatMessage } from '@/types';
 import { AVAILABLE_TTS_VOICES, FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
+import { DatabaseService } from '@/lib/services/database';
+import { MigrationService } from '@/lib/services/migration';
 
 const CHAT_HISTORY_STORAGE_KEY = 'fluxflow-chatHistory';
 
 export function useChatState() {
-    // Conversation State
-    const [allConversations, setAllConversations] = useLocalStorageState<Conversation[]>(CHAT_HISTORY_STORAGE_KEY, []);
+    // --- Database Integration ---
+    const [allConversations, setAllConversations] = useState<Conversation[]>([]);
+    const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+
+    // Initial Load & Migration
+    useEffect(() => {
+        const initStorage = async () => {
+            try {
+                // 1. Migration prüfen/ausführen
+                await MigrationService.migrateIfNeeded();
+                
+                // 2. Daten aus IndexedDB laden
+                const dbConversations = await DatabaseService.getAllFullConversations();
+                setAllConversations(dbConversations as any);
+                
+                console.log(`📦 ${dbConversations.length} Chats aus IndexedDB geladen.`);
+            } catch (err) {
+                console.error("Failed to initialize IndexedDB storage:", err);
+            } finally {
+                setIsInitialLoadComplete(true);
+            }
+        };
+        initStorage();
+    }, []);
+
+    // Persistence: Save to IndexedDB when allConversations changes
+    useEffect(() => {
+        if (!isInitialLoadComplete) return;
+
+        const persist = async () => {
+            try {
+                // Wir speichern nur die Conversations, die sich geändert haben könnten
+                // Für den Anfang speichern wir bei jeder Änderung alles (einfachheitshalber)
+                for (const conv of allConversations) {
+                    await DatabaseService.saveFullConversation(conv);
+                }
+            } catch (err) {
+                console.error("Failed to persist changes to IndexedDB:", err);
+            }
+        };
+        persist();
+    }, [allConversations, isInitialLoadComplete]);
+
+    // Legacy State (Commented out for safety)
+    // const [allConversations, setAllConversations] = useLocalStorageState<Conversation[]>(CHAT_HISTORY_STORAGE_KEY, []);
+    
     const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
     const [persistedActiveConversationId, setPersistedActiveConversationId] = useLocalStorageState<string | null>('activeConversationId', null);
-    const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+    // const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
     // UI State
     const [isAiResponding, setIsAiResponding] = useState(false);

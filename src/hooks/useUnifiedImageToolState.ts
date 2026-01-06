@@ -277,7 +277,17 @@ export function useUnifiedImageToolState() {
             }
 
             const result = await response.json();
-            setPrompt(result.enhancedPrompt || prompt);
+            let enhanced = result.enhancedPrompt || prompt;
+
+            // FORCE QUALITY TAGS for z-image-turbo
+            if (selectedModelId === 'zimage' || selectedModelId === 'z-image-turbo') {
+                const tags = "masterpiece, best quality, 8k uhd, hyperrealistic, ultra detailed, cinematic lighting";
+                if (!enhanced.toLowerCase().includes('8k')) {
+                    enhanced = `${enhanced.trim()}, ${tags}`;
+                }
+            }
+
+            setPrompt(enhanced);
             toast({ title: "Prompt Enhanced", description: "Your prompt has been improved using AI." });
         } catch (err: any) {
             console.error('Enhancement error:', err);

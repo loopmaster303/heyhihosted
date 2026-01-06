@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { BlinkingCursor } from '@/components/ui/BlinkingCursor';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useLanguage } from '@/components/LanguageProvider';
+import { DatabaseService } from '@/lib/services/database';
 
 const fitWithin = (ratio: number, maxWidth: number, maxHeight: number) => {
   const safeRatio = ratio > 0 ? ratio : 1;
@@ -28,6 +29,7 @@ interface ChatImageCardProps {
   altText: string;
   isGenerated?: boolean;
   isUploaded?: boolean;
+  assetId?: string; // Neu: ID für lokalen Vault
 }
 
 const ChatImageCard: React.FC<ChatImageCardProps> = ({
@@ -35,12 +37,32 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
   altText,
   isGenerated = false,
   isUploaded = false,
+  assetId,
 }) => {
+  const [src, setSrc] = useState<string>(url);
   const [isLoaded, setIsLoaded] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [reloadToken, setReloadToken] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // Hydrierung aus dem Vault
+  useEffect(() => {
+    let active = true;
+    const hydrate = async () => {
+      if (!assetId) return;
+      try {
+        const localUrl = await DatabaseService.getAssetUrl(assetId);
+        if (localUrl && active) {
+          setSrc(localUrl);
+        }
+      } catch (e) {
+        console.warn("Failed to hydrate chat image:", e);
+      }
+    };
+    hydrate();
+    return () => { active = false; };
+  }, [assetId]);
 
   const maxRetries = 8;
   const maxWidth = isGenerated ? 320 : 120;
@@ -48,18 +70,20 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
   const ratio = aspectRatio || 1;
   const size = fitWithin(ratio, maxWidth, maxHeight);
  
-  const canReload = url?.startsWith('http');
+  const canReload = src?.startsWith('http');
 
   const imageUrl = canReload && reloadToken > 0
-    ? `${url}${url.includes('?') ? '&' : '?'}r=${reloadToken}`
-    : url;
+    ? `${src}${src.includes('?') ? '&' : '?'}r=${reloadToken}`
+    : src;
 
   useEffect(() => {
+    // Reset if URL/asset changes
+    if (!assetId) setSrc(url);
     setIsLoaded(false);
     setAspectRatio(null);
     setRetryCount(0);
     setReloadToken(0);
-  }, [url]);
+  }, [url, assetId]);
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -322,6 +346,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   altText={altText}
                   isGenerated={part.image_url.isGenerated}
                   isUploaded={part.image_url.isUploaded}
+                  assetId={(part.image_url as any).metadata?.assetId}
                 />
               );
             })}

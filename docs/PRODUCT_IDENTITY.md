@@ -1,87 +1,51 @@
 # Product Identity: HeyHi
 
-**"Just say</hey.hi> to run multiple AI."**
+> **"the assistant computer for everyone."**
 
 ## 1. Product Overview
 
-**HeyHi** is a lightweight, accessible AI platform designed to democratize access to artificial intelligence. It removes barriers such as paywalls, subscriptions, and complex setups, allowing users to interact with state-of-the-art text, image, and video generation models instantly.
+**HeyHi** is a high-performance, privacy-first AI platform. It acts as a transparent interface ("Assistant Computer") that democratizes access to state-of-the-art AI models without the friction of paywalls, subscriptions, or invasive data tracking.
 
-*   **Core Philosophy**: Privacy-focused (local storage), free-tier first, open exploration.
-*   **Target Audience**: Artists, prototypers, learners, and anyone wanting quick access to AI tools without friction.
-*   **Data Policy**: No user account required. No server-side storage of user chats.
+*   **Core Philosophy**: Absolute transparency, "Local-First" storage, and frictionless exploration.
+*   **Unique Identity**: Inspired by terminal aesthetics (CRT/Matrix style), emphasizing that it is a powerful *tool* (a computer program), not a human-mimicking entity.
+*   **Data Policy**: No user accounts. No server-side chat storage. Data lives 100% in the user's browser.
 
 ## 2. Core Experience
 
-### Unified Chat Interface
-A central hub for interacting with various Large Language Models (LLMs). The interface supports markdown rendering, code highlighting, and fluid conversation flows.
+### The "Assistant Computer" Terminal
+A specialized header that provides real-time system status in a typewriter/CRT style. It reinforces the identity of the platform as a sophisticated machine service.
 
-### Visualize Pro (Image & Video Generation)
-A powerful studio for generative media, aggregating models from multiple providers into a unified interface.
-*   **Standard Mode**: Optimized for speed and ease of use (mostly free models).
-*   **Advanced Mode**: Unlocks professional-grade models and granular controls (aspect ratio, seeds, negative prompts).
-*   **Video Generation**: Text-to-Video and Image-to-Video capabilities.
+### Unified Chat & Vision
+Interactions with LLMs (Claude, GPT, Gemini, Grok) with full multimodal support. Images uploaded in chat are analyzed via an anonymous proxy, keeping the user's local environment clean while providing full "vision" capabilities.
 
-### Voice & Audio
-*   **Speech-to-Text (STT)**: Transcribe voice input directly into chat.
-*   **Text-to-Speech (TTS)**: Vocalize AI responses.
+### Visualize Pro (Archived / In Development)
+A dedicated studio for granular control over generative models (Pollinations, Replicate).
+*   **Standard Mode**: Fast, simple, accessible.
+*   **Pro/Studio Mode**: Exposes every hyperparameter (Steps, CFG, Seeds, Negative Prompts).
 
-## 3. Technology Stack
+## 3. Technology Stack (The "Safe Mode" Architecture)
 
-### Frontend & Framework
-*   **Framework**: Next.js 15 (App Router)
-*   **Language**: TypeScript
-*   **UI Library**: React 18
-*   **Styling**: Tailwind CSS, `tailwindcss-animate`
-*   **Components**: Radix UI (Primitives), Lucide React (Icons), Framer Motion (Animations)
+### Frontend
+- **Framework**: Next.js 15 (App Router), TypeScript.
+- **UI**: Tailwind CSS (Glassmorphism), Framer Motion, Radix UI.
 
-### AI Infrastructure
-*   **Primary Provider (Free)**: [Pollinations.ai](https://pollinations.ai) (Text & Image)
-    *   *Role*: Powers the core free experience for democratized access.
-*   **Premium Provider**: [Replicate](https://replicate.com)
-    *   *Role*: Access to high-end, compute-intensive models (Flux Pro, Wan Video, Veo).
-*   **Auxiliary**: Mistral (via API) for prompt enhancement and chat.
+### AI Infrastructure & Connectivity
+- **Primary Provider**: [Pollinations.ai](https://pollinations.ai) (Free tier / Authenticated 'Pollen' API).
+- **Secondary Provider**: [Replicate](https://replicate.com) (Premium high-fidelity models).
+- **Vision Proxy**: Anonymous relay (Catbox.moe) for temporary image hosting during AI analysis.
 
-### Data & State
-*   **Persistence**: `localStorage` (Client-side only)
-*   **Storage**: Vercel Blob (for temporary asset handling if needed)
-*   **Deployment**: Vercel
+### Data & Vault
+- **Persistence**: Hybrid Storage.
+    - *Metadata*: `localStorage` (Chat history, settings).
+    - *Media Assets*: **IndexedDB** (`idb-keyval`). This "Local Vault" ensures images remain stable and bit-perfect even after provider-side deletion.
 
-## 4. Model Ecosystem
+## 4. System Ethics (The Identity Protocol)
+- **Transparency First**: Fully open system prompts and logic upon request.
+- **Honesty**: Strictly avoids claiming human status. Explicitly identifies as a computer program.
+- **Safety**: Built-in priority emergency protocols for user distress.
 
-HeyHi curates a diverse selection of models, categorized by capability and tier.
-
-### Image Generation
-| Model Name | Provider | Tier | Key Features |
-| :--- | :--- | :--- | :--- |
-| **Flux1 Ultra** | Pollinations | Free (Standard) | High quality, fast, supports reference images. |
-| **Flux1 Kontext** | Pollinations | Free (Standard) | Context-aware generation. |
-| **GPT-Image** | Pollinations | Free (Standard) | DALL-E 3 class generation. |
-| **Seedream** | Pollinations | Free (Standard) | ByteDance ARK powered. |
-| **Nano Banana** | Pollinations | Free (Standard) | Powered by Gemini Flash. |
-| **Z-Image Turbo** | Pollinations | Free (Standard) | Ultra-fast generation. |
-| **Flux 2 Pro** | Replicate | Premium | Professional grade quality. |
-
-### Video Generation
-| Model Name | Provider | Tier | Key Features |
-| :--- | :--- | :--- | :--- |
-| **Seedance** | Pollinations | Free (Standard) | Reactive video generation. |
-| **Veo 3.1** | Replicate/Pollinations | Hybrid | Google's advanced video model. |
-| **Wan 2.5** | Replicate | Premium | T2V and I2V capabilities. |
-
-## 5. Design System
-
-*   **Visual Theme**: Dark mode default, clean, minimalist, code-centric aesthetics.
-*   **Typography**:
-    *   Body: `Inter`
-    *   Monospace/Brand: `Code` font family
-*   **UX Patterns**:
-    *   **Particle Text**: Dynamic, interactive text effects for branding.
-    *   **Unified Inputs**: Text areas that support multi-modal input (text + images).
-    *   **Toasts**: Non-intrusive notifications for system status.
-
-## 6. Architecture Highlights
-
-*   **`src/ai`**: Logic flows for specific AI tasks (STT, TTS, Chat).
-*   **`src/components/tools`**: Specialized UI widgets for AI interaction (e.g., `UnifiedImageTool`, `PersonalizationTool`).
-*   **`src/config`**: Centralized configuration for all AI models (`unified-image-models.ts`, `unified-model-configs.ts`).
-*   **`src/lib/services`**: Abstractions for API calls (`chat-service.ts`, `unified-api.ts`).
+## 5. Directory Structure
+- `src/app/`: Modern Next.js routing and API endpoints.
+- `src/hooks/`: Custom state logic (`useImageHistory` with IndexedDB hydration, `useChatState`).
+- `src/lib/services/`: Core logic for API integration and Local Vault management.
+- `src/config/`: Centralized model and identity configurations.

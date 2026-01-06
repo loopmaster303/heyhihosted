@@ -85,7 +85,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
 
     return (
         <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
-            <div className="flex-grow overflow-y-auto pt-[72px] pb-4 px-4 no-scrollbar">
+            <div className="flex-grow overflow-y-auto pt-4 pb-4 px-4 no-scrollbar">
                 {messages && messages.length > 0 ? (
                     <ErrorBoundary
                         fallbackTitle="Chat konnte nicht geladen werden"
@@ -113,11 +113,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                 <ChatInput
                     onSendMessage={(msg, opts) => sendMessage(msg, {
                         ...opts,
-                        imageConfig: isImageMode ? {
+                        imageConfig: {
                             formFields: visualizeToolState.formFields,
                             uploadedImages: visualizeToolState.uploadedImages,
                             selectedModelId: visualizeToolState.selectedModelId
-                        } : undefined
+                        }
                     })}
                     isLoading={isAiResponding}
                     uploadedFilePreviewUrl={uploadedFilePreview || null}

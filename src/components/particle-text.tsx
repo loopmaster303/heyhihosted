@@ -74,8 +74,8 @@ export function ParticleText({
     const isMobile = dimensions.width < 768
     
     // Config
-    const mouseRepelRadius = isMobile ? 120 : 180
-    const particleBaseSize = isMobile ? 1.2 : 1.5
+    const mouseRepelRadius = isMobile ? 150 : 300 // Significantly increased repulsion radius
+    const particleBaseSize = isMobile ? 1.2 : 1.6
 
     let particles: Particle[] = []
     let textImageData: ImageData | null = null
@@ -185,7 +185,13 @@ export function ParticleText({
         const dy = mouseY - p.y
         const distance = Math.sqrt(dx * dx + dy * dy)
         
-        p.glitterPhase += 0.05
+        // Only animate glitter when mouse is nearby
+        const isNearMouse = distance < mouseRepelRadius * 1.5
+        if (isNearMouse) {
+          p.glitterPhase += 0.25 // Aggressive glitter speed
+        } else {
+          p.glitterPhase += 0.01 // Faster idle shimmer
+        }
 
         // Determine target position
         let targetX = p.baseX
@@ -196,7 +202,7 @@ export function ParticleText({
         if (distance < mouseRepelRadius) {
             const force = (mouseRepelRadius - distance) / mouseRepelRadius
             const angle = Math.atan2(dy, dx)
-            const move = force * 40
+            const move = force * 150 // Very strong explosive force
             targetX = p.baseX - Math.cos(angle) * move
             targetY = p.baseY - Math.sin(angle) * move
         }
@@ -205,18 +211,15 @@ export function ParticleText({
         p.x += (targetX - p.x) * 0.1
         p.y += (targetY - p.y) * 0.1
 
-        // Color / Glitter
+        // Color / Glitter - less white, more base color
         const glitter = (Math.sin(p.glitterPhase) + 1) / 2
         
-        // Mix between White and Base Color
-        // V0 mixes white with blue. We mix White with Prop Color.
-        // High glitter = White, Low glitter = Color
-        // Actually V0 does: if (blue) mix(lightBlue) else mix(white).
-        // Let's do: BaseColor -> White
+        // Keep base color strong, only subtle white shimmer on hover
+        const whiteAmount = isNearMouse ? glitter * 0.25 : glitter * 0.1
         
-        const r = Math.floor(baseRGB.r + (255 - baseRGB.r) * glitter * 0.8)
-        const g = Math.floor(baseRGB.g + (255 - baseRGB.g) * glitter * 0.8)
-        const b = Math.floor(baseRGB.b + (255 - baseRGB.b) * glitter * 0.8)
+        const r = Math.floor(baseRGB.r + (255 - baseRGB.r) * whiteAmount)
+        const g = Math.floor(baseRGB.g + (255 - baseRGB.g) * whiteAmount)
+        const b = Math.floor(baseRGB.b + (255 - baseRGB.b) * whiteAmount)
         
         ctx.fillStyle = `rgb(${r},${g},${b})`
         ctx.fillRect(p.x, p.y, p.size, p.size)

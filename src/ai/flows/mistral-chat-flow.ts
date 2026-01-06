@@ -70,17 +70,29 @@ export async function getMistralChatCompletion(
     // Map Pollinations model to Mistral model
     const mistralModelId = mapPollinationsToMistralModel(modelId);
 
+    // SAFE-MODE: Filter out images for Mistral as it doesn't support them via this endpoint
+    const sanitizedMessages = messages.map(msg => {
+        if (Array.isArray(msg.content)) {
+            const textContent = msg.content
+                .filter(part => part.type === 'text')
+                .map(part => (part as any).text)
+                .join('\n');
+            return { ...msg, content: textContent };
+        }
+        return msg;
+    });
+
     // Construct the final payload for the Mistral API
     const payload: MistralChatRequest = {
         model: mistralModelId,
-        messages: messages,
+        messages: sanitizedMessages,
         temperature: temperature || 0.7,
         max_tokens: maxCompletionTokens || 4096,
     };
 
     // Add system prompt if provided
     if (systemPrompt && systemPrompt.trim() !== "") {
-        payload.messages = [{ role: 'system', content: systemPrompt.trim() }, ...messages];
+        payload.messages = [{ role: 'system', content: systemPrompt.trim() }, ...sanitizedMessages];
     }
 
     let lastError: Error | null = null;
@@ -180,16 +192,28 @@ export async function getMistralChatCompletionStream(
 
     const mistralModelId = mapPollinationsToMistralModel(modelId);
 
+    // SAFE-MODE: Filter out images for Mistral
+    const sanitizedMessages = messages.map(msg => {
+        if (Array.isArray(msg.content)) {
+            const textContent = msg.content
+                .filter(part => part.type === 'text')
+                .map(part => (part as any).text)
+                .join('\n');
+            return { ...msg, content: textContent };
+        }
+        return msg;
+    });
+
     const payload: MistralChatRequest = {
         model: mistralModelId,
-        messages: messages,
+        messages: sanitizedMessages,
         temperature: temperature || 0.7,
         max_tokens: maxCompletionTokens || 4096,
         stream: true,
     };
 
     if (systemPrompt && systemPrompt.trim() !== "") {
-        payload.messages = [{ role: 'system', content: systemPrompt.trim() }, ...messages];
+        payload.messages = [{ role: 'system', content: systemPrompt.trim() }, ...sanitizedMessages];
     }
 
     const controller = new AbortController();

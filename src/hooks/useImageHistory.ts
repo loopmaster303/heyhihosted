@@ -1,61 +1,48 @@
-"use client";
-
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import useLocalStorageState from './useLocalStorageState';
-import { generateUUID } from '@/lib/uuid';
-import type { ImageHistoryItem } from '@/types';
 
-const MAX_HISTORY_ITEMS = 100;
+export interface ImageHistoryItem {
+  id: string;
+  imageUrl: string;
+  videoUrl?: string;
+  prompt: string;
+  model: string;
+  timestamp: string;
+  toolType: 'premium imagination' | 'nocost imagination' | 'visualize';
+  conversationId?: string;
+}
 
+/**
+ * useImageHistory Hook
+ * Verfaltet nur noch die Liste der Einträge. 
+ * Die eigentliche Bild-Hydrierung passiert jetzt in der GalleryImage Komponente.
+ */
 export function useImageHistory() {
-    const [imageHistory, setImageHistory] = useLocalStorageState<ImageHistoryItem[]>('imageHistory', []);
+  const [history, setHistory] = useLocalStorageState<ImageHistoryItem[]>('imageHistory', []);
 
-    const addImageToHistory = useCallback((item: Omit<ImageHistoryItem, 'id' | 'timestamp'>) => {
-        const newItem: ImageHistoryItem = {
-            ...item,
-            id: generateUUID(),
-            timestamp: new Date().toISOString(),
-        };
+  // Wir brauchen keine interne hydratedHistory mehr, da die Komponenten selbst laden.
+  
+  const addImageToHistory = useCallback((item: ImageHistoryItem) => {
+    setHistory(prev => {
+      // Dubletten-Check
+      if (prev.find(i => i.id === item.id)) return prev;
+      return [item, ...prev];
+    });
+  }, [setHistory]);
 
-        setImageHistory(prevHistory => {
-            const newHistory = [newItem, ...prevHistory];
-            // Keep only the most recent items
-            return newHistory.slice(0, MAX_HISTORY_ITEMS);
-        });
-    }, [setImageHistory]);
+  const clearHistory = useCallback(() => {
+    setHistory([]);
+  }, [setHistory]);
 
-    // Listen for external updates (e.g. from UnifiedImageTool)
-    // using a custom event since 'storage' event only works across tabs
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const handleExternalUpdate = () => {
-                try {
-                    const item = window.localStorage.getItem('imageHistory');
-                    if (item) {
-                        setImageHistory(JSON.parse(item));
-                    }
-                } catch (e) {
-                    console.error("Failed to sync image history:", e);
-                }
-            };
-            
-            window.addEventListener('imageHistoryUpdated', handleExternalUpdate);
-            return () => window.removeEventListener('imageHistoryUpdated', handleExternalUpdate);
-        }
-    }, [setImageHistory]);
+  const deleteItem = useCallback((id: string) => {
+    setHistory(prev => prev.filter(item => item.id !== id));
+  }, [setHistory]);
 
-    const clearImageHistory = useCallback(() => {
-        setImageHistory([]);
-    }, [setImageHistory]);
-
-    const removeImageFromHistory = useCallback((id: string) => {
-        setImageHistory(prevHistory => prevHistory.filter(item => item.id !== id));
-    }, [setImageHistory]);
-
-    return {
-        imageHistory,
-        addImageToHistory,
-        clearImageHistory,
-        removeImageFromHistory,
-    };
+  return {
+    imageHistory: history,
+    addImageToHistory,
+    clearHistory,
+    deleteItem,
+    isHydrating: false // Immer false, da Komponenten on-demand laden
+  };
 }

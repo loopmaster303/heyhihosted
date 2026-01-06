@@ -15,7 +15,10 @@ import { z } from 'zod';
 // This schema defines a single message part, which can be text or an image URL.
 const ApiContentPartSchema = z.union([
   z.object({ type: z.literal('text'), text: z.string() }),
-  z.object({ type: z.literal('image_url'), image_url: z.object({ url: z.string() }) })
+  z.object({ 
+    type: z.literal('image_url'), 
+    image_url: z.object({ url: z.string() }).passthrough() 
+  })
 ]);
 
 // This schema defines a single message in the conversation.

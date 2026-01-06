@@ -1,30 +1,15 @@
-
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { handleApiError, validateRequest, apiErrors } from '@/lib/api-error-handler';
+import { handleApiError, validateRequest } from '@/lib/api-error-handler';
 
-// This route handles Pollinations.ai API calls for image generation with context support
-// Supports models: flux, turbo, nanobanana, seedream
+/**
+ * Pollinations Generation Route (Safe Mode)
+ * Uses the stable 'gen.pollinations.ai' endpoint.
+ */
 
 const ImageGenerationSchema = z.object({
   prompt: z.string().min(1, 'Prompt is required'),
-  model: z.enum([
-    'flux',
-    'kontext',
-    'turbo',
-    'zimage',
-    'nanobanana',
-    'nanobanana-pro',
-    'seedream',
-    'seedream-pro',
-    'gptimage',
-    'gpt-image',
-    'gptimage-large',
-    'veo',
-    'seedance',
-    'seedance-pro',
-    'wan-2.5-t2v',
-  ]),
+  model: z.string().default('flux'),
   width: z.number().positive().default(1024),
   height: z.number().positive().default(1024),
   seed: z.number().optional(),
@@ -32,20 +17,14 @@ const ImageGenerationSchema = z.object({
   enhance: z.boolean().default(false),
   private: z.boolean().default(false),
   transparent: z.boolean().default(false),
-  aspectRatio: z.string().optional(),
-  duration: z.number().optional(),
-  audio: z.boolean().optional(),
-  image: z.union([z.string().url(), z.array(z.string().url())]).optional(),
   safe: z.boolean().default(false),
+  negative_prompt: z.string().optional(),
+  image: z.union([z.string().url(), z.array(z.string().url())]).optional(),
 });
-
-const VIDEO_MODELS = new Set(['seedance', 'seedance-pro', 'veo', 'wan-2.5-t2v']);
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-
-    // Validate request
     const {
       prompt,
       model,
@@ -56,111 +35,63 @@ export async function POST(request: Request) {
       enhance,
       private: isPrivate,
       transparent,
-      aspectRatio,
-      duration,
-      audio,
       safe,
+      negative_prompt,
+      image
     } = validateRequest(ImageGenerationSchema, body);
 
-    // Map model aliases for Pollen endpoint
-    let modelId = model === 'gpt-image' ? 'gptimage' : model;
+    const baseUrl = "https://gen.pollinations.ai/image";
+    const safePrompt = encodeURIComponent(prompt.trim());
+    
+    // --- Model Logic ---
+    let modelId: string = model || 'flux';
+    if (model === 'zimage') modelId = 'z-image-turbo';
+    
+    // Auto-enhance for z-image-turbo unless explicitly disabled
+    const effectiveEnhance = (modelId === 'z-image-turbo') ? true : enhance;
 
-    // IF image is provided but model is 'flux', force 'kontext' (or similar) 
-    // because flux does not support image input!
-    if (body.image && modelId === 'flux') {
-      console.log('[Pollinations] Switching from flux to kontext for image-to-image support');
-      modelId = 'kontext';
-    }
-
-    const token = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_TOKEN;
-    if (!token) {
-      console.warn("POLLEN_API_KEY is not set. Image generation might fail.");
-    }
-
-    const isVideoModel = VIDEO_MODELS.has(model);
-
-    // --- Pollinations Pollen API Logic ---
     const params = new URLSearchParams();
-    params.append('model', modelId || 'flux');
-    if (!isVideoModel) {
-      // Clamp sizes for gptimage (Azure GPT Image API only supports 1024x1024, 1024x1536, 1536x1024)
-      const safeWidth = width ?? 1024;
-      const safeHeight = height ?? 1024;
-      let finalWidth = safeWidth;
-      let finalHeight = safeHeight;
-      if (modelId === 'gptimage') {
-        const isPortrait = safeHeight > safeWidth;
-        const isLandscape = safeWidth > safeHeight;
-        if (isPortrait) {
-          finalWidth = 1024;
-          finalHeight = 1536;
-        } else if (isLandscape) {
-          finalWidth = 1536;
-          finalHeight = 1024;
-        } else {
-          finalWidth = 1024;
-          finalHeight = 1024;
-        }
-      }
-      params.append('width', String(finalWidth));
-      params.append('height', String(finalHeight));
-    }
-    if (seed !== undefined && seed !== null && String(seed).trim() !== '') {
-      const seedNum = parseInt(String(seed).trim(), 10);
-      if (!isNaN(seedNum)) {
-        params.append('seed', String(seedNum));
-      }
-    }
-    if (nologo) params.append('nologo', 'true');
-    if (enhance) params.append('enhance', 'true');
-    if (isPrivate) params.append('private', 'true');
-    if (transparent) params.append('transparent', 'true'); // For models that support it
-    if (safe) {
-      params.append('safe', 'true');
-    }
-    else {
-      params.append('safe', 'false');
-    }
-    if (isVideoModel) {
-      if (aspectRatio) params.append('aspectRatio', aspectRatio);
-      if (typeof duration === 'number') params.append('duration', String(duration));
-      if (audio) params.append('audio', 'true');
-    }
-    // Reference images (supports arrays or single URL)
-    if (body.image) {
-      const images = Array.isArray(body.image) ? body.image : [body.image];
-      const validImages = images.filter((img: any) => typeof img === 'string' && img.trim().length > 0);
-      
-      if (validImages.length > 0) {
-        // Add cache-buster to the Vercel Blob URL to ensure Pollinations fetches the fresh file
-        const freshImages = validImages.map(url => {
-            const separator = url.includes('?') ? '&' : '?';
-            return `${url}${separator}v=${Date.now()}`;
-        });
-        
-        const imageParam = freshImages.join(',');
-        params.append('image', imageParam);
-        console.log('[Pollinations] Using reference images (fresh):', imageParam);
-      }
+    params.append('model', modelId);
+    params.append('width', String(width));
+    params.append('height', String(height));
+    params.append('nologo', String(nologo));
+    params.append('enhance', String(effectiveEnhance));
+    params.append('private', String(isPrivate));
+    params.append('safe', String(safe));
+    
+    if (negative_prompt) params.append('negative_prompt', negative_prompt);
+    if (transparent) params.append('transparent', 'true');
+    if (seed) params.append('seed', String(seed));
+    
+    // Handle multiple images (comma-separated for Pollinations)
+    if (image) {
+      const imageUrls = Array.isArray(image) ? image : [image];
+      params.append('image', imageUrls.join(','));
     }
 
-    // Force HD quality
+    // Always use HD for best results
     params.append('quality', 'hd');
 
-    const encodedPrompt = encodeURIComponent(prompt.trim());
-    // Use the correct 'gen' endpoint as per documentation
-    let imageUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?${params.toString()}`;
-    console.log('[Pollinations] Generated URL:', imageUrl);
+    const finalUrl = `${baseUrl}/${safePrompt}?${params.toString()}`;
+    
+    // Add API key only if available and non-empty
+    const token = process.env.POLLEN_API_KEY;
+    const hasToken = token && token.trim() !== '';
 
-    // Add API token if available (passed as query for direct <img> access)
-    if (token) {
-      imageUrl += `&key=${token}`;
+    // Fallback: If no token is present, we CANNOT allow 'private=true' as it causes 401
+    if (isPrivate && !hasToken) {
+        console.warn('[Pollinations] Private mode requested but no POLLEN_API_KEY found. Forcing private=false to prevent 401.');
+        params.set('private', 'false');
     }
 
+    const correctFinalUrl = `${baseUrl}/${safePrompt}?${params.toString()}`;
+    const authenticatedUrl = hasToken 
+      ? `${correctFinalUrl}&key=${token}` 
+      : correctFinalUrl;
 
+    console.log('[Pollinations] Dispatching:', hasToken ? 'Authenticated Request' : 'Public Request');
 
-    // Return the image URL with token for authenticated access
-    return NextResponse.json({ imageUrl });
+    return NextResponse.json({ imageUrl: authenticatedUrl });
 
   } catch (error) {
     return handleApiError(error);

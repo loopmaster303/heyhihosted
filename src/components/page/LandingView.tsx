@@ -19,6 +19,7 @@ interface LandingViewProps {
 }
 
 const LandingView: React.FC<LandingViewProps> = ({
+    userDisplayName,
     onNavigateToChat,
     selectedModelId,
     onModelChange,

@@ -4,7 +4,7 @@ import type React from 'react';
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { UnifiedInput } from '@/components/ui/unified-input';
-import { Settings2, Mic, Square, ArrowUp, Plus, X } from 'lucide-react';
+import { Settings2, AudioWaveform, Square, ArrowUp, Plus, X } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
 import type { Conversation } from '@/types';
 import { MobileOptionsMenu } from './input/MobileOptionsMenu';
@@ -13,6 +13,7 @@ import { ToolsBadges } from './input/ToolsBadges';
 import { UploadBadges } from './input/UploadBadges';
 import { VisualizeReferenceBadges } from './input/VisualizeReferenceBadges';
 import { VisualizeInlineHeader } from '@/components/tools/visualize/VisualizeInlineHeader';
+import { ModelSelector } from './input/ModelSelector';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
@@ -36,7 +37,7 @@ interface ChatInputProps {
     isHistoryPanelOpen: boolean;
     isGalleryPanelOpen: boolean;
     isAdvancedPanelOpen: boolean;
-    advancedPanelRef: React.RefObject<HTMLDivElement>;
+    advancedPanelRef: React.RefObject<HTMLDivElement | null>;
     allConversations: Conversation[];
     activeConversation: Conversation | null;
     selectChat: (id: string) => void;
@@ -77,6 +78,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
     onToggleImageMode,
     webBrowsingEnabled,
     onToggleWebBrowsing,
+    closeAdvancedPanel,
+    toDate,
+    selectedModelId,
+    handleModelChange,
     selectedResponseStyleName,
     handleStyleChange,
     selectedVoice,
@@ -417,6 +422,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     }
                     rightActions={
                          <>
+                            {/* LLM Model Selector always visible next to Record */}
+                            <div className="mr-1">
+                                <ModelSelector
+                                    selectedModelId={selectedModelId}
+                                    onModelChange={handleModelChange}
+                                    disabled={isLoading || isRecording || isTranscribing}
+                                    compact={true}
+                                />
+                            </div>
+
                             <Button
                                 type="button"
                                 variant="ghost"
@@ -431,7 +446,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 {isRecording ? (
                                     <Square className="w-4 h-4 fill-current" />
                                 ) : (
-                                    <Mic className="w-4 h-4" />
+                                    <AudioWaveform className="w-4 h-4" />
                                 )}
                             </Button>
 
@@ -453,18 +468,17 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                 </div>
                             )}
 
-                            <Button
-                                type="submit"
-                                disabled={isLoading || isRecording || (!inputValue.trim() && !uploadedFilePreviewUrl)}
-                                className={`ml-1 rounded-full px-6 font-medium h-9 text-sm transition-all duration-300 ${
-                                    inputValue.trim() || uploadedFilePreviewUrl
-                                        ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-md'
-                                        : 'bg-muted text-muted-foreground'
-                                }`}
-                                aria-label="Send message"
-                            >
-                                {isMobile ? <ArrowUp className="w-5 h-5" /> : t('chat.send')}
-                            </Button>
+                            {/* Dynamic Send Button - only shows when has content */}
+                            {(inputValue.trim() || uploadedFilePreviewUrl) && (
+                                <Button
+                                    type="submit"
+                                    disabled={isLoading || isRecording}
+                                    className="ml-1 rounded-full px-6 font-medium h-9 text-sm transition-all duration-300 bg-primary text-primary-foreground hover:opacity-90 shadow-md"
+                                    aria-label="Send message"
+                                >
+                                    {isMobile ? <ArrowUp className="w-5 h-5" /> : t('chat.send')}
+                                </Button>
+                            )}
                          </>
                     }
                 />

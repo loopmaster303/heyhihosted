@@ -42,9 +42,10 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
         if (pathname === '/chat') {
             setAppState('chat');
         }
-        // /visualizepro now redirects to /studio
+        // Redirect visualize to chat with image mode if needed, or just stay here
         else if (pathname === '/visualizepro') {
-            window.location.replace('/studio');
+            setAppState('chat');
+            // Hier könnte man noch chat.toggleImageMode() triggern
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isClient]);
@@ -100,9 +101,12 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             isGalleryPanelOpen={chat.isGalleryPanelOpen}
             allConversations={chat.allConversations}
             activeConversation={chat.activeConversation}
+            isAiResponding={chat.isAiResponding}
             // Chat Model Props
             selectedModelId={appState === 'landing' ? landingSelectedModelId : (chat.activeConversation?.selectedModelId || 'claude')}
             onModelChange={appState === 'landing' ? setLandingSelectedModelId : chat.handleModelChange}
+            selectedResponseStyleName={chat.activeConversation?.selectedResponseStyleName}
+            selectedImageModelId={visualizeToolState.selectedModelId}
         >
             {/* Landing State */}
             {appState === 'landing' && (

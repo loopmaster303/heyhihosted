@@ -2,18 +2,21 @@
 
 /* eslint-disable react-hooks/exhaustive-deps, @next/next/no-img-element */
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
 import { getUnifiedModel } from '@/config/unified-image-models';
-import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 import { generateUUID } from '@/lib/uuid';
 import type { ImageHistoryItem } from '@/types';
 import { useLanguage } from '../LanguageProvider';
 import { useUnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import VisualizeInputContainer from '@/components/tools/VisualizeInputContainer';
+import { persistRemoteImage } from '@/lib/services/local-image-storage';
+import { ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useImageHistory } from '@/hooks/useImageHistory';
 
-const IMAGE_HISTORY_KEY = 'imageHistory';
+const MAX_REFERENCE_IMAGES = 14;
 
 interface UnifiedImageToolProps {
   password?: string;
@@ -24,9 +27,10 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
   const { toast } = useToast();
   const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
+  
+  // Use the central history hook for all history operations
+  const { addImageToHistory, imageHistory } = useImageHistory();
 
-  // Use shared state if provided, otherwise create local state
-  // This allows VisualizeProPage to pass its state so TopModelBar and this tool stay in sync
   const localToolState = useUnifiedImageToolState();
   const toolState = sharedToolState || localToolState;
 
@@ -39,61 +43,28 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
     setFormFields,
     uploadedImages,
     setUploadedImages,
-    availableModels, // used to check if models exist
+    availableModels,
   } = toolState;
 
-  // Local Tool State (History, Display)
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState<ImageHistoryItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<ImageHistoryItem | null>(null);
   const [imageReloadCount, setImageReloadCount] = useState(0);
 
-  // History Panel State (Only local to this parent view, as input container doesn't show history)
-  const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
-  const historyPanelRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     setMounted(true);
-    // Load history from localStorage
-    try {
-      const stored = localStorage.getItem(IMAGE_HISTORY_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setHistory(parsed);
-          if (parsed.length > 0) {
-            setSelectedImage(parsed[0]);
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load history from localStorage:', e);
+    // Load most recent image if available
+    if (imageHistory.length > 0 && !selectedImage) {
+        // setSelectedImage(imageHistory[0]); // Optional: auto-select recent
     }
-  }, []);
+  }, [imageHistory]);
 
-  // Save history to localStorage whenever it changes
-  useEffect(() => {
-    if (!mounted) return;
-    try {
-      if (history.length > 0) {
-        localStorage.setItem(IMAGE_HISTORY_KEY, JSON.stringify(history));
-      } else {
-        localStorage.removeItem(IMAGE_HISTORY_KEY);
-      }
-      // Dispatch event to sync sidebar
-      window.dispatchEvent(new Event('imageHistoryUpdated'));
-    } catch (e) {
-      console.error('Failed to save history to localStorage:', e);
-    }
-  }, [history, mounted]);
-
-  // Handle Submission Logic (API Call) - This stays here or could be moved to another hook, but keeping here for now as it orchestrates generation.
-  // Actually, we should use the hook's state to submit.
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (!prompt.trim() && uploadedImages.length === 0) {
-      toast({ title: "Prompt Required", description: "Please enter a prompt or upload images.", variant: "destructive" });
+      toast({ title: "Prompt Required", variant: "destructive" });
       return;
     }
 
@@ -103,123 +74,66 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
     setSelectedImage(null);
 
     try {
-      const modelInfo = getUnifiedModel(selectedModelId);
-      const isPollinationsModel = modelInfo?.provider === 'pollinations';
-
-      const payload: Record<string, any> = isPollinationsModel
-        ? {
-          model: selectedModelId,
-          prompt: prompt.trim() || '',
-          private: true,
-        }
-        : {
-          model: selectedModelId,
-          password: password || '',
-          prompt: prompt.trim() || '',
-        };
-
-      // Add input images if uploaded
-      // Mapping logic similar to before...
+      // 1. Handle Reference Images (Proxy Upload)
+      let referenceUrls: string[] = [];
       if (uploadedImages.length > 0) {
-        if (selectedModelId === 'flux-2-pro') {
-          payload.input_images = uploadedImages;
-        } else if (selectedModelId === 'flux-kontext-pro') {
-          payload.input_image = uploadedImages[0];
-        } else if (selectedModelId === 'wan-video' || selectedModelId === 'veo-3.1-fast') {
-          payload.image = uploadedImages[0];
-        } else if (isPollinationsModel) {
-          // Pollinations models (gpt-image, seedream, seedream-pro, nanobanana, nanobanana-pro, seedance-pro, veo)
-          // expect image as array of URLs
-          payload.image = uploadedImages.slice(0, 8);
-        }
-      }
-
-      // Handle dimensions/aspect ratio
-      if (isPollinationsModel) {
-        if (currentModelConfig?.outputType === 'video') {
-          if (formFields.aspect_ratio) payload.aspectRatio = formFields.aspect_ratio;
-          if (formFields.duration) payload.duration = Number(formFields.duration);
-          if (selectedModelId === 'veo' && typeof formFields.audio !== 'undefined') {
-            payload.audio = Boolean(formFields.audio);
+        toast({ title: "Uploading references...", description: `Preparing ${uploadedImages.length} images.` });
+        
+        const uploadPromises = uploadedImages.slice(0, MAX_REFERENCE_IMAGES).map(async (img) => {
+          if (img.startsWith('http') && !img.includes('blob:')) return img;
+          try {
+            const blobResponse = await fetch(img);
+            const blob = await blobResponse.blob();
+            const formData = new FormData();
+            formData.append('file', blob, 'ref.png');
+            
+            const res = await fetch('/api/upload/temp', { method: 'POST', body: formData });
+            const data = await res.json();
+            return data.url;
+          } catch (e) {
+            console.error('Upload failed', e);
+            return null;
           }
-        } else {
-          // Validate width/height for Azure GPT Image API - only certain sizes are allowed
-          const validSizes = [
-            { width: 1024, height: 1024 },
-            { width: 1536, height: 1024 },
-            { width: 1024, height: 1536 },
-          ];
-          let width = formFields.width || 1024;
-          let height = formFields.height || 1024;
-
-          // Check if current size is valid, otherwise fallback to 1024x1024
-          const isValidSize = validSizes.some(s => s.width === width && s.height === height);
-          if (!isValidSize) {
-            console.warn(`Invalid size ${width}x${height}, falling back to 1024x1024`);
-            width = 1024;
-            height = 1024;
-          }
-
-          payload.width = width;
-          payload.height = height;
-        }
-        payload.quality = 'hd';
-      } else if (selectedModelId === 'z-image-turbo') {
-        const aspectRatio = formFields.aspect_ratio || '1:1';
-        const aspectRatioMap: Record<string, { width: number; height: number }> = {
-          '1:1': { width: 1024, height: 1024 },
-          '4:3': { width: 1024, height: 768 },
-          '3:4': { width: 768, height: 1024 },
-          '16:9': { width: 1344, height: 768 },
-          '9:16': { width: 768, height: 1344 },
-        };
-        const dimensions = aspectRatioMap[aspectRatio] || { width: 1024, height: 1024 };
-        payload.width = dimensions.width;
-        payload.height = dimensions.height;
-      } else {
-        if (formFields.aspect_ratio) payload.aspect_ratio = formFields.aspect_ratio;
-        if (formFields.size) payload.size = formFields.size;
-
-        // Pass duration for Replicate models if present (e.g. wan, veo-replicate)
-        if (formFields.duration) payload.duration = Number(formFields.duration);
-
-        if (formFields.aspect_ratio === 'match_input_image') {
-          payload.resolution = 'match_input_image';
-        } else if (formFields.aspect_ratio !== 'custom' && formFields.resolution) {
-          payload.resolution = formFields.resolution;
-        }
+        });
+        
+        const results = await Promise.all(uploadPromises);
+        referenceUrls = results.filter(url => !!url) as string[];
       }
 
-      // Hidden fields
-      if (!isPollinationsModel) {
-        if (selectedModelId === 'flux-2-pro') {
-          payload.safety_tolerance = 5;
-          payload.output_quality = 100;
-        } else if (selectedModelId === 'nanobanana-pro') {
-          payload.safety_filter_level = 'block_only_high';
-        } else if (selectedModelId === 'z-image-turbo') {
-          payload.output_quality = 100;
-        }
+      const modelInfo = getUnifiedModel(selectedModelId);
+      const isPollinations = modelInfo?.provider === 'pollinations';
+
+      // 2. Prepare Enriched Prompt with Image Labels (IMAGE_1, IMAGE_2...)
+      let enrichedPrompt = prompt.trim();
+      if (referenceUrls.length > 0) {
+          const imageList = referenceUrls.map((url, i) => `IMAGE_${i+1}: ${url}`).join('\n');
+          enrichedPrompt = `User provided the following reference images:\n${imageList}\n\nTask: ${prompt.trim()}`;
       }
 
-      if (formFields.seed !== undefined && formFields.seed !== '') {
-        payload.seed = Number(formFields.seed);
+      const payload: any = {
+        prompt: enrichedPrompt,
+        model: selectedModelId,
+        width: formFields.width || 1024,
+        height: formFields.height || 1024,
+        image: referenceUrls,
+        private: true,
+        quality: 'hd',
+        nologo: true,
+        // AUTOMATIC QUALITY BOOST: Standard anti-matsch list for better results
+        negative_prompt: "blur, low quality, distorted, bad anatomy, pixelated, watermark, text, signature, ugly, bad hands, deformed, grainy"
+      };
+
+      if (formFields.seed) payload.seed = Number(formFields.seed);
+      if (isPollinations) {
+          if (formFields.enhance) payload.enhance = true;
+          if (formFields.transparent) payload.transparent = true;
       }
 
-      if (!isPollinationsModel) {
-        if (selectedModelId === 'flux-2-pro') {
-          payload.output_format = formFields.output_format || 'webp';
-        } else if (selectedModelId === 'nanobanana-pro' || selectedModelId === 'qwen-image-edit-plus') {
-          payload.output_format = formFields.output_format || 'jpg';
-        } else if (selectedModelId === 'z-image-turbo') {
-          payload.output_format = formFields.output_format || 'jpg';
-        } else if (currentModelConfig?.outputType === 'video') {
-          payload.output_format = formFields.output_format || 'mp4';
-        }
+      if (!isPollinations) {
+        payload.password = password || '';
       }
 
-      const endpoint = modelInfo?.provider === 'pollinations' ? '/api/generate' : '/api/replicate';
-
+      const endpoint = isPollinations ? '/api/generate' : '/api/replicate';
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -227,127 +141,90 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Generation failed");
 
-      if (!response.ok) {
-        throw new Error(data.error || data.detail || `API request failed with status ${response.status}`);
+      let resultUrl = data.imageUrl || (Array.isArray(data.output) ? data.output[0] : data.output);
+      const isVideo = currentModelConfig?.outputType === 'video';
+      const itemId = generateUUID();
+
+      // 2. Persist to Vault
+      if (!isVideo && typeof resultUrl === 'string') {
+        toast({ title: "Saving...", description: "Adding to local vault." });
+        resultUrl = await persistRemoteImage(itemId, resultUrl);
       }
 
-      if (data.output || data.imageUrl) {
-        const resultUrl = data.imageUrl || (Array.isArray(data.output) ? data.output[0] : data.output);
-        const isVideo = currentModelConfig?.outputType === 'video';
+      const newHistoryItem: ImageHistoryItem = {
+        id: itemId,
+        imageUrl: isVideo ? '' : resultUrl,
+        videoUrl: isVideo ? resultUrl : undefined,
+        prompt: prompt || 'Generation',
+        model: currentModelConfig.name,
+        timestamp: new Date().toISOString(),
+        toolType: 'visualize'
+      };
 
-        if (typeof resultUrl === 'string' && resultUrl.trim() !== '') {
-          // If Pollinations, we must POLL the URL until it's actually ready.
-          // The API route returns the URL instantly, but generation happens on request.
-          // To improve UX, we wait until the resource is accessible (200 OK) before showing it.
-          if (isPollinationsModel) {
-            const startTime = Date.now();
-            const POLL_TIMEOUT = 120000; // 2 minutes (video can be slow)
-            // Poll for both image and video logic
-            const pollResource = async (): Promise<boolean> => {
-               while (Date.now() - startTime < POLL_TIMEOUT) {
-                 try {
-                   // Using HEAD to check availability without downloading full content
-                   // verify cors? Pollinations usually supports CORS.
-                   const res = await fetch(resultUrl, { method: 'HEAD' });
-                   if (res.ok) {
-                     const contentType = res.headers.get('content-type');
-                     // Check for valid content type (not HTML error page)
-                     // Pollinations might return text/html if error
-                     if (contentType && (contentType.startsWith('image/') || contentType.startsWith('video/'))) {
-                       return true; 
-                     }
-                   }
-                 } catch (e) {
-                   // If CORS or network fail, usually means not ready or blocked, retry.
-                 }
-                 // Wait 1.5s before retry
-                 await new Promise(r => setTimeout(r, 1500));
-               }
-               return false;
-            };
+      // USE HOOK TO ADD - This updates both tool AND sidebar
+      addImageToHistory(newHistoryItem);
+      setSelectedImage(newHistoryItem);
+      toast({ title: "Success!", description: "Content is now in your local vault." });
 
-            const isReady = await pollResource();
-            if (!isReady) {
-               throw new Error("Generation timed out. The content could not be verified.");
-            }
-          }
-
-          const newHistoryItem: ImageHistoryItem = {
-            id: generateUUID(),
-            imageUrl: isVideo ? '' : resultUrl,
-            videoUrl: isVideo ? resultUrl : undefined,
-            prompt: prompt || (isVideo ? 'Video generation' : 'Image generation'),
-            model: currentModelConfig.name,
-            timestamp: new Date().toISOString(),
-            toolType: 'premium imagination'
-          };
-          setHistory(prev => [newHistoryItem, ...prev]);
-          setSelectedImage(newHistoryItem);
-          toast({ title: "Generation Succeeded!", description: `${currentModelConfig.name} finished processing.` });
-        } else {
-          throw new Error("Received empty or invalid output URL from API.");
-        }
-      } else {
-        throw new Error(data.error || "Unknown error occurred.");
-      }
     } catch (err: any) {
       console.error("Generation error:", err);
-      toast({ title: "Generation Failed", description: err.message || 'An unknown error occurred.', variant: "destructive" });
+      const msg = err.message || 'An unknown error occurred.';
+      setError(msg);
+      toast({ title: "Failed", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, [prompt, uploadedImages, currentModelConfig, selectedModelId, password, formFields, toast]);
+  }, [prompt, uploadedImages, currentModelConfig, selectedModelId, password, formFields, toast, addImageToHistory]);
 
-
-  // Import logic from localStorage handling...
-  // The hook can handle initialization, but here we might need to handle the specific "passed from landing" event
-  // However, since we refactored Landing to pass state via LocalStorage and the hook might not auto-read that specific "transition" state unless we teach it.
-  // OR, we keep that logic here.
-  // IMPORTANT: Skip hydration if sharedToolState is provided - the parent owns the state!
-
+  // Handle shared state hydration (if needed for prompts)
   useEffect(() => {
-    // Skip hydration if using shared state from parent
     if (sharedToolState) return;
-
     try {
       const storedState = localStorage.getItem('unified-image-tool-state');
       if (storedState) {
         const parsed = JSON.parse(storedState);
-        // Hydrate state
         if (parsed.prompt) setPrompt(parsed.prompt);
         if (parsed.selectedModelId) toolState.setSelectedModelId(parsed.selectedModelId);
         if (parsed.formFields) setFormFields(parsed.formFields);
         if (parsed.uploadedImages) setUploadedImages(parsed.uploadedImages);
-
         localStorage.removeItem('unified-image-tool-state');
-      } else {
-        // Fallback to old simple draft
-        const storedDraft = localStorage.getItem('unified-image-tool-draft');
-        if (storedDraft) {
-          setPrompt(storedDraft);
-          localStorage.removeItem('unified-image-tool-draft');
-        }
       }
     } catch (error) {
       console.error("Failed to hydrate state", error);
     }
-  }, [sharedToolState]); // Run once on mount, skip if shared
+  }, [sharedToolState]);
 
-  if (!mounted) {
-    return <div className="p-10 text-center">Loading...</div>;
-  }
-
-  if (availableModels.length === 0) {
-    return <div className="p-10 text-center">No models available</div>;
-  }
+  if (!mounted) return <div className="p-10 text-center">Loading...</div>;
+  if (availableModels.length === 0) return <div className="p-10 text-center">No models available</div>;
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
       <main className="flex-grow flex flex-col px-4 pt-6 pb-4 md:px-6 md:pt-8 md:pb-6 space-y-4 overflow-y-auto no-scrollbar">
         <Card className="flex-grow flex flex-col border-0 shadow-none">
-          <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg flex flex-col">
-            {selectedImage ? (
+          <CardContent className="p-2 md:p-4 flex-grow bg-card rounded-b-lg flex flex-col relative">
+            {loading ? (
+                <div className="h-full flex flex-col items-center justify-center gap-4 animate-in fade-in">
+                    <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    <p className="text-sm font-medium animate-pulse text-muted-foreground">Creating masterpiece...</p>
+                </div>
+            ) : error ? (
+                <div className="h-full flex flex-col items-center justify-center gap-4 text-destructive p-8 text-center animate-in zoom-in-95 duration-300">
+                    <div className="p-4 rounded-full bg-destructive/10">
+                        <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div className="space-y-1">
+                        <h3 className="text-lg font-bold">Generation Failed</h3>
+                        <p className="text-sm opacity-80 max-w-md">{error}</p>
+                    </div>
+                    <Button variant="outline" onClick={() => setError(null)} className="mt-4">
+                        Try Again
+                    </Button>
+                </div>
+            ) : selectedImage ? (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="relative w-full h-full max-w-4xl mx-auto">
                   {selectedImage.videoUrl ? (
@@ -360,10 +237,17 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
                       onError={() => setTimeout(() => setImageReloadCount(c => c + 1), 800)}
                     />
                   )}
+                  <div className="absolute bottom-4 right-4 flex gap-2">
+                    <Button size="icon" variant="secondary" onClick={() => window.open(selectedImage.videoUrl || selectedImage.imageUrl, '_blank')}>
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="h-full"></div>
+              <div className="h-full flex items-center justify-center opacity-20">
+                <p>Start generating to see results</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -372,7 +256,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       <footer className="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-32 pt-2 pb-4 shrink-0">
         <div className="max-w-6xl mx-auto relative">
           <VisualizeInputContainer
-            // Props from Hook
             {...toolState}
             onPromptChange={toolState.setPrompt}
             onModelChange={toolState.setSelectedModelId}
@@ -380,8 +263,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
             onConfigPanelToggle={() => toolState.setIsConfigPanelOpen(!toolState.isConfigPanelOpen)}
             onImageUploadToggle={() => toolState.setIsImageUploadOpen(!toolState.isImageUploadOpen)}
             onEnhancePrompt={toolState.handleEnhancePrompt}
-
-            // Submit Logic
             onSubmit={handleSubmit}
             loading={loading}
           />

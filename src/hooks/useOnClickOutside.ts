@@ -4,7 +4,7 @@
 import { useEffect, type RefObject } from 'react';
 
 type AnyEvent = MouseEvent | TouchEvent;
-type RefArray = RefObject<HTMLElement>[];
+type RefArray = RefObject<HTMLElement | null>[];
 
 // Updated to also ignore clicks within Radix popper content wrappers,
 // which is necessary for Select/Dropdown menus that render in a portal.

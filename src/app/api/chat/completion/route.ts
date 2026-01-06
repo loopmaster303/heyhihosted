@@ -443,58 +443,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // Mistral Fallback Logic
-    if (lastError && shouldFallbackToMistral(lastError)) {
-      const mistralApiKey = process.env.MISTRAL_API_KEY;
-
-      if (mistralApiKey) {
-        try {
-
-
-          // Map the model ID to Mistral format
-          const mistralModelId = mapPollinationsToMistralModel(effectiveModelId);
-
-          const mistralResult = await getMistralChatCompletion({
-            messages: enhancedMessages,
-            modelId: mistralModelId,
-            systemPrompt: systemPrompt,
-            apiKey: mistralApiKey,
-            maxCompletionTokens: payload.max_tokens,
-            temperature: payload.temperature
-          });
-
-          // Log successful fallback
-          console.warn(`[FALLBACK] Pollinations ${effectiveModelId} failed, using Mistral ${mistralResult.modelUsed}`, {
-            error: lastError.message,
-            timestamp: new Date().toISOString(),
-            originalProvider: 'pollinations',
-            fallbackProvider: 'mistral'
-          });
-
-          // Return in the same format as Pollinations
-          return NextResponse.json({
-            choices: [{
-              message: {
-                content: mistralResult.responseText,
-                role: "assistant"
-              }
-            }],
-            model: mistralResult.modelUsed,
-            usage: mistralResult.tokensUsed ? {
-              prompt_tokens: mistralResult.tokensUsed.prompt,
-              completion_tokens: mistralResult.tokensUsed.completion,
-              total_tokens: mistralResult.tokensUsed.total
-            } : undefined
-          });
-
-        } catch (mistralError) {
-          console.error('[Chat API] Mistral fallback also failed:', mistralError);
-          // Return original error
-        }
-      } else {
-        console.warn('[Chat API] No Mistral API key available for fallback');
-      }
-    }
+    // --- REMOVED AUTOMATIC MISTRAL FALLBACK ---
+    // (Only use Mistral if explicitly requested via useMistralDirectly at the start)
 
     if (lastError) {
       throw lastError;
