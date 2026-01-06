@@ -858,6 +858,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   }, []);
 
   const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), []);
+  const toggleGalleryPanel = useCallback(() => setIsGalleryPanelOpen(prev => !prev), []);
+  const closeGalleryPanel = useCallback(() => setIsGalleryPanelOpen(false), []);
   const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), []);
   const toggleWebBrowsing = useCallback(() => {
     setActiveConversation(prev => prev ? { ...prev, webBrowsingEnabled: !(prev.webBrowsingEnabled ?? false) } : prev);
@@ -956,6 +958,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
     handleVoiceChange, handleImageModelChange,
     toggleHistoryPanel, closeHistoryPanel,
+    toggleGalleryPanel, closeGalleryPanel, isGalleryPanelOpen,
     toggleAdvancedPanel, closeAdvancedPanel,
     toggleWebBrowsing, webBrowsingEnabled,
     toggleMistralFallback, mistralFallbackEnabled,
