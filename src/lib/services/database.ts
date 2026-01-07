@@ -138,6 +138,10 @@ export const DatabaseService = {
     return await db.assets.where('conversationId').equals(convId).sortBy('timestamp');
   },
 
+  async getAllAssets() {
+    return await db.assets.orderBy('timestamp').reverse().toArray();
+  },
+
   async deleteAsset(id: string) {
     return await db.assets.delete(id);
   },

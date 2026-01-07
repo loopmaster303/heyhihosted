@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppSidebar from './AppSidebar';
+import GalleryPanel from './GalleryPanel';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
 import { ParticleText } from '@/components/particle-text';
@@ -219,6 +220,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           </div>
         </main>
       </div>
+      <GalleryPanel isOpen={isGalleryPanelOpen} onClose={onToggleGalleryPanel || (() => {})} />
       <OfflineIndicator />
     </div>
   );
