@@ -47,13 +47,15 @@ export const MigrationService = {
         // Jede Nachricht einzeln speichern
         if (messages && Array.isArray(messages)) {
           for (const msg of messages) {
+            // Cast to any for legacy data compatibility (old messages may have modelId)
+            const legacyMsg = msg as any;
             await DatabaseService.saveMessage({
               id: msg.id,
               conversationId: chat.id,
               role: msg.role,
               content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
               timestamp: new Date(msg.timestamp).getTime(),
-              modelId: msg.modelId,
+              modelId: legacyMsg.modelId,
               metadata: { migrated: true }
             });
           }

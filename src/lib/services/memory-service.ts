@@ -38,7 +38,7 @@ ${JSON.stringify(recentMessages)}
         systemPrompt: "Du bist ein JSON-Extraktor. Antworte nur mit validem JSON."
       });
 
-      const jsonMatch = response.match(/\{.*\}/s);
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const facts = JSON.parse(jsonMatch[0]);
         for (const [key, value] of Object.entries(facts)) {

@@ -45,11 +45,20 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps & HTMLMotionProps<"button">>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     if (asChild) {
+      // When asChild is used, filter out motion-specific props that Slot doesn't accept
+      const {
+        whileHover, whileTap, whileFocus, whileDrag, whileInView,
+        initial, animate, exit, transition, variants,
+        onAnimationComplete, onUpdate, onPan, onPanStart, onPanEnd,
+        style, // Exclude MotionStyle as it's incompatible with CSSProperties
+        ...slotProps
+      } = props as any;
+      
       return (
         <Slot
           className={cn(buttonVariants({ variant, size, className }))}
           ref={ref}
-          {...props}
+          {...slotProps}
         />
       )
     }
