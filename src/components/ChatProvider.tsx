@@ -52,8 +52,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     setIsAiResponding,
     isHistoryPanelOpen,
     setIsHistoryPanelOpen,
-    isGalleryPanelOpen,
-    setIsGalleryPanelOpen,
     isAdvancedPanelOpen,
     setIsAdvancedPanelOpen,
     isEditTitleDialogOpen,
@@ -96,54 +94,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
 
   const { toast } = useToast();
   const { t } = useLanguage();
-
-  const addChatImageToHistory = useCallback(async (imageUrl: string, prompt: string, model: string, conversationId?: string) => {
-    if (typeof window === 'undefined') return;
-    try {
-      const assetId = generateUUID();
-      
-      // 1. In die History eintragen (Remote URL als Fallback, ID ist der Anker)
-      const existing = window.localStorage.getItem('imageHistory');
-      const history = existing ? (JSON.parse(existing) as ImageHistoryItem[]) : [];
-      const newItem: ImageHistoryItem = {
-        id: assetId,
-        imageUrl: imageUrl, 
-        prompt,
-        model,
-        timestamp: new Date().toISOString(),
-        toolType: 'visualize',
-        conversationId,
-      };
-      const next = [newItem, ...history].slice(0, 100);
-      window.localStorage.setItem('imageHistory', JSON.stringify(next));
-
-      // 2. Bild via Proxy herunterladen und im Vault sichern
-      try {
-        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
-        const response = await fetch(proxyUrl);
-        if (response.ok) {
-          const blob = await response.blob();
-          await DatabaseService.saveAsset({
-            id: assetId,
-            blob,
-            contentType: blob.type,
-            prompt,
-            modelId: model,
-            conversationId,
-            timestamp: Date.now()
-          });
-          console.log(`🖼️ Bild via Proxy im Vault gesichert: ${assetId}`);
-        }
-      } catch (e) {
-        console.warn("Vault sync failed even with proxy:", e);
-      }
-
-      // 3. UI triggern
-      window.dispatchEvent(new Event('imageHistoryUpdated'));
-    } catch (error) {
-      console.error('Failed to update image history:', error);
-    }
-  }, []);
 
   // --- Audio Hook ---
   const { handlePlayAudio } = useChatAudio({
@@ -622,12 +572,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
             await pollResource();
         }
 
-        addChatImageToHistory(
-          imageUrl,
-          effectivePrompt.replace(/--ar \d+:\d+/g, '').trim(),
-          selectedImageModelId,
-          activeConversation?.id 
-        );
+        // Removed addChatImageToHistory call
 
         const aiResponseContent: ChatMessageContentPart[] = [
           { type: 'text', text: `Your image generation with model "${selectedImageModelId}" started.` },
@@ -736,7 +681,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
       setActiveConversation(prev => prev ? { ...prev, ...finalConversationState } : null);
       setIsAiResponding(false);
     }
-  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, webBrowsingEnabled, addChatImageToHistory]);
+  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, webBrowsingEnabled]);
 
   const selectChat = useCallback((conversationId: string | null) => {
     if (conversationId === null) {
@@ -860,8 +805,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   }, []);
 
   const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), []);
-  const toggleGalleryPanel = useCallback(() => setIsGalleryPanelOpen(prev => !prev), []);
-  const closeGalleryPanel = useCallback(() => setIsGalleryPanelOpen(false), []);
   const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), []);
   const toggleWebBrowsing = useCallback(() => {
     setActiveConversation(prev => prev ? { ...prev, webBrowsingEnabled: !(prev.webBrowsingEnabled ?? false) } : prev);
@@ -921,7 +864,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
   useChatEffects({
     isHistoryPanelOpen,
     isAdvancedPanelOpen,
-    isGalleryPanelOpen,
     isInitialLoadComplete,
     allConversations,
     activeConversation,
@@ -930,7 +872,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     setIsInitialLoadComplete,
     setIsHistoryPanelOpen,
     setIsAdvancedPanelOpen,
-    setIsGalleryPanelOpen,
     setActiveConversation,
     setPersistedActiveConversationId,
     setAllConversations,
@@ -962,7 +903,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt }: UseChatLog
     handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
     handleVoiceChange, handleImageModelChange,
     toggleHistoryPanel, closeHistoryPanel,
-    toggleGalleryPanel, closeGalleryPanel, isGalleryPanelOpen,
     toggleAdvancedPanel, closeAdvancedPanel,
     toggleWebBrowsing, webBrowsingEnabled,
     toggleMistralFallback, mistralFallbackEnabled,

@@ -89,12 +89,10 @@ const LandingView: React.FC<LandingViewProps> = ({
                                 }}
                                 chatTitle=""
                                 onToggleHistoryPanel={chat.toggleHistoryPanel}
-                                onToggleGalleryPanel={chat.toggleGalleryPanel}
                                 onToggleAdvancedPanel={chat.toggleAdvancedPanel}
                                 isAdvancedPanelOpen={chat.isAdvancedPanelOpen}
                                 advancedPanelRef={advancedPanelRef}
                                 isHistoryPanelOpen={chat.isHistoryPanelOpen}
-                                isGalleryPanelOpen={chat.isGalleryPanelOpen}
                                 allConversations={chat.allConversations}
                                 activeConversation={chat.activeConversation}
                                 selectChat={chat.selectChat}

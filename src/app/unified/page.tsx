@@ -88,7 +88,6 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             appState={appState}
             onNewChat={handleNewChat}
             onToggleHistoryPanel={chat.toggleHistoryPanel}
-            onToggleGalleryPanel={chat.toggleGalleryPanel}
             currentPath={currentPath}
             chatHistory={chatHistory}
             onSelectChat={(id) => {
@@ -98,7 +97,6 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             onRequestEditTitle={chat.requestEditTitle}
             onDeleteChat={chat.deleteChat}
             isHistoryPanelOpen={chat.isHistoryPanelOpen}
-            isGalleryPanelOpen={chat.isGalleryPanelOpen}
             allConversations={chat.allConversations}
             activeConversation={chat.activeConversation}
             isAiResponding={chat.isAiResponding}

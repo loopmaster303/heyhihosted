@@ -12,7 +12,6 @@ interface UseChatEffectsProps {
     // State
     isHistoryPanelOpen: boolean;
     isAdvancedPanelOpen: boolean;
-    isGalleryPanelOpen: boolean;
     isInitialLoadComplete: boolean;
     allConversations: Conversation[];
     activeConversation: Conversation | null;
@@ -23,7 +22,6 @@ interface UseChatEffectsProps {
     setIsInitialLoadComplete: (complete: boolean) => void;
     setIsHistoryPanelOpen: (open: boolean) => void;
     setIsAdvancedPanelOpen: (open: boolean) => void;
-    setIsGalleryPanelOpen: (open: boolean) => void;
     setActiveConversation: React.Dispatch<React.SetStateAction<Conversation | null>>;
     setPersistedActiveConversationId: (id: string | null) => void;
     setAllConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
@@ -40,7 +38,6 @@ interface UseChatEffectsProps {
 export function useChatEffects({
     isHistoryPanelOpen,
     isAdvancedPanelOpen,
-    isGalleryPanelOpen,
     isInitialLoadComplete,
     allConversations,
     activeConversation,
@@ -49,7 +46,6 @@ export function useChatEffects({
     setIsInitialLoadComplete,
     setIsHistoryPanelOpen,
     setIsAdvancedPanelOpen,
-    setIsGalleryPanelOpen,
     setActiveConversation,
     setPersistedActiveConversationId,
     setAllConversations,
@@ -66,11 +62,10 @@ export function useChatEffects({
             if (e.key !== 'Escape') return;
             if (isHistoryPanelOpen) setIsHistoryPanelOpen(false);
             if (isAdvancedPanelOpen) setIsAdvancedPanelOpen(false);
-            if (isGalleryPanelOpen) setIsGalleryPanelOpen(false);
         };
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
-    }, [isHistoryPanelOpen, isAdvancedPanelOpen, isGalleryPanelOpen, setIsHistoryPanelOpen, setIsAdvancedPanelOpen, setIsGalleryPanelOpen]);
+    }, [isHistoryPanelOpen, isAdvancedPanelOpen, setIsHistoryPanelOpen, setIsAdvancedPanelOpen]);
 
     // Initialize available image models from config
     useEffect(() => {

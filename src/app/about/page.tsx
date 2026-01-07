@@ -27,7 +27,6 @@ function AboutPageContent() {
         router.push('/unified');
       }}
       onToggleHistoryPanel={chat.toggleHistoryPanel}
-      onToggleGalleryPanel={chat.toggleGalleryPanel}
       currentPath="/about"
       chatHistory={chat.allConversations.filter(c => c.toolType === 'long language loops')}
       onSelectChat={(id) => {
@@ -37,7 +36,6 @@ function AboutPageContent() {
       onRequestEditTitle={chat.requestEditTitle}
       onDeleteChat={chat.deleteChat}
       isHistoryPanelOpen={chat.isHistoryPanelOpen}
-      isGalleryPanelOpen={chat.isGalleryPanelOpen}
       allConversations={chat.allConversations}
       activeConversation={chat.activeConversation}
     >

@@ -43,7 +43,6 @@ function SettingsPageContent() {
         router.push('/unified');
       }}
       onToggleHistoryPanel={chat.toggleHistoryPanel}
-      onToggleGalleryPanel={chat.toggleGalleryPanel}
       currentPath="/settings"
       chatHistory={chat.allConversations.filter(c => c.toolType === 'long language loops')}
       onSelectChat={(id) => {
@@ -53,7 +52,6 @@ function SettingsPageContent() {
       onRequestEditTitle={chat.requestEditTitle}
       onDeleteChat={chat.deleteChat}
       isHistoryPanelOpen={chat.isHistoryPanelOpen}
-      isGalleryPanelOpen={chat.isGalleryPanelOpen}
       allConversations={chat.allConversations}
       activeConversation={chat.activeConversation}
     >

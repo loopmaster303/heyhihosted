@@ -32,10 +32,8 @@ interface ChatInputProps {
     onToggleCodeMode?: () => void;
     chatTitle: string;
     onToggleHistoryPanel: () => void;
-    onToggleGalleryPanel: () => void;
     onToggleAdvancedPanel: () => void;
     isHistoryPanelOpen: boolean;
-    isGalleryPanelOpen: boolean;
     isAdvancedPanelOpen: boolean;
     advancedPanelRef: React.RefObject<HTMLDivElement | null>;
     allConversations: Conversation[];

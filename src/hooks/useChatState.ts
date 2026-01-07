@@ -66,7 +66,6 @@ export function useChatState() {
     // UI State
     const [isAiResponding, setIsAiResponding] = useState(false);
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
-    const [isGalleryPanelOpen, setIsGalleryPanelOpen] = useState(false);
     const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
     const [isEditTitleDialogOpen, setIsEditTitleDialogOpen] = useState(false);
     const [chatToEditId, setChatToEditId] = useState<string | null>(null);
@@ -131,8 +130,6 @@ export function useChatState() {
         setIsAiResponding,
         isHistoryPanelOpen,
         setIsHistoryPanelOpen,
-        setIsGalleryPanelOpen,
-        isGalleryPanelOpen,
         isAdvancedPanelOpen,
         setIsAdvancedPanelOpen,
         isEditTitleDialogOpen,

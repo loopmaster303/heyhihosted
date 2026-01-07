@@ -14,7 +14,6 @@ import VisualizeInputContainer from '@/components/tools/VisualizeInputContainer'
 import { persistRemoteImage } from '@/lib/services/local-image-storage';
 import { ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useImageHistory } from '@/hooks/useImageHistory';
 
 const MAX_REFERENCE_IMAGES = 14;
 
@@ -28,9 +27,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
   const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   
-  // Use the central history hook for all history operations
-  const { addImageToHistory, imageHistory } = useImageHistory();
-
   const localToolState = useUnifiedImageToolState();
   const toolState = sharedToolState || localToolState;
 
@@ -53,11 +49,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
 
   useEffect(() => {
     setMounted(true);
-    // Load most recent image if available
-    if (imageHistory.length > 0 && !selectedImage) {
-        // setSelectedImage(imageHistory[0]); // Optional: auto-select recent
-    }
-  }, [imageHistory]);
+  }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,7 +142,13 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       // 2. Persist to Vault
       if (!isVideo && typeof resultUrl === 'string') {
         toast({ title: "Saving...", description: "Adding to local vault." });
-        resultUrl = await persistRemoteImage(itemId, resultUrl);
+        // We still persist the remote image for reliability, even if not adding to gallery history list explicitly here
+        // Or maybe we should remove this too if "gallery logic" is gone?
+        // The user said "remove the gallery and all its logic".
+        // But persisting the image might be useful for the tool's own display if it reloads?
+        // Let's keep the persistence utility call but not the `addImageToHistory` call.
+        // Actually, `persistRemoteImage` was in `local-image-storage` which I deleted!
+        // So I must remove this call too.
       }
 
       const newHistoryItem: ImageHistoryItem = {
@@ -163,10 +161,9 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
         toolType: 'visualize'
       };
 
-      // USE HOOK TO ADD - This updates both tool AND sidebar
-      addImageToHistory(newHistoryItem);
+      // Removed addImageToHistory call
       setSelectedImage(newHistoryItem);
-      toast({ title: "Success!", description: "Content is now in your local vault." });
+      toast({ title: "Success!", description: "Content generated." });
 
     } catch (err: any) {
       console.error("Generation error:", err);
@@ -176,7 +173,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
     } finally {
       setLoading(false);
     }
-  }, [prompt, uploadedImages, currentModelConfig, selectedModelId, password, formFields, toast, addImageToHistory]);
+  }, [prompt, uploadedImages, currentModelConfig, selectedModelId, password, formFields, toast]);
 
   // Handle shared state hydration (if needed for prompts)
   useEffect(() => {

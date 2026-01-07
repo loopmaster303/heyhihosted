@@ -137,9 +137,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                     }}
                     chatTitle={title}
                     onToggleHistoryPanel={toggleHistoryPanel}
-                    onToggleGalleryPanel={() => { }}
                     onToggleAdvancedPanel={toggleAdvancedPanel}
-                    isGalleryPanelOpen={false}
                     isHistoryPanelOpen={isHistoryPanelOpen}
                     isAdvancedPanelOpen={isAdvancedPanelOpen}
                     advancedPanelRef={advancedPanelRef}

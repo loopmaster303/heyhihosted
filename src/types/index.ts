@@ -1,4 +1,5 @@
 
+
 export type ChatMessageContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; remoteUrl?: string; metadata?: { assetId: string | null } } };

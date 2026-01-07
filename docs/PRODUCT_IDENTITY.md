@@ -16,12 +16,7 @@
 A specialized header that provides real-time system status in a typewriter/CRT style. It reinforces the identity of the platform as a sophisticated machine service.
 
 ### Unified Chat & Vision
-Interactions with LLMs (Claude, GPT, Gemini, Grok) with full multimodal support. Images uploaded in chat are analyzed via an anonymous proxy, keeping the user's local environment clean while providing full "vision" capabilities.
-
-### Visualize Pro (Archived / In Development)
-A dedicated studio for granular control over generative models (Pollinations, Replicate).
-*   **Standard Mode**: Fast, simple, accessible.
-*   **Pro/Studio Mode**: Exposes every hyperparameter (Steps, CFG, Seeds, Negative Prompts).
+Interactions with LLMs (Claude, GPT, Gemini, Grok) with full multimodal support. Includes the **Integrated Visualize Module** for on-the-fly image and video generation within the chat context.
 
 ## 3. Technology Stack (The "Safe Mode" Architecture)
 
@@ -32,12 +27,11 @@ A dedicated studio for granular control over generative models (Pollinations, Re
 ### AI Infrastructure & Connectivity
 - **Primary Provider**: [Pollinations.ai](https://pollinations.ai) (Free tier / Authenticated 'Pollen' API).
 - **Secondary Provider**: [Replicate](https://replicate.com) (Premium high-fidelity models).
-- **Vision Proxy**: Anonymous relay (Catbox.moe) for temporary image hosting during AI analysis.
 
 ### Data & Vault
-- **Persistence**: Hybrid Storage.
-    - *Metadata*: `localStorage` (Chat history, settings).
-    - *Media Assets*: **IndexedDB** (`idb-keyval`). This "Local Vault" ensures images remain stable and bit-perfect even after provider-side deletion.
+- **Persistence**: Local-First Hybrid Storage.
+    - **IndexedDB**: The primary database for all conversation objects and media assets. This "Local Vault" ensures chats remain stable and bit-perfect.
+    - **LocalStorage**: Reserved for lightweight UI preferences and simple settings strings.
 
 ## 4. System Ethics (The Identity Protocol)
 - **Transparency First**: Fully open system prompts and logic upon request.

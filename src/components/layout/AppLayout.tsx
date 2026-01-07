@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppSidebar from './AppSidebar';
-import GalleryPanel from './GalleryPanel';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
 import { ParticleText } from '@/components/particle-text';
@@ -19,12 +18,10 @@ interface AppLayoutProps {
   appState?: 'landing' | 'chat' | 'visualize' | 'studio';
   onNewChat?: () => void;
   onToggleHistoryPanel?: () => void;
-  onToggleGalleryPanel?: () => void;
   currentPath?: string;
   chatHistory?: any[];
   onSelectChat?: (id: string) => void;
   isHistoryPanelOpen?: boolean;
-  isGalleryPanelOpen?: boolean;
   allConversations?: any[];
   activeConversation?: any;
   onRequestEditTitle?: (id: string) => void;
@@ -47,12 +44,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   appState,
   onNewChat,
   onToggleHistoryPanel,
-  onToggleGalleryPanel,
   currentPath,
   chatHistory = [],
   onSelectChat,
   isHistoryPanelOpen = false,
-  isGalleryPanelOpen = false,
   allConversations = [],
   activeConversation = null,
   onRequestEditTitle,
@@ -220,7 +215,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           </div>
         </main>
       </div>
-      <GalleryPanel isOpen={isGalleryPanelOpen} onClose={onToggleGalleryPanel || (() => {})} />
       <OfflineIndicator />
     </div>
   );
