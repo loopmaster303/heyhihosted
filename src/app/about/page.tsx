@@ -33,7 +33,6 @@ function AboutPageContent() {
         chat.selectChat(id);
         router.push('/unified');
       }}
-      onRequestEditTitle={chat.requestEditTitle}
       onDeleteChat={chat.deleteChat}
       isHistoryPanelOpen={chat.isHistoryPanelOpen}
       allConversations={chat.allConversations}

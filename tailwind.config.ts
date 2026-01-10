@@ -20,6 +20,10 @@ export default {
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        glass: {
+          background: 'hsl(var(--glass-background) / <alpha-value>)',
+          border: 'hsla(var(--glass-border))',
+        },
         surface: {
           DEFAULT: 'hsl(var(--surface-container))',
           low: 'hsl(var(--surface-container-low))',
@@ -103,6 +107,11 @@ export default {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+      boxShadow: {
+        'glass': 'var(--glass-shadow)',
+        'glass-heavy': '0 12px 40px 0 rgba(0, 0, 0, 0.2)',
+        'glow-primary': 'var(--glass-glow)',
       },
     },
   },

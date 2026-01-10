@@ -7,20 +7,20 @@ graph TB
     subgraph "Client Side"
         UI[React UI Components]
         State[ChatProvider Context]
-        Local[IndexedDB & LocalStorage]
+        Local[IndexedDB (Dexie.js)]
         Hooks[Custom Hooks]
     end
     
     subgraph "Next.js Backend"
         API[API Routes]
         Auth[Authentication Middleware]
-        Upload[File Handler]
+        Proxy[Image Proxy]
     end
     
     subgraph "External Services"
         Pollinations[Pollinations API]
         Replicate[Replicate API]
-        VercelBlob[Vercel Blob Storage]
+        S3[AWS S3 (Asset Vault)]
     end
     
     UI --> State
@@ -30,7 +30,7 @@ graph TB
     API --> Auth
     API --> Pollinations
     API --> Replicate
-    Upload --> VercelBlob
+    Proxy --> S3
     Hooks --> Local
 ```
 
@@ -49,20 +49,26 @@ graph TD
         Home[/unified]
         Settings[/settings]
         About[/about]
+        Gallery[/gallery]
     end
     
     subgraph "Feature Components"
         Landing[LandingView]
         Chat[ChatInterface]
-        ImageTool[UnifiedImageTool]
         Personalization[PersonalizationTool]
+        GalleryGrid[GalleryGrid]
+    end
+    
+    subgraph "Integrated Tools"
+        ImageTool[UnifiedImageTool Logic]
     end
     
     Home --> Landing
     Home --> Chat
-    Landing --> ImageTool
-    Chat --> ImageTool
+    Landing -.-> ImageTool
+    Chat -.-> ImageTool
     Settings --> Personalization
+    Gallery --> GalleryGrid
 ```
 
 ## Data Flow Architecture
@@ -74,6 +80,7 @@ sequenceDiagram
     participant ChatProvider
     participant API
     participant ExternalAPI
+    participant IndexedDB
     
     User->>UI: Send Message
     UI->>ChatProvider: sendMessage()
@@ -81,7 +88,8 @@ sequenceDiagram
     API->>ExternalAPI: Request to Pollinations/Replicate
     ExternalAPI-->>API: Response (Streaming)
     API-->>ChatProvider: Stream Response
-    ChatProvider->>IndexedDB: Save Conversation
+    ChatProvider->>IndexedDB: Save Conversation (Conversations Table)
+    ChatProvider->>IndexedDB: Save Message (Messages Table)
     ChatProvider-->>UI: Update State
     UI-->>User: Display Response
 ```
@@ -93,39 +101,54 @@ graph LR
     subgraph "State Sources"
         UserInput[User Input]
         APIResponses[API Responses]
-        IndexedDB[IndexedDB]
+        DexieDB[IndexedDB (Dexie)]
         LocalStorage[LocalStorage]
     end
     
     subgraph "State Management"
         ChatProvider[ChatProvider]
-        Hooks[Custom Hooks]
+        Hooks[useChatPersistence, useChatUI]
     end
     
     UserInput --> ChatProvider
     APIResponses --> ChatProvider
-    IndexedDB --> ChatProvider
-    LocalStorage --> Hooks
+    DexieDB -- "Conversations & Assets" --> ChatProvider
+    LocalStorage -- "UI Prefs" --> Hooks
     
     ChatProvider --> Hooks
     Hooks --> UI
 ```
 
-## Storage Architecture
+## Storage Architecture (Hybrid)
 
 ```mermaid
 graph LR
-    subgraph "Browser Storage"
-        IDB[(IndexedDB)]
-        LS[(LocalStorage)]
+    subgraph "Browser Storage (Dexie.js)"
+        Conversations[Conversations Table]
+        Messages[Messages Table]
+        Assets[Assets Table (Blobs)]
+        Memories[Memories Table]
     end
     
-    IDB -- "Full Chat Objects" --> ChatProvider
-    LS -- "UI Prefs & System Prompts" --> Hooks
-    
-    subgraph "Asset Storage"
-        VercelBlob[Vercel Blob]
+    subgraph "Remote Storage"
+        S3[AWS S3]
     end
     
-    API -- "Upload Media" --> VercelBlob
-    VercelBlob -- "Public URL" --> IDB
+    Conversations -- "Metadata" --> ChatProvider
+    Messages -- "Content" --> ChatProvider
+    Assets -- "Binary Data" --> ChatProvider
+    
+    S3 -- "Signed URLs" --> API
+    API -- "Proxy" --> ChatProvider
+```
+
+## Dexie Database Schema (v3)
+
+The application uses a typed Dexie.js database instance (`HeyHiDatabase`) with the following schema:
+
+| Table | Primary Key | Indexes | Description |
+| :--- | :--- | :--- | :--- |
+| **`conversations`** | `id` (UUID) | `updatedAt`, `modelId` | Stores chat session metadata, title, and settings. |
+| **`messages`** | `id` (UUID) | `conversationId`, `timestamp` | Stores individual messages, including content and references. |
+| **`assets`** | `id` (UUID) | `type`, `createdAt` | Stores binary data (Blobs) for images/audio to avoid LocalStorage limits. |
+| **`memories`** | `id` (UUID) | `type`, `importance` | Stores AI-generated memories and user facts (Future use). |

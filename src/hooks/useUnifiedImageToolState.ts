@@ -5,6 +5,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/components/LanguageProvider';
 import { unifiedModelConfigs, getUnifiedModelConfig, type UnifiedModelConfig } from '@/config/unified-model-configs';
 import { getUnifiedModel } from '@/config/unified-image-models';
+import useLocalStorageState from '@/hooks/useLocalStorageState';
+import { DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
+import { uploadFileToS3WithKey } from '@/lib/upload/s3-upload';
+import { getClientSessionId } from '@/lib/session';
+import type { UploadedReference } from '@/types';
 
 // Define which models need image upload
 export const pollinationUploadModels = [
@@ -41,14 +46,30 @@ export function useUnifiedImageToolState() {
     const { language } = useLanguage();
 
     // Model selection
+    const [defaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
     const availableModels = Object.keys(unifiedModelConfigs).filter(id => getUnifiedModel(id)?.enabled ?? true);
-    const [selectedModelId, setSelectedModelId] = useState<string>(availableModels[0] || 'flux-2-pro');
+    const initialModelId = availableModels.includes(defaultImageModelId)
+        ? defaultImageModelId
+        : (availableModels[0] || DEFAULT_IMAGE_MODEL);
+    const [selectedModelId, setSelectedModelId] = useState<string>(initialModelId);
     const currentModelConfig = getUnifiedModelConfig(selectedModelId);
+
+    useEffect(() => {
+        if (!availableModels.includes(selectedModelId) && availableModels.length > 0) {
+            setSelectedModelId(availableModels[0]);
+        }
+    }, [availableModels, selectedModelId]);
+
+    useEffect(() => {
+        if (availableModels.includes(defaultImageModelId)) {
+            setSelectedModelId(defaultImageModelId);
+        }
+    }, [availableModels, defaultImageModelId, setSelectedModelId]);
 
     // Form state
     const [prompt, setPrompt] = useState('');
     const [formFields, setFormFields] = useState<Record<string, any>>({});
-    const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+    const [uploadedImages, setUploadedImages] = useState<UploadedReference[]>([]);
 
     // UI Panels
     const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
@@ -177,12 +198,6 @@ export function useUnifiedImageToolState() {
             const targetFiles = isPollinations && maxImages === 1 ? imageFiles.slice(0, 1) : imageFiles;
 
             if (isPollinations && maxImages === 1 && currentImages.length >= 1) {
-                const oldUrl = currentImages[0];
-                fetch('/api/upload', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: oldUrl })
-                }).catch(err => console.error("Failed to delete old image blob:", err));
                 currentImages = [];
             }
 
@@ -193,18 +208,18 @@ export function useUnifiedImageToolState() {
                         break;
                     }
 
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    const res = await fetch('/api/upload', { method: 'POST', body: formData });
-                    if (!res.ok) {
-                        const data = await res.json().catch(() => ({}));
-                        throw new Error(data.error || 'Upload failed');
-                    }
-                    const data = await res.json();
-                    if (!data?.url) {
-                        throw new Error('No URL returned from upload');
-                    }
-                    currentImages.push(data.url);
+                    const sessionId = getClientSessionId();
+                    const fileName = file.name || `upload-${Date.now()}.bin`;
+                    const contentType = file.type || 'application/octet-stream';
+                    const signed = await uploadFileToS3WithKey(file, fileName, contentType, {
+                        sessionId,
+                        folder: 'uploads',
+                    });
+                    currentImages.push({
+                        url: signed.downloadUrl,
+                        key: signed.key,
+                        expiresAt: Date.now() + signed.expiresIn * 1000,
+                    });
                 }
 
                 setUploadedImages(currentImages);
@@ -218,7 +233,7 @@ export function useUnifiedImageToolState() {
         }
 
         // Local read fallback
-        const localImages: string[] = [];
+        const localImages: UploadedReference[] = [];
         for (const file of imageFiles) {
             const dataUri = await new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
@@ -226,7 +241,7 @@ export function useUnifiedImageToolState() {
                 reader.onerror = () => reject(new Error('Failed to read image'));
                 reader.readAsDataURL(file);
             });
-            localImages.push(dataUri);
+            localImages.push({ url: dataUri });
         }
         if (localImages.length > 0) {
             setUploadedImages(prev => [...prev, ...localImages].slice(0, maxImages));
@@ -235,20 +250,8 @@ export function useUnifiedImageToolState() {
 
     // Handle Remove Image
     const handleRemoveImage = useCallback((index: number) => {
-        const imageToRemove = uploadedImages[index];
-        const modelInfo = getUnifiedModel(selectedModelId);
-
-        // Strict: Only delete from blob if it is a Pollinations model (as per requirements)
-        if (modelInfo?.provider === 'pollinations' && imageToRemove && imageToRemove.startsWith('http')) {
-            fetch('/api/upload', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: imageToRemove })
-            }).catch(err => console.error("Failed to delete image blob:", err));
-        }
-
         setUploadedImages(prev => prev.filter((_, i) => i !== index));
-    }, [uploadedImages, selectedModelId]);
+    }, [setUploadedImages]);
 
     // Handle Field Change
     const handleFieldChange = useCallback((name: string, value: any) => {

@@ -1,11 +1,6 @@
-import {
-    ChatMessage,
-    ApiChatMessage,
-    ChatMessageContentPart
-} from '@/types';
+import { ApiChatMessage } from '@/types';
 import {
     PollinationsChatCompletionResponse,
-    ImageGenerationResponse,
     TitleGenerationResponse,
     ApiErrorResponse,
     isPollinationsChatResponse,
@@ -19,7 +14,6 @@ export interface SendMessageOptions {
     modelId: string;
     systemPrompt?: string;
     webBrowsingEnabled?: boolean;
-    mistralFallbackEnabled?: boolean;
 }
 
 export interface GenerateImageOptions {
@@ -38,6 +32,8 @@ export interface GenerateImageOptions {
     frames?: number; // Video specific: length/frames (e.g. 81)
     fps?: number; // Video specific: frames per second
     aspect_ratio?: string; // Explicit override
+    duration?: number; // Video specific: seconds (Pollinations)
+    audio?: boolean; // Video specific: audio (Pollinations)
     resolution?: string;   // For Replicate models
     output_format?: string;
     input_images?: string[]; // For Flux
@@ -54,14 +50,13 @@ export class ChatService {
         options: SendMessageOptions,
         onStream?: (chunk: string) => void
     ): Promise<string> {
-        const { messages, modelId, systemPrompt, webBrowsingEnabled, mistralFallbackEnabled } = options;
+        const { messages, modelId, systemPrompt, webBrowsingEnabled } = options;
 
         const body = {
             messages,
             modelId,
             systemPrompt,
             webBrowsingEnabled,
-            mistralFallbackEnabled,
             stream: !!onStream,
         };
 
@@ -136,9 +131,9 @@ export class ChatService {
         const isReplicate = modelInfo?.provider === 'replicate';
         const endpoint = isReplicate ? '/api/replicate' : '/api/generate';
 
-        // Prepend image URL to prompt for Pollinations to force recognition
+        // Prepend image URL to prompt for Pollinations to force recognition (image-only)
         let effectivePrompt = options.prompt;
-        if (!isReplicate && options.image) {
+        if (!isReplicate && modelInfo?.kind !== 'video' && options.image) {
             const firstImage = Array.isArray(options.image) ? options.image[0] : options.image;
             if (firstImage && typeof firstImage === 'string') {
                 effectivePrompt = `${firstImage} ${options.prompt}`;
@@ -210,9 +205,16 @@ export class ChatService {
             // For now, most wrappers map aspect_ratio to the underlying dimension logic.
         } else {
             // Pollinations
-            body.width = options.width;
-            body.height = options.height;
-            
+            if (modelInfo?.kind === 'video') {
+                if (options.aspect_ratio) body.aspectRatio = options.aspect_ratio;
+                if (options.duration !== undefined) body.duration = options.duration;
+                else if (options.frames) body.duration = options.frames;
+                if (options.audio !== undefined) body.audio = options.audio;
+            } else {
+                body.width = options.width;
+                body.height = options.height;
+            }
+
             // Pass the image reference correctly
             if (options.image) body.image = options.image;
             if (options.image_url) body.image = options.image_url;
@@ -237,6 +239,7 @@ export class ChatService {
 
         // Replicate sync: check for 'output' as well as 'imageUrl'
         // 'output' can be a string or an array of strings
+        if (result.videoUrl) return result.videoUrl;
         if (result.imageUrl) return result.imageUrl;
         if (result.output) {
             return Array.isArray(result.output) ? result.output[0] : result.output;
@@ -246,8 +249,7 @@ export class ChatService {
     }
 
     static async generateTitle(
-        messages: string | ApiChatMessage[],
-        mistralFallbackEnabled?: boolean
+        messages: string | ApiChatMessage[]
     ): Promise<string> {
         // Convert string to messages array if needed
         const messagesArray = typeof messages === 'string'
@@ -258,8 +260,7 @@ export class ChatService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                messages: messagesArray,
-                mistralFallbackEnabled
+                messages: messagesArray
             }),
         });
 

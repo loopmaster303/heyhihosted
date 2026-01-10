@@ -42,7 +42,6 @@ describe('ChatService', () => {
                     modelId: defaultOptions.modelId,
                     systemPrompt: undefined,
                     webBrowsingEnabled: undefined,
-                    mistralFallbackEnabled: undefined,
                     stream: false,
                 }),
             });

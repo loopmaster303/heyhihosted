@@ -56,12 +56,39 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     maxTokens: 4096,
   },
   {
+    id: "openai",
+    name: "GPT-5",
+    description: "Ausgewogen für alltägliche Aufgaben.",
+    vision: true,
+    category: "Standard",
+    contextWindow: 128000,
+    maxTokens: 4096,
+  },
+  {
     id: "grok",
     name: "xAI Grok 4 Fast",
     description: "Hohe Geschwindigkeit mit Fokus auf Echtzeit-Informationen.",
     vision: true,
     category: "Standard",
     contextWindow: 128000,
+    maxTokens: 4096,
+  },
+  {
+    id: "gemini-fast",
+    name: "Gemini 3 Flash Fast",
+    description: "Leichte, schnelle Variante für Alltagstasks.",
+    vision: true,
+    category: "Standard",
+    contextWindow: 1000000,
+    maxTokens: 4096,
+  },
+  {
+    id: "mistral",
+    name: "Mistral",
+    description: "Effizient und präzise für schnelle Antworten.",
+    vision: false,
+    category: "Standard",
+    contextWindow: 64000,
     maxTokens: 4096,
   },
 
@@ -113,7 +140,7 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "deepseek",
-    name: "DeepSeek V3.1",
+    name: "Deepseek V 3.2",
     description: "Fortgeschrittenes Reasoning und spezialisiert auf Coding.",
     vision: false,
     category: "Advanced",
@@ -155,6 +182,15 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     description: "Spezialisiert auf die Generierung von Programmcode.",
     vision: false,
     category: "Specialized",
+    contextWindow: 128000,
+    maxTokens: 4096,
+  },
+  {
+    id: "glm",
+    name: "Z.ai GLM-4.7",
+    description: "Z.ai LLM mit starker Allround-Performance.",
+    vision: false,
+    category: "Advanced",
     contextWindow: 128000,
     maxTokens: 4096,
   },
@@ -313,10 +349,6 @@ ${SYSTEM_IDENTITY_PROTOCOL}
 ${OUTPUT_LANGUAGE_GUARD}
 </system_prompt>`,
   },
-  {
-    name: "User's Default",
-    systemPrompt: "", // Placeholder, the actual logic is in ChatProvider
-  },
 ];
 
 
@@ -336,12 +368,11 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
 export const DEFAULT_POLLINATIONS_MODEL_ID = 'claude-fast';
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
-// For in-chat image generation (align with bild.gen.lite)
-// Keep in sync with `/api/image/models` and VisualizingLoopsTool
+// For in-chat image generation
 // NOTE: Only IMAGE models - NO video models (seedance, seedance-pro, veo) for chat
 // Filter out disabled models
-import { getChatImageModels } from './unified-image-models';
-export const FALLBACK_IMAGE_MODELS = getChatImageModels().map(m => m.id);
+import { getImageModels } from './unified-image-models';
+export const FALLBACK_IMAGE_MODELS = getImageModels().map(m => m.id);
 export const DEFAULT_IMAGE_MODEL = 'nanobanana'; // Default to Nano Banana (Gemini 2.5 Flash Image) for chat
 
 // Code reasoning system prompt used when Code Mode is enabled

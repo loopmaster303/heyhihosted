@@ -1,40 +1,25 @@
-
 "use client";
-import PersonalizationTool from '@/components/tools/PersonalizationTool';
-import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { useTheme } from 'next-themes';
-import { cn } from '@/lib/utils';
-import { useEffect, useState, useCallback } from 'react';
+
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import PageLoader from '@/components/ui/PageLoader';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import { ChatProvider, useChat } from '@/components/ChatProvider';
 import AppLayout from '@/components/layout/AppLayout';
-import { DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
-import { ChatProvider } from '@/components/ChatProvider';
-import { useChat } from '@/components/ChatProvider';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import PageLoader from '@/components/ui/PageLoader';
+import { Button } from '@/components/ui/button';
 
 function SettingsPageContent() {
   const chat = useChat();
   const router = useRouter();
-  const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>("userDisplayName", "john");
-  const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>("customSystemPrompt", "");
-  const [replicateToolPassword, setReplicateToolPassword] = useLocalStorageState<string>('replicateToolPassword', '');
-  const [selectedModelId, setSelectedModelId] = useLocalStorageState<string>('selectedModelId', DEFAULT_POLLINATIONS_MODEL_ID);
-  const [selectedVoice, setSelectedVoice] = useLocalStorageState<string>('selectedVoice', AVAILABLE_TTS_VOICES[0].id);
-  const [selectedImageModelId, setSelectedImageModelId] = useLocalStorageState<string>('selectedImageModelId', DEFAULT_IMAGE_MODEL);
-  const { theme } = useTheme();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Warte bis das Theme geladen ist, üm Hydration-Fehler zu vermeiden
   if (!isClient) {
     return <PageLoader text="Einstellungen werden geladen..." />;
   }
-
-  const isDark = theme === 'dark';
 
   return (
     <AppLayout
@@ -49,27 +34,19 @@ function SettingsPageContent() {
         chat.selectChat(id);
         router.push('/unified');
       }}
-      onRequestEditTitle={chat.requestEditTitle}
       onDeleteChat={chat.deleteChat}
       isHistoryPanelOpen={chat.isHistoryPanelOpen}
       allConversations={chat.allConversations}
       activeConversation={chat.activeConversation}
     >
-      <main className="flex flex-col flex-grow p-4">
-        <PersonalizationTool
-          userDisplayName={userDisplayName}
-          setUserDisplayName={setUserDisplayName}
-          customSystemPrompt={customSystemPrompt}
-          setCustomSystemPrompt={setCustomSystemPrompt}
-          replicateToolPassword={replicateToolPassword}
-          setReplicateToolPassword={setReplicateToolPassword}
-          selectedModelId={selectedModelId}
-          onModelChange={setSelectedModelId}
-          selectedVoice={selectedVoice}
-          onVoiceChange={setSelectedVoice}
-          selectedImageModelId={selectedImageModelId}
-          onImageModelChange={setSelectedImageModelId}
-        />
+      <main className="flex flex-col flex-grow items-center justify-center p-6 text-center gap-3">
+        <h1 className="text-lg font-semibold">Personalisierung ist jetzt in der Sidebar</h1>
+        <p className="text-sm text-muted-foreground max-w-md">
+          Öffne die Sidebar und erweitere den Bereich direkt unter der Galerie, um Name, Zusatzanweisung, Default-Modelle, Farbschema und Sprache einzustellen.
+        </p>
+        <Button onClick={() => router.push('/unified')} variant="secondary">
+          Zurück zur App
+        </Button>
       </main>
     </AppLayout>
   );

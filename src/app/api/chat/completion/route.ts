@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { handleApiError, validateRequest, ApiError, requireEnv } from '@/lib/api-error-handler';
-import { SearchService } from '@/lib/services/search-service';
 import { WebContextService } from '@/lib/services/web-context-service';
 import { getMistralChatCompletion, getMistralChatCompletionStream } from '@/ai/flows/mistral-chat-flow';
 import { mapPollinationsToMistralModel } from '@/config/mistral-models';
@@ -11,28 +10,6 @@ const POLLEN_CHAT_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/
 const LEGACY_POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
 const LEGACY_FALLBACK_MODELS = new Set(['openai-large', 'openai-reasoning', 'gemini-search']);
 
-// Fallback condition checker for Mistral
-const shouldFallbackToMistral = (error: any): boolean => {
-  // Bei Timeouts
-  if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-    return true;
-  }
-
-  // Bei 5xx Serverfehlern
-  if (error.statusCode >= 500) {
-    return true;
-  }
-
-  // Bei spezifischen Pollinations-Fehlern
-  if (error.message?.includes('pollinations') &&
-    (error.message?.includes('unavailable') ||
-      error.message?.includes('maintenance'))) {
-    return true;
-  }
-
-  return false;
-};
-
 // Validation schema
 const ChatCompletionSchema = z.object({
   messages: z.array(z.any()).min(1, 'At least one message is required'),
@@ -40,7 +17,6 @@ const ChatCompletionSchema = z.object({
   systemPrompt: z.string().optional(),
   webBrowsingEnabled: z.boolean().optional(),
   stream: z.boolean().optional(),
-  mistralFallbackEnabled: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -48,17 +24,13 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // Validate request
-    const { messages, modelId, systemPrompt, webBrowsingEnabled, stream, mistralFallbackEnabled } = validateRequest(ChatCompletionSchema, body);
+    const { messages, modelId, systemPrompt, webBrowsingEnabled, stream } = validateRequest(ChatCompletionSchema, body);
 
     // Always use the user's chosen model
     const effectiveModelId = modelId;
 
-    // Check if we should use Mistral directly (manual override)
-    const useMistralDirectly = mistralFallbackEnabled ||
-      effectiveModelId.startsWith('mistral-') ||
-      effectiveModelId.startsWith('mistral-large-3') ||
-      effectiveModelId.startsWith('mistral-medium-3.1') ||
-      effectiveModelId.startsWith('mistral-small-3');
+    // Use Mistral directly for Mistral model IDs
+    const useMistralDirectly = effectiveModelId.startsWith('mistral');
 
     // === ALWAYS-ON WEB CONTEXT ===
     // Fetch web context in parallel (Light mode by default, Deep if toggle enabled)

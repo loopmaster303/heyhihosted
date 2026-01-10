@@ -54,15 +54,15 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
  */
 const REPLICATE_MODELS: UnifiedImageModel[] = [
   // Video Generation (Advanced)
-  { id: 'wan-2.5-t2v', name: 'Wan 2.5 T2V', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: false, requiresPassword: false, description: 'Text to Video' },
-  { id: 'wan-video', name: 'Wan 2.5 I2V', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Image to Video' },
-  { id: 'veo-3.1-fast', name: 'Veo 3.1 Fast', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Fast Video' },
+  { id: 'wan-2.5-t2v', name: 'Wan 2.5 T2V', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: false, requiresPassword: false, description: 'Text to Video', enabled: false },
+  { id: 'wan-video', name: 'Wan 2.5 I2V', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Image to Video', enabled: false },
+  { id: 'veo-3.1-fast', name: 'Veo 3.1 Fast', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Fast Video', enabled: false },
 
   // Image Generation (Standard - flux-kontext is featured)
   { id: 'flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', category: 'Standard', supportsReference: true, requiresPassword: false, description: 'Context Edit', enabled: false },
 
   // Image Generation (Advanced)
-  { id: 'flux-2-pro', name: 'Flux 2 Pro', provider: 'replicate', kind: 'image', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'High Quality' },
+  { id: 'flux-2-pro', name: 'Flux 2 Pro', provider: 'replicate', kind: 'image', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'High Quality', enabled: false },
   { id: 'z-image-turbo', name: 'Z-Image Turbo (Replicate)', provider: 'replicate', kind: 'image', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Fast Image', enabled: false },
 ];
 

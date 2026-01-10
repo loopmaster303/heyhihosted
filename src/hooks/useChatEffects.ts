@@ -3,10 +3,11 @@
  * Handles all useEffect logic for chat functionality
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { toDate } from '@/utils/chatHelpers';
 import type { Conversation } from '@/types';
 import { FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
+import { DatabaseService } from '@/lib/services/database';
 
 interface UseChatEffectsProps {
     // State
@@ -19,20 +20,19 @@ interface UseChatEffectsProps {
     selectedImageModelId: string;
 
     // Setters
-    setIsInitialLoadComplete: (complete: boolean) => void;
     setIsHistoryPanelOpen: (open: boolean) => void;
     setIsAdvancedPanelOpen: (open: boolean) => void;
     setActiveConversation: React.Dispatch<React.SetStateAction<Conversation | null>>;
     setPersistedActiveConversationId: (id: string | null) => void;
-    setAllConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
     setAvailableImageModels: (models: string[]) => void;
     setSelectedImageModelId: (modelId: string) => void;
-    setLastUserMessageId: (id: string | null) => void;
 
     // Actions
     startNewChat: () => Conversation | undefined;
     retryLastRequest: () => Promise<void>;
     retryLastRequestRef: React.MutableRefObject<(() => Promise<void>) | null>;
+    saveConversation: (conv: any) => Promise<void>;
+    deleteConversation: (id: string) => Promise<void>;
 }
 
 export function useChatEffects({
@@ -43,18 +43,17 @@ export function useChatEffects({
     activeConversation,
     persistedActiveConversationId,
     selectedImageModelId,
-    setIsInitialLoadComplete,
     setIsHistoryPanelOpen,
     setIsAdvancedPanelOpen,
     setActiveConversation,
     setPersistedActiveConversationId,
-    setAllConversations,
     setAvailableImageModels,
     setSelectedImageModelId,
-    setLastUserMessageId,
     startNewChat,
     retryLastRequest,
     retryLastRequestRef,
+    saveConversation,
+    deleteConversation,
 }: UseChatEffectsProps) {
     // ESC Key handler for all panels
     useEffect(() => {
@@ -77,38 +76,33 @@ export function useChatEffects({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Initial load from localStorage
+    // Initial restore logic
     useEffect(() => {
-        if (!isInitialLoadComplete) {
-            // Filter out empty chats immediately (Zombie Cleanup)
-            const validConversations = allConversations.filter(c => c.messages.length > 0 && c.toolType === 'long language loops');
-            
-            // If we found empty ones, clean up localStorage
-            if (validConversations.length !== allConversations.filter(c => c.toolType === 'long language loops').length) {
-                 setAllConversations(prev => prev.filter(c => c.messages.length > 0 || c.toolType !== 'long language loops'));
-            }
+        if (!isInitialLoadComplete || activeConversation) return;
 
+        const restore = async () => {
+            // Filter out empty chats immediately (Zombie Cleanup)
+            // Note: allConversations from liveQuery only has metadata, so we check messages existence differently if needed,
+            // but for now let's assume metadata is enough or we clean up periodically.
+            
             let conversationToRestore: Conversation | undefined;
 
-            // Try to restore from persisted ID
             if (persistedActiveConversationId) {
-                conversationToRestore = validConversations.find(c => c.id === persistedActiveConversationId);
+                const full = await DatabaseService.getFullConversation(persistedActiveConversationId);
+                if (full) conversationToRestore = full as any;
             }
 
             if (conversationToRestore) {
                 setActiveConversation(conversationToRestore);
-            } else if (validConversations.length > 0) {
-                // Default to most recent if no ID or ID invalid
-                const sortedConvs = [...validConversations].sort((a, b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
-                setActiveConversation(sortedConvs[0]);
+            } else if (allConversations.length > 0) {
+                const full = await DatabaseService.getFullConversation(allConversations[0].id);
+                setActiveConversation(full as any);
             } else {
-                // Only start new chat if truly nothing valid exists
                 startNewChat();
             }
-            setIsInitialLoadComplete(true);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [allConversations, isInitialLoadComplete, activeConversation, startNewChat, setIsInitialLoadComplete, setActiveConversation, persistedActiveConversationId]);
+        };
+        restore();
+    }, [activeConversation, allConversations, isInitialLoadComplete, persistedActiveConversationId, startNewChat, setActiveConversation]);
 
     // Sync active conversation ID to persistence
     useEffect(() => {
@@ -117,40 +111,19 @@ export function useChatEffects({
         }
     }, [activeConversation, setPersistedActiveConversationId]);
 
-    // Effect to update the allConversations in localStorage whenever active one changes
+    // Auto-save active conversation to DB
     useEffect(() => {
         if (activeConversation && isInitialLoadComplete) {
-            // Only persist if it has messages OR if it already exists in history (to allow deleting messages back to empty?)
-            // Actually, we want to prevent empty "New Chat" spam.
+            // Logic to prevent empty chat spam
             if (activeConversation.messages.length === 0) {
-                // If it's a new empty chat, do NOT add it to allConversations yet.
-                // If it was already there (cleared manually), we might want to keep it or remove it?
-                // Let's go with: Auto-delete empty chats from history list.
-                setAllConversations(prevAll => {
-                    const exists = prevAll.find(c => c.id === activeConversation.id);
-                    if (exists) {
-                        // If it exists but is now empty, remove it? Or keep it?
-                        // User preference: "empty chats not kept". So remove it.
-                        return prevAll.filter(c => c.id !== activeConversation.id);
-                    }
-                    return prevAll;
-                });
+                // If it's a new empty chat, we don't save it yet to allConversations list
+                // (It stays in memory until first message)
                 return;
             }
-
-            setAllConversations(prevAll => {
-                const existingIndex = prevAll.findIndex(c => c.id === activeConversation.id);
-                if (existingIndex > -1) {
-                    const newAll = [...prevAll];
-                    newAll[existingIndex] = { ...activeConversation, updatedAt: new Date().toISOString() };
-                    return newAll.sort((a, b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
-                } else {
-                    const newAll = [activeConversation, ...prevAll];
-                    return newAll.sort((a, b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime());
-                }
-            });
+            
+            saveConversation(activeConversation);
         }
-    }, [activeConversation, setAllConversations, isInitialLoadComplete]);
+    }, [activeConversation, isInitialLoadComplete, saveConversation]);
 
     // Update ref for toast callback
     useEffect(() => {

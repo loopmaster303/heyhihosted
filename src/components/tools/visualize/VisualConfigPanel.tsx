@@ -194,14 +194,6 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                     </div>
                 )}
 
-                {/* Seed */}
-                {currentModelConfig.inputs.find(i => i.name === 'seed') && !isPollinationsVideo && (
-                    <div className="space-y-2">
-                        <Label>{t('field.seed') || 'Seed'}</Label>
-                        <Input type="number" placeholder="Random" value={formFields.seed || ''} onChange={(e) => handleFieldChange('seed', e.target.value)} disabled={loading} />
-                    </div>
-                )}
-
                 {/* Output Format */}
                 {(!isPollenModel && !isPollinationsVideo && currentModelConfig.inputs.find(i => i.name === 'output_format')) && (
                     <div className="space-y-2">
@@ -227,7 +219,7 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
     }
 
     return (
-        <div className="mb-4 bg-popover text-popover-foreground rounded-lg shadow-xl border border-border p-4 origin-bottom animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-200 ease-out">
+        <div className="mb-4 bg-popover/80 text-popover-foreground rounded-2xl shadow-glass-heavy border border-glass-border p-4 backdrop-blur-xl origin-bottom animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-300 ease-out">
             {/* Header */}
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-sm font-semibold">{t('imageGen.modal.title') || 'Settings'}</h3>
@@ -371,14 +363,6 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                                 )}
                             </SelectContent>
                         </Select>
-                    </div>
-                )}
-
-                {/* Seed */}
-                {currentModelConfig.inputs.find(i => i.name === 'seed') && !isPollinationsVideo && (
-                    <div className="space-y-2">
-                        <Label>{t('field.seed') || 'Seed'}</Label>
-                        <Input type="number" placeholder="Random" value={formFields.seed || ''} onChange={(e) => handleFieldChange('seed', e.target.value)} disabled={loading} />
                     </div>
                 )}
 

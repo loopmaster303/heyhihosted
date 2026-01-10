@@ -15,9 +15,9 @@ const BasePopup: React.FC<BasePopupProps> = ({
     className,
     variant = 'contextual'
 }) => {
-    const baseClasses = "bg-popover text-popover-foreground border border-border shadow-xl";
+    const baseClasses = "bg-popover/80 text-popover-foreground border border-glass-border shadow-glass-heavy backdrop-blur-xl";
     const roundedClasses = variant === 'modal' ? "rounded-2xl" : "rounded-xl";
-    const animationClasses = "animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-3 duration-200 ease-out";
+    const animationClasses = "animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-3 duration-300 ease-out";
 
     return (
         <div className={cn(baseClasses, roundedClasses, animationClasses, className)}>
@@ -134,12 +134,16 @@ interface ModalPopupProps {
     children: React.ReactNode;
     className?: string;
     maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl';
+    onClose?: () => void;
+    closeOnBackdrop?: boolean;
 }
 
 export const ModalPopup: React.FC<ModalPopupProps> = ({
     children,
     className,
-    maxWidth = 'lg'
+    maxWidth = 'lg',
+    onClose,
+    closeOnBackdrop = true
 }) => {
     const maxWidthClasses = {
         'sm': 'max-w-sm',
@@ -151,12 +155,17 @@ export const ModalPopup: React.FC<ModalPopupProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-50">
+        <div
+            className="fixed inset-0 z-50"
+            onClick={closeOnBackdrop ? onClose : undefined}
+        >
             <div className="fixed inset-0 bg-black/50" />
             <div className="fixed inset-0 flex items-center justify-center p-4">
-                <BasePopup variant="modal" className={cn("p-6 w-full", maxWidthClasses[maxWidth], className)}>
-                    {children}
-                </BasePopup>
+                <div onClick={(event) => event.stopPropagation()}>
+                    <BasePopup variant="modal" className={cn("p-6 w-full", maxWidthClasses[maxWidth], className)}>
+                        {children}
+                    </BasePopup>
+                </div>
             </div>
         </div>
     );

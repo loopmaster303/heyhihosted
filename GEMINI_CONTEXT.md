@@ -1,32 +1,50 @@
 # Gemini Context: hey.hi
 
+## Project Vision
+
+**HeyHi - Local First AI Command Center.** A privacy-focused, high-performance platform for multimodal AI interactions, prioritizing local storage and seamless UX.
+
+## Tech Stack
+
+- **Framework**: Next.js 15
+- **UI**: Shadcn UI, Tailwind CSS
+- **State**: React Context + Custom Hooks (Local First)
+- **Storage**: IndexedDB (Dexie)
+- **AI**: Pollinations (Image/Chat). Replicate is optional/legacy.
+
+## Current State & Known Issues
+
+- [x] **Gallery Assets Vault**: IndexedDB assets table is the single source of truth. Supports Hybrid Storage (S3 `storageKey` preferred, local `blob` fallback).
+- [x] **"God Hook" Refactor**: `useChatState` successfully split into specialized persistence, UI, and media hooks.
+- [x] **IndexedDB v3 Foundation**: Migrated to a structured local-first storage using Dexie.js.
+- [x] **Model Selector**: Successfully moved to Input Bar (Compact Mode).
+- [x] **Storage Migration**: Phase 1 (IndexedDB) complete. Ready for E2E encryption layer.
+
+## Architecture Highlights
+
+- **`UnifiedImageTool`**: Centralized logic for image generation and handling.
+- **`conductor/`**: Structured task and track management for development.
+- **The "Pollen" Standard**: Optimized API communication with Pollinations.
+
 ## Critical Technical Constraints
 
-### 1. API Usage (The "Pollen" Standard)
+### 1. API Usage
+
 - **Image Generation**: Use the `/api/generate` endpoint which proxies to `gen.pollinations.ai`.
-- **Parameters**: Always send `nologo=true` and `private=true` (if `POLLEN_API_KEY` is present). 
+- **Parameters**: Always send `nologo=true` and `private=true`.
 - **Quality Boost**: `z-image-turbo` requires specific quality tags ("8k uhd, hyperrealistic") and `enhance=true` at the API level.
-- **Vision**: Chat models require public URLs. Use the `/api/upload/temp` proxy before sending messages with images.
 
 ### 2. Storage Architecture ("Safe Mode")
-- **Never store Blobs in localStorage**. It causes `QuotaExceededError`.
-- **Local Vault**: All images must be stored in **IndexedDB** using `idb-keyval`.
-- **Hydration**: The `useImageHistory` hook is the source of truth. It maps persistent IDs to temporary `blob:` URLs during session load.
-- **Zombie Cleanup**: Automatic filtering of history items that have no corresponding binary data in IndexedDB.
+
+- **Never store Blobs in localStorage** (Use Dexie/IndexedDB).
+- **Local Vault**: Assets are stored in IndexedDB (Dexie).
+- **Hybrid Media**: 
+  - **S3 (Primary)**: Pollinations media is ingested to S3; DB stores `storageKey`.
+  - **Blob (Fallback)**: Other media is stored as `Blob` directly in DB.
+- **Hydration**: `useGalleryAssets` + `useAssetUrl` resolve object URLs (blobs) or signed S3 URLs on demand.
 
 ### 3. UI & Identity
-- **Header**: The `TypewriterHeader` is the core identity element. It reflects current system state in a CRT/Terminal style.
-- **Layout**: The "Matrix" header is exclusive to the `chat` state.
-- **Consistency**: Use `font-mono` for technical data and `Inter` for standard UI elements. Maintain the "Soft Pink/Purple" glassmorphism theme.
 
-### 4. Logic & Ethics
-- **Identity Protocol**: Always identify as a computer program. Transparency is absolute.
-- **Mistral Fallback**: Manual only. No automatic fallback to avoid 422 errors during Pollinations outages.
-- **Vision Logic**: If images are present, fallback to `kontext` (Pollinations) or a vision-capable LLM (Claude/GPT).
-
-## Recent Meilensteine
-- [X] Implementation of IndexedDB Image Vault.
-- [X] Anonymous Image Relay for Vision Support.
-- [X] Dynamic CRT Terminal Header.
-- [X] Model Selector moved to Input Bar (Compact Mode).
-- [X] Removal of Vercel Blob dependency.
+- **Header**: CRT/Terminal style identity.
+- **Modality**: Focus mode for "visualize" state (hides text-only tools).
+- **Consistency**: Code monospace for UI and data. Glassmorphism theme.

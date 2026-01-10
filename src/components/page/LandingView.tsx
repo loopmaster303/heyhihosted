@@ -3,15 +3,11 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ChatInput from '@/components/chat/ChatInput';
-import { cn } from '@/lib/utils';
 import { useChat } from '@/components/ChatProvider';
 import { useLanguage } from '@/components/LanguageProvider';
-import { Palette, Video, Globe } from 'lucide-react';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
-import { getUnifiedModel } from '@/config/unified-image-models';
 
 interface LandingViewProps {
-    userDisplayName: string;
     onNavigateToChat: (initialMessage: string) => void;
     selectedModelId: string;
     onModelChange: (modelId: string) => void;
@@ -19,7 +15,6 @@ interface LandingViewProps {
 }
 
 const LandingView: React.FC<LandingViewProps> = ({
-    userDisplayName,
     onNavigateToChat,
     selectedModelId,
     onModelChange,
@@ -29,8 +24,6 @@ const LandingView: React.FC<LandingViewProps> = ({
     const { language } = useLanguage();
     const isEn = language === 'en';
     const [showInputContainer, setShowInputContainer] = useState(false);
-
-    const advancedPanelRef = React.useRef<HTMLDivElement>(null);
 
     // Show input container after a delay (synced with particle formation)
     useEffect(() => {
@@ -75,7 +68,6 @@ const LandingView: React.FC<LandingViewProps> = ({
                                 isLoading={chat.isAiResponding}
                                 uploadedFilePreviewUrl={chat.activeConversation?.uploadedFilePreview || null}
                                 onFileSelect={chat.handleFileSelect}
-                                onClearUploadedImage={chat.clearUploadedImage}
                                 isLongLanguageLoopActive={true}
                                 inputValue={chat.chatInputValue}
                                 onInputChange={chat.setChatInputValue}
@@ -87,21 +79,6 @@ const LandingView: React.FC<LandingViewProps> = ({
                                         prev ? { ...prev, isCodeMode: !prev.isCodeMode } : prev
                                     );
                                 }}
-                                chatTitle=""
-                                onToggleHistoryPanel={chat.toggleHistoryPanel}
-                                onToggleAdvancedPanel={chat.toggleAdvancedPanel}
-                                isAdvancedPanelOpen={chat.isAdvancedPanelOpen}
-                                advancedPanelRef={advancedPanelRef}
-                                isHistoryPanelOpen={chat.isHistoryPanelOpen}
-                                allConversations={chat.allConversations}
-                                activeConversation={chat.activeConversation}
-                                selectChat={chat.selectChat}
-                                closeHistoryPanel={chat.closeHistoryPanel}
-                                requestEditTitle={chat.requestEditTitle}
-                                deleteChat={chat.deleteChat}
-                                startNewChat={chat.startNewChat}
-                                closeAdvancedPanel={chat.closeAdvancedPanel}
-                                toDate={chat.toDate}
                                 selectedModelId={selectedModelId}
                                 handleModelChange={onModelChange}
                                 selectedResponseStyleName={chat.activeConversation?.selectedResponseStyleName || "Basic"}
@@ -110,8 +87,6 @@ const LandingView: React.FC<LandingViewProps> = ({
                                 handleVoiceChange={chat.handleVoiceChange}
                                 webBrowsingEnabled={chat.webBrowsingEnabled}
                                 onToggleWebBrowsing={chat.toggleWebBrowsing}
-                                mistralFallbackEnabled={chat.mistralFallbackEnabled}
-                                onToggleMistralFallback={chat.toggleMistralFallback}
                                 isRecording={chat.isRecording}
                                 isTranscribing={chat.isTranscribing}
                                 startRecording={chat.startRecording}

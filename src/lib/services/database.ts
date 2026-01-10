@@ -1,63 +1,54 @@
 import Dexie, { type Table } from 'dexie';
+import type { Conversation, ChatMessage, ToolType } from '@/types';
 
-// --- Interfaces für unsere Daten ---
+// --- Interfaces für unsere DB-Ebene (leicht angepasst für IndexedDB Indizes) ---
 
-export interface Conversation {
-  id: string;
-  title: string;
+export interface DBConversation extends Omit<Conversation, 'messages' | 'createdAt' | 'updatedAt'> {
   createdAt: number;
   updatedAt: number;
-  selectedModelId?: string;
-  selectedResponseStyleName?: string;
-  isCodeMode?: boolean;
-  metadata?: Record<string, any>;
 }
 
-export interface Message {
-  id: string;
+export interface DBMessage extends Omit<ChatMessage, 'timestamp'> {
   conversationId: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string | any[];
   timestamp: number;
-  imageUrls?: string[]; // IDs oder URLs zu Bildern
   modelId?: string;
-  tokens?: number;
   metadata?: Record<string, any>;
 }
 
 export interface UserMemory {
   id?: number;
-  key: string;      // z.B. "coding_style"
-  value: string;    // z.B. "Liebt Tailwind & Glassmorphism"
-  confidence: number; // 0.0 bis 1.0
+  key: string;
+  value: string;
+  confidence: number;
   sourceChatId?: string;
   updatedAt: number;
 }
 
 export interface Asset {
   id: string;
-  blob: Blob;
+  blob?: Blob;
   contentType: string;
   prompt?: string;
   modelId?: string;
   conversationId?: string;
   timestamp: number;
+  storageKey?: string;
+  remoteUrl?: string;
 }
 
 // --- Die Dexie Datenbank-Klasse ---
 
 export class HeyHiDatabase extends Dexie {
-  conversations!: Table<Conversation, string>;
-  messages!: Table<Message, string>;
+  conversations!: Table<DBConversation, string>;
+  messages!: Table<DBMessage, string>;
   memories!: Table<UserMemory, number>;
   assets!: Table<Asset, string>;
 
   constructor() {
     super('HeyHiVault');
     
-    // Schema-Definition
-    this.version(2).stores({
-      conversations: 'id, title, updatedAt',
+    this.version(3).stores({
+      conversations: 'id, title, updatedAt, toolType',
       messages: 'id, conversationId, timestamp',
       memories: '++id, key, updatedAt',
       assets: 'id, conversationId, timestamp'
@@ -65,42 +56,67 @@ export class HeyHiDatabase extends Dexie {
   }
 }
 
-// Singleton-Instanz exportieren
 export const db = new HeyHiDatabase();
 
 // --- Helper Services ---
 
 export const DatabaseService = {
-  // Conversations
   async saveConversation(conv: Conversation) {
-    return await db.conversations.put(conv);
+    const { messages, ...metadata } = conv;
+    return await db.conversations.put({
+      ...metadata,
+      createdAt: new Date(conv.createdAt).getTime(),
+      updatedAt: new Date(conv.updatedAt).getTime(),
+    } as DBConversation);
   },
 
-  async getConversation(id: string) {
-    return await db.conversations.get(id);
+  async getConversation(id: string): Promise<Conversation | null> {
+    const dbConv = await db.conversations.get(id);
+    if (!dbConv) return null;
+    const messages = await this.getMessagesForConversation(id);
+    return {
+      ...dbConv,
+      createdAt: new Date(dbConv.createdAt).toISOString(),
+      updatedAt: new Date(dbConv.updatedAt).toISOString(),
+      messages
+    } as Conversation;
   },
 
-  async getAllConversations() {
-    return await db.conversations.orderBy('updatedAt').reverse().toArray();
+  async getAllConversations(): Promise<Conversation[]> {
+    const convs = await db.conversations.orderBy('updatedAt').reverse().toArray();
+    return convs.map(c => ({
+      ...c,
+      createdAt: new Date(c.createdAt).toISOString(),
+      updatedAt: new Date(c.updatedAt).toISOString(),
+      messages: [] // Minimal metadata only
+    } as Conversation));
   },
 
   async deleteConversation(id: string) {
-    return await db.transaction('rw', db.conversations, db.messages, async () => {
+    return await db.transaction('rw', db.conversations, db.messages, db.assets, async () => {
       await db.messages.where('conversationId').equals(id).delete();
+      await db.assets.where('conversationId').equals(id).delete();
       await db.conversations.delete(id);
     });
   },
 
-  // Messages
-  async saveMessage(msg: Message) {
-    return await db.messages.put(msg);
+  async saveMessage(msg: ChatMessage, conversationId: string) {
+    return await db.messages.put({
+      ...msg,
+      conversationId,
+      timestamp: new Date(msg.timestamp).getTime(),
+    } as DBMessage);
   },
 
-  async getMessagesForConversation(convId: string) {
-    return await db.messages.where('conversationId').equals(convId).sortBy('timestamp');
+  async getMessagesForConversation(convId: string): Promise<ChatMessage[]> {
+    const msgs = await db.messages.where('conversationId').equals(convId).sortBy('timestamp');
+    return msgs.map(m => ({
+      ...m,
+      timestamp: new Date(m.timestamp).toISOString(),
+    } as ChatMessage));
   },
 
-  // Memories (Das Playa-Gehirn)
+  // Memories
   async updateMemory(key: string, value: string, confidence: number = 1.0, chatId?: string) {
     const existing = await db.memories.where('key').equals(key).first();
     if (existing) {
@@ -125,7 +141,7 @@ export const DatabaseService = {
     return await db.memories.toArray();
   },
 
-  // Assets (Bilder & Medien)
+  // Assets
   async saveAsset(asset: Asset) {
     return await db.assets.put(asset);
   },
@@ -134,38 +150,23 @@ export const DatabaseService = {
     return await db.assets.get(id);
   },
 
-  async getAssetsForConversation(convId: string) {
-    return await db.assets.where('conversationId').equals(convId).sortBy('timestamp');
-  },
-
-  async getAllAssets() {
-    return await db.assets.orderBy('timestamp').reverse().toArray();
-  },
-
-  async deleteAsset(id: string) {
-    return await db.assets.delete(id);
-  },
-
-  /**
-   * Lädt eine URL für ein Asset (Blob-URL).
-   */
   async getAssetUrl(id: string): Promise<string | null> {
     const asset = await db.assets.get(id);
     if (!asset) return null;
-    return URL.createObjectURL(asset.blob);
+    if (asset.blob) return URL.createObjectURL(asset.blob);
+    return asset.remoteUrl || null;
   },
 
-  // --- Full Object Helpers ---
-
-  async saveFullConversation(conv: any) {
+  // Full Object logic
+  async saveFullConversation(conv: Conversation) {
     return await db.transaction('rw', db.conversations, db.messages, async () => {
       const { messages, ...metadata } = conv;
       
       await db.conversations.put({
         ...metadata,
-        updatedAt: typeof metadata.updatedAt === 'string' ? new Date(metadata.updatedAt).getTime() : metadata.updatedAt,
-        createdAt: typeof metadata.createdAt === 'string' ? new Date(metadata.createdAt).getTime() : metadata.createdAt,
-      });
+        createdAt: new Date(conv.createdAt).getTime(),
+        updatedAt: new Date(conv.updatedAt).getTime(),
+      } as DBConversation);
 
       if (messages && Array.isArray(messages)) {
         await db.messages.where('conversationId').equals(conv.id).delete();
@@ -173,46 +174,31 @@ export const DatabaseService = {
           await db.messages.put({
             ...msg,
             conversationId: conv.id,
-            timestamp: typeof msg.timestamp === 'string' ? new Date(msg.timestamp).getTime() : msg.timestamp,
-          });
+            timestamp: new Date(msg.timestamp).getTime(),
+          } as DBMessage);
         }
       }
     });
   },
 
-  async getAllFullConversations() {
+  async getAllFullConversations(): Promise<Conversation[]> {
     const convs = await db.conversations.orderBy('updatedAt').reverse().toArray();
-    const fullConvs = [];
+    const fullConvs: Conversation[] = [];
 
     for (const conv of convs) {
-      const messages = await db.messages.where('conversationId').equals(conv.id).sortBy('timestamp');
+      const messages = await this.getMessagesForConversation(conv.id);
       fullConvs.push({
         ...conv,
         createdAt: new Date(conv.createdAt).toISOString(),
         updatedAt: new Date(conv.updatedAt).toISOString(),
-        messages: messages.map(m => ({
-          ...m,
-          timestamp: new Date(m.timestamp).toISOString()
-        }))
-      });
+        messages
+      } as Conversation);
     }
 
     return fullConvs;
   },
 
-  async getFullConversation(id: string) {
-    const conv = await db.conversations.get(id);
-    if (!conv) return null;
-
-    const messages = await db.messages.where('conversationId').equals(id).sortBy('timestamp');
-    return {
-      ...conv,
-      createdAt: new Date(conv.createdAt).toISOString(),
-      updatedAt: new Date(conv.updatedAt).toISOString(),
-      messages: messages.map(m => ({
-        ...m,
-        timestamp: new Date(m.timestamp).toISOString()
-      }))
-    };
+  async getFullConversation(id: string): Promise<Conversation | null> {
+    return this.getConversation(id);
   }
 };

@@ -74,8 +74,8 @@ export function ParticleText({
     const isMobile = dimensions.width < 768
     
     // Config
-    const mouseRepelRadius = isMobile ? 150 : 300 // Significantly increased repulsion radius
-    const particleBaseSize = isMobile ? 1.2 : 1.6
+    const mouseRepelRadius = isMobile ? 120 : 250 
+    const particleBaseSize = isMobile ? 1.0 : 1.4
 
     let particles: Particle[] = []
     let textImageData: ImageData | null = null
@@ -148,16 +148,7 @@ export function ParticleText({
     // 3. Initialize Particles
     function initParticles() {
       particles = []
-      // Density calculation
-      // V0 uses: 8000 * sqrt(area / referenceArea)
-      // We can adapt simpler: Area * densityFactor
-      const area = dimensions.width * dimensions.height
-      const density = isMobile ? 0.15 : 0.25 // Particles per pixel (rough heuristic)
-      // Actually typical canvas text areas are small relative to full screen.
-      // Let's use a fixed count scaled by text length/size estimation or just try target count.
-      // V0 logic is good:
-      const baseCount = isMobile ? 3000 : 6000 
-      // Adjusted base count for text (usually less filled area than a big logo)
+      const baseCount = isMobile ? 2500 : 5000 
       
       for (let i = 0; i < baseCount; i++) {
         const p = createParticle()
@@ -171,29 +162,24 @@ export function ParticleText({
     function animate() {
       if (!ctx || !canvas) return
       
-      // Clear with slight trail or transparent? V0 clears fully.
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
       const { x: mouseX, y: mouseY } = mousePositionRef.current
       
-      // Particle Rendering
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i]
         
-        // Physics: Mouse Interaction
         const dx = mouseX - p.x
         const dy = mouseY - p.y
         const distance = Math.sqrt(dx * dx + dy * dy)
         
-        // Only animate glitter when mouse is nearby
         const isNearMouse = distance < mouseRepelRadius * 1.5
         if (isNearMouse) {
-          p.glitterPhase += 0.25 // Aggressive glitter speed
+          p.glitterPhase += 0.15 
         } else {
-          p.glitterPhase += 0.01 // Faster idle shimmer
+          p.glitterPhase += 0.008 
         }
 
-        // Determine target position
         let targetX = p.baseX
         let targetY = p.baseY
 
@@ -202,26 +188,22 @@ export function ParticleText({
         if (distance < mouseRepelRadius) {
             const force = (mouseRepelRadius - distance) / mouseRepelRadius
             const angle = Math.atan2(dy, dx)
-            const move = force * 150 // Very strong explosive force
+            const move = force * 100 // Reduced force
             targetX = p.baseX - Math.cos(angle) * move
             targetY = p.baseY - Math.sin(angle) * move
         }
 
-        // Snappy physics: Linear interpolation
-        p.x += (targetX - p.x) * 0.1
-        p.y += (targetY - p.y) * 0.1
+        p.x += (targetX - p.x) * 0.08 // Slightly slower, smoother
+        p.y += (targetY - p.y) * 0.08
 
-        // Color / Glitter - less white, more base color
         const glitter = (Math.sin(p.glitterPhase) + 1) / 2
-        
-        // Keep base color strong, only subtle white shimmer on hover
-        const whiteAmount = isNearMouse ? glitter * 0.25 : glitter * 0.1
+        const whiteAmount = isNearMouse ? glitter * 0.2 : glitter * 0.05
         
         const r = Math.floor(baseRGB.r + (255 - baseRGB.r) * whiteAmount)
         const g = Math.floor(baseRGB.g + (255 - baseRGB.g) * whiteAmount)
         const b = Math.floor(baseRGB.b + (255 - baseRGB.b) * whiteAmount)
         
-        ctx.fillStyle = `rgb(${r},${g},${b})`
+        ctx.fillStyle = `rgba(${r},${g},${b}, ${isNearMouse ? 0.9 : 0.7})`
         ctx.fillRect(p.x, p.y, p.size, p.size)
 
         // Lifecycle / Respawn

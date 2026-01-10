@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useState, Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChatProvider, useChat } from '@/components/ChatProvider';
 import ChatInterface from '@/components/page/ChatInterface';
-import EditTitleDialog from '@/components/dialogs/EditTitleDialog';
 import CameraCaptureDialog from '@/components/dialogs/CameraCaptureDialog';
 import AppLayout from '@/components/layout/AppLayout';
 import PageLoader from '@/components/ui/PageLoader';
@@ -25,15 +24,20 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
     const chat = useChat();
     const visualizeToolState = useUnifiedImageToolState();
     const pathname = usePathname();
-    const [userDisplayName] = useLocalStorageState<string>('userDisplayName', 'user');
+    const [defaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
 
     const [isClient, setIsClient] = useState(false);
     const [appState, setAppState] = useState<AppState>(initialState);
-    const [landingSelectedModelId, setLandingSelectedModelId] = useState<string>(DEFAULT_POLLINATIONS_MODEL_ID);
+    const [landingSelectedModelId, setLandingSelectedModelId] = useState<string>(defaultTextModelId);
 
     useEffect(() => {
         setIsClient(true);
     }, []);
+
+    useEffect(() => {
+        if (!isClient) return;
+        setLandingSelectedModelId(defaultTextModelId);
+    }, [defaultTextModelId, isClient]);
 
     // URL-based state initialization
     useEffect(() => {
@@ -94,7 +98,6 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
                 chat.selectChat(id);
                 setAppState('chat');
             }}
-            onRequestEditTitle={chat.requestEditTitle}
             onDeleteChat={chat.deleteChat}
             isHistoryPanelOpen={chat.isHistoryPanelOpen}
             allConversations={chat.allConversations}
@@ -109,7 +112,6 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             {/* Landing State */}
             {appState === 'landing' && (
                 <LandingView
-                    userDisplayName={userDisplayName}
                     onNavigateToChat={handleNavigateToChat}
                     selectedModelId={landingSelectedModelId}
                     onModelChange={setLandingSelectedModelId}
@@ -125,14 +127,6 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             )}
 
             {/* Dialogs */}
-            <EditTitleDialog
-                isOpen={chat.isEditTitleDialogOpen}
-                onOpenChange={chat.cancelEditTitle}
-                onConfirm={chat.confirmEditTitle}
-                onCancel={chat.cancelEditTitle}
-                title={chat.editingTitle}
-                setTitle={chat.setEditingTitle}
-            />
             <CameraCaptureDialog
                 isOpen={chat.isCameraOpen}
                 onOpenChange={chat.closeCamera}

@@ -21,8 +21,8 @@
 - **Runtime**: Next.js Server Routes (Edge/Node.js compatible)
 - **Deployment**: Vercel
 - **Storage**: 
-  - **User Data**: `localStorage` (Client-side persistence)
-  - **Assets**: Vercel Blob (Temporary storage for generated media)
+  - **User Data**: **IndexedDB** (Client-side persistence via `DatabaseService`)
+  - **Assets**: Vercel Blob (Temporary storage for proxying and sharing)
 
 ### AI Integration Layer
 - **Core Provider**: [Pollinations.ai](https://pollinations.ai) (Free tier text/image/video)
@@ -30,12 +30,12 @@
 - **Auxiliary**: Mistral AI (Chat & Prompt Enhancement)
 - **Features**:
   - **Text**: Unified chat interface with multiple LLM support.
-  - **Image**: `Visualize Pro` studio with Flux, SDXL, and other models.
+  - **Image**: Integrated **Visualize** tool within chat (Flux, Gemini, Wan Video).
   - **Audio**: Web Speech API for STT, Edge TTS/Pollinations for TTS.
 
 ## 3. Core Features
-1.  **Unified Chat**: Central hub for LLM interactions (Markdown support, code highlighting).
-2.  **Visualize Pro**: Dedicated studio for image and video generation (Standard vs. Advanced modes).
+1.  **Unified Chat**: Central hub for all AI interactions (Text, Image, Video). Supports Markdown and code highlighting.
+2.  **Integrated Visualize**: In-chat media generation tool with Standard and Advanced modes. Activated via Tools menu.
 3.  **Voice Interaction**: Speech-to-Text and Text-to-Speech integration.
 4.  **No-Auth Access**: Immediate utility without account creation.
 

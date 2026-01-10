@@ -104,7 +104,7 @@ export const VisualModelSelector: React.FC<VisualModelSelectorProps> = ({
                 onClick={onClose}
                 aria-hidden="true"
             />
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[320px] max-w-[90vw] z-[110] bg-background/90 text-foreground rounded-2xl shadow-xl border border-border/40 backdrop-blur-md p-0 origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200 ease-out overflow-hidden">
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[320px] max-w-[90vw] z-[110] bg-popover/80 text-foreground rounded-2xl shadow-glass-heavy border border-glass-border backdrop-blur-xl p-0 origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-300 ease-out overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 sticky top-0 bg-background/90 backdrop-blur-md z-10">
                 <div>

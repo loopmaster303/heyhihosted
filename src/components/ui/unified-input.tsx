@@ -15,6 +15,7 @@ interface UnifiedInputProps {
   leftActions?: React.ReactNode;
   rightActions?: React.ReactNode;
   topElements?: React.ReactNode; // For bubbles/badges above input
+  topElementsVariant?: 'framed' | 'bare';
   children?: React.ReactNode; // For overlays or extra content
   drawer?: React.ReactNode; // Content for the expandable drawer
   isDrawerOpen?: boolean; // Controls drawer visibility
@@ -33,6 +34,7 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
   leftActions,
   rightActions,
   topElements,
+  topElementsVariant = 'framed',
   children,
   drawer,
   isDrawerOpen,
@@ -67,7 +69,14 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
       {topElements && (
         <div className="relative left-0 right-0 z-20 mb-3">
           <div className="px-0">
-            <div className="rounded-2xl border border-border/40 bg-background/70 px-3 py-2 shadow-sm backdrop-blur-sm origin-bottom animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200 ease-out">
+            <div
+              className={cn(
+                "rounded-2xl origin-bottom animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-300 ease-out",
+                topElementsVariant === 'bare'
+                  ? "border-0 bg-transparent px-1 py-1 shadow-none backdrop-blur-0"
+                  : "border border-glass-border bg-glass-background/50 px-3 py-2 shadow-glass backdrop-blur-md"
+              )}
+            >
               {topElements}
             </div>
           </div>
@@ -77,8 +86,8 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
       <div 
         className={cn(
           "relative rounded-[28px] p-5 transition-all duration-500 ease-out",
-          "frosted-ice shadow-xl border border-white/10", 
-          "hover:shadow-[0_0_30px_rgba(157,92,246,0.1)] focus-within:shadow-[0_0_40px_rgba(157,92,246,0.2)] focus-within:border-primary/20",
+          "bg-glass-background/70 backdrop-blur-2xl shadow-glass border border-primary/30", 
+          "hover:shadow-glow-primary focus-within:shadow-glow-primary focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/40",
           isDrawerOpen && "rounded-b-xl rounded-t-[28px]", 
           className
         )}
@@ -129,7 +138,7 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
       </div>
       
       {/* Disclaimer */}
-      <div className="mt-3 text-center">
+      <div className="mt-3 text-center hidden md:block">
          <p className="text-[10px] md:text-xs text-muted-foreground/60 px-4">
           {t('chat.disclaimer')}
         </p>

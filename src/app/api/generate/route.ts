@@ -12,6 +12,9 @@ const ImageGenerationSchema = z.object({
   model: z.string().default('flux'),
   width: z.number().positive().default(1024),
   height: z.number().positive().default(1024),
+  aspectRatio: z.string().optional(),
+  duration: z.number().optional(),
+  audio: z.boolean().optional(),
   seed: z.number().optional(),
   nologo: z.boolean().default(true),
   enhance: z.boolean().default(false),
@@ -22,6 +25,8 @@ const ImageGenerationSchema = z.object({
   image: z.union([z.string().url(), z.array(z.string().url())]).optional(),
 });
 
+const VIDEO_MODELS = new Set(['veo', 'seedance', 'seedance-pro']);
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -30,6 +35,9 @@ export async function POST(request: Request) {
       model,
       width,
       height,
+      aspectRatio,
+      duration,
+      audio,
       seed,
       nologo,
       enhance,
@@ -46,21 +54,31 @@ export async function POST(request: Request) {
     // --- Model Logic ---
     let modelId: string = model || 'flux';
     if (model === 'zimage') modelId = 'z-image-turbo';
+
+    const isVideoModel = VIDEO_MODELS.has(modelId);
     
     // Auto-enhance for z-image-turbo unless explicitly disabled
     const effectiveEnhance = (modelId === 'z-image-turbo') ? true : enhance;
 
     const params = new URLSearchParams();
     params.append('model', modelId);
-    params.append('width', String(width));
-    params.append('height', String(height));
-    params.append('nologo', String(nologo));
-    params.append('enhance', String(effectiveEnhance));
+    if (!isVideoModel) {
+      params.append('width', String(width));
+      params.append('height', String(height));
+      params.append('nologo', String(nologo));
+      params.append('enhance', String(effectiveEnhance));
+    }
     params.append('private', String(isPrivate));
     params.append('safe', String(safe));
-    
-    if (negative_prompt) params.append('negative_prompt', negative_prompt);
-    if (transparent) params.append('transparent', 'true');
+
+    if (isVideoModel) {
+      if (aspectRatio) params.append('aspectRatio', aspectRatio);
+      if (duration !== undefined) params.append('duration', String(duration));
+      if (audio !== undefined) params.append('audio', String(audio));
+    } else {
+      if (negative_prompt) params.append('negative_prompt', negative_prompt);
+      if (transparent) params.append('transparent', 'true');
+    }
     if (seed) params.append('seed', String(seed));
     
     // Handle multiple images (comma-separated for Pollinations)
@@ -70,7 +88,7 @@ export async function POST(request: Request) {
     }
 
     // Always use HD for best results
-    params.append('quality', 'hd');
+    if (!isVideoModel) params.append('quality', 'hd');
 
     const finalUrl = `${baseUrl}/${safePrompt}?${params.toString()}`;
     
@@ -91,7 +109,7 @@ export async function POST(request: Request) {
 
     console.log('[Pollinations] Dispatching:', hasToken ? 'Authenticated Request' : 'Public Request');
 
-    return NextResponse.json({ imageUrl: authenticatedUrl });
+    return NextResponse.json({ imageUrl: authenticatedUrl, videoUrl: isVideoModel ? authenticatedUrl : undefined });
 
   } catch (error) {
     return handleApiError(error);

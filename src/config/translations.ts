@@ -25,20 +25,20 @@ export const translations = {
         'chat.image': 'Bild',
         'chat.document': 'Dokument',
         'chat.camera': 'Kamera',
-        'chat.disclaimer': 'AI kann Fehler machen und ist kein Mensch. Bitte überprüfe wichtige Informationen und denk an deine echten sozialen Verbindungen.',
+        'chat.disclaimer': 'Sei dir bewusst, dass KI Fehler macht und kein Mensch ist, auch wenn sie so antwortet. Überprüfe die Ergebnisse, wenn du dir unsicher bist.',
 
         // Navigation & Headers
         'nav.conversations': 'Konversationen',
         'nav.configurations': 'Einstellungen',
-        'nav.newConversation': 'Neues Gespräch',
+        'nav.newConversation': 'Neue Konversation',
         'nav.about': 'Über',
         'nav.chat': 'Chat',
         'nav.reasoning': 'Code Reasoning',
         'nav.imageGen': 'Bildgenerierung',
         'nav.settings': 'Einstellungen',
-        'nav.history': 'Konversationen',
+        'nav.history': 'Verlauf',
         'nav.gallery': 'Galerie',
-        'nav.personalization': 'Personalisierung',
+        'nav.personalization': 'Personalisation',
         'nav.language': 'Sprache',
         'nav.theme': 'App Design',
 
@@ -104,7 +104,7 @@ export const translations = {
         'chat.image': 'Image',
         'chat.document': 'Document',
         'chat.camera': 'Camera',
-        'chat.disclaimer': 'AI can make mistakes and is not human. Please verify important information and remember your real-world social connections.',
+        'chat.disclaimer': "Be aware that AI makes mistakes and is not human, even if it responds that way. Check the results if you're unsure.",
 
         // Navigation & Headers
         'nav.conversations': 'Conversations',
@@ -115,7 +115,7 @@ export const translations = {
         'nav.reasoning': 'Code Reasoning',
         'nav.imageGen': 'Image Generation',
         'nav.settings': 'Settings',
-        'nav.history': 'Conversations',
+        'nav.history': 'History',
         'nav.gallery': 'Gallery',
         'nav.personalization': 'Personalization',
         'nav.language': 'Language',

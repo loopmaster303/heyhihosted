@@ -7,11 +7,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
 import { getUnifiedModel } from '@/config/unified-image-models';
 import { generateUUID } from '@/lib/uuid';
-import type { ImageHistoryItem } from '@/types';
+import type { ImageHistoryItem, UploadedReference } from '@/types';
 import { useLanguage } from '../LanguageProvider';
 import { useUnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
+import { DatabaseService } from '@/lib/services/database';
+import { uploadFileToS3WithKey } from '@/lib/upload/s3-upload';
+import { getClientSessionId } from '@/lib/session';
+import { ingestGeneratedAsset } from '@/lib/upload/ingest';
+import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
 import VisualizeInputContainer from '@/components/tools/VisualizeInputContainer';
-import { persistRemoteImage } from '@/lib/services/local-image-storage';
+// import { persistRemoteImage } from '@/lib/services/local-image-storage';
 import { ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -70,18 +75,24 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       let referenceUrls: string[] = [];
       if (uploadedImages.length > 0) {
         toast({ title: "Uploading references...", description: `Preparing ${uploadedImages.length} images.` });
+
+        const trimmedImages = uploadedImages.slice(0, MAX_REFERENCE_IMAGES);
+        const refreshedUrls = await resolveReferenceUrls(trimmedImages);
         
-        const uploadPromises = uploadedImages.slice(0, MAX_REFERENCE_IMAGES).map(async (img) => {
-          if (img.startsWith('http') && !img.includes('blob:')) return img;
+        const uploadPromises = refreshedUrls.map(async (img, index) => {
+          if (img.startsWith('http')) return img;
           try {
             const blobResponse = await fetch(img);
             const blob = await blobResponse.blob();
-            const formData = new FormData();
-            formData.append('file', blob, 'ref.png');
-            
-            const res = await fetch('/api/upload/temp', { method: 'POST', body: formData });
-            const data = await res.json();
-            return data.url;
+            const contentType = blob.type || 'application/octet-stream';
+            const extension = contentType.includes('/') ? contentType.split('/')[1] : 'bin';
+            const fileName = `reference-${Date.now()}-${index}.${extension}`;
+            const sessionId = getClientSessionId();
+            const signed = await uploadFileToS3WithKey(blob, fileName, contentType, {
+              sessionId,
+              folder: 'uploads',
+            });
+            return signed.downloadUrl;
           } catch (e) {
             console.error('Upload failed', e);
             return null;
@@ -94,10 +105,11 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
 
       const modelInfo = getUnifiedModel(selectedModelId);
       const isPollinations = modelInfo?.provider === 'pollinations';
+      const isPollinationsVideo = isPollinations && modelInfo?.kind === 'video';
 
       // 2. Prepare Enriched Prompt with Image Labels (IMAGE_1, IMAGE_2...)
       let enrichedPrompt = prompt.trim();
-      if (referenceUrls.length > 0) {
+      if (referenceUrls.length > 0 && !isPollinationsVideo) {
           const imageList = referenceUrls.map((url, i) => `IMAGE_${i+1}: ${url}`).join('\n');
           enrichedPrompt = `User provided the following reference images:\n${imageList}\n\nTask: ${prompt.trim()}`;
       }
@@ -105,20 +117,29 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       const payload: any = {
         prompt: enrichedPrompt,
         model: selectedModelId,
-        width: formFields.width || 1024,
-        height: formFields.height || 1024,
         image: referenceUrls,
         private: true,
-        quality: 'hd',
-        nologo: true,
-        // AUTOMATIC QUALITY BOOST: Standard anti-matsch list for better results
-        negative_prompt: "blur, low quality, distorted, bad anatomy, pixelated, watermark, text, signature, ugly, bad hands, deformed, grainy"
       };
+
+      if (!isPollinationsVideo) {
+        payload.width = formFields.width || 1024;
+        payload.height = formFields.height || 1024;
+        payload.quality = 'hd';
+        payload.nologo = true;
+        // AUTOMATIC QUALITY BOOST: Standard anti-matsch list for better results
+        payload.negative_prompt = "blur, low quality, distorted, bad anatomy, pixelated, watermark, text, signature, ugly, bad hands, deformed, grainy";
+      }
 
       if (formFields.seed) payload.seed = Number(formFields.seed);
       if (isPollinations) {
-          if (formFields.enhance) payload.enhance = true;
-          if (formFields.transparent) payload.transparent = true;
+          if (isPollinationsVideo) {
+            if (formFields.aspect_ratio) payload.aspectRatio = formFields.aspect_ratio;
+            if (formFields.duration) payload.duration = Number(formFields.duration);
+            if (formFields.audio !== undefined) payload.audio = formFields.audio;
+          } else {
+            if (formFields.enhance) payload.enhance = true;
+            if (formFields.transparent) payload.transparent = true;
+          }
       }
 
       if (!isPollinations) {
@@ -135,20 +156,49 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Generation failed");
 
-      let resultUrl = data.imageUrl || (Array.isArray(data.output) ? data.output[0] : data.output);
+      let resultUrl = data.videoUrl || data.imageUrl || (Array.isArray(data.output) ? data.output[0] : data.output);
       const isVideo = currentModelConfig?.outputType === 'video';
       const itemId = generateUUID();
+      let localAssetId: string | undefined;
 
       // 2. Persist to Vault
-      if (!isVideo && typeof resultUrl === 'string') {
-        toast({ title: "Saving...", description: "Adding to local vault." });
-        // We still persist the remote image for reliability, even if not adding to gallery history list explicitly here
-        // Or maybe we should remove this too if "gallery logic" is gone?
-        // The user said "remove the gallery and all its logic".
-        // But persisting the image might be useful for the tool's own display if it reloads?
-        // Let's keep the persistence utility call but not the `addImageToHistory` call.
-        // Actually, `persistRemoteImage` was in `local-image-storage` which I deleted!
-        // So I must remove this call too.
+      if (typeof resultUrl === 'string') {
+        try {
+          toast({ title: "Saving...", description: "Syncing to gallery." });
+          if (isPollinations) {
+            const sessionId = getClientSessionId();
+            const ingest = await ingestGeneratedAsset(resultUrl, sessionId, isVideo ? 'video' : 'image');
+            localAssetId = itemId;
+            await DatabaseService.saveAsset({
+              id: localAssetId,
+              contentType: ingest.contentType,
+              prompt: prompt.trim(),
+              modelId: selectedModelId,
+              timestamp: Date.now(),
+              storageKey: ingest.key,
+            });
+            console.log(`📸 Tool media saved to cloud: ${localAssetId}`);
+          } else if (!isVideo) {
+            const res = await fetch(resultUrl);
+            if (res.ok) {
+              const blob = await res.blob();
+              if (blob.size > 1000) {
+                localAssetId = itemId; // Use the same UUID for the asset record
+                await DatabaseService.saveAsset({
+                  id: localAssetId,
+                  blob,
+                  contentType: blob.type,
+                  prompt: prompt.trim(),
+                  modelId: selectedModelId,
+                  timestamp: Date.now()
+                });
+                console.log(`📸 Tool media saved to vault: ${localAssetId}`);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Failed to persist tool image to vault:", e);
+        }
       }
 
       const newHistoryItem: ImageHistoryItem = {
@@ -158,7 +208,8 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
         prompt: prompt || 'Generation',
         model: currentModelConfig.name,
         timestamp: new Date().toISOString(),
-        toolType: 'visualize'
+        toolType: 'visualize',
+        assetId: localAssetId // New field for reference
       };
 
       // Removed addImageToHistory call
@@ -185,7 +236,18 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
         if (parsed.prompt) setPrompt(parsed.prompt);
         if (parsed.selectedModelId) toolState.setSelectedModelId(parsed.selectedModelId);
         if (parsed.formFields) setFormFields(parsed.formFields);
-        if (parsed.uploadedImages) setUploadedImages(parsed.uploadedImages);
+        if (parsed.uploadedImages) {
+          const normalized: UploadedReference[] = Array.isArray(parsed.uploadedImages)
+            ? parsed.uploadedImages
+                .map((item: any) => {
+                  if (typeof item === 'string') return { url: item };
+                  if (item && typeof item.url === 'string') return item as UploadedReference;
+                  return null;
+                })
+                .filter(Boolean) as UploadedReference[]
+            : [];
+          if (normalized.length > 0) setUploadedImages(normalized);
+        }
         localStorage.removeItem('unified-image-tool-state');
       }
     } catch (error) {

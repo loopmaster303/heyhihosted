@@ -68,6 +68,7 @@ export interface ImageGenerationRequest {
 
 export interface ImageGenerationResponse {
   imageUrl: string;
+  videoUrl?: string;
   seed?: number;
   modelUsed?: string;
 }
@@ -127,5 +128,4 @@ export function isPollinationsChatResponse(data: unknown): data is PollinationsC
     Array.isArray((data as PollinationsChatCompletionResponse).choices)
   );
 }
-
 

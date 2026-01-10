@@ -1,4 +1,3 @@
-
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
@@ -14,6 +13,8 @@ import { BlinkingCursor } from '@/components/ui/BlinkingCursor';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useLanguage } from '@/components/LanguageProvider';
 import { DatabaseService } from '@/lib/services/database';
+
+import { useAssetUrl } from '@/hooks/useAssetUrl';
 
 const fitWithin = (ratio: number, maxWidth: number, maxHeight: number) => {
   const safeRatio = ratio > 0 ? ratio : 1;
@@ -39,30 +40,14 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
   isUploaded = false,
   assetId,
 }) => {
-  const [src, setSrc] = useState<string>(url);
+  const { url: vaultUrl, isLoading: isVaultLoading } = useAssetUrl(assetId, url);
   const [isLoaded, setIsLoaded] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [reloadToken, setReloadToken] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  // Hydrierung aus dem Vault
-  useEffect(() => {
-    let active = true;
-    const hydrate = async () => {
-      if (!assetId) return;
-      try {
-        const localUrl = await DatabaseService.getAssetUrl(assetId);
-        if (localUrl && active) {
-          setSrc(localUrl);
-        }
-      } catch (e) {
-        console.warn("Failed to hydrate chat image:", e);
-      }
-    };
-    hydrate();
-    return () => { active = false; };
-  }, [assetId]);
+  const src = vaultUrl || url;
 
   const maxRetries = 8;
   const maxWidth = isGenerated ? 320 : 120;
@@ -70,20 +55,18 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
   const ratio = aspectRatio || 1;
   const size = fitWithin(ratio, maxWidth, maxHeight);
  
-  const canReload = src?.startsWith('http');
+  const canReload = src?.startsWith('http') && !src.includes('blob:');
 
   const imageUrl = canReload && reloadToken > 0
     ? `${src}${src.includes('?') ? '&' : '?'}r=${reloadToken}`
     : src;
 
   useEffect(() => {
-    // Reset if URL/asset changes
-    if (!assetId) setSrc(url);
     setIsLoaded(false);
     setAspectRatio(null);
     setRetryCount(0);
     setReloadToken(0);
-  }, [url, assetId]);
+  }, [src]);
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -182,7 +165,7 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
             <img
               src={canReload && reloadToken > 0 ? imageUrl : url}
               alt={altText}
-              className="max-w-[95vw] max-h-[95vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
+              className="max-w-[95vw] max-h-[95vh] w-auto h-auto object-contain rounded-lg shadow-glass-heavy"
             />
             <button
               type="button"
@@ -197,6 +180,70 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
         document.body
       )}
     </>
+  );
+};
+
+interface ChatVideoCardProps {
+  url: string;
+  altText: string;
+  isGenerated?: boolean;
+  assetId?: string;
+}
+
+const ChatVideoCard: React.FC<ChatVideoCardProps> = ({
+  url,
+  altText,
+  isGenerated = false,
+  assetId,
+}) => {
+  const { url: vaultUrl } = useAssetUrl(assetId, url);
+  const [isReady, setIsReady] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const src = vaultUrl || url;
+  const canReload = src?.startsWith('http') && !src.includes('blob:');
+  const maxRetries = 10;
+
+  const videoUrl = canReload && reloadToken > 0
+    ? `${src}${src.includes('?') ? '&' : '?'}r=${reloadToken}`
+    : src;
+
+  useEffect(() => {
+    setIsReady(false);
+    setRetryCount(0);
+    setReloadToken(0);
+  }, [src]);
+
+  const handleVideoError = () => {
+    if (!isGenerated || !canReload) return;
+    if (retryCount >= maxRetries) return;
+    const next = retryCount + 1;
+    setRetryCount(next);
+    window.setTimeout(() => setReloadToken(next), 1500 * next);
+  };
+
+  return (
+    <div className="relative group rounded-md border border-glass-border/60 bg-glass-background/30 backdrop-blur-sm overflow-hidden shadow-glass">
+      <video
+        controls
+        preload="metadata"
+        playsInline
+        src={videoUrl}
+        className="max-w-[360px] w-full h-auto object-contain"
+        aria-label={altText}
+        onLoadedMetadata={() => setIsReady(true)}
+        onCanPlay={() => setIsReady(true)}
+        onError={handleVideoError}
+      >
+        <source src={videoUrl} type="video/mp4" />
+      </video>
+      {isGenerated && !isReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/70">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -267,6 +314,16 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const hasAudioContent = isAssistant && !!getTextContent();
 
+  // Check if message is media-only (has images, no text or empty text)
+  const isMediaOnly = React.useMemo(() => {
+    if (typeof message.content === 'string') return false;
+    const hasImages = message.content.some(p => p.type === 'image_url');
+    const hasVideos = message.content.some(p => p.type === 'video_url');
+    const textPart = message.content.find(p => p.type === 'text');
+    const hasText = textPart && textPart.text.trim().length > 0;
+    return (hasImages || hasVideos) && !hasText;
+  }, [message.content]);
+
   const renderContent = (content: string | ChatMessageContentPart[]) => {
     if (message.id === 'loading') {
       return (
@@ -319,6 +376,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
     const textParts = content.filter((part) => part.type === 'text');
     const imageParts = content.filter((part) => part.type === 'image_url');
+    const videoParts = content.filter((part) => part.type === 'video_url');
 
     return (
       <div className="flex flex-col">
@@ -352,6 +410,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             })}
           </div>
         )}
+        {videoParts.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {videoParts.map((part, index) => {
+              if (part.type !== 'video_url') return null;
+              const altText = part.video_url.altText || 'Generated video';
+              return (
+                <ChatVideoCard
+                  key={`video-${index}`}
+                  url={part.video_url.url}
+                  altText={altText}
+                  isGenerated={part.video_url.isGenerated}
+                  assetId={(part.video_url as any).metadata?.assetId}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -368,10 +443,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     >
       <div
         className={cn(
-          'max-w-[85%] relative p-4 rounded-3xl px-6 py-4 backdrop-blur-[40px] shadow-lg transition-all',
-          isUser
-            ? 'bg-primary/10 text-foreground'
-            : 'text-foreground frosted-ice'
+          'relative transition-all',
+          isMediaOnly ? 'p-0 bg-transparent border-none shadow-none max-w-full' : 'max-w-[85%] p-4 rounded-3xl px-6 py-4 shadow-sm',
+          !isMediaOnly && isUser
+            ? 'bg-primary/90 text-primary-foreground shadow-md backdrop-blur-sm'
+            : !isMediaOnly && 'bg-glass-background/40 backdrop-blur-xl text-foreground border border-glass-border shadow-glass'
         )}
       >
         <div className="flex flex-col">

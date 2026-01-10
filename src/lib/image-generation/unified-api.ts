@@ -76,7 +76,7 @@ async function generateWithPollinations(
     // Video-specific params
     if (request.aspectRatio) payload.aspectRatio = request.aspectRatio;
     if (request.duration) payload.duration = request.duration;
-    if (request.audio) payload.audio = request.audio;
+    if (request.audio !== undefined) payload.audio = request.audio;
   }
 
   if (request.seed !== undefined) payload.seed = request.seed;
@@ -98,6 +98,7 @@ async function generateWithPollinations(
   const imageResult = result as ImageGenerationResponse;
   return {
     imageUrl: imageResult.imageUrl,
+    videoUrl: model.kind === 'video' ? (imageResult.videoUrl || imageResult.imageUrl) : undefined,
   };
 }
 
@@ -152,4 +153,3 @@ async function generateWithReplicate(
     output: outputUrl,
   };
 }
-

@@ -1,10 +1,8 @@
 import React from 'react';
 import Image from 'next/image';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { ChevronDown, ImageIcon, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useLanguage } from '@/components/LanguageProvider';
 import { unifiedModelConfigs, type UnifiedModelConfig } from '@/config/unified-model-configs';
 import { getUnifiedModel, getVisualizeModelGroups } from '@/config/unified-image-models';
 import { imageModelIcons } from '@/config/ui-constants';
@@ -22,16 +20,18 @@ interface VisualizeInlineHeaderProps {
   isNanoPollen: boolean;
   isPollenModel: boolean;
   isPollinationsVideo: boolean;
+  inlineContent?: React.ReactNode;
   disabled?: boolean;
   className?: string;
+  variant?: 'framed' | 'bare';
 }
 
 const badgeClass =
   "flex items-center bg-transparent border-r border-border/20 px-3 py-1.5 shrink-0 gap-2 last:border-r-0";
 const labelClass =
-  "text-[9px] text-muted-foreground font-bold whitespace-nowrap uppercase tracking-widest";
+  "text-[10px] text-muted-foreground font-semibold whitespace-nowrap uppercase tracking-wider";
 const triggerClass =
-  "h-6 text-xs border-0 bg-transparent p-0 focus:ring-0 gap-1 w-auto min-w-[60px] text-foreground font-semibold hover:text-primary transition-colors [&>span]:flex [&>span]:items-center [&>span]:gap-1.5";
+  "h-6 text-[10px] border-0 bg-transparent p-0 focus:ring-0 gap-1 w-auto min-w-[60px] text-foreground font-semibold hover:text-primary transition-colors [&>span]:flex [&>span]:items-center [&>span]:gap-1.5";
 
 export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   selectedModelId,
@@ -45,10 +45,11 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   isNanoPollen,
   isPollenModel,
   isPollinationsVideo,
+  inlineContent,
   disabled = false,
   className,
+  variant = 'framed',
 }) => {
-  const { t } = useLanguage();
   const [expanded, setExpanded] = React.useState(true); // For dropdown groups
   const [isMinimized, setIsMinimized] = React.useState(false); // For toolbar visibility
 
@@ -113,7 +114,13 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
 
   // Maximized View (Full Toolbar)
   return (
-    <div className={cn("relative flex flex-wrap items-center bg-muted/10 backdrop-blur-sm rounded-xl border border-border/30 overflow-hidden mb-2 pr-8", className)}>
+    <div
+      className={cn(
+        "relative flex flex-wrap items-center gap-y-1 bg-muted/10 backdrop-blur-sm rounded-xl overflow-hidden mb-2 pr-8",
+        variant === 'framed' && "border border-border/30",
+        className
+      )}
+    >
       
       {/* Minimize Button */}
       <button
@@ -137,7 +144,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
               </span>
             </span>
           </SelectTrigger>
-          <SelectContent className="min-w-[420px] bg-background/90 backdrop-blur-md border-border/40 p-1">
+          <SelectContent className="w-[min(520px,90vw)] bg-background/90 backdrop-blur-md border-border/40 p-1">
             {standardGroups.map((group) => {
               const Icon = group.kind === 'image' ? ImageIcon : Video;
               return (
@@ -148,45 +155,34 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                       {group.label}
                     </span>
                   </SelectLabel>
-                  <div className="px-2 pb-2">
-                    <div className="rounded-2xl border border-border/30 bg-background/40 backdrop-blur-[2px] overflow-hidden shadow-sm">
-                      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-3 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/20 border-b border-border/30">
-                        <span>MODELL</span>
-                        <span>BESCHREIBUNG</span>
-                      </div>
-                      <div className="divide-y divide-border/30">
-                        {group.models.map((model) => {
-                          const displayName = unifiedModelConfigs[model.id]?.name || model?.name || model.id;
-                          const isActive = selectedModelId === model.id;
-                          return (
-                            <SelectItem
-                              key={model.id}
-                              value={model.id}
-                              textValue={displayName}
-                              className="p-0 pl-0 pr-0 focus:bg-transparent cursor-pointer [&>span:first-child]:hidden"
-                            >
-                              <div className={cn(
-                                "grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-3 px-4 py-2.5 text-left transition-colors",
-                                isActive ? "bg-muted/40" : "hover:bg-muted/20"
-                              )}>
-                                <span className="flex items-center gap-2 min-w-0">
-                                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-muted/40 border border-border/30">
-                                    {renderModelIcon(model.id)}
-                                  </span>
-                                  <span className="truncate text-sm font-medium text-foreground">{displayName}</span>
-                                  {isActive && (
-                                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                                      Aktiv
-                                    </span>
-                                  )}
-                                </span>
-                                <span className="truncate text-xs text-muted-foreground">{model?.description || '—'}</span>
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-2 pb-2">
+                    {group.models.map((model) => {
+                      const displayName = unifiedModelConfigs[model.id]?.name || model?.name || model.id;
+                      const isActive = selectedModelId === model.id;
+                      return (
+                        <SelectItem
+                          key={model.id}
+                          value={model.id}
+                          textValue={displayName}
+                          className={cn(
+                            "rounded-lg px-2 py-2 focus:bg-muted/40 cursor-pointer [&>span:first-child]:hidden",
+                            isActive ? "bg-muted/30" : "hover:bg-muted/20"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-muted/40 border border-border/30">
+                              {renderModelIcon(model.id)}
+                            </span>
+                            <span className="truncate text-[11px] font-semibold text-foreground">{displayName}</span>
+                            {isActive && (
+                              <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
+                                Aktiv
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </div>
                 </SelectGroup>
               );
@@ -214,45 +210,34 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                       {group.label}
                     </span>
                   </SelectLabel>
-                  <div className="px-2 pb-2">
-                    <div className="rounded-2xl border border-border/30 bg-background/40 backdrop-blur-[2px] overflow-hidden shadow-sm">
-                      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-3 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/20 border-b border-border/30">
-                        <span>MODELL</span>
-                        <span>BESCHREIBUNG</span>
-                      </div>
-                      <div className="divide-y divide-border/30">
-                        {group.models.map((model) => {
-                          const displayName = unifiedModelConfigs[model.id]?.name || model?.name || model.id;
-                          const isActive = selectedModelId === model.id;
-                          return (
-                            <SelectItem
-                              key={model.id}
-                              value={model.id}
-                              textValue={displayName}
-                              className="p-0 pl-0 pr-0 focus:bg-transparent cursor-pointer [&>span:first-child]:hidden"
-                            >
-                              <div className={cn(
-                                "grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-3 px-4 py-2.5 text-left transition-colors",
-                                isActive ? "bg-muted/40" : "hover:bg-muted/20"
-                              )}>
-                                <span className="flex items-center gap-2 min-w-0">
-                                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-muted/40 border border-border/30">
-                                    {renderModelIcon(model.id)}
-                                  </span>
-                                  <span className="truncate text-sm font-medium text-foreground">{displayName}</span>
-                                  {isActive && (
-                                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                                      Aktiv
-                                    </span>
-                                  )}
-                                </span>
-                                <span className="truncate text-xs text-muted-foreground">{model?.description || '—'}</span>
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-2 pb-2">
+                    {group.models.map((model) => {
+                      const displayName = unifiedModelConfigs[model.id]?.name || model?.name || model.id;
+                      const isActive = selectedModelId === model.id;
+                      return (
+                        <SelectItem
+                          key={model.id}
+                          value={model.id}
+                          textValue={displayName}
+                          className={cn(
+                            "rounded-lg px-2 py-2 focus:bg-muted/40 cursor-pointer [&>span:first-child]:hidden",
+                            isActive ? "bg-muted/30" : "hover:bg-muted/20"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-muted/40 border border-border/30">
+                              {renderModelIcon(model.id)}
+                            </span>
+                            <span className="truncate text-[11px] font-semibold text-foreground">{displayName}</span>
+                            {isActive && (
+                              <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
+                                Aktiv
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </div>
                 </SelectGroup>
               );
@@ -416,21 +401,6 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
         </div>
       )}
 
-      {/* Seed */}
-      {currentModelConfig.inputs.find(i => i.name === 'seed') && !isPollinationsVideo && (
-        <div className={badgeClass}>
-          <span className={labelClass}>Seed</span>
-          <Input
-            type="number"
-            placeholder="Rand"
-            value={formFields.seed || ''}
-            onChange={(e) => handleFieldChange('seed', e.target.value)}
-            disabled={disabled}
-            className="h-6 w-[60px] border-0 bg-transparent p-0 text-xs focus-visible:ring-0 font-semibold text-foreground"
-          />
-        </div>
-      )}
-
       {/* Output Format */}
       {(!isPollenModel && !isPollinationsVideo && currentModelConfig.inputs.find(i => i.name === 'output_format')) && (
         <div className={badgeClass}>
@@ -450,6 +420,12 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
               {currentModelConfig.outputType === 'video' && <SelectItem value="mp4">MP4</SelectItem>}
             </SelectContent>
           </Select>
+        </div>
+      )}
+
+      {inlineContent && (
+        <div className={badgeClass}>
+          {inlineContent}
         </div>
       )}
     </div>

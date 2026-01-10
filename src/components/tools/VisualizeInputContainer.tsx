@@ -8,6 +8,7 @@ import { SlidersHorizontal, Plus, Loader2, ArrowUp } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
 import { type UnifiedModelConfig } from '@/config/unified-model-configs';
 import { VisualizeInlineHeader } from './visualize/VisualizeInlineHeader';
+import type { UploadedReference } from '@/types';
 
 interface VisualizeInputContainerProps {
     prompt: string;
@@ -21,7 +22,7 @@ interface VisualizeInputContainerProps {
     handleFieldChange: (name: string, value: any) => void;
     setFormFields: React.Dispatch<React.SetStateAction<Record<string, any>>>;
 
-    uploadedImages: string[];
+    uploadedImages: UploadedReference[];
     handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     handleRemoveImage: (index: number) => void;
 
@@ -120,9 +121,11 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                             isNanoPollen={isNanoPollen}
                             isPollenModel={isPollenModel}
                             isPollinationsVideo={isPollinationsVideo}
+                            variant="bare"
                             disabled={loading || disabled}
                         />
                     ) : undefined}
+                    topElementsVariant="bare"
                     leftActions={
                         <div className="flex items-center gap-0">
                             {/* Upload Button */}

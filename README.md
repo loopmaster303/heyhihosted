@@ -2,12 +2,17 @@
 
 **hey.hi** is a lightweight, privacy-focused, and fully transparent AI interface. It provides direct, frictionless access to state-of-the-art Large Language Models and Generative Media tools without paywalls, accounts, or server-side tracking.
 
+> **⚡️ Powered by [Pollinations.ai](https://pollinations.ai)**
+> 
+> Free, open-source text and multimedia generation for the decentralized web.
+
 ## 🚀 Vision
 To democratize artificial intelligence by creating a high-performance "Local-First" environment where users own their data and the machine acts as an honest, open-source-minded service.
 
 ## ✨ Key Features
 - **Multimodal Chat**: Discuss ideas with Claude, GPT, Gemini, or Grok. Full vision support included.
-- **Local Vault**: Generated images are stored directly in your browser's IndexedDB. They never expire and stay private.
+- **Generative Media**: Create images and videos instantly using Pollinations' unified API.
+- **Local Vault**: Chats and generated assets are stored locally in your browser (IndexedDB). They never expire and stay private.
 - **Anonymous Image Relay**: High-fidelity vision analysis via a temporary, privacy-respecting proxy.
 - **CRT Terminal Identity**: A specialized UI inspired by terminal aesthetics that provides real-time system feedback.
 - **No-Auth Architecture**: Instant utility. No sign-up, no logins, no BS.
@@ -16,8 +21,8 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 - **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS (Glassmorphism & CRT effects)
-- **Storage**: IndexedDB (`idb-keyval`) + `localStorage`
-- **AI APIs**: Pollinations.ai (Pollen standard), Replicate
+- **Storage**: IndexedDB (via **Dexie.js**)
+- **AI Engine**: Pollinations.ai (Text, Image, Video)
 
 ## 📂 Project Structure
 - `/src/app`: Application routes and API endpoints.

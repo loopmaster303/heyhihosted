@@ -2,7 +2,8 @@
 
 export type ChatMessageContentPart =
   | { type: 'text'; text: string }
-  | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; remoteUrl?: string; metadata?: { assetId: string | null } } };
+  | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; remoteUrl?: string; metadata?: { assetId: string | null } } }
+  | { type: 'video_url'; video_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; metadata?: { assetId: string | null } } };
 
 
 export interface ChatMessage {
@@ -30,12 +31,17 @@ export interface Conversation {
   isImageMode?: boolean;
   isCodeMode?: boolean;
   webBrowsingEnabled?: boolean;
-  mistralFallbackEnabled?: boolean;
   // These are client-side only and will not be persisted
   uploadedFile?: File | null;
   uploadedFilePreview?: string | null;
   selectedModelId?: string;
   selectedResponseStyleName?: string;
+}
+
+export interface UploadedReference {
+  url: string;
+  key?: string;
+  expiresAt?: number;
 }
 
 export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about' | 'visualize';
@@ -57,6 +63,5 @@ export interface ImageHistoryItem {
   toolType: 'premium imagination' | 'nocost imagination' | 'visualize';
   videoUrl?: string;
   conversationId?: string; // Link to origin chat
+  assetId?: string;
 }
-
-

@@ -7,15 +7,15 @@ import { Button } from '@/components/ui/button';
 import AppSidebar from './AppSidebar';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
-import { ParticleText } from '@/components/particle-text';
 import AsciiHeader from './AsciiHeader';
+import ScrambledText from '@/components/ScrambledText';
 import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { getUnifiedModel } from '@/config/unified-image-models';
 import { useLanguage } from '../LanguageProvider';
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  appState?: 'landing' | 'chat' | 'visualize' | 'studio';
+  appState?: 'landing' | 'chat' | 'visualize' | 'studio' | 'gallery';
   onNewChat?: () => void;
   onToggleHistoryPanel?: () => void;
   currentPath?: string;
@@ -24,7 +24,6 @@ interface AppLayoutProps {
   isHistoryPanelOpen?: boolean;
   allConversations?: any[];
   activeConversation?: any;
-  onRequestEditTitle?: (id: string) => void;
   onDeleteChat?: (id: string) => void;
   isAiResponding?: boolean;
   // Chat Model Props
@@ -50,7 +49,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   isHistoryPanelOpen = false,
   allConversations = [],
   activeConversation = null,
-  onRequestEditTitle,
   onDeleteChat,
   isAiResponding = false,
   selectedModelId,
@@ -64,19 +62,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const [sidebarExpanded, setSidebarExpanded] = useLocalStorageState<boolean>('sidebarExpanded', false);
   const [headerCollapsed, setHeaderCollapsed] = useLocalStorageState<boolean>('headerCollapsed', false);
-  const [isMobile, setIsMobile] = useState(false);
   const { language } = useLanguage();
-
-  // Detect mobile on mount and resize
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Get username for header display
   const [userDisplayName, setUserDisplayName] = useState('user');
@@ -102,7 +88,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
       return model ? model.name : (selectedImageModelId || "vision");
   }, [selectedImageModelId]);
 
-  // Header text for ParticleText
+  // Header text for ASCII header
   const headerText = useMemo(() => {
     const safeName = ((userDisplayName || 'user').trim() || 'user').toLowerCase();
     return `(!hey.hi = '${safeName}')`;
@@ -121,11 +107,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({
               headerCollapsed ? "h-0 opacity-0 -translate-y-full pointer-events-none" : "h-auto opacity-100 translate-y-0 cursor-pointer"
             )}>
               <div className={cn("w-full relative transition-all duration-300", sidebarExpanded ? "md:pl-72" : "pl-0")}>
-                <AsciiHeader 
-                  text={activeConversation?.title || 'hey.hi'}
-                  className="h-16"
-                />
-                <div className="absolute top-1 right-4 text-[7px] text-primary/20 font-mono hidden md:block">
+                <div className="mx-auto max-w-5xl px-4">
+                  <div className="glass-panel py-2 px-6 rounded-2xl">
+                    <AsciiHeader 
+                      text={activeConversation?.title || 'hey.hi'}
+                      className="h-14 opacity-90"
+                    />
+                  </div>
+                </div>
+                <div className="absolute top-1 right-4 text-[7px] text-primary/30 font-mono hidden md:block">
                   SYS.STATUS: ONLINE
                 </div>
               </div>
@@ -135,10 +125,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           {headerCollapsed && (
             <button
               onClick={() => setHeaderCollapsed(false)}
-              className="fixed top-0 right-1/2 translate-x-1/2 z-[70] p-1 rounded-b-md bg-primary/5 hover:bg-primary/15 border-x border-b border-primary/10 transition-all duration-300 opacity-50 hover:opacity-100"
+              className="fixed top-0 right-1/2 translate-x-1/2 z-[70] p-1 rounded-b-xl bg-primary/10 hover:bg-primary/20 backdrop-blur-md border-x border-b border-primary/20 transition-all duration-300 opacity-60 hover:opacity-100 shadow-glow-primary"
               title="Header einblenden"
             >
-              <div className="w-3 h-3 text-primary/60">
+              <div className="w-3 h-3 text-primary/80">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
@@ -155,7 +145,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           allConversations={allConversations}
           activeConversation={activeConversation}
           onSelectChat={onSelectChat}
-          onRequestEditTitle={onRequestEditTitle}
           onDeleteChat={onDeleteChat}
           isExpanded={sidebarExpanded}
           onToggle={() => setSidebarExpanded(!sidebarExpanded)}
@@ -163,38 +152,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         <main className="flex-1 overflow-y-auto transition-all duration-300 relative bg-background w-full">
           {/* Particle Header - NUR in Landing View */}
           {appState === 'landing' && (
-            <div className={cn(
-              "fixed top-12 sm:top-16 md:top-20 right-4 z-40 transition-all duration-700 pointer-events-none flex flex-col items-center",
-              sidebarExpanded ? "left-4 md:left-72" : "left-4"
-            )}>
-              {!isMobile ? (
-                <div className="flex flex-col items-center w-full">
-                  <ParticleText
-                    text={headerText}
-                    className="w-full pointer-events-auto"
-                    particleColor="157, 92, 246"
-                  />
-                  <div className="mt-2 text-[10px] sm:text-xs font-bold tracking-[0.3em] text-foreground/40 uppercase pointer-events-auto text-center w-full">
-                    EVERYONE CAN SAY HI TO AI
-                  </div>
+            <div className="fixed top-12 sm:top-16 md:top-20 left-4 right-4 z-40 transition-all duration-700 pointer-events-none flex flex-col items-center">
+              <div className="flex flex-col items-center w-full">
+                <div className="w-full h-28 sm:h-32 md:h-36 pointer-events-auto opacity-85">
+                  <ScrambledText
+                    key={headerText}
+                    className="w-full text-center text-[clamp(36px,8vw,128px)] font-extrabold tracking-tight text-primary/85"
+                  >
+                    {headerText}
+                  </ScrambledText>
                 </div>
-              ) : (
-                <div className="w-full pointer-events-auto text-center flex flex-col items-center">
-                   <h1 
-                      className="text-2xl sm:text-3xl font-bold tracking-tight opacity-90" 
-                      style={{ 
-                        fontFamily: '"JetBrains Mono", monospace', 
-                        color: 'rgb(157, 92, 246)',
-                        textShadow: '0 0 10px rgba(157, 92, 246, 0.3)'
-                      }}
-                   >
-                      {headerText}
-                   </h1>
-                   <div className="mt-2 text-[10px] font-bold tracking-[0.3em] text-foreground/40 uppercase">
-                     EVERYONE CAN SAY HI TO AI
-                   </div>
+                <div className="mt-2 text-[10px] sm:text-xs font-bold tracking-[0.3em] text-foreground/30 uppercase pointer-events-auto text-center w-full">
+                  EVERYONE CAN SAY HI TO AI
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -203,10 +174,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="fixed top-12 left-4 z-[60] bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg transition-all duration-300"
+              className="fixed top-12 left-4 z-[60] bg-background/60 backdrop-blur-md border border-border/40 shadow-glass transition-all duration-300 rounded-xl"
               onClick={() => setSidebarExpanded(true)}
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-5 h-5 opacity-70" />
             </Button>
           )}
 

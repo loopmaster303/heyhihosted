@@ -47,8 +47,6 @@ interface MobileOptionsMenuProps {
     onVoiceChange: (voiceId: string) => void;
     selectedResponseStyleName: string;
     onStyleChange: (styleName: string) => void;
-    mistralFallbackEnabled: boolean;
-    onToggleMistralFallback: () => void;
 }
 
 export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({

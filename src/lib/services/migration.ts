@@ -36,12 +36,13 @@ export const MigrationService = {
         await DatabaseService.saveConversation({
           id: chat.id,
           title: chat.title || 'Anonymer Chat',
-          createdAt: new Date(chat.createdAt).getTime(),
-          updatedAt: new Date(chat.updatedAt).getTime(),
+          createdAt: new Date(chat.createdAt).toISOString(),
+          updatedAt: new Date(chat.updatedAt).toISOString(),
           selectedModelId: chat.selectedModelId,
           selectedResponseStyleName: chat.selectedResponseStyleName,
           isCodeMode: chat.isCodeMode,
-          metadata: { migrated: true }
+          messages: [], // messages saved separately
+          toolType: chat.toolType || 'long language loops'
         });
 
         // Jede Nachricht einzeln speichern
@@ -51,13 +52,10 @@ export const MigrationService = {
             const legacyMsg = msg as any;
             await DatabaseService.saveMessage({
               id: msg.id,
-              conversationId: chat.id,
               role: msg.role,
               content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-              timestamp: new Date(msg.timestamp).getTime(),
-              modelId: legacyMsg.modelId,
-              metadata: { migrated: true }
-            });
+              timestamp: new Date(msg.timestamp).toISOString(),
+            }, chat.id);
           }
         }
       }

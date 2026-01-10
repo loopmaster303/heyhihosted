@@ -3,7 +3,6 @@ import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import { useChat } from '@/components/ChatProvider';
-import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -21,21 +20,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
         isImageMode,
         toggleImageMode,
         handleFileSelect,
-        clearUploadedImage,
-        isHistoryPanelOpen,
-        toggleHistoryPanel,
         closeHistoryPanel,
-        isAdvancedPanelOpen,
-        toggleAdvancedPanel,
-        closeAdvancedPanel,
         toggleWebBrowsing,
         webBrowsingEnabled,
-        allConversations,
-        selectChat,
-        requestEditTitle,
-        deleteChat,
         startNewChat,
-        toDate,
         handleModelChange,
         handleStyleChange,
         handleVoiceChange,
@@ -50,22 +38,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
         isRecording, isTranscribing, startRecording, stopRecording,
         openCamera,
         setActiveConversation,
-        mistralFallbackEnabled,
-        toggleMistralFallback,
         handleImageModelChange,
     } = useChat();
-
-    const advancedPanelRef = React.useRef<HTMLDivElement>(null);
-
-    // This hook now correctly ignores clicks inside any Radix UI Select/Dropdown content
-    useOnClickOutside([advancedPanelRef], closeAdvancedPanel, 'radix-select-content');
 
     // Keyboard shortcuts: Cmd+K = new chat
     useKeyboardShortcuts({
         onNewChat: startNewChat,
         onEscape: () => {
             closeHistoryPanel();
-            closeAdvancedPanel();
         },
     });
 
@@ -81,7 +61,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
         return null; // Don't show anything while loading to prevent flicker
     }
 
-    const { messages, title, selectedModelId, selectedResponseStyleName, uploadedFilePreview } = activeConversation;
+    const { messages, selectedModelId, selectedResponseStyleName, uploadedFilePreview } = activeConversation;
 
     return (
         <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
@@ -122,7 +102,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                     isLoading={isAiResponding}
                     uploadedFilePreviewUrl={uploadedFilePreview || null}
                     onFileSelect={(file, type) => handleFileSelect(file, type)}
-                    onClearUploadedImage={clearUploadedImage}
                     isLongLanguageLoopActive={true}
                     inputValue={chatInputValue}
                     onInputChange={setChatInputValue}
@@ -135,21 +114,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                         const turnedOn = !activeConversation.isCodeMode;
                         setActiveConversation(prev => prev ? { ...prev, isCodeMode: turnedOn } : prev);
                     }}
-                    chatTitle={title}
-                    onToggleHistoryPanel={toggleHistoryPanel}
-                    onToggleAdvancedPanel={toggleAdvancedPanel}
-                    isHistoryPanelOpen={isHistoryPanelOpen}
-                    isAdvancedPanelOpen={isAdvancedPanelOpen}
-                    advancedPanelRef={advancedPanelRef}
-                    allConversations={allConversations}
-                    activeConversation={activeConversation}
-                    selectChat={selectChat}
-                    closeHistoryPanel={closeHistoryPanel}
-                    requestEditTitle={requestEditTitle}
-                    deleteChat={deleteChat}
-                    startNewChat={startNewChat}
-                    closeAdvancedPanel={closeAdvancedPanel}
-                    toDate={toDate}
                     selectedModelId={selectedModelId!}
                     handleModelChange={handleModelChange}
                     selectedResponseStyleName={selectedResponseStyleName!}
@@ -161,8 +125,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                     startRecording={startRecording}
                     stopRecording={stopRecording}
                     openCamera={openCamera}
-                    mistralFallbackEnabled={mistralFallbackEnabled}
-                    onToggleMistralFallback={toggleMistralFallback}
                     visualizeToolState={visualizeToolState}
                 />
             </div>

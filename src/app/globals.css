@@ -4,43 +4,49 @@
 
 @layer base {
   :root {
-    --background: 267 25% 97%; /* Soft Lavender Background */
-    --foreground: 240 10% 3.9%; /* High contrast dark gray */
-    
+    --background: 267 20% 97%; /* Softer, whiter purple veil */
+    --foreground: 240 10% 3.9%;
+
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
-    
-    --popover: 0 0% 100%;
+
+    --popover: 0 0% 100%; /* Base popover color */
     --popover-foreground: 240 10% 3.9%;
-    
-    --primary: 267 83% 60%; /* #9D5CF6 - Elegant Electric Purple */
+
+    --primary: 267 78% 65%; /* #B388FF style - Softer, Lighter Electric Purple */
     --primary-foreground: 210 40% 98%;
-    
-    --primary-hover: 267 83% 55%;
-    --primary-active: 267 83% 65%;
-    
-    --secondary: 267 15% 94%; /* Deeper soft purple for surfaces */
+
+    --primary-hover: 267 78% 60%;
+    --primary-active: 267 78% 70%;
+
+    --secondary: 267 20% 92%;
     --secondary-foreground: 240 5.9% 10%;
-    
+
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    
-    --accent: 267 30% 95%;
+
+    --accent: 267 30% 94%;
     --accent-foreground: 240 5.9% 10%;
-    
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 5.9% 90%;
+    --border: 240 5.9% 90%; /* Softer border */
     --input: 240 5.9% 90%;
-    --ring: 267 83% 60%;
-    
-    --radius: 0.75rem; /* More rounded (12px) */
+    --ring: 267 78% 65%;
+
+    --radius: 0.85rem; /* Slightly more rounded */
+
+    /* Glass Tokens (Light) */
+    --glass-background: 0 0% 100%;
+    --glass-border: 267 30% 50% / 0.08;
+    --glass-shadow: 0 6px 24px 0 rgba(157, 92, 246, 0.04);
+    --glass-glow: 0 0 10px rgba(157, 92, 246, 0.08);
 
     /* Glass Surfaces (Light) */
     --surface-container-low: 0 0% 100%;
-    --surface-container: 267 25% 97%;
-    --surface-container-high: 267 20% 94%;
+    --surface-container: 267 20% 97%;
+    --surface-container-high: 267 20% 95%;
 
     --chart-1: 0 0% 40%;
     --chart-2: 0 0% 50%;
@@ -48,56 +54,59 @@
     --chart-4: 0 0% 70%;
     --chart-5: 0 0% 80%;
 
-    --sidebar-background: 0 0% 97.3%;
+    --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 26.7%;
     --sidebar-primary: 0 0% 10%;
     --sidebar-primary-foreground: 0 0% 97.3%;
-    --sidebar-accent: 0 0% 91%;
+    --sidebar-accent: 267 20% 93% / 0.5;
     --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 0 0% 89.8%;
+    --sidebar-border: 0 0% 92%;
     --sidebar-ring: 0 0% 10%;
 
-    --tool-input-bg: 322 27% 93%;
-    /* #f2e4ed */
-    --input-container-bg: 0 0% 100%;
-    /* Standardized white for inputs on light mode */
-    --tool-button-bg: 322 27% 91%;
-    /* #eed0e3 */
+    --tool-input-bg: 322 27% 95%;
+    --input-container-bg: 0 0% 93% / 1;
+    --tool-button-bg: 322 27% 93%;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 0 0% 0%;
     --foreground: 0 0% 98%;
-    
+
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
-    
+
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    
-    --primary: 267 83% 60%;
+
+    --primary: 267 78% 65%; /* Match light mode lighter primary */
     --primary-foreground: 210 40% 98%;
-    
+
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-    
+
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-    
+
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
-    
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 267 83% 60%;
+
+    --border: 240 3.7% 18%; /* Slightly more visible border in dark */
+    --input: 240 3.7% 18%;
+    --ring: 267 78% 65%;
+
+    /* Glass Tokens (Dark) */
+    --glass-background: 240 10% 4%;
+    --glass-border: 0 0% 100% / 0.08;
+    --glass-shadow: 0 6px 24px 0 rgba(0, 0, 0, 0.35);
+    --glass-glow: 0 0 12px rgba(157, 92, 246, 0.12);
 
     /* Glass Surfaces (Dark) */
-    --surface-container-low: 240 10% 4%;
-    --surface-container: 240 10% 6%;
-    --surface-container-high: 240 10% 9%;
+    --surface-container-low: 0 0% 0%;
+    --surface-container: 0 0% 0%;
+    --surface-container-high: 0 0% 0%;
 
     --chart-1: 0 0% 70%;
     --chart-2: 0 0% 60%;
@@ -105,21 +114,18 @@
     --chart-4: 0 0% 40%;
     --chart-5: 0 0% 30%;
 
-    --sidebar-background: 0 0% 6.7%;
+    --sidebar-background: 0 0% 7%;
     --sidebar-foreground: 0 0% 73.3%;
     --sidebar-primary: 0 0% 94.1%;
     --sidebar-primary-foreground: 0 0% 6.7%;
-    --sidebar-accent: 0 0% 16.9%;
+    --sidebar-accent: 0 0% 16.9% / 0.6;
     --sidebar-accent-foreground: 0 0% 94.1%;
-    --sidebar-border: 0 0% 14.9%;
+    --sidebar-border: 0 0% 16%;
     --sidebar-ring: 0 0% 94.1%;
 
     --tool-input-bg: 0 0% 14.5%;
-    /* #252525 */
-    --input-container-bg: 0 0% 12%;
-    /* #1f1f1f - Standardized dark input bg */
+    --input-container-bg: 0 0% 12% / 0.8;
     --tool-button-bg: 0 0% 16.9%;
-    /* #2b2b2b */
   }
 
   * {
@@ -164,8 +170,8 @@ html {
 
 @layer utilities {
   .text-glow {
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.7),
-      0 0 20px rgba(255, 255, 255, 0.5), 0 0 30px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4),
+      0 0 16px rgba(255, 255, 255, 0.2);
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -367,22 +373,26 @@ h6 {
 /* Glass & Material Utilities */
 @layer utilities {
   .glass-panel {
-    @apply bg-surface/10 backdrop-blur-3xl shadow-xl;
+    @apply bg-glass-background/70 backdrop-blur-2xl border border-glass-border shadow-glass;
   }
-  
+
   .glass-button {
-    @apply bg-primary/10 hover:bg-primary/20 backdrop-blur-2xl text-foreground shadow-sm transition-all duration-200;
+    @apply bg-primary/15 hover:bg-primary/25 backdrop-blur-xl text-foreground border border-glass-border shadow-sm transition-all duration-300;
   }
 
   .glass-input {
-    @apply bg-surface/5 backdrop-blur-3xl focus:ring-1 focus:ring-primary/40 transition-colors duration-200;
+    @apply bg-glass-background/50 backdrop-blur-2xl border border-glass-border focus:ring-1 focus:ring-primary/30 transition-all duration-300;
   }
 
   .frosted-ice {
-    @apply bg-white/[0.06] backdrop-blur-[40px] shadow-[0_8px_32px_0_rgba(255,255,255,0.03)];
+    @apply bg-white/80 dark:bg-zinc-950/80 backdrop-blur-[32px] border border-white/20 dark:border-white/10 shadow-glass;
+  }
+
+  .glass-popover {
+    @apply bg-glass-background/80 backdrop-blur-2xl border border-glass-border shadow-glass-heavy rounded-xl;
   }
 
   .bg-noise {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
   }
 }
