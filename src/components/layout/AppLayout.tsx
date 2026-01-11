@@ -9,6 +9,7 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
 import AsciiHeader from './AsciiHeader';
 import ScrambledText from '@/components/ScrambledText';
+import { ModelSelector } from '@/components/chat/input/ModelSelector';
 import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { getUnifiedModel } from '@/config/unified-image-models';
 import { useLanguage } from '../LanguageProvider';
@@ -182,6 +183,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           )}
 
           <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full px-2 md:px-4 bg-background pt-28 sm:pt-32">
+            {appState === 'chat' && selectedModelId && onModelChange && (
+              <div className="sticky top-0 z-40 flex justify-center pb-3">
+                <ModelSelector
+                  selectedModelId={selectedModelId}
+                  onModelChange={onModelChange}
+                  compact={true}
+                  disabled={isAiResponding}
+                />
+              </div>
+            )}
             {children}
           </div>
         </main>

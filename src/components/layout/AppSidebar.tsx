@@ -7,7 +7,7 @@ import {
   PlusIcon,
   History,
   ChevronDown,
-  X,
+  Menu,
   Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -74,8 +74,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                 <div className="w-4 h-4 rounded-full bg-primary animate-pulse shadow-glow-primary" />
               </div>
             </Link>
-            <Button variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8 rounded-full hover:bg-primary/10">
-              <X className="h-4 w-4 opacity-60" />
+            <Button variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8 rounded-full hover:bg-primary/10" aria-label="Collapse sidebar">
+              <Menu className="h-4 w-4 opacity-60" />
             </Button>
           </div>
 

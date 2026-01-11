@@ -144,7 +144,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
               </span>
             </span>
           </SelectTrigger>
-          <SelectContent className="w-[min(520px,90vw)] bg-background/90 backdrop-blur-md border-border/40 p-1">
+          <SelectContent position="item-aligned" className="w-[min(520px,90vw)] bg-background/90 backdrop-blur-md border-border/40 p-1">
             {standardGroups.map((group) => {
               const Icon = group.kind === 'image' ? ImageIcon : Video;
               return (

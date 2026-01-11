@@ -40,6 +40,8 @@ This document defines the strict workflow and principles for all AI Agents worki
 - **Tone:** Direct, concise, Senior Engineer level. No fluff.
 - **Anti-Browser Tool (USER-ENFORCED):** Never use `browser_subagent` or `read_browser_page` for verification. It is considered "slop". Rely on code reviews and manual verification.
 - **Seniority:** Think before you act. Assume complexity but aim for simplicity.
+- **Plan Validation (Always Stated):** Explicitly validate the Blueprint in the response (Phase 3) even if the user did not ask.
+- **Explain Twice + Why:** Provide a normal explanation and then a simpler explanation; always state the rationale ("why") for the chosen plan/changes and the key context used.
 
 ## 3. Session Summary (Codex)
 

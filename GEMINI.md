@@ -15,4 +15,8 @@
 2. **Blob Lifecycle**: Implement `URL.revokeObjectURL` registry to prevent memory leaks during heavy image sessions.
 3. **Storage Migration Phase 2**: Implement the Web Crypto API layer for E2E encryption.
 
+## Unchangeable Rules (Agent Behavior)
+1. Always validate the plan and state that validation explicitly (Phase 3), even if the user did not ask.
+2. Provide a normal explanation and then a simpler explanation, and always state the rationale ("why") for the chosen plan/changes and the key context used.
+
 **Status**: Build passing, Types confirmed. ready for Asset integration.
