@@ -10,13 +10,23 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import LanguageToggle from '@/components/LanguageToggle';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from '@/components/LanguageProvider';
-import { AVAILABLE_POLLINATIONS_MODELS, DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID } from '@/config/chat-options';
+import { AVAILABLE_POLLINATIONS_MODELS, DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
 import { getImageModels } from '@/config/unified-image-models';
 import { unifiedModelConfigs } from '@/config/unified-model-configs';
+import { useChat } from '@/components/ChatProvider';
+import { Mic, MessageSquare } from 'lucide-react';
 
 const PersonalizationSidebarSection: React.FC = () => {
   const { language } = useLanguage();
+  const { 
+    selectedVoice, 
+    handleVoiceChange, 
+    activeConversation, 
+    handleStyleChange 
+  } = useChat();
+
   const [isOpen, setIsOpen] = useState(false);
+
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>('userDisplayName', 'user');
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>('customSystemPrompt', '');
   const [defaultTextModelId, setDefaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
@@ -43,24 +53,28 @@ const PersonalizationSidebarSection: React.FC = () => {
     ? {
         header: 'Personalization',
         name: 'Name',
-        extra: 'Extra AI Instruction',
-        defaultText: 'Default Text Model',
-        defaultImage: 'Default Image Model',
+        style: 'Response Style',
+        extra: 'Individual AI Instruction',
+        defaultText: 'Standard Text Model',
+        defaultImage: 'Standard Image Model',
         theme: 'Theme',
         language: 'Language',
+        voice: 'AI Voice',
         namePlaceholder: 'user',
-        extraPlaceholder: 'Add a short instruction that complements the system prompt...',
+        extraPlaceholder: 'Special wishes for your Assistance? - just add it for a more individual Experience',
       }
     : {
         header: 'Personalisation',
         name: 'Name',
-        extra: 'Extra Anweisung für KI',
-        defaultText: 'Default Text Modell',
-        defaultImage: 'Default Bild Modell',
+        style: 'Antwortstil',
+        extra: 'Individuelle KI Anweisung',
+        defaultText: 'Standard Text Modell',
+        defaultImage: 'Standard Bild Modell',
         theme: 'Farbschema',
         language: 'Sprache',
+        voice: 'KI-Stimme',
         namePlaceholder: 'user',
-        extraPlaceholder: 'Kurze Zusatzanweisung, die den Systemprompt ergänzt...',
+        extraPlaceholder: 'Sonderwünsche für deinen Assistenten? - Schreibs einfach hier rein für eine individuellere Erfahrung.',
       };
 
   return (
@@ -89,6 +103,27 @@ const PersonalizationSidebarSection: React.FC = () => {
               placeholder={labels.namePlaceholder}
               className="h-8 text-xs rounded-lg"
             />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider flex items-center gap-1">
+              <MessageSquare className="h-2.5 w-2.5" /> {labels.style}
+            </label>
+            <Select 
+              value={activeConversation?.selectedResponseStyleName || 'Basic'} 
+              onValueChange={handleStyleChange}
+            >
+              <SelectTrigger className="h-8 text-xs rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_RESPONSE_STYLES.map((style) => (
+                  <SelectItem key={style.name} value={style.name}>
+                    {style.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1">
@@ -133,6 +168,24 @@ const PersonalizationSidebarSection: React.FC = () => {
                 {imageModels.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
                     {model.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider flex items-center gap-1">
+              <Mic className="h-2.5 w-2.5" /> {labels.voice}
+            </label>
+            <Select value={selectedVoice} onValueChange={handleVoiceChange}>
+              <SelectTrigger className="h-8 text-xs rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_TTS_VOICES.map((voice) => (
+                  <SelectItem key={voice.id} value={voice.id}>
+                    {voice.name}
                   </SelectItem>
                 ))}
               </SelectContent>

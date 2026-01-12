@@ -211,8 +211,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     )}
                 >
                     <div className={cn(
-                        "overflow-y-auto",
-                        expanded ? "max-h-[calc(100vh-140px)]" : "max-h-[calc(100vh-200px)]"
+                        "overflow-y-auto overscroll-contain",
+                        expanded ? "max-h-[85vh] md:max-h-[calc(100vh-140px)]" : "max-h-[80vh] md:max-h-[calc(100vh-200px)]"
                     )}>
                         {/* Header */}
                         <div className="px-4 py-3 border-b border-border/50 sticky top-0 bg-popover/90 backdrop-blur-md z-10 flex items-center justify-between">

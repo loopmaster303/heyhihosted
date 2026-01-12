@@ -29,10 +29,23 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
     const [isClient, setIsClient] = useState(false);
     const [appState, setAppState] = useState<AppState>(initialState);
     const [landingSelectedModelId, setLandingSelectedModelId] = useState<string>(defaultTextModelId);
+    const [pendingMessage, setPendingMessage] = useState<{ text: string, isImage: boolean } | null>(null);
 
     useEffect(() => {
         setIsClient(true);
     }, []);
+
+    // Watch for conversation changes to flush pending message
+    useEffect(() => {
+        if (!isClient || !pendingMessage || !chat.activeConversation?.id) return;
+        
+        // Only flush if we are in chat state and the conversation is empty (newly created)
+        if (appState === 'chat' && chat.activeConversation.messages.length === 0) {
+            const { text, isImage } = pendingMessage;
+            setPendingMessage(null); // Clear first to avoid double-send
+            chat.sendMessage(text, { isImageModeIntent: isImage });
+        }
+    }, [chat.activeConversation?.id, chat.sendMessage, pendingMessage, appState, isClient]);
 
     useEffect(() => {
         if (!isClient) return;
@@ -56,18 +69,16 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
 
     // Navigate to Chat and send message
     const handleNavigateToChat = useCallback((initialMessage: string) => {
-        // Start new chat first
+        if (!initialMessage) return;
+        
+        const isImageModeActive = chat.isImageMode;
+        // 1. Buffer the message
+        setPendingMessage({ text: initialMessage, isImage: isImageModeActive });
+        
+        // 2. Start new chat and change state
+        // This will update chat.activeConversation which triggers the useEffect above
         chat.startNewChat(landingSelectedModelId);
         setAppState('chat');
-        
-        // Send the message after a short delay to let the chat initialize
-        // Pass isImageModeIntent if image mode is currently active
-        if (initialMessage) {
-            const isImageModeActive = chat.isImageMode;
-            setTimeout(() => {
-                chat.sendMessage(initialMessage, { isImageModeIntent: isImageModeActive });
-            }, 100);
-        }
     }, [chat, landingSelectedModelId]);
 
 

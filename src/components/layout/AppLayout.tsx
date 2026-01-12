@@ -179,23 +179,24 @@ const AppLayout: React.FC<AppLayoutProps> = ({
             </div>
           )}
 
-          {/* Mobile Menu Button */}
-          {!sidebarExpanded && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="fixed top-12 left-4 z-[60] bg-background/60 backdrop-blur-md border border-border/40 shadow-glass transition-all duration-300 rounded-xl"
-              onClick={() => setSidebarExpanded(true)}
-            >
-              <Menu className="w-5 h-5 opacity-70" />
-            </Button>
-          )}
-
           <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full px-2 md:px-4 bg-background pt-28 sm:pt-32">
             {children}
           </div>
         </main>
       </div>
+
+      {/* Mobile Menu Button - Moved to root for better stacking context */}
+      {!sidebarExpanded && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="fixed top-12 left-4 z-[100] bg-background/60 backdrop-blur-md border border-border/40 shadow-glass transition-all duration-300 rounded-xl"
+          onClick={() => setSidebarExpanded(true)}
+        >
+          <Menu className="w-5 h-5 opacity-70" />
+        </Button>
+      )}
+
       <OfflineIndicator />
     </div>
   );
