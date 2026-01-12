@@ -25,8 +25,11 @@ This document defines the strict workflow and principles for all AI Agents worki
   - "Is there a simpler, more idiomatic way?"
 - **Mitigation:** If uncertainties are found, report them and adjust the Blueprint. **Avoid "Verschlimmbesserung" (making it worse while trying to improve it).**
 
+> [!CAUTION] > **MANDATORY USER CONFIRMATION:** After presenting the Blueprint and Reality Check, the Agent **MUST STOP** and wait for explicit user confirmation (e.g., "leg los", "bestätigt", "approved", "go") **BEFORE** starting Phase 4. No exceptions. Do NOT proceed to execution automatically.
+
 ### PHASE 4: EXECUTION & VERIFICATION
 
+- **Prerequisite:** User has explicitly approved the plan.
 - **Implementation:** Write the code according to the audited Blueprint.
 - **Verification:**
   - Does it build? (`npm run dev` / `tsc`)

@@ -9,6 +9,8 @@ interface ASCIITextProps {
   enableMouse?: boolean;
   enableGlitch?: boolean;
   glitchDurationMs?: number;
+  glitchIntervalMs?: number; // Repeat glitch every X ms (0 = no repeat)
+  glitchIntensity?: number; // 0-1, how strong the glitch effect is
   asciiFontSize?: number;
   densityScale?: number;
   alphaThreshold?: number;
@@ -35,6 +37,8 @@ export default function ASCIIText({
   enableMouse = false,
   enableGlitch = false,
   glitchDurationMs = 800,
+  glitchIntervalMs = 0, // 0 = no repeat, e.g. 120000 = every 2 min
+  glitchIntensity = 1, // 1 = normal, 1.5 = stronger
   asciiFontSize = 8,
   densityScale = 1,
   alphaThreshold = 0.008,
@@ -68,10 +72,11 @@ export default function ASCIIText({
   }, []);
 
   useEffect(() => {
-    if (!enableMouse || !containerRef.current) return;
     const target = containerRef.current;
+    if (!target || !enableMouse) return;
 
-    const handleMove = (event: PointerEvent) => {
+    const handleMove = (e: MouseEvent | PointerEvent) => {
+      const event = e as PointerEvent;
       const rect = target.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
@@ -87,13 +92,13 @@ export default function ASCIIText({
       mouseRef.current.active = false;
     };
 
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerleave", handleBlur);
-    window.addEventListener("blur", handleBlur);
+    target.addEventListener("pointermove", handleMove);
+    target.addEventListener("pointerleave", handleBlur);
+    target.addEventListener("blur", handleBlur);
     return () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerleave", handleBlur);
-      window.removeEventListener("blur", handleBlur);
+      target.removeEventListener("pointermove", handleMove);
+      target.removeEventListener("pointerleave", handleBlur);
+      target.removeEventListener("blur", handleBlur);
     };
   }, [enableMouse]);
 
@@ -108,8 +113,17 @@ export default function ASCIIText({
     const useWaves = enableWaves && !prefersReduced;
     const useMouse = enableMouse && !prefersReduced;
     const useGlitch = enableGlitch && !prefersReduced;
+    // Initial glitch on mount
     if (useGlitch) {
       glitchUntilRef.current = performance.now() + glitchDurationMs;
+    }
+
+    // Repeating glitch interval
+    let glitchInterval: NodeJS.Timeout | null = null;
+    if (useGlitch && glitchIntervalMs > 0) {
+      glitchInterval = setInterval(() => {
+        glitchUntilRef.current = performance.now() + glitchDurationMs;
+      }, glitchIntervalMs);
     }
 
     const dpr = window.devicePixelRatio || 1;
@@ -161,7 +175,7 @@ export default function ASCIIText({
       time += 0.02;
       const now = performance.now();
       const glitchActive = useGlitch && now < glitchUntilRef.current;
-      const glitchJitter = glitchActive ? cellSize * 0.8 : 0;
+      const glitchJitter = glitchActive ? cellSize * 1.2 * glitchIntensity : 0; // Stronger jitter
 
       ctx.clearRect(0, 0, size.width, size.height);
       ctx.fillStyle = "rgba(0, 0, 0, 0)";
@@ -194,7 +208,9 @@ export default function ASCIIText({
           if (alpha > alphaThreshold) {
             const brightness = alpha;
             const charIndex = Math.min(chars.length - 1, Math.round(brightness * (chars.length - 1)));
-            const char = glitchActive && Math.random() < 0.15
+            // Slower glitch: 8% char swap (was 15%), but more intense displacement
+            const glitchChance = 0.08 * glitchIntensity;
+            const char = glitchActive && Math.random() < glitchChance
               ? chars[Math.floor(Math.random() * chars.length)]
               : chars[charIndex];
 
@@ -230,8 +246,9 @@ export default function ASCIIText({
 
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (glitchInterval) clearInterval(glitchInterval);
     };
-  }, [displayText, enableWaves, enableMouse, enableGlitch, glitchDurationMs, asciiFontSize, densityScale, alphaThreshold, color, strokeColor, strokeWidth, size.width, size.height]);
+  }, [displayText, enableWaves, enableMouse, enableGlitch, glitchDurationMs, glitchIntervalMs, glitchIntensity, asciiFontSize, densityScale, alphaThreshold, color, strokeColor, strokeWidth, size.width, size.height]);
 
   return (
     <div ref={containerRef} className={cn("relative w-full h-full", className)}>

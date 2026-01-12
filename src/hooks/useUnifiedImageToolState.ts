@@ -47,7 +47,10 @@ export function useUnifiedImageToolState() {
 
     // Model selection
     const [defaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
-    const availableModels = Object.keys(unifiedModelConfigs).filter(id => getUnifiedModel(id)?.enabled ?? true);
+    const availableModels = useMemo(
+        () => Object.keys(unifiedModelConfigs).filter(id => getUnifiedModel(id)?.enabled ?? true),
+        [getUnifiedModel, unifiedModelConfigs]
+    );
     const initialModelId = availableModels.includes(defaultImageModelId)
         ? defaultImageModelId
         : (availableModels[0] || DEFAULT_IMAGE_MODEL);

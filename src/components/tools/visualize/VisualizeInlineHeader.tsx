@@ -1,5 +1,4 @@
 import React from 'react';
-import Image from 'next/image';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronDown, ImageIcon, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -144,7 +143,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
               </span>
             </span>
           </SelectTrigger>
-          <SelectContent position="item-aligned" className="w-[min(520px,90vw)] bg-background/90 backdrop-blur-md border-border/40 p-1">
+          <SelectContent className="w-[min(520px,90vw)] bg-background/90 backdrop-blur-md border-border/40 p-1">
             {standardGroups.map((group) => {
               const Icon = group.kind === 'image' ? ImageIcon : Video;
               return (
@@ -164,12 +163,13 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                           key={model.id}
                           value={model.id}
                           textValue={displayName}
+                          onClick={() => onModelChange(model.id)}
                           className={cn(
                             "rounded-lg px-2 py-2 focus:bg-muted/40 cursor-pointer [&>span:first-child]:hidden",
                             isActive ? "bg-muted/30" : "hover:bg-muted/20"
                           )}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <span className="flex items-center gap-2 min-w-0 w-full">
                             <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-muted/40 border border-border/30">
                               {renderModelIcon(model.id)}
                             </span>
@@ -179,7 +179,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                                 Aktiv
                               </span>
                             )}
-                          </div>
+                          </span>
                         </SelectItem>
                       );
                     })}
@@ -219,12 +219,13 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                           key={model.id}
                           value={model.id}
                           textValue={displayName}
+                          onClick={() => onModelChange(model.id)}
                           className={cn(
                             "rounded-lg px-2 py-2 focus:bg-muted/40 cursor-pointer [&>span:first-child]:hidden",
                             isActive ? "bg-muted/30" : "hover:bg-muted/20"
                           )}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <span className="flex items-center gap-2 min-w-0 w-full">
                             <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-muted/40 border border-border/30">
                               {renderModelIcon(model.id)}
                             </span>
@@ -234,7 +235,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                                 Aktiv
                               </span>
                             )}
-                          </div>
+                          </span>
                         </SelectItem>
                       );
                     })}

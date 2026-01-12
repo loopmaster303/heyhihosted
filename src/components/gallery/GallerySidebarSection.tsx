@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, Copy, Download, Image as ImageIcon, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useGalleryAssets } from '@/hooks/useGalleryAssets';
 import { useAssetUrl } from '@/hooks/useAssetUrl';
-import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 import type { Asset } from '@/lib/services/database';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -95,73 +94,63 @@ const GalleryPanelItem = ({
 
   return (
     <div className="break-inside-avoid rounded-xl bg-glass-background/30 backdrop-blur-md overflow-hidden group">
-      <button
-        type="button"
-        onClick={handleOpen}
-        className="block w-full"
-        aria-label="Open gallery item"
-      >
-        <div className="relative w-full bg-muted/10">
-          {!url && <div className="absolute inset-0 animate-pulse bg-muted/20" />}
-          {url && isVideo ? (
-            <video
-              src={url}
-              muted
-              loop
-              playsInline
-              className="w-full h-auto object-contain"
-              onMouseOver={(e) => (e.currentTarget as HTMLVideoElement).play()}
-              onMouseOut={(e) => (e.currentTarget as HTMLVideoElement).pause()}
-            />
-          ) : url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={url} alt={asset.prompt || "Gallery item"} className="w-full h-auto object-contain" />
-          ) : null}
-          {url && (
-            <div className="absolute inset-x-0 bottom-0 px-2 py-2 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/60 via-black/15 to-transparent">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onCopyPrompt(asset.prompt);
-                }}
-                className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
-                title="Prompt kopieren"
-                aria-label="Prompt kopieren"
-              >
-                <Copy className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleDownload();
-                }}
-                className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
-                title="Download"
-                aria-label="Download"
-              >
-                <Download className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onDelete(asset.id);
-                }}
-                className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
-                title="Löschen"
-                aria-label="Löschen"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
-        </div>
-      </button>
+      <div className="relative w-full bg-muted/10">
+        {!url && <div className="absolute inset-0 animate-pulse bg-muted/20" />}
+        {url && isVideo ? (
+          <video
+            src={url}
+            muted
+            loop
+            playsInline
+            className="w-full h-auto object-contain cursor-pointer"
+            onClick={handleOpen}
+            onMouseOver={(e) => (e.currentTarget as HTMLVideoElement).play()}
+            onMouseOut={(e) => (e.currentTarget as HTMLVideoElement).pause()}
+          />
+        ) : url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={url}
+            alt={asset.prompt || "Gallery item"}
+            className="w-full h-auto object-contain cursor-pointer"
+            onClick={handleOpen}
+          />
+        ) : null}
+        {url && (
+          <div className="absolute inset-x-0 bottom-0 px-2 py-2 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/60 via-black/15 to-transparent">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onCopyPrompt(asset.prompt)}
+              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
+              title="Prompt kopieren"
+              aria-label="Prompt kopieren"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDownload}
+              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
+              title="Download"
+              aria-label="Download"
+            >
+              <Download className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDelete(asset.id)}
+              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
+              title="Löschen"
+              aria-label="Löschen"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -172,14 +161,9 @@ const GallerySidebarSection: React.FC = () => {
   const [lightboxData, setLightboxData] = useState<LightboxData | null>(null);
   const { toast } = useToast();
   const { t } = useLanguage();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
 
   const recentAssets = useMemo(() => assets.slice(0, MAX_PREVIEW), [assets]);
   const panelAssets = useMemo(() => assets.slice(0, MAX_PANEL), [assets]);
-
-  const closePopover = useCallback(() => setIsOpen(false), []);
-  useOnClickOutside([popoverRef, triggerRef], closePopover);
 
   const handleDownload = async (url: string, filename: string) => {
     try {
@@ -216,18 +200,21 @@ const GallerySidebarSection: React.FC = () => {
           <ImageIcon className="h-3.5 w-3.5" />
           {t('nav.gallery')}
         </span>
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={() => setIsOpen((prev) => !prev)}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsOpen(prev => !prev);
+          }}
           className={cn(
-            "h-6 w-6 rounded-full border border-border/40 bg-muted/20 flex items-center justify-center transition-all",
+            "h-6 w-6 rounded-full border border-border/40 bg-muted/20",
             isOpen ? "text-primary border-primary/40" : "hover:text-foreground"
           )}
           aria-label="Toggle gallery"
         >
           <ChevronRight className={cn("h-3 w-3 transition-transform duration-300", isOpen && "rotate-90")} />
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (
@@ -253,13 +240,12 @@ const GallerySidebarSection: React.FC = () => {
         </div>
       )}
 
-      {isOpen && (
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <div
-          ref={popoverRef}
-          className="fixed left-[calc(18rem+12px)] top-6 w-[520px] z-[60] max-h-[80vh]"
+          className="fixed left-4 sm:left-[calc(20rem+8px)] top-16 w-[calc(100vw-2rem)] sm:w-[520px] z-[100] max-h-[80vh]"
         >
           <div className="relative bg-popover/80 text-popover-foreground shadow-glass-heavy backdrop-blur-xl rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-start gap-2 px-4 pt-4">
+            <div className="flex items-center justify-between gap-2 px-4 pt-4">
               <Button
                 variant="ghost"
                 size="sm"
@@ -270,6 +256,15 @@ const GallerySidebarSection: React.FC = () => {
                 className="h-8 px-4 text-[11px] font-semibold text-foreground/80 hover:text-foreground hover:bg-transparent hover:shadow-[0_0_18px_rgba(180,150,255,0.35)]"
               >
                 Löschen
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="h-7 w-7 rounded-full hover:bg-muted/30"
+                aria-label="Panel schließen"
+              >
+                <X className="h-4 w-4" />
               </Button>
             </div>
 
@@ -298,7 +293,8 @@ const GallerySidebarSection: React.FC = () => {
               <div className="px-4 pb-4" />
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {lightboxData && typeof document !== 'undefined' && createPortal(

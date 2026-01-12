@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import {
   PlusIcon,
@@ -63,17 +62,15 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 bg-white/5 backdrop-blur-sm z-40 transition-opacity" onClick={handleClose} />
+      <div 
+        className="fixed inset-0 bg-white/5 backdrop-blur-sm z-[60] transition-opacity" 
+        onClick={handleClose}
+      />
 
-      <aside className="fixed inset-y-0 left-0 w-72 bg-sidebar-background/85 backdrop-blur-2xl border-r border-sidebar-border/40 z-50 animate-in slide-in-from-left duration-300 shadow-glass">
-        <div className="h-full flex flex-col p-4">
+      <aside className="fixed inset-y-0 left-0 w-[90vw] sm:w-80 md:w-72 bg-sidebar-background/85 backdrop-blur-2xl border-r border-sidebar-border/40 z-[70] animate-in slide-in-from-left duration-300 shadow-glass overflow-hidden">
+        <div className="h-full min-h-0 flex flex-col p-4 overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <Link href="/" onClick={handleClose} className="opacity-80 hover:opacity-100 transition-opacity">
-              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/20">
-                <div className="w-4 h-4 rounded-full bg-primary animate-pulse shadow-glow-primary" />
-              </div>
-            </Link>
+          <div className="flex items-center justify-end mb-6">
             <Button variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8 rounded-full hover:bg-primary/10" aria-label="Collapse sidebar">
               <Menu className="h-4 w-4 opacity-60" />
             </Button>

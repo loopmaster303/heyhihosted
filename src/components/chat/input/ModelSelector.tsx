@@ -5,7 +5,6 @@ import { ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { modelIcons, featuredModels } from '@/config/ui-constants';
-import { ParticleText } from '@/components/particle-text';
 import { ModalPopup } from '@/components/ui/popup';
 
 interface ModelSelectorProps {
@@ -186,16 +185,10 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     }
                     return (
                         <div className="flex items-center">
-                            <div
-                                className="h-14 flex items-center justify-center relative"
-                                style={{ width: `${Math.max(modelName.length * 22, 150)}px` }}
-                            >
-                                <ParticleText
-                                    key={selectedModelId}
-                                    text={modelName}
-                                    canvasHeight={56}
-                                    className="pointer-events-auto"
-                                />
+                            <div className="h-14 flex items-center justify-center px-4">
+                                <span className="text-lg font-bold tracking-tight pointer-events-auto">
+                                    {modelName}
+                                </span>
                             </div>
                             <ChevronDown className="w-6 h-6 flex-shrink-0 text-pink-500 ml-1" />
                         </div>

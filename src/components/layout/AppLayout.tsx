@@ -7,12 +7,16 @@ import { Button } from '@/components/ui/button';
 import AppSidebar from './AppSidebar';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
-import AsciiHeader from './AsciiHeader';
-import ScrambledText from '@/components/ScrambledText';
-import { ModelSelector } from '@/components/chat/input/ModelSelector';
 import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { getUnifiedModel } from '@/config/unified-image-models';
 import { useLanguage } from '../LanguageProvider';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for ASCIIText (canvas-based, client-only)
+const ASCIIText = dynamic(() => import('@/components/ui/ASCIIText'), {
+  ssr: false,
+  loading: () => <div className="h-28 sm:h-32" />,
+});
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -110,10 +114,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({
               <div className={cn("w-full relative transition-all duration-300", sidebarExpanded ? "md:pl-72" : "pl-0")}>
                 <div className="mx-auto max-w-5xl px-4">
                   <div className="glass-panel py-2 px-6 rounded-2xl">
-                    <AsciiHeader 
-                      text={activeConversation?.title || 'hey.hi'}
-                      className="h-14 opacity-90"
-                    />
+                    <h1 className="text-center text-[clamp(20px,3vw,40px)] font-bold tracking-tight text-primary/80 py-2">
+                      {activeConversation?.title || 'hey.hi'}
+                    </h1>
                   </div>
                 </div>
                 <div className="absolute top-1 right-4 text-[7px] text-primary/30 font-mono hidden md:block">
@@ -151,17 +154,23 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           onToggle={() => setSidebarExpanded(!sidebarExpanded)}
         />
         <main className="flex-1 overflow-y-auto transition-all duration-300 relative bg-background w-full">
-          {/* Particle Header - NUR in Landing View */}
+          {/* ASCII Header - NUR in Landing View */}
           {appState === 'landing' && (
             <div className="fixed top-12 sm:top-16 md:top-20 left-4 right-4 z-40 transition-all duration-700 pointer-events-none flex flex-col items-center">
               <div className="flex flex-col items-center w-full">
-                <div className="w-full h-28 sm:h-32 md:h-36 pointer-events-auto opacity-85">
-                  <ScrambledText
-                    key={headerText}
-                    className="w-full text-center text-[clamp(36px,8vw,128px)] font-extrabold tracking-tight text-primary/85"
-                  >
-                    {headerText}
-                  </ScrambledText>
+                <div className="w-full h-28 sm:h-32 md:h-36 pointer-events-auto">
+                  <ASCIIText
+                    text={headerText}
+                    asciiFontSize={10}
+                    densityScale={1.2}
+                    enableWaves={true}
+                    enableGlitch={true}
+                    glitchDurationMs={2000}
+                    glitchIntervalMs={120000}
+                    glitchIntensity={1.5}
+                    color="rgba(179, 136, 255, 0.95)"
+                    className="w-full h-full"
+                  />
                 </div>
                 <div className="mt-2 text-[10px] sm:text-xs font-bold tracking-[0.3em] text-foreground/30 uppercase pointer-events-auto text-center w-full">
                   EVERYONE CAN SAY HI TO AI
@@ -183,16 +192,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           )}
 
           <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full px-2 md:px-4 bg-background pt-28 sm:pt-32">
-            {appState === 'chat' && selectedModelId && onModelChange && (
-              <div className="sticky top-0 z-40 flex justify-center pb-3">
-                <ModelSelector
-                  selectedModelId={selectedModelId}
-                  onModelChange={onModelChange}
-                  compact={true}
-                  disabled={isAiResponding}
-                />
-              </div>
-            )}
             {children}
           </div>
         </main>
