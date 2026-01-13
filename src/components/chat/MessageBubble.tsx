@@ -446,7 +446,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           'relative transition-all',
           isMediaOnly ? 'p-0 bg-transparent border-none shadow-none max-w-full' : 'max-w-[85%] p-4 rounded-3xl px-6 py-4 shadow-sm',
           !isMediaOnly && isUser
-            ? 'bg-primary/90 text-primary-foreground shadow-md backdrop-blur-sm'
+            ? 'bg-primary/20 text-foreground border border-primary/20 shadow-sm backdrop-blur-md'
             : !isMediaOnly && 'bg-glass-background/40 backdrop-blur-xl text-foreground border border-glass-border shadow-glass'
         )}
       >
@@ -454,7 +454,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           {renderContent(message.content)}
         </div>
 
-        {isAssistant && message.id !== 'loading' && (
+        {isAssistant && message.id !== 'loading' && !isMediaOnly && (
           <div className="absolute top-full mt-1 left-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             {hasAudioContent && onPlayAudio && (
               <Button

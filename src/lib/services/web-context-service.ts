@@ -236,6 +236,10 @@ Keine Einleitung, keine Zusammenfassung, nur Fakten mit Quellen.`;
             .join('\n');
 
         return `
+[SYSTEM MESSAGE: REAL-TIME WEB SEARCH RESULTS AVAILABLE]
+You have been provided with the following real-time search results to answer the user's question.
+Do NOT claim you cannot access the internet. Use these facts:
+
 <web_context timestamp="${context.timestamp}" mode="${context.mode}">
     <facts>
 ${factsFormatted}
