@@ -145,17 +145,7 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   },
 
   // Replicate models (image)
-  'flux-2-pro': {
-    id: 'flux-2-pro',
-    name: 'Flux 2 Pro',
-    inputs: [
-      { name: 'prompt', isPrompt: true },
-      { name: 'aspect_ratio', default: '1:1' },
-      { name: 'resolution', default: '1 MP' },
-      { name: 'output_format', default: 'webp' },
-      { name: 'seed' },
-    ],
-  },
+
   // Pollinations zimage (different from Replicate z-image-turbo)
   'zimage': {
     id: 'zimage',
@@ -224,6 +214,30 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'duration', default: 6 },
       { name: 'output_format', default: 'mp4' },
       { name: 'seed' },
+    ],
+  },
+  'wan': {
+    id: 'wan',
+    name: 'Wan 2.6',
+    outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 5 },
+      { name: 'output_format', default: 'mp4' },
+      { name: 'seed' },
+    ],
+  },
+  'klein-large': {
+    id: 'klein-large',
+    name: 'Flux 2',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
     ],
   },
 };

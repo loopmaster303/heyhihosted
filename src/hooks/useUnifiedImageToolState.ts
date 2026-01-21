@@ -22,7 +22,9 @@ export const pollinationUploadModels = [
     'nanobanana-pro',
     'seedance-pro',
     'seedance',
-    'veo'
+    'veo',
+    'klein-large',
+    'wan'
 ];
 
 export const replicateUploadModels = [
@@ -87,7 +89,13 @@ export function useUnifiedImageToolState() {
     const isGptImage = selectedModelId === 'gpt-image' || selectedModelId === 'gptimage-large';
     const isSeedream = selectedModelId === 'seedream' || selectedModelId === 'seedream-pro';
     const isNanoPollen = selectedModelId === 'nanobanana' || selectedModelId === 'nanobanana-pro';
-    const isPollenModel = isGptImage || isSeedream || isNanoPollen || selectedModelId === 'flux' || selectedModelId === 'kontext' || selectedModelId === 'zimage';
+    
+    // Dynamic check for any Pollinations image model
+    const isPollenModel = useMemo(() => {
+        const model = getUnifiedModel(selectedModelId);
+        return model?.provider === 'pollinations' && currentModelConfig?.outputType !== 'video';
+    }, [selectedModelId, currentModelConfig]);
+
     const isPollinationsVideo = currentModelConfig?.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations';
 
     // Supports Reference Check
@@ -99,20 +107,20 @@ export function useUnifiedImageToolState() {
     // Max images per model
     const maxImages = useMemo(() => {
         if (!supportsReference) return 0;
+        
+        // 1. Try to get from config (Single Source of Truth)
+        const modelInfo = getUnifiedModel(selectedModelId);
+        if (modelInfo?.maxImages !== undefined) {
+            return modelInfo.maxImages;
+        }
+
+        // 2. Fallbacks (Legacy)
         if (selectedModelId === 'flux-2-pro') return 8;
         if (selectedModelId === 'nanobanana-pro') return 14;
         if (selectedModelId === 'qwen-image-edit-plus') return 3;
         if (selectedModelId === 'flux-kontext-pro') return 1;
         if (selectedModelId === 'wan-video') return 1;
         if (selectedModelId === 'veo-3.1-fast') return 1;
-        if (selectedModelId === 'seedance-pro') return 1;
-        if (selectedModelId === 'seedance') return 1;
-        if (selectedModelId === 'veo') return 1;
-        if (selectedModelId === 'seedream-pro') return 8;
-        if (selectedModelId === 'seedream') return 8;
-        if (selectedModelId === 'gpt-image') return 8;
-        if (selectedModelId === 'gptimage-large') return 8;
-        if (selectedModelId === 'nanobanana' || selectedModelId === 'nanobanana-pro') return 8;
         
         // Default for Pollinations flux/kontext is usually 1 (prompt injection or img2img)
         if (selectedModelId === 'flux' || selectedModelId === 'kontext') return 1;
@@ -134,7 +142,9 @@ export function useUnifiedImageToolState() {
                 }
             }
         });
-        if (isGptImage || isSeedream || isNanoPollen || selectedModelId === 'flux' || selectedModelId === 'kontext') {
+        
+        // Use standard preset for all Pollinations image models
+        if (isPollenModel) {
             const preset = gptImagePresets['1:1'];
             initialFields.aspect_ratio = '1:1';
             initialFields.width = preset.width;

@@ -145,6 +145,13 @@ export const ModalPopup: React.FC<ModalPopupProps> = ({
     onClose,
     closeOnBackdrop = true
 }) => {
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
     const maxWidthClasses = {
         'sm': 'max-w-sm',
         'md': 'max-w-md',
@@ -154,20 +161,23 @@ export const ModalPopup: React.FC<ModalPopupProps> = ({
         '4xl': 'max-w-4xl'
     };
 
-    return (
+    if (!mounted) return null;
+
+    return createPortal(
         <div
-            className="fixed inset-0 z-50"
+            className="fixed inset-0 z-[100]"
             onClick={closeOnBackdrop ? onClose : undefined}
         >
-            <div className="fixed inset-0 bg-black/50" />
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" />
             <div className="fixed inset-0 flex items-center justify-center p-4">
-                <div onClick={(event) => event.stopPropagation()}>
-                    <BasePopup variant="modal" className={cn("p-6 w-full", maxWidthClasses[maxWidth], className)}>
+                <div onClick={(event) => event.stopPropagation()} className="relative w-full flex justify-center">
+                    <BasePopup variant="modal" className={cn("p-6 w-full shadow-2xl", maxWidthClasses[maxWidth], className)}>
                         {children}
                     </BasePopup>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

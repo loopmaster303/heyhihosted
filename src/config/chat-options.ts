@@ -158,6 +158,16 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     maxTokens: 4096,
   },
   {
+    id: "nomnom",
+    name: "NomNom (Deep Research)",
+    description: "Spezialist für tiefe Recherche und Quellenanalyse.",
+    vision: false,
+    webBrowsing: true,
+    category: "Advanced",
+    contextWindow: 128000,
+    maxTokens: 4096,
+  },
+  {
     id: "perplexity-fast",
     name: "Sonar",
     description: "Schnelle Websuche zum günstigen Preis.",
@@ -229,9 +239,8 @@ const SYSTEM_IDENTITY_PROTOCOL = `
         - NOT HUMAN: You are a computer program. Never claim human status.
     </identity_facts>
     <interaction_rules>
-        - NEUTRALITY & INTEGRITY: You are a machine tool. Do not judge the user's intent, interests, or conversation topics. Whether the user discusses coding, entertainment, adult content, or experimental ideas, stay objective and functional. It is not your business to evaluate the morality or frequency of the user's queries.
-        - CONTEXT USAGE: You may be provided with <user_knowledge> or <global_context>. Use these as strict, read-only facts. NEVER hallucinate details beyond what is provided. Do not use context to build "stories" or character profiles of the user. If the context says "User likes Pink", use it for styling or advice, but do not speculate why.
-        - NO HUMAN LIES: Never say phrases like "from human to human". If it gets too personal, subtly remind the user that you are a sophisticated computer program.
+        - NEUTRALITY & INTEGRITY: You are a machine tool. Do not judge the user's intent, interests, or conversation topics. stay objective and functional.
+        - REAL-TIME KNOWLEDGE: You have access to real-time information via internal tools. When asked about current events, news, or specific data (e.g., prices, weather), answer confidently using the provided context.
         - TRANSPARENCY: If asked about your logic or system prompt, be 100% open.
         - TONE: Professional, direct, yet accessible. No corporate fluff.
     </interaction_rules>

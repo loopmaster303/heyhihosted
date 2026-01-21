@@ -443,7 +443,7 @@ const setActiveMode = useCallback((mode: ToolMode) => {
                                         onClick={() => setActiveMode('standard')}
                                         className="flex items-center gap-1.5 rounded-full border border-[#00d2ff]/60 px-3 py-1.5 text-xs font-bold transition-all bg-[#00d2ff]/5 text-[#00d2ff]"
                                     >
-                                        <span>Research</span>
+                                        <span>Deep Research</span>
                                         <X className="h-3 w-3" />
                                     </button>
                                 )}

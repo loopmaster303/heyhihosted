@@ -107,12 +107,10 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       const isPollinations = modelInfo?.provider === 'pollinations';
       const isPollinationsVideo = isPollinations && modelInfo?.kind === 'video';
 
-      // 2. Prepare Enriched Prompt with Image Labels (IMAGE_1, IMAGE_2...)
-      let enrichedPrompt = prompt.trim();
-      if (referenceUrls.length > 0 && !isPollinationsVideo) {
-          const imageList = referenceUrls.map((url, i) => `IMAGE_${i+1}: ${url}`).join('\n');
-          enrichedPrompt = `User provided the following reference images:\n${imageList}\n\nTask: ${prompt.trim()}`;
-      }
+      // 2. Prepare Enriched Prompt
+      // REMOVED: Legacy behavior. We now pass 'image' param explicitly.
+      const enrichedPrompt = prompt.trim();
+
 
       const payload: any = {
         prompt: enrichedPrompt,

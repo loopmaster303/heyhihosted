@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { handleApiError, validateRequest, ApiError, requireEnv } from '@/lib/api-error-handler';
 import { WebContextService } from '@/lib/services/web-context-service';
 import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
+import { SmartRouter } from '@/lib/services/smart-router';
 
 const POLLEN_CHAT_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
 const LEGACY_POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
@@ -26,7 +27,8 @@ export async function POST(request: Request) {
     const { messages, modelId, systemPrompt, webBrowsingEnabled, stream } = validateRequest(ChatCompletionSchema, body);
 
     // Always use the user's chosen model
-    const effectiveModelId = modelId;
+    // Mutable 'let' to allow SmartRouter overwrites below
+    let routedModelId = modelId;
 
     // === ALWAYS-ON WEB CONTEXT ===
     // Fetch web context in parallel (Light mode by default, Deep if toggle enabled)
@@ -35,16 +37,12 @@ export async function POST(request: Request) {
       ? lastUserMessage.content
       : '';
 
-    // Fetch context (will timeout gracefully)
-    const webContextMode = webBrowsingEnabled ? 'deep' : 'light';
-    let webContext = await WebContextService.getContext(userQuery, webContextMode);
-
     // Messages remain unchanged
     let enhancedMessages = messages;
-    const streamEnabled = Boolean(stream) && effectiveModelId !== "gpt-oss-120b";
+    const streamEnabled = Boolean(stream) && routedModelId !== "gpt-oss-120b";
 
     // Handle GPT-OSS-120b model with Replicate API
-    if (effectiveModelId === "gpt-oss-120b") {
+    if (routedModelId === "gpt-oss-120b") {
 
 
       const REPLICATE_API_TOKEN = requireEnv('REPLICATE_API_TOKEN');
@@ -139,23 +137,49 @@ export async function POST(request: Request) {
       throw new ApiError(500, 'Server configuration error: POLLEN_API_KEY is not set', 'MISSING_ENV_VAR');
     }
 
-    const payload: Record<string, any> = {
-      model: effectiveModelId,
-      messages: enhancedMessages, // Use enhanced messages with search results
-    };
+    // === SMART ROUTING & DEEP RESEARCH ===
+    // "Jet Interface" Logic:
+    // 1. Explicit Toggle = Deep Research (NomNom/Reasoning)
+    // 2. Invisible Router = Live Data (Perplexity Fast) via Keyword Triggers
 
-    if (systemPrompt && systemPrompt.trim() !== "") {
-      // Inject web context into existing system prompt (additive)
-      const enhancedSystemPrompt = WebContextService.injectIntoSystemPrompt(
-        systemPrompt.trim(),
-        webContext
-      );
-      payload.messages = [{ role: 'system', content: enhancedSystemPrompt }, ...enhancedMessages];
-    } else if (webContext.facts.length > 0) {
-      // No system prompt but we have web context - add it as system message
-      const webContextBlock = WebContextService.buildContextBlock(webContext);
-      payload.messages = [{ role: 'system', content: webContextBlock }, ...enhancedMessages];
+    let isSearchRouted = false;
+
+    if (webBrowsingEnabled) {
+      // Manual Toggle ON -> Force Deep Research
+      console.log('🔍 Deep Research Mode Activated');
+      routedModelId = 'nomnom';
+      isSearchRouted = true;
+    } else {
+      // Manual Toggle OFF -> Check for Smart Routing triggers
+      if (SmartRouter.shouldRouteToSearch(userQuery)) {
+        console.log(`⚡️ Smart Router: Live Data Triggered for query "${userQuery.substring(0, 50)}..."`);
+        routedModelId = SmartRouter.getLiveSearchModel();
+        isSearchRouted = true;
+      }
     }
+
+    // === DATE & CONTEXT INJECTION ===
+    const currentDate = new Date().toISOString().split('T')[0];
+
+    // Use a specialized prompt for search models
+    let systemDateBlock: string;
+    if (isSearchRouted) {
+      systemDateBlock = `Current Date: ${currentDate}.
+YOU ARE IN LIVE DATA MODE. You have FULL access to the internet via your internal browsing tools.
+Answer questions about current events, prices, weather, news, and local happenings with confidence.
+DO NOT apologize for lack of internet access. USE YOUR BROWSING CAPABILITIES.`;
+      console.log('📡 Injecting Search-Aware System Prompt');
+    } else {
+      systemDateBlock = `Current Date: ${currentDate}.\nYou have access to real-time information via your internal tools. If asked about current events, answer confidently using the provided context or your browsing capabilities.`;
+    }
+
+    let finalSystemPrompt = systemPrompt ? `${systemDateBlock}\n\n${systemPrompt}` : systemDateBlock;
+
+    // Set up payload with modified prompts
+    const payload: Record<string, any> = {
+      model: routedModelId,
+      messages: [{ role: 'system', content: finalSystemPrompt }, ...enhancedMessages],
+    };
 
     if (streamEnabled) {
       payload.stream = true;
@@ -180,12 +204,18 @@ export async function POST(request: Request) {
     const availableModelIds = new Set(AVAILABLE_POLLINATIONS_MODELS.map(model => model.id));
     const googleModelIds = ['gemini', 'gemini-fast', 'gemini-large', 'gemini-search']
       .filter(modelId => availableModelIds.has(modelId));
-    const fallbackOrder = ['deepseek', 'glm', ...googleModelIds];
-    const modelCandidates = [effectiveModelId, ...fallbackOrder].filter((modelId, index, list) => (
+    
+    // Prioritize search models when search is triggered
+    const searchFallbackOrder = ['perplexity-fast', 'nomnom', 'perplexity-reasoning', 'gemini-search'];
+    const generalFallbackOrder = ['deepseek', 'glm', ...googleModelIds];
+    const fallbackOrder = isSearchRouted 
+      ? [...searchFallbackOrder, ...generalFallbackOrder] 
+      : generalFallbackOrder;
+    const modelCandidates = [routedModelId, ...fallbackOrder].filter((modelId, index, list) => (
       modelId && list.indexOf(modelId) === index
     ));
     const filteredCandidates = modelCandidates.filter(modelId => (
-      modelId === effectiveModelId || availableModelIds.has(modelId)
+      modelId === routedModelId || availableModelIds.has(modelId)
     ));
 
     const shouldFallbackForResponse = (status: number, detail: string) => {

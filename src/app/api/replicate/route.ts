@@ -12,15 +12,13 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "google/veo-3.1-fast": "google/veo-3.1-fast",
 
   // --- Image Models (Flux/Turbo) ---
-  "black-forest-labs/flux-2-pro": "black-forest-labs/flux-2-pro",
-  "black-forest-labs/flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
+
   "prunaai/z-image-turbo": "prunaai/z-image-turbo",
 
   // --- Legacy Mappings (if still referenced) ---
   "nanobanana-pro": "google/nano-banana-pro",
   "nano-banana-pro": "google/nano-banana-pro", // Fallback für alte Referenzen
-  "flux-2-pro": "black-forest-labs/flux-2-pro", // Fallback for old refs
-  "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
+
   "veo-3.1-fast": "google/veo-3.1-fast",
   "z-image-turbo": "prunaai/z-image-turbo",
   "wan-2.5-t2v": "wan-video/wan-2.5-t2v",

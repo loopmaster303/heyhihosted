@@ -132,13 +132,11 @@ export class ChatService {
         const endpoint = isReplicate ? '/api/replicate' : '/api/generate';
 
         // Prepend image URL to prompt for Pollinations to force recognition (image-only)
-        let effectivePrompt = options.prompt;
-        if (!isReplicate && modelInfo?.kind !== 'video' && options.image) {
-            const firstImage = Array.isArray(options.image) ? options.image[0] : options.image;
-            if (firstImage && typeof firstImage === 'string') {
-                effectivePrompt = `${firstImage} ${options.prompt}`;
-            }
-        }
+        // REMOVED: Legacy behavior. We now pass 'image' param explicitly.
+        // This fixes Flux 2 (klein) which failed when receiving mixed inputs.
+        const effectivePrompt = options.prompt;
+
+
 
         let body: any = {
             prompt: effectivePrompt,

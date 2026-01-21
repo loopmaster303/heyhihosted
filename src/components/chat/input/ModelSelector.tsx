@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { modelIcons, featuredModels } from '@/config/ui-constants';
@@ -212,7 +212,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 >
                     <div className={cn(
                         "overflow-y-auto overscroll-contain",
-                        expanded ? "max-h-[85vh] md:max-h-[calc(100vh-140px)]" : "max-h-[80vh] md:max-h-[calc(100vh-200px)]"
+                        expanded ? "max-h-[80vh] md:max-h-[calc(100vh-180px)]" : "max-h-[75vh] md:max-h-[calc(100vh-240px)]"
                     )}>
                         {/* Header */}
                         <div className="px-4 py-3 border-b border-border/50 sticky top-0 bg-popover/90 backdrop-blur-md z-10 flex items-center justify-between">
@@ -223,10 +223,18 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                 </div>
                                 <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-tight opacity-60">Wähle die passende Intelligenz</p>
                             </div>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={closePopover}
+                                className="h-8 w-8 rounded-full hover:bg-muted/80 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </Button>
                         </div>
 
                         {/* Content */}
-                        <div className="p-2">
+                        <div className="p-2 pb-12">
                             <div className={cn(
                                 "grid gap-2",
                                 expanded ? "grid-cols-2" : "grid-cols-1"

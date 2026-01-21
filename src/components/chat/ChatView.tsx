@@ -132,7 +132,8 @@ const ChatView: React.FC<ChatViewProps> = ({
         itemContent={itemContent}
         followOutput="smooth"
         initialTopMostItemIndex={Math.max(0, displayMessages.length - 1)}
-        className="flex-grow"
+        initialTopMostItemIndex={Math.max(0, displayMessages.length - 1)}
+        className="flex-grow no-scrollbar py-4"
         style={{ height: '100%' }}
         overscan={200}
       />

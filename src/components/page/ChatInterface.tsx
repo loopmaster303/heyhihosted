@@ -65,7 +65,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
 
     return (
         <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
-            <div className="flex-grow overflow-y-auto pt-4 pb-4 px-4 no-scrollbar">
+            <div className="flex-grow overflow-hidden h-full relative">
                 {messages && messages.length > 0 ? (
                     <ErrorBoundary
                         fallbackTitle="Chat konnte nicht geladen werden"

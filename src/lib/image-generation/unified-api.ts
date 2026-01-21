@@ -18,7 +18,9 @@ export interface UnifiedImageGenerationRequest {
   duration?: number;
   audio?: boolean;
   isPrivate?: boolean;
+  isPrivate?: boolean;
   enhance?: boolean;
+  images?: string[]; // Array of image URLs or Base64 data
   // Replicate-specific params (will be passed through)
   [key: string]: any;
 }
@@ -65,7 +67,10 @@ async function generateWithPollinations(
   const payload: Record<string, any> = {
     prompt: request.prompt,
     model: request.modelId,
+    prompt: request.prompt,
+    model: request.modelId,
     private: request.isPrivate ?? true,
+    image: request.images,
   };
 
   // Add image-specific params

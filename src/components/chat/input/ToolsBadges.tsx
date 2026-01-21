@@ -73,7 +73,7 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
                 )}
             >
                 <Globe className="w-3.5 h-3.5" />
-                <span className="text-xs font-bold">Research</span>
+                <span className="text-xs font-bold">Deep Research</span>
             </div>
 
             {/* Coding Assist Mode */}

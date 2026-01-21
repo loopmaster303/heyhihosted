@@ -71,6 +71,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 
   // Get username for header display
   const [userDisplayName, setUserDisplayName] = useState('user');
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
     const savedName = localStorage.getItem('userDisplayName');
     if (savedName) {
@@ -80,6 +82,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         setUserDisplayName(parsed.trim());
       }
     }
+
+    // Responsive ASCII Scaling
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   // Compute display names for the header
@@ -161,7 +169,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                 <div className="w-full h-28 sm:h-32 md:h-36 pointer-events-auto">
                   <ASCIIText
                     text={headerText}
-                    asciiFontSize={10}
+                    asciiFontSize={isMobile ? 7 : 10}
                     densityScale={1.2}
                     enableWaves={true}
                     enableGlitch={true}
