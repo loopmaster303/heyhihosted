@@ -188,7 +188,7 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "qwen-coder",
-    name: "Qwen 2.5 Coder 32B",
+    name: "Qwen 3 Coder 30B",
     description: "Spezialisiert auf die Generierung von Programmcode.",
     vision: false,
     category: "Specialized",
