@@ -66,8 +66,6 @@ async function generateWithPollinations(
   const payload: Record<string, any> = {
     prompt: request.prompt,
     model: request.modelId,
-    prompt: request.prompt,
-    model: request.modelId,
     private: request.isPrivate ?? true,
     image: request.images,
   };
