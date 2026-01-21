@@ -203,10 +203,21 @@ export class ChatService {
             // For now, most wrappers map aspect_ratio to the underlying dimension logic.
         } else {
             // Pollinations
-            if (modelInfo?.kind === 'video') {
+            // Pollinations
+            if (modelInfo?.kind === 'video' || options.duration !== undefined || options.audio !== undefined) {
                 if (options.aspect_ratio) body.aspectRatio = options.aspect_ratio;
-                if (options.duration !== undefined) body.duration = options.duration;
-                else if (options.frames) body.duration = options.frames;
+                
+                // Duration Logic: Prefer option, then frame-calc, then Model Default, then 5s safe fallback
+                if (options.duration !== undefined) {
+                    body.duration = options.duration;
+                } else if (options.frames) {
+                    body.duration = options.frames;
+                } else if (modelInfo?.durationRange?.options && modelInfo.durationRange.options.length > 0) {
+                    body.duration = modelInfo.durationRange.options[0];
+                } else {
+                    body.duration = 5;
+                }
+
                 if (options.audio !== undefined) body.audio = options.audio;
             } else {
                 body.width = options.width;

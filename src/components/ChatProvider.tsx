@@ -519,10 +519,18 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
           }
 
           if (isPollinationsModel) {
-            if (modelInfo?.kind === 'video') {
+            if (modelInfo?.kind === 'video' || selectedImageModelId.includes('wan') || selectedImageModelId.includes('veo') || formFields.duration) {
               if (formFields.aspect_ratio) imageParams.aspect_ratio = formFields.aspect_ratio;
-              if (formFields.duration) imageParams.duration = Number(formFields.duration);
-              if (formFields.audio !== undefined) imageParams.audio = formFields.audio;
+              
+              // Duration: Safe Parsing
+              if (formFields.duration !== undefined && formFields.duration !== null) {
+                  imageParams.duration = Number(formFields.duration);
+              }
+              
+              // Audio: Explicit Boolean Check
+              if (formFields.audio !== undefined) {
+                  imageParams.audio = formFields.audio;
+              }
             } else {
               imageParams.width = formFields.width || 1024;
               imageParams.height = formFields.height || 1024;
@@ -745,10 +753,36 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     setLastUserMessageId(null); 
   }, [loadConversation, setActiveConversation, setLastUserMessageId]);
 
-  const startNewChat = useCallback((initialModelId?: string) => {
+  const startNewChat = useCallback((initialOptionsOrModelId?: string | {
+    initialModelId?: string;
+    isImageMode?: boolean;
+    isCodeMode?: boolean;
+    webBrowsingEnabled?: boolean;
+  }) => {
+    // Parse arguments
+    let initialModelId: string | undefined;
+    let initialImageMode = false;
+    let initialCodeMode = false;
+    let initialWebBrowsing = false;
+
+    if (typeof initialOptionsOrModelId === 'string') {
+        initialModelId = initialOptionsOrModelId;
+    } else if (typeof initialOptionsOrModelId === 'object') {
+        initialModelId = initialOptionsOrModelId.initialModelId;
+        initialImageMode = !!initialOptionsOrModelId.isImageMode;
+        initialCodeMode = !!initialOptionsOrModelId.isCodeMode;
+        initialWebBrowsing = !!initialOptionsOrModelId.webBrowsingEnabled;
+    }
+
     if (activeConversation && activeConversation.messages.length === 0) {
       if (initialModelId) {
-        setActiveConversation((prev: Conversation | null) => prev ? { ...prev, selectedModelId: initialModelId } : null);
+        setActiveConversation((prev: Conversation | null) => prev ? { 
+            ...prev, 
+            selectedModelId: initialModelId,
+            isImageMode: initialImageMode || prev.isImageMode, // Preserve or Override
+            isCodeMode: initialCodeMode || prev.isCodeMode,
+            webBrowsingEnabled: initialWebBrowsing || prev.webBrowsingEnabled
+        } : null);
       }
       return;
     }
@@ -761,9 +795,9 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       toolType: 'long language loops',
-      isImageMode: false,
-      isCodeMode: false,
-      webBrowsingEnabled: false,
+      isImageMode: initialImageMode,
+      isCodeMode: initialCodeMode,
+      webBrowsingEnabled: initialWebBrowsing,
       selectedModelId: initialModelId || defaultTextModelId || DEFAULT_POLLINATIONS_MODEL_ID,
       selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
     };

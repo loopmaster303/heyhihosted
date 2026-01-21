@@ -66,6 +66,14 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
     }
 
     if (!currentModelConfig) return;
+    const modelInfo = getUnifiedModel(selectedModelId);
+
+    // 0. Validation for Pure Image-to-Video Models
+    const isPureI2V = selectedModelId === 'wan' || selectedModelId === 'seedance' || selectedModelId === 'seedance-pro';
+    if (isPureI2V && uploadedImages.length === 0) {
+        toast({ title: "Start-Frame Required", description: "This model requires at least one reference image to start.", variant: "destructive" });
+        return;
+    }
 
     setLoading(true);
     setSelectedImage(null);
@@ -115,9 +123,14 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       const payload: any = {
         prompt: enrichedPrompt,
         model: selectedModelId,
-        image: referenceUrls,
         private: true,
       };
+
+      if (referenceUrls.length > 0) {
+          payload.image = selectedModelId === 'veo' && referenceUrls.length === 2 
+            ? referenceUrls.join(',') 
+            : referenceUrls;
+      }
 
       if (!isPollinationsVideo) {
         payload.width = formFields.width || 1024;

@@ -11,6 +11,7 @@ interface VisualizeReferenceBadgesProps {
   onRemove: (index: number) => void;
   onUploadClick: () => void;
   disabled?: boolean;
+  selectedModelId?: string;
 }
 
 export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> = ({
@@ -21,13 +22,26 @@ export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> =
   onRemove,
   onUploadClick,
   disabled = false,
+  selectedModelId,
 }) => {
   if (!supportsReference) return null;
+
+  const getLabel = () => {
+    if (!selectedModelId) return 'Referenzen';
+    // Check if video model
+    if (selectedModelId === 'wan' || selectedModelId === 'seedance' || selectedModelId === 'seedance-pro') {
+        return 'Start-Frame';
+    }
+    if (selectedModelId === 'veo') {
+        return 'Start/End Frame';
+    }
+    return 'Referenzen';
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-[10px] text-foreground/70 font-semibold uppercase tracking-wider">
-        Referenzen {uploadedImages.length}/{maxImages}
+        {getLabel()} {uploadedImages.length}/{maxImages}
       </span>
 
       {uploadedImages.map((img, index) => (

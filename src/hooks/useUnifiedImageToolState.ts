@@ -150,10 +150,23 @@ export function useUnifiedImageToolState() {
             initialFields.width = preset.width;
             initialFields.height = preset.height;
         } else if (isPollinationsVideo) {
+            const modelInfo = getUnifiedModel(selectedModelId);
             initialFields.aspect_ratio = '16:9';
-            initialFields.duration = selectedModelId === 'veo' ? 6 : 6;
-            if (selectedModelId === 'veo') {
-                initialFields.audio = false;
+            
+            // Dynamic Duration Default
+            if (modelInfo?.durationRange?.options && modelInfo.durationRange.options.length > 0) {
+                 // Default to the first option (usually the lowest/fastest)
+                 initialFields.duration = modelInfo.durationRange.options[0];
+            } else {
+                initialFields.duration = 5; // Fallback
+            }
+
+            // Dynamic Audio Default
+            // Default to TRUE if supported (Wan/Veo)
+            if (modelInfo?.supportsAudio) {
+                initialFields.audio = true; 
+            } else {
+                 initialFields.audio = false;
             }
         }
         setFormFields(initialFields);

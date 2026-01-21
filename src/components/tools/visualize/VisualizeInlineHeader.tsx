@@ -1,5 +1,6 @@
 import React from 'react';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { ChevronDown, ImageIcon, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { unifiedModelConfigs, type UnifiedModelConfig } from '@/config/unified-model-configs';
@@ -374,33 +375,46 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(selectedModelId === 'wan-2.5-t2v' || selectedModelId === 'wan-video') ? (
-                <>
-                  <SelectItem value="5">5s</SelectItem>
-                  <SelectItem value="10">10s</SelectItem>
-                </>
-              ) : (selectedModelId === 'veo' || selectedModelId === 'veo-3.1-fast') ? (
-                <>
-                  <SelectItem value="4">4s</SelectItem>
-                  <SelectItem value="6">6s</SelectItem>
-                  <SelectItem value="8">8s</SelectItem>
-                </>
-              ) : (selectedModelId === 'seedance-pro') ? (
-                <>
-                  {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => (
-                    <SelectItem key={s} value={String(s)}>{s}s</SelectItem>
-                  ))}
-                </>
-              ) : (
-                <>
-                  <SelectItem value="5">5s</SelectItem>
-                  <SelectItem value="10">10s</SelectItem>
-                </>
-              )}
-            </SelectContent>
+                {(() => {
+                    const model = getUnifiedModel(selectedModelId);
+                    if (model?.durationRange?.options) {
+                        return model.durationRange.options.map(opt => (
+                            <SelectItem key={opt} value={String(opt)}>{opt}s</SelectItem>
+                        ));
+                    }
+                    return (
+                        <>
+                            <SelectItem value="5">5s</SelectItem>
+                            <SelectItem value="10">10s</SelectItem>
+                        </>
+                    );
+                })()}
+</SelectContent>
           </Select>
         </div>
       )}
+
+      {/* Audio Toggle */}
+      {(() => {
+          const model = getUnifiedModel(selectedModelId);
+          if (model?.supportsAudio) {
+                return (
+                  <div className={badgeClass}>
+                      <span className={labelClass}>Audio</span>
+                      <div className="flex items-center gap-1.5 h-6">
+                            <Switch
+                                id="audio-toggle-inline"
+                                checked={!!formFields.audio}
+                                onCheckedChange={(checked) => handleFieldChange('audio', checked)}
+                                disabled={disabled}
+                                className="scale-75 origin-left data-[state=checked]:bg-primary" 
+                            />
+                      </div>
+                  </div>
+                );
+          }
+          return null;
+      })()}
 
       {/* Output Format */}
       {(!isPollenModel && !isPollinationsVideo && currentModelConfig.inputs.find(i => i.name === 'output_format')) && (

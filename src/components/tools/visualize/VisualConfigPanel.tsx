@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { X } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
 import { UnifiedModelConfig } from '@/config/unified-model-configs';
@@ -154,45 +155,70 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                     </div>
                 )}
 
-                {/* Duration Selector for Video Models */}
-                {((currentModelConfig.outputType === 'video' || isPollinationsVideo) && currentModelConfig.inputs.find(i => i.name === 'duration')) && (
+                {/* Dynamic Duration Selector */}
+                {((isPollinationsVideo || currentModelConfig.outputType === 'video') && currentModelConfig.inputs.find(i => i.name === 'duration')) && (
                     <div className="space-y-2">
                         <Label>{t('field.duration') || 'Duration (seconds)'}</Label>
                         <Select
-                            value={String(formFields.duration || (selectedModelId.includes('wan') ? '5' : '6'))}
+                            value={String(formFields.duration || '5')}
                             onValueChange={(value) => handleFieldChange('duration', Number(value))}
                             disabled={loading}
                         >
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
-                                {(selectedModelId === 'wan-2.5-t2v' || selectedModelId === 'wan-video') ? (
-                                    <>
-                                        <SelectItem value="5">5s (Standard)</SelectItem>
-                                        <SelectItem value="10">10s (High Quality)</SelectItem>
-                                    </>
-                                ) : (selectedModelId === 'veo' || selectedModelId === 'veo-3.1-fast') ? (
-                                    <>
-                                        <SelectItem value="4">4s</SelectItem>
-                                        <SelectItem value="6">6s</SelectItem>
-                                        <SelectItem value="8">8s</SelectItem>
-                                    </>
-                                ) : (selectedModelId === 'seedance-pro') ? (
-                                    <>
-                                        {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => (
-                                            <SelectItem key={s} value={String(s)}>{s}s</SelectItem>
-                                        ))}
-                                    </>
-                                ) : (
-                                    /* Fallback */
-                                    <>
-                                        <SelectItem value="5">5s</SelectItem>
-                                        <SelectItem value="10">10s</SelectItem>
-                                    </>
-                                )}
+                                {(() => {
+                                    const model = getUnifiedModel(selectedModelId);
+                                    if (model?.durationRange?.options) {
+                                        return model.durationRange.options.map(opt => (
+                                            <SelectItem key={opt} value={String(opt)}>{opt}s</SelectItem>
+                                        ));
+                                    }
+                                    if (model?.durationRange?.min !== undefined && model.durationRange?.max !== undefined) {
+                                        // Generate options from min to max
+                                        const options = [];
+                                        for (let i = model.durationRange.min; i <= model.durationRange.max; i++) {
+                                            options.push(
+                                                <SelectItem key={i} value={String(i)}>{i}s</SelectItem>
+                                            );
+                                        }
+                                        return options;
+                                    }
+                                    // Fallback defaults
+                                    return (
+                                        <>
+                                            <SelectItem value="5">5s</SelectItem>
+                                            <SelectItem value="10">10s</SelectItem>
+                                        </>
+                                    );
+                                })()}
                             </SelectContent>
                         </Select>
                     </div>
                 )}
+                
+                {/* Audio Toggle (Only if supported) */}
+                 {(() => {
+                    const model = getUnifiedModel(selectedModelId);
+                    if (model?.supportsAudio) {
+                        return (
+                            <div className="flex items-center justify-between space-y-2 border p-3 rounded-lg border-input bg-background/50">
+                                <Label className="cursor-pointer" htmlFor="audio-toggle">
+                                    {t('field.audio') || 'Audio Generation'}
+                                </Label>
+                                <div className="flex items-center space-x-2">
+                                    <Switch
+                                        id="audio-toggle"
+                                        checked={!!formFields.audio}
+                                        onCheckedChange={(checked) => handleFieldChange('audio', checked)}
+                                        disabled={loading}
+                                    />
+                                    <span className="text-xs text-muted-foreground">{formFields.audio ? 'On' : 'Off'}</span>
+                                </div>
+                            </div>
+                        );
+                    }
+                    return null;
+                })()}
 
                 {/* Output Format */}
                 {(!isPollenModel && !isPollinationsVideo && currentModelConfig.inputs.find(i => i.name === 'output_format')) && (
@@ -337,30 +363,20 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                         >
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
-                                {(selectedModelId === 'wan-2.5-t2v' || selectedModelId === 'wan-video') ? (
-                                    <>
-                                        <SelectItem value="5">5s (Standard)</SelectItem>
-                                        <SelectItem value="10">10s (High Quality)</SelectItem>
-                                    </>
-                                ) : (selectedModelId === 'veo' || selectedModelId === 'veo-3.1-fast') ? (
-                                    <>
-                                        <SelectItem value="4">4s</SelectItem>
-                                        <SelectItem value="6">6s</SelectItem>
-                                        <SelectItem value="8">8s</SelectItem>
-                                    </>
-                                ) : (selectedModelId === 'seedance-pro') ? (
-                                    <>
-                                        {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => (
-                                            <SelectItem key={s} value={String(s)}>{s}s</SelectItem>
-                                        ))}
-                                    </>
-                                ) : (
-                                    /* Fallback */
-                                    <>
-                                        <SelectItem value="5">5s</SelectItem>
-                                        <SelectItem value="10">10s</SelectItem>
-                                    </>
-                                )}
+                                {(() => {
+                                    const model = getUnifiedModel(selectedModelId);
+                                    if (model?.durationRange?.options) {
+                                        return model.durationRange.options.map(opt => (
+                                            <SelectItem key={opt} value={String(opt)}>{opt}s</SelectItem>
+                                        ));
+                                    }
+                                    return (
+                                        <>
+                                            <SelectItem value="5">5s</SelectItem>
+                                            <SelectItem value="10">10s</SelectItem>
+                                        </>
+                                    );
+                                })()}
                             </SelectContent>
                         </Select>
                     </div>

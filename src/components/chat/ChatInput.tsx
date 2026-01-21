@@ -102,6 +102,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     onRemove={visualizeToolState.handleRemoveImage}
                     onUploadClick={() => imageInputRef.current?.click()}
                     disabled={isLoading || isRecording || isTranscribing}
+                    selectedModelId={visualizeToolState.selectedModelId}
                 />
             ) : null;
 

@@ -19,6 +19,13 @@ export interface UnifiedImageModel {
   isFree?: boolean; // Free tier available (Pollinations)
   requiresPassword?: boolean; // Requires password (Replicate premium)
   enabled?: boolean; // Whether the model is enabled (default true)
+  supportsAudio?: boolean; // Does the model generate audio?
+  durationRange?: {
+    min?: number;
+    max?: number;
+    step?: number;
+    options?: number[];
+  };
 }
 
 /**
@@ -33,8 +40,8 @@ export interface UnifiedImageModel {
  */
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
-  { id: 'flux', name: 'Flux1 Ultra', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
-  { id: 'klein-large', name: 'Flux 2', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: true, description: 'FLUX.2 Klein 4B' },
+  { id: 'flux', name: 'Flux1 Ultra', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
+  { id: 'klein-large', name: 'Flux 2', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'FLUX.2 Klein 4B' },
   { id: 'kontext', name: 'Flux1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware frame editing' },
   { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'GPT Image 1 Mini' },
   { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: true, enabled: true, description: 'Advanced OpenAI Image' },
@@ -47,12 +54,64 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 10, isFree: true, enabled: true, description: 'Seedream 4.5 Pro (4K)' },
 
   // STANDARD Video Models
-  { id: 'seedance', name: 'Seedance', provider: 'pollinations', kind: 'video', category: 'Standard', supportsReference: true, isFree: true, enabled: true, description: 'Seedance Lite (BytePlus)' },
+  { 
+    id: 'seedance', 
+    name: 'Seedance', 
+    provider: 'pollinations', 
+    kind: 'video', 
+    category: 'Standard', 
+    supportsReference: true, 
+    maxImages: 1, 
+    isFree: true, 
+    enabled: true, 
+    description: 'Seedance Lite (BytePlus)',
+    supportsAudio: false,
+    durationRange: { options: [5, 10] }
+  },
 
   // ADVANCED Video Models
-  { id: 'wan', name: 'Wan 2.6', provider: 'pollinations', kind: 'video', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: '2-15s, 1080p (Alibaba Wan 2.6)', maxImages: 10 },
-  { id: 'veo', name: 'Veo 3.1', provider: 'pollinations', kind: 'video', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'Google Veo 3.1 Fast' },
-  { id: 'seedance-pro', name: 'Seedance Pro', provider: 'pollinations', kind: 'video', category: 'Advanced', supportsReference: true, isFree: true, enabled: true, description: 'Seedance Pro-Fast (BytePlus)' },
+  { 
+    id: 'wan', 
+    name: 'Wan 2.6', 
+    provider: 'pollinations', 
+    kind: 'video', 
+    category: 'Advanced', 
+    supportsReference: true, 
+    isFree: true, 
+    enabled: true, 
+    description: '2-15s, 1080p (Alibaba Wan 2.6)', 
+    maxImages: 1,
+    supportsAudio: true,
+    durationRange: { options: [5, 10] }
+  },
+  { 
+    id: 'veo', 
+    name: 'Veo 3.1', 
+    provider: 'pollinations', 
+    kind: 'video', 
+    category: 'Advanced', 
+    supportsReference: true, 
+    isFree: true, 
+    enabled: true, 
+    description: 'Google Veo 3.1 Fast',
+    maxImages: 2,
+    supportsAudio: true,
+    durationRange: { options: [4, 6, 8] }
+  },
+  { 
+    id: 'seedance-pro', 
+    name: 'Seedance Pro', 
+    provider: 'pollinations', 
+    kind: 'video', 
+    category: 'Advanced', 
+    supportsReference: true, 
+    isFree: true, 
+    enabled: true, 
+    description: 'Seedance Pro-Fast (BytePlus)',
+    maxImages: 1,
+    supportsAudio: false,
+    durationRange: { options: [5, 10] }
+  },
 ];
 
 /**

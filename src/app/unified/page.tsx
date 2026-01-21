@@ -71,13 +71,22 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
     const handleNavigateToChat = useCallback((initialMessage: string) => {
         if (!initialMessage) return;
         
+        // Capture current state from Landing Page toggles (which affect activeConversation or global state)
         const isImageModeActive = chat.isImageMode;
+        const isWebBrowsingActive = chat.webBrowsingEnabled;
+        const isCodeModeActive = !!chat.activeConversation?.isCodeMode;
+
         // 1. Buffer the message
         setPendingMessage({ text: initialMessage, isImage: isImageModeActive });
         
-        // 2. Start new chat and change state
-        // This will update chat.activeConversation which triggers the useEffect above
-        chat.startNewChat(landingSelectedModelId);
+        // 2. Start new chat with CURRENT Landing State flags
+        chat.startNewChat({
+            initialModelId: landingSelectedModelId,
+            isImageMode: isImageModeActive,
+            webBrowsingEnabled: isWebBrowsingActive,
+            isCodeMode: isCodeModeActive
+        });
+        
         setAppState('chat');
     }, [chat, landingSelectedModelId]);
 

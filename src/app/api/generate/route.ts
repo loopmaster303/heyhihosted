@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { handleApiError, validateRequest } from '@/lib/api-error-handler';
+import { imageUrl, videoUrl } from '@/lib/pollinations-sdk';
 
 /**
  * Pollinations Generation Route (Safe Mode)
- * Uses the stable 'gen.pollinations.ai' endpoint.
+ * Uses the stable 'gen.pollinations.ai' endpoint via SDK Shim.
  */
 
 const ImageGenerationSchema = z.object({
@@ -25,7 +26,7 @@ const ImageGenerationSchema = z.object({
   image: z.union([z.string().url(), z.array(z.string().url())]).optional(),
 });
 
-const VIDEO_MODELS = new Set(['veo', 'seedance', 'seedance-pro']);
+const VIDEO_MODELS = new Set(['veo', 'seedance', 'seedance-pro', 'wan', 'wan-2.5-t2v', 'wan-video', 'veo-3.1-fast']);
 
 export async function POST(request: Request) {
   try {
@@ -48,68 +49,62 @@ export async function POST(request: Request) {
       image
     } = validateRequest(ImageGenerationSchema, body);
 
-    const baseUrl = "https://gen.pollinations.ai/image";
-    const safePrompt = encodeURIComponent(prompt.trim());
-    
-    // --- Model Logic ---
+    // --- SDK Migration ---
+    const apiKey = process.env.POLLEN_API_KEY;
+    const hasToken = !!apiKey && apiKey.trim() !== '';
+
+    // Model Logic
     let modelId: string = model || 'flux';
     if (model === 'zimage') modelId = 'z-image-turbo';
 
     const isVideoModel = VIDEO_MODELS.has(modelId);
     
-    // Auto-enhance for z-image-turbo unless explicitly disabled
+    // Auto-enhance for z-image-turbo
     const effectiveEnhance = (modelId === 'z-image-turbo') ? true : enhance;
-
-    const params = new URLSearchParams();
-    params.append('model', modelId);
-    if (!isVideoModel) {
-      params.append('width', String(width));
-      params.append('height', String(height));
-      params.append('nologo', String(nologo));
-      params.append('enhance', String(effectiveEnhance));
+    
+    // Safety Force: Private requires Token
+    const safePrivate = isPrivate && hasToken ? true : false;
+    if (isPrivate && !hasToken) {
+         console.warn('[Pollinations] Private mode requested but no POLLEN_API_KEY found. Forcing private=false.');
     }
-    params.append('private', String(isPrivate));
-    params.append('safe', String(safe));
+
+    let resultUrl: string;
 
     if (isVideoModel) {
-      if (aspectRatio) params.append('aspectRatio', aspectRatio);
-      if (duration !== undefined) params.append('duration', String(duration));
-      if (audio !== undefined) params.append('audio', String(audio));
+        resultUrl = await videoUrl(prompt, {
+            model: modelId,
+            aspectRatio,
+            duration,
+            audio,
+            seed,
+            nologo,
+            private: safePrivate,
+            safe,
+            referenceImage: image, // Mapped correctly
+            apiKey: hasToken ? apiKey : undefined
+        });
     } else {
-      if (negative_prompt) params.append('negative_prompt', negative_prompt);
-      if (transparent) params.append('transparent', 'true');
-    }
-    if (seed) params.append('seed', String(seed));
-    
-    // Handle multiple images (comma-separated for Pollinations)
-    if (image) {
-      const imageUrls = Array.isArray(image) ? image : [image];
-      params.append('image', imageUrls.join(','));
-    }
-
-    // Always use HD for best results
-    if (!isVideoModel) params.append('quality', 'hd');
-
-    const finalUrl = `${baseUrl}/${safePrompt}?${params.toString()}`;
-    
-    // Add API key only if available and non-empty
-    const token = process.env.POLLEN_API_KEY;
-    const hasToken = token && token.trim() !== '';
-
-    // Fallback: If no token is present, we CANNOT allow 'private=true' as it causes 401
-    if (isPrivate && !hasToken) {
-        console.warn('[Pollinations] Private mode requested but no POLLEN_API_KEY found. Forcing private=false to prevent 401.');
-        params.set('private', 'false');
+        resultUrl = await imageUrl(prompt, {
+            model: modelId,
+            width,
+            height,
+            aspectRatio,
+            seed,
+            nologo,
+            enhance: effectiveEnhance,
+            private: safePrivate,
+            safe,
+            transparent,
+            negativePrompt: negative_prompt, // Mapped correctly
+            referenceImage: image,
+            quality: 'hd',
+            apiKey: hasToken ? apiKey : undefined
+        });
     }
 
-    const correctFinalUrl = `${baseUrl}/${safePrompt}?${params.toString()}`;
-    const authenticatedUrl = hasToken 
-      ? `${correctFinalUrl}&key=${token}` 
-      : correctFinalUrl;
+    console.log('[Pollinations] SDK Dispatch:', hasToken ? 'Authenticated' : 'Public', { model: modelId, isVideo: isVideoModel });
 
-    console.log('[Pollinations] Dispatching:', hasToken ? 'Authenticated Request' : 'Public Request');
-
-    return NextResponse.json({ imageUrl: authenticatedUrl, videoUrl: isVideoModel ? authenticatedUrl : undefined });
+    return NextResponse.json({ imageUrl: resultUrl, videoUrl: isVideoModel ? resultUrl : undefined });
 
   } catch (error) {
     return handleApiError(error);
