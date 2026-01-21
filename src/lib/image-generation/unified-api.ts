@@ -18,7 +18,6 @@ export interface UnifiedImageGenerationRequest {
   duration?: number;
   audio?: boolean;
   isPrivate?: boolean;
-  isPrivate?: boolean;
   enhance?: boolean;
   images?: string[]; // Array of image URLs or Base64 data
   // Replicate-specific params (will be passed through)
