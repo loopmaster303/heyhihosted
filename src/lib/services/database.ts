@@ -157,6 +157,10 @@ export const DatabaseService = {
     return asset.remoteUrl || null;
   },
 
+  async deleteAsset(id: string) {
+    return await db.assets.delete(id);
+  },
+
   // Full Object logic
   async saveFullConversation(conv: Conversation) {
     return await db.transaction('rw', db.conversations, db.messages, async () => {

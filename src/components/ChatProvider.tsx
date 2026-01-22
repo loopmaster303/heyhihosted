@@ -27,9 +27,9 @@ import { useChatEffects } from '@/hooks/useChatEffects';
 import { ChatService } from '@/lib/services/chat-service';
 import { MemoryService } from '@/lib/services/memory-service';
 import { DatabaseService } from '@/lib/services/database';
+import { GalleryService } from '@/lib/services/gallery-service';
 import { uploadFileToS3 } from '@/lib/upload/s3-upload';
 import { getClientSessionId } from '@/lib/session';
-import { ingestGeneratedAsset } from '@/lib/upload/ingest';
 import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
 import { toDate } from '@/utils/chatHelpers';
 
@@ -570,47 +570,16 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
         if (imageUrl) {
             const isVideo = modelInfo?.kind === 'video';
 
-            try {
-                if (isPollinationsModel) {
-                    const sessionId = getClientSessionId();
-                    const ingest = await ingestGeneratedAsset(imageUrl, sessionId, isVideo ? 'video' : 'image');
-                    localAssetId = generateUUID();
-                    await DatabaseService.saveAsset({
-                        id: localAssetId,
-                        contentType: ingest.contentType,
-                        prompt: enrichedPrompt.trim(),
-                        modelId: selectedImageModelId,
-                        conversationId: convId,
-                        timestamp: Date.now(),
-                        storageKey: ingest.key
-                    });
-                    console.log(`📸 Image saved to cloud: ${localAssetId}`);
-                } else {
-                    const res = await fetch(imageUrl);
-                    if (res.ok) {
-                        const fallbackBlob = await res.blob();
-                        if (fallbackBlob.size > 1000) {
-                            localAssetId = generateUUID();
-                            await DatabaseService.saveAsset({
-                                id: localAssetId,
-                                blob: fallbackBlob,
-                                contentType: fallbackBlob.type,
-                                prompt: enrichedPrompt.trim(),
-                                modelId: selectedImageModelId,
-                                conversationId: convId,
-                                timestamp: Date.now()
-                            });
-                            console.log(`📸 Image saved to vault: ${localAssetId} (${fallbackBlob.size} bytes)`);
-                        } else {
-                            console.warn(`⚠️ Fetched blob too small (${fallbackBlob.size} bytes), ignoring.`);
-                        }
-                    } else {
-                        console.warn(`⚠️ Failed to fetch generated image: ${res.status} ${res.statusText}`);
-                    }
-                }
-            } catch (e) {
-                console.error("Failed to persist generated image to vault:", e);
-            }
+            // Use centralized asset saving logic
+            localAssetId = await GalleryService.saveGeneratedAsset({
+                url: imageUrl,
+                prompt: enrichedPrompt,
+                modelId: selectedImageModelId,
+                conversationId: convId,
+                sessionId: getClientSessionId(),
+                isVideo,
+                isPollinations: isPollinationsModel
+            });
         }
 
         // Show ephemeral status instead of permanent text message

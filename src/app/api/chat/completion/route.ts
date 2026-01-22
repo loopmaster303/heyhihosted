@@ -1,4 +1,4 @@
-import { generateText, Message } from 'ai';
+import { generateText } from 'ai';
 import { createPollinations } from 'ai-sdk-pollinations';
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     console.log('[API] Executing generateText (non-streaming)...');
     const result = await generateText({
       model: pollinations(routedModelId),
-      messages: messages as Message[],
+      messages: messages as any,
       system: finalSystemPrompt,
     });
 

@@ -151,6 +151,24 @@ Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical—wit
 2. **Type Safety**: `Conversation` mixes persisted and runtime state
 3. **Test Coverage**: Low on core logic
 
+## Roadmap (2026-01-22)
+
+### Phase 1: Asset & Gallery Deep-Sync (HIGH)
+- [x] Image-Generation Loop: Centralized `GalleryService.saveGeneratedAsset()` handles all generation flows (2026-01-22)
+  - Refactored duplicate code in `ChatProvider.tsx` and `UnifiedImageTool.tsx`
+  - Supports both Pollinations (S3) and Replicate (blob) storage
+- [ ] Blob-Management: Global registry for `URL.revokeObjectURL` to prevent memory leaks
+- [ ] Fallback-Handling: Auto re-fetch from remote URL if vault asset missing
+
+### Phase 2: Code-Hygiene & Legacy (MEDIUM)
+- [ ] Remove legacy model refs (`gpt-oss-120b`)
+- [ ] Re-enable `streamText` when AI SDK compatible
+- [ ] Extract `ChatView.tsx` logic into hooks
+
+### Phase 3: Security & Performance (LONG-TERM)
+- [ ] Web Crypto API encryption for `messages` and `memories` tables
+- [ ] Migrate remaining localStorage settings to Dexie
+
 ## Environment Variables
 
 ```

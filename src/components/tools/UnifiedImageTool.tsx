@@ -10,10 +10,9 @@ import { generateUUID } from '@/lib/uuid';
 import type { ImageHistoryItem, UploadedReference } from '@/types';
 import { useLanguage } from '../LanguageProvider';
 import { useUnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
-import { DatabaseService } from '@/lib/services/database';
+import { GalleryService } from '@/lib/services/gallery-service';
 import { uploadFileToS3WithKey } from '@/lib/upload/s3-upload';
 import { getClientSessionId } from '@/lib/session';
-import { ingestGeneratedAsset } from '@/lib/upload/ingest';
 import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
 import VisualizeInputContainer from '@/components/tools/VisualizeInputContainer';
 // import { persistRemoteImage } from '@/lib/services/local-image-storage';
@@ -185,43 +184,25 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       const itemId = generateUUID();
       let localAssetId: string | undefined;
 
-      // 2. Persist to Vault
+      // 2. Persist to Vault using centralized logic
       if (typeof resultUrl === 'string') {
         try {
           toast({ title: "Saving...", description: "Syncing to gallery." });
-          if (isPollinations) {
-            const sessionId = getClientSessionId();
-            const ingest = await ingestGeneratedAsset(resultUrl, sessionId, isVideo ? 'video' : 'image');
-            localAssetId = itemId;
-            await DatabaseService.saveAsset({
-              id: localAssetId,
-              contentType: ingest.contentType,
-              prompt: prompt.trim(),
-              modelId: currentModelId, // ✅ Use fresh value
-              timestamp: Date.now(),
-              storageKey: ingest.key,
-            });
-            console.log(`📸 Tool media saved to cloud: ${localAssetId}`);
-          } else if (!isVideo) {
-            const res = await fetch(resultUrl);
-            if (res.ok) {
-              const blob = await res.blob();
-              if (blob.size > 1000) {
-                localAssetId = itemId; // Use the same UUID for the asset record
-                await DatabaseService.saveAsset({
-                  id: localAssetId,
-                  blob,
-                  contentType: blob.type,
-                  prompt: prompt.trim(),
-                  modelId: selectedModelId,
-                  timestamp: Date.now()
-                });
-                console.log(`📸 Tool media saved to vault: ${localAssetId}`);
-              }
-            }
+
+          localAssetId = await GalleryService.saveGeneratedAsset({
+            url: resultUrl,
+            prompt: prompt.trim(),
+            modelId: currentModelId,
+            sessionId: getClientSessionId(),
+            isVideo,
+            isPollinations
+          });
+
+          if (localAssetId) {
+            console.log(`📸 Tool asset saved: ${localAssetId}`);
           }
         } catch (e) {
-          console.error("Failed to persist tool image to vault:", e);
+          console.error("Failed to persist tool asset to vault:", e);
         }
       }
 
