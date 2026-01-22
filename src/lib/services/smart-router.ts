@@ -22,7 +22,24 @@ export class SmartRouter {
     /\bergebnis/i, /\bspielstand/i, /\bspiel\b/i,
     /\bevent/i, /\bveranstaltung/i, /\böffnung/i, /\beröffnung/i, /\bgalerie/i,
     /\bkino\b/i, /\bfilm/i, /\bfernsehen\b/i, /\btv\b/i, /\bshow\b/i,
-    /\bverkehr/i, /\bstau\b/i, /\bwas ist los\b/i, /\bwas passiert\b/i,
+    /\bverkehr/i, /\bstau\b/i, /\bwas ist los\b/i, /\bwas passiert\b/i, /\bwas geht\b/i, /\bwas läuft\b/i,
+    // Explicit Search/Research Intents (German)
+    /\bdurchsuche\b/i, /\bsuche nach\b/i, /\brecherchiere\b/i, /\brecherche\b/i, /\bgoogle\b/i, /\binternet\b/i,
+    // Explicit Search/Research Intents (English)
+    /\bsearch\b/i, /\bsearch for\b/i, /\bresearch\b/i, /\blook up\b/i, /\bgoogle\b/i,
+    // Situational Awareness / Status
+    /\blage\b/i, /\bsituation\b/i, /\bstatus\b/i, /\bentwicklung\b/i, /\btrend/i,
+    /\bkrieg\b/i, /\bwahl\b/i, /\bpolitik\b/i, /\bcrypto/i, /\baktien/i,
+    // People / Entities
+    /\bkennst du\b/i, /\bwer war\b/i, /\bsteckbrief\b/i, /\bbiografie\b/i, /\blebenslauf\b/i,
+    /\bdo you know\b/i, /\bwho was\b/i, /\bbio\b/i, /\bprofile\b/i,
+    /\berzähl mir von\b/i, /\btell me about\b/i,
+    // Recommendations / Tips
+    /\btipp/i, /\bempfehlung/i, /\bempfehlen/i, /\bwohin\b/i, /\bwas tun\b/i, /\bwo kann man\b/i,
+    /\btip/i, /\brecommend/i, /\bwhat to do\b/i, /\bwhere to go\b/i,
+    // Culture / Nightlife / Events
+    /\bkonzert/i, /\bconcert/i, /\bfestival/i, /\bclub\b/i, /\bparty\b/i, /\bfeiern\b/i,
+    /\bausstellung/i, /\bexhibition\b/i, /\bmuseum\b/i, /\btheater\b/i, /\btheatre\b/i,
     // News / Events (English)
     /\bweather\b/i, /\bprice/i, /\bstock/i,
     /\bresult/i, /\bscore\b/i, /\bgame\b/i, /\bmatch\b/i,

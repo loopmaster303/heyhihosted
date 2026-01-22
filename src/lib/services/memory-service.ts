@@ -34,7 +34,7 @@ ${JSON.stringify(recentMessages)}
     try {
       const response = await ChatService.sendChatCompletion({
         messages: [{ role: 'user', content: extractionPrompt }],
-        modelId: 'mistral-large', 
+        modelId: 'mistral', 
         systemPrompt: "Du bist ein JSON-Extraktor. Antworte nur mit validem JSON."
       });
 

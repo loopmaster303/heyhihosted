@@ -10,7 +10,7 @@ export const translations = {
         'chat.webBrowsingDisabled': 'Web-Browsing Deaktiviert',
         'models.capability.vision': 'Vision',
         'models.capability.web': 'Websuche',
-        'chat.usingGptOss': 'Verwende GPT-OSS-120B für Web-Browsing-Funktionen.',
+
         'imageGen.placeholder': 'Beschreibe in natürlicher Sprache was du dir vorstellst...', 
         'imageGen.placeholderLite': 'Beschreibe was du dir vorstellst... (Pollinations AI)',
         'imageGen.placeholderDefault': 'Beschreibe was du dir vorstellst...', 
@@ -89,7 +89,7 @@ export const translations = {
         'chat.webBrowsingDisabled': 'Web Browsing Disabled',
         'models.capability.vision': 'Vision',
         'models.capability.web': 'Web',
-        'chat.usingGptOss': 'Using GPT-OSS-120B for web capabilities.',
+
         'imageGen.placeholder': 'Describe what you imagine...',
         'imageGen.placeholderLite': 'Describe what you imagine... (Pollinations AI)',
         'imageGen.placeholderDefault': 'Describe what you want to see...', 

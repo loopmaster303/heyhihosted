@@ -1,14 +1,15 @@
-
-import { NextResponse } from 'next/server';
+import { generateText, Message } from 'ai';
+import { createPollinations } from 'ai-sdk-pollinations';
 import { z } from 'zod';
-import { handleApiError, validateRequest, ApiError, requireEnv } from '@/lib/api-error-handler';
-import { WebContextService } from '@/lib/services/web-context-service';
-import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
+import { NextResponse } from 'next/server';
+import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handler';
 import { SmartRouter } from '@/lib/services/smart-router';
+import { WebContextService } from '@/lib/services/web-context-service';
 
-const POLLEN_CHAT_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
-const LEGACY_POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
-const LEGACY_FALLBACK_MODELS = new Set(['openai-large', 'openai-reasoning', 'gemini-search']);
+// Initialize Pollinations Provider with API Key
+const pollinations = createPollinations({
+  apiKey: process.env.POLLEN_API_KEY,
+});
 
 // Validation schema
 const ChatCompletionSchema = z.object({
@@ -16,7 +17,6 @@ const ChatCompletionSchema = z.object({
   modelId: z.string().min(1, 'Model ID is required'),
   systemPrompt: z.string().optional(),
   webBrowsingEnabled: z.boolean().optional(),
-  stream: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -24,299 +24,79 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // Validate request
-    const { messages, modelId, systemPrompt, webBrowsingEnabled, stream } = validateRequest(ChatCompletionSchema, body);
-
-    // Always use the user's chosen model
-    // Mutable 'let' to allow SmartRouter overwrites below
-    let routedModelId = modelId;
-
-    // === ALWAYS-ON WEB CONTEXT ===
-    // Fetch web context in parallel (Light mode by default, Deep if toggle enabled)
-    const lastUserMessage = messages[messages.length - 1];
-    const userQuery = typeof lastUserMessage?.content === 'string'
-      ? lastUserMessage.content
-      : '';
-
-    // Messages remain unchanged
-    let enhancedMessages = messages;
-    const streamEnabled = Boolean(stream) && routedModelId !== "gpt-oss-120b";
-
-    // Handle GPT-OSS-120b model with Replicate API
-    if (routedModelId === "gpt-oss-120b") {
-
-
-      const REPLICATE_API_TOKEN = requireEnv('REPLICATE_API_TOKEN');
-
-      const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Token ${REPLICATE_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          version: "openai/gpt-oss-120b",
-          input: {
-            prompt: enhancedMessages.map((m: any) => `${m.role}: ${m.content}`).join('\n'),
-            system_prompt: systemPrompt || "",
-            temperature: 0.7,
-            top_p: 0.9,
-            max_tokens: 1000,
-            reasoning: "medium" // Default reasoning level
-          }
-        })
-      });
-
-      if (!replicateResponse.ok) {
-        const errorText = await replicateResponse.text();
-        console.error("Replicate API error:", errorText);
-        throw new ApiError(
-          502,
-          `Replicate API error: ${replicateResponse.status}`,
-          'REPLICATE_API_ERROR'
-        );
-      }
-
-      const replicateData = await replicateResponse.json();
-
-      // Poll for completion
-      let result = null;
-      let attempts = 0;
-      const maxAttempts = 30;
-
-      while (!result && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const statusResponse = await fetch(replicateData.urls.get, {
-          headers: {
-            "Authorization": `Token ${REPLICATE_API_TOKEN}`,
-          }
-        });
-
-        const statusData = await statusResponse.json();
-
-        if (statusData.status === "succeeded") {
-          result = statusData.output;
-        } else if (statusData.status === "failed") {
-          throw new ApiError(500, "Replicate prediction failed", 'PREDICTION_FAILED');
-        }
-
-        attempts++;
-      }
-
-      if (!result) {
-        throw new ApiError(504, "Replicate prediction timed out", 'PREDICTION_TIMEOUT');
-      }
-
-      // Log result for debugging
-
-
-      // Clean up response text
-      let cleanedResult = Array.isArray(result) ? result.join('\n') : result;
-
-      // Remove excessive whitespace and normalize line breaks
-      cleanedResult = cleanedResult
-        .replace(/\n\s*\n\s*\n/g, '\n\n') // Remove multiple consecutive empty lines
-        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-        .trim(); // Remove leading/trailing whitespace
-
-      return NextResponse.json({
-        choices: [{
-          message: {
-            content: cleanedResult,
-            role: "assistant"
-          }
-        }],
-        model: "gpt-oss-120b"
-      });
-    }
-
-    const pollenApiKey = process.env.POLLEN_API_KEY;
-    const legacyApiKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_API_TOKEN;
-
-    if (!pollenApiKey && !legacyApiKey) {
-      throw new ApiError(500, 'Server configuration error: POLLEN_API_KEY is not set', 'MISSING_ENV_VAR');
-    }
+    const { messages, modelId, systemPrompt, webBrowsingEnabled } = validateRequest(ChatCompletionSchema, body);
 
     // === SMART ROUTING & DEEP RESEARCH ===
-    // "Jet Interface" Logic:
-    // 1. Explicit Toggle = Deep Research (NomNom/Reasoning)
-    // 2. Invisible Router = Live Data (Perplexity Fast) via Keyword Triggers
-
+    let routedModelId = modelId;
     let isSearchRouted = false;
 
+    const lastMessage = messages[messages.length - 1];
+    let userQuery = '';
+    if (typeof lastMessage?.content === 'string') {
+      userQuery = lastMessage.content;
+    } else if (Array.isArray(lastMessage?.content)) {
+      userQuery = lastMessage.content
+        .filter((part: any) => part.type === 'text')
+        .map((part: any) => part.text)
+        .join(' ');
+    }
+
     if (webBrowsingEnabled) {
-      // Manual Toggle ON -> Force Deep Research
-      console.log('🔍 Deep Research Mode Activated');
+      console.log('🔍 Deep Research Mode Activated (NomNom)');
       routedModelId = 'nomnom';
       isSearchRouted = true;
     } else {
-      // Manual Toggle OFF -> Check for Smart Routing triggers
       if (SmartRouter.shouldRouteToSearch(userQuery)) {
-        console.log(`⚡️ Smart Router: Live Data Triggered for query "${userQuery.substring(0, 50)}..."`);
+        console.log(`⚡️ Smart Router: Live Data Triggered (Sona) for query "${userQuery.substring(0, 50)}"...`);
         routedModelId = SmartRouter.getLiveSearchModel();
         isSearchRouted = true;
       }
     }
 
-    // === DATE & CONTEXT INJECTION ===
     const currentDate = new Date().toISOString().split('T')[0];
-
-    // Use a specialized prompt for search models
     let systemDateBlock: string;
     if (isSearchRouted) {
-      systemDateBlock = `Current Date: ${currentDate}.
-YOU ARE IN LIVE DATA MODE. You have FULL access to the internet via your internal browsing tools.
-Answer questions about current events, prices, weather, news, and local happenings with confidence.
-DO NOT apologize for lack of internet access. USE YOUR BROWSING CAPABILITIES.`;
-      console.log('📡 Injecting Search-Aware System Prompt');
+      systemDateBlock = `Current Date: ${currentDate}.\nYOU ARE IN LIVE DATA MODE. Use browsing capabilities confidently.`;
     } else {
-      systemDateBlock = `Current Date: ${currentDate}.\nYou have access to real-time information via your internal tools. If asked about current events, answer confidently using the provided context or your browsing capabilities.`;
+      systemDateBlock = `Current Date: ${currentDate}.\nYou have access to real-time information.`;
     }
 
     let finalSystemPrompt = systemPrompt ? `${systemDateBlock}\n\n${systemPrompt}` : systemDateBlock;
 
-    // Set up payload with modified prompts
-    const payload: Record<string, any> = {
-      model: routedModelId,
-      messages: [{ role: 'system', content: finalSystemPrompt }, ...enhancedMessages],
-    };
-
-    if (streamEnabled) {
-      payload.stream = true;
-    }
-
-    let lastError: Error | null = null;
-
-    const mapModelForLegacy = (model: string) => {
-      if (model === 'openai-large') return 'openai';
-      if (model === 'openai-reasoning') return 'openai';
-      if (model === 'gemini-search') return 'gemini';
-      return model;
-    };
-
-    type EndpointTarget = {
-      name: 'pollen' | 'legacy';
-      url: string;
-      apiKey: string;
-      modelId: string;
-    };
-
-    const availableModelIds = new Set(AVAILABLE_POLLINATIONS_MODELS.map(model => model.id));
-    const googleModelIds = ['gemini', 'gemini-fast', 'gemini-large', 'gemini-search']
-      .filter(modelId => availableModelIds.has(modelId));
-    
-    // Prioritize search models when search is triggered
-    const searchFallbackOrder = ['perplexity-fast', 'nomnom', 'perplexity-reasoning', 'gemini-search'];
-    const generalFallbackOrder = ['deepseek', 'glm', ...googleModelIds];
-    const fallbackOrder = isSearchRouted 
-      ? [...searchFallbackOrder, ...generalFallbackOrder] 
-      : generalFallbackOrder;
-    const modelCandidates = [routedModelId, ...fallbackOrder].filter((modelId, index, list) => (
-      modelId && list.indexOf(modelId) === index
-    ));
-    const filteredCandidates = modelCandidates.filter(modelId => (
-      modelId === routedModelId || availableModelIds.has(modelId)
-    ));
-
-    const shouldFallbackForResponse = (status: number, detail: string) => {
-      if (status >= 500) return true;
-      if (status === 404 || status === 429) return true;
-      if (status === 400) {
-        const lowered = detail.toLowerCase();
-        return lowered.includes('model') || lowered.includes('not found') || lowered.includes('unknown model');
-      }
-      return false;
-    };
-
-    for (const modelId of filteredCandidates) {
-      const targets: EndpointTarget[] = [];
-      if (pollenApiKey) {
-        targets.push({ name: 'pollen', url: POLLEN_CHAT_API_URL, apiKey: pollenApiKey, modelId });
-      }
-      if (legacyApiKey && LEGACY_FALLBACK_MODELS.has(modelId)) {
-        targets.push({
-          name: 'legacy',
-          url: LEGACY_POLLINATIONS_API_URL,
-          apiKey: legacyApiKey,
-          modelId: mapModelForLegacy(modelId),
-        });
-      }
-
-      if (targets.length === 0) {
-        continue;
-      }
-
-      for (const target of targets) {
-        try {
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${target.apiKey}`,
-          };
-
-          if (streamEnabled) {
-            headers['Accept'] = 'text/event-stream';
-          }
-
-          const payloadForTarget = {
-            ...payload,
-            model: target.modelId,
-          };
-
-          const response = await fetch(target.url, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(payloadForTarget),
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Chat API (${target.name}) error (${response.status}):`, errorText);
-            const detail = errorText || 'Unknown error';
-
-            const apiError = new ApiError(
-              response.status,
-              `Chat API (${target.name}) returned status ${response.status}: ${detail}`,
-              `${target.name.toUpperCase()}_CHAT_API_ERROR`
-            );
-
-            if (shouldFallbackForResponse(response.status, detail)) {
-              lastError = apiError;
-              continue;
-            }
-
-            throw apiError;
-          }
-
-          if (streamEnabled) {
-            const bodyStream = response.body;
-            if (!bodyStream) {
-              throw new ApiError(502, `Chat API (${target.name}) stream did not return a body`, `${target.name.toUpperCase()}_CHAT_STREAM_ERROR`);
-            }
-            return new Response(bodyStream, {
-              status: 200,
-              headers: {
-                'Content-Type': response.headers.get('content-type') ?? 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                Connection: 'keep-alive',
-              },
-            });
-          }
-
-          const result = await response.json();
-          return NextResponse.json(result);
-        } catch (err) {
-          lastError = err instanceof Error ? err : new Error(String(err));
+    if (!isSearchRouted && userQuery.trim().length > 3) {
+      try {
+        const webContext = await WebContextService.getContext(userQuery, 'light');
+        if (webContext && webContext.facts.length > 0) {
+          finalSystemPrompt = WebContextService.injectIntoSystemPrompt(finalSystemPrompt, webContext);
         }
+      } catch (error) {
+        console.warn('Failed to fetch web context:', error);
       }
     }
 
-    if (lastError) {
-      throw lastError;
-    }
+    // === EXECUTE GENERATION (BLOCKING) ===
+    console.log('[API] Executing generateText (non-streaming)...');
+    const result = await generateText({
+      model: pollinations(routedModelId),
+      messages: messages as Message[],
+      system: finalSystemPrompt,
+    });
 
-    throw new ApiError(503, 'No chat backend available', 'CHAT_BACKEND_UNAVAILABLE');
+    console.log('[API] Generation complete. Length:', result.text.length);
+
+    return NextResponse.json({
+        choices: [
+            {
+                message: {
+                    content: result.text,
+                    role: 'assistant'
+                }
+            }
+        ]
+    });
 
   } catch (error) {
+    console.error('API Route Error:', error);
     return handleApiError(error);
   }
 }

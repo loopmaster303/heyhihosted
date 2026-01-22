@@ -13,24 +13,27 @@ graph TB
     
     subgraph "Next.js Backend"
         API[API Routes]
+        Router[SmartRouter (Intent Analysis)]
+        WebContext[WebContextService (RAG)]
         Auth[Authentication Middleware]
-        Proxy[Image Proxy]
     end
     
     subgraph "External Services"
         Pollinations[Pollinations API]
         Replicate[Replicate API]
         S3[AWS S3 (Asset Vault)]
+        WebSearch[DuckDuckGo / Web]
     end
     
     UI --> State
     State --> Local
     State --> Hooks
     UI --> API
-    API --> Auth
+    API --> Router
+    Router --> WebContext
+    WebContext --> WebSearch
     API --> Pollinations
     API --> Replicate
-    Proxy --> S3
     Hooks --> Local
 ```
 
@@ -79,15 +82,17 @@ sequenceDiagram
     participant UI
     participant ChatProvider
     participant API
+    participant SmartRouter
     participant ExternalAPI
     participant IndexedDB
     
     User->>UI: Send Message
     UI->>ChatProvider: sendMessage()
     ChatProvider->>API: POST /api/chat/completion
-    API->>ExternalAPI: Request to Pollinations/Replicate
+    API->>SmartRouter: Analyze Intent (Deep Research / Search)
+    SmartRouter->>ExternalAPI: Select Model & Inject Context
     ExternalAPI-->>API: Response (Streaming)
-    API-->>ChatProvider: Stream Response
+    API-->>ChatProvider: Stream Response (Text/Data Stream)
     ChatProvider->>IndexedDB: Save Conversation (Conversations Table)
     ChatProvider->>IndexedDB: Save Message (Messages Table)
     ChatProvider-->>UI: Update State
@@ -150,5 +155,5 @@ The application uses a typed Dexie.js database instance (`HeyHiDatabase`) with t
 | :--- | :--- | :--- | :--- |
 | **`conversations`** | `id` (UUID) | `updatedAt`, `modelId` | Stores chat session metadata, title, and settings. |
 | **`messages`** | `id` (UUID) | `conversationId`, `timestamp` | Stores individual messages, including content and references. |
-| **`assets`** | `id` (UUID) | `type`, `createdAt` | Stores binary data (Blobs) for images/audio to avoid LocalStorage limits. |
+| **`assets`** | `id` (UUID) | `conversationId`, `timestamp` | Stores binary data (Blobs) for images/audio to avoid LocalStorage limits. |
 | **`memories`** | `id` (UUID) | `type`, `importance` | Stores AI-generated memories and user facts (Future use). |

@@ -1,13 +1,10 @@
 'use client';
 
 import type React from 'react';
-import { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { UnifiedInput } from '@/components/ui/unified-input';
 import { Settings2, AudioWaveform, Square, ArrowUp, Plus, X } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
-import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { DEFAULT_POLLINATIONS_MODEL_ID } from '@/config/chat-options';
 import { MobileOptionsMenu } from './input/MobileOptionsMenu';
 import { QuickSettingsBadges } from './input/QuickSettingsBadges';
 import { ToolsBadges } from './input/ToolsBadges';
@@ -16,76 +13,52 @@ import { VisualizeReferenceBadges } from './input/VisualizeReferenceBadges';
 import { VisualizeInlineHeader } from '@/components/tools/visualize/VisualizeInlineHeader';
 import { ModelSelector } from './input/ModelSelector';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
-import { useOnClickOutside } from '@/hooks/useOnClickOutside';
+import { useChatInputLogic, UseChatInputLogicProps } from '@/hooks/useChatInputLogic';
 
-interface ChatInputProps {
-    onSendMessage: (message: string, options?: { isImageModeIntent?: boolean }) => void;
-    isLoading: boolean;
-    uploadedFilePreviewUrl: string | null;
-    onFileSelect: (file: File | null, fileType: string | null) => void;
-    isLongLanguageLoopActive: boolean;
-    inputValue: string;
-    onInputChange: (value: string | ((prev: string) => string)) => void;
-    isImageMode: boolean;
-    onToggleImageMode: () => void;
-    isCodeMode?: boolean;
-    onToggleCodeMode?: () => void;
-    selectedModelId: string;
-    handleModelChange: (modelId: string) => void;
+interface ChatInputProps extends UseChatInputLogicProps {
     selectedResponseStyleName: string;
     handleStyleChange: (styleName: string) => void;
     selectedVoice: string;
     handleVoiceChange: (voiceId: string) => void;
-    webBrowsingEnabled: boolean;
-    onToggleWebBrowsing: () => void;
-    isRecording: boolean;
     isTranscribing: boolean;
     startRecording: () => void;
     stopRecording: () => void;
     openCamera: () => void;
-    visualizeToolState?: UnifiedImageToolState;
     placeholder?: string;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({
-    onSendMessage,
-    isLoading,
-    uploadedFilePreviewUrl,
-    onFileSelect,
-    isLongLanguageLoopActive,
-    inputValue,
-    onInputChange,
-    isImageMode,
-    onToggleImageMode,
-    webBrowsingEnabled,
-    onToggleWebBrowsing,
-    selectedModelId,
-    handleModelChange,
-    selectedResponseStyleName,
-    handleStyleChange,
-    selectedVoice,
-    handleVoiceChange,
-    isRecording,
-    isTranscribing,
-    startRecording,
-    stopRecording,
-    openCamera,
-    isCodeMode = false,
-    onToggleCodeMode,
-    visualizeToolState,
-    placeholder,
-}) => {
+const ChatInput: React.FC<ChatInputProps> = (props) => {
     const { t } = useLanguage();
-    const [isMobile, setIsMobile] = useState(false);
-    const [activeBadgeRow, setActiveBadgeRow] = useState<'tools' | 'upload' | 'settings' | null>(null);
-    const badgePanelRef = useRef<HTMLDivElement>(null);
-    const badgeActionsRef = useRef<HTMLDivElement>(null);
-    const hasActiveTool = isImageMode || webBrowsingEnabled || isCodeMode;
-    const [defaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
+    
+    // Destructure props used directly in render
+    const {
+        isLoading,
+        uploadedFilePreviewUrl,
+        inputValue,
+        onInputChange,
+        isImageMode,
+        onToggleImageMode,
+        webBrowsingEnabled,
+        onToggleWebBrowsing,
+        selectedModelId,
+        handleModelChange,
+        selectedResponseStyleName,
+        handleStyleChange,
+        selectedVoice,
+        handleVoiceChange,
+        isRecording,
+        isTranscribing,
+        startRecording,
+        stopRecording,
+        openCamera,
+        isCodeMode = false,
+        onToggleCodeMode,
+        visualizeToolState,
+        placeholder,
+    } = props;
 
-    const toggleBadgeRow = (row: 'tools' | 'upload' | 'settings') => {
-        setActiveBadgeRow(current => current === row ? null : row);
-    };
+    // Use the logic hook
+    const logic = useChatInputLogic(props);
 
     const renderTopBadges = () => {
         const rows: React.ReactNode[] = [];
@@ -100,7 +73,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     supportsReference={visualizeToolState.supportsReference}
                     isUploading={visualizeToolState.isUploading}
                     onRemove={visualizeToolState.handleRemoveImage}
-                    onUploadClick={() => imageInputRef.current?.click()}
+                    onUploadClick={() => logic.imageInputRef.current?.click()}
                     disabled={isLoading || isRecording || isTranscribing}
                     selectedModelId={visualizeToolState.selectedModelId}
                 />
@@ -127,27 +100,27 @@ const ChatInput: React.FC<ChatInputProps> = ({
             );
         }
 
-        if (activeBadgeRow === 'tools') {
+        if (logic.activeBadgeRow === 'tools') {
             panelRows.push(
                 <ToolsBadges
                     key="tools-badges"
                     isImageMode={isImageMode}
                     isCodeMode={isCodeMode || false}
                     webBrowsingEnabled={webBrowsingEnabled}
-                    onSelectMode={handleSelectMode}
+                    onSelectMode={logic.handleSelectMode}
                     canToggleCodeMode={!!onToggleCodeMode}
-                    onClose={() => setActiveBadgeRow(null)}
+                    onClose={() => logic.toggleBadgeRow('tools')}
                 />
             );
         }
-        if (activeBadgeRow === 'upload') {
+        if (logic.activeBadgeRow === 'upload') {
             panelRows.push(
                 <UploadBadges
                     key="upload-badges"
                     isLoading={isLoading}
                     isImageMode={isImageMode}
-                    onImageUploadClick={() => imageInputRef.current?.click()}
-                    onDocUploadClick={() => docInputRef.current?.click()}
+                    onImageUploadClick={() => logic.imageInputRef.current?.click()}
+                    onDocUploadClick={() => logic.docInputRef.current?.click()}
                     onCameraClick={openCamera}
                     allowImageUploadInImageMode={!!(isImageMode && visualizeToolState?.supportsReference)}
                     disableImageUpload={!!(
@@ -158,7 +131,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 />
             );
         }
-        if (activeBadgeRow === 'settings') {
+        if (logic.activeBadgeRow === 'settings') {
             panelRows.push(
                 <QuickSettingsBadges
                     key="quick-settings-badges"
@@ -171,7 +144,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         }
         if (panelRows.length > 0) {
             rows.push(
-                <div key="badge-panel" ref={badgePanelRef} className="flex flex-col gap-2">
+                <div key="badge-panel" ref={logic.badgePanelRef} className="flex flex-col gap-2">
                     {panelRows}
                 </div>
             );
@@ -179,131 +152,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
         if (rows.length === 0) return null;
         return <div className="flex flex-col gap-2">{rows}</div>;
     };
-
-    // Mobile detection
-    useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 640);
-        };
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
-
-    useEffect(() => {
-        if (isImageMode && activeBadgeRow === 'upload') {
-            setActiveBadgeRow(null);
-        }
-    }, [isImageMode, activeBadgeRow]);
-
-    useEffect(() => {
-        if (!isCodeMode) return;
-        if (!CODE_MODE_MODEL_IDS.includes(selectedModelId)) {
-            handleModelChange('qwen-coder');
-        }
-    }, [isCodeMode, selectedModelId, handleModelChange]);
-
-    const wasCodeMode = useRef(isCodeMode);
-
-    useEffect(() => {
-        if (wasCodeMode.current && !isCodeMode) {
-            handleModelChange(defaultTextModelId || DEFAULT_POLLINATIONS_MODEL_ID);
-        }
-        wasCodeMode.current = isCodeMode;
-    }, [isCodeMode, defaultTextModelId, handleModelChange]);
-
-    const docInputRef = useRef<HTMLInputElement>(null);
-    const imageInputRef = useRef<HTMLInputElement>(null);
-    const quickSettingsButtonRef = useRef<HTMLButtonElement>(null);
-
-    useOnClickOutside([badgePanelRef, badgeActionsRef], () => {
-        if (activeBadgeRow) setActiveBadgeRow(null);
-    });
-
-type ToolMode = 'standard' | 'visualize' | 'research' | 'code';
-
-const CODE_MODE_MODEL_IDS = ['qwen-coder', 'deepseek', 'glm', 'gemini-large'];
-
-const setActiveMode = useCallback((mode: ToolMode) => {
-    const shouldEnableImage = mode === 'visualize';
-    const shouldEnableWeb = mode === 'research';
-    const shouldEnableCode = mode === 'code';
-
-    if (isImageMode !== shouldEnableImage) {
-        onToggleImageMode();
-    }
-    if (webBrowsingEnabled !== shouldEnableWeb) {
-        onToggleWebBrowsing();
-    }
-    if (onToggleCodeMode && isCodeMode !== shouldEnableCode) {
-        onToggleCodeMode();
-    }
-    if (shouldEnableCode && !isCodeMode) {
-        handleModelChange('qwen-coder');
-    }
-    setActiveBadgeRow(null);
-}, [isImageMode, webBrowsingEnabled, isCodeMode, onToggleImageMode, onToggleWebBrowsing, onToggleCodeMode, handleModelChange]);
-
-    const handleSelectMode = useCallback((mode: ToolMode) => {
-        if (mode === 'visualize' && isImageMode) {
-            setActiveMode('standard');
-            return;
-        }
-        if (mode === 'research' && webBrowsingEnabled) {
-            setActiveMode('standard');
-            return;
-        }
-        if (mode === 'code' && isCodeMode) {
-            setActiveMode('standard');
-            return;
-        }
-        if (mode === 'standard') {
-            setActiveMode('standard');
-            return;
-        }
-        setActiveMode(mode);
-    }, [isImageMode, webBrowsingEnabled, isCodeMode, setActiveMode]);
-
-    const handleSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
-        e?.preventDefault();
-        if (isLoading || isRecording) return;
-        const canSendMessage = (isLongLanguageLoopActive && !!uploadedFilePreviewUrl) || (inputValue.trim() !== '');
-        if (canSendMessage) {
-            onSendMessage(inputValue.trim(), { isImageModeIntent: isImageMode });
-            onInputChange('');
-            setActiveBadgeRow(null);
-        }
-    }, [isLoading, isRecording, isLongLanguageLoopActive, uploadedFilePreviewUrl, inputValue, onSendMessage, isImageMode, onInputChange]);
-
-    // Sync prompt with visualizeToolState when in image mode
-    useEffect(() => {
-        if (!isImageMode || !visualizeToolState) return;
-        if (visualizeToolState.prompt !== inputValue) {
-            onInputChange(visualizeToolState.prompt);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [visualizeToolState?.prompt, isImageMode, inputValue, onInputChange]);
-
-    const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>, fileType: 'document' | 'image') => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        // In image mode with reference support, use visualize tool's handler
-        if (fileType === 'image' && isImageMode && visualizeToolState?.supportsReference) {
-            visualizeToolState.handleFileChange(event);
-            if (event.currentTarget) {
-                event.currentTarget.value = "";
-            }
-            setActiveBadgeRow(null);
-            return;
-        }
-
-        onFileSelect(file, fileType);
-        if (event.currentTarget) {
-            event.currentTarget.value = "";
-        }
-        setActiveBadgeRow(null);
-    }, [onFileSelect, isImageMode, visualizeToolState]);
 
     const placeholderText = placeholder || (isRecording
         ? t('chat.recording')
@@ -319,7 +167,7 @@ const setActiveMode = useCallback((mode: ToolMode) => {
 
     return (
         <div className="relative w-full"> 
-             <form onSubmit={handleSubmit} className="w-full">
+             <form onSubmit={logic.handleSubmit} className="w-full">
                 <UnifiedInput
                     value={inputValue}
                     onChange={(val) => {
@@ -331,7 +179,7 @@ const setActiveMode = useCallback((mode: ToolMode) => {
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            handleSubmit();
+                            logic.handleSubmit();
                         }
                     }}
                     placeholder={placeholderText}
@@ -340,13 +188,13 @@ const setActiveMode = useCallback((mode: ToolMode) => {
                     topElements={renderTopBadges()}
                     topElementsVariant="bare"
                     leftActions={
-                        isMobile ? (
-                            <div ref={badgeActionsRef}>
+                        logic.isMobile ? (
+                            <div ref={logic.badgeActionsRef}>
                                 <MobileOptionsMenu
                                     isLoading={isLoading}
                                     isImageMode={isImageMode}
-                                    onImageUploadClick={() => imageInputRef.current?.click()}
-                                    onDocUploadClick={() => docInputRef.current?.click()}
+                                    onImageUploadClick={() => logic.imageInputRef.current?.click()}
+                                    onDocUploadClick={() => logic.docInputRef.current?.click()}
                                     onCameraClick={openCamera}
                                     allowImageUploadInImageMode={!!(isImageMode && visualizeToolState?.supportsReference)}
                                     disableImageUpload={!!(
@@ -367,16 +215,16 @@ const setActiveMode = useCallback((mode: ToolMode) => {
                                 />
                             </div>
                         ) : (
-                            <div ref={badgeActionsRef} className="flex items-center gap-2">
+                            <div ref={logic.badgeActionsRef} className="flex items-center gap-2">
                                 {/* Quick Settings Toggle */}
                                 {!isImageMode && (
                                 <Button
-                                    ref={quickSettingsButtonRef}
+                                    ref={logic.quickSettingsButtonRef}
                                     type="button"
                                     variant="ghost"
-                                    onClick={() => toggleBadgeRow('settings')}
+                                    onClick={() => logic.toggleBadgeRow('settings')}
                                     className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all ${
-                                        activeBadgeRow === 'settings' 
+                                        logic.activeBadgeRow === 'settings' 
                                             ? "text-foreground shadow-sm hover:shadow-md" 
                                             : "bg-transparent text-foreground/80 hover:shadow-sm"
                                     }`}
@@ -391,9 +239,9 @@ const setActiveMode = useCallback((mode: ToolMode) => {
                                     <Button
                                         type="button"
                                         variant="ghost"
-                                        onClick={() => toggleBadgeRow('upload')}
+                                        onClick={() => logic.toggleBadgeRow('upload')}
                                         className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all ${
-                                            activeBadgeRow === 'upload'
+                                            logic.activeBadgeRow === 'upload'
                                                 ? "text-foreground shadow-sm hover:shadow-md"
                                                 : "bg-transparent text-foreground/80 hover:shadow-sm"
                                         }`}
@@ -403,20 +251,20 @@ const setActiveMode = useCallback((mode: ToolMode) => {
                                 )}
 
                                 {/* Tools Toggle */}
-                                {!hasActiveTool && (
+                                {!logic.hasActiveTool && (
                                     <Button
                                         type="button"
                                         variant="ghost"
-                                        onClick={() => toggleBadgeRow('tools')}
+                                        onClick={() => logic.toggleBadgeRow('tools')}
                                         className={`flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-sm font-medium transition-all ${
-                                            activeBadgeRow === 'tools'
+                                            logic.activeBadgeRow === 'tools'
                                                 ? "text-foreground shadow-sm hover:shadow-md"
                                                 : "bg-transparent text-foreground/80 hover:shadow-sm"
                                         }`}
                                     >
                                         <span>Tools</span>
                                         <svg
-                                            className={`h-4 w-4 transition-transform ${activeBadgeRow === 'tools' ? 'rotate-180' : ''}`}
+                                            className={`h-4 w-4 transition-transform ${logic.activeBadgeRow === 'tools' ? 'rotate-180' : ''}`}
                                             fill="none"
                                             strokeWidth="2"
                                             stroke="currentColor"
@@ -431,7 +279,7 @@ const setActiveMode = useCallback((mode: ToolMode) => {
                                 {isImageMode && (
                                     <button
                                         type="button"
-                                        onClick={() => setActiveMode('standard')}
+                                        onClick={() => logic.setActiveMode('standard')}
                                         className="flex items-center gap-1.5 rounded-full border border-primary/60 px-3 py-1.5 text-xs font-bold transition-all bg-primary/5 text-primary"
                                     >
                                         <span>Visualize</span>
@@ -441,7 +289,7 @@ const setActiveMode = useCallback((mode: ToolMode) => {
                                 {webBrowsingEnabled && (
                                     <button
                                         type="button"
-                                        onClick={() => setActiveMode('standard')}
+                                        onClick={() => logic.setActiveMode('standard')}
                                         className="flex items-center gap-1.5 rounded-full border border-[#00d2ff]/60 px-3 py-1.5 text-xs font-bold transition-all bg-[#00d2ff]/5 text-[#00d2ff]"
                                     >
                                         <span>Deep Research</span>
@@ -451,7 +299,7 @@ const setActiveMode = useCallback((mode: ToolMode) => {
                                 {isCodeMode && (
                                     <button
                                         type="button"
-                                        onClick={() => setActiveMode('standard')}
+                                        onClick={() => logic.setActiveMode('standard')}
                                         className="flex items-center gap-1.5 rounded-full border border-[#00ff88]/60 px-3 py-1.5 text-xs font-bold transition-all bg-[#00ff88]/5 text-[#00ff88]"
                                     >
                                         <span>Code</span>
@@ -471,7 +319,7 @@ const setActiveMode = useCallback((mode: ToolMode) => {
                                     onModelChange={handleModelChange}
                                     disabled={isLoading || isRecording || isTranscribing}
                                     compact={true}
-                                    modelFilterIds={isCodeMode ? CODE_MODE_MODEL_IDS : undefined}
+                                    modelFilterIds={isCodeMode ? logic.CODE_MODE_MODEL_IDS : undefined}
                                 />
                             </div>
                             )}
@@ -520,7 +368,7 @@ const setActiveMode = useCallback((mode: ToolMode) => {
                                     className="ml-1 rounded-full px-6 font-medium h-9 text-sm transition-all duration-300 bg-primary text-primary-foreground hover:opacity-90 shadow-md"
                                     aria-label="Send message"
                                 >
-                                    {isMobile ? <ArrowUp className="w-5 h-5" /> : t('chat.send')}
+                                    {logic.isMobile ? <ArrowUp className="w-5 h-5" /> : t('chat.send')}
                                 </Button>
                             )}
                          </>
@@ -531,16 +379,16 @@ const setActiveMode = useCallback((mode: ToolMode) => {
             {/* Hidden Inputs */}
             <input
                 type="file"
-                ref={imageInputRef}
-                onChange={(e) => handleFileChange(e, 'image')}
+                ref={logic.imageInputRef}
+                onChange={(e) => logic.handleFileChange(e, 'image')}
                 accept="image/*"
                 multiple={!!(isImageMode && visualizeToolState?.supportsReference)}
                 className="hidden"
             />
             <input
                 type="file"
-                ref={docInputRef}
-                onChange={(e) => handleFileChange(e, 'document')}
+                ref={logic.docInputRef}
+                onChange={(e) => logic.handleFileChange(e, 'document')}
                 accept=".pdf,.doc,.docx,.txt"
                 className="hidden"
             />

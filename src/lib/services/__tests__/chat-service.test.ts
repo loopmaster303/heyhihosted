@@ -92,24 +92,7 @@ describe('ChatService', () => {
             expect(result).toBe('');
         });
 
-        it('should clean up gpt-oss-120b responses', async () => {
-            const options: SendMessageOptions = {
-                ...defaultOptions,
-                modelId: 'gpt-oss-120b',
-            };
 
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                headers: new Headers({ 'content-type': 'application/json' }),
-                json: async () => ({
-                    choices: [{ message: { content: 'Hello   there\n\n\n\nworld' } }],
-                }),
-            });
-
-            const result = await ChatService.sendChatCompletion(options);
-            // Should have normalized whitespace
-            expect(result).toBe('Hello there world');
-        });
     });
 
     describe('generateTitle', () => {

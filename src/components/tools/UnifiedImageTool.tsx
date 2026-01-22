@@ -2,7 +2,7 @@
 
 /* eslint-disable react-hooks/exhaustive-deps, @next/next/no-img-element */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
 import { getUnifiedModel } from '@/config/unified-image-models';
@@ -46,6 +46,12 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
     setUploadedImages,
     availableModels,
   } = toolState;
+
+  // ✅ Always capture latest model ID (prevent stale closure)
+  const selectedModelIdRef = useRef(selectedModelId);
+  useEffect(() => {
+    selectedModelIdRef.current = selectedModelId;
+  }, [selectedModelId]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,10 +125,17 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       // REMOVED: Legacy behavior. We now pass 'image' param explicitly.
       const enrichedPrompt = prompt.trim();
 
+      // ✅ Use fresh value from ref (not stale closure)
+      const currentModelId = selectedModelIdRef.current;
+
+      // 🔍 DIAGNOSTIC: Log model ID at submit time
+      console.log('[SUBMIT DEBUG] Fresh Model ID:', currentModelId);
+      console.log('[SUBMIT DEBUG] currentModelConfig:', currentModelConfig);
+      console.log('[SUBMIT DEBUG] modelInfo:', modelInfo);
 
       const payload: any = {
         prompt: enrichedPrompt,
-        model: selectedModelId,
+        model: currentModelId, // ✅ Fresh value, not closure
         private: true,
       };
 
@@ -184,7 +197,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
               id: localAssetId,
               contentType: ingest.contentType,
               prompt: prompt.trim(),
-              modelId: selectedModelId,
+              modelId: currentModelId, // ✅ Use fresh value
               timestamp: Date.now(),
               storageKey: ingest.key,
             });

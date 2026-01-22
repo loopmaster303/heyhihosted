@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { BlinkingCursor } from '@/components/ui/BlinkingCursor';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useLanguage } from '@/components/LanguageProvider';
+// Force refresh
 import { DatabaseService } from '@/lib/services/database';
 
 import { useAssetUrl } from '@/hooks/useAssetUrl';
