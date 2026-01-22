@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import type { Conversation, ChatMessage, ToolType } from '@/types';
+import { BlobManager } from '@/lib/blob-manager';
 
 // --- Interfaces für unsere DB-Ebene (leicht angepasst für IndexedDB Indizes) ---
 
@@ -153,7 +154,7 @@ export const DatabaseService = {
   async getAssetUrl(id: string): Promise<string | null> {
     const asset = await db.assets.get(id);
     if (!asset) return null;
-    if (asset.blob) return URL.createObjectURL(asset.blob);
+    if (asset.blob) return BlobManager.createURL(asset.blob, `db:${id.slice(0, 8)}`);
     return asset.remoteUrl || null;
   },
 

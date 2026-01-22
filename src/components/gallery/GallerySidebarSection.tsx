@@ -165,16 +165,15 @@ const GallerySidebarSection: React.FC = () => {
   const recentAssets = useMemo(() => assets.slice(0, MAX_PREVIEW), [assets]);
   const panelAssets = useMemo(() => assets.slice(0, MAX_PANEL), [assets]);
 
-  const handleDownload = async (url: string, filename: string) => {
+  const handleDownload = (url: string, filename: string) => {
     try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = objectUrl;
+      link.href = url;
       link.download = filename;
+      link.target = '_blank';
+      document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(objectUrl);
+      document.body.removeChild(link);
     } catch {
       window.open(url, '_blank');
     }

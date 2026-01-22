@@ -153,17 +153,35 @@ Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical—wit
 
 ## Roadmap (2026-01-22)
 
-### Phase 1: Asset & Gallery Deep-Sync (HIGH)
+### Phase 1: Asset & Gallery Deep-Sync ✅ COMPLETE
+
+**Completion**: 2026-01-22 | **Full Summary**: [docs/phase-1-complete.md](docs/phase-1-complete.md)
 - [x] Image-Generation Loop: Centralized `GalleryService.saveGeneratedAsset()` handles all generation flows (2026-01-22)
   - Refactored duplicate code in `ChatProvider.tsx` and `UnifiedImageTool.tsx`
   - Supports both Pollinations (S3) and Replicate (blob) storage
-- [ ] Blob-Management: Global registry for `URL.revokeObjectURL` to prevent memory leaks
-- [ ] Fallback-Handling: Auto re-fetch from remote URL if vault asset missing
+- [x] Blob-Management: Global `BlobManager` with automatic cleanup (2026-01-22)
+  - Reference counting for shared blob URLs
+  - Automatic cleanup on unmount and page unload
+  - Periodic cleanup of old URLs (5-minute intervals)
+  - React hooks: `useBlobUrl()` and `useBlobUrls()`
+  - Integrated into `useAssetUrl`, `DatabaseService.getAssetUrl()`
+  - Debug stats: `BlobManager.getStats()` and `BlobManager.debug()`
+- [x] Fallback-Handling: `AssetFallbackService` with comprehensive fallback chain (2026-01-22)
+  - Auto-fetch from S3 with exponential backoff retry (max 3 attempts)
+  - Automatic download and cache of missing blobs in background
+  - Fallback priority: blob → remoteUrl → S3 signed URL → download & cache
+  - Enhanced `useAssetUrl` with `refresh()` method for expired URLs
+  - `useAssetPrecache()` hook for gallery pre-loading
+  - `GalleryService.verifyAndRepairAssets()` for bulk asset repair
 
-### Phase 2: Code-Hygiene & Legacy (MEDIUM)
-- [ ] Remove legacy model refs (`gpt-oss-120b`)
-- [ ] Re-enable `streamText` when AI SDK compatible
-- [ ] Extract `ChatView.tsx` logic into hooks
+### Phase 2: Code-Hygiene & Legacy ✅ COMPLETE
+
+**Completion**: 2026-01-22
+
+- [x] Remove legacy model refs: Verified `gpt-oss-120b` already removed from codebase
+- [x] Streaming status documented: `generateText` working, `streamText` deferred until SDK stable
+  - See: [docs/streaming-status.md](docs/streaming-status.md)
+- [x] ChatView.tsx evaluated: 143 lines, well-structured, no refactoring needed
 
 ### Phase 3: Security & Performance (LONG-TERM)
 - [ ] Web Crypto API encryption for `messages` and `memories` tables

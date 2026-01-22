@@ -1,6 +1,7 @@
 import { DatabaseService, type Asset } from '@/lib/services/database';
 import { ingestGeneratedAsset } from '@/lib/upload/ingest';
 import { generateUUID } from '@/lib/uuid';
+import { resolveAssetUrl } from '@/lib/services/asset-fallback-service';
 
 export interface SaveGeneratedAssetOptions {
   url: string;
@@ -45,6 +46,61 @@ export const GalleryService = {
    */
   async deleteAsset(id: string): Promise<void> {
     return DatabaseService.deleteAsset(id);
+  },
+
+  /**
+   * Get a resolved asset URL with full fallback chain.
+   * Uses AssetFallbackService for retry logic and auto-caching.
+   */
+  async getResolvedAssetUrl(id: string): Promise<string | null> {
+    const result = await resolveAssetUrl(id, {
+      maxRetries: 3,
+      downloadMissingBlob: true,
+    });
+    return result.url;
+  },
+
+  /**
+   * Verify and repair assets with missing blobs.
+   * Downloads and caches assets that only have storageKey or remoteUrl.
+   *
+   * @param assetIds Array of asset IDs to verify
+   * @returns Number of assets repaired
+   */
+  async verifyAndRepairAssets(assetIds: string[]): Promise<number> {
+    let repaired = 0;
+
+    for (const id of assetIds) {
+      try {
+        const asset = await DatabaseService.getAsset(id);
+        if (!asset) continue;
+
+        // Skip if blob already exists
+        if (asset.blob) continue;
+
+        // Only repair if we have a way to fetch the asset
+        if (!asset.storageKey && !asset.remoteUrl) {
+          console.warn(`[GalleryService] No source to repair asset: ${id}`);
+          continue;
+        }
+
+        // Use fallback service to download and cache
+        await resolveAssetUrl(id, {
+          maxRetries: 2,
+          downloadMissingBlob: true,
+        });
+
+        repaired++;
+      } catch (error) {
+        console.warn(`[GalleryService] Failed to repair asset ${id}:`, error);
+      }
+    }
+
+    if (repaired > 0) {
+      console.log(`[GalleryService] Repaired ${repaired} assets`);
+    }
+
+    return repaired;
   },
 
   /**

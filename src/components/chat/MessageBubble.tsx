@@ -69,17 +69,16 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
     setReloadToken(0);
   }, [src]);
 
-  const handleDownload = async (e: React.MouseEvent) => {
+  const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = objectUrl;
+      link.href = url;
       link.download = `${(altText || 'image').slice(0, 30)}.jpg`;
+      link.target = '_blank';
+      document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(objectUrl);
+      document.body.removeChild(link);
     } catch {
       window.open(url, '_blank');
     }
