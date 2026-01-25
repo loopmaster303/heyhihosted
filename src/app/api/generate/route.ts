@@ -68,42 +68,61 @@ export async function POST(request: Request) {
          console.warn('[Pollinations] Private mode requested but no POLLEN_API_KEY found. Forcing private=false.');
     }
 
+    // 1. Generate URL first (optimistic)
     let resultUrl: string;
+    
+    // Helper to build options
+    const imageOptions = {
+        model: modelId,
+        width,
+        height,
+        aspectRatio,
+        seed,
+        nologo,
+        enhance: effectiveEnhance,
+        private: safePrivate,
+        safe,
+        transparent,
+        negativePrompt: negative_prompt,
+        referenceImage: image,
+        quality: 'hd' as const,
+        apiKey: hasToken ? apiKey : undefined
+    };
 
     if (isVideoModel) {
         resultUrl = await videoUrl(prompt, {
-            model: modelId,
-            aspectRatio,
+            ...imageOptions,
             duration,
             audio,
-            seed,
-            nologo,
-            private: safePrivate,
-            safe,
-            referenceImage: image, // Mapped correctly
-            apiKey: hasToken ? apiKey : undefined
         });
     } else {
-        resultUrl = await imageUrl(prompt, {
-            model: modelId,
-            width,
-            height,
-            aspectRatio,
-            seed,
-            nologo,
-            enhance: effectiveEnhance,
-            private: safePrivate,
-            safe,
-            transparent,
-            negativePrompt: negative_prompt, // Mapped correctly
-            referenceImage: image,
-            quality: 'hd',
-            apiKey: hasToken ? apiKey : undefined
+        resultUrl = await imageUrl(prompt, imageOptions);
+    }
+
+    console.log('[Pollinations] SDK Dispatch:', hasToken ? 'Authenticated' : 'Public', { model: modelId, isVideo: isVideoModel, urlLength: resultUrl.length });
+
+    // 2. SAFETY VALVE: If URL is too long (likely due to Signed S3 URLs or Base64), switch to POST proxy
+    // 2048 is safe limit for many proxies/browsers.
+    if (!isVideoModel && resultUrl.length > 2000) {
+        console.warn(`[Pollinations] URL massive (${resultUrl.length} chars). Switching to POST Proxy.`);
+        
+        // Import generateImage locally or assume it's available from lib
+        // (We added it to lib/pollinations-sdk.ts)
+        const { generateImage } = await import('@/lib/pollinations-sdk');
+        
+        const imageBuffer = await generateImage(prompt, imageOptions);
+        
+        // Return Binary Stream
+        return new NextResponse(imageBuffer, {
+            headers: {
+                'Content-Type': 'image/jpeg',
+                // Add header to tell client this is a binary response, not JSON?
+                // Or client just checks Content-Type.
+            }
         });
     }
 
-    console.log('[Pollinations] SDK Dispatch:', hasToken ? 'Authenticated' : 'Public', { model: modelId, isVideo: isVideoModel });
-
+    // Standard JSON response
     return NextResponse.json({ imageUrl: resultUrl, videoUrl: isVideoModel ? resultUrl : undefined });
 
   } catch (error) {

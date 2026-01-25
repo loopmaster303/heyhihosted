@@ -70,16 +70,16 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   },
 
   // ADVANCED Video Models
-  { 
-    id: 'wan', 
-    name: 'Wan 2.6', 
-    provider: 'pollinations', 
-    kind: 'video', 
-    category: 'Advanced', 
-    supportsReference: true, 
-    isFree: true, 
-    enabled: true, 
-    description: '2-15s, 1080p (Alibaba Wan 2.6)', 
+  {
+    id: 'wan',
+    name: 'Wan 2.6',
+    provider: 'pollinations',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    isFree: true,
+    enabled: false, // Temporarily disabled
+    description: '2-15s, 1080p (Alibaba Wan 2.6)',
     maxImages: 1,
     supportsAudio: true,
     durationRange: { options: [5, 10] }

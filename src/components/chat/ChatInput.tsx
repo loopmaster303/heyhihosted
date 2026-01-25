@@ -64,7 +64,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
         const rows: React.ReactNode[] = [];
         const panelRows: React.ReactNode[] = [];
 
-        // Image Mode Header + Reference Badges
+        // Show VisualizeInlineHeader when image mode is active
         if (isImageMode && visualizeToolState) {
             const referenceBadges = visualizeToolState.supportsReference ? (
                 <VisualizeReferenceBadges
@@ -109,10 +109,23 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     webBrowsingEnabled={webBrowsingEnabled}
                     onSelectMode={logic.handleSelectMode}
                     canToggleCodeMode={!!onToggleCodeMode}
-                    onClose={() => logic.toggleBadgeRow('tools')}
                 />
             );
         }
+// ... (omitting other panels for brevity in this replacement block if possible, but safer to replace the section correctly)
+
+// Jumping to the UnifiedInput render to restore badges
+/* 
+   Since I cannot easily jump to the UnifiedInput render with single block if I don't include the middle, 
+   I will focus on the `topElements` logic removal first, then the `leftActions` restoration in a second call? 
+   Actually, let's try to do it in one or closely related steps.
+   Wait, the user sees a Build Error. I must fix that too. 
+   
+   Let's check the previous `ChatInput.tsx` view.
+   Lines 64-118 cover renderTopBadges.
+   Lines 275+ covered leftActions.
+*/
+
         if (logic.activeBadgeRow === 'upload') {
             panelRows.push(
                 <UploadBadges
@@ -274,8 +287,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                         </svg>
                                     </Button>
                                 )}
-
-                                {/* Active Mode Badges */}
+                                {/* Active Mode Badges - Restored for deselection control */}
                                 {isImageMode && (
                                     <button
                                         type="button"

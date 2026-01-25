@@ -76,6 +76,79 @@ export async function imageUrl(prompt: string, options: ImageOptions = {}): Prom
     return url;
 }
 
+
+/**
+ * Generates an image using the Pollinations API via POST (Binary Response)
+ * Useful when GET URL would be too long (e.g. signed reference URLs).
+ */
+export async function generateImage(prompt: string, options: ImageOptions = {}): Promise<ArrayBuffer> {
+    const model = options.model || 'flux';
+    const params: Record<string, any> = {
+        prompt: prompt.trim(),
+        model,
+        nologo: options.nologo ?? true,
+        private: options.private ?? false,
+        safe: options.safe ?? false,
+        quality: options.quality || 'hd',
+    };
+
+    if (options.width) params.width = options.width;
+    if (options.height) params.height = options.height;
+    if (options.aspectRatio) params.aspectRatio = options.aspectRatio;
+    if (options.negativePrompt) params.negative_prompt = options.negativePrompt;
+    if (options.enhance !== undefined) params.enhance = options.enhance;
+    if (options.seed) params.seed = options.seed;
+    if (options.transparent) params.transparent = true;
+
+    if (options.referenceImage) {
+        // Pollinations 'image' param accepts URL or array of URLs
+        const refs = Array.isArray(options.referenceImage) ? options.referenceImage : [options.referenceImage];
+        // For POST, we can pass comma-separated string or array? 
+        // Based on GET implementation, it expects 'image' query param. 
+        // For JSON body, we usually match the query keys.
+        params.image = refs.join(','); 
+    }
+
+    const startUrl = `${BASE_URL.replace('/image', '')}/prompt/${encodeURIComponent(prompt)}`; 
+    // Actual Endpoint: https://image.pollinations.ai/prompt/...? 
+    // Wait, Pollinations POST endpoint is typically https://image.pollinations.ai/
+    // Let's use the BASE_URL directly.
+
+    // Correction: Standard Pollinations POST is to the root prompt URL or /image
+    // fetching BASE_URL + /prompt with query params works.
+    // But we want to avoid query params. 
+    // Let's try POSTing to the prompt URL with JSON body.
+    
+    // We will append the query string for scalar values, but keeping it clean?
+    // Actually, Pollinations supports JSON body on POST.
+    
+    const url = `${BASE_URL}/${encodeURIComponent(prompt.trim())}`; 
+    
+    // We still put params in query string for what fits, or body?
+    // Pollinations source indicates it reads from Query. 
+    // If it supports POST body, we should use that.
+    // Assuming standard behavior: PUT/POST with JSON body overrides/merges with Query.
+    
+    let fetchUrl = url;
+    if (options.apiKey) {
+        fetchUrl += `?key=${options.apiKey}`;
+    }
+
+    const response = await fetch(fetchUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Pollinations API Error: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.arrayBuffer();
+}
+
 /**
  * Generates a video URL using the Pollinations API
  */
@@ -111,3 +184,4 @@ export async function videoUrl(prompt: string, options: VideoOptions = {}): Prom
 
     return url;
 }
+

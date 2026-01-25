@@ -176,10 +176,33 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Generation failed");
+      // Handle potentially binary response (Pollinations POST Proxy)
+      const contentType = response.headers.get('content-type');
+      let resultUrl: string;
 
-      let resultUrl = data.videoUrl || data.imageUrl || (Array.isArray(data.output) ? data.output[0] : data.output);
+      if (contentType && contentType.includes('image/')) {
+          // Binary Response -> Upload to S3 for permanent URL
+          const blob = await response.blob();
+          const fileName = `gen-${Date.now()}-${generateUUID()}.jpg`; // Assume JPG for now or infer
+          // Infer extension
+          const ext = contentType.split('/')[1] || 'jpg';
+          const finalFileName = `gen-${Date.now()}-${generateUUID()}.${ext}`;
+          
+          toast({ title: "Processing...", description: "Optimizing generated image..." });
+          
+          const sessionId = getClientSessionId();
+          const uploadResult = await uploadFileToS3WithKey(blob, finalFileName, contentType, {
+              sessionId,
+              folder: 'generations'
+          });
+          
+          resultUrl = uploadResult.downloadUrl;
+      } else {
+          // Standard JSON Response
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Generation failed");
+          resultUrl = data.videoUrl || data.imageUrl || (Array.isArray(data.output) ? data.output[0] : data.output);
+      }
       const isVideo = currentModelConfig?.outputType === 'video';
       const itemId = generateUUID();
       let localAssetId: string | undefined;

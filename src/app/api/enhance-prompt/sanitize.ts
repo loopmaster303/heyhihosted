@@ -56,6 +56,16 @@ export function sanitizeEnhancedPrompt(text: string): string {
   // Remove mid-sentence labels like "... Change: ..." or "... Target object: ..."
   out = out.replace(/(^|[\.;,!?\)])\s*(Referenz|Änderung|Änderungen|Zielobjekt|Zielbild|Motiv|Stiltransfer|Charakterstruktur|Perspektive|Texturen|Humor|Ergebnis|Ausgabe|Output|Prompt|Szene|Setting|Komposition|Farbpalette|Reference|Target object|Target|Subject|Change|Changes|Identity|Identity preserved|Style transfer|Scene|Setting|Composition|Palette|Color palette|Perspective|Textures|Result|Background|Lighting|Wardrobe|Eyes|Skin tones|Crop)\s*:\s*/gi, '$1 ');
 
+  // Remove square bracket labels (e.g., "[Texture Package]:", "[Subject]:", etc.)
+  // Common in video enhancement prompts (Veo, Wan, Seedance)
+  out = out.replace(/\[([^\]]+)\]\s*:\s*/g, '');
+
+  // Remove empty square brackets
+  out = out.replace(/\[\s*\]/g, '');
+
+  // Clean up "--negative_prompt" prefix (keep the actual negative keywords)
+  out = out.replace(/--negative_prompt\s+/gi, 'Negative: ');
+
   // Collapse whitespace/newlines
   out = out.replace(/[ \t\f\v]+/g, ' ');
   out = out.replace(/\s*\n+\s*/g, ' ');

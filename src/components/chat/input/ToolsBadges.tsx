@@ -10,7 +10,6 @@ interface ToolsBadgesProps {
     webBrowsingEnabled: boolean;
     onSelectMode: (mode: ToolMode) => void;
     canToggleCodeMode?: boolean;
-    onClose?: () => void;
 }
 
 export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
@@ -19,7 +18,6 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
     webBrowsingEnabled,
     onSelectMode,
     canToggleCodeMode = true,
-    onClose
 }) => {
     const isStandardActive = !isImageMode && !isCodeMode && !webBrowsingEnabled;
 
@@ -27,10 +25,7 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
         <div className="flex items-center gap-2 overflow-x-auto pb-0 scrollbar-hide mask-fade-right">
             {/* Standard Chat */}
             <div
-                onClick={() => {
-                    onSelectMode('standard');
-                    onClose?.();
-                }}
+                onClick={() => onSelectMode('standard')}
                 className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:shadow-sm hover:-translate-y-0.5 shrink-0",
                     isStandardActive
@@ -44,10 +39,7 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
 
             {/* Visualize Mode */}
             <div
-                onClick={() => {
-                    onSelectMode('visualize');
-                    onClose?.();
-                }}
+                onClick={() => onSelectMode('visualize')}
                 className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:-translate-y-0.5 shrink-0",
                     isImageMode
@@ -61,10 +53,7 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
 
              {/* Deep Research Mode */}
              <div
-                onClick={() => {
-                    onSelectMode('research');
-                    onClose?.();
-                }}
+                onClick={() => onSelectMode('research')}
                 className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:-translate-y-0.5 shrink-0",
                     webBrowsingEnabled
@@ -79,10 +68,7 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
             {/* Coding Assist Mode */}
             {canToggleCodeMode && (
                 <div
-                    onClick={() => {
-                        onSelectMode('code');
-                        onClose?.();
-                    }}
+                    onClick={() => onSelectMode('code')}
                     className={cn(
                         "flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:-translate-y-0.5 shrink-0",
                         isCodeMode

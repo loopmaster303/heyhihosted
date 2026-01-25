@@ -76,6 +76,13 @@ export function useChatInputLogic({
         }
     }, [isImageMode, activeBadgeRow]);
 
+    // Close tools panel if any tool becomes active
+    useEffect(() => {
+        if (hasActiveTool && activeBadgeRow === 'tools') {
+            setActiveBadgeRow(null);
+        }
+    }, [hasActiveTool, activeBadgeRow]);
+
     // Code mode auto-model switching
     useEffect(() => {
         if (!isCodeMode) return;
