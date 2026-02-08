@@ -36,7 +36,7 @@ export interface UnifiedImageModel {
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
   { id: 'flux', name: 'Flux.1 Fast', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
-  { id: 'flux-2-dev', name: 'Flux.2 Dev', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Flux.2 Dev (api.airforce)' },
+  { id: 'flux-2-dev', name: 'Flux.2 Dev', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: false, description: 'Flux.2 Dev (api.airforce)' },
   { id: 'klein-large', name: 'Flux.2 klein 9B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: false, description: 'FLUX.2 Klein 9B' },
   { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware frame editing' },
   { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'GPT Image 1 Mini' },
@@ -130,7 +130,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     category: 'Advanced', 
     supportsReference: false, 
     isFree: true, 
-    enabled: true, 
+    enabled: false, 
     description: 'xAI Grok Video (T2V)',
     maxImages: 0,
     supportsAudio: false,
@@ -154,6 +154,46 @@ const REPLICATE_MODELS: UnifiedImageModel[] = [
   // Image Generation (Advanced)
   { id: 'flux-2-pro', name: 'Flux 2 Pro', provider: 'replicate', kind: 'image', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'High Quality', enabled: false },
   { id: 'z-image-turbo', name: 'Z-Image Turbo (Replicate)', provider: 'replicate', kind: 'image', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Fast Image', enabled: false },
+
+  // NEW Replicate Models (Standby)
+  { 
+    id: 'flux-2-max', 
+    name: 'Flux 2 Max (Replicate)', 
+    provider: 'replicate', 
+    kind: 'image', 
+    category: 'Advanced', 
+    supportsReference: true, 
+    maxImages: 4,
+    requiresPassword: false, 
+    description: 'Highest fidelity (Black Forest Labs)', 
+    enabled: true 
+  },
+  { 
+    id: 'flux-2-klein-9b', 
+    name: 'Flux 2 Klein 9B (Replicate)', 
+    provider: 'replicate', 
+    kind: 'image', 
+    category: 'Advanced', 
+    supportsReference: true, 
+    maxImages: 4,
+    requiresPassword: false, 
+    description: '4-step distilled, fast', 
+    enabled: true 
+  },
+  { 
+    id: 'grok-imagine-video', 
+    name: 'Grok Imagine Video (Replicate)', 
+    provider: 'replicate', 
+    kind: 'video', 
+    category: 'Advanced', 
+    supportsReference: true, 
+    maxImages: 1,
+    requiresPassword: false, 
+    description: 'xAI Grok Video (Replicate)', 
+    enabled: true,
+    supportsAudio: false,
+    durationRange: { min: 1, max: 15, step: 1 }
+  },
 ];
 
 
@@ -231,14 +271,14 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'BILD (ADVANCED)',
     category: 'Advanced',
     kind: 'image',
-    modelIds: ['nanobanana-pro', 'seedream-pro', 'flux-2-pro'],
+    modelIds: ['nanobanana-pro', 'seedream-pro', 'flux-2-pro', 'flux-2-max', 'flux-2-klein-9b'],
   },
   {
     key: 'video-advanced',
     label: 'VIDEO (ADVANCED)',
     category: 'Advanced',
     kind: 'video',
-    modelIds: ['wan', 'seedance-fast', 'ltx-video', 'grok-video'],
+    modelIds: ['wan', 'seedance-fast', 'ltx-video', 'grok-video', 'grok-imagine-video'],
   },
 ];
 

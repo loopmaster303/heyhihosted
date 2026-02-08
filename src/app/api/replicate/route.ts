@@ -25,6 +25,11 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "wan-video": "wan-video/wan-2.5-i2v",
   "hailuo-02": "minimax/hailuo-02",
   "seedream-4": "bytedance/seedream-4",
+
+  // --- NEW Replicate Models ---
+  "flux-2-max": "black-forest-labs/flux-2-max",
+  "flux-2-klein-9b": "black-forest-labs/flux-2-klein-9b",
+  "grok-imagine-video": "xai/grok-imagine-video",
 };
 
 export async function POST(request: NextRequest) {
@@ -85,6 +90,17 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    // --- Inject hidden defaults for new models ---
+    if (modelKey === 'flux-2-max') {
+      sanitizedInput.output_quality = 100;
+      sanitizedInput.safety_tolerance = 5;
+    } else if (modelKey === 'flux-2-klein-9b') {
+      sanitizedInput.output_quality = 100;
+      sanitizedInput.disable_safety_checker = true;
+      if (sanitizedInput.go_fast === undefined) sanitizedInput.go_fast = false;
+    }
+    // grok-imagine-video has no safety param to set
 
     const startResponse = await fetch(endpoint, {
       method: 'POST',

@@ -281,6 +281,46 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'jpg', hidden: true },
     ],
   },
+
+  // NEW Replicate Models
+  'flux-2-max': {
+    id: 'flux-2-max',
+    name: 'Flux 2 Max (Replicate)',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'resolution', default: '1 MP' },
+      { name: 'seed' },
+      { name: 'output_quality', default: 100, hidden: true },
+      { name: 'safety_tolerance', default: 5, hidden: true },
+    ],
+  },
+  'flux-2-klein-9b': {
+    id: 'flux-2-klein-9b',
+    name: 'Flux 2 Klein 9B (Replicate)',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'output_megapixels', default: '1' },
+      { name: 'output_format', default: 'jpg' },
+      { name: 'seed' },
+      { name: 'output_quality', default: 100, hidden: true },
+      { name: 'disable_safety_checker', default: true, hidden: true },
+      { name: 'go_fast', default: false, hidden: true },
+    ],
+  },
+  'grok-imagine-video': {
+    id: 'grok-imagine-video',
+    name: 'Grok Imagine Video (Replicate)',
+    outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 5 },
+      { name: 'resolution', default: '720p' },
+      { name: 'seed' },
+    ],
+  },
 };
 
 export function getUnifiedModelConfig(modelId: string): UnifiedModelConfig | undefined {

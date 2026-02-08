@@ -97,4 +97,8 @@ export const imageModelIcons: Record<string, any> = {
     'qwen-image-edit-plus': QwenIcon,
     'grok-video': GrokIcon,
     'ltx-video': LTXLogo,
+    // NEW Replicate models
+    'flux-2-max': FluxFarbeIcon,
+    'flux-2-klein-9b': FluxFarbeIcon,
+    'grok-imagine-video': GrokIcon,
 };

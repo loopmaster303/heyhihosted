@@ -37,6 +37,10 @@ const MODEL_ALIASES: Record<string, string> = {
   'nanobanana': 'nanobanana',
   'nanobanana-pro': 'nanobanana-pro',
   'flux-2-dev': 'flux-2-dev',
+  // NEW Replicate model mappings
+  'flux-2-max': 'flux-2-dev', // Similar to flux-2-dev
+  'flux-2-klein-9b': 'klein-large', // Same as Pollinations klein-large
+  'grok-imagine-video': 'grok-video', // Same as Pollinations grok-video
 };
 
 function selectGuidelines(modelId: string): string {
