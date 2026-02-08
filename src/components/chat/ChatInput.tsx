@@ -387,7 +387,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 )}
                             </Button>
 
-                            {/* Enhance Prompt Button - only in image mode */}
+                            {/* Enhance Prompt Button - image mode */}
                             {isImageMode && visualizeToolState && (
                                 <div className="hidden md:flex">
                                     <Button
@@ -400,6 +400,29 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                     >
                                         <span className="text-xs md:text-sm font-medium">
                                             {visualizeToolState.isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
+                                        </span>
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Enhance Prompt Button - compose mode (VibeCraft) */}
+                            {isComposeMode && composeToolState && (
+                                <div className="hidden md:flex">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={async () => {
+                                            const enhanced = await composeToolState.enhancePrompt(inputValue);
+                                            if (enhanced) {
+                                                onInputChange(enhanced);
+                                            }
+                                        }}
+                                        disabled={!inputValue.trim() || isLoading || composeToolState.isEnhancing || isRecording || isTranscribing}
+                                        className="group rounded-lg h-9 w-auto px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
+                                        aria-label="Enhance music prompt"
+                                    >
+                                        <span className="text-xs md:text-sm font-medium">
+                                            {composeToolState.isEnhancing ? t('message.loading') : 'VibeCraft'}
                                         </span>
                                     </Button>
                                 </div>

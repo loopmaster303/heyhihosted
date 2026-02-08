@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ENHANCEMENT_PROMPTS, DEFAULT_ENHANCEMENT_PROMPT } from '@/config/enhancement-prompts';
+import { ENHANCEMENT_PROMPTS, DEFAULT_ENHANCEMENT_PROMPT, COMPOSE_ENHANCEMENT_PROMPT } from '@/config/enhancement-prompts';
 import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
 
 // Map UI model keys to enhancement prompt keys if they differ
@@ -44,6 +44,10 @@ const MODEL_ALIASES: Record<string, string> = {
 };
 
 function selectGuidelines(modelId: string): string {
+  // Compose / Music models use the dedicated VibeCraft prompt
+  if (modelId === 'elevenmusic' || modelId === 'compose') {
+    return COMPOSE_ENHANCEMENT_PROMPT;
+  }
   const key = MODEL_ALIASES[modelId] || modelId;
   if (key === 'default') {
     return DEFAULT_ENHANCEMENT_PROMPT;
