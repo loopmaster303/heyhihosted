@@ -4,7 +4,7 @@ import { DEFAULT_POLLINATIONS_MODEL_ID } from '@/config/chat-options';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
-export type ToolMode = 'standard' | 'visualize' | 'research' | 'code';
+export type ToolMode = 'standard' | 'visualize' | 'compose' | 'research' | 'code';
 export const CODE_MODE_MODEL_IDS = ['qwen-coder', 'deepseek', 'glm', 'gemini-large'];
 
 export interface UseChatInputLogicProps {
@@ -19,6 +19,8 @@ export interface UseChatInputLogicProps {
     onToggleImageMode: () => void;
     isCodeMode?: boolean;
     onToggleCodeMode?: () => void;
+    isComposeMode?: boolean;
+    onToggleComposeMode?: () => void;
     selectedModelId: string;
     handleModelChange: (modelId: string) => void;
     webBrowsingEnabled: boolean;
@@ -44,6 +46,8 @@ export function useChatInputLogic({
     isRecording,
     isCodeMode = false,
     onToggleCodeMode,
+    isComposeMode = false,
+    onToggleComposeMode,
     visualizeToolState,
 }: UseChatInputLogicProps) {
     const [isMobile, setIsMobile] = useState(false);
@@ -56,7 +60,7 @@ export function useChatInputLogic({
     const imageInputRef = useRef<HTMLInputElement>(null);
     const quickSettingsButtonRef = useRef<HTMLButtonElement>(null);
 
-    const hasActiveTool = isImageMode || webBrowsingEnabled || isCodeMode;
+    const hasActiveTool = isImageMode || isComposeMode || webBrowsingEnabled || isCodeMode;
     const [defaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
 
     // Mobile detection
@@ -111,11 +115,15 @@ export function useChatInputLogic({
 
     const setActiveMode = useCallback((mode: ToolMode) => {
         const shouldEnableImage = mode === 'visualize';
+        const shouldEnableCompose = mode === 'compose';
         const shouldEnableWeb = mode === 'research';
         const shouldEnableCode = mode === 'code';
 
         if (isImageMode !== shouldEnableImage) {
             onToggleImageMode();
+        }
+        if (onToggleComposeMode && isComposeMode !== shouldEnableCompose) {
+            onToggleComposeMode();
         }
         if (webBrowsingEnabled !== shouldEnableWeb) {
             onToggleWebBrowsing();
@@ -127,10 +135,14 @@ export function useChatInputLogic({
             handleModelChange('qwen-coder');
         }
         setActiveBadgeRow(null);
-    }, [isImageMode, webBrowsingEnabled, isCodeMode, onToggleImageMode, onToggleWebBrowsing, onToggleCodeMode, handleModelChange]);
+    }, [isImageMode, isComposeMode, webBrowsingEnabled, isCodeMode, onToggleImageMode, onToggleComposeMode, onToggleWebBrowsing, onToggleCodeMode, handleModelChange]);
 
     const handleSelectMode = useCallback((mode: ToolMode) => {
         if (mode === 'visualize' && isImageMode) {
+            setActiveMode('standard');
+            return;
+        }
+        if (mode === 'compose' && isComposeMode) {
             setActiveMode('standard');
             return;
         }
@@ -147,7 +159,7 @@ export function useChatInputLogic({
             return;
         }
         setActiveMode(mode);
-    }, [isImageMode, webBrowsingEnabled, isCodeMode, setActiveMode]);
+    }, [isImageMode, isComposeMode, webBrowsingEnabled, isCodeMode, setActiveMode]);
 
     const handleSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
         e?.preventDefault();

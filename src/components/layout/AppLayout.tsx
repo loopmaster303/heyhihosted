@@ -126,7 +126,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
             </span>
           </header>
           {/* GradualBlur overlay */}
-          <GradualBlur direction="top" height="50px" blurAmount={12} zIndex={40} className="!fixed !top-10" />
+          <GradualBlur direction="top" height="50px" blurAmount={8} zIndex={40} className="!fixed !top-10" />
         </>
       )}
 

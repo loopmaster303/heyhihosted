@@ -11,9 +11,11 @@ import { ToolsBadges } from './input/ToolsBadges';
 import { UploadBadges } from './input/UploadBadges';
 import { VisualizeReferenceBadges } from './input/VisualizeReferenceBadges';
 import { VisualizeInlineHeader } from '@/components/tools/visualize/VisualizeInlineHeader';
+import { ComposeInlineHeader } from '@/components/tools/compose/ComposeInlineHeader';
 import { ModelSelector } from './input/ModelSelector';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import { useChatInputLogic, UseChatInputLogicProps } from '@/hooks/useChatInputLogic';
+import { ComposeMusicState, ComposeMusicActions } from '@/hooks/useComposeMusicState';
 
 interface ChatInputProps extends UseChatInputLogicProps {
     selectedResponseStyleName: string;
@@ -25,6 +27,9 @@ interface ChatInputProps extends UseChatInputLogicProps {
     stopRecording: () => void;
     openCamera: () => void;
     placeholder?: string;
+    // Compose Tool Props
+    composeToolState?: ComposeMusicState & ComposeMusicActions;
+    onComposeSubmit?: (e: React.FormEvent) => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = (props) => {
@@ -53,7 +58,11 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
         openCamera,
         isCodeMode = false,
         onToggleCodeMode,
+        isComposeMode = false,
+        onToggleComposeMode,
         visualizeToolState,
+        composeToolState,
+        onComposeSubmit,
         placeholder,
     } = props;
 
@@ -100,11 +109,26 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
             );
         }
 
+        if (isComposeMode && composeToolState) {
+            rows.push(
+                <ComposeInlineHeader
+                    key="compose-header"
+                    duration={composeToolState.duration}
+                    instrumental={composeToolState.instrumental}
+                    onDurationChange={composeToolState.setDuration}
+                    onInstrumentalChange={composeToolState.setInstrumental}
+                    disabled={isLoading}
+                    variant="bare"
+                />
+            );
+        }
+
         if (logic.activeBadgeRow === 'tools') {
             panelRows.push(
                 <ToolsBadges
                     key="tools-badges"
                     isImageMode={isImageMode}
+                    isComposeMode={isComposeMode}
                     isCodeMode={isCodeMode || false}
                     webBrowsingEnabled={webBrowsingEnabled}
                     onSelectMode={logic.handleSelectMode}
@@ -112,20 +136,6 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                 />
             );
         }
-// ... (omitting other panels for brevity in this replacement block if possible, but safer to replace the section correctly)
-
-// Jumping to the UnifiedInput render to restore badges
-/* 
-   Since I cannot easily jump to the UnifiedInput render with single block if I don't include the middle, 
-   I will focus on the `topElements` logic removal first, then the `leftActions` restoration in a second call? 
-   Actually, let's try to do it in one or closely related steps.
-   Wait, the user sees a Build Error. I must fix that too. 
-   
-   Let's check the previous `ChatInput.tsx` view.
-   Lines 64-118 cover renderTopBadges.
-   Lines 275+ covered leftActions.
-*/
-
         if (logic.activeBadgeRow === 'upload') {
             panelRows.push(
                 <UploadBadges
@@ -166,12 +176,25 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
         return <div className="flex flex-col gap-2">{rows}</div>;
     };
 
+    const handleFormSubmit = (e?: React.FormEvent) => {
+        if (e && typeof e.preventDefault === 'function') {
+            e.preventDefault();
+        }
+        if (isComposeMode && onComposeSubmit) {
+            onComposeSubmit(e as any);
+        } else {
+            logic.handleSubmit(e as any);
+        }
+    };
+
     const placeholderText = placeholder || (isRecording
         ? t('chat.recording')
         : isTranscribing
             ? t('chat.transcribing')
             : isImageMode
                 ? t('chat.placeholder.imageMode')
+                : isComposeMode
+                    ? "Was willst du hören?"
                 : webBrowsingEnabled
                     ? t('chat.placeholder.web')
                     : isCodeMode
@@ -180,7 +203,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
 
     return (
         <div className="relative w-full"> 
-             <form onSubmit={logic.handleSubmit} className="w-full">
+             <form onSubmit={handleFormSubmit} className="w-full">
                 <UnifiedInput
                     value={inputValue}
                     onChange={(val) => {
@@ -192,7 +215,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            logic.handleSubmit();
+                            handleFormSubmit();
                         }
                     }}
                     placeholder={placeholderText}
@@ -318,13 +341,23 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                         <X className="h-3 w-3" />
                                     </button>
                                 )}
+                                {isComposeMode && (
+                                    <button
+                                        type="button"
+                                        onClick={() => logic.setActiveMode('standard')}
+                                        className="flex items-center gap-1.5 rounded-full border border-purple-500/60 px-3 py-1.5 text-xs font-bold transition-all bg-purple-500/5 text-purple-500"
+                                    >
+                                        <span>Compose</span>
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                )}
                             </div>
                         )
                     }
                     rightActions={
                          <>
-                            {/* LLM Model Selector always visible next to Record - hide in image mode */}
-                            {!isImageMode && (
+                            {/* LLM Model Selector always visible next to Record - hide in image/compose mode */}
+                            {!isImageMode && !isComposeMode && (
                             <div className="mr-1">
                                 <ModelSelector
                                     selectedModelId={selectedModelId}
@@ -372,21 +405,21 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 </div>
                             )}
 
-                            {/* Dynamic Send Button - only shows when has content */}
-                            {(inputValue.trim() || uploadedFilePreviewUrl) && (
+                            {/* Dynamic Send Button - only shows when has content or in compose mode */}
+                            {(inputValue.trim() || uploadedFilePreviewUrl || isComposeMode) && (
                                 <Button
                                     type="submit"
-                                    disabled={isLoading || isRecording}
+                                    disabled={isLoading || isRecording || (isComposeMode && !inputValue.trim())}
                                     className="ml-1 rounded-full px-6 font-medium h-9 text-sm transition-all duration-300 bg-primary text-primary-foreground hover:opacity-90 shadow-md"
                                     aria-label="Send message"
                                 >
-                                    {logic.isMobile ? <ArrowUp className="w-5 h-5" /> : t('chat.send')}
+                                    {logic.isMobile ? <ArrowUp className="w-5 h-5" /> : (isComposeMode ? "Erstellen" : t('chat.send'))}
                                 </Button>
                             )}
                          </>
                     }
                 />
-            </form>
+             </form>
             
             {/* Hidden Inputs */}
             <input

@@ -16,6 +16,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { DatabaseService } from '@/lib/services/database';
 
 import { useAssetUrl } from '@/hooks/useAssetUrl';
+import { AudioMessage } from './AudioMessage';
 
 const fitWithin = (ratio: number, maxWidth: number, maxHeight: number) => {
   const safeRatio = ratio > 0 ? ratio : 1;
@@ -319,9 +320,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     if (typeof message.content === 'string') return false;
     const hasImages = message.content.some(p => p.type === 'image_url');
     const hasVideos = message.content.some(p => p.type === 'video_url');
+    const hasAudio = message.content.some(p => p.type === 'audio_url');
     const textPart = message.content.find(p => p.type === 'text');
     const hasText = textPart && textPart.text.trim().length > 0;
-    return (hasImages || hasVideos) && !hasText;
+    return (hasImages || hasVideos || hasAudio) && !hasText;
   }, [message.content]);
 
   const renderContent = (content: string | ChatMessageContentPart[]) => {
@@ -377,6 +379,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     const textParts = content.filter((part) => part.type === 'text');
     const imageParts = content.filter((part) => part.type === 'image_url');
     const videoParts = content.filter((part) => part.type === 'video_url');
+    const audioParts = content.filter((part) => part.type === 'audio_url');
 
     return (
       <div className="flex flex-col">
@@ -422,6 +425,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   altText={altText}
                   isGenerated={part.video_url.isGenerated}
                   assetId={(part.video_url as any).metadata?.assetId}
+                />
+              );
+            })}
+          </div>
+        )}
+        {audioParts.length > 0 && (
+          <div className="mt-2 flex flex-col gap-2 w-full max-w-[400px]">
+            {audioParts.map((part, index) => {
+              if (part.type !== 'audio_url') return null;
+              return (
+                <AudioMessage
+                  key={`audio-${index}`}
+                  audioUrl={part.audio_url.url}
+                  duration={part.audio_url.duration}
+                  prompt={textContent || undefined}
                 />
               );
             })}

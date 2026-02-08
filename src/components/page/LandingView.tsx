@@ -79,6 +79,8 @@ const LandingView: React.FC<LandingViewProps> = ({
                                         prev ? { ...prev, isCodeMode: !prev.isCodeMode } : prev
                                     );
                                 }}
+                                isComposeMode={chat.isComposeMode}
+                                onToggleComposeMode={chat.toggleComposeMode}
                                 selectedModelId={selectedModelId}
                                 handleModelChange={onModelChange}
                                 selectedResponseStyleName={chat.activeConversation?.selectedResponseStyleName || "Basic"}

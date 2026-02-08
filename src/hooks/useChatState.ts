@@ -54,6 +54,7 @@ export function useChatState() {
     // Computed values
     const isImageMode = persistence.activeConversation?.isImageMode ?? false;
     const webBrowsingEnabled = persistence.activeConversation?.webBrowsingEnabled ?? false;
+    const isComposeMode = persistence.activeConversation?.isComposeMode ?? false;
 
     useEffect(() => {
         if (defaultImageModelId) {
@@ -90,6 +91,7 @@ export function useChatState() {
 
         // Computed
         isImageMode,
+        isComposeMode,
         webBrowsingEnabled,
     };
 }

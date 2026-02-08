@@ -1,11 +1,12 @@
 import React from 'react';
-import { Palette, Code2, Globe, MessageSquare } from 'lucide-react';
+import { Palette, Code2, Globe, MessageSquare, Music2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type ToolMode = 'standard' | 'visualize' | 'research' | 'code';
+type ToolMode = 'standard' | 'visualize' | 'compose' | 'research' | 'code';
 
 interface ToolsBadgesProps {
     isImageMode: boolean;
+    isComposeMode: boolean;
     isCodeMode: boolean;
     webBrowsingEnabled: boolean;
     onSelectMode: (mode: ToolMode) => void;
@@ -14,12 +15,13 @@ interface ToolsBadgesProps {
 
 export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
     isImageMode,
+    isComposeMode,
     isCodeMode,
     webBrowsingEnabled,
     onSelectMode,
     canToggleCodeMode = true,
 }) => {
-    const isStandardActive = !isImageMode && !isCodeMode && !webBrowsingEnabled;
+    const isStandardActive = !isImageMode && !isComposeMode && !isCodeMode && !webBrowsingEnabled;
 
     return (
         <div className="flex items-center gap-2 overflow-x-auto pb-0 scrollbar-hide mask-fade-right">
@@ -49,6 +51,20 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
             >
                 <Palette className="w-3.5 h-3.5" />
                 <span className="text-xs font-bold">Visualize</span>
+            </div>
+
+            {/* Compose Mode (Music) */}
+            <div
+                onClick={() => onSelectMode('compose')}
+                className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:-translate-y-0.5 shrink-0",
+                    isComposeMode
+                        ? "bg-purple-500/10 text-purple-500 font-bold border border-purple-500/60"
+                        : "bg-transparent border-border/30 text-muted-foreground"
+                )}
+            >
+                <Music2 className="w-3.5 h-3.5" />
+                <span className="text-xs font-bold">Compose</span>
             </div>
 
              {/* Deep Research Mode */}

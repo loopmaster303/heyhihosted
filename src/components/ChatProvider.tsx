@@ -87,6 +87,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     setLastFailedRequest,
     retryLastRequestRef,
     isImageMode,
+    isComposeMode,
     webBrowsingEnabled,
   } = state;
 
@@ -173,6 +174,15 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       }
     }
   }, [activeConversation, handleFileSelect, setActiveConversation, setSelectedImageModelId]);
+
+  const toggleComposeMode = useCallback((forcedState?: boolean) => {
+    if (!activeConversation) return;
+    const newComposeModeState = forcedState !== undefined ? forcedState : !(activeConversation.isComposeMode ?? false);
+    setActiveConversation((prev: Conversation | null) => prev ? { ...prev, isComposeMode: newComposeModeState } : prev);
+    if (newComposeModeState) {
+      handleFileSelect(null, null);
+    }
+  }, [activeConversation, handleFileSelect, setActiveConversation]);
 
   const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]): Promise<string> => {
     const convToUpdate = allConversations.find(c => c.id === conversationId) ?? activeConversation;
@@ -919,7 +929,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
   // --- Return Value ---
   return {
     activeConversation, allConversations,
-    isAiResponding, isImageMode,
+    isAiResponding, setIsAiResponding, isImageMode, isComposeMode,
     isHistoryPanelOpen, isAdvancedPanelOpen,
     playingMessageId, isTtsLoadingForId, chatInputValue,
     selectedVoice,
@@ -930,6 +940,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     availableImageModels, selectedImageModelId,
     selectChat, startNewChat, deleteChat, sendMessage,
     toggleImageMode,
+    toggleComposeMode,
     handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
     handleVoiceChange, handleImageModelChange,
     toggleHistoryPanel, closeHistoryPanel,

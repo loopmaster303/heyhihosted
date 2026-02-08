@@ -5,6 +5,9 @@ import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import { useChat } from '@/components/ChatProvider';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { useComposeMusicState } from '@/hooks/useComposeMusicState';
+import { generateUUID } from '@/lib/uuid';
+import { ChatMessage } from '@/types';
 
 interface ChatInterfaceProps {
     visualizeToolState: UnifiedImageToolState;
@@ -14,11 +17,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
     const {
         activeConversation,
         isAiResponding,
+        setIsAiResponding,
         sendMessage,
         chatInputValue,
         setChatInputValue,
         isImageMode,
         toggleImageMode,
+        isComposeMode,
+        toggleComposeMode,
         handleFileSelect,
         closeHistoryPanel,
         toggleWebBrowsing,
@@ -40,6 +46,76 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
         setActiveConversation,
         handleImageModelChange,
     } = useChat();
+
+    const composeToolState = useComposeMusicState();
+
+    const handleComposeSubmit = async (e?: React.FormEvent) => {
+        if (e && typeof e.preventDefault === 'function') {
+            e.preventDefault();
+        }
+        const prompt = chatInputValue.trim();
+        if (!prompt || !activeConversation) return;
+
+        setIsAiResponding(true);
+
+        // 1. Add User Message
+        const userMsg: ChatMessage = {
+            id: generateUUID(),
+            role: 'user',
+            content: prompt,
+            timestamp: new Date().toISOString(),
+            toolType: 'compose'
+        };
+
+        setActiveConversation(prev => prev ? { ...prev, messages: [...(prev.messages || []), userMsg] } : null);
+        setChatInputValue('');
+
+        // 2. Add temporary Loading Message
+        const loadingMsg: ChatMessage = {
+            id: 'loading',
+            role: 'assistant',
+            content: '',
+            timestamp: new Date().toISOString(),
+        };
+        setActiveConversation(prev => prev ? { ...prev, messages: [...(prev.messages || []), loadingMsg] } : null);
+
+        // 3. Generate Music
+        try {
+            const audioUrl = await composeToolState.generateMusic(prompt);
+
+            if (audioUrl) {
+                // 4. Remove Loading and Add Assistant Message with Audio
+                const assistantMsg: ChatMessage = {
+                    id: generateUUID(),
+                    role: 'assistant',
+                    content: [
+                        { 
+                            type: 'audio_url', 
+                            audio_url: { 
+                                url: audioUrl, 
+                                isGenerated: true,
+                                metadata: { assetId: null }
+                            } 
+                        }
+                    ],
+                    timestamp: new Date().toISOString(),
+                    toolType: 'compose'
+                };
+                setActiveConversation(prev => {
+                    if (!prev) return null;
+                    const filtered = (prev.messages || []).filter(m => m.id !== 'loading');
+                    return { ...prev, messages: [...filtered, assistantMsg] };
+                });
+            } else {
+                setActiveConversation(prev => prev ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== 'loading') } : null);
+            }
+        } catch (err) {
+            console.error('Compose failed:', err);
+            setActiveConversation(prev => prev ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== 'loading') } : null);
+        } finally {
+            setIsAiResponding(false);
+        }
+    };
 
     // Keyboard shortcuts: Cmd+K = new chat
     useKeyboardShortcuts({
@@ -114,6 +190,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                         const turnedOn = !activeConversation.isCodeMode;
                         setActiveConversation(prev => prev ? { ...prev, isCodeMode: turnedOn } : prev);
                     }}
+                    isComposeMode={isComposeMode}
+                    onToggleComposeMode={toggleComposeMode}
+                    composeToolState={composeToolState}
+                    onComposeSubmit={handleComposeSubmit}
                     selectedModelId={selectedModelId!}
                     handleModelChange={handleModelChange}
                     selectedResponseStyleName={selectedResponseStyleName!}

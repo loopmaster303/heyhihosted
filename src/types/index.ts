@@ -3,7 +3,8 @@
 export type ChatMessageContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; remoteUrl?: string; metadata?: { assetId: string | null } } }
-  | { type: 'video_url'; video_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; metadata?: { assetId: string | null } } };
+  | { type: 'video_url'; video_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; metadata?: { assetId: string | null } } }
+  | { type: 'audio_url'; audio_url: { url: string; altText?: string; isGenerated?: boolean; duration?: number; metadata?: { assetId: string | null } } };
 
 
 export interface ChatMessage {
@@ -30,6 +31,7 @@ export interface Conversation {
   toolType: ToolType;
   isImageMode?: boolean;
   isCodeMode?: boolean;
+  isComposeMode?: boolean;
   webBrowsingEnabled?: boolean;
   // These are client-side only and will not be persisted
   uploadedFile?: File | null;
