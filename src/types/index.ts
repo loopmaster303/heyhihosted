@@ -46,7 +46,7 @@ export interface UploadedReference {
   expiresAt?: number;
 }
 
-export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about' | 'visualize';
+export type ToolType = 'premium imagination' | 'long language loops' | 'personalization' | 'nocost imagination' | 'about' | 'visualize' | 'compose';
 
 export interface TileItem {
   id: ToolType;
