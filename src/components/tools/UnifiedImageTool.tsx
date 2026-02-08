@@ -246,7 +246,13 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
 
     } catch (err: any) {
       console.error("Generation error:", err);
-      const msg = err.message || 'An unknown error occurred.';
+      let msg = err.message || 'An unknown error occurred.';
+      
+      // Specific workaround for 404 (Model offline/unavailable)
+      if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
+          msg = 'The Model is currently not available. Try another one like z-image (Das Modell ist anscheinend im Moment nicht verfügbar probiere ein anders zB zimage)';
+      }
+
       setError(msg);
       toast({ title: "Failed", description: msg, variant: "destructive" });
     } finally {

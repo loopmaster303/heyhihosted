@@ -75,7 +75,7 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "gemini-fast",
-    name: "Gemini 3 Flash Fast",
+    name: "Gemini 2.5 Flash",
     description: "Leichte, schnelle Variante für Alltagstasks.",
     vision: true,
     category: "Standard",
@@ -104,7 +104,7 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "claude-large",
-    name: "Claude Opus 4.5",
+    name: "Claude Opus 4.6",
     description: "Das intelligenteste Modell von Anthropic.",
     vision: true,
     category: "Advanced",
@@ -179,7 +179,7 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "kimi-k2-thinking",
-    name: "Moonshot Kimi K2 Thinking",
+    name: "Moonshot Kimi K2.5 Thinking",
     description: "Tiefgehendes Reasoning und Tool-Orchestrierung.",
     vision: false,
     category: "Advanced",

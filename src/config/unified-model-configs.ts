@@ -40,7 +40,7 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   },
   'flux': {
     id: 'flux',
-    name: 'Flux1 Ultra',
+    name: 'Flux.1 Fast',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '1:1' },
@@ -106,14 +106,14 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'jpg', hidden: true },
     ],
   },
-  'seedance-pro': {
-    id: 'seedance-pro',
-    name: 'Seedance Pro',
+  'seedance-fast': {
+    id: 'seedance-fast',
+    name: 'Seedance Fast',
     outputType: 'video',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 6 },
+      { name: 'duration', default: 5 },
       { name: 'output_format', default: 'mp4' },
       { name: 'seed' },
     ],
@@ -121,6 +121,31 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   'seedance': {
     id: 'seedance',
     name: 'Seedance',
+    outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 5 },
+      { name: 'output_format', default: 'mp4' },
+      { name: 'seed' },
+    ],
+  },
+  'ltx-video': {
+    id: 'ltx-video',
+    name: 'LTX 2 Fast',
+    outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 6 },
+      { name: 'audio', default: true },
+      { name: 'output_format', default: 'mp4' },
+      { name: 'seed' },
+    ],
+  },
+  'grok-video': {
+    id: 'grok-video',
+    name: 'Grok Imagine Video',
     outputType: 'video',
     inputs: [
       { name: 'prompt', isPrompt: true },
@@ -227,14 +252,26 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '16:9' },
       { name: 'duration', default: 5 },
-      { name: 'audio', default: true },
+      { name: 'audio', default: false },
       { name: 'output_format', default: 'mp4' },
       { name: 'seed' },
     ],
   },
+  'flux-2-dev': {
+    id: 'flux-2-dev',
+    name: 'Flux 2 Dev',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
   'klein-large': {
     id: 'klein-large',
-    name: 'Flux 2',
+    name: 'Flux.2 klein 9b',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '1:1' },

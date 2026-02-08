@@ -4,13 +4,13 @@
 
 @layer base {
   :root {
-    --background: 267 20% 97%; /* Softer, whiter purple veil */
+    --background: 262 64% 92%; /* Lavender background #e8dff8 */
     --foreground: 240 10% 3.9%;
 
-    --card: 0 0% 100%;
+    --card: 262 50% 95%;
     --card-foreground: 240 10% 3.9%;
 
-    --popover: 0 0% 100%; /* Base popover color */
+    --popover: 262 50% 95%; /* Base popover color */
     --popover-foreground: 240 10% 3.9%;
 
     --primary: 267 78% 65%; /* #B388FF style - Softer, Lighter Electric Purple */
@@ -19,34 +19,34 @@
     --primary-hover: 267 78% 60%;
     --primary-active: 267 78% 70%;
 
-    --secondary: 267 20% 92%;
+    --secondary: 262 50% 88%;
     --secondary-foreground: 240 5.9% 10%;
 
-    --muted: 240 4.8% 95.9%;
+    --muted: 262 30% 90%;
     --muted-foreground: 240 3.8% 46.1%;
 
-    --accent: 267 30% 94%;
+    --accent: 262 50% 85%;
     --accent-foreground: 240 5.9% 10%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 5.9% 90%; /* Softer border */
-    --input: 240 5.9% 90%;
+    --border: 262 40% 85%; /* Softer border */
+    --input: 262 40% 88%;
     --ring: 267 78% 65%;
 
     --radius: 0.85rem; /* Slightly more rounded */
 
     /* Glass Tokens (Light) */
-    --glass-background: 0 0% 100%;
+    --glass-background: 262 50% 95%;
     --glass-border: 267 30% 50% / 0.08;
     --glass-shadow: 0 6px 24px 0 rgba(157, 92, 246, 0.04);
     --glass-glow: 0 0 10px rgba(157, 92, 246, 0.08);
 
     /* Glass Surfaces (Light) */
-    --surface-container-low: 0 0% 100%;
-    --surface-container: 267 20% 97%;
-    --surface-container-high: 267 20% 95%;
+    --surface-container-low: 262 60% 94%;
+    --surface-container: 262 64% 92%;
+    --surface-container-high: 262 50% 90%;
 
     --chart-1: 0 0% 40%;
     --chart-2: 0 0% 50%;
@@ -54,18 +54,18 @@
     --chart-4: 0 0% 70%;
     --chart-5: 0 0% 80%;
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 262 60% 94%;
     --sidebar-foreground: 0 0% 26.7%;
     --sidebar-primary: 0 0% 10%;
-    --sidebar-primary-foreground: 0 0% 97.3%;
-    --sidebar-accent: 267 20% 93% / 0.5;
+    --sidebar-primary-foreground: 262 60% 94%;
+    --sidebar-accent: 262 50% 88% / 0.5;
     --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 0 0% 92%;
+    --sidebar-border: 262 40% 88%;
     --sidebar-ring: 0 0% 10%;
 
-    --tool-input-bg: 322 27% 95%;
-    --input-container-bg: 0 0% 93% / 1;
-    --tool-button-bg: 322 27% 93%;
+    --tool-input-bg: 262 40% 90%;
+    --input-container-bg: 262 50% 90% / 1;
+    --tool-button-bg: 262 40% 88%;
   }
 
   .dark {
@@ -267,6 +267,43 @@ html {
     100% {
       opacity: 0;
     }
+  }
+
+  /* Decrypted text smooth rendering */
+  .decrypted-text {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Decrypted text hover effect */
+  .decrypted-text-hoverable {
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+
+  .decrypted-text-hoverable:hover {
+    transform: scale(1.02);
+    text-shadow: 0 0 20px rgba(179, 136, 255, 0.3);
+  }
+
+  .decrypted-text-hoverable::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 60%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(179, 136, 255, 0.6), transparent);
+    transition: transform 0.3s ease;
+  }
+
+  .decrypted-text-hoverable:hover::after {
+    transform: translateX(-50%) scaleX(1);
   }
 }
 

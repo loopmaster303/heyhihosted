@@ -14,6 +14,7 @@ import ByteDanceIcon from '../assets/icons-models/bytedance-color.png';
 import FluxFarbeIcon from '../assets/icons-models/fluxfarbe.png';
 import WANIcon from '../assets/icons-models/wan.png';
 import ZAIFarbeIcon from '../assets/icons-models/zaifarbe.png';
+import LTXLogo from '../assets/icons-models/ltxlogo.png';
 
 // Model Icon Mapping (LLM)
 export const modelIcons: Record<string, any> = {
@@ -76,10 +77,12 @@ export const imageModelIcons: Record<string, any> = {
     'seedream': ByteDanceIcon,
     'seedream-pro': ByteDanceIcon,
     'seedance': ByteDanceIcon,
+    'seedance-fast': ByteDanceIcon,
     'seedance-pro': ByteDanceIcon,
     'nanobanana': '🍌',
     'nanobanana-pro': '🍌',
     'flux': FluxFarbeIcon,
+    'flux-2-dev': FluxFarbeIcon,
     'klein-large': FluxFarbeIcon,
     'flux-2-pro': FluxFarbeIcon,
     'flux-kontext-pro': FluxFarbeIcon,
@@ -92,4 +95,6 @@ export const imageModelIcons: Record<string, any> = {
     'z-image-turbo': WANIcon,
     'zimage': WANIcon,
     'qwen-image-edit-plus': QwenIcon,
+    'grok-video': GrokIcon,
+    'ltx-video': LTXLogo,
 };

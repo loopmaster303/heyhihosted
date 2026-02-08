@@ -11,6 +11,7 @@ import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { getUnifiedModel } from '@/config/unified-image-models';
 import { useLanguage } from '../LanguageProvider';
 import dynamic from 'next/dynamic';
+import DecryptedText from '@/components/ui/DecryptedText';
 
 // Dynamic import for ASCIIText (canvas-based, client-only)
 const ASCIIText = dynamic(() => import('@/components/ui/ASCIIText'), {
@@ -123,7 +124,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                 <div className="mx-auto max-w-5xl px-4">
                   <div className="glass-panel py-2 px-6 rounded-2xl">
                     <h1 className="text-center text-[clamp(20px,3vw,40px)] font-bold tracking-tight text-primary/80 py-2">
-                      {activeConversation?.title || 'hey.hi'}
+                      <DecryptedText
+                        text={activeConversation?.title || 'hey.hi'}
+                        speed={60}
+                        sequential={false}
+                        revealDirection="center"
+                        animateOn="both"
+                      />
                     </h1>
                   </div>
                 </div>

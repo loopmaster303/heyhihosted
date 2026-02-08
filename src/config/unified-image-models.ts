@@ -33,15 +33,11 @@ export interface UnifiedImageModel {
  * Standard: seedream, gpt-image, nanobanana, zimage
  * Advanced: kontext, nanobanana-pro, seedream-pro
  */
-/**
- * Pollinations Models (Free tier)
- * Standard: seedream, gpt-image, nanobanana, zimage
- * Advanced: kontext, nanobanana-pro, seedream-pro
- */
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
-  { id: 'flux', name: 'Flux1 Ultra', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
-  { id: 'klein-large', name: 'Flux 2', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'FLUX.2 Klein 4B' },
+  { id: 'flux', name: 'Flux.1 Fast', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
+  { id: 'flux-2-dev', name: 'Flux 2 Dev', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Flux.2 Dev (api.airforce)' },
+  { id: 'klein-large', name: 'Flux.2 klein 9b', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: false, description: 'FLUX.2 Klein 9B' },
   { id: 'kontext', name: 'Flux1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware frame editing' },
   { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'GPT Image 1 Mini' },
   { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: true, enabled: true, description: 'Advanced OpenAI Image' },
@@ -78,7 +74,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     category: 'Advanced',
     supportsReference: true,
     isFree: true,
-    enabled: false, // Temporarily disabled
+    enabled: true,
     description: '2-15s, 1080p (Alibaba Wan 2.6)',
     maxImages: 1,
     supportsAudio: true,
@@ -92,25 +88,53 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     category: 'Advanced', 
     supportsReference: true, 
     isFree: true, 
-    enabled: true, 
+    enabled: false, 
     description: 'Google Veo 3.1 Fast',
     maxImages: 2,
     supportsAudio: true,
     durationRange: { options: [4, 6, 8] }
   },
   { 
-    id: 'seedance-pro', 
-    name: 'Seedance Pro', 
+    id: 'seedance-fast', 
+    name: 'Seedance Fast', 
     provider: 'pollinations', 
     kind: 'video', 
     category: 'Advanced', 
     supportsReference: true, 
     isFree: true, 
     enabled: true, 
-    description: 'Seedance Pro-Fast (BytePlus)',
+    description: 'Seedance Fast (BytePlus)',
     maxImages: 1,
     supportsAudio: false,
     durationRange: { options: [5, 10] }
+  },
+  { 
+    id: 'ltx-video', 
+    name: 'LTX 2 Fast', 
+    provider: 'pollinations', 
+    kind: 'video', 
+    category: 'Advanced', 
+    supportsReference: false, 
+    isFree: true, 
+    enabled: true, 
+    description: 'Lightricks LTX 2 (T2V)',
+    maxImages: 0,
+    supportsAudio: true,
+    durationRange: { options: [6, 8, 10] }
+  },
+  { 
+    id: 'grok-video', 
+    name: 'Grok Imagine Video', 
+    provider: 'pollinations', 
+    kind: 'video', 
+    category: 'Advanced', 
+    supportsReference: false, 
+    isFree: true, 
+    enabled: true, 
+    description: 'xAI Grok Video (T2V)',
+    maxImages: 0,
+    supportsAudio: false,
+    durationRange: { options: [6] }
   },
 ];
 
@@ -193,7 +217,7 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'BILD',
     category: 'Standard',
     kind: 'image',
-    modelIds: ['flux', 'klein-large', 'kontext', 'gpt-image', 'gptimage-large', 'seedream', 'nanobanana', 'zimage'],
+    modelIds: ['flux', 'flux-2-dev', 'klein-large', 'kontext', 'gpt-image', 'gptimage-large', 'seedream', 'nanobanana', 'zimage'],
   },
   {
     key: 'video-standard',
@@ -214,7 +238,7 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'VIDEO (ADVANCED)',
     category: 'Advanced',
     kind: 'video',
-    modelIds: ['wan', 'veo', 'seedance-pro', 'wan-2.5-t2v', 'wan-video', 'veo-3.1-fast'],
+    modelIds: ['wan', 'seedance-fast', 'ltx-video', 'grok-video'],
   },
 ];
 

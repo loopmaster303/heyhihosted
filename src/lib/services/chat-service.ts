@@ -164,6 +164,10 @@ export class ChatService {
             body: JSON.stringify(body),
         });
 
+        if (response.status === 404) {
+            throw new Error('The Model is currently not available. Try another one like z-image (Das Modell ist anscheinend im Moment nicht verfügbar probiere ein anders zB zimage)');
+        }
+
         const result: any = await response.json();
         if (!response.ok || isApiErrorResponse(result)) {
             const errorMsg = isApiErrorResponse(result) ? result.error : 'Failed to generate image.';

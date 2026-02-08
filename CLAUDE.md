@@ -121,29 +121,32 @@ assets: 'id, conversationId, timestamp, storageKey'
 
 Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical—with XML-structured system prompts.
 
-## Current Migration Status (BROKEN)
+## Current API Status ✅
 
-**Status: Chat API not working - returns "Sorry, I couldn't get a response"**
+**Status: All APIs Working**
 
 **Versions:**
 - `ai`: 6.0.45
-- `ai-sdk-pollinations`: 0.0.1 (very early)
+- `ai-sdk-pollinations`: 0.0.1
 
 **Chat** (`/api/chat/completion`):
-- Using `ai-sdk-pollinations` with `generateText` (non-streaming)
-- Streaming (`streamText` + `toDataStreamResponse`) failed due to SDK version incompatibility
-- Frontend `ChatService` expects JSON: `{ choices: [{ message: { content, role } }] }`
+- ✅ Using `ai-sdk-pollinations` with `generateText` (non-streaming)
+- ✅ Smart Router integration for auto search detection
+- ✅ Web Context Service for enhanced responses
+- ✅ Returns JSON: `{ choices: [{ message: { content, role } }] }`
+- ⏳ Streaming (`streamText`) deferred until SDK stabilizes (see Phase 2 docs)
 
-**Known Issues:**
-1. `toDataStreamResponse is not a function` - SDK version mismatch
-2. Stream vs JSON format mismatch - Frontend expected JSON, backend sent raw text
-3. **Auth errors from Pollinations** - API Key required (`POLLEN_API_KEY`)
-4. JSON body validation failed - Model ID or parameter format incompatibility
+**Image/Video** (`/api/generate`):
+- ✅ Custom SDK shim (`src/lib/pollinations-sdk.ts`)
+- ✅ All Pollinations models supported
 
-**Requires:** `POLLEN_API_KEY` environment variable for Pollinations API access
+**TTS** (`/api/tts`):
+- ✅ Replicate SDK (`minimax/speech-02-turbo`)
 
-**Image**: Custom SDK shim (`src/lib/pollinations-sdk.ts`) - working
-**Replicate SDK**: Installed for future use, only TTS active
+**Requirements:**
+- `POLLEN_API_KEY` - Pollinations API access
+- `REPLICATE_API_TOKEN` - TTS only
+- AWS credentials for S3 asset storage
 
 ## Known Technical Debt
 
