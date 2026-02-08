@@ -4,7 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
 import { useComposeMusicState } from '@/hooks/useComposeMusicState';
-import ComposeInputContainer from './compose/ComposeInputContainer';
+// import ComposeInputContainer from './compose/ComposeInputContainer';
 import { AudioMessage } from '@/components/chat/AudioMessage';
 import { Button } from '@/components/ui/button';
 import { Music2 } from 'lucide-react';
@@ -128,7 +128,7 @@ const ComposeTool: React.FC<ComposeToolProps> = ({ onClose }) => {
         </Card>
       </main>
 
-      <footer className="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-32 pt-2 pb-4 shrink-0">
+      {/* <footer className="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-32 pt-2 pb-4 shrink-0">
         <div className="max-w-6xl mx-auto relative">
           <ComposeInputContainer
             prompt={prompt}
@@ -141,7 +141,7 @@ const ComposeTool: React.FC<ComposeToolProps> = ({ onClose }) => {
             loading={isGenerating}
           />
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 };
