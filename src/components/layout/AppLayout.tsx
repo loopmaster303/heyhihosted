@@ -12,6 +12,7 @@ import { getUnifiedModel } from '@/config/unified-image-models';
 import { useLanguage } from '../LanguageProvider';
 import dynamic from 'next/dynamic';
 import DecryptedText from '@/components/ui/DecryptedText';
+import GradualBlur from '@/components/ui/GradualBlur';
 
 // Dynamic import for ASCIIText (canvas-based, client-only)
 const ASCIIText = dynamic(() => import('@/components/ui/ASCIIText'), {
@@ -67,7 +68,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   onVisualModelSelectorToggle,
 }) => {
   const [sidebarExpanded, setSidebarExpanded] = useLocalStorageState<boolean>('sidebarExpanded', false);
-  const [headerCollapsed, setHeaderCollapsed] = useLocalStorageState<boolean>('headerCollapsed', false);
   const { language } = useLanguage();
 
   // Get username for header display
@@ -111,49 +111,22 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   return (
     <div className="relative flex flex-col h-screen bg-background text-foreground overflow-hidden">
       
-      {/* CYBER STYLE HEADER - ONLY IN CHAT */}
+      {/* MINIMAL TOPBAR - Chat Mode Only */}
       {appState === 'chat' && (
         <>
-          <header 
-            onClick={() => !headerCollapsed && setHeaderCollapsed(true)}
-            className={cn(
-              "fixed top-12 left-0 right-0 z-50 flex items-center justify-center overflow-hidden transition-all duration-500 ease-in-out",
-              headerCollapsed ? "h-0 opacity-0 -translate-y-full pointer-events-none" : "h-auto opacity-100 translate-y-0 cursor-pointer"
-            )}>
-              <div className={cn("w-full relative transition-all duration-300", sidebarExpanded ? "md:pl-72" : "pl-0")}>
-                <div className="mx-auto max-w-5xl px-4">
-                  <div className="glass-panel py-2 px-6 rounded-2xl">
-                    <h1 className="text-center text-[clamp(20px,3vw,40px)] font-bold tracking-tight text-primary/80 py-2">
-                      <DecryptedText
-                        text={activeConversation?.title || 'hey.hi'}
-                        speed={60}
-                        sequential={false}
-                        revealDirection="center"
-                        animateOn="both"
-                      />
-                    </h1>
-                  </div>
-                </div>
-                <div className="absolute top-1 right-4 text-[7px] text-primary/30 font-mono hidden md:block">
-                  SYS.STATUS: ONLINE
-                </div>
-              </div>
+          <header className="fixed top-3 left-14 right-0 z-50 h-10 flex items-center px-4">
+            <span className="text-sm font-medium text-primary/70 truncate">
+              <DecryptedText
+                text={activeConversation?.title || 'hey.hi'}
+                speed={50}
+                sequential={false}
+                revealDirection="start"
+                animateOn="both"
+              />
+            </span>
           </header>
-          
-          {/* Expand Arrow - only visible when collapsed */}
-          {headerCollapsed && (
-            <button
-              onClick={() => setHeaderCollapsed(false)}
-              className="fixed top-0 right-1/2 translate-x-1/2 z-[70] p-1 rounded-b-xl bg-primary/10 hover:bg-primary/20 backdrop-blur-md border-x border-b border-primary/20 transition-all duration-300 opacity-60 hover:opacity-100 shadow-glow-primary"
-              title="Header einblenden"
-            >
-              <div className="w-3 h-3 text-primary/80">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </button>
-          )}
+          {/* GradualBlur overlay */}
+          <GradualBlur direction="top" height="50px" blurAmount={12} zIndex={40} className="!fixed !top-10" />
         </>
       )}
 
@@ -194,7 +167,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
             </div>
           )}
 
-          <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full px-2 md:px-4 bg-background pt-28 sm:pt-32">
+          <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full px-2 md:px-4 bg-background pt-20">
             {children}
           </div>
         </main>
@@ -205,7 +178,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="fixed top-12 left-4 z-[100] bg-background/60 backdrop-blur-md border border-border/40 shadow-glass transition-all duration-300 rounded-xl"
+          className="fixed top-3 left-4 z-[100] bg-background/60 backdrop-blur-md border border-border/40 shadow-glass transition-all duration-300 rounded-xl"
           onClick={() => setSidebarExpanded(true)}
         >
           <Menu className="w-5 h-5 opacity-70" />

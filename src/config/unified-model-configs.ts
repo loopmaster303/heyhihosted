@@ -52,7 +52,7 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   },
   'kontext': {
     id: 'kontext',
-    name: 'Flux1 Kontext',
+    name: 'Flux.1 Kontext',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '1:1' },
@@ -259,7 +259,7 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   },
   'flux-2-dev': {
     id: 'flux-2-dev',
-    name: 'Flux 2 Dev',
+    name: 'Flux.2 Dev',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '1:1' },
@@ -271,7 +271,7 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   },
   'klein-large': {
     id: 'klein-large',
-    name: 'Flux.2 klein 9b',
+    name: 'Flux.2 klein 9B',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '1:1' },
