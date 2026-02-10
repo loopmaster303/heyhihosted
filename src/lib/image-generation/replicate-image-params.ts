@@ -10,7 +10,7 @@ export const REPLICATE_IMAGE_PARAM: Record<string, string> = {
   'flux-2-klein-9b': 'input_images',
   'flux-2-pro': 'input_images',
   'flux-kontext-pro': 'input_image',
-  'grok-imagine-video': 'image',
+  'grok-imagine-video': 'image_url',
   'wan-video': 'image',
   'veo-3.1-fast': 'image',
 };

@@ -191,5 +191,34 @@ describe('ChatService', () => {
                 body: expect.stringContaining('blurry, low quality'),
             }));
         });
+
+        it('should pass reference image for Replicate grok-imagine-video', async () => {
+            const options: GenerateImageOptions = {
+                prompt: 'Animate this image',
+                modelId: 'grok-imagine-video',
+                image: 'https://example.com/reference.png',
+                aspect_ratio: '16:9',
+                duration: 5,
+            };
+
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ output: 'https://example.com/video.mp4' }),
+            });
+
+            const result = await ChatService.generateImage(options);
+
+            expect(result).toBe('https://example.com/video.mp4');
+            expect(mockFetch).toHaveBeenCalledWith('/api/replicate', expect.objectContaining({
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            }));
+
+            const fetchArgs = mockFetch.mock.calls[0]?.[1];
+            const parsedBody = JSON.parse(fetchArgs.body);
+            expect(parsedBody.model).toBe('grok-imagine-video');
+            expect(parsedBody.image_url).toBe('https://example.com/reference.png');
+            expect(parsedBody.aspect_ratio).toBe('16:9');
+        });
     });
 });

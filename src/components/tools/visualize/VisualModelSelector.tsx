@@ -7,6 +7,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { getUnifiedModel, getVisualizeModelGroups, type UnifiedImageModel } from '@/config/unified-image-models';
 import { getUnifiedModelConfig } from '@/config/unified-model-configs';
 import { imageModelIcons } from '@/config/ui-constants';
+import { ModalPopup } from '@/components/ui/popup';
 
 interface VisualModelSelectorProps {
     isOpen: boolean;
@@ -98,60 +99,59 @@ export const VisualModelSelector: React.FC<VisualModelSelectorProps> = ({
     }
 
     return (
-        <>
-            <div
-                className="fixed inset-0 z-[100] bg-transparent"
-                onClick={onClose}
-                aria-hidden="true"
-            />
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[320px] max-w-[90vw] z-[110] bg-popover/80 text-foreground rounded-2xl shadow-glass-heavy border border-glass-border backdrop-blur-xl p-0 origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-300 ease-out overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 sticky top-0 bg-background/90 backdrop-blur-md z-10">
-                <div>
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br flex items-center justify-center" style={{ backgroundImage: 'linear-gradient(to bottom right, hsl(330 65% 62%), rgb(59, 130, 246))' }}>
-                            <ImageIcon className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-semibold">{t('modelSelect.title') || 'Modell wählen'}</h2>
-                            <p className="text-xs text-muted-foreground">{t('modelSelect.subtitle') || 'Bild- & Video-Generierung'}</p>
+        <ModalPopup
+            maxWidth="xl"
+            onClose={onClose}
+            className="p-0 overflow-hidden shadow-glass-heavy border-primary/10"
+        >
+            <div className="overflow-y-auto overscroll-contain max-h-[75vh] md:max-h-[calc(100vh-240px)]">
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-border/50 sticky top-0 bg-popover/90 backdrop-blur-md z-10 flex items-center justify-between">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br flex items-center justify-center" style={{ backgroundImage: 'linear-gradient(to bottom right, hsl(330 65% 62%), rgb(59, 130, 246))' }}>
+                                <ImageIcon className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-semibold">{t('modelSelect.title') || 'Modell wählen'}</h2>
+                                <p className="text-xs text-muted-foreground">{t('modelSelect.subtitle') || 'Bild- & Video-Generierung'}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={onClose}
-                    className="h-8 w-8 rounded-full hover:bg-muted"
-                >
-                    <X className="w-5 h-5" />
-                </Button>
-            </div>
-
-            {/* Content */}
-            <div className="p-4 max-h-[420px] overflow-y-auto">
-                <div className="space-y-4">
-                    {standardGroups.map(group => renderGroup(group, { closeOnSelect: true }))}
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={onClose}
+                        className="h-8 w-8 rounded-full hover:bg-muted"
+                    >
+                        <X className="w-5 h-5" />
+                    </Button>
                 </div>
 
-                <button
-                    onClick={() => setExpanded(!expanded)}
-                    className="w-full mt-4 py-2 px-3 text-[10px] font-medium text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 border border-dashed border-border/50 rounded-lg hover:bg-muted/20 transition-colors"
-                    type="button"
-                >
-                    {expanded ? 'Show Less' : 'Show More'}
-                    <ChevronDown className={cn("w-4 h-4 transition-transform", expanded && "rotate-180")} />
-                </button>
-
-                {expanded && (
-                    <div className="mt-4 space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-                        {advancedGroups.map(group => renderGroup(group, { closeOnSelect: true }))}
+                {/* Content */}
+                <div className="p-4 pb-12">
+                    <div className="space-y-4">
+                        {standardGroups.map(group => renderGroup(group, { closeOnSelect: true }))}
                     </div>
-                )}
+
+                    <button
+                        onClick={() => setExpanded(!expanded)}
+                        className="w-full mt-4 py-2 px-3 text-[10px] font-medium text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 border border-dashed border-border/50 rounded-lg hover:bg-muted/20 transition-colors"
+                        type="button"
+                    >
+                        {expanded ? 'Show Less' : 'Show More'}
+                        <ChevronDown className={cn("w-4 h-4 transition-transform", expanded && "rotate-180")} />
+                    </button>
+
+                    {expanded && (
+                        <div className="mt-4 space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                            {advancedGroups.map(group => renderGroup(group, { closeOnSelect: true }))}
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
-        </>
+        </ModalPopup>
     );
 };
 

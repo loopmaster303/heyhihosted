@@ -109,14 +109,16 @@ export class ChatService {
             if (options.fps) body.fps = options.fps;
 
             if (modelInfo?.kind === 'video') {
-                if (options.modelId.includes('veo')) {
-                    if (options.first_frame_image) body.image = options.first_frame_image; 
+                const baseImage = options.first_frame_image || options.image || options.image_url || options.input_image;
+                if (options.modelId === 'grok-imagine-video') {
+                    if (baseImage) body.image_url = baseImage;
+                } else if (options.modelId.includes('veo')) {
+                    if (baseImage) body.image = baseImage;
                     if (options.last_frame_image) body.last_frame_image = options.last_frame_image; 
                 } else if (options.modelId.includes('wan')) {
-                    if (options.image_url) body.image = options.image_url;
-                    if (options.first_frame_image) body.image = options.first_frame_image; 
+                    if (baseImage) body.image = baseImage;
                 } else {
-                    if (options.image_url) body.image = options.image_url;
+                    if (baseImage) body.image = baseImage;
                 }
             } else {
                 if (options.image) body.image = options.image;

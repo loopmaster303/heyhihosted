@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       const value = inputParams[key];
       if (value !== null && value !== undefined) {
         // Handle image parameters - ensure they are passed through correctly
-        if (key === "input_images" || key === "image_input" || key === "input_image" || key === "image") {
+        if (key === "input_images" || key === "image_input" || key === "input_image" || key === "image" || key === "image_url") {
           // For image arrays, ensure they are passed as arrays
           if (Array.isArray(value)) {
             sanitizedInput[key] = value;
@@ -170,5 +170,4 @@ export async function POST(request: NextRequest) {
     return handleApiError(error);
   }
 }
-
 

@@ -329,7 +329,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
       )}
 
       {/* Quality / Resolution */}
-      {selectedModelId !== 'z-image-turbo' && !isGptImage && !isSeedream && !isPollinationsVideo && shouldShowResolution && currentModelConfig.inputs.find(i => i.name === 'resolution') && (
+      {selectedModelId !== 'z-image-turbo' && !isGptImage && !isSeedream && !isPollinationsVideo && getUnifiedModel(selectedModelId)?.provider !== 'replicate' && shouldShowResolution && currentModelConfig.inputs.find(i => i.name === 'resolution') && (
         <div className={badgeClass}>
           <span className={labelClass}>Qualität</span>
           <Select

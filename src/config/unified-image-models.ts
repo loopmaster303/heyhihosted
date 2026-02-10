@@ -130,7 +130,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     category: 'Advanced', 
     supportsReference: false, 
     isFree: true, 
-    enabled: false, 
+    enabled: true, 
     description: 'xAI Grok Video (T2V)',
     maxImages: 0,
     supportsAudio: false,
@@ -190,7 +190,7 @@ const REPLICATE_MODELS: UnifiedImageModel[] = [
     maxImages: 1,
     requiresPassword: false, 
     description: 'xAI Grok Video (Replicate)', 
-    enabled: true,
+    enabled: false,
     supportsAudio: false,
     durationRange: { min: 1, max: 15, step: 1 }
   },
@@ -278,7 +278,7 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'VIDEO',
     category: 'Advanced',
     kind: 'video',
-    modelIds: ['seedance-fast', 'wan', 'ltx-video', 'grok-imagine-video'],
+    modelIds: ['seedance-fast', 'wan', 'ltx-video', 'grok-video'],
   },
 ];
 
