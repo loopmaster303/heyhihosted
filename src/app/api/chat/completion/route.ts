@@ -17,14 +17,49 @@ const ChatCompletionSchema = z.object({
   modelId: z.string().min(1, 'Model ID is required'),
   systemPrompt: z.string().optional(),
   webBrowsingEnabled: z.boolean().optional(),
+  skipSmartRouter: z.boolean().optional(),
 });
+
+/**
+ * Perplexity models require strict user↔assistant alternation.
+ * This merges consecutive same-role messages and ensures the
+ * history starts with a user message.
+ */
+function ensureMessageAlternation(messages: any[]): any[] {
+  const cleaned: any[] = [];
+
+  for (const msg of messages) {
+    const last = cleaned[cleaned.length - 1];
+
+    if (last && last.role === msg.role) {
+      // Merge consecutive same-role messages
+      const lastContent = typeof last.content === 'string' ? last.content : JSON.stringify(last.content);
+      const msgContent = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      last.content = `${lastContent}\n\n${msgContent}`;
+    } else {
+      cleaned.push({ ...msg });
+    }
+  }
+
+  // Perplexity requires first non-system message to be 'user'
+  if (cleaned.length > 0 && cleaned[0].role !== 'user') {
+    cleaned.unshift({ role: 'user', content: '(Continue)' });
+  }
+
+  // Ensure last message is 'user' (required for completion)
+  if (cleaned.length > 0 && cleaned[cleaned.length - 1].role !== 'user') {
+    cleaned.push({ role: 'user', content: '(Continue)' });
+  }
+
+  return cleaned;
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
     // Validate request
-    const { messages, modelId, systemPrompt, webBrowsingEnabled } = validateRequest(ChatCompletionSchema, body);
+    const { messages, modelId, systemPrompt, webBrowsingEnabled, skipSmartRouter } = validateRequest(ChatCompletionSchema, body);
 
     // === SMART ROUTING & DEEP RESEARCH ===
     let routedModelId = modelId;
@@ -45,7 +80,7 @@ export async function POST(request: Request) {
       console.log('🔍 Deep Research Mode Activated (NomNom)');
       routedModelId = 'nomnom';
       isSearchRouted = true;
-    } else {
+    } else if (!skipSmartRouter) {
       if (SmartRouter.shouldRouteToSearch(userQuery)) {
         console.log(`⚡️ Smart Router: Live Data Triggered (Sona) for query "${userQuery.substring(0, 50)}"...`);
         routedModelId = SmartRouter.getLiveSearchModel();
@@ -74,11 +109,21 @@ export async function POST(request: Request) {
       }
     }
 
+    // === MESSAGE SANITIZATION FOR PERPLEXITY MODELS ===
+    const isPerplexityModel = routedModelId.includes('perplexity') || routedModelId === 'nomnom';
+    const sanitizedMessages = isPerplexityModel
+      ? ensureMessageAlternation(messages)
+      : messages;
+
+    if (isPerplexityModel && sanitizedMessages.length !== messages.length) {
+      console.log(`🔧 Message alternation fixed: ${messages.length} → ${sanitizedMessages.length} messages`);
+    }
+
     // === EXECUTE GENERATION (BLOCKING) ===
     console.log('[API] Executing generateText (non-streaming)...');
     const result = await generateText({
       model: pollinations(routedModelId),
-      messages: messages as any,
+      messages: sanitizedMessages as any,
       system: finalSystemPrompt,
     });
 

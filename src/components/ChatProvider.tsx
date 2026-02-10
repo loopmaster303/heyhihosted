@@ -31,6 +31,7 @@ import { GalleryService } from '@/lib/services/gallery-service';
 import { uploadFileToS3 } from '@/lib/upload/s3-upload';
 import { getClientSessionId } from '@/lib/session';
 import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
+import { getReplicateImageParam } from '@/lib/image-generation/replicate-image-params';
 import { toDate } from '@/utils/chatHelpers';
 
 export interface UseChatLogicProps {
@@ -92,7 +93,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
   } = state;
 
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     if (!activeConversation) return;
@@ -300,42 +301,57 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     const { id: convId, selectedModelId, selectedResponseStyleName, messages } = activeConversation;
     let currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
 
-    const now = new Date();
+    // Date/time is injected server-side in /api/chat/completion to avoid duplication
     const runtimeContext = `
 <runtime_context>
-    Current Date: ${now.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-    Current Time: ${now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
     Environment: hey.hi web-interface
 </runtime_context>`;
 
-    const internalReasoningDirective = `
+    // Only inject hidden-reasoning directive for models that support it (Claude, OpenAI, Grok)
+    // Other models (Mistral, Gemini, Qwen) may leak <thought> tags into output
+    const supportsHiddenReasoning = selectedModelId?.startsWith('claude') ||
+                                     selectedModelId?.startsWith('openai') ||
+                                     selectedModelId === 'grok';
+    const internalReasoningDirective = supportsHiddenReasoning ? `
 <internal_protocol>
     - You are equipped with vision capabilities. If the user provides an image, analyze it accurately.
     - Before responding, perform a brief internal analysis of the user's intent.
     - You MAY use hidden reasoning, but do not output any <thought> or <analysis> tags to the user.
     - Final output must be clean and follow the selected persona's style.
-</internal_protocol>`;
+</internal_protocol>` : '';
 
     const basicStylePrompt = (AVAILABLE_RESPONSE_STYLES.find(s => s.name === 'Basic') || AVAILABLE_RESPONSE_STYLES[0]).systemPrompt;
     const selectedStyle = AVAILABLE_RESPONSE_STYLES.find(s => s.name === selectedResponseStyleName);
     let effectiveSystemPrompt = selectedStyle ? selectedStyle.systemPrompt : basicStylePrompt;
 
-    if (customSystemPrompt && customSystemPrompt.trim()) {
-      const userInstruction = customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User");
-      effectiveSystemPrompt = `${effectiveSystemPrompt}\n<user_custom_instruction>\n${userInstruction}\n</user_custom_instruction>`;
-    }
+    // Replace {{USERNAME}} token in style prompt (used by Companion mode)
+    effectiveSystemPrompt = effectiveSystemPrompt.replace(
+      /\{\{USERNAME\}\}/g,
+      userDisplayName && userDisplayName !== 'User' ? userDisplayName : ''
+    );
 
     const userMemoriesContext = await MemoryService.getMemoriesAsContext();
-    
+
     let globalContext = "";
     const lowerText = (messageText || chatInputValue).toLowerCase();
     const isAskingAboutPast = lowerText.includes("erinnerst") || lowerText.includes("remember") || lowerText.includes("früher") || lowerText.includes("vergangene");
-    
+
     if (messages.length === 0 || isAskingAboutPast || messages.length % 50 === 0) {
       globalContext = await MemoryService.getGlobalContextSummary();
     }
 
-    effectiveSystemPrompt = `${effectiveSystemPrompt}\n${userMemoriesContext}\n${globalContext}\n${runtimeContext}\n${internalReasoningDirective}`;
+    const languageHint = language === 'de'
+      ? 'User interface language: German. Default response language: German.'
+      : 'User interface language: English. Default response language: English.';
+
+    // Custom instructions placed AFTER memories/context for higher LLM priority (later = stronger)
+    let customInstructionBlock = '';
+    if (customSystemPrompt && customSystemPrompt.trim()) {
+      const userInstruction = customSystemPrompt.replace(/{userDisplayName}/gi, userDisplayName || "User");
+      customInstructionBlock = `\n<user_custom_instruction>\n${userInstruction}\n</user_custom_instruction>`;
+    }
+
+    effectiveSystemPrompt = `${effectiveSystemPrompt}\n${userMemoriesContext}\n${globalContext}\n${runtimeContext}\n<language_preference>${languageHint}</language_preference>${customInstructionBlock}\n${internalReasoningDirective}`;
 
     if (options.isRegeneration) {
       const regenerationInstruction = "Generiere eine neue, alternative Antwort auf die letzte Anfrage des Benutzers. Wiederhole deine vorherige Antwort nicht. Biete eine andere Perspektive oder einen anderen Stil.";
@@ -504,7 +520,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
           : [];
 
         let enrichedPrompt = effectivePrompt;
-        if (resolvedReferenceUrls.length > 0 && !isPollinationsVideo) {
+        // Only embed reference URLs in the prompt text for non-Pollinations models (e.g. Replicate).
+        // Pollinations receives images via the dedicated `image` query parameter — embedding
+        // full S3 signed URLs or data-URIs in the prompt would blow up the GET URL.
+        if (resolvedReferenceUrls.length > 0 && !isPollinationsModel) {
             const imageList = resolvedReferenceUrls.map((url, i) => `IMAGE_${i + 1}: ${url}`).join('\n');
             enrichedPrompt = `User provided the following reference images:\n${imageList}\n\nTask: ${effectivePrompt}`;
         }
@@ -517,14 +536,15 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
         if (imageConfig) {
           const { formFields } = imageConfig;
           if (resolvedReferenceUrls.length > 0) {
-            if (selectedImageModelId === 'flux-2-pro') {
-              imageParams.input_images = resolvedReferenceUrls;
-            } else if (selectedImageModelId === 'flux-kontext-pro') {
-              imageParams.input_image = resolvedReferenceUrls[0];
-            } else if (selectedImageModelId === 'wan-video' || selectedImageModelId === 'veo-3.1-fast') {
-              imageParams.image = resolvedReferenceUrls[0];
-            } else if (isPollinationsModel) {
-              imageParams.image = resolvedReferenceUrls; 
+            if (!isPollinationsModel) {
+              // Replicate: Use model-specific parameter name (centralized mapping)
+              const replicateParam = getReplicateImageParam(selectedImageModelId, resolvedReferenceUrls);
+              if (replicateParam) {
+                imageParams[replicateParam.paramName] = replicateParam.paramValue;
+              }
+            } else {
+              // Pollinations: Always use 'image'
+              imageParams.image = resolvedReferenceUrls;
             }
           }
 
@@ -714,7 +734,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     } finally {
       const finalConversationState = { messages: finalMessages, title: finalTitle, updatedAt: new Date().toISOString(), uploadedFile: null, uploadedFilePreview: null };
 
-      if (finalMessages.length >= 2) {
+      if (finalMessages.length >= 2 && !isImagePrompt) {
         MemoryService.extractMemories(convId, finalMessages).catch(console.error);
       }
 

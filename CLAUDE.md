@@ -33,6 +33,7 @@ The **Visualize Bar** (`VisualizeInlineHeader`) opens inline when image mode is 
 Conversation-level flags:
 
 - **isImageMode**: Routes prompts to Pollinations image/video generation
+- **isComposeMode**: Music generation via ElevenLabs elevenmusic (`useComposeMusicState`)
 - **isCodeMode**: Activates `CODE_REASONING_SYSTEM_PROMPT` for programming
 - **webBrowsingEnabled**: Deep Research mode → routes to `nomnom` model
 
@@ -46,37 +47,109 @@ Auto-detects user intent via regex (German + English):
 ### API Layer
 
 **Chat** (`/api/chat/completion`):
-- Vercel AI SDK (`streamText`) with `ai-sdk-pollinations` provider
+- Vercel AI SDK (`generateText`) with `ai-sdk-pollinations` provider
 
 **Image/Video Generation** (`/api/generate`):
 - Custom Pollinations SDK shim (`src/lib/pollinations-sdk.ts`)
 - All models via Pollinations API
+- **Pollinations supports GET only** (`/image/{prompt}?params`) — no POST endpoint
+- URL limit ~2000 chars; if exceeded, server fetches image via GET and returns base64 data URL
+
+**Prompt Enhancement** (`/api/enhance-prompt`):
+- LLM-based prompt optimization for image and music generation
+- Model-specific system prompts (`src/config/enhancement-prompts.ts`)
+- Routing: `modelId` selects which enhancement prompt to use
+- Image models: max 1000 chars output (3-layer cap: `maxCompletionTokens: 250`, system prompt rule, hard-cap after sanitize)
+- Compose/music: max ~4100 chars output (no URL constraint, goes to ElevenLabs)
+
+**Music Generation** (`/api/generate` via ElevenLabs):
+- Compose mode uses `useComposeMusicState` hook with `enhancePrompt()` + `isEnhancing`
+- VibeCraft enhancement prompt (`COMPOSE_ENHANCEMENT_PROMPT` in `enhancement-prompts.ts`)
+
+**Replicate Image/Video** (`/api/replicate`):
+- Server-side polling via Replicate predictions API
+- Model endpoints mapped in `MODEL_ENDPOINTS` (`src/app/api/replicate/route.ts`)
+- Reference images via S3 signed URLs (same upload flow as Pollinations)
+- Parameter name mapping: `getReplicateImageParam()` in `src/lib/image-generation/replicate-image-params.ts`
+- Hidden defaults injected per model (e.g. `output_quality: 100` for flux-2-max)
 
 **Text-to-Speech** (`/api/tts`):
-- Only Replicate usage in the app (`minimax/speech-02-turbo`)
+- Replicate SDK (`minimax/speech-02-turbo`)
+
+**Speech-to-Text** (`/api/stt`):
+- Deepgram API via `stt-flow.ts`
+
+**Title Generation** (`/api/chat/title`):
+- Auto-generates conversation titles via Pollinations
+
+**Image Proxy** (`/api/proxy-image`):
+- Privacy-respecting proxy for external images
+
+**Compose/Music** (`/api/compose`):
+- ElevenLabs music generation endpoint
+
+**S3 Upload** (`/api/upload/sign`, `/api/upload/sign-read`, `/api/upload/ingest`):
+- Signed URL generation for uploads and reads
+- Asset ingestion pipeline (polls Pollinations, copies to S3)
 
 ### Reference Images
 
-**Upload Flow:**
+**Upload Flow (unified for Pollinations + Replicate):**
 1. User selects image(s) → uploaded to S3 via signed URL
 2. Stored as `UploadedReference[]`: `{ url, key, expiresAt }`
 3. Before API call: `resolveReferenceUrls()` refreshes expired URLs
-4. Passed to Pollinations as URL parameter—Pollinations fetches them
+4. Passed to API with correct parameter name per provider/model
+
+**Critical: Upload Model Lists** (`useUnifiedImageToolState.ts`):
+- `pollinationUploadModels` — every Pollinations model with `supportsReference: true` **must** be listed
+- `replicateUploadModels` — every Replicate model with `supportsReference: true` **must** be listed
+- If missing, upload falls back to local Data-URI (base64 ~940K chars) which explodes GET URLs
+
+**Replicate Parameter Mapping** (`src/lib/image-generation/replicate-image-params.ts`):
+Replicate models use different API parameter names for reference images. The centralized `getReplicateImageParam()` maps model IDs to the correct parameter:
+
+| Model | API Parameter | Value Type |
+|-------|---------------|------------|
+| flux-2-max, flux-2-klein-9b, flux-2-pro | `input_images` | `string[]` |
+| flux-kontext-pro | `input_image` | `string` |
+| grok-imagine-video, wan-video, veo-3.1-fast | `image` | `string` |
+| All Pollinations models | `image` | `string[]` |
+
+This mapping is used by **both** code paths:
+- `UnifiedImageTool.tsx` (standalone Visualize tool → `/api/replicate` direct)
+- `ChatProvider.tsx` → `ChatService.generateImage()` (chat input with image mode)
 
 **Model Limits** (`src/config/unified-image-models.ts`):
 
-| Model | Max Images | Notes |
-|-------|------------|-------|
-| nanobanana(-pro) | 14 | Gemini-based |
-| seedream(-pro) | 10 | ByteDance |
-| gptimage-large | 8 | OpenAI |
-| gpt-image | 4 | OpenAI Mini |
-| veo | 2 | Video, supports audio |
-| kontext, klein-large | 1 | Context editing |
-| wan, seedance(-pro) | 1 | **Image-to-Video only** (no text-to-video) |
-| flux, zimage | 0 | No reference support |
+| Model | Max Images | Provider | Notes |
+|-------|------------|----------|-------|
+| nanobanana(-pro) | 14 | Pollinations | Gemini-based |
+| seedream(-pro) | 10 | Pollinations | ByteDance |
+| gptimage-large | 8 | Pollinations | OpenAI |
+| gpt-image | 4 | Pollinations | OpenAI Mini (disabled) |
+| flux-2-max | 4 | Replicate | Black Forest Labs, `input_images` |
+| veo | 2 | Pollinations | Video, supports audio |
+| kontext, klein-large | 1 | Pollinations | Context editing |
+| grok-imagine-video | 1 | Replicate | Video, `image` param |
+| wan, seedance(-pro) | 1 | Pollinations | **Image-to-Video only** |
+| flux, flux-2-dev, zimage | 0 | Pollinations | No reference support |
 
 Logic in `useUnifiedImageToolState`: auto-truncates images when switching to model with lower limit.
+
+### Visualize Model Groups
+
+The Visualize Bar organizes models into 4 groups (`src/config/unified-image-models.ts`):
+
+| Group | Category | Models | Visibility |
+|-------|----------|--------|------------|
+| **FAST** | Standard | zimage, flux, flux-2-dev | Always visible |
+| **EDITING** | Standard | kontext, klein-large, gptimage-large, nanobanana | Always visible |
+| **ADVANCED** | Advanced | nanobanana-pro, seedream-pro, flux-2-max | Behind "Show More" |
+| **VIDEO** | Advanced | seedance-fast, wan, ltx-video, grok-imagine-video | Behind "Show More" |
+
+Standard groups are always visible; Advanced groups are behind a "Show More" toggle.
+Order of `modelIds` in each group determines display order in the UI.
+Disabled models (`enabled: false`) are automatically filtered out by `getVisualizeModelGroups()`.
 
 ### Asset Storage (Gallery)
 
@@ -97,8 +170,11 @@ ChatProvider.tsx (orchestrator)
 ├── useChatAudio()              # TTS playback
 ├── useChatRecording()          # Voice input
 ├── useUnifiedImageToolState()  # Visualize bar state
+├── useComposeMusicState()      # Compose/music bar state
 └── useChatEffects()            # Side effects
 ```
+
+**MemoryService isolation**: `MemoryService.extractMemories()` is called in the `finally` block of `sendMessage()` but **only for text chat** (`!isImagePrompt`). It internally calls `ChatService.sendChatCompletion()`, which would route through Smart Router and potentially trigger search models — must never run during image/video generation.
 
 ### Database (Dexie v3 / IndexedDB)
 
@@ -106,20 +182,42 @@ ChatProvider.tsx (orchestrator)
 conversations: 'id, title, updatedAt, toolType'
 messages: 'id, conversationId, timestamp'
 memories: '++id, key, updatedAt'
-assets: 'id, conversationId, timestamp, storageKey'
+assets: 'id, conversationId, timestamp'  // storageKey is a field but not indexed
 ```
+
+## App Identity & System Prompts (`src/config/chat-options.ts`)
+
+The app's self-knowledge is embedded in system prompts sent with every chat request:
+
+- **`SYSTEM_IDENTITY_PROTOCOL`**: Name ("hey.hi"), nature ("AI Interface, not standalone model"), privacy policy, transparency rules, "Not Human" identity.
+- **`SHARED_SAFETY_PROTOCOL`**: Crisis intervention — detects distress (Condition A → stay present) and acute danger (Condition B → redirect to 112/crisis hotline 0800 111 0 111).
+- **`OUTPUT_LANGUAGE_GUARD`**: Default German, switches to English if user writes English.
+- **`CODE_REASONING_SYSTEM_PROMPT`**: Code Mode identity ("Senior Software Engineer").
+
+All five **Response Styles** (Basic, Precise, Deep Dive, Emotional Support, Philosophical) compose these protocols into their system prompt via XML structure.
+
+See [docs/PRODUCT_IDENTITY.md](docs/PRODUCT_IDENTITY.md) for full identity specification.
 
 ## Key Configurations
 
 ### Chat Models (`src/config/chat-options.ts`)
 
 - Default: `claude-fast` (Claude Haiku 4.5)
-- Auto-routed search: `perplexity-fast`
+- Auto-routed search: `perplexity-fast` (Sonar)
 - Deep research: `nomnom`
+- Code Mode models: `qwen-coder`, `deepseek`, `glm`, `gemini-large`
+
+### Chat Model Categories
+
+| Category | Models |
+|----------|--------|
+| **Standard** | `claude-fast`, `gemini-search`, `openai-fast`, `openai`, `grok`, `gemini-fast`, `mistral` |
+| **Advanced** | `openai-large`, `claude-large`, `claude`, `gemini-large`, `gemini`, `deepseek`, `perplexity-reasoning`, `nomnom`, `perplexity-fast`, `kimi-k2-thinking`, `glm` |
+| **Specialized** | `qwen-coder`, `qwen-character` |
 
 ### Response Styles
 
-Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical—with XML-structured system prompts.
+Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical — each with XML-structured system prompts composing Safety Protocol + Identity Protocol + Language Guard + persona-specific identity.
 
 ## Current API Status ✅
 
@@ -136,21 +234,33 @@ Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical—wit
 - ✅ Returns JSON: `{ choices: [{ message: { content, role } }] }`
 - ⏳ Streaming (`streamText`) deferred until SDK stabilizes (see Phase 2 docs)
 
-**Image/Video** (`/api/generate`):
+**Image/Video — Pollinations** (`/api/generate`):
 - ✅ Custom SDK shim (`src/lib/pollinations-sdk.ts`)
 - ✅ All Pollinations models supported
+- ✅ Server-side GET fetch fallback for URLs >2000 chars (returns base64 data URL)
+- ✅ Prompt enhancement pipeline (`/api/enhance-prompt`) with 1000-char cap
+
+**Image/Video — Replicate** (`/api/replicate`):
+- ✅ Server-side prediction polling with configurable timeouts
+- ✅ Reference images via S3 signed URLs (same flow as Pollinations)
+- ✅ Centralized parameter mapping (`replicate-image-params.ts`)
+- ✅ Models: flux-2-max, grok-imagine-video (+ disabled: flux-2-pro, flux-kontext-pro, etc.)
+
+**Compose/Music** (`/api/generate` via ElevenLabs):
+- ✅ Compose mode with `useComposeMusicState` hook
+- ✅ VibeCraft enhancement prompt for music descriptions
 
 **TTS** (`/api/tts`):
 - ✅ Replicate SDK (`minimax/speech-02-turbo`)
 
 **Requirements:**
 - `POLLEN_API_KEY` - Pollinations API access
-- `REPLICATE_API_TOKEN` - TTS only
+- `REPLICATE_API_TOKEN` - TTS + Replicate image/video generation
 - AWS credentials for S3 asset storage
 
 ## Known Technical Debt
 
-1. **Large Components**: `ChatInput.tsx` (~400 lines), `ChatProvider.tsx` (~1000 lines)
+1. **Large Components**: `ChatInput.tsx` (~470 lines), `ChatProvider.tsx` (~1000 lines)
 2. **Type Safety**: `Conversation` mixes persisted and runtime state
 3. **Test Coverage**: Low on core logic
 
@@ -193,9 +303,10 @@ Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical—wit
 ## Environment Variables
 
 ```
-POLLEN_API_KEY            # Pollinations API
-REPLICATE_API_TOKEN       # TTS only
-DEEPGRAM_API_KEY          # STT
+POLLEN_API_KEY            # Pollinations API (also accepts POLLINATIONS_API_KEY / POLLINATIONS_API_TOKEN)
+REPLICATE_API_TOKEN       # TTS + Replicate image/video generation
+REPLICATE_TOOL_PASSWORD   # Optional: password-protects /api/replicate endpoint
+DEEPGRAM_API_KEY          # STT (used in stt-flow.ts)
 AWS_REGION, AWS_S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 ```
 

@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
 
 
     // Get model-specific enhancement guidelines
+    const isComposeModel = modelId === 'elevenmusic' || modelId === 'compose';
     const baseGuidelines = selectGuidelines(modelId);
     
     // Only enforce English output - let the enhancement prompts control the format
@@ -104,7 +105,12 @@ export async function POST(request: NextRequest) {
       'Your entire response must be ONLY the content itself, nothing else.',
     ].join(' ');
 
-    const systemMessage = `${baseGuidelines}\n\n${outputLanguageGuard}\n\n${noContentRestrictionsGuard}\n\n${strictOutputOnlyGuard}`;
+    // Image prompts go into GET URLs with strict length limits — enforce 1000 char max
+    const lengthGuard = isComposeModel
+      ? ''
+      : 'CRITICAL: Your ENTIRE output must be under 1000 characters (not words — characters). Be dense and descriptive but concise. No filler, no repetition.';
+
+    const systemMessage = `${baseGuidelines}\n\n${outputLanguageGuard}\n\n${noContentRestrictionsGuard}\n\n${strictOutputOnlyGuard}${lengthGuard ? '\n\n' + lengthGuard : ''}`;
 
     // Always use Pollinations (Pollen) with Claude (Sonnet)
     const pollenKey = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_API_TOKEN;
@@ -118,7 +124,7 @@ export async function POST(request: NextRequest) {
         ],
         systemPrompt: systemMessage,
         apiKey: pollenKey,
-        maxCompletionTokens: 500,
+        maxCompletionTokens: isComposeModel ? 500 : 250,
       });
       enhancedText = result.responseText;
     } catch (pollinationsError) {
@@ -131,9 +137,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const cleaned = sanitizeEnhancedPrompt(enhancedText || prompt);
+    let cleaned = sanitizeEnhancedPrompt(enhancedText || prompt);
 
-
+    // Hard-cap for image models: Pollinations GET URLs break above ~2000 chars total
+    if (!isComposeModel && cleaned.length > 1000) {
+      cleaned = cleaned.substring(0, 1000).replace(/\s+\S*$/, '');
+    }
 
     return NextResponse.json({
       enhancedPrompt: cleaned,

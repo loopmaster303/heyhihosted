@@ -24,6 +24,7 @@ export const pollinationUploadModels = [
     'seedance',
     'veo',
     'klein-large',
+    'kontext',
     'wan'
 ];
 
@@ -32,7 +33,9 @@ export const replicateUploadModels = [
     'flux-kontext-pro',
     'wan-video',
     'veo-3.1-fast',
-    'z-image-turbo'
+    'z-image-turbo',
+    'flux-2-max',
+    'grok-imagine-video',
 ];
 
 export const gptImagePresets: Record<string, { width: number; height: number }> = {

@@ -58,10 +58,10 @@ export async function POST(request: Request) {
     if (model === 'zimage') modelId = 'z-image-turbo';
 
     const isVideoModel = VIDEO_MODELS.has(modelId);
-    
+
     // Auto-enhance for z-image-turbo
     const effectiveEnhance = (modelId === 'z-image-turbo') ? true : enhance;
-    
+
     // Safety Force: Private requires Token
     const safePrivate = isPrivate && hasToken ? true : false;
     if (isPrivate && !hasToken) {
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 
     // 1. Generate URL first (optimistic)
     let resultUrl: string;
-    
+
     // Helper to build options
     const imageOptions = {
         model: modelId,
@@ -101,25 +101,20 @@ export async function POST(request: Request) {
 
     console.log('[Pollinations] SDK Dispatch:', hasToken ? 'Authenticated' : 'Public', { model: modelId, isVideo: isVideoModel, urlLength: resultUrl.length });
 
-    // 2. SAFETY VALVE: If URL is too long (likely due to Signed S3 URLs or Base64), switch to POST proxy
-    // 2048 is safe limit for many proxies/browsers.
+    // Pollinations only supports GET — no POST endpoint exists.
+    // Even with shortened reference URLs, enhanced prompts can push over the limit.
+    // Server-side fetch avoids browser URL limits; Pollinations still needs <8K.
     if (!isVideoModel && resultUrl.length > 2000) {
-        console.warn(`[Pollinations] URL massive (${resultUrl.length} chars). Switching to POST Proxy.`);
-        
-        // Import generateImage locally or assume it's available from lib
-        // (We added it to lib/pollinations-sdk.ts)
-        const { generateImage } = await import('@/lib/pollinations-sdk');
-        
-        const imageBuffer = await generateImage(prompt, imageOptions);
-        
-        // Return Binary Stream
-        return new NextResponse(imageBuffer, {
-            headers: {
-                'Content-Type': 'image/jpeg',
-                // Add header to tell client this is a binary response, not JSON?
-                // Or client just checks Content-Type.
-            }
-        });
+        console.warn(`[Pollinations] URL long (${resultUrl.length} chars). Server-side fetch.`);
+
+        const imgResponse = await fetch(resultUrl);
+        if (!imgResponse.ok) {
+            throw new Error(`Pollinations API Error: ${imgResponse.status} ${imgResponse.statusText}`);
+        }
+        const buffer = await imgResponse.arrayBuffer();
+        const contentType = imgResponse.headers.get('content-type') || 'image/jpeg';
+        const base64 = Buffer.from(buffer).toString('base64');
+        return NextResponse.json({ imageUrl: `data:${contentType};base64,${base64}` });
     }
 
     // Standard JSON response

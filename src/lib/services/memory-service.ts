@@ -34,8 +34,9 @@ ${JSON.stringify(recentMessages)}
     try {
       const response = await ChatService.sendChatCompletion({
         messages: [{ role: 'user', content: extractionPrompt }],
-        modelId: 'mistral', 
-        systemPrompt: "Du bist ein JSON-Extraktor. Antworte nur mit validem JSON."
+        modelId: 'mistral',
+        systemPrompt: "Du bist ein JSON-Extraktor. Antworte nur mit validem JSON.",
+        skipSmartRouter: true, // Bypass SmartRouter to prevent search-routing of extraction prompts
       });
 
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -64,10 +65,10 @@ ${JSON.stringify(recentMessages)}
       const memoryLines = memories.map(m => `- ${m.value}`).join('\n');
       return `
 <user_knowledge>
-Hier sind rein funktionale Fakten über den Benutzer (Playa/Chaya):
+Functional facts about the user:
 ${memoryLines}
 
-INSTRUKTION: Nutze dieses Wissen nur zur technischen Assistenz. Interpretiere nichts in diese Fakten hinein. Erstelle kein Profil.
+INSTRUCTION: Use this knowledge only for technical assistance. Do not interpret or read into these facts. Do not create a behavioral profile.
 </user_knowledge>
 `;
     } catch (err) {
@@ -91,10 +92,10 @@ INSTRUKTION: Nutze dieses Wissen nur zur technischen Assistenz. Interpretiere ni
 
       return `
 <global_context>
-Liste der letzten Gesprächsthemen:
+Recent conversation topics:
 ${titles}
 
-INSTRUKTION: Diese Liste dient nur zur Orientierung, falls der User nach alten Chats fragt. Halluziniere keine Details zu diesen Inhalten. Bleib strikt bei den Titeln.
+INSTRUCTION: Only mention these titles if the user asks about past conversations. Do NOT invent or fabricate any details about these topics. Stick strictly to the titles.
 </global_context>
 `;
     } catch (err) {

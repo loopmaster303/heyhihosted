@@ -405,7 +405,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 </div>
                             )}
 
-                            {/* Enhance Prompt Button - compose mode (VibeCraft) */}
+                            {/* Enhance Prompt Button - compose mode */}
                             {isComposeMode && composeToolState && (
                                 <div className="hidden md:flex">
                                     <Button
@@ -419,10 +419,10 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                         }}
                                         disabled={!inputValue.trim() || isLoading || composeToolState.isEnhancing || isRecording || isTranscribing}
                                         className="group rounded-lg h-9 w-auto px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
-                                        aria-label="Enhance music prompt"
+                                        aria-label="Enhance prompt"
                                     >
                                         <span className="text-xs md:text-sm font-medium">
-                                            {composeToolState.isEnhancing ? t('message.loading') : 'VibeCraft'}
+                                            {composeToolState.isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
                                         </span>
                                     </Button>
                                 </div>

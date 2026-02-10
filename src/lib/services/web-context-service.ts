@@ -17,7 +17,7 @@ interface PerplexityResponse {
 }
 
 const POLLEN_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
-const LIGHT_TIMEOUT_MS = 500;
+const LIGHT_TIMEOUT_MS = 1500;
 const DEEP_TIMEOUT_MS = 3000;
 
 // Simple in-memory cache (5 min TTL)
@@ -245,9 +245,9 @@ Do NOT claim you cannot access the internet. Use these facts:
 ${factsFormatted}
     </facts>
     <usage_rules>
-        NUTZE diese Fakten NUR wenn relevant für die Anfrage.
-        IGNORIERE bei kreativen/emotionalen Themen.
-        safety_protocol hat IMMER Vorrang.
+        USE these facts ONLY when relevant to the user's query.
+        IGNORE for creative or emotional topics.
+        safety_protocol ALWAYS takes precedence.
     </usage_rules>
 </web_context>`;
     }

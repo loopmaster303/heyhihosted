@@ -14,6 +14,7 @@ import { GalleryService } from '@/lib/services/gallery-service';
 import { uploadFileToS3WithKey } from '@/lib/upload/s3-upload';
 import { getClientSessionId } from '@/lib/session';
 import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
+import { getReplicateImageParam } from '@/lib/image-generation/replicate-image-params';
 import VisualizeInputContainer from '@/components/tools/VisualizeInputContainer';
 // import { persistRemoteImage } from '@/lib/services/local-image-storage';
 import { ExternalLink } from 'lucide-react';
@@ -139,9 +140,18 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       };
 
       if (referenceUrls.length > 0) {
-          payload.image = selectedModelId === 'veo' && referenceUrls.length === 2 
-            ? referenceUrls.join(',') 
-            : referenceUrls;
+          if (!isPollinations) {
+            // Replicate: Use model-specific parameter name (centralized mapping)
+            const replicateParam = getReplicateImageParam(selectedModelId, referenceUrls);
+            if (replicateParam) {
+              payload[replicateParam.paramName] = replicateParam.paramValue;
+            }
+          } else {
+            // Pollinations: Always use 'image' parameter
+            payload.image = selectedModelId === 'veo' && referenceUrls.length === 2
+              ? referenceUrls.join(',')
+              : referenceUrls;
+          }
       }
 
       if (!isPollinationsVideo) {

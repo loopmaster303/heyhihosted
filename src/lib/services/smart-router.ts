@@ -8,6 +8,17 @@
  */
 
 export class SmartRouter {
+  // Past-tense narrative patterns that suppress search routing
+  // When the user is telling a story (not asking for info), don't trigger search
+  private static readonly NARRATIVE_SUPPRESSORS = [
+    // German past-tense with location/event words
+    /\b(war|waren|hatte|ging|besuchte|gesehen|gewesen)\b.{0,40}\b(kino|museum|konzert|theater|restaurant|oper|club|bar|café|cafe|ausstellung|galerie)\b/i,
+    /\b(kino|museum|konzert|theater|restaurant|oper|club|bar|café|cafe|ausstellung|galerie)\b.{0,40}\b(war|waren|besucht|gesehen|gewesen)\b/i,
+    // English past-tense with location/event words
+    /\b(went|visited|saw|been|attended|watched)\b.{0,40}\b(cinema|museum|concert|theater|theatre|restaurant|club|bar|exhibition|gallery|movie|show)\b/i,
+    /\b(cinema|museum|concert|theater|theatre|restaurant|club|bar|exhibition|gallery|movie|show)\b.{0,40}\b(went|visited|saw|been|attended|watched)\b/i,
+  ];
+
   // Triggers for "Live Data" / Search intent
   // Uses word boundaries (\b) to avoid false positives
   private static readonly SEARCH_TRIGGERS = [
@@ -55,6 +66,8 @@ export class SmartRouter {
    */
   static shouldRouteToSearch(prompt: string): boolean {
     if (!prompt) return false;
+    // Suppress search for past-tense narratives (user is telling a story, not asking for info)
+    if (this.NARRATIVE_SUPPRESSORS.some(pattern => pattern.test(prompt))) return false;
     return this.SEARCH_TRIGGERS.some(trigger => trigger.test(prompt));
   }
 

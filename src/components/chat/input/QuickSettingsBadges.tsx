@@ -34,6 +34,7 @@ export const QuickSettingsBadges: React.FC<QuickSettingsBadgesProps> = ({
                         <SelectItem value="Deep Dive">Deep Dive</SelectItem>
                         <SelectItem value="Emotional Support">Emotional</SelectItem>
                         <SelectItem value="Philosophical">Philosophical</SelectItem>
+                        <SelectItem value="Companion">Companion</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

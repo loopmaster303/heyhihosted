@@ -46,8 +46,11 @@ This document defines the strict workflow and principles for all AI Agents worki
 - **Plan Validation (Always Stated):** Explicitly validate the Blueprint in the response (Phase 3) even if the user did not ask.
 - **Explain Twice + Why:** Provide a normal explanation and then a simpler explanation; always state the rationale ("why") for the chosen plan/changes and the key context used.
 
-## 3. Session Summary (Codex)
+## 3. Project Status (Feb 2026)
 
-- **Docs Added:** `codexgallery.md` and `docs/codexgallery.md` documenting current gallery/image-generation flows, storage paths, and risk analysis.
-- **Review Findings (Gemini changes):** Mistral fallback toggle no longer affects requests; conversation restore may race between hooks; title edits do not update `updatedAt`.
-- **Proposed Next Steps:** Unify upload pipeline (catbox vs Vercel Blob), fix blob cleanup key scheme, and define a canonical image record for gallery reliability.
+- **Phase 1 (Asset & Gallery Deep-Sync):** Complete. Centralized `GalleryService.saveGeneratedAsset()`, global `BlobManager`, `AssetFallbackService` with retry.
+- **Phase 2 (Code-Hygiene & Legacy):** Complete. Legacy model refs removed, streaming deferred (using `generateText`), ChatView evaluated.
+- **Phase 3 (Security & Performance):** Long-term. Web Crypto API encryption planned.
+- **Upload Pipeline:** Unified via S3 signed URLs (Catbox removed). Reference images use `resolveReferenceUrls()`.
+- **Smart Router:** Auto-detects search intent (German + English) → routes to `sona`/`perplexity-fast`. Deep Research → `nomnom`.
+- **Compose Mode:** Music generation via ElevenLabs (`useComposeMusicState`) with VibeCraft prompt enhancement.

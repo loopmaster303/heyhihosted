@@ -14,6 +14,7 @@ export interface SendMessageOptions {
     modelId: string;
     systemPrompt?: string;
     webBrowsingEnabled?: boolean;
+    skipSmartRouter?: boolean;
 }
 
 export interface GenerateImageOptions {
@@ -48,13 +49,16 @@ export class ChatService {
     ): Promise<string> {
         console.log('[ChatService v3] Requesting completion for model:', options.modelId);
         
-        const body = {
+        const body: Record<string, unknown> = {
             messages: options.messages,
             modelId: options.modelId,
             systemPrompt: options.systemPrompt,
             webBrowsingEnabled: options.webBrowsingEnabled,
             stream: !!onStream,
         };
+        if (options.skipSmartRouter) {
+            body.skipSmartRouter = true;
+        }
 
         const response = await fetch('/api/chat/completion', {
             method: 'POST',
@@ -115,6 +119,7 @@ export class ChatService {
                     if (options.image_url) body.image = options.image_url;
                 }
             } else {
+                if (options.image) body.image = options.image;
                 if (options.image_url) body.image = options.image_url;
                 if (options.input_images) body.input_images = options.input_images;
                 if (options.input_image) body.input_image = options.input_image;
