@@ -30,28 +30,47 @@ export default function DecryptedText({
   const [isHovered, setIsHovered] = useState(false);
   const [hasDecrypted, setHasDecrypted] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const textRef = useRef<HTMLSpanElement>(null);
+  const spanRef = useRef<HTMLSpanElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const isDecryptingRef = useRef(false);
+  const optionsRef = useRef({
+    text,
+    speed,
+    sequential,
+    revealDirection,
+    characters,
+    useOriginalCharsOnly,
+    onDecryptionComplete,
+  });
 
-  // Extract unique characters from text
-  const getCharPool = () => {
-    if (useOriginalCharsOnly) {
-      const uniqueChars = Array.from(new Set(text.split(''))).join('');
-      return uniqueChars || characters;
-    }
-    return characters;
+  optionsRef.current = {
+    text,
+    speed,
+    sequential,
+    revealDirection,
+    characters,
+    useOriginalCharsOnly,
+    onDecryptionComplete,
   };
 
-  const startDecryption = () => {
-    if (isDecrypting) return;
+  const startDecryption = React.useCallback(() => {
+    if (isDecryptingRef.current) return;
 
+    isDecryptingRef.current = true;
     setIsDecrypting(true);
-    const charPool = getCharPool();
-    const iterations = Math.ceil(text.length * 1.5);
+
+    const currentOptions = optionsRef.current;
+    const currentTextValue = currentOptions.text;
+    const charPool = currentOptions.useOriginalCharsOnly
+      ? (() => {
+          const uniqueChars = Array.from(new Set(currentTextValue.split(''))).join('');
+          return uniqueChars || currentOptions.characters;
+        })()
+      : currentOptions.characters;
+    const iterations = Math.ceil(currentTextValue.length * 1.5);
     let iterationCount = 0;
 
-    // Create initial scrambled text
-    let currentText = text
+    let currentText = currentTextValue
       .split('')
       .map(() => charPool[Math.floor(Math.random() * charPool.length)])
       .join('');
@@ -65,23 +84,23 @@ export default function DecryptedText({
     intervalRef.current = setInterval(() => {
       const progress = iterationCount / iterations;
 
-      let newText = text.split('').map((char, index) => {
+      const newText = currentTextValue.split('').map((char, index) => {
         // Calculate reveal progress based on direction
         let revealThreshold: number;
 
-        if (revealDirection === 'start') {
-          revealThreshold = sequential
-            ? index / text.length
-            : (index / text.length) * 0.5;
-        } else if (revealDirection === 'end') {
-          revealThreshold = sequential
-            ? (text.length - index) / text.length
-            : ((text.length - index) / text.length) * 0.5;
+        if (currentOptions.revealDirection === 'start') {
+          revealThreshold = currentOptions.sequential
+            ? index / currentTextValue.length
+            : (index / currentTextValue.length) * 0.5;
+        } else if (currentOptions.revealDirection === 'end') {
+          revealThreshold = currentOptions.sequential
+            ? (currentTextValue.length - index) / currentTextValue.length
+            : ((currentTextValue.length - index) / currentTextValue.length) * 0.5;
         } else { // center
-          const centerDist = Math.abs(index - text.length / 2);
-          revealThreshold = sequential
-            ? centerDist / (text.length / 2)
-            : (centerDist / (text.length / 2)) * 0.5;
+          const centerDist = Math.abs(index - currentTextValue.length / 2);
+          revealThreshold = currentOptions.sequential
+            ? centerDist / (currentTextValue.length / 2)
+            : (centerDist / (currentTextValue.length / 2)) * 0.5;
         }
 
         // Reveal character if progress has reached it
@@ -98,18 +117,19 @@ export default function DecryptedText({
 
       // Complete decryption
       if (iterationCount >= iterations) {
-        setDisplayText(text);
+        setDisplayText(currentTextValue);
         setIsDecrypting(false);
+        isDecryptingRef.current = false;
         setHasDecrypted(true);
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
         }
-        if (onDecryptionComplete) {
-          onDecryptionComplete();
+        if (currentOptions.onDecryptionComplete) {
+          currentOptions.onDecryptionComplete();
         }
       }
-    }, speed);
-  };
+    }, currentOptions.speed);
+  }, []);
 
   // Handle mount animation
   useEffect(() => {
@@ -117,11 +137,11 @@ export default function DecryptedText({
       const timer = setTimeout(() => startDecryption(), 100);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [animateOn, startDecryption]);
 
   // Handle view animation (intersection observer)
   useEffect(() => {
-    if (animateOn === 'view' && textRef.current) {
+    if (animateOn === 'view' && spanRef.current) {
       observerRef.current = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
@@ -133,7 +153,7 @@ export default function DecryptedText({
         { threshold: 0.1 }
       );
 
-      observerRef.current.observe(textRef.current);
+      observerRef.current.observe(spanRef.current);
 
       return () => {
         if (observerRef.current) {
@@ -141,24 +161,25 @@ export default function DecryptedText({
         }
       };
     }
-  }, [animateOn, hasDecrypted]);
+  }, [animateOn, hasDecrypted, startDecryption]);
 
   // Handle hover animation
   useEffect(() => {
     if ((animateOn === 'hover' || animateOn === 'both') && isHovered && !isDecrypting) {
       startDecryption();
     }
-  }, [isHovered, animateOn]);
+  }, [isHovered, animateOn, isDecrypting, startDecryption]);
 
   // Update text when prop changes
   useEffect(() => {
     setDisplayText(text);
     setHasDecrypted(false);
+    isDecryptingRef.current = false;
     if (animateOn === 'mount' || animateOn === 'both') {
       const timer = setTimeout(() => startDecryption(), 100);
       return () => clearTimeout(timer);
     }
-  }, [text]);
+  }, [text, animateOn, startDecryption]);
 
   // Cleanup
   useEffect(() => {
@@ -166,6 +187,7 @@ export default function DecryptedText({
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      isDecryptingRef.current = false;
     };
   }, []);
 
@@ -173,7 +195,7 @@ export default function DecryptedText({
 
   return (
     <span
-      ref={textRef}
+      ref={spanRef}
       className={`decrypted-text ${isHoverable ? 'decrypted-text-hoverable' : ''} ${className}`}
       onMouseEnter={() => isHoverable && setIsHovered(true)}
       onMouseLeave={() => isHoverable && setIsHovered(false)}

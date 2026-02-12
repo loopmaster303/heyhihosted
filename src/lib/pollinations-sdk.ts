@@ -82,7 +82,7 @@ export async function imageUrl(prompt: string, options: ImageOptions = {}): Prom
  */
 export async function videoUrl(prompt: string, options: VideoOptions = {}): Promise<string> {
     const params = new URLSearchParams();
-    const model = options.model || 'veo';
+    const model = options.model || 'wan';
 
     // Core
     params.append('model', model);
@@ -112,4 +112,3 @@ export async function videoUrl(prompt: string, options: VideoOptions = {}): Prom
 
     return url;
 }
-

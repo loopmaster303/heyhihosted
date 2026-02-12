@@ -24,33 +24,50 @@ interface CameraCaptureDialogProps {
   onCapture: (dataUri: string) => void;
 }
 
+interface CameraCaptureDialogContentProps {
+  onCapture: (dataUri: string) => void;
+  onClose: () => void;
+}
+
 const videoConstraints = {
   width: 1280,
   height: 720,
   facingMode: "user",
 };
 
-const CameraCaptureDialog: React.FC<CameraCaptureDialogProps> = ({
-  isOpen,
-  onOpenChange,
+const CameraCaptureDialogContent: React.FC<CameraCaptureDialogContentProps> = ({
   onCapture,
+  onClose,
 }) => {
   const webcamRef = useRef<Webcam>(null);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(() =>
+    typeof navigator !== 'undefined' && typeof navigator.mediaDevices !== 'undefined' ? null : false
+  );
   const { toast } = useToast();
 
   useEffect(() => {
-    // Reset state when dialog opens
-    if (isOpen) {
-      setImgSrc(null);
-      setHasPermission(null);
-      // Check for permission when component mounts and is open
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(() => setHasPermission(true))
-        .catch(() => setHasPermission(false));
-    }
-  }, [isOpen]);
+    if (hasPermission !== null) return;
+
+    let isCancelled = false;
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then((stream) => {
+        stream.getTracks().forEach((track) => track.stop());
+        if (!isCancelled) {
+          setHasPermission(true);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setHasPermission(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [hasPermission]);
 
   const capture = useCallback(() => {
     if (webcamRef.current) {
@@ -62,7 +79,7 @@ const CameraCaptureDialog: React.FC<CameraCaptureDialogProps> = ({
   const handleConfirm = () => {
     if (imgSrc) {
       onCapture(imgSrc);
-      onOpenChange(false);
+      onClose();
     }
   };
 
@@ -70,10 +87,6 @@ const CameraCaptureDialog: React.FC<CameraCaptureDialogProps> = ({
     setImgSrc(null);
   };
   
-  const handleClose = () => {
-    onOpenChange(false);
-  }
-
   const renderContent = () => {
     if (hasPermission === false) {
       return (
@@ -142,7 +155,6 @@ const CameraCaptureDialog: React.FC<CameraCaptureDialogProps> = ({
 
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Analyze Image from Camera</AlertDialogTitle>
@@ -156,13 +168,13 @@ const CameraCaptureDialog: React.FC<CameraCaptureDialogProps> = ({
         {hasPermission === false && (
             <AlertDialogFooter>
                 <AlertDialogCancel asChild>
-                    <Button variant="outline" onClick={handleClose}>Close</Button>
+                    <Button variant="outline" onClick={onClose}>Close</Button>
                 </AlertDialogCancel>
             </AlertDialogFooter>
         )}
         
         <button
-          onClick={handleClose}
+          onClick={onClose}
           className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
           aria-label="Close"
         >
@@ -170,6 +182,23 @@ const CameraCaptureDialog: React.FC<CameraCaptureDialogProps> = ({
         </button>
 
       </AlertDialogContent>
+  );
+};
+
+const CameraCaptureDialog: React.FC<CameraCaptureDialogProps> = ({
+  isOpen,
+  onOpenChange,
+  onCapture,
+}) => {
+  const handleClose = useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
+
+  return (
+    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
+      {isOpen ? (
+        <CameraCaptureDialogContent onCapture={onCapture} onClose={handleClose} />
+      ) : null}
     </AlertDialog>
   );
 };

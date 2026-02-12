@@ -19,7 +19,7 @@ A specialized header that provides real-time system status in a typewriter/CRT s
 Interactions with LLMs (Claude, GPT, Gemini, Grok, Deepseek, Mistral, Kimi, Qwen) with full multimodal support. Includes the **Integrated Visualize Module** for on-the-fly image and video generation within the chat context.
 
 ### Compose Mode
-Music generation via ElevenLabs with VibeCraft prompt enhancement. Users describe a vibe, the system enhances the prompt, and generates a track.
+Music composing with **Eleven Music** (`model=elevenmusic`) via **Pollinations** (`/api/compose`) with VibeCraft prompt enhancement. Users describe a vibe, the system enhances the prompt, and generates a track.
 
 ### Code Mode
 Dedicated programming assistant with specialized system prompts and curated model routing (Qwen Coder, Deepseek, GLM, Gemini Large).
@@ -30,13 +30,13 @@ Toggle web browsing for real-time search and source analysis via NomNom and Sona
 ## 3. Technology Stack
 
 ### Frontend
-- **Framework**: Next.js 15 (App Router, Turbopack), TypeScript.
+- **Framework**: Next.js 16 (App Router, Turbopack), TypeScript.
 - **UI**: Tailwind CSS (Glassmorphism), Framer Motion, Radix UI / Shadcn.
 
 ### AI Infrastructure & Connectivity
 - **Primary Provider**: [Pollinations.ai](https://pollinations.ai) — Chat, image, and video generation (free tier + authenticated Pollen API).
 - **Secondary Provider**: [Replicate](https://replicate.com) — Premium image/video models, TTS.
-- **Music**: [ElevenLabs](https://elevenlabs.io) — Music generation via Compose mode.
+- **Music**: Eleven Music (`model=elevenmusic`) via Pollinations (`/api/compose`).
 - **STT**: [Deepgram](https://deepgram.com) — Speech-to-text transcription.
 - **SDK**: Vercel AI SDK with `ai-sdk-pollinations` provider for chat completions.
 

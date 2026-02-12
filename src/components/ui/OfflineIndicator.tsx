@@ -1,22 +1,29 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/components/LanguageProvider';
 
 export function OfflineIndicator() {
-    const [isOnline, setIsOnline] = useState(true);
+    const { t } = useLanguage();
+    const [isOnline, setIsOnline] = useState(
+        () => (typeof navigator !== 'undefined' ? navigator.onLine : true)
+    );
     const [showIndicator, setShowIndicator] = useState(false);
+    const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        // Set initial state
-        setIsOnline(navigator.onLine);
-
         const handleOnline = () => {
             setIsOnline(true);
             // Show "back online" briefly
             setShowIndicator(true);
-            setTimeout(() => setShowIndicator(false), 3000);
+            if (hideTimeoutRef.current) {
+                clearTimeout(hideTimeoutRef.current);
+            }
+            hideTimeoutRef.current = setTimeout(() => {
+                setShowIndicator(false);
+            }, 3000);
         };
 
         const handleOffline = () => {
@@ -30,6 +37,9 @@ export function OfflineIndicator() {
         return () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
+            if (hideTimeoutRef.current) {
+                clearTimeout(hideTimeoutRef.current);
+            }
         };
     }, []);
 
@@ -50,12 +60,12 @@ export function OfflineIndicator() {
             {isOnline ? (
                 <>
                     <Wifi className="w-4 h-4" />
-                    <span>Wieder online</span>
+                    <span>{t('status.onlineAgain')}</span>
                 </>
             ) : (
                 <>
                     <WifiOff className="w-4 h-4" />
-                    <span>Offline – einige Funktionen eingeschränkt</span>
+                    <span>{t('status.offlineLimited')}</span>
                 </>
             )}
         </div>

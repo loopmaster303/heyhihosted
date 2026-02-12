@@ -1,24 +1,15 @@
 "use client";
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import { ChatProvider } from '@/components/ChatProvider';
 import { useChat } from '@/components/ChatProvider';
-import PageLoader from '@/components/ui/PageLoader';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { useLanguage } from '@/components/LanguageProvider';
 
 function AboutPageContent() {
   const chat = useChat();
+  const { t } = useLanguage();
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
-    return <PageLoader text="Lade About-Seite..." />;
-  }
 
   return (
     <AppLayout
@@ -39,9 +30,9 @@ function AboutPageContent() {
       activeConversation={chat.activeConversation}
     >
       <main className="flex flex-col flex-grow items-center justify-center p-4 text-center">
-        <h2 className="text-3xl font-code text-white">about/hey.hi/readme</h2>
-        <p className="text-gray-400 mt-4 max-w-md">
-          This section is under construction. Come back soon to learn more about project!
+        <h2 className="text-3xl font-code text-foreground">{t('about.title')}</h2>
+        <p className="text-muted-foreground mt-4 max-w-md">
+          {t('about.description')}
         </p>
       </main>
     </AppLayout>

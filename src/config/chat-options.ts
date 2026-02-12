@@ -609,7 +609,7 @@ export const DEFAULT_POLLINATIONS_MODEL_ID = 'claude-fast';
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // For in-chat image generation
-// NOTE: Only IMAGE models - NO video models (seedance, seedance-pro, veo) for chat
+// NOTE: Only IMAGE models - no video models in chat fallback list
 // Filter out disabled models
 import { getImageModels } from './unified-image-models';
 export const FALLBACK_IMAGE_MODELS = getImageModels().map(m => m.id);

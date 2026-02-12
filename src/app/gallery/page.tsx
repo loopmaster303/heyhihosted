@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import AppLayout from '@/components/layout/AppLayout';
 import { ChatProvider, useChat } from '@/components/ChatProvider'; 
 import PageLoader from '@/components/ui/PageLoader';
@@ -42,9 +43,12 @@ const GalleryItem = ({ asset, onSelect }: { asset: Asset, onSelect: (url: string
                 onClick={() => onSelect(url, 'video')}
             />
         ) : (
-            <img 
-                src={url} 
+            <Image
+                src={url}
                 alt={asset.prompt || "AI Art"}
+                width={1600}
+                height={1600}
+                unoptimized
                 className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-700 cursor-pointer"
                 loading="lazy"
                 onClick={() => onSelect(url, 'image')}
@@ -189,9 +193,12 @@ function GalleryPageContent() {
                         autoPlay
                     />
                 ) : (
-                    <img 
-                        src={lightboxData.url} 
-                        alt="Fullscreen view" 
+                    <Image
+                        src={lightboxData.url}
+                        alt="Fullscreen view"
+                        width={1920}
+                        height={1080}
+                        unoptimized
                         className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-glass-heavy border border-white/10"
                     />
                 )}

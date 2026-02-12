@@ -30,6 +30,9 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
     const [appState, setAppState] = useState<AppState>(initialState);
     const [landingSelectedModelId, setLandingSelectedModelId] = useState<string>(defaultTextModelId);
     const [pendingMessage, setPendingMessage] = useState<{ text: string, isImage: boolean } | null>(null);
+    const activeConversationId = chat.activeConversation?.id;
+    const activeConversationMessageCount = chat.activeConversation?.messages.length ?? 0;
+    const sendMessage = chat.sendMessage;
 
     useEffect(() => {
         setIsClient(true);
@@ -37,15 +40,15 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
 
     // Watch for conversation changes to flush pending message
     useEffect(() => {
-        if (!isClient || !pendingMessage || !chat.activeConversation?.id) return;
+        if (!isClient || !pendingMessage || !activeConversationId) return;
         
         // Only flush if we are in chat state and the conversation is empty (newly created)
-        if (appState === 'chat' && chat.activeConversation.messages.length === 0) {
+        if (appState === 'chat' && activeConversationMessageCount === 0) {
             const { text, isImage } = pendingMessage;
             setPendingMessage(null); // Clear first to avoid double-send
-            chat.sendMessage(text, { isImageModeIntent: isImage });
+            sendMessage(text, { isImageModeIntent: isImage });
         }
-    }, [chat.activeConversation?.id, chat.sendMessage, pendingMessage, appState, isClient]);
+    }, [activeConversationId, activeConversationMessageCount, sendMessage, pendingMessage, appState, isClient]);
 
     useEffect(() => {
         if (!isClient) return;

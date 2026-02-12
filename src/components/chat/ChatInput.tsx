@@ -68,6 +68,22 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
 
     // Use the logic hook
     const logic = useChatInputLogic(props);
+    const {
+        isMobile,
+        activeBadgeRow,
+        hasActiveTool,
+        CODE_MODE_MODEL_IDS,
+        badgePanelRef,
+        badgeActionsRef,
+        docInputRef,
+        imageInputRef,
+        quickSettingsButtonRef,
+        toggleBadgeRow,
+        setActiveMode,
+        handleSelectMode,
+        handleSubmit,
+        handleFileChange,
+    } = logic;
 
     const renderTopBadges = () => {
         const rows: React.ReactNode[] = [];
@@ -82,7 +98,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     supportsReference={visualizeToolState.supportsReference}
                     isUploading={visualizeToolState.isUploading}
                     onRemove={visualizeToolState.handleRemoveImage}
-                    onUploadClick={() => logic.imageInputRef.current?.click()}
+                    onUploadClick={() => imageInputRef.current?.click()}
                     disabled={isLoading || isRecording || isTranscribing}
                     selectedModelId={visualizeToolState.selectedModelId}
                 />
@@ -123,7 +139,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
             );
         }
 
-        if (logic.activeBadgeRow === 'tools') {
+        if (activeBadgeRow === 'tools') {
             panelRows.push(
                 <ToolsBadges
                     key="tools-badges"
@@ -131,19 +147,19 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     isComposeMode={isComposeMode}
                     isCodeMode={isCodeMode || false}
                     webBrowsingEnabled={webBrowsingEnabled}
-                    onSelectMode={logic.handleSelectMode}
+                    onSelectMode={handleSelectMode}
                     canToggleCodeMode={!!onToggleCodeMode}
                 />
             );
         }
-        if (logic.activeBadgeRow === 'upload') {
+        if (activeBadgeRow === 'upload') {
             panelRows.push(
                 <UploadBadges
                     key="upload-badges"
                     isLoading={isLoading}
                     isImageMode={isImageMode}
-                    onImageUploadClick={() => logic.imageInputRef.current?.click()}
-                    onDocUploadClick={() => logic.docInputRef.current?.click()}
+                    onImageUploadClick={() => imageInputRef.current?.click()}
+                    onDocUploadClick={() => docInputRef.current?.click()}
                     onCameraClick={openCamera}
                     allowImageUploadInImageMode={!!(isImageMode && visualizeToolState?.supportsReference)}
                     disableImageUpload={!!(
@@ -154,7 +170,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                 />
             );
         }
-        if (logic.activeBadgeRow === 'settings') {
+        if (activeBadgeRow === 'settings') {
             panelRows.push(
                 <QuickSettingsBadges
                     key="quick-settings-badges"
@@ -167,7 +183,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
         }
         if (panelRows.length > 0) {
             rows.push(
-                <div key="badge-panel" ref={logic.badgePanelRef} className="flex flex-col gap-2">
+                <div key="badge-panel" ref={badgePanelRef} className="flex flex-col gap-2">
                     {panelRows}
                 </div>
             );
@@ -183,7 +199,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
         if (isComposeMode && onComposeSubmit) {
             onComposeSubmit(e as any);
         } else {
-            logic.handleSubmit(e as any);
+            handleSubmit(e as any);
         }
     };
 
@@ -194,7 +210,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
             : isImageMode
                 ? t('chat.placeholder.imageMode')
                 : isComposeMode
-                    ? "Was willst du hören?"
+                    ? t('chat.placeholder.compose')
                 : webBrowsingEnabled
                     ? t('chat.placeholder.web')
                     : isCodeMode
@@ -224,13 +240,13 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     topElements={renderTopBadges()}
                     topElementsVariant="bare"
                     leftActions={
-                        logic.isMobile ? (
-                            <div ref={logic.badgeActionsRef}>
+                        isMobile ? (
+                            <div ref={badgeActionsRef}>
                                 <MobileOptionsMenu
                                     isLoading={isLoading}
                                     isImageMode={isImageMode}
-                                    onImageUploadClick={() => logic.imageInputRef.current?.click()}
-                                    onDocUploadClick={() => logic.docInputRef.current?.click()}
+                                    onImageUploadClick={() => imageInputRef.current?.click()}
+                                    onDocUploadClick={() => docInputRef.current?.click()}
                                     onCameraClick={openCamera}
                                     allowImageUploadInImageMode={!!(isImageMode && visualizeToolState?.supportsReference)}
                                     disableImageUpload={!!(
@@ -251,16 +267,16 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 />
                             </div>
                         ) : (
-                            <div ref={logic.badgeActionsRef} className="flex items-center gap-2">
+                            <div ref={badgeActionsRef} className="flex items-center gap-2">
                                 {/* Quick Settings Toggle */}
                                 {!isImageMode && (
                                 <Button
-                                    ref={logic.quickSettingsButtonRef}
+                                    ref={quickSettingsButtonRef}
                                     type="button"
                                     variant="ghost"
-                                    onClick={() => logic.toggleBadgeRow('settings')}
+                                    onClick={() => toggleBadgeRow('settings')}
                                     className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all ${
-                                        logic.activeBadgeRow === 'settings' 
+                                        activeBadgeRow === 'settings' 
                                             ? "text-foreground shadow-sm hover:shadow-md" 
                                             : "bg-transparent text-foreground/80 hover:shadow-sm"
                                     }`}
@@ -275,9 +291,9 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                     <Button
                                         type="button"
                                         variant="ghost"
-                                        onClick={() => logic.toggleBadgeRow('upload')}
+                                        onClick={() => toggleBadgeRow('upload')}
                                         className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all ${
-                                            logic.activeBadgeRow === 'upload'
+                                            activeBadgeRow === 'upload'
                                                 ? "text-foreground shadow-sm hover:shadow-md"
                                                 : "bg-transparent text-foreground/80 hover:shadow-sm"
                                         }`}
@@ -287,20 +303,20 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 )}
 
                                 {/* Tools Toggle */}
-                                {!logic.hasActiveTool && (
+                                {!hasActiveTool && (
                                     <Button
                                         type="button"
                                         variant="ghost"
-                                        onClick={() => logic.toggleBadgeRow('tools')}
+                                        onClick={() => toggleBadgeRow('tools')}
                                         className={`flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-sm font-medium transition-all ${
-                                            logic.activeBadgeRow === 'tools'
+                                            activeBadgeRow === 'tools'
                                                 ? "text-foreground shadow-sm hover:shadow-md"
                                                 : "bg-transparent text-foreground/80 hover:shadow-sm"
                                         }`}
                                     >
-                                        <span>Tools</span>
+                                        <span>{t('menu.section.mode')}</span>
                                         <svg
-                                            className={`h-4 w-4 transition-transform ${logic.activeBadgeRow === 'tools' ? 'rotate-180' : ''}`}
+                                            className={`h-4 w-4 transition-transform ${activeBadgeRow === 'tools' ? 'rotate-180' : ''}`}
                                             fill="none"
                                             strokeWidth="2"
                                             stroke="currentColor"
@@ -314,40 +330,40 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 {isImageMode && (
                                     <button
                                         type="button"
-                                        onClick={() => logic.setActiveMode('standard')}
-                                        className="flex items-center gap-1.5 rounded-full border border-primary/60 px-3 py-1.5 text-xs font-bold transition-all bg-primary/5 text-primary"
+                                        onClick={() => setActiveMode('standard')}
+                                        className="flex items-center gap-1.5 rounded-full border border-mode-visualize/60 px-3 py-1.5 text-xs font-bold transition-all bg-mode-visualize/10 text-mode-visualize"
                                     >
-                                        <span>Visualize</span>
+                                        <span>{t('tools.visualize')}</span>
                                         <X className="h-3 w-3" />
                                     </button>
                                 )}
                                 {webBrowsingEnabled && (
                                     <button
                                         type="button"
-                                        onClick={() => logic.setActiveMode('standard')}
-                                        className="flex items-center gap-1.5 rounded-full border border-[#00d2ff]/60 px-3 py-1.5 text-xs font-bold transition-all bg-[#00d2ff]/5 text-[#00d2ff]"
+                                        onClick={() => setActiveMode('standard')}
+                                        className="flex items-center gap-1.5 rounded-full border border-mode-research/60 px-3 py-1.5 text-xs font-bold transition-all bg-mode-research/10 text-mode-research"
                                     >
-                                        <span>Deep Research</span>
+                                        <span>{t('tools.deepResearch')}</span>
                                         <X className="h-3 w-3" />
                                     </button>
                                 )}
                                 {isCodeMode && (
                                     <button
                                         type="button"
-                                        onClick={() => logic.setActiveMode('standard')}
-                                        className="flex items-center gap-1.5 rounded-full border border-[#00ff88]/60 px-3 py-1.5 text-xs font-bold transition-all bg-[#00ff88]/5 text-[#00ff88]"
+                                        onClick={() => setActiveMode('standard')}
+                                        className="flex items-center gap-1.5 rounded-full border border-mode-code/60 px-3 py-1.5 text-xs font-bold transition-all bg-mode-code/10 text-mode-code"
                                     >
-                                        <span>Code</span>
+                                        <span>{t('tools.code')}</span>
                                         <X className="h-3 w-3" />
                                     </button>
                                 )}
                                 {isComposeMode && (
                                     <button
                                         type="button"
-                                        onClick={() => logic.setActiveMode('standard')}
-                                        className="flex items-center gap-1.5 rounded-full border border-purple-500/60 px-3 py-1.5 text-xs font-bold transition-all bg-purple-500/5 text-purple-500"
+                                        onClick={() => setActiveMode('standard')}
+                                        className="flex items-center gap-1.5 rounded-full border border-mode-compose/60 px-3 py-1.5 text-xs font-bold transition-all bg-mode-compose/10 text-mode-compose"
                                     >
-                                        <span>Compose</span>
+                                        <span>{t('tools.compose')}</span>
                                         <X className="h-3 w-3" />
                                     </button>
                                 )}
@@ -364,7 +380,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                     onModelChange={handleModelChange}
                                     disabled={isLoading || isRecording || isTranscribing}
                                     compact={true}
-                                    modelFilterIds={isCodeMode ? logic.CODE_MODE_MODEL_IDS : undefined}
+                                    modelFilterIds={isCodeMode ? CODE_MODE_MODEL_IDS : undefined}
                                 />
                             </div>
                             )}
@@ -436,7 +452,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                     className="ml-1 rounded-full px-6 font-medium h-9 text-sm transition-all duration-300 bg-primary text-primary-foreground hover:opacity-90 shadow-md"
                                     aria-label="Send message"
                                 >
-                                    {logic.isMobile ? <ArrowUp className="w-5 h-5" /> : (isComposeMode ? "Erstellen" : t('chat.send'))}
+                                    {isMobile ? <ArrowUp className="w-5 h-5" /> : (isComposeMode ? t('action.create') : t('chat.send'))}
                                 </Button>
                             )}
                          </>
@@ -447,16 +463,16 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
             {/* Hidden Inputs */}
             <input
                 type="file"
-                ref={logic.imageInputRef}
-                onChange={(e) => logic.handleFileChange(e, 'image')}
+                ref={imageInputRef}
+                onChange={(e) => handleFileChange(e, 'image')}
                 accept="image/*"
                 multiple={!!(isImageMode && visualizeToolState?.supportsReference)}
                 className="hidden"
             />
             <input
                 type="file"
-                ref={logic.docInputRef}
-                onChange={(e) => logic.handleFileChange(e, 'document')}
+                ref={docInputRef}
+                onChange={(e) => handleFileChange(e, 'document')}
                 accept=".pdf,.doc,.docx,.txt"
                 className="hidden"
             />

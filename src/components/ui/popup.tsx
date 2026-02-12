@@ -39,6 +39,7 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
     position = 'bottom-left',
     triggerRef
 }) => {
+    const popupRef = React.useRef<HTMLDivElement>(null);
     const [popupStyle, setPopupStyle] = React.useState<React.CSSProperties>({});
 
     React.useEffect(() => {
@@ -46,9 +47,14 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
         if (triggerRef?.current) {
             const updatePosition = () => {
                 const rect = triggerRef.current!.getBoundingClientRect();
-                const popupWidth = 340; // min-w-[340px] from Quick Settings
-                const popupHeight = 350; // approximate height
                 const gap = 8; // spacing from trigger
+                const maxWidth = window.innerWidth - gap * 2;
+                const maxHeight = window.innerHeight - gap * 2;
+
+                // Use real measured size once available; fallback to safe estimates.
+                const measured = popupRef.current?.getBoundingClientRect();
+                const popupWidth = Math.min(measured?.width ?? 340, maxWidth);
+                const popupHeight = Math.min(measured?.height ?? 350, maxHeight);
                 const transformOrigin = {
                     'top-left': 'left bottom',
                     'top-right': 'right bottom',
@@ -58,32 +64,37 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
                     'bottom-center': 'center top'
                 }[position];
 
-                // Calculate position above the trigger
-                let top = rect.top - popupHeight - gap;
+                // Horizontal base
                 let left = rect.left;
-
-                // For "top-center" position, center horizontally relative to trigger
-                if (position === 'top-center') {
+                if (position === 'top-right' || position === 'bottom-right') {
+                    left = rect.right - popupWidth;
+                } else if (position === 'top-center' || position === 'bottom-center') {
                     left = rect.left + (rect.width / 2) - (popupWidth / 2);
                 }
 
-                // Adjust if popup would go off-screen horizontally
-                if (left < gap) {
-                    left = gap;
-                } else if (left + popupWidth > window.innerWidth - gap) {
-                    left = window.innerWidth - popupWidth - gap;
+                // Vertical base
+                const shouldPreferTop = position.startsWith('top');
+                let top = shouldPreferTop
+                    ? rect.top - popupHeight - gap
+                    : rect.bottom + gap;
+
+                // If preferred side doesn't fit, flip.
+                if (top < gap) {
+                    top = rect.bottom + gap;
+                } else if (top + popupHeight > window.innerHeight - gap) {
+                    top = rect.top - popupHeight - gap;
                 }
 
-                // Adjust if popup would go off-screen vertically
-                if (top < gap) {
-                    // If not enough space above, position below
-                    top = rect.bottom + gap;
-                }
+                // Clamp to viewport as last safety.
+                left = Math.max(gap, Math.min(left, window.innerWidth - popupWidth - gap));
+                top = Math.max(gap, Math.min(top, window.innerHeight - popupHeight - gap));
 
                 setPopupStyle({
                     position: 'fixed',
                     top: `${top}px`,
                     left: `${left}px`,
+                    width: `${popupWidth}px`,
+                    maxHeight: `${Math.max(200, maxHeight)}px`,
                     transformOrigin,
                     zIndex: 50,
                 });
@@ -92,17 +103,19 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
             updatePosition();
             window.addEventListener('scroll', updatePosition);
             window.addEventListener('resize', updatePosition);
+            const frame = window.requestAnimationFrame(updatePosition);
 
             return () => {
                 window.removeEventListener('scroll', updatePosition);
                 window.removeEventListener('resize', updatePosition);
+                window.cancelAnimationFrame(frame);
             };
         }
     }, [triggerRef, position]);
 
-    if (triggerRef?.current) {
+    if (triggerRef) {
         return createPortal(
-            <div style={popupStyle}>
+            <div ref={popupRef} style={popupStyle}>
                 <BasePopup variant="contextual" className={cn("p-4", className)}>
                     {children}
                 </BasePopup>

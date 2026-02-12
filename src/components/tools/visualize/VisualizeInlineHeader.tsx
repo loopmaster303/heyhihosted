@@ -7,6 +7,7 @@ import { unifiedModelConfigs, type UnifiedModelConfig } from '@/config/unified-m
 import { getUnifiedModel, getVisualizeModelGroups } from '@/config/unified-image-models';
 import { imageModelIcons } from '@/config/ui-constants';
 import { gptImagePresets } from '@/hooks/useUnifiedImageToolState';
+import { useLanguage } from '@/components/LanguageProvider';
 
 interface VisualizeInlineHeaderProps {
   selectedModelId: string;
@@ -50,6 +51,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   className,
   variant = 'framed',
 }) => {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = React.useState(true); // For dropdown groups
   const [isMinimized, setIsMinimized] = React.useState(false); // For toolbar visibility
 
@@ -127,14 +129,14 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
         type="button"
         onClick={() => setIsMinimized(true)}
         className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-        title="Minimize settings"
+        title={t('visualize.minimizeSettings')}
       >
         <ChevronDown className="w-3.5 h-3.5 rotate-180" />
       </button>
 
       {/* Model */}
       <div className={badgeClass}>
-        <span className={labelClass}>Modell</span>
+        <span className={labelClass}>{t('visualize.model')}</span>
         <Select value={selectedModelId} onValueChange={onModelChange} disabled={disabled}>
           <SelectTrigger className={cn(triggerClass, "min-w-[90px]")}>
             <span className="flex items-center gap-1.5">
@@ -177,7 +179,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                             <span className="truncate text-[11px] font-semibold text-foreground">{displayName}</span>
                             {isActive && (
                               <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                                Aktiv
+                                {t('visualize.active')}
                               </span>
                             )}
                           </span>
@@ -196,7 +198,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                 onMouseDown={(event) => event.preventDefault()}
                 className="w-full py-2 px-3 text-[10px] font-medium text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 border border-dashed border-border/50 rounded-lg hover:bg-muted/20 transition-colors"
               >
-                {expanded ? 'Show Less' : 'Show More'}
+                {expanded ? t('visualize.showLess') : t('visualize.showMore')}
                 <ChevronDown className={cn("w-4 h-4 transition-transform", expanded && "rotate-180")} />
               </button>
             </div>
@@ -233,7 +235,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                             <span className="truncate text-[11px] font-semibold text-foreground">{displayName}</span>
                             {isActive && (
                               <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                                Aktiv
+                                {t('visualize.active')}
                               </span>
                             )}
                           </span>
@@ -251,7 +253,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
       {/* Aspect Ratio */}
       {(isPollenModel || currentModelConfig.inputs.find(i => i.name === 'aspect_ratio')) && (
         <div className={badgeClass}>
-          <span className={labelClass}>Ratio</span>
+          <span className={labelClass}>{t('visualize.ratio')}</span>
           {isPollenModel ? (
             <Select
               value={formFields.aspect_ratio || '1:1'}
@@ -331,7 +333,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
       {/* Quality / Resolution */}
       {selectedModelId !== 'z-image-turbo' && !isGptImage && !isSeedream && !isPollinationsVideo && getUnifiedModel(selectedModelId)?.provider !== 'replicate' && shouldShowResolution && currentModelConfig.inputs.find(i => i.name === 'resolution') && (
         <div className={badgeClass}>
-          <span className={labelClass}>Qualität</span>
+          <span className={labelClass}>{t('visualize.quality')}</span>
           <Select
             value={formFields.resolution || (selectedModelId === 'nanobanana-pro' ? '2K' : '1 MP')}
             onValueChange={(value) => handleFieldChange('resolution', value)}
@@ -365,7 +367,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
       {/* Duration */}
       {((currentModelConfig.outputType === 'video' || isPollinationsVideo) && currentModelConfig.inputs.find(i => i.name === 'duration')) && (
         <div className={badgeClass}>
-          <span className={labelClass}>Dauer</span>
+          <span className={labelClass}>{t('visualize.duration')}</span>
           <Select
             value={String(formFields.duration || (selectedModelId.includes('wan') ? '5' : '6'))}
             onValueChange={(value) => handleFieldChange('duration', Number(value))}
@@ -400,7 +402,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
           if (model?.supportsAudio) {
                 return (
                   <div className={badgeClass}>
-                      <span className={labelClass}>Audio</span>
+                      <span className={labelClass}>{t('visualize.audio')}</span>
                       <div className="flex items-center gap-1.5 h-6">
                             <Switch
                                 id="audio-toggle-inline"
@@ -419,7 +421,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
       {/* Output Format */}
       {(!isPollenModel && !isPollinationsVideo && currentModelConfig.inputs.find(i => i.name === 'output_format')) && (
         <div className={badgeClass}>
-          <span className={labelClass}>Format</span>
+          <span className={labelClass}>{t('visualize.format')}</span>
           <Select
             value={formFields.output_format || (currentModelConfig.outputType === 'video' ? 'mp4' : (selectedModelId === 'flux-2-pro' ? 'webp' : 'jpg'))}
             onValueChange={(value) => handleFieldChange('output_format', value)}

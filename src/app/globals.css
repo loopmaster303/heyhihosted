@@ -66,6 +66,10 @@
     --tool-input-bg: 262 40% 90%;
     --input-container-bg: 262 50% 90% / 1;
     --tool-button-bg: 262 40% 88%;
+    --mode-visualize: 325 100% 62%;
+    --mode-compose: 270 90% 65%;
+    --mode-research: 190 100% 50%;
+    --mode-code: 150 100% 50%;
   }
 
   .dark {
@@ -126,6 +130,10 @@
     --tool-input-bg: 0 0% 14.5%;
     --input-container-bg: 0 0% 12% / 0.8;
     --tool-button-bg: 0 0% 16.9%;
+    --mode-visualize: 325 100% 66%;
+    --mode-compose: 270 90% 70%;
+    --mode-research: 190 100% 60%;
+    --mode-code: 150 100% 58%;
   }
 
   * {
@@ -138,33 +146,20 @@
   }
 }
 
-/* Mobile-first font sizing for better readability */
+/* Global type scale: keep mobile readable, avoid oversized desktop UI */
 html {
-  font-size: 16px; /* Base size for mobile */
-}
-
-/* Slightly larger base font size on wider screens for readability */
-@media (min-width: 768px) {
-  html {
-    font-size: 17px;
-  }
+  font-size: 16px;
 }
 
 @media (min-width: 1024px) {
   html {
-    font-size: 18px;
-  }
-}
-
-@media (min-width: 1280px) {
-  html {
-    font-size: 19px;
+    font-size: 16.5px;
   }
 }
 
 @media (min-width: 1536px) {
   html {
-    font-size: 20px;
+    font-size: 17px;
   }
 }
 

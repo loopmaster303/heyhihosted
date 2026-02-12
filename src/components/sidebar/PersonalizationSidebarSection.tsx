@@ -53,7 +53,7 @@ const PersonalizationSidebarSection: React.FC = () => {
     ? {
         header: 'Personalization',
         name: 'Name',
-        style: 'Response Style',
+        style: 'Assistant Role',
         extra: 'Individual AI Instruction',
         defaultText: 'Standard Text Model',
         defaultImage: 'Standard Image Model',
@@ -66,7 +66,7 @@ const PersonalizationSidebarSection: React.FC = () => {
     : {
         header: 'Personalisation',
         name: 'Name',
-        style: 'Antwortstil',
+        style: 'Assistenten Rolle',
         extra: 'Individuelle KI Anweisung',
         defaultText: 'Standard Text Modell',
         defaultImage: 'Standard Bild Modell',

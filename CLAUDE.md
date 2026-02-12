@@ -33,7 +33,7 @@ The **Visualize Bar** (`VisualizeInlineHeader`) opens inline when image mode is 
 Conversation-level flags:
 
 - **isImageMode**: Routes prompts to Pollinations image/video generation
-- **isComposeMode**: Music generation via ElevenLabs elevenmusic (`useComposeMusicState`)
+- **isComposeMode**: Music composing with Eleven Music (`model=elevenmusic`) via Pollinations (`/api/compose`) (`useComposeMusicState`)
 - **isCodeMode**: Activates `CODE_REASONING_SYSTEM_PROMPT` for programming
 - **webBrowsingEnabled**: Deep Research mode → routes to `nomnom` model
 
@@ -60,10 +60,11 @@ Auto-detects user intent via regex (German + English):
 - Model-specific system prompts (`src/config/enhancement-prompts.ts`)
 - Routing: `modelId` selects which enhancement prompt to use
 - Image models: max 1000 chars output (3-layer cap: `maxCompletionTokens: 250`, system prompt rule, hard-cap after sanitize)
-- Compose/music: max ~4100 chars output (no URL constraint, goes to ElevenLabs)
+- Compose/music: max ~4100 chars output (no URL constraint, goes to `/api/compose`)
 
-**Music Generation** (`/api/generate` via ElevenLabs):
+**Music Generation** (`/api/compose` via Pollinations):
 - Compose mode uses `useComposeMusicState` hook with `enhancePrompt()` + `isEnhancing`
+- Endpoint: `src/app/api/compose/route.ts` calls Pollinations audio with `model=elevenmusic`
 - VibeCraft enhancement prompt (`COMPOSE_ENHANCEMENT_PROMPT` in `enhancement-prompts.ts`)
 
 **Replicate Image/Video** (`/api/replicate`):
@@ -86,7 +87,7 @@ Auto-detects user intent via regex (German + English):
 - Privacy-respecting proxy for external images
 
 **Compose/Music** (`/api/compose`):
-- ElevenLabs music generation endpoint
+- Pollinations Eleven Music (`model=elevenmusic`) composing endpoint
 
 **S3 Upload** (`/api/upload/sign`, `/api/upload/sign-read`, `/api/upload/ingest`):
 - Signed URL generation for uploads and reads
@@ -112,7 +113,7 @@ Replicate models use different API parameter names for reference images. The cen
 |-------|---------------|------------|
 | flux-2-max, flux-2-klein-9b, flux-2-pro | `input_images` | `string[]` |
 | flux-kontext-pro | `input_image` | `string` |
-| grok-imagine-video, wan-video, veo-3.1-fast | `image` | `string` |
+| grok-imagine-video, wan-video | `image` | `string` |
 | All Pollinations models | `image` | `string[]` |
 
 This mapping is used by **both** code paths:
@@ -128,7 +129,6 @@ This mapping is used by **both** code paths:
 | gptimage-large | 8 | Pollinations | OpenAI |
 | gpt-image | 4 | Pollinations | OpenAI Mini (disabled) |
 | flux-2-max | 4 | Replicate | Black Forest Labs, `input_images` |
-| veo | 2 | Pollinations | Video, supports audio |
 | kontext, klein-large | 1 | Pollinations | Context editing |
 | grok-imagine-video | 1 | Replicate | Video, `image` param |
 | wan, seedance(-pro) | 1 | Pollinations | **Image-to-Video only** |
@@ -224,8 +224,8 @@ Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical — e
 **Status: All APIs Working**
 
 **Versions:**
-- `ai`: 6.0.45
-- `ai-sdk-pollinations`: 0.0.1
+- `ai`: 6.0.45 (installed)
+- `ai-sdk-pollinations`: 0.0.1 (installed)
 
 **Chat** (`/api/chat/completion`):
 - ✅ Using `ai-sdk-pollinations` with `generateText` (non-streaming)
@@ -246,8 +246,9 @@ Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical — e
 - ✅ Centralized parameter mapping (`replicate-image-params.ts`)
 - ✅ Models: flux-2-max, grok-imagine-video (+ disabled: flux-2-pro, flux-kontext-pro, etc.)
 
-**Compose/Music** (`/api/generate` via ElevenLabs):
+**Compose/Music** (`/api/compose` via Pollinations):
 - ✅ Compose mode with `useComposeMusicState` hook
+- ✅ Pollinations audio with `model=elevenmusic`
 - ✅ VibeCraft enhancement prompt for music descriptions
 
 **TTS** (`/api/tts`):

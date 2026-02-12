@@ -27,6 +27,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
         toggleComposeMode,
         handleFileSelect,
         closeHistoryPanel,
+        closeAdvancedPanel,
+        toggleHistoryPanel,
         toggleWebBrowsing,
         webBrowsingEnabled,
         startNewChat,
@@ -120,8 +122,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
     // Keyboard shortcuts: Cmd+K = new chat
     useKeyboardShortcuts({
         onNewChat: startNewChat,
+        onToggleSidebar: toggleHistoryPanel,
         onEscape: () => {
             closeHistoryPanel();
+            closeAdvancedPanel();
         },
     });
 

@@ -9,7 +9,6 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   // --- Video Models ---
   "wan-video/wan-2.5-t2v": "wan-video/wan-2.5-t2v",
   "wan-video/wan-2.5-i2v": "wan-video/wan-2.5-i2v",
-  "google/veo-3.1-fast": "google/veo-3.1-fast",
 
   // --- Image Models (Flux/Turbo) ---
 
@@ -19,7 +18,6 @@ const MODEL_ENDPOINTS: Record<string, string> = {
   "nanobanana-pro": "google/nano-banana-pro",
   "nano-banana-pro": "google/nano-banana-pro", // Fallback für alte Referenzen
 
-  "veo-3.1-fast": "google/veo-3.1-fast",
   "z-image-turbo": "prunaai/z-image-turbo",
   "wan-2.5-t2v": "wan-video/wan-2.5-t2v",
   "wan-video": "wan-video/wan-2.5-i2v",
@@ -123,7 +121,9 @@ export async function POST(request: NextRequest) {
     let prediction: ReplicatePrediction = await startResponse.json();
 
     const isWanVideo = modelKey === 'wan-video' || modelKey === 'wan-2.5-t2v';
-    const isLongVideoModel = isWanVideo || modelKey === 'hailuo-02' || modelKey === 'veo-3-fast';
+    const isLongVideoModel =
+      isWanVideo ||
+      modelKey === 'hailuo-02';
     const pollDelayMs = isLongVideoModel ? 4000 : 2000;
     const maxAttempts = isLongVideoModel ? 150 : 60;
 
@@ -170,4 +170,3 @@ export async function POST(request: NextRequest) {
     return handleApiError(error);
   }
 }
-

@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-02-12T14:39:29.844Z",
+  "mode": "direct",
+  "outDir": "tools/test-scripts/artifacts/multimedia",
+  "image": {
+    "model": "z-image-turbo",
+    "width": 256,
+    "height": 256,
+    "prompt": "A minimal test image: simple black circle on white background."
+  },
+  "video": null,
+  "steps": [
+    {
+      "kind": "generate-image-direct",
+      "ok": true,
+      "imageUrl": "https://gen.pollinations.ai/image/A%20minimal%20test%20image%3A%20simple%20black%20circle%20on%20white%20background.?model=z-image-turbo&width=256&height=256&nologo=true&safe=false&private=false"
+    },
+    {
+      "kind": "validate-image-bytes",
+      "url": "https://gen.pollinations.ai/image/A%20minimal%20test%20image%3A%20simple%20black%20circle%20on%20white%20background.?model=z-image-turbo&width=256&height=256&nologo=true&safe=false&private=false",
+      "ok": false,
+      "status": 0,
+      "latencyMs": 0,
+      "contentType": "",
+      "bytes": 0,
+      "error": "fetch failed"
+    }
+  ]
+}

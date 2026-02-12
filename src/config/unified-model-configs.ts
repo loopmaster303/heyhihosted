@@ -155,19 +155,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'seed' },
     ],
   },
-  'veo': {
-    id: 'veo',
-    name: 'Veo',
-    outputType: 'video',
-    inputs: [
-      { name: 'prompt', isPrompt: true },
-      { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 6 },
-      { name: 'audio', default: true },
-      { name: 'output_format', default: 'mp4' },
-      { name: 'seed' },
-    ],
-  },
 
   // Replicate models (image)
 
@@ -226,19 +213,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '16:9' },
       { name: 'duration', default: 5 },
-      { name: 'audio', default: true },
-      { name: 'output_format', default: 'mp4' },
-      { name: 'seed' },
-    ],
-  },
-  'veo-3.1-fast': {
-    id: 'veo-3.1-fast',
-    name: 'Veo 3.1 Fast',
-    outputType: 'video',
-    inputs: [
-      { name: 'prompt', isPrompt: true },
-      { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 6 },
       { name: 'audio', default: true },
       { name: 'output_format', default: 'mp4' },
       { name: 'seed' },

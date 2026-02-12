@@ -53,4 +53,4 @@ This document defines the strict workflow and principles for all AI Agents worki
 - **Phase 3 (Security & Performance):** Long-term. Web Crypto API encryption planned.
 - **Upload Pipeline:** Unified via S3 signed URLs (Catbox removed). Reference images use `resolveReferenceUrls()`.
 - **Smart Router:** Auto-detects search intent (German + English) → routes to `sona`/`perplexity-fast`. Deep Research → `nomnom`.
-- **Compose Mode:** Music generation via ElevenLabs (`useComposeMusicState`) with VibeCraft prompt enhancement.
+- **Compose Mode:** Music composing with Eleven Music (`model=elevenmusic`) via Pollinations (`/api/compose`) (`useComposeMusicState`) with VibeCraft prompt enhancement.

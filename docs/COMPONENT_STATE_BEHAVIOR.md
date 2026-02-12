@@ -37,7 +37,7 @@ ChatProvider.tsx → useChatLogic()
 ├── useChatEffects()                  # Side effects (auto-scroll, restore)
 ├── useUnifiedImageToolState()        # Visualize bar (via ChatInput)
 ├── useComposeMusicState()            # Compose/music bar (via ChatInput)
-└── useKeyboardShortcuts()            # Global keyboard shortcuts
+└── (Shortcuts wired in `ChatInterface.tsx`) # Global keyboard shortcuts
 ```
 
 ### Props Interface (`UseChatLogicProps`)
@@ -214,7 +214,7 @@ Skips shortcuts when typing in input/textarea (except Escape).
 | `error` | `string \| null` | Error message |
 
 ### Actions
-- `generateMusic(prompt)` — calls `/api/compose` (ElevenLabs)
+- `generateMusic(prompt)` — calls `/api/compose` (Pollinations Eleven Music, `model=elevenmusic`)
 - `enhancePrompt(prompt)` — calls `/api/enhance-prompt` with VibeCraft prompt
 - `reset()` — clears state
 

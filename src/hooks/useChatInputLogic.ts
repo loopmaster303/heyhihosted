@@ -73,19 +73,10 @@ export function useChatInputLogic({
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // Close upload row if image mode becomes active
-    useEffect(() => {
-        if (isImageMode && activeBadgeRow === 'upload') {
-            setActiveBadgeRow(null);
-        }
-    }, [isImageMode, activeBadgeRow]);
-
-    // Close tools panel if any tool becomes active
-    useEffect(() => {
-        if (hasActiveTool && activeBadgeRow === 'tools') {
-            setActiveBadgeRow(null);
-        }
-    }, [hasActiveTool, activeBadgeRow]);
+    const visibleBadgeRow = (isImageMode && activeBadgeRow === 'upload')
+        || (hasActiveTool && activeBadgeRow === 'tools')
+        ? null
+        : activeBadgeRow;
 
     // Code mode auto-model switching
     useEffect(() => {
@@ -106,12 +97,16 @@ export function useChatInputLogic({
     }, [isCodeMode, defaultTextModelId, handleModelChange]);
 
     useOnClickOutside([badgePanelRef, badgeActionsRef], () => {
-        if (activeBadgeRow) setActiveBadgeRow(null);
+        if (visibleBadgeRow) setActiveBadgeRow(null);
     });
 
-    const toggleBadgeRow = (row: 'tools' | 'upload' | 'settings') => {
+    const toggleBadgeRow = useCallback((row: 'tools' | 'upload' | 'settings') => {
+        if ((row === 'upload' && isImageMode) || (row === 'tools' && hasActiveTool)) {
+            setActiveBadgeRow(null);
+            return;
+        }
         setActiveBadgeRow(current => current === row ? null : row);
-    };
+    }, [isImageMode, hasActiveTool]);
 
     const setActiveMode = useCallback((mode: ToolMode) => {
         const shouldEnableImage = mode === 'visualize';
@@ -178,7 +173,7 @@ export function useChatInputLogic({
         if (visualizeToolState.prompt !== inputValue) {
             onInputChange(visualizeToolState.prompt);
         }
-    }, [visualizeToolState?.prompt, isImageMode, inputValue, onInputChange]); // visualizeToolState is mutable object, be careful
+    }, [visualizeToolState, isImageMode, inputValue, onInputChange]);
 
     const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>, fileType: 'document' | 'image') => {
         const file = event.target.files?.[0];
@@ -204,7 +199,7 @@ export function useChatInputLogic({
     return {
         // State
         isMobile,
-        activeBadgeRow,
+        activeBadgeRow: visibleBadgeRow,
         hasActiveTool,
         CODE_MODE_MODEL_IDS,
         

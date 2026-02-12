@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -35,40 +35,35 @@ interface ChatImageCardProps {
   assetId?: string; // Neu: ID für lokalen Vault
 }
 
-const ChatImageCard: React.FC<ChatImageCardProps> = ({
+interface ChatImageCardViewProps extends ChatImageCardProps {
+  src: string;
+}
+
+const ChatImageCardView: React.FC<ChatImageCardViewProps> = ({
+  src,
   url,
   altText,
   isGenerated = false,
   isUploaded = false,
-  assetId,
 }) => {
-  const { url: vaultUrl, isLoading: isVaultLoading } = useAssetUrl(assetId, url);
+  const { t } = useLanguage();
   const [isLoaded, setIsLoaded] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [reloadToken, setReloadToken] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  const src = vaultUrl || url;
-
   const maxRetries = 8;
   const maxWidth = isGenerated ? 320 : 120;
   const maxHeight = isGenerated ? 240 : 120;
   const ratio = aspectRatio || 1;
   const size = fitWithin(ratio, maxWidth, maxHeight);
- 
+
   const canReload = src?.startsWith('http') && !src.includes('blob:');
 
   const imageUrl = canReload && reloadToken > 0
     ? `${src}${src.includes('?') ? '&' : '?'}r=${reloadToken}`
     : src;
-
-  useEffect(() => {
-    setIsLoaded(false);
-    setAspectRatio(null);
-    setRetryCount(0);
-    setReloadToken(0);
-  }, [src]);
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -135,12 +130,13 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         )}
-        <div className="absolute bottom-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
+        <div className="absolute bottom-2 right-2 flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition">
           <button
             type="button"
             onClick={() => setIsPreviewOpen(true)}
             className="rounded-full bg-black/70 text-white p-2 hover:bg-black/90 transition-colors"
-            title="Expand"
+            title={t('action.expand')}
+            aria-label={t('action.expand')}
           >
             <Maximize2 className="h-4 w-4" />
           </button>
@@ -148,7 +144,8 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
             type="button"
             onClick={handleDownload}
             className="rounded-full bg-black/70 text-white p-2 hover:bg-black/90 transition-colors"
-            title="Download"
+            title={t('action.download')}
+            aria-label={t('action.download')}
           >
             <Download className="h-4 w-4" />
           </button>
@@ -172,7 +169,8 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
               type="button"
               onClick={() => setIsPreviewOpen(false)}
               className="absolute -top-12 right-0 sm:top-4 sm:right-4 rounded-full bg-black/50 text-white p-2 hover:bg-black/70 transition-colors"
-              title="Close"
+              title={t('action.close')}
+              aria-label={t('action.close')}
             >
               <X className="h-6 w-6" />
             </button>
@@ -184,6 +182,29 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
   );
 };
 
+const ChatImageCard: React.FC<ChatImageCardProps> = ({
+  url,
+  altText,
+  isGenerated = false,
+  isUploaded = false,
+  assetId,
+}) => {
+  const { url: vaultUrl } = useAssetUrl(assetId, url);
+  const src = vaultUrl || url;
+
+  return (
+    <ChatImageCardView
+      key={src}
+      src={src}
+      url={url}
+      altText={altText}
+      isGenerated={isGenerated}
+      isUploaded={isUploaded}
+      assetId={assetId}
+    />
+  );
+};
+
 interface ChatVideoCardProps {
   url: string;
   altText: string;
@@ -191,30 +212,25 @@ interface ChatVideoCardProps {
   assetId?: string;
 }
 
-const ChatVideoCard: React.FC<ChatVideoCardProps> = ({
-  url,
+interface ChatVideoCardViewProps extends ChatVideoCardProps {
+  src: string;
+}
+
+const ChatVideoCardView: React.FC<ChatVideoCardViewProps> = ({
+  src,
   altText,
   isGenerated = false,
-  assetId,
 }) => {
-  const { url: vaultUrl } = useAssetUrl(assetId, url);
   const [isReady, setIsReady] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [reloadToken, setReloadToken] = useState(0);
 
-  const src = vaultUrl || url;
   const canReload = src?.startsWith('http') && !src.includes('blob:');
   const maxRetries = 10;
 
   const videoUrl = canReload && reloadToken > 0
     ? `${src}${src.includes('?') ? '&' : '?'}r=${reloadToken}`
     : src;
-
-  useEffect(() => {
-    setIsReady(false);
-    setRetryCount(0);
-    setReloadToken(0);
-  }, [src]);
 
   const handleVideoError = () => {
     if (!isGenerated || !canReload) return;
@@ -245,6 +261,27 @@ const ChatVideoCard: React.FC<ChatVideoCardProps> = ({
         </div>
       )}
     </div>
+  );
+};
+
+const ChatVideoCard: React.FC<ChatVideoCardProps> = ({
+  url,
+  altText,
+  isGenerated = false,
+  assetId,
+}) => {
+  const { url: vaultUrl } = useAssetUrl(assetId, url);
+  const src = vaultUrl || url;
+
+  return (
+    <ChatVideoCardView
+      key={src}
+      src={src}
+      url={url}
+      altText={altText}
+      isGenerated={isGenerated}
+      assetId={assetId}
+    />
   );
 };
 
@@ -395,10 +432,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               const altText =
                 part.image_url.altText ||
                 (part.image_url.isGenerated
-                  ? 'Generated image'
+                  ? t('media.generatedImage')
                   : part.image_url.isUploaded
-                    ? 'Uploaded image'
-                    : 'Image');
+                    ? t('media.uploadedImage')
+                    : t('media.image'));
 
               return (
                 <ChatImageCard
@@ -417,7 +454,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           <div className="mt-2 flex flex-wrap gap-2">
             {videoParts.map((part, index) => {
               if (part.type !== 'video_url') return null;
-              const altText = part.video_url.altText || 'Generated video';
+              const altText = part.video_url.altText || t('media.generatedVideo');
               return (
                 <ChatVideoCard
                   key={`video-${index}`}
@@ -473,7 +510,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         </div>
 
         {isAssistant && message.id !== 'loading' && !isMediaOnly && (
-          <div className="absolute top-full mt-1 left-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="absolute top-full mt-1 left-1 flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
             {hasAudioContent && onPlayAudio && (
               <Button
                 variant="ghost"
@@ -483,7 +520,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   "h-7 w-7 text-foreground/80 hover:text-foreground",
                   isPlaying && "text-blue-500 hover:text-blue-600"
                 )}
-                aria-label={isPlaying ? "Stop audio" : "Play audio"}
+                aria-label={isPlaying ? t('action.stopAudio') : t('action.playAudio')}
                 disabled={isAnyAudioActive && !isPlaying}
               >
                 {isLoadingAudio ? (
@@ -501,7 +538,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 size="icon"
                 onClick={onRegenerate}
                 className="h-7 w-7 text-foreground/80 hover:text-foreground"
-                aria-label="Regenerate response"
+                aria-label={t('action.regenerate')}
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
@@ -512,7 +549,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 size="icon"
                 onClick={handleCopyClick}
                 className="h-7 w-7 text-foreground/80 hover:text-foreground"
-                aria-label="Copy text"
+                aria-label={t('action.copy')}
               >
                 <Copy className="h-4 w-4" />
               </Button>

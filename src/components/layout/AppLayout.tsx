@@ -45,6 +45,26 @@ interface AppLayoutProps {
   onVisualModelSelectorToggle?: () => void;
 }
 
+const getInitialDisplayName = () => {
+  if (typeof window === 'undefined') return 'user';
+
+  const savedName = window.localStorage.getItem('userDisplayName');
+  if (!savedName) return 'user';
+
+  let parsed: unknown = savedName;
+  try {
+    parsed = JSON.parse(savedName);
+  } catch {
+    parsed = savedName;
+  }
+
+  if (typeof parsed === 'string' && parsed.trim()) {
+    return parsed.trim();
+  }
+
+  return 'user';
+};
+
 const AppLayout: React.FC<AppLayoutProps> = ({
   children,
   appState,
@@ -71,22 +91,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const { language } = useLanguage();
 
   // Get username for header display
-  const [userDisplayName, setUserDisplayName] = useState('user');
-  const [isMobile, setIsMobile] = useState(false);
+  const [userDisplayName] = useState(getInitialDisplayName);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 640 : false
+  );
 
   useEffect(() => {
-    const savedName = localStorage.getItem('userDisplayName');
-    if (savedName) {
-      let parsed = savedName;
-      try { parsed = JSON.parse(savedName); } catch {}
-      if (typeof parsed === 'string' && parsed.trim()) {
-        setUserDisplayName(parsed.trim());
-      }
-    }
-
-    // Responsive ASCII Scaling
-    const checkMobile = () => setIsMobile(window.innerWidth < 640);
-    checkMobile();
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);

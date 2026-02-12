@@ -5,9 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { ChevronDown, ChevronUp, Settings, HelpCircle, Info } from "lucide-react";
-import { AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from "@/config/chat-options";
+import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from "@/config/chat-options";
 import { getImageModels } from "@/config/unified-image-models";
 import { useLanguage } from '@/components/LanguageProvider';
 import { useTheme } from 'next-themes';
@@ -43,16 +43,13 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   onImageModelChange,
 }) => {
   const [selectedResponseStyle, setSelectedResponseStyle] = useState("Precise");
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const { theme } = useTheme();
-  const [isClient, setIsClient] = useState(false);
+  const hasCustomPrompt = customSystemPrompt.trim() !== "";
+  const currentResponseStyle = hasCustomPrompt ? "User's Default" : selectedResponseStyle;
 
   // Track which info section is expanded
   const [activeInfoSection, setActiveInfoSection] = useState<'llm' | 'tts' | 'image' | null>(null);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   // Dynamische Response Styles basierend auf Sprache
   const getResponseStyles = () => [
@@ -64,18 +61,9 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
     { value: "User's Default", label: t('responseStyle.usersdefault.label'), description: t('responseStyle.usersdefault.description') }
   ];
 
-  // Automatisch Response Style basierend auf System Prompt setzen
-  useEffect(() => {
-    if (customSystemPrompt.trim() === "") {
-      setSelectedResponseStyle("Precise");
-    } else {
-      setSelectedResponseStyle("User's Default");
-    }
-  }, [customSystemPrompt]);
-
   // Aktueller System Prompt basierend auf gewähltem Style
   const getCurrentSystemPrompt = () => {
-    if (customSystemPrompt.trim() !== "") {
+    if (hasCustomPrompt) {
       return customSystemPrompt;
     }
 
@@ -96,21 +84,6 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   const currentLLM = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId);
   const currentVoice = AVAILABLE_TTS_VOICES.find(v => v.id === selectedVoice);
   const currentImageModel = getImageModels().find(m => m.id === selectedImageModelId);
-
-  // Warte bis das Theme geladen ist, um Hydration-Fehler zu vermeiden
-  if (!isClient) {
-    return (
-      <div className="flex-1 p-4 md:p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="space-y-6">
-            <div className="h-12 bg-gray-200 animate-pulse rounded"></div>
-            <div className="h-32 bg-gray-200 animate-pulse rounded"></div>
-            <div className="h-32 bg-gray-200 animate-pulse rounded"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const isDark = theme === 'dark';
 
@@ -160,7 +133,11 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
             <div className="space-y-6">
               {/* Style Selection */}
               <div className="max-w-md space-y-2">
-                <Select value={selectedResponseStyle} onValueChange={setSelectedResponseStyle}>
+                <Select
+                  value={currentResponseStyle}
+                  onValueChange={setSelectedResponseStyle}
+                  disabled={hasCustomPrompt}
+                >
                   <SelectTrigger className={cn(
                     "w-full h-12 px-3 transition-all duration-200",
                     "border bg-card shadow-sm rounded-xl",
@@ -195,7 +172,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                       ? "border-gray-800 hover:border-gray-700 text-gray-200 placeholder:text-gray-700"
                       : "border-gray-200 hover:border-gray-300 text-gray-800 placeholder:text-gray-300"
                   )}
-                  readOnly={customSystemPrompt.trim() === ""}
+                  readOnly={!hasCustomPrompt}
                 />
                 <div className="px-1">
                   <details className="text-xs text-muted-foreground cursor-pointer select-none">

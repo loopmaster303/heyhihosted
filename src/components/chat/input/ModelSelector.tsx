@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { modelIcons, featuredModels } from '@/config/ui-constants';
 import { ModalPopup } from '@/components/ui/popup';
+import { useLanguage } from '@/components/LanguageProvider';
 
 interface ModelSelectorProps {
     selectedModelId: string;
@@ -24,6 +25,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     disabled = false,
     modelFilterIds
 }) => {
+    const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const [expanded, setExpanded] = useState(false);
 
@@ -167,10 +169,10 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             aria-haspopup="dialog"
             aria-expanded={isOpen}
             className={cn(
-                "group rounded-lg h-14 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white",
+                "group rounded-lg h-14 md:h-12 transition-colors duration-300 text-muted-foreground hover:text-foreground",
                 isMobile ? 'w-auto px-2' : 'w-auto px-1'
             )}
-            aria-label="Select model"
+            aria-label={t('modelSelector.select')}
         >
             <div className="flex items-center gap-1.5 truncate max-w-full">
                 {(() => {
@@ -179,7 +181,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                         return (
                             <div className="flex items-center gap-1">
                                 <span className="text-sm font-semibold truncate max-w-[120px]">{modelName}</span>
-                                <ChevronDown className="w-5 h-5 flex-shrink-0 text-pink-500" />
+                                <ChevronDown className="w-5 h-5 flex-shrink-0 text-primary/80" />
                             </div>
                         );
                     }
@@ -190,7 +192,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                     {modelName}
                                 </span>
                             </div>
-                            <ChevronDown className="w-6 h-6 flex-shrink-0 text-pink-500 ml-1" />
+                            <ChevronDown className="w-6 h-6 flex-shrink-0 text-primary/80 ml-1" />
                         </div>
                     );
                 })()}
@@ -219,9 +221,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                             <div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
-                                    <span className="text-sm font-bold uppercase tracking-wider">Modellauswahl</span>
+                                    <span className="text-sm font-bold uppercase tracking-wider">{t('modelSelector.title')}</span>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-tight opacity-60">Wähle die passende Intelligenz</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-tight opacity-60">{t('modelSelector.subtitle')}</p>
                             </div>
                             <Button 
                                 variant="ghost" 
@@ -252,7 +254,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                     className="flex items-center justify-center py-3 cursor-pointer hover:bg-muted/50 rounded-lg mt-2 group gap-2 border border-dashed border-border/50"
                                 >
                                     <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary transition-colors uppercase tracking-widest">
-                                        Alle Modelle anzeigen ({otherModels.length})
+                                        {t('modelSelector.showAll')} ({otherModels.length})
                                     </span>
                                     <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
                                 </div>
@@ -261,7 +263,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                             {expanded && (
                                 <>
                                     <div className="px-2 py-3 text-[9px] font-bold text-primary uppercase tracking-[0.2em] mt-4 mb-1 opacity-60">
-                                        Erweiterte Intelligenz
+                                        {t('modelSelector.advanced')}
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         {otherModels.map((model) => renderModelItem(model, true))}
@@ -276,7 +278,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                         className="flex items-center justify-center py-3 cursor-pointer hover:bg-muted/50 rounded-lg mt-4 group gap-2 border-t border-border/30"
                                     >
                                         <ChevronUp className="w-3 h-3 text-muted-foreground group-hover:text-foreground transition-colors" />
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-foreground">Weniger anzeigen</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-foreground">{t('modelSelector.showLess')}</span>
                                     </div>
                                 </>
                             )}

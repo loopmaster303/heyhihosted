@@ -1,7 +1,5 @@
 'use client';
 
-/* eslint-disable react-hooks/exhaustive-deps */
-
 import React, { useCallback, useContext, createContext, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -159,10 +157,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     if (activeConversation) {
       setActiveConversation((prev: Conversation | null) => prev ? { ...prev, uploadedFile: null, uploadedFilePreview: null } : null);
     }
-  }, [activeConversation]);
+  }, [activeConversation, setActiveConversation]);
 
-  const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), []);
-  const closeAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(false), []);
+  const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), [setIsHistoryPanelOpen]);
+  const closeAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(false), [setIsAdvancedPanelOpen]);
 
   const toggleImageMode = useCallback((forcedState?: boolean, modelId?: string) => {
     if (!activeConversation) return;
@@ -363,6 +361,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       setChatInputValue('');
     }
 
+    const userInputText = messageText.trim() || chatInputValue.trim();
     const isImagePrompt = options.isImageModeIntent || false;
     const isFileUpload = !!activeConversation.uploadedFile && !isImagePrompt;
 
@@ -418,7 +417,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     }
 
     if (!options.isRegeneration) {
-      const textContent = messageText.trim() || chatInputValue.trim();
+      const textContent = userInputText;
       let userMessageContent: string | ChatMessageContentPart[] = textContent;
       
       const hasStudioImages = options.imageConfig && options.imageConfig.uploadedImages.length > 0;
@@ -549,7 +548,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
           }
 
           if (isPollinationsModel) {
-            if (modelInfo?.kind === 'video' || selectedImageModelId.includes('wan') || selectedImageModelId.includes('veo') || formFields.duration) {
+            if (modelInfo?.kind === 'video' || selectedImageModelId.includes('wan') || formFields.duration) {
               if (formFields.aspect_ratio) imageParams.aspect_ratio = formFields.aspect_ratio;
               
               // Duration: Safe Parsing
@@ -711,7 +710,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       console.error("Chat API Error:", error);
 
       setLastFailedRequest({
-        messageText: options.isRegeneration ? '' : chatInputValue.trim(),
+        messageText: options.isRegeneration ? '' : userInputText,
         options,
         timestamp: Date.now()
       });
@@ -741,7 +740,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       setActiveConversation((prev: Conversation | null) => prev ? { ...prev, ...finalConversationState } : null);
       setIsAiResponding(false);
     }
-  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, webBrowsingEnabled]);
+  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, webBrowsingEnabled, language, retryLastRequestRef, setChatInputValue, setIsAiResponding, setLastFailedRequest, t]);
 
   const selectChat = useCallback(async (conversationId: string | null) => {
     if (conversationId === null) {
@@ -813,7 +812,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     setLastUserMessageId(null); 
 
     return newConversationData;
-  }, [allConversations, defaultTextModelId, deleteConversation, setActiveConversation, setLastUserMessageId]);
+  }, [allConversations, defaultTextModelId, deleteConversation, setActiveConversation, setLastUserMessageId, activeConversation, t]);
 
     const deleteChat = useCallback((conversationId: string) => {
 
@@ -869,10 +868,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
 
   const handleVoiceChange = useCallback((voiceId: string) => {
     setSelectedVoice(voiceId);
-  }, []);
+  }, [setSelectedVoice]);
 
-  const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), []);
-  const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), []);
+  const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), [setIsHistoryPanelOpen]);
+  const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), [setIsAdvancedPanelOpen]);
   const toggleWebBrowsing = useCallback(() => {
     setActiveConversation((prev: Conversation | null) => prev ? { ...prev, webBrowsingEnabled: !(prev.webBrowsingEnabled ?? false) } : prev);
   }, [setActiveConversation]);
@@ -918,10 +917,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     }
 
     await sendMessage(requestToRetry.messageText, requestToRetry.options);
-  }, [lastFailedRequest, sendMessage, setChatInputValue]);
+  }, [lastFailedRequest, sendMessage, setChatInputValue, setLastFailedRequest]);
 
-  const openCamera = useCallback(() => setIsCameraOpen(true), []);
-  const closeCamera = useCallback(() => setIsCameraOpen(false), []);
+  const openCamera = useCallback(() => setIsCameraOpen(true), [setIsCameraOpen]);
+  const closeCamera = useCallback(() => setIsCameraOpen(false), [setIsCameraOpen]);
 
   // --- Effects Hook ---
   useChatEffects({

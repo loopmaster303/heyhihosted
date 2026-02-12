@@ -32,9 +32,6 @@ export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> =
     if (selectedModelId === 'wan' || selectedModelId === 'seedance' || selectedModelId === 'seedance-pro') {
         return 'Start-Frame';
     }
-    if (selectedModelId === 'veo') {
-        return 'Start/End Frame';
-    }
     return 'Referenzen';
   };
 

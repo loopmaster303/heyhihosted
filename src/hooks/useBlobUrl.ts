@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useMemo, useEffect } from 'react';
 import { BlobManager } from '@/lib/blob-manager';
 
 /**
@@ -10,32 +10,18 @@ import { BlobManager } from '@/lib/blob-manager';
  * @returns The blob URL or null if no blob provided
  */
 export function useBlobUrl(blob: Blob | null, context?: string): string | null {
-  const [url, setUrl] = useState<string | null>(null);
-  const urlRef = useRef<string | null>(null);
+  const url = useMemo(() => {
+    if (!blob) return null;
+    return BlobManager.createURL(blob, context);
+  }, [blob, context]);
 
   useEffect(() => {
-    // Cleanup previous URL
-    if (urlRef.current) {
-      BlobManager.releaseURL(urlRef.current);
-      urlRef.current = null;
-      setUrl(null);
-    }
-
-    // Create new URL if blob exists
-    if (blob) {
-      const newUrl = BlobManager.createURL(blob, context);
-      urlRef.current = newUrl;
-      setUrl(newUrl);
-    }
-
-    // Cleanup on unmount
     return () => {
-      if (urlRef.current) {
-        BlobManager.releaseURL(urlRef.current);
-        urlRef.current = null;
+      if (url) {
+        BlobManager.releaseURL(url);
       }
     };
-  }, [blob, context]);
+  }, [url]);
 
   return url;
 }
@@ -49,31 +35,20 @@ export function useBlobUrl(blob: Blob | null, context?: string): string | null {
  * @returns Array of blob URLs in the same order as input blobs
  */
 export function useBlobUrls(blobs: (Blob | null)[], context?: string): (string | null)[] {
-  const [urls, setUrls] = useState<(string | null)[]>([]);
-  const urlsRef = useRef<(string | null)[]>([]);
-
-  useEffect(() => {
-    // Cleanup all previous URLs
-    urlsRef.current.forEach(url => {
-      if (url) BlobManager.releaseURL(url);
-    });
-
-    // Create new URLs
-    const newUrls = blobs.map((blob, index) => {
+  const urls = useMemo(() => {
+    return blobs.map((blob, index) => {
       if (!blob) return null;
       return BlobManager.createURL(blob, context ? `${context}[${index}]` : undefined);
     });
+  }, [blobs, context]);
 
-    urlsRef.current = newUrls;
-    setUrls(newUrls);
-
-    // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      urlsRef.current.forEach(url => {
+      urls.forEach(url => {
         if (url) BlobManager.releaseURL(url);
       });
     };
-  }, [blobs, context]);
+  }, [urls]);
 
   return urls;
 }

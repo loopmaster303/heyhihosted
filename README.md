@@ -14,7 +14,7 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 
 - **Multimodal Chat**: Discuss ideas with Claude, GPT, Gemini, Grok, Deepseek, Mistral, and more. Full vision support included.
 - **Generative Media**: Create images and videos instantly via Pollinations and Replicate APIs.
-- **Compose Mode**: Generate music with ElevenLabs — describe a vibe, get a track.
+- **Compose Mode**: Music composing with **Eleven Music** (`model=elevenmusic`) via **Pollinations** (`/api/compose`).
 - **Code Mode**: Dedicated coding assistant with specialized system prompts and model routing.
 - **Deep Research**: Toggle web browsing for real-time search and source analysis (NomNom / Sonar).
 - **Smart Router**: Auto-detects search intent (German + English) and routes to the right model.
@@ -45,13 +45,13 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router, Turbopack)
+- **Framework**: Next.js 16 (App Router, Turbopack)
 - **Language**: TypeScript (strict mode)
 - **Styling**: Tailwind CSS (Glassmorphism & CRT effects)
 - **UI Components**: Radix UI / Shadcn
 - **Storage**: IndexedDB (via Dexie.js) + AWS S3 for generated assets
 - **AI SDK**: Vercel AI SDK with `ai-sdk-pollinations` provider
-- **AI Providers**: Pollinations.ai (chat, image, video), Replicate (image, video, TTS), ElevenLabs (music), Deepgram (STT)
+- **AI Providers**: Pollinations.ai (chat, image, video, audio), Replicate (image, video, TTS), Deepgram (STT)
 
 ## Project Structure
 

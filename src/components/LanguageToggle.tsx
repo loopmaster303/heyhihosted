@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,28 +16,6 @@ import { cn } from '@/lib/utils';
 const LanguageToggle: React.FC = () => {
   const { language, setLanguage } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  // Prevent hydration mismatch
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-9 w-9 relative hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
-        aria-label="Toggle language"
-      >
-        <div className="flex items-center gap-1">
-          <span className="text-xs font-bold text-black dark:text-white">--</span>
-          <ChevronDown className="h-3 w-3 opacity-70" />
-        </div>
-      </Button>
-    );
-  }
 
   const languages: { code: Language; name: string; flag: string }[] = [
     { code: 'de', name: 'Deutsch', flag: 'DE' },

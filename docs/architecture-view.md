@@ -91,8 +91,8 @@ sequenceDiagram
     ChatProvider->>API: POST /api/chat/completion
     API->>SmartRouter: Analyze Intent (Deep Research / Search)
     SmartRouter->>ExternalAPI: Select Model & Inject Context
-    ExternalAPI-->>API: Response (Streaming)
-    API-->>ChatProvider: Stream Response (Text/Data Stream)
+    ExternalAPI-->>API: Response (JSON)
+    API-->>ChatProvider: Return JSON response (non-streaming)
     ChatProvider->>IndexedDB: Save Conversation (Conversations Table)
     ChatProvider->>IndexedDB: Save Message (Messages Table)
     ChatProvider-->>UI: Update State

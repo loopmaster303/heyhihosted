@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/components/LanguageProvider';
 
 interface MobileOptionsMenuProps {
     // Upload props
@@ -74,6 +75,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
     selectedResponseStyleName,
     onStyleChange
 }) => {
+    const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const [activeSection, setActiveSection] = useState<string | null>('mode');
 
@@ -84,13 +86,13 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
     const sections = [
         {
             id: 'upload',
-            title: 'Anhang',
+            title: t('menu.section.upload'),
             icon: Paperclip,
             visible: !hideUploadSection,
         },
         {
             id: 'mode',
-            title: 'Modus',
+            title: t('menu.section.mode'),
             icon: Layers,
             visible: true,
         }
@@ -108,7 +110,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                             ? "bg-muted/50"
                             : "text-gray-600 dark:text-gray-200"
                     )}
-                    aria-label="Options menu"
+                    aria-label={t('menu.options')}
                 >
                     <div className="relative">
                         <MoreVertical className="w-5 h-5" />
@@ -164,7 +166,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                         <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
                                                             <ImageIcon className="w-4 h-4 text-muted-foreground" />
                                                         </div>
-                                                        <span className="text-sm font-medium">Bild hochladen</span>
+                                                        <span className="text-sm font-medium">{t('action.uploadImage')}</span>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         onClick={onDocUploadClick}
@@ -174,7 +176,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                         <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
                                                             <FileText className="w-4 h-4 text-muted-foreground" />
                                                         </div>
-                                                        <span className="text-sm font-medium">Dokument</span>
+                                                        <span className="text-sm font-medium">{t('action.uploadDocument')}</span>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         onClick={onCameraClick}
@@ -184,7 +186,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                         <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
                                                             <Camera className="w-4 h-4 text-muted-foreground" />
                                                         </div>
-                                                        <span className="text-sm font-medium">Kamera</span>
+                                                        <span className="text-sm font-medium">{t('action.camera')}</span>
                                                     </DropdownMenuItem>
                                                 </>
                                             )}
@@ -206,7 +208,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                         <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
                                                             <Palette className="w-4 h-4" />
                                                         </div>
-                                                        <span className="text-sm font-medium">Visualize</span>
+                                                        <span className="text-sm font-medium">{t('tools.visualize')}</span>
                                                         {isImageMode && <div className="w-2 h-2 rounded-full animate-pulse ml-auto bg-primary/60" />}
                                                     </DropdownMenuItem>
 
@@ -225,7 +227,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                                 <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
                                                                     <MessageSquare className="w-4 h-4" />
                                                                 </div>
-                                                                <span className="text-sm font-medium">Standard Chat</span>
+                                                                <span className="text-sm font-medium">{t('tools.standardChat')}</span>
                                                             </DropdownMenuItem>
 
                                                             <DropdownMenuItem
@@ -241,7 +243,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                                 <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
                                                                     <Globe className="w-4 h-4" />
                                                                 </div>
-                                                                <span className="text-sm font-medium">Deep Research</span>
+                                                                <span className="text-sm font-medium">{t('tools.deepResearch')}</span>
                                                                 {webBrowsingEnabled && <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse ml-auto" />}
                                                             </DropdownMenuItem>
 
@@ -259,7 +261,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                                     <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
                                                                         <Code2 className="w-4 h-4" />
                                                                     </div>
-                                                                    <span className="text-sm font-medium">Coding Assist</span>
+                                                                    <span className="text-sm font-medium">{t('tools.code')}</span>
                                                                     {isCodeMode && <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse ml-auto" />}
                                                                 </DropdownMenuItem>
                                                             )}
@@ -278,4 +280,3 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
         </DropdownMenu>
     );
 };
-

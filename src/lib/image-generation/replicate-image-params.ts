@@ -12,7 +12,6 @@ export const REPLICATE_IMAGE_PARAM: Record<string, string> = {
   'flux-kontext-pro': 'input_image',
   'grok-imagine-video': 'image_url',
   'wan-video': 'image',
-  'veo-3.1-fast': 'image',
 };
 
 /** Models that expect an array of image URLs (vs a single URL string). */

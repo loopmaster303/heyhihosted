@@ -26,7 +26,7 @@ return NextResponse.json({
 ## Why Not Streaming?
 
 ### SDK Version Issues
-- **AI SDK**: `^6.0.45` (current)
+- **AI SDK**: `^6.0.45` (installed at time of writing)
 - **Pollinations Provider**: `^0.0.1` (very early)
 
 ### Previous Attempt Failed

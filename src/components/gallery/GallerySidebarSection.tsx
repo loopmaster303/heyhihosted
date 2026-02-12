@@ -28,6 +28,7 @@ const GalleryThumb = ({
   onOpen: (assetId: string, type: 'image' | 'video') => void;
   sizeClass: string;
 }) => {
+  const { t } = useLanguage();
   const { url } = useAssetUrl(asset.id);
   const isVideo = asset.contentType?.startsWith('video/');
 
@@ -44,7 +45,7 @@ const GalleryThumb = ({
       type="button"
       onClick={handleOpen}
       className={cn("relative overflow-hidden rounded-lg border border-border/40 bg-muted/10", sizeClass)}
-      aria-label="Open gallery item"
+      aria-label={t('gallery.openItem')}
     >
       {isVideo ? (
         <video
@@ -77,6 +78,7 @@ const GalleryPanelItem = ({
   onCopyPrompt: (prompt?: string) => void;
   onDelete: (id: string) => void;
 }) => {
+  const { t } = useLanguage();
   const { url } = useAssetUrl(asset.id);
   const isVideo = asset.contentType?.startsWith('video/');
 
@@ -117,14 +119,14 @@ const GalleryPanelItem = ({
           />
         ) : null}
         {url && (
-          <div className="absolute inset-x-0 bottom-0 px-2 py-2 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/60 via-black/15 to-transparent">
+          <div className="absolute inset-x-0 bottom-0 px-2 py-2 flex items-center justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/60 via-black/15 to-transparent">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onCopyPrompt(asset.prompt)}
               className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
-              title="Prompt kopieren"
-              aria-label="Prompt kopieren"
+              title={t('action.copyPrompt')}
+              aria-label={t('action.copyPrompt')}
             >
               <Copy className="h-3.5 w-3.5" />
             </Button>
@@ -133,8 +135,8 @@ const GalleryPanelItem = ({
               size="icon"
               onClick={handleDownload}
               className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
-              title="Download"
-              aria-label="Download"
+              title={t('action.download')}
+              aria-label={t('action.download')}
             >
               <Download className="h-3.5 w-3.5" />
             </Button>
@@ -143,8 +145,8 @@ const GalleryPanelItem = ({
               size="icon"
               onClick={() => onDelete(asset.id)}
               className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
-              title="Löschen"
-              aria-label="Löschen"
+              title={t('action.delete')}
+              aria-label={t('action.delete')}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -181,14 +183,14 @@ const GallerySidebarSection: React.FC = () => {
 
   const handleCopyPrompt = async (prompt?: string) => {
     if (!prompt) {
-      toast({ title: "Kein Prompt", description: "Für dieses Asset ist kein Prompt gespeichert." });
+      toast({ title: t('gallery.copyPrompt.noPromptTitle'), description: t('gallery.copyPrompt.noPromptDesc') });
       return;
     }
     try {
       await navigator.clipboard.writeText(prompt);
-      toast({ title: "Prompt kopiert", description: "Der Prompt ist in der Zwischenablage." });
+      toast({ title: t('gallery.copyPrompt.successTitle'), description: t('gallery.copyPrompt.successDesc') });
     } catch {
-      toast({ title: "Kopieren fehlgeschlagen", description: "Bitte erneut versuchen.", variant: "destructive" });
+      toast({ title: t('gallery.copyPrompt.errorTitle'), description: t('gallery.copyPrompt.errorDesc'), variant: "destructive" });
     }
   };
 
@@ -210,7 +212,7 @@ const GallerySidebarSection: React.FC = () => {
             "h-6 w-6 rounded-full border border-border/40 bg-muted/20",
             isOpen ? "text-primary border-primary/40" : "hover:text-foreground"
           )}
-          aria-label="Toggle gallery"
+          aria-label={t('gallery.toggle')}
         >
           <ChevronRight className={cn("h-3 w-3 transition-transform duration-300", isOpen && "rotate-90")} />
         </Button>
@@ -235,7 +237,7 @@ const GallerySidebarSection: React.FC = () => {
         </div>
       ) : (
         <div className="px-2 pb-3 text-[10px] text-muted-foreground/70">
-          Noch keine Assets.
+          {t('gallery.emptyShort')}
         </div>
       )}
 
@@ -250,18 +252,18 @@ const GallerySidebarSection: React.FC = () => {
                 size="sm"
                 onClick={() => {
                   if (assets.length === 0) return;
-                  if (confirm('Galerie wirklich leeren?')) clearAllAssets();
+                  if (confirm(t('gallery.clearConfirm'))) clearAllAssets();
                 }}
                 className="h-8 px-4 text-[11px] font-semibold text-foreground/80 hover:text-foreground hover:bg-transparent hover:shadow-[0_0_18px_rgba(180,150,255,0.35)]"
               >
-                Löschen
+                {t('gallery.clearButton')}
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsOpen(false)}
                 className="h-7 w-7 rounded-full hover:bg-muted/30"
-                aria-label="Panel schließen"
+                aria-label={t('gallery.closePanel')}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -270,7 +272,7 @@ const GallerySidebarSection: React.FC = () => {
             <div className="max-h-[55vh] overflow-y-auto p-4 pt-3 no-scrollbar">
               {panelAssets.length === 0 ? (
                 <div className="py-8 text-center text-xs text-muted-foreground/70">
-                  Noch keine Assets in deiner Galerie.
+                  {t('gallery.emptyPanel')}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 min-[520px]:grid-cols-3 gap-3">
@@ -309,7 +311,7 @@ const GallerySidebarSection: React.FC = () => {
             <button
               onClick={() => setLightboxData(null)}
               className="absolute -top-12 right-0 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
-              aria-label="Close"
+              aria-label={t('action.close')}
             >
               <X className="h-5 w-5" />
             </button>
@@ -322,12 +324,13 @@ const GallerySidebarSection: React.FC = () => {
 };
 
 const GalleryLightboxContent = ({ assetId, type }: { assetId: string; type: 'image' | 'video' }) => {
+  const { t } = useLanguage();
   const { url, isLoading } = useAssetUrl(assetId);
 
   if (isLoading || !url) {
     return (
       <div className="w-[60vw] h-[60vh] flex items-center justify-center rounded-lg border border-white/10 bg-black/40">
-        <span className="text-xs text-muted-foreground/70">Loading…</span>
+        <span className="text-xs text-muted-foreground/70">{t('gallery.loading')}</span>
       </div>
     );
   }

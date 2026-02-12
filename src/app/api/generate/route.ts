@@ -26,7 +26,7 @@ const ImageGenerationSchema = z.object({
   image: z.union([z.string().url(), z.array(z.string().url())]).optional(),
 });
 
-const VIDEO_MODELS = new Set(['veo', 'seedance', 'seedance-pro', 'seedance-fast', 'wan', 'wan-2.5-t2v', 'wan-video', 'veo-3.1-fast', 'grok-video', 'ltx-video']);
+const VIDEO_MODELS = new Set(['seedance', 'seedance-pro', 'seedance-fast', 'wan', 'wan-2.5-t2v', 'wan-video', 'grok-video', 'ltx-video']);
 
 export async function POST(request: Request) {
   try {

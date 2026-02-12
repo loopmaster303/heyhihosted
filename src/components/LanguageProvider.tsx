@@ -25,32 +25,26 @@ interface LanguageProviderProps {
 }
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  const [mounted, setMounted] = useState(false);
   const [language, setLanguageState] = useLocalStorageState<Language>('language', defaultLanguage);
-
-  // Prevent hydration mismatch
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Detect browser language on first load
   useEffect(() => {
-    if (!mounted) return;
-    
     if (typeof window !== 'undefined') {
       const browserLang = navigator.language.split('-')[0] as Language;
       if ((browserLang === 'de' || browserLang === 'en') && !localStorage.getItem('language')) {
         setLanguageState(browserLang);
       }
     }
-  }, [mounted, setLanguageState]);
+  }, [setLanguageState]);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = language;
+    }
+  }, [language]);
 
   const setLanguage = useCallback((newLanguage: Language) => {
     setLanguageState(newLanguage);
-    // Update document language for accessibility
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = newLanguage;
-    }
   }, [setLanguageState]);
 
   const t = useCallback((key: string): string => {

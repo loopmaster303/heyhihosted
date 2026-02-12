@@ -32,6 +32,12 @@ export default {
         // Custom tool colors used across tools (e.g., ReplicateImageTool)
         'tool-input-bg': 'hsl(var(--tool-input-bg))',
         'tool-button-bg': 'hsl(var(--tool-button-bg))',
+        mode: {
+          visualize: 'hsl(var(--mode-visualize))',
+          compose: 'hsl(var(--mode-compose))',
+          research: 'hsl(var(--mode-research))',
+          code: 'hsl(var(--mode-code))',
+        },
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',

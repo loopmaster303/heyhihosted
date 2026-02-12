@@ -148,9 +148,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
             }
           } else {
             // Pollinations: Always use 'image' parameter
-            payload.image = selectedModelId === 'veo' && referenceUrls.length === 2
-              ? referenceUrls.join(',')
-              : referenceUrls;
+            payload.image = referenceUrls;
           }
       }
 

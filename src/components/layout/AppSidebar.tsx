@@ -53,7 +53,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    if (diffHours < 1) return 'Jetzt';
+    if (diffHours < 1) return t('time.justNow');
     if (diffHours < 24) return `${diffHours}h`;
     return `${Math.floor(diffHours / 24)}d`;
   };
@@ -97,8 +97,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                       <p className={cn("text-xs font-medium truncate mb-0.5", activeConversation?.id === conv.id ? "text-primary" : "text-foreground/80 group-hover:text-foreground")}>{conv.title}</p>
                       <p className="text-[10px] text-muted-foreground/60">{formatTime(conv.updatedAt)}</p>
                     </button>
-                    <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" onClick={() => onDeleteChat?.(conv.id)} className="h-7 w-7 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg">
+                    <div className="flex opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" onClick={() => onDeleteChat?.(conv.id)} aria-label={t('action.delete')} className="h-7 w-7 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg">
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>

@@ -20,9 +20,6 @@ const MODEL_ALIASES: Record<string, string> = {
   'wan-2.5-t2v': 'wan',
   'wan-2.5-i2v': 'wan',
   'wan': 'wan',
-  'veo-3-fast': 'veo',
-  'veo-3.1-fast': 'veo',
-  'veo': 'veo', 
   'flux-2-pro': 'flux-2-pro',
   'nano-banana-pro': 'nanobanana-pro',
   'z-image-turbo': 'zimage',
@@ -113,12 +110,13 @@ export async function POST(request: NextRequest) {
     const systemMessage = `${baseGuidelines}\n\n${outputLanguageGuard}\n\n${noContentRestrictionsGuard}\n\n${strictOutputOnlyGuard}${lengthGuard ? '\n\n' + lengthGuard : ''}`;
 
     // Always use Pollinations (Pollen) with Claude (Sonnet)
+    const enhancerModelId = 'claude';
     const pollenKey = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_API_TOKEN;
     let enhancedText: string | null = null;
 
     try {
       const result = await getPollinationsChatCompletion({
-        modelId: 'claude', // maps to Claude Sonnet on Pollinations
+        modelId: enhancerModelId, // maps to Claude Sonnet on Pollinations
         messages: [
           { role: 'user', content: prompt },
         ],
@@ -148,7 +146,7 @@ export async function POST(request: NextRequest) {
       enhancedPrompt: cleaned,
       originalPrompt: prompt,
       modelId,
-      usedModel: 'deepseek',
+      usedModel: enhancerModelId,
       via: 'pollinations',
     });
 

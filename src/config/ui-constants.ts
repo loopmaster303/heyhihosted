@@ -87,8 +87,6 @@ export const imageModelIcons: Record<string, any> = {
     'flux-2-pro': FluxFarbeIcon,
     'flux-kontext-pro': FluxFarbeIcon,
     'kontext': FluxFarbeIcon,
-    'veo': GoogleIcon,
-    'veo-3.1-fast': GoogleIcon,
     'wan': WANIcon,
     'wan-2.5-t2v': WANIcon,
     'wan-video': WANIcon,
