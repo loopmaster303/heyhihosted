@@ -56,11 +56,12 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     provider: 'pollinations', 
     kind: 'video', 
     category: 'Standard', 
-    supportsReference: true, 
-    maxImages: 1, 
+    // Text-to-video model (no image reference input).
+    supportsReference: false, 
+    maxImages: 0, 
     isFree: true, 
     enabled: false,
-    description: 'Seedance Lite (BytePlus)',
+    description: 'Seedance Lite (BytePlus) (T2V)',
     supportsAudio: false,
     durationRange: { options: [5, 10] }
   },
@@ -81,30 +82,17 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     durationRange: { options: [5, 10] }
   },
   { 
-    id: 'veo', 
-    name: 'Veo 3.1', 
-    provider: 'pollinations', 
-    kind: 'video', 
-    category: 'Advanced', 
-    supportsReference: true, 
-    isFree: true, 
-    enabled: false, 
-    description: 'Google Veo 3.1 Fast',
-    maxImages: 2,
-    supportsAudio: true,
-    durationRange: { options: [4, 6, 8] }
-  },
-  { 
     id: 'seedance-fast', 
     name: 'Seedance Fast', 
     provider: 'pollinations', 
     kind: 'video', 
     category: 'Advanced', 
-    supportsReference: true, 
+    // Text-to-video model (no image reference input).
+    supportsReference: false, 
     isFree: true, 
     enabled: true, 
-    description: 'Seedance Fast (BytePlus)',
-    maxImages: 1,
+    description: 'Seedance Fast (BytePlus) (T2V)',
+    maxImages: 0,
     supportsAudio: false,
     durationRange: { options: [5, 10] }
   },
@@ -146,7 +134,6 @@ const REPLICATE_MODELS: UnifiedImageModel[] = [
   // Video Generation (Advanced)
   { id: 'wan-2.5-t2v', name: 'Wan 2.5 T2V', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: false, requiresPassword: false, description: 'Text to Video', enabled: false },
   { id: 'wan-video', name: 'Wan 2.5 I2V', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Image to Video', enabled: false },
-  { id: 'veo-3.1-fast', name: 'Veo 3.1 Fast', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Fast Video', enabled: false },
 
   // Image Generation (Standard - flux-kontext is featured)
   { id: 'flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', category: 'Standard', supportsReference: true, requiresPassword: false, description: 'Context Edit', enabled: false },

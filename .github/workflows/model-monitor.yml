@@ -1,0 +1,47 @@
+name: Model Monitor Snapshot
+
+on:
+  schedule:
+    # Twice per day, keep it cheap but catches drift.
+    - cron: "17 6,18 * * *"
+  push:
+    branches:
+      - "ci/**"
+      - "ci-*"
+    paths:
+      - ".github/workflows/model-monitor.yml"
+      - "tools/test-scripts/model-monitor-snapshot.mjs"
+  workflow_dispatch: {}
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Chromium (for screenshots)
+        continue-on-error: true
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium || true
+
+      - name: Run Snapshot
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          node tools/test-scripts/model-monitor-snapshot.mjs --timeout-ms 12000
+
+      - name: Upload Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-monitor-artifacts
+          path: tools/test-scripts/artifacts/model-monitor
+          if-no-files-found: warn

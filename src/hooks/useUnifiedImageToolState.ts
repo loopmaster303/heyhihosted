@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/components/LanguageProvider';
 import { unifiedModelConfigs, getUnifiedModelConfig, type UnifiedModelConfig } from '@/config/unified-model-configs';
@@ -20,9 +20,6 @@ export const pollinationUploadModels = [
     'seedream',
     'nanobanana',
     'nanobanana-pro',
-    'seedance-pro',
-    'seedance',
-    'veo',
     'klein-large',
     'kontext',
     'wan'
@@ -32,9 +29,9 @@ export const replicateUploadModels = [
     'flux-2-pro',
     'flux-kontext-pro',
     'wan-video',
-    'veo-3.1-fast',
     'z-image-turbo',
     'flux-2-max',
+    'flux-2-klein-9b',
     'grok-imagine-video',
 ];
 
@@ -54,7 +51,7 @@ export function useUnifiedImageToolState() {
     const [defaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
     const availableModels = useMemo(
         () => Object.keys(unifiedModelConfigs).filter(id => getUnifiedModel(id)?.enabled ?? true),
-        [getUnifiedModel, unifiedModelConfigs]
+        []
     );
     const initialModelId = availableModels.includes(defaultImageModelId)
         ? defaultImageModelId
@@ -123,7 +120,6 @@ export function useUnifiedImageToolState() {
         if (selectedModelId === 'qwen-image-edit-plus') return 3;
         if (selectedModelId === 'flux-kontext-pro') return 1;
         if (selectedModelId === 'wan-video') return 1;
-        if (selectedModelId === 'veo-3.1-fast') return 1;
         
         // Default for Pollinations flux/kontext is usually 1 (prompt injection or img2img)
         if (selectedModelId === 'flux' || selectedModelId === 'kontext') return 1;
@@ -165,7 +161,7 @@ export function useUnifiedImageToolState() {
             }
 
             // Dynamic Audio Default
-            // Default to TRUE if supported (Wan/Veo)
+            // Default to TRUE if supported
             if (modelInfo?.supportsAudio) {
                 initialFields.audio = true; 
             } else {
@@ -173,7 +169,7 @@ export function useUnifiedImageToolState() {
             }
         }
         setFormFields(initialFields);
-    }, [currentModelConfig, isGptImage, isSeedream, isNanoPollen, isPollinationsVideo, selectedModelId]);
+    }, [currentModelConfig, isPollenModel, isPollinationsVideo, selectedModelId]);
 
     // Clear uploaded images if model doesn't support them
     useEffect(() => {
