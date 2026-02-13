@@ -48,7 +48,7 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "openai-fast",
-    name: "GPT-5 Nano",
+    name: "OpenAI GPT-5 Nano",
     description: "Extrem schnell und preiswert.",
     vision: true,
     category: "Standard",
@@ -75,7 +75,7 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "gemini-fast",
-    name: "Gemini 2.5 Flash",
+    name: "Google Gemini 2.5 Flash Lite",
     description: "Leichte, schnelle Variante für Alltagstasks.",
     vision: true,
     category: "Standard",
@@ -140,7 +140,7 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "deepseek",
-    name: "Deepseek V 3.2",
+    name: "Deepseek V3.2",
     description: "Fortgeschrittenes Reasoning und spezialisiert auf Coding.",
     vision: false,
     category: "Advanced",
@@ -604,8 +604,8 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
   { id: 'R8_8CZH4KMY', name: 'Dev' },
 ];
 
-// Default model for new users/chats - NEW DEFAULT: Claude Haiku 4.5
-export const DEFAULT_POLLINATIONS_MODEL_ID = 'claude-fast';
+// Default model for new users/chats (cost-first default)
+export const DEFAULT_POLLINATIONS_MODEL_ID = 'gemini-fast';
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // For in-chat image generation

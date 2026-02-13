@@ -299,6 +299,73 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     const { id: convId, selectedModelId, selectedResponseStyleName, messages } = activeConversation;
     let currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
 
+    // Hard token budget (cost control):
+    // Never send full conversation history. Only send:
+    // 1) A short summary of older messages (local, capped)
+    // 2) The last N user turns (and their assistant replies)
+    const MAX_CONTEXT_USER_TURNS = 8;
+    const SUMMARY_CHAR_BUDGET = 1800;
+
+    const toPlainTextForSummary = (content: any): string => {
+      if (typeof content === 'string') return content;
+      if (!Array.isArray(content)) return '';
+      // Collapse multimodal content to short text markers
+      return content.map((p: any) => {
+        if (p?.type === 'text') return String(p.text || '');
+        if (p?.type === 'image_url') return '[image]';
+        if (p?.type === 'video_url') return '[video]';
+        return '';
+      }).filter(Boolean).join('\n');
+    };
+
+    const buildOlderMessagesSummary = (older: ChatMessage[]): string => {
+      if (!older.length) return '';
+
+      // Compressed transcript-style "summary" (deterministic, cheap, capped).
+      // This is intentionally NOT an extra LLM call to avoid additional cost.
+      const lines: string[] = [];
+      // Only consider the most recent chunk of the older history to avoid O(n) work on very long chats.
+      const tail = older.slice(-80);
+      for (const msg of tail) {
+        const prefix = msg.role === 'user' ? 'U' : 'A';
+        const text = toPlainTextForSummary(msg.content)
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 240);
+        if (text) lines.push(`${prefix}: ${text}`);
+      }
+
+      let summary = lines.join('\n').trim();
+      if (summary.length > SUMMARY_CHAR_BUDGET) {
+        summary = summary.slice(summary.length - SUMMARY_CHAR_BUDGET);
+        // Ensure we don't start mid-line after truncation.
+        const firstNewline = summary.indexOf('\n');
+        if (firstNewline > 0) summary = summary.slice(firstNewline + 1);
+      }
+
+      if (!summary.trim()) return '';
+      return `\n<conversation_summary>\nOlder messages (compressed, truncated):\n${summary}\n</conversation_summary>\n`;
+    };
+
+    const splitMessagesForApiContext = (allMsgs: ChatMessage[]) => {
+      const ua = allMsgs.filter(m => m.role === 'user' || m.role === 'assistant');
+      if (ua.length === 0) return { older: [] as ChatMessage[], recent: [] as ChatMessage[] };
+
+      let userTurns = 0;
+      let startIndex = 0;
+      for (let i = ua.length - 1; i >= 0; i--) {
+        if (ua[i].role === 'user') userTurns++;
+        if (userTurns >= MAX_CONTEXT_USER_TURNS) {
+          startIndex = i;
+          break;
+        }
+      }
+      return {
+        older: ua.slice(0, startIndex),
+        recent: ua.slice(startIndex),
+      };
+    };
+
     // Date/time is injected server-side in /api/chat/completion to avoid duplication
     const runtimeContext = `
 <runtime_context>
@@ -349,6 +416,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       customInstructionBlock = `\n<user_custom_instruction>\n${userInstruction}\n</user_custom_instruction>`;
     }
 
+    // NOTE: Conversation summary is injected later (after we know the final message list).
     effectiveSystemPrompt = `${effectiveSystemPrompt}\n${userMemoriesContext}\n${globalContext}\n${runtimeContext}\n<language_preference>${languageHint}</language_preference>${customInstructionBlock}\n${internalReasoningDirective}`;
 
     if (options.isRegeneration) {
@@ -473,8 +541,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       }
     }
 
-    const historyForApi: ApiChatMessage[] = updatedMessagesForState
-      .filter((msg: ChatMessage) => msg.role === 'user' || msg.role === 'assistant')
+    const { older: olderMessages, recent: recentMessages } = splitMessagesForApiContext(updatedMessagesForState);
+    const olderSummaryBlock = buildOlderMessagesSummary(olderMessages);
+
+    const historyForApiRecent: ApiChatMessage[] = recentMessages
       .map(msg => {
         let content: string | ChatMessageContentPart[] = msg.content;
         
@@ -649,6 +719,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
         if (isCodeMode) {
           systemPromptForRequest = CODE_REASONING_SYSTEM_PROMPT;
         }
+        // Inject capped summary of older messages to preserve minimal continuity without sending full history.
+        if (olderSummaryBlock) {
+          systemPromptForRequest = `${olderSummaryBlock}\n${systemPromptForRequest}`;
+        }
 
         const streamingMessageId = generateUUID();
         const baseAssistantMessage: ChatMessage = {
@@ -665,7 +739,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
 
         let streamedContent = '';
         await ChatService.sendChatCompletion({
-          messages: historyForApi,
+          messages: historyForApiRecent,
           modelId: modelIdForRequest,
           systemPrompt: systemPromptForRequest,
           webBrowsingEnabled,

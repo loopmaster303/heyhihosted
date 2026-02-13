@@ -45,14 +45,14 @@ export const modelDisplayMap: Record<string, string> = {
     'claude-large': 'Claude Opus',
     'gemini-large': 'Gemini 3 Pro',
     'gemini': 'Gemini Flash',
-    'gemini-fast': 'Gemini Flash Fast',
+    'gemini-fast': 'Google Gemini 2.5 Flash Lite',
     'gemini-search': 'Gemini Search',
     'glm': 'Z.ai GLM-4.7',
     'mistral': 'Mistral',
     'openai': 'GPT 5',
     'openai-large': 'GPT 5.2',
-    'openai-fast': 'GPT 5 Nano',
-    'deepseek': 'Deepseek V 3.2',
+    'openai-fast': 'OpenAI GPT-5 Nano',
+    'deepseek': 'Deepseek V3.2',
     'grok': 'Grok 4',
     'kimi-k2-thinking': 'Kimi K2',
     'perplexity-reasoning': 'Sonar Reason',
@@ -62,12 +62,9 @@ export const modelDisplayMap: Record<string, string> = {
 
 // NEW FEATURED LIST - STANDARD MODELS
 export const featuredModels = [
-    { id: 'claude-fast', emoji: '⚡', highlight: 'Fast' },
-    { id: 'gemini-search', emoji: '🌐', highlight: 'Web' },
+    { id: 'gemini-fast', emoji: '⚡', highlight: 'Lite' },
+    { id: 'deepseek', emoji: '🧠', highlight: 'V3.2' },
     { id: 'openai-fast', emoji: '🚀', highlight: 'Nano' },
-    { id: 'mistral', emoji: '✨', highlight: 'Fast' },
-    { id: 'deepseek', emoji: '🧠', highlight: 'Reason' },
-    { id: 'glm', emoji: '🔷', highlight: 'Pro' }
 ];
 
 // Image Model Icon Mapping
