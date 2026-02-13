@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Settings, HelpCircle, Info } from "lucide-react";
-import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from "@/config/chat-options";
+import { getUserVisibleTextModels, AVAILABLE_TTS_VOICES } from "@/config/chat-options";
 import { getImageModels } from "@/config/unified-image-models";
 import { useLanguage } from '@/components/LanguageProvider';
 import { useTheme } from 'next-themes';
@@ -81,7 +81,8 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   };
 
   // Find selected model details
-  const currentLLM = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId);
+  const userVisibleTextModels = getUserVisibleTextModels();
+  const currentLLM = userVisibleTextModels.find(m => m.id === selectedModelId);
   const currentVoice = AVAILABLE_TTS_VOICES.find(v => v.id === selectedVoice);
   const currentImageModel = getImageModels().find(m => m.id === selectedImageModelId);
 
@@ -231,10 +232,10 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                         ? "border-gray-800 hover:border-gray-700 text-white"
                         : "border-gray-200 hover:border-gray-300 text-black"
                     )}>
-                      <SelectValue placeholder={t('label.selectModel')} />
+                    <SelectValue placeholder={t('label.selectModel')} />
                     </SelectTrigger>
                     <SelectContent className={cn("max-h-[400px] rounded-lg border shadow-lg", isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-100")}>
-                      {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
+                      {userVisibleTextModels.map((model) => (
                         <SelectItem key={model.id} value={model.id} className={cn("py-2.5", isDark ? "text-white focus:bg-gray-800" : "text-black focus:bg-gray-100")}>
                           <div className="flex flex-col">
                             <span className="font-medium text-sm">{model.name}</span>

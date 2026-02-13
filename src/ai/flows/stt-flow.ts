@@ -1,35 +1,46 @@
-import { Readable } from 'stream';
-import { Buffer } from 'buffer';
-
 export async function speechToText(audioFile: File): Promise<{ transcription: string }> {
   if (!audioFile || audioFile.size === 0) {
     throw new Error('Invalid audio file');
   }
 
-  const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
+  const endpoint = 'https://gen.pollinations.ai/v1/audio/transcriptions';
+  const apiKey = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_KEY;
 
-  const url = new URL('https://api.deepgram.com/v1/listen');
-  url.searchParams.append('language', 'de');
-  url.searchParams.append('punctuate', 'true');
-  url.searchParams.append('smart_format', 'true');
-
-  const response = await fetch(url.toString(), {
-    method: 'POST',
-    headers: {
-      Authorization: `Token ${process.env.DEEPGRAM_API_KEY}`,
-      'Content-Type': audioFile.type || 'audio/webm',
-    },
-    body: audioBuffer,
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    console.error('Deepgram API error response:', errorBody);
-    throw new Error('Deepgram API request failed');
+  const headers: HeadersInit = {};
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
-  const result = await response.json();
-  const transcription = result.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+  const attempt = async (model: 'scribe' | 'whisper-large-v3') => {
+    const formData = new FormData();
+    formData.append('file', audioFile);
+    formData.append('model', model);
+    formData.append('language', 'de');
+    formData.append('response_format', 'json');
 
-  return { transcription: transcription.trim() };
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      throw new Error(`Pollinations STT failed (${model}) (${response.status}): ${errorText}`);
+    }
+
+    const result = await response.json().catch(() => ({}));
+    const text = typeof (result as any).text === 'string' ? (result as any).text : '';
+    return text.trim();
+  };
+
+  try {
+    const transcription = await attempt('scribe');
+    return { transcription };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn('[STT] scribe failed; retrying whisper-large-v3:', msg);
+    const transcription = await attempt('whisper-large-v3');
+    return { transcription };
+  }
 }

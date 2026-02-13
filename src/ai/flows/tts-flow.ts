@@ -1,78 +1,76 @@
 'use server';
 /**
- * @fileOverview Converts text to speech using the Replicate API directly.
+ * @fileOverview Converts text to speech using Pollinations (OpenAI TTS compatible).
  *
- * - textToSpeech - Converts a string of text into playable audio data.
+ * - textToSpeech - Converts a string of text into playable audio data (data URI).
  */
 
-const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
-const REPLICATE_MODEL_ENDPOINT = "https://api.replicate.com/v1/models/minimax/speech-02-turbo/predictions";
+const POLLINATIONS_TTS_ENDPOINT = 'https://gen.pollinations.ai/v1/audio/speech';
+
+// Pollinations exposes both OpenAI voices and ElevenLabs voices behind the same endpoint.
+// We pick a provider model based on the selected voice.
+const OPENAI_VOICES = new Set([
+  'alloy',
+  'echo',
+  'fable',
+  'onyx',
+  'nova',
+  'shimmer',
+  'ash',
+  'ballad',
+  'coral',
+  'sage',
+  'verse',
+]);
+
+function getPollinationsApiKey() {
+  return process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_KEY || '';
+}
+
+function resolveTtsModelForVoice(voice: string) {
+  return OPENAI_VOICES.has(voice) ? 'tts-1' : 'elevenlabs';
+}
 
 export async function textToSpeech(text: string, voice: string): Promise<{ audioDataUri: string }> {
-  if (!REPLICATE_API_TOKEN) {
-    throw new Error('Server configuration error: REPLICATE_API_TOKEN is missing.');
-  }
   if (!text || text.trim() === '') {
     throw new Error('Input text cannot be empty.');
   }
   if (!voice || typeof voice !== 'string') {
-    throw new Error('The "voice_id" parameter is required.');
+    throw new Error('The "voice" parameter is required.');
   }
 
-  const inputPayload = {
-    text: text.trim(),
-    voice_id: voice,
-    emotion: "auto",
-    language_boost: "Automatic",
-    english_normalization: false,
+  const apiKey = getPollinationsApiKey();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
   };
-
-  try {
-    const startResponse = await fetch(REPLICATE_MODEL_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${REPLICATE_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ input: inputPayload }),
-    });
-
-    if (!startResponse.ok) {
-      const errorBody = await startResponse.json().catch(() => ({ detail: `Replicate API error ${startResponse.status}.` }));
-      console.error("Replicate start error:", errorBody);
-      throw new Error(errorBody.detail || 'Failed to start prediction with Replicate.');
-    }
-
-    let prediction = await startResponse.json();
-
-    let retryCount = 0;
-    while (
-      prediction.status !== "succeeded" &&
-      prediction.status !== "failed" &&
-      prediction.status !== "canceled" &&
-      retryCount < 40 && // Max ~80 seconds polling
-      prediction.urls?.get
-    ) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const pollResponse = await fetch(prediction.urls.get, {
-        headers: { 'Authorization': `Token ${REPLICATE_API_TOKEN}` }
-      });
-      if (!pollResponse.ok) break;
-      prediction = await pollResponse.json();
-      retryCount++;
-    }
-
-    if (prediction.status === "succeeded" && prediction.output) {
-      return { audioDataUri: prediction.output };
-    } else {
-        const finalError = prediction.error || `Prediction ended with status: ${prediction.status}.`;
-        console.error("Replicate polling/final error:", finalError);
-        throw new Error(finalError);
-    }
-
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error("Internal server error in textToSpeech flow:", errorMessage);
-    throw new Error(`Failed to generate audio with Replicate: ${errorMessage}`);
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
   }
+
+  const model = resolveTtsModelForVoice(voice);
+
+  const response = await fetch(POLLINATIONS_TTS_ENDPOINT, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model,
+      input: text.trim(),
+      voice,
+      response_format: 'mp3',
+      speed: 1,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unknown error');
+    throw new Error(`Pollinations TTS failed (${response.status}): ${errorText}`);
+  }
+
+  const audioBuffer = await response.arrayBuffer();
+  const contentType = response.headers.get('content-type') || 'audio/mpeg';
+  const base64Audio = Buffer.from(audioBuffer).toString('base64');
+  const audioDataUri = `data:${contentType};base64,${base64Audio}`;
+
+  return { audioDataUri };
 }
+

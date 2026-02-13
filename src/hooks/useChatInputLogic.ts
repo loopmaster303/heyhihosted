@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { DEFAULT_POLLINATIONS_MODEL_ID } from '@/config/chat-options';
+import { DEFAULT_POLLINATIONS_MODEL_ID, isUserVisibleTextModelId } from '@/config/chat-options';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 export type ToolMode = 'standard' | 'visualize' | 'compose' | 'research' | 'code';
-export const CODE_MODE_MODEL_IDS = ['qwen-coder', 'deepseek', 'glm', 'gemini-large'];
+// Only allow user-visible text models in Code Mode.
+export const CODE_MODE_MODEL_IDS = ['deepseek', 'openai-fast', 'gemini-fast'];
 
 export interface UseChatInputLogicProps {
     onSendMessage: (message: string, options?: { isImageModeIntent?: boolean }) => void;
@@ -82,7 +83,7 @@ export function useChatInputLogic({
     useEffect(() => {
         if (!isCodeMode) return;
         if (!CODE_MODE_MODEL_IDS.includes(selectedModelId)) {
-            handleModelChange('qwen-coder');
+            handleModelChange('deepseek');
         }
     }, [isCodeMode, selectedModelId, handleModelChange]);
 
@@ -91,7 +92,11 @@ export function useChatInputLogic({
     // Restore default model when exiting code mode
     useEffect(() => {
         if (wasCodeMode.current && !isCodeMode) {
-            handleModelChange(defaultTextModelId || DEFAULT_POLLINATIONS_MODEL_ID);
+            const safeDefault =
+                (defaultTextModelId && isUserVisibleTextModelId(defaultTextModelId))
+                    ? defaultTextModelId
+                    : DEFAULT_POLLINATIONS_MODEL_ID;
+            handleModelChange(safeDefault);
         }
         wasCodeMode.current = isCodeMode;
     }, [isCodeMode, defaultTextModelId, handleModelChange]);
@@ -127,7 +132,7 @@ export function useChatInputLogic({
             onToggleCodeMode();
         }
         if (shouldEnableCode && !isCodeMode) {
-            handleModelChange('qwen-coder');
+            handleModelChange('deepseek');
         }
         setActiveBadgeRow(null);
     }, [isImageMode, isComposeMode, webBrowsingEnabled, isCodeMode, onToggleImageMode, onToggleComposeMode, onToggleWebBrowsing, onToggleCodeMode, handleModelChange]);

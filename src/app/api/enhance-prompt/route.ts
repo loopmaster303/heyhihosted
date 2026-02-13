@@ -109,14 +109,14 @@ export async function POST(request: NextRequest) {
 
     const systemMessage = `${baseGuidelines}\n\n${outputLanguageGuard}\n\n${noContentRestrictionsGuard}\n\n${strictOutputOnlyGuard}${lengthGuard ? '\n\n' + lengthGuard : ''}`;
 
-    // Always use Pollinations (Pollen) with Claude (Sonnet)
-    const enhancerModelId = 'claude';
+    // Always use Pollinations (Pollen) with a cost-first fast model for prompt enhancement
+    const enhancerModelId = 'openai-fast';
     const pollenKey = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_API_TOKEN;
     let enhancedText: string | null = null;
 
     try {
       const result = await getPollinationsChatCompletion({
-        modelId: enhancerModelId, // maps to Claude Sonnet on Pollinations
+        modelId: enhancerModelId,
         messages: [
           { role: 'user', content: prompt },
         ],

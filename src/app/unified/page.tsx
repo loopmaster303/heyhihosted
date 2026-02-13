@@ -77,7 +77,7 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
         // Capture current state from Landing Page toggles (which affect activeConversation or global state)
         const isImageModeActive = chat.isImageMode;
         const isWebBrowsingActive = chat.webBrowsingEnabled;
-        const isCodeModeActive = !!chat.activeConversation?.isCodeMode;
+        const isCodeModeActive = false; // Code Mode temporarily disabled
 
         // 1. Buffer the message
         setPendingMessage({ text: initialMessage, isImage: isImageModeActive });

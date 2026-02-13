@@ -68,7 +68,7 @@ Return ONLY the title, nothing else.`;
           'Authorization': `Bearer ${pollenApiKey}`,
         },
         body: JSON.stringify({
-          model: 'claude', // Fast and reliable for short responses
+          model: 'gemini-fast', // Cost-first: fast and cheap for short responses
           messages: [{ role: 'user', content: titlePrompt }],
           max_tokens: 50,
           temperature: 0.3,

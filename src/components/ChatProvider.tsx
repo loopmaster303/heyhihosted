@@ -14,7 +14,7 @@ import type {
   ApiErrorResponse,
 } from '@/types/api';
 import { isApiErrorResponse, isPollinationsChatResponse } from '@/types/api';
-import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, AVAILABLE_POLLINATIONS_MODELS, CODE_REASONING_SYSTEM_PROMPT } from '@/config/chat-options';
+import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES, CODE_REASONING_SYSTEM_PROMPT, getUserVisibleTextModels, isUserVisibleTextModelId } from '@/config/chat-options';
 import { getUnifiedModel } from '@/config/unified-image-models';
 
 // Import extracted hooks and helpers
@@ -97,6 +97,23 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     if (!activeConversation) return;
     if (!AVAILABLE_RESPONSE_STYLES.some(style => style.name === activeConversation.selectedResponseStyleName)) {
       setActiveConversation((prev: Conversation | null) => prev ? { ...prev, selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME } : prev);
+    }
+  }, [activeConversation, setActiveConversation]);
+
+  // Clamp selected text model to the user-visible allowlist (prevents old chats/localStorage from using hidden models).
+  useEffect(() => {
+    if (!activeConversation) return;
+    const currentId = activeConversation.selectedModelId;
+    if (currentId && !isUserVisibleTextModelId(currentId)) {
+      setActiveConversation((prev: Conversation | null) => prev ? { ...prev, selectedModelId: DEFAULT_POLLINATIONS_MODEL_ID } : prev);
+    }
+  }, [activeConversation, setActiveConversation]);
+
+  // Code Mode temporarily disabled: force-disable for any existing conversation state.
+  useEffect(() => {
+    if (!activeConversation) return;
+    if (activeConversation.isCodeMode) {
+      setActiveConversation((prev: Conversation | null) => prev ? { ...prev, isCodeMode: false } : prev);
     }
   }, [activeConversation, setActiveConversation]);
 
@@ -296,8 +313,12 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
   ) => {
     if (!activeConversation || activeConversation.toolType !== 'long language loops') return;
 
-    const { id: convId, selectedModelId, selectedResponseStyleName, messages } = activeConversation;
-    let currentModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
+    const { id: convId, selectedModelId: selectedModelIdRaw, selectedResponseStyleName, messages } = activeConversation;
+    const userVisibleTextModels = getUserVisibleTextModels();
+    const selectedModelId = (selectedModelIdRaw && isUserVisibleTextModelId(selectedModelIdRaw))
+      ? selectedModelIdRaw
+      : DEFAULT_POLLINATIONS_MODEL_ID;
+    let currentModel = userVisibleTextModels.find(m => m.id === selectedModelId) || userVisibleTextModels[0];
 
     // Hard token budget (cost control):
     // Never send full conversation history. Only send:
@@ -372,11 +393,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     Environment: hey.hi web-interface
 </runtime_context>`;
 
-    // Only inject hidden-reasoning directive for models that support it (Claude, OpenAI, Grok)
-    // Other models (Mistral, Gemini, Qwen) may leak <thought> tags into output
-    const supportsHiddenReasoning = selectedModelId?.startsWith('claude') ||
-                                     selectedModelId?.startsWith('openai') ||
-                                     selectedModelId === 'grok';
+    // Only inject hidden-reasoning directive for models that support it.
+    // With the user-visible allowlist, this effectively means OpenAI Nano.
+    // Other models may leak <thought>/<analysis> tags into output.
+    const supportsHiddenReasoning = selectedModelId.startsWith('openai');
     const internalReasoningDirective = supportsHiddenReasoning ? `
 <internal_protocol>
     - You are equipped with vision capabilities. If the user provides an image, analyze it accurately.
@@ -434,7 +454,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     const isFileUpload = !!activeConversation.uploadedFile && !isImagePrompt;
 
     if (isFileUpload && !currentModel.vision) {
-      const fallbackModel = AVAILABLE_POLLINATIONS_MODELS.find(m => m.vision);
+      const fallbackModel = userVisibleTextModels.find(m => m.vision);
       if (fallbackModel) {
         toast({
           title: "Model Switched",
@@ -834,6 +854,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     // Parse arguments
     let initialModelId: string | undefined;
     let initialImageMode = false;
+    // Code Mode temporarily disabled
     let initialCodeMode = false;
     let initialWebBrowsing = false;
 
@@ -842,17 +863,19 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     } else if (typeof initialOptionsOrModelId === 'object') {
         initialModelId = initialOptionsOrModelId.initialModelId;
         initialImageMode = !!initialOptionsOrModelId.isImageMode;
-        initialCodeMode = !!initialOptionsOrModelId.isCodeMode;
+        // Ignore initialOptionsOrModelId.isCodeMode while Code Mode is disabled.
+        initialCodeMode = false;
         initialWebBrowsing = !!initialOptionsOrModelId.webBrowsingEnabled;
     }
 
     if (activeConversation && activeConversation.messages.length === 0) {
       if (initialModelId) {
+        const safeInitialModelId = isUserVisibleTextModelId(initialModelId) ? initialModelId : DEFAULT_POLLINATIONS_MODEL_ID;
         setActiveConversation((prev: Conversation | null) => prev ? { 
             ...prev, 
-            selectedModelId: initialModelId,
+            selectedModelId: safeInitialModelId,
             isImageMode: initialImageMode || prev.isImageMode, // Preserve or Override
-            isCodeMode: initialCodeMode || prev.isCodeMode,
+            isCodeMode: false,
             webBrowsingEnabled: initialWebBrowsing || prev.webBrowsingEnabled
         } : null);
       }
@@ -868,9 +891,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       updatedAt: new Date().toISOString(),
       toolType: 'long language loops',
       isImageMode: initialImageMode,
-      isCodeMode: initialCodeMode,
+      isCodeMode: false,
       webBrowsingEnabled: initialWebBrowsing,
-      selectedModelId: initialModelId || defaultTextModelId || DEFAULT_POLLINATIONS_MODEL_ID,
+      selectedModelId: (
+        (initialModelId && isUserVisibleTextModelId(initialModelId) ? initialModelId : undefined) ||
+        (defaultTextModelId && isUserVisibleTextModelId(defaultTextModelId) ? defaultTextModelId : undefined) ||
+        DEFAULT_POLLINATIONS_MODEL_ID
+      ),
       selectedResponseStyleName: DEFAULT_RESPONSE_STYLE_NAME,
     };
 
@@ -926,7 +953,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
 
   const handleModelChange = useCallback((modelId: string) => {
     if (activeConversation) {
-      setActiveConversation((prev: Conversation | null) => prev ? { ...prev, selectedModelId: modelId } : null);
+      const safeModelId = isUserVisibleTextModelId(modelId) ? modelId : DEFAULT_POLLINATIONS_MODEL_ID;
+      setActiveConversation((prev: Conversation | null) => prev ? { ...prev, selectedModelId: safeModelId } : null);
     }
   }, [activeConversation, setActiveConversation]);
 

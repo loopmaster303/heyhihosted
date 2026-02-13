@@ -215,6 +215,18 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
 ];
 
+// User-visible text models (keep internal/advanced models in code, but hide from UI).
+export const USER_VISIBLE_TEXT_MODEL_IDS = ['gemini-fast', 'deepseek', 'openai-fast'] as const;
+export type UserVisibleTextModelId = typeof USER_VISIBLE_TEXT_MODEL_IDS[number];
+
+export function isUserVisibleTextModelId(id: string): id is UserVisibleTextModelId {
+  return (USER_VISIBLE_TEXT_MODEL_IDS as readonly string[]).includes(id);
+}
+
+export function getUserVisibleTextModels(): PollinationsModel[] {
+  return AVAILABLE_POLLINATIONS_MODELS.filter(m => isUserVisibleTextModelId(m.id));
+}
+
 // Shared Safety Protocol - Reusable across all personas
 const SHARED_SAFETY_PROTOCOL = `
 <safety_protocol priority="ABSOLUTE">
@@ -592,16 +604,46 @@ ${OUTPUT_LANGUAGE_GUARD}
 ];
 
 
-// Text-to-Speech (TTS) Voices - Replicate speech-02-turbo
+// Text-to-Speech (TTS) Voices - Pollinations (/v1/audio/speech)
 export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
-  { id: 'English_ConfidentWoman', name: 'Luca' },
-  { id: 'Japanese_CalmLady', name: 'Sky' },
-  { id: 'French_Female_News Anchor', name: 'Charlie' },
-  { id: 'German_FriendlyMan', name: 'Mika' },
-  { id: 'German_PlayfulMan', name: 'Casey' },
-  { id: 'Korean_ReliableYouth', name: 'Taylor' },
-  { id: 'Japanese_InnocentBoy', name: 'Jamie' },
-  { id: 'R8_8CZH4KMY', name: 'Dev' },
+  // OpenAI voices
+  { id: 'nova', name: 'Nova (OAI)' },
+  { id: 'alloy', name: 'Alloy (OAI)' },
+  { id: 'shimmer', name: 'Shimmer (OAI)' },
+  { id: 'echo', name: 'Echo (OAI)' },
+  { id: 'fable', name: 'Fable (OAI)' },
+  { id: 'onyx', name: 'Onyx (OAI)' },
+  { id: 'ash', name: 'Ash (OAI)' },
+  { id: 'ballad', name: 'Ballad (OAI)' },
+  { id: 'coral', name: 'Coral (OAI)' },
+  { id: 'sage', name: 'Sage (OAI)' },
+  { id: 'verse', name: 'Verse (OAI)' },
+
+  // ElevenLabs voices
+  { id: 'rachel', name: 'Rachel (Eleven)' },
+  { id: 'domi', name: 'Domi (Eleven)' },
+  { id: 'bella', name: 'Bella (Eleven)' },
+  { id: 'elli', name: 'Elli (Eleven)' },
+  { id: 'charlotte', name: 'Charlotte (Eleven)' },
+  { id: 'dorothy', name: 'Dorothy (Eleven)' },
+  { id: 'sarah', name: 'Sarah (Eleven)' },
+  { id: 'emily', name: 'Emily (Eleven)' },
+  { id: 'lily', name: 'Lily (Eleven)' },
+  { id: 'matilda', name: 'Matilda (Eleven)' },
+  { id: 'adam', name: 'Adam (Eleven)' },
+  { id: 'antoni', name: 'Antoni (Eleven)' },
+  { id: 'arnold', name: 'Arnold (Eleven)' },
+  { id: 'josh', name: 'Josh (Eleven)' },
+  { id: 'sam', name: 'Sam (Eleven)' },
+  { id: 'daniel', name: 'Daniel (Eleven)' },
+  { id: 'charlie', name: 'Charlie (Eleven)' },
+  { id: 'james', name: 'James (Eleven)' },
+  { id: 'fin', name: 'Fin (Eleven)' },
+  { id: 'callum', name: 'Callum (Eleven)' },
+  { id: 'liam', name: 'Liam (Eleven)' },
+  { id: 'george', name: 'George (Eleven)' },
+  { id: 'brian', name: 'Brian (Eleven)' },
+  { id: 'bill', name: 'Bill (Eleven)' },
 ];
 
 // Default model for new users/chats (cost-first default)

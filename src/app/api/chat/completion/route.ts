@@ -61,10 +61,7 @@ export async function POST(request: Request) {
     // Validate request
     const { messages, modelId, systemPrompt, webBrowsingEnabled, skipSmartRouter } = validateRequest(ChatCompletionSchema, body);
 
-    // === SMART ROUTING & DEEP RESEARCH ===
-    let routedModelId = modelId;
-    let isSearchRouted = false;
-
+    // === WEB CONTEXT (Light/Deep) ===
     const lastMessage = messages[messages.length - 1];
     let userQuery = '';
     if (typeof lastMessage?.content === 'string') {
@@ -76,31 +73,22 @@ export async function POST(request: Request) {
         .join(' ');
     }
 
-    if (webBrowsingEnabled) {
-      console.log('🔍 Deep Research Mode Activated (NomNom)');
-      routedModelId = 'nomnom';
-      isSearchRouted = true;
-    } else if (!skipSmartRouter) {
-      if (SmartRouter.shouldRouteToSearch(userQuery)) {
-        console.log(`⚡️ Smart Router: Live Data Triggered (Sona) for query "${userQuery.substring(0, 50)}"...`);
-        routedModelId = SmartRouter.getLiveSearchModel();
-        isSearchRouted = true;
-      }
-    }
-
     const currentDate = new Date().toISOString().split('T')[0];
-    let systemDateBlock: string;
-    if (isSearchRouted) {
-      systemDateBlock = `Current Date: ${currentDate}.\nYOU ARE IN LIVE DATA MODE. Use browsing capabilities confidently.`;
-    } else {
-      systemDateBlock = `Current Date: ${currentDate}.\nYou have access to real-time information.`;
-    }
+    const shouldFetchWebContext =
+      !skipSmartRouter &&
+      userQuery.trim().length > 3 &&
+      (webBrowsingEnabled || SmartRouter.shouldRouteToSearch(userQuery));
+    const webContextMode = webBrowsingEnabled ? 'deep' : 'light';
+
+    const systemDateBlock = shouldFetchWebContext
+      ? `Current Date: ${currentDate}.\nWEB CONTEXT MODE: ${webContextMode}. If <web_context> facts are provided, use them. If none are provided, do not invent live data; ask one clarifying question.`
+      : `Current Date: ${currentDate}.\nIf asked for current/live information and no <web_context> facts are provided, do not invent; ask one clarifying question.`;
 
     let finalSystemPrompt = systemPrompt ? `${systemDateBlock}\n\n${systemPrompt}` : systemDateBlock;
 
-    if (!isSearchRouted && userQuery.trim().length > 3) {
+    if (shouldFetchWebContext) {
       try {
-        const webContext = await WebContextService.getContext(userQuery, 'light');
+        const webContext = await WebContextService.getContext(userQuery, webContextMode);
         if (webContext && webContext.facts.length > 0) {
           finalSystemPrompt = WebContextService.injectIntoSystemPrompt(finalSystemPrompt, webContext);
         }
@@ -109,20 +97,14 @@ export async function POST(request: Request) {
       }
     }
 
-    // === MESSAGE SANITIZATION FOR PERPLEXITY MODELS ===
-    const isPerplexityModel = routedModelId.includes('perplexity') || routedModelId === 'nomnom';
-    const sanitizedMessages = isPerplexityModel
-      ? ensureMessageAlternation(messages)
-      : messages;
-
-    if (isPerplexityModel && sanitizedMessages.length !== messages.length) {
-      console.log(`🔧 Message alternation fixed: ${messages.length} → ${sanitizedMessages.length} messages`);
-    }
+    // NOTE: We no longer route the main completion to search models.
+    // Web context is injected (when enabled) and the user's selected model is used for generation.
+    const sanitizedMessages = messages;
 
     // === EXECUTE GENERATION (BLOCKING) ===
     console.log('[API] Executing generateText (non-streaming)...');
     const result = await generateText({
-      model: pollinations(routedModelId),
+      model: pollinations(modelId),
       messages: sanitizedMessages as any,
       system: finalSystemPrompt,
     });

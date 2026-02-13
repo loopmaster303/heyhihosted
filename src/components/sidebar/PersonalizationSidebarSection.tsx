@@ -10,7 +10,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import LanguageToggle from '@/components/LanguageToggle';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from '@/components/LanguageProvider';
-import { AVAILABLE_POLLINATIONS_MODELS, DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
+import { getUserVisibleTextModels, isUserVisibleTextModelId, DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
 import { getImageModels } from '@/config/unified-image-models';
 import { unifiedModelConfigs } from '@/config/unified-model-configs';
 import { useChat } from '@/components/ChatProvider';
@@ -31,6 +31,7 @@ const PersonalizationSidebarSection: React.FC = () => {
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>('customSystemPrompt', '');
   const [defaultTextModelId, setDefaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
   const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
+  const userVisibleTextModels = useMemo(() => getUserVisibleTextModels(), []);
 
   const imageModels = useMemo(
     () => getImageModels().filter(model => model.id in unifiedModelConfigs),
@@ -38,7 +39,7 @@ const PersonalizationSidebarSection: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!AVAILABLE_POLLINATIONS_MODELS.some(model => model.id === defaultTextModelId)) {
+    if (!defaultTextModelId || !isUserVisibleTextModelId(defaultTextModelId)) {
       setDefaultTextModelId(DEFAULT_POLLINATIONS_MODEL_ID);
     }
   }, [defaultTextModelId, setDefaultTextModelId]);
@@ -147,7 +148,7 @@ const PersonalizationSidebarSection: React.FC = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {AVAILABLE_POLLINATIONS_MODELS.map((model) => (
+                {userVisibleTextModels.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
                     {model.name}
                   </SelectItem>

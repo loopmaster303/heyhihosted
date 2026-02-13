@@ -1,5 +1,5 @@
 // src/lib/services/web-context-service.ts
-// Service for fetching realtime web context via Perplexity API
+// Service for fetching realtime-ish web context via Pollinations chat completions
 
 export interface WebContext {
     facts: string[];
@@ -8,7 +8,7 @@ export interface WebContext {
     sources?: string[];
 }
 
-interface PerplexityResponse {
+interface PollinationsChatResponse {
     choices?: Array<{
         message?: {
             content?: string;
@@ -102,7 +102,7 @@ Keine Einleitung, keine Erklärung, nur Fakten.`;
                 'Authorization': `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
-                model: 'perplexity-fast',
+                model: 'gemini-fast',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: `Aktuelle Fakten zu: ${query}` }
@@ -116,7 +116,7 @@ Keine Einleitung, keine Erklärung, nur Fakten.`;
             throw new Error(`API error: ${response.status}`);
         }
 
-        const data: PerplexityResponse = await response.json();
+        const data: PollinationsChatResponse = await response.json();
         const content = data.choices?.[0]?.message?.content || '';
 
         return {
@@ -148,7 +148,7 @@ Keine Einleitung, keine Zusammenfassung, nur Fakten mit Quellen.`;
                 'Authorization': `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
-                model: 'perplexity-reasoning',
+                model: 'gemini-fast',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: `Recherchiere ausführlich: ${query}` }
@@ -162,7 +162,7 @@ Keine Einleitung, keine Zusammenfassung, nur Fakten mit Quellen.`;
             throw new Error(`API error: ${response.status}`);
         }
 
-        const data: PerplexityResponse = await response.json();
+        const data: PollinationsChatResponse = await response.json();
         const content = data.choices?.[0]?.message?.content || '';
         const facts = this.parseFacts(content);
 

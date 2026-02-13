@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
 
     // Build Universal request (GET)
     const encodedPrompt = encodeURIComponent(prompt);
-    const url = `${POLLINATIONS_BASE}/audio/${encodedPrompt}?model=elevenmusic&duration=${validDuration}s&instrumental=${instrumental}`;
+    // Pollinations expects duration as seconds (number), without a trailing "s".
+    const url = `${POLLINATIONS_BASE}/audio/${encodedPrompt}?model=elevenmusic&duration=${validDuration}&instrumental=${instrumental}`;
 
     console.log('[Compose] Requesting audio (Universal):', url);
 
