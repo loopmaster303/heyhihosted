@@ -189,8 +189,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                     onToggleImageMode={toggleImageMode}
                     webBrowsingEnabled={webBrowsingEnabled}
                     onToggleWebBrowsing={toggleWebBrowsing}
-                    // Code Mode temporarily disabled (keep logic in codebase, hide from users).
-                    isCodeMode={false}
+                    isCodeMode={!!activeConversation.isCodeMode}
+                    onToggleCodeMode={() => {
+                        const turnedOn = !activeConversation.isCodeMode;
+                        setActiveConversation(prev => prev ? { ...prev, isCodeMode: turnedOn } : prev);
+                    }}
                     isComposeMode={isComposeMode}
                     onToggleComposeMode={toggleComposeMode}
                     composeToolState={composeToolState}

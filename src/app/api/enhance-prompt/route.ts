@@ -24,18 +24,20 @@ const MODEL_ALIASES: Record<string, string> = {
   'nano-banana-pro': 'nanobanana-pro',
   'z-image-turbo': 'zimage',
   'qwen-image-edit-plus': 'qwen-image-edit',
-  'seedance-pro': 'seedance-fast',
-  'seedance': 'seedance-fast',
-  'seedance-fast': 'seedance-fast',
-  'ltx-2': 'ltx-video',
-  'ltx-video': 'ltx-video',
+  'seedance-pro': 'seedance',
+  'seedance': 'seedance',
+  // Legacy/stale IDs (keep mapping so old saved selections still enhance correctly)
+  'seedance-fast': 'seedance',
+  'ltx-2': 'ltx-2',
+  'ltx-video': 'ltx-2',
   'grok-video': 'grok-video',
   'gpt-image': 'default', // Generic model, uses default prompt
   'nanobanana': 'nanobanana',
   'nanobanana-pro': 'nanobanana-pro',
-  'flux-2-dev': 'flux-2-dev',
+  // flux-2-dev removed from UI; use closest prompt family.
+  'flux-2-dev': 'flux',
   // NEW Replicate model mappings
-  'flux-2-max': 'flux-2-dev', // Similar to flux-2-dev
+  'flux-2-max': 'flux', // Similar family
   'flux-2-klein-9b': 'klein-large', // Same as Pollinations klein-large
   'grok-imagine-video': 'grok-video', // Same as Pollinations grok-video
 };
@@ -62,6 +64,40 @@ function sanitizeEnhancedPrompt(text: string): string {
   out = out.replace(/^'([\s\S]*)'$/m, '$1').trim();
   
   return out.trim();
+}
+
+function isLikelySuffixOnlyEnhancement(original: string, enhanced: string): boolean {
+  const o = (original || '').trim();
+  const e = (enhanced || '').trim();
+  if (!o || !e) return true;
+  if (e.length < Math.max(20, Math.floor(o.length * 0.7))) return true; // too short to be a meaningful rewrite
+
+  // If enhanced starts with original (or almost all of it), it's likely just suffix tags.
+  const startsWithOriginal = e.toLowerCase().startsWith(o.toLowerCase());
+  if (startsWithOriginal) return true;
+
+  // If original is a big substring and the remainder is small, it's suffix-only.
+  const idx = e.toLowerCase().indexOf(o.toLowerCase());
+  if (idx >= 0) {
+    const remainder = (e.slice(0, idx) + e.slice(idx + o.length)).trim();
+    if (remainder.length < Math.max(20, Math.floor(e.length * 0.25))) return true;
+  }
+
+  // If edit distance is tiny (approx via token overlap), also treat as low-quality.
+  const oTokens = new Set(o.toLowerCase().split(/\s+/).filter(Boolean));
+  const eTokens = e.toLowerCase().split(/\s+/).filter(Boolean);
+  if (oTokens.size >= 8 && eTokens.length >= 8) {
+    let overlap = 0;
+    for (const t of eTokens) if (oTokens.has(t)) overlap++;
+    const overlapRatio = overlap / Math.max(1, eTokens.length);
+    if (overlapRatio > 0.88) return true;
+  }
+
+  return false;
+}
+
+function hasBpm(text: string): boolean {
+  return /\b\d{2,3}\s*bpm\b/i.test(text) || /\bbpm\s*\d{2,3}\b/i.test(text);
 }
 
 export async function POST(request: NextRequest) {
@@ -109,12 +145,14 @@ export async function POST(request: NextRequest) {
 
     const systemMessage = `${baseGuidelines}\n\n${outputLanguageGuard}\n\n${noContentRestrictionsGuard}\n\n${strictOutputOnlyGuard}${lengthGuard ? '\n\n' + lengthGuard : ''}`;
 
-    // Always use Pollinations (Pollen) with a cost-first fast model for prompt enhancement
-    const enhancerModelId = 'openai-fast';
+    // Prompt enhancement: primary model + fallback if output is low-quality (suffix-only) or request fails.
+    const primaryEnhancerModelId = 'claude-fast';
+    const fallbackEnhancerModelId = 'gemini-fast';
     const pollenKey = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_API_TOKEN;
     let enhancedText: string | null = null;
+    let usedModel: string = primaryEnhancerModelId;
 
-    try {
+    const runEnhancer = async (enhancerModelId: string) => {
       const result = await getPollinationsChatCompletion({
         modelId: enhancerModelId,
         messages: [
@@ -122,20 +160,52 @@ export async function POST(request: NextRequest) {
         ],
         systemPrompt: systemMessage,
         apiKey: pollenKey,
-        maxCompletionTokens: isComposeModel ? 500 : 250,
+        maxCompletionTokens: isComposeModel ? 600 : 280,
       });
-      enhancedText = result.responseText;
-    } catch (pollinationsError) {
-      const message = pollinationsError instanceof Error ? pollinationsError.message : String(pollinationsError);
-      if (message.includes('Input text exceeds maximum length')) {
-        console.warn('Pollinations prompt too long, returning original prompt without enhancement.');
-        enhancedText = prompt;
-      } else {
+      return result.responseText;
+    };
+
+    const tryOnce = async (enhancerModelId: string) => {
+      try {
+        return await runEnhancer(enhancerModelId);
+      } catch (pollinationsError) {
+        const message = pollinationsError instanceof Error ? pollinationsError.message : String(pollinationsError);
+        if (message.includes('Input text exceeds maximum length')) {
+          console.warn('Pollinations prompt too long, returning original prompt without enhancement.');
+          return prompt;
+        }
         throw pollinationsError;
       }
+    };
+
+    // Primary attempt
+    try {
+      usedModel = primaryEnhancerModelId;
+      enhancedText = await tryOnce(primaryEnhancerModelId);
+    } catch (err) {
+      console.warn('[EnhancePrompt] Primary enhancer failed; falling back:', err instanceof Error ? err.message : String(err));
+      usedModel = fallbackEnhancerModelId;
+      enhancedText = await tryOnce(fallbackEnhancerModelId);
     }
 
     let cleaned = sanitizeEnhancedPrompt(enhancedText || prompt);
+
+    // Quality gate: if we likely got "prompt + a few tags", rerun with fallback model.
+    const lowQuality =
+      isLikelySuffixOnlyEnhancement(prompt, cleaned) ||
+      (isComposeModel && !hasBpm(cleaned));
+
+    if (lowQuality && usedModel !== fallbackEnhancerModelId) {
+      try {
+        console.warn('[EnhancePrompt] Low-quality enhancement detected; rerunning with fallback model.');
+        usedModel = fallbackEnhancerModelId;
+        const secondPass = await tryOnce(fallbackEnhancerModelId);
+        cleaned = sanitizeEnhancedPrompt(secondPass || prompt);
+      } catch (err) {
+        // If fallback fails, keep the best we have (don't break UX).
+        console.warn('[EnhancePrompt] Fallback enhancer failed; using primary result.', err instanceof Error ? err.message : String(err));
+      }
+    }
 
     // Hard-cap for image models: Pollinations GET URLs break above ~2000 chars total
     if (!isComposeModel && cleaned.length > 1000) {
@@ -146,7 +216,7 @@ export async function POST(request: NextRequest) {
       enhancedPrompt: cleaned,
       originalPrompt: prompt,
       modelId,
-      usedModel: enhancerModelId,
+      usedModel,
       via: 'pollinations',
     });
 

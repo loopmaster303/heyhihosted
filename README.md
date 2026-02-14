@@ -16,9 +16,9 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 - **Generative Media**: Create images and videos instantly via Pollinations and Replicate APIs.
 - **Compose Mode**: Music composing with **Eleven Music** (`model=elevenmusic`) via **Pollinations** (`/api/compose`).
 - **Code Mode**: Dedicated coding assistant with specialized system prompts and model routing.
-- **Deep Research**: Toggle web browsing for real-time search and source analysis (NomNom / Sonar).
+- **Deep Research**: Toggle web browsing for real-time search and source analysis (Sonar / Sonar Reasoning).
 - **Smart Router**: Auto-detects search intent (German + English) and routes to the right model.
-- **Voice I/O**: Speech-to-text (Deepgram) and text-to-speech (Replicate) built in.
+- **Voice I/O**: Speech-to-text and text-to-speech via Pollinations (OpenAI-compatible endpoints).
 - **Prompt Enhancement**: AI-powered prompt optimization for image and music generation.
 - **Local Vault**: Chats, memories, and generated assets stored locally in your browser (IndexedDB). They never expire and stay private.
 - **Gallery**: Browse and manage all generated images and videos with S3-backed storage.
@@ -31,17 +31,17 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 | Category | Models |
 |----------|--------|
 | **Standard** | Claude Haiku 4.5, GPT-5 Nano, GPT-5, Gemini 2.5 Flash, Gemini 3 Flash Search, Grok 4 Fast, Mistral |
-| **Advanced** | Claude Sonnet 4.5, Claude Opus 4.6, GPT-5.2, Gemini 3 Pro, Gemini 3 Flash, Deepseek V 3.2, Kimi K2.5 Thinking, GLM-4.7 |
-| **Search** | Sonar (fast), Sonar Reasoning, NomNom (Deep Research) |
+| **Advanced** | Claude Sonnet 4.5, Claude Opus 4.6, GPT-5.2, Gemini 3 Pro, Gemini 3 Flash, Deepseek V 3.2, Kimi K2.5, GLM-5 |
+| **Search** | Sonar (fast), Sonar Reasoning |
 | **Specialized** | Qwen 3 Coder 30B, Qwen 3 Character |
 
 ### Image & Video Generation
 | Group | Models |
 |-------|--------|
-| **Fast** | Z-Image, Flux.1, Flux 2 Dev |
+| **Fast** | Z-Image, Flux.1 |
 | **Editing** | Kontext, Klein Large, GPT-Image 1.5, Nano Banana |
 | **Advanced** | Nano Banana Pro, Seedream Pro, Flux 2 Max |
-| **Video** | Seedance Fast, Wan, LTX Video, Grok Imagine Video |
+| **Video** | Seedance, Wan, LTX 2, Grok Imagine Video |
 
 ## Tech Stack
 
@@ -51,7 +51,7 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 - **UI Components**: Radix UI / Shadcn
 - **Storage**: IndexedDB (via Dexie.js) + AWS S3 for generated assets
 - **AI SDK**: Vercel AI SDK with `ai-sdk-pollinations` provider
-- **AI Providers**: Pollinations.ai (chat, image, video, audio), Replicate (image, video, TTS), Deepgram (STT)
+- **AI Providers**: Pollinations.ai (chat, image, video, audio), Replicate (image, video)
 
 ## Project Structure
 

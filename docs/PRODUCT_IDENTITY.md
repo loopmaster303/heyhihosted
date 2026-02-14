@@ -22,10 +22,10 @@ Interactions with LLMs (Claude, GPT, Gemini, Grok, Deepseek, Mistral, Kimi, Qwen
 Music composing with **Eleven Music** (`model=elevenmusic`) via **Pollinations** (`/api/compose`) with VibeCraft prompt enhancement. Users describe a vibe, the system enhances the prompt, and generates a track.
 
 ### Code Mode
-Dedicated programming assistant with specialized system prompts and curated model routing (Qwen Coder, Deepseek, GLM, Gemini Large).
+Dedicated programming assistant with specialized system prompts (no forced model routing; the user's selected model is still used unless changed manually).
 
 ### Deep Research
-Toggle web browsing for real-time search and source analysis via NomNom and Sonar models.
+Toggle web browsing for real-time search and source analysis via Sonar models (Sonar / Sonar Reasoning).
 
 ## 3. Technology Stack
 
@@ -35,9 +35,9 @@ Toggle web browsing for real-time search and source analysis via NomNom and Sona
 
 ### AI Infrastructure & Connectivity
 - **Primary Provider**: [Pollinations.ai](https://pollinations.ai) — Chat, image, and video generation (free tier + authenticated Pollen API).
-- **Secondary Provider**: [Replicate](https://replicate.com) — Premium image/video models, TTS.
+- **Secondary Provider**: [Replicate](https://replicate.com) — Premium image/video models.
 - **Music**: Eleven Music (`model=elevenmusic`) via Pollinations (`/api/compose`).
-- **STT**: [Deepgram](https://deepgram.com) — Speech-to-text transcription.
+- **Voice I/O**: STT + TTS via Pollinations (OpenAI-compatible audio endpoints).
 - **SDK**: Vercel AI SDK with `ai-sdk-pollinations` provider for chat completions.
 
 ### Data & Vault

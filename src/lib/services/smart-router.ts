@@ -81,9 +81,9 @@ export class SmartRouter {
 
   /**
    * Returns the best model for "Deep Research" (Explicit Toggle).
-   * Currently 'nomnom' or 'perplexity-reasoning'.
+   * Currently 'perplexity-fast' (Sonar).
    */
   static getDeepResearchModel(): string {
-    return 'perplexity-reasoning'; // Or 'nomnom'
+    return 'perplexity-fast';
   }
 }

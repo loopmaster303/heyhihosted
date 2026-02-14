@@ -33,10 +33,11 @@ export const modelIcons: Record<string, any> = {
     'openai-fast': OpenAIIcon,
     'openai-reasoning': OpenAIIcon,
     'grok': GrokIcon,
-    'kimi-k2-thinking': KimiIcon,
+    'kimi': KimiIcon,
     'perplexity-reasoning': PerplexityIcon,
     'perplexity-fast': PerplexityIcon,
     'qwen-coder': QwenIcon,
+    'qwen-character': QwenIcon,
 };
 
 export const modelDisplayMap: Record<string, string> = {
@@ -47,17 +48,18 @@ export const modelDisplayMap: Record<string, string> = {
     'gemini': 'Gemini Flash',
     'gemini-fast': 'Google Gemini 2.5 Flash Lite',
     'gemini-search': 'Gemini Search',
-    'glm': 'Z.ai GLM-4.7',
+    'glm': 'Z.ai GLM-5',
     'mistral': 'Mistral',
     'openai': 'GPT 5',
     'openai-large': 'GPT 5.2',
     'openai-fast': 'OpenAI GPT-5 Nano',
     'deepseek': 'Deepseek V3.2',
     'grok': 'Grok 4',
-    'kimi-k2-thinking': 'Kimi K2',
+    'kimi': 'Kimi K2.5',
     'perplexity-reasoning': 'Sonar Reason',
     'perplexity-fast': 'Sonar',
     'qwen-coder': 'Qwen Coder',
+    'qwen-character': 'Qwen Character',
 };
 
 // NEW FEATURED LIST - STANDARD MODELS
@@ -74,12 +76,10 @@ export const imageModelIcons: Record<string, any> = {
     'seedream': ByteDanceIcon,
     'seedream-pro': ByteDanceIcon,
     'seedance': ByteDanceIcon,
-    'seedance-fast': ByteDanceIcon,
     'seedance-pro': ByteDanceIcon,
     'nanobanana': '🍌',
     'nanobanana-pro': '🍌',
     'flux': FluxFarbeIcon,
-    'flux-2-dev': FluxFarbeIcon,
     'klein-large': FluxFarbeIcon,
     'flux-2-pro': FluxFarbeIcon,
     'flux-kontext-pro': FluxFarbeIcon,
@@ -91,7 +91,7 @@ export const imageModelIcons: Record<string, any> = {
     'zimage': WANIcon,
     'qwen-image-edit-plus': QwenIcon,
     'grok-video': GrokIcon,
-    'ltx-video': LTXLogo,
+    'ltx-2': LTXLogo,
     // NEW Replicate models
     'flux-2-max': FluxFarbeIcon,
     'flux-2-klein-9b': FluxFarbeIcon,

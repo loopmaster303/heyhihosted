@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Settings, HelpCircle, Info } from "lucide-react";
-import { getUserVisibleTextModels, AVAILABLE_TTS_VOICES } from "@/config/chat-options";
+import { AVAILABLE_POLLINATIONS_MODELS, AVAILABLE_TTS_VOICES } from "@/config/chat-options";
 import { getImageModels } from "@/config/unified-image-models";
 import { useLanguage } from '@/components/LanguageProvider';
 import { useTheme } from 'next-themes';
@@ -81,8 +81,8 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   };
 
   // Find selected model details
-  const userVisibleTextModels = getUserVisibleTextModels();
-  const currentLLM = userVisibleTextModels.find(m => m.id === selectedModelId);
+  const userVisibleTextModels = AVAILABLE_POLLINATIONS_MODELS;
+  const currentLLM = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId);
   const currentVoice = AVAILABLE_TTS_VOICES.find(v => v.id === selectedVoice);
   const currentImageModel = getImageModels().find(m => m.id === selectedImageModelId);
 

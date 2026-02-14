@@ -72,7 +72,6 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
         isMobile,
         activeBadgeRow,
         hasActiveTool,
-        CODE_MODE_MODEL_IDS,
         badgePanelRef,
         badgeActionsRef,
         docInputRef,
@@ -380,7 +379,6 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                     onModelChange={handleModelChange}
                                     disabled={isLoading || isRecording || isTranscribing}
                                     compact={true}
-                                    modelFilterIds={isCodeMode ? CODE_MODE_MODEL_IDS : undefined}
                                 />
                             </div>
                             )}

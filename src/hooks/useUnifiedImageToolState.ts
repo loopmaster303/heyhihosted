@@ -22,7 +22,8 @@ export const pollinationUploadModels = [
     'nanobanana-pro',
     'klein-large',
     'kontext',
-    'wan'
+    'wan',
+    'grok-video'
 ];
 
 export const replicateUploadModels = [
@@ -43,18 +44,38 @@ export const gptImagePresets: Record<string, { width: number; height: number }> 
     '9:16': { width: 1024, height: 1536 },  // Closest valid option
 };
 
+function normalizeLegacyImageModelId(id: string): string {
+    if (!id) return id;
+    // Pollinations model ID drift + removals
+    if (id === 'seedance-fast') return 'seedance';
+    if (id === 'ltx-video') return 'ltx-2';
+    if (id === 'flux-2-dev') return 'flux';
+    return id;
+}
+
 export function useUnifiedImageToolState() {
     const { toast } = useToast();
     const { language } = useLanguage();
 
     // Model selection
-    const [defaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
+    const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
+    const normalizedDefaultImageModelId = useMemo(
+        () => normalizeLegacyImageModelId(defaultImageModelId),
+        [defaultImageModelId]
+    );
+
+    useEffect(() => {
+        if (normalizedDefaultImageModelId !== defaultImageModelId) {
+            setDefaultImageModelId(normalizedDefaultImageModelId);
+        }
+    }, [defaultImageModelId, normalizedDefaultImageModelId, setDefaultImageModelId]);
+
     const availableModels = useMemo(
         () => Object.keys(unifiedModelConfigs).filter(id => getUnifiedModel(id)?.enabled ?? true),
         []
     );
-    const initialModelId = availableModels.includes(defaultImageModelId)
-        ? defaultImageModelId
+    const initialModelId = availableModels.includes(normalizedDefaultImageModelId)
+        ? normalizedDefaultImageModelId
         : (availableModels[0] || DEFAULT_IMAGE_MODEL);
     const [selectedModelId, setSelectedModelId] = useState<string>(initialModelId);
     const currentModelConfig = getUnifiedModelConfig(selectedModelId);
@@ -66,10 +87,10 @@ export function useUnifiedImageToolState() {
     }, [availableModels, selectedModelId]);
 
     useEffect(() => {
-        if (availableModels.includes(defaultImageModelId)) {
-            setSelectedModelId(defaultImageModelId);
+        if (availableModels.includes(normalizedDefaultImageModelId)) {
+            setSelectedModelId(normalizedDefaultImageModelId);
         }
-    }, [availableModels, defaultImageModelId, setSelectedModelId]);
+    }, [availableModels, normalizedDefaultImageModelId, setSelectedModelId]);
 
     // Form state
     const [prompt, setPrompt] = useState('');

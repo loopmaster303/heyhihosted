@@ -36,7 +36,6 @@ export interface UnifiedImageModel {
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
   { id: 'flux', name: 'Flux.1 Fast', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
-  { id: 'flux-2-dev', name: 'Flux.2 Dev', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Flux.2 Dev (api.airforce)' },
   { id: 'klein-large', name: 'Flux.2 klein 9B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'FLUX.2 Klein 9B' },
   { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware frame editing' },
   { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: false, description: 'GPT Image 1 Mini' },
@@ -56,15 +55,15 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     provider: 'pollinations', 
     kind: 'video', 
     category: 'Standard', 
-    // Text-to-video model (no image reference input).
-    supportsReference: false, 
-    maxImages: 0, 
-    isFree: true, 
-    enabled: false,
-    description: 'Seedance Lite (BytePlus) (T2V)',
-    supportsAudio: false,
-    durationRange: { options: [5, 10] }
-  },
+	    // Text-to-video model (no image reference input).
+	    supportsReference: false, 
+	    maxImages: 0, 
+	    isFree: true, 
+	    enabled: true,
+	    description: 'Seedance Lite (BytePlus) (T2V)',
+	    supportsAudio: false,
+	    durationRange: { options: [5, 10] }
+	  },
 
   // ADVANCED Video Models
   {
@@ -76,28 +75,13 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     supportsReference: true,
     isFree: true,
     enabled: true,
-    description: '2-15s, 1080p (Alibaba Wan 2.6)',
+    description: '2-15s, 1080p (Alibaba Wan 2.6) (T2V / optional I2V)',
     maxImages: 1,
     supportsAudio: true,
-    durationRange: { options: [5, 10] }
+    durationRange: { options: [5, 10, 15] }
   },
   { 
-    id: 'seedance-fast', 
-    name: 'Seedance Fast', 
-    provider: 'pollinations', 
-    kind: 'video', 
-    category: 'Advanced', 
-    // Text-to-video model (no image reference input).
-    supportsReference: false, 
-    isFree: true, 
-    enabled: true, 
-    description: 'Seedance Fast (BytePlus) (T2V)',
-    maxImages: 0,
-    supportsAudio: false,
-    durationRange: { options: [5, 10] }
-  },
-  { 
-    id: 'ltx-video', 
+    id: 'ltx-2', 
     name: 'LTX 2 Fast', 
     provider: 'pollinations', 
     kind: 'video', 
@@ -116,11 +100,12 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     provider: 'pollinations', 
     kind: 'video', 
     category: 'Advanced', 
-    supportsReference: false, 
+    // Hybrid: text-to-video + optional start frame (image-to-video).
+    supportsReference: true, 
     isFree: true, 
     enabled: true, 
-    description: 'xAI Grok Video (T2V)',
-    maxImages: 0,
+    description: 'xAI Grok Video (T2V / optional I2V)',
+    maxImages: 1,
     supportsAudio: false,
     durationRange: { options: [6] }
   },
@@ -244,7 +229,7 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'FAST',
     category: 'Standard',
     kind: 'image',
-    modelIds: ['zimage', 'flux', 'flux-2-dev'],
+    modelIds: ['zimage', 'flux'],
   },
   {
     key: 'image-editing',
@@ -265,7 +250,7 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'VIDEO',
     category: 'Advanced',
     kind: 'video',
-    modelIds: ['seedance-fast', 'wan', 'ltx-video', 'grok-video'],
+    modelIds: ['seedance', 'wan', 'ltx-2', 'grok-video'],
   },
 ];
 

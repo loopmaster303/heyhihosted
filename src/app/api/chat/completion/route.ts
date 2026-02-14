@@ -3,7 +3,6 @@ import { createPollinations } from 'ai-sdk-pollinations';
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handler';
-import { SmartRouter } from '@/lib/services/smart-router';
 import { WebContextService } from '@/lib/services/web-context-service';
 
 // Initialize Pollinations Provider with API Key
@@ -74,10 +73,13 @@ export async function POST(request: Request) {
     }
 
     const currentDate = new Date().toISOString().split('T')[0];
+    // Always-on web context:
+    // - Light mode for normal chat
+    // - Deep mode when user toggles Deep Research
+    // Skip only for very short / trivial inputs (handled in WebContextService too).
     const shouldFetchWebContext =
       !skipSmartRouter &&
-      userQuery.trim().length > 3 &&
-      (webBrowsingEnabled || SmartRouter.shouldRouteToSearch(userQuery));
+      userQuery.trim().length > 3;
     const webContextMode = webBrowsingEnabled ? 'deep' : 'light';
 
     const systemDateBlock = shouldFetchWebContext

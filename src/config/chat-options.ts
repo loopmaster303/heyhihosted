@@ -158,16 +158,6 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     maxTokens: 4096,
   },
   {
-    id: "nomnom",
-    name: "NomNom (Deep Research)",
-    description: "Spezialist für tiefe Recherche und Quellenanalyse.",
-    vision: false,
-    webBrowsing: true,
-    category: "Advanced",
-    contextWindow: 128000,
-    maxTokens: 4096,
-  },
-  {
     id: "perplexity-fast",
     name: "Sonar",
     description: "Schnelle Websuche zum günstigen Preis.",
@@ -178,8 +168,8 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     maxTokens: 4096,
   },
   {
-    id: "kimi-k2-thinking",
-    name: "Moonshot Kimi K2.5 Thinking",
+    id: "kimi",
+    name: "Moonshot Kimi K2.5",
     description: "Tiefgehendes Reasoning und Tool-Orchestrierung.",
     vision: false,
     category: "Advanced",
@@ -206,7 +196,7 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "glm",
-    name: "Z.ai GLM-4.7",
+    name: "Z.ai GLM-5",
     description: "Z.ai LLM mit starker Allround-Performance.",
     vision: false,
     category: "Advanced",
@@ -215,16 +205,8 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
 ];
 
-// User-visible text models (keep internal/advanced models in code, but hide from UI).
-export const USER_VISIBLE_TEXT_MODEL_IDS = ['gemini-fast', 'deepseek', 'openai-fast'] as const;
-export type UserVisibleTextModelId = typeof USER_VISIBLE_TEXT_MODEL_IDS[number];
-
-export function isUserVisibleTextModelId(id: string): id is UserVisibleTextModelId {
-  return (USER_VISIBLE_TEXT_MODEL_IDS as readonly string[]).includes(id);
-}
-
-export function getUserVisibleTextModels(): PollinationsModel[] {
-  return AVAILABLE_POLLINATIONS_MODELS.filter(m => isUserVisibleTextModelId(m.id));
+export function isKnownPollinationsTextModelId(id: string): boolean {
+  return AVAILABLE_POLLINATIONS_MODELS.some(m => m.id === id);
 }
 
 // Shared Safety Protocol - Reusable across all personas

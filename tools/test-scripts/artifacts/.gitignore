@@ -1,4 +1,0 @@
-# Keep the directory, ignore generated artifacts.
-*
-!.gitignore
-

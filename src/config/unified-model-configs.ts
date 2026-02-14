@@ -106,18 +106,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'jpg', hidden: true },
     ],
   },
-  'seedance-fast': {
-    id: 'seedance-fast',
-    name: 'Seedance Fast',
-    outputType: 'video',
-    inputs: [
-      { name: 'prompt', isPrompt: true },
-      { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 5 },
-      { name: 'output_format', default: 'mp4' },
-      { name: 'seed' },
-    ],
-  },
   'seedance': {
     id: 'seedance',
     name: 'Seedance',
@@ -130,8 +118,8 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'seed' },
     ],
   },
-  'ltx-video': {
-    id: 'ltx-video',
+  'ltx-2': {
+    id: 'ltx-2',
     name: 'LTX 2 Fast',
     outputType: 'video',
     inputs: [
@@ -229,18 +217,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'audio', default: false },
       { name: 'output_format', default: 'mp4' },
       { name: 'seed' },
-    ],
-  },
-  'flux-2-dev': {
-    id: 'flux-2-dev',
-    name: 'Flux.2 Dev',
-    inputs: [
-      { name: 'prompt', isPrompt: true },
-      { name: 'aspect_ratio', default: '1:1' },
-      { name: 'width', default: 1024 },
-      { name: 'height', default: 1024 },
-      { name: 'seed' },
-      { name: 'output_format', default: 'jpg', hidden: true },
     ],
   },
   'klein-large': {

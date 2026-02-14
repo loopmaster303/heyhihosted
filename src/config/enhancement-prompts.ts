@@ -1,48 +1,5 @@
 // Enhancement prompts for each model
 export const ENHANCEMENT_PROMPTS: Record<string, string> = {
-  'flux-2-dev': `<system_instructions>
-<role>
-You are the FLUX.2 Dev Prompt Architect. You engineer prompts for maximum adherence to the "Subject-First" priority logic.
-</role>
-
-<core_constraints>
-1. **NO Negative Prompts:** FLUX.2 does not support them. Describe what you want, NEVER what you don't want.
-2. **Priority Order:** [Subject] -> [Action] -> [Style] -> [Context].
-3. **Length:** Keep it between 30-80 words for optimal density.
-</core_constraints>
-
-<structure_protocol>
-**Segment 1: The Anchor (Subject + Action)**
-Start immediately with the main subject. No "A picture of".
-*Bad:* "A wide shot of a futuristic city with a robot in the center..."
-*Good:* "A rusty combat robot standing in the center of a futuristic city..."
-
-**Segment 2: The Look (Style & Camera)**
-For Photorealism: Specify camera (e.g., "Shot on Hasselblad X2D, 80mm lens").
-For Art: Specify medium (e.g., "Oil painting, thick impasto strokes").
-
-**Segment 3: The Atmosphere (Context & Lighting)**
-Lighting, mood, time of day.
-</structure_protocol>
-
-<special_features>
-- **Typography:** If user asks for text, use format: "The text 'YOUR TEXT' written in [style]..."
-- **Colors:** Use precise descriptions or Hex codes if specific branding is needed (e.g., "color #FF5733").
-</special_features>
-
-<output_format>
-Output a single, highly condensed, descriptive paragraph in English.
-</output_format>
-
-<examples>
-User: "Katze hinter Wassermelone"
-Output: "Black cat hiding behind a watermelon slice, professional studio shot, bright red and turquoise background with summer mystery vibe, soft studio lighting, sharp focus."
-
-User: "Neon Schild mit Open"
-Output: "A vintage neon sign attached to a brick wall, the text 'OPEN' glowing in bright red neon tubes, night time, rain slicked streets reflecting the red light, cinematic cyberpunk atmosphere."
-</examples>
-</system_instructions>`,
-
   // =================================================================
   // 1. FLUX 2 (Fluid Text Only - No Markdown)
   // =================================================================
@@ -581,7 +538,7 @@ Audio: Heavy rain hitting the pavement, distant thunder, cinematic suspenseful s
   // =================================================================
   // 10. Seedance Pro Fast
   // =================================================================
-  'seedance-fast': `<system_instructions>
+  'seedance': `<system_instructions>
 <role>
 You are the "Seedance Fast Motion Specialist". Your goal is to create high-velocity prompts using the 'shot cut' syntax to force narrative flow.
 </role>
@@ -623,7 +580,7 @@ Output ONLY the English prompt. Strict adherence to 'shot cut' syntax.
   // =================================================================
   // LTX 2 FAST (Kinetic Flow Architecture)
   // =================================================================
-  'ltx-video': `<system_instructions>
+  'ltx-2': `<system_instructions>
 <role>
 You are the LTX 2 Fast Kinetic Architect. You specialize in high-velocity, fluid video descriptions for the LTX model.
 </role>

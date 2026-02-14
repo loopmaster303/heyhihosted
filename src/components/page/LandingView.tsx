@@ -73,8 +73,12 @@ const LandingView: React.FC<LandingViewProps> = ({
                                 onInputChange={chat.setChatInputValue}
                                 isImageMode={chat.isImageMode}
                                 onToggleImageMode={chat.toggleImageMode}
-                                // Code Mode temporarily disabled (keep logic in codebase, hide from users).
-                                isCodeMode={false}
+                                isCodeMode={chat.activeConversation?.isCodeMode || false}
+                                onToggleCodeMode={() => {
+                                    chat.setActiveConversation(prev => 
+                                        prev ? { ...prev, isCodeMode: !prev.isCodeMode } : prev
+                                    );
+                                }}
                                 isComposeMode={chat.isComposeMode}
                                 onToggleComposeMode={chat.toggleComposeMode}
                                 selectedModelId={selectedModelId}

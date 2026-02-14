@@ -17,8 +17,9 @@ interface PollinationsChatResponse {
 }
 
 const POLLEN_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
-const LIGHT_TIMEOUT_MS = 1500;
-const DEEP_TIMEOUT_MS = 3000;
+// Always-on web context needs realistic timeouts (otherwise it devolves into near-constant timeouts).
+const LIGHT_TIMEOUT_MS = 4000;
+const DEEP_TIMEOUT_MS = 10000;
 
 // Simple in-memory cache (5 min TTL)
 const contextCache = new Map<string, { data: WebContext; timestamp: number }>();
@@ -102,7 +103,7 @@ Keine Einleitung, keine Erklärung, nur Fakten.`;
                 'Authorization': `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
-                model: 'gemini-fast',
+                model: 'gemini-search',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: `Aktuelle Fakten zu: ${query}` }
@@ -148,7 +149,7 @@ Keine Einleitung, keine Zusammenfassung, nur Fakten mit Quellen.`;
                 'Authorization': `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
-                model: 'gemini-fast',
+                model: 'sonar',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: `Recherchiere ausführlich: ${query}` }

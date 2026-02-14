@@ -1,12 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { DEFAULT_POLLINATIONS_MODEL_ID, isUserVisibleTextModelId } from '@/config/chat-options';
+import { DEFAULT_POLLINATIONS_MODEL_ID, isKnownPollinationsTextModelId } from '@/config/chat-options';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 export type ToolMode = 'standard' | 'visualize' | 'compose' | 'research' | 'code';
-// Only allow user-visible text models in Code Mode.
-export const CODE_MODE_MODEL_IDS = ['deepseek', 'openai-fast', 'gemini-fast'];
 
 export interface UseChatInputLogicProps {
     onSendMessage: (message: string, options?: { isImageModeIntent?: boolean }) => void;
@@ -79,21 +77,13 @@ export function useChatInputLogic({
         ? null
         : activeBadgeRow;
 
-    // Code mode auto-model switching
-    useEffect(() => {
-        if (!isCodeMode) return;
-        if (!CODE_MODE_MODEL_IDS.includes(selectedModelId)) {
-            handleModelChange('deepseek');
-        }
-    }, [isCodeMode, selectedModelId, handleModelChange]);
-
     const wasCodeMode = useRef(isCodeMode);
 
     // Restore default model when exiting code mode
     useEffect(() => {
         if (wasCodeMode.current && !isCodeMode) {
             const safeDefault =
-                (defaultTextModelId && isUserVisibleTextModelId(defaultTextModelId))
+                (defaultTextModelId && isKnownPollinationsTextModelId(defaultTextModelId))
                     ? defaultTextModelId
                     : DEFAULT_POLLINATIONS_MODEL_ID;
             handleModelChange(safeDefault);
@@ -131,11 +121,8 @@ export function useChatInputLogic({
         if (onToggleCodeMode && isCodeMode !== shouldEnableCode) {
             onToggleCodeMode();
         }
-        if (shouldEnableCode && !isCodeMode) {
-            handleModelChange('deepseek');
-        }
         setActiveBadgeRow(null);
-    }, [isImageMode, isComposeMode, webBrowsingEnabled, isCodeMode, onToggleImageMode, onToggleComposeMode, onToggleWebBrowsing, onToggleCodeMode, handleModelChange]);
+    }, [isImageMode, isComposeMode, webBrowsingEnabled, isCodeMode, onToggleImageMode, onToggleComposeMode, onToggleWebBrowsing, onToggleCodeMode]);
 
     const handleSelectMode = useCallback((mode: ToolMode) => {
         if (mode === 'visualize' && isImageMode) {
@@ -206,7 +193,6 @@ export function useChatInputLogic({
         isMobile,
         activeBadgeRow: visibleBadgeRow,
         hasActiveTool,
-        CODE_MODE_MODEL_IDS,
         
         // Refs
         badgePanelRef,

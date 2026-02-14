@@ -3,7 +3,7 @@
  * Handles Text-to-Speech functionality
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { TTSResponse, ApiErrorResponse } from '@/types/api';
 import { isApiErrorResponse } from '@/types/api';
@@ -26,6 +26,28 @@ export function useChatAudio({
     selectedVoice,
 }: UseChatAudioProps) {
     const { toast } = useToast();
+    // In-memory cache: lets the second click play without any async fetch (avoids autoplay restrictions).
+    const cacheRef = useRef<Map<string, string>>(new Map());
+    const cache = cacheRef.current;
+
+    const safePlay = useCallback(async (audio: HTMLAudioElement, messageId: string) => {
+        try {
+            // play() returns a promise and can reject due to autoplay policies.
+            await audio.play();
+            setPlayingMessageId(messageId);
+            return true;
+        } catch (err) {
+            const name = (err as any)?.name;
+            if (name === 'NotAllowedError') {
+                toast({
+                    title: "Audio bereit",
+                    description: "Dein Browser blockiert Autoplay. Klick nochmal auf Play, um die Stimme abzuspielen.",
+                });
+                return false;
+            }
+            throw err;
+        }
+    }, [setPlayingMessageId, toast]);
 
     const handlePlayAudio = useCallback(async (text: string, messageId: string) => {
         if (audioRef.current) {
@@ -40,7 +62,33 @@ export function useChatAudio({
         }
         
         if (!text || !text.trim()) return;
-        
+
+        // If cached, we can play synchronously (no fetch/await) which is much more likely to be allowed.
+        const cachedAudio = cache.get(messageId);
+        if (cachedAudio) {
+            const audio = new Audio(cachedAudio);
+            audioRef.current = audio;
+            const started = await safePlay(audio, messageId);
+            if (!started) {
+                // Don't mark as "playing" if autoplay is blocked; next click will try again.
+                setPlayingMessageId(null);
+            }
+            audio.onended = () => {
+                if (audioRef.current === audio) {
+                    audioRef.current = null;
+                    setPlayingMessageId(null);
+                }
+            };
+            audio.onerror = () => {
+                toast({ title: "Audio Playback Error", variant: "destructive" });
+                if (audioRef.current === audio) {
+                    audioRef.current = null;
+                    setPlayingMessageId(null);
+                }
+            };
+            return;
+        }
+
         setIsTtsLoadingForId(messageId);
         
         try {
@@ -57,13 +105,15 @@ export function useChatAudio({
 
             const ttsResult = result as TTSResponse;
             const { audioDataUri } = ttsResult;
+            cache.set(messageId, audioDataUri);
             const audio = new Audio(audioDataUri);
             audioRef.current = audio;
             
             setIsTtsLoadingForId(null);
-            setPlayingMessageId(messageId);
-
-            audio.play();
+            const started = await safePlay(audio, messageId);
+            if (!started) {
+                setPlayingMessageId(null);
+            }
             
             audio.onended = () => {
                 if (audioRef.current === audio) {
@@ -91,10 +141,9 @@ export function useChatAudio({
                 setPlayingMessageId(null);
             }
         }
-    }, [playingMessageId, toast, selectedVoice, setIsTtsLoadingForId, setPlayingMessageId, audioRef]);
+    }, [playingMessageId, toast, selectedVoice, setIsTtsLoadingForId, setPlayingMessageId, audioRef, cache, safePlay]);
 
     return {
         handlePlayAudio,
     };
 }
-

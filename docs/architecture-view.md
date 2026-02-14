@@ -13,7 +13,6 @@ graph TB
     
     subgraph "Next.js Backend"
         API[API Routes]
-        Router[SmartRouter (Intent Analysis)]
         WebContext[WebContextService (RAG)]
         Auth[Authentication Middleware]
     end
@@ -22,15 +21,14 @@ graph TB
         Pollinations[Pollinations API]
         Replicate[Replicate API]
         S3[AWS S3 (Asset Vault)]
-        WebSearch[DuckDuckGo / Web]
+        WebSearch[Search via Pollinations (Sonar / Gemini Search)]
     end
     
     UI --> State
     State --> Local
     State --> Hooks
     UI --> API
-    API --> Router
-    Router --> WebContext
+    API --> WebContext
     WebContext --> WebSearch
     API --> Pollinations
     API --> Replicate
@@ -82,15 +80,13 @@ sequenceDiagram
     participant UI
     participant ChatProvider
     participant API
-    participant SmartRouter
     participant ExternalAPI
     participant IndexedDB
     
     User->>UI: Send Message
     UI->>ChatProvider: sendMessage()
     ChatProvider->>API: POST /api/chat/completion
-    API->>SmartRouter: Analyze Intent (Deep Research / Search)
-    SmartRouter->>ExternalAPI: Select Model & Inject Context
+    API->>ExternalAPI: User-selected model (plus optional injected web context)
     ExternalAPI-->>API: Response (JSON)
     API-->>ChatProvider: Return JSON response (non-streaming)
     ChatProvider->>IndexedDB: Save Conversation (Conversations Table)

@@ -27,11 +27,10 @@ describe('model invariants', () => {
     expect(missing).toEqual([]);
   });
 
-  test('seedance-fast is treated as T2V (no reference images)', () => {
-    const m = UNIFIED_IMAGE_MODELS.find(x => x.id === 'seedance-fast');
+  test('seedance is treated as T2V (no reference images)', () => {
+    const m = UNIFIED_IMAGE_MODELS.find(x => x.id === 'seedance');
     expect(m).toBeTruthy();
     expect(m?.supportsReference).toBe(false);
     expect(m?.maxImages).toBe(0);
   });
 });
-

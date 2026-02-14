@@ -148,56 +148,8 @@ export async function getPollinationsChatCompletion(
             errorMessage.toLowerCase().includes('content filter');
         }
 
-        // If content filter error and using OpenAI model, fallback to Claude
-        if (isContentFilterError && target.name === 'pollen' &&
-          (modelId.startsWith('openai-large') || modelId.startsWith('openai-reasoning'))) {
-          console.warn(`[getPollinationsChatCompletion] Content filter triggered for ${modelId}, falling back to Claude Sonnet 3.7`);
-
-          // Retry with Claude
-          const claudePayload = {
-            ...payload,
-            model: 'claude',
-          };
-
-          try {
-            const claudeResponse = await fetch(POLLEN_CHAT_API_URL, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${pollenApiKey}`,
-              },
-              body: JSON.stringify(claudePayload),
-            });
-
-            const claudeResponseText = await claudeResponse.text();
-
-            if (!claudeResponse.ok) {
-              // If Claude also fails, throw original error
-              throw new Error(`Pollinations (${target.name}) request failed with status ${response.status}: ${detail}`);
-            }
-
-            let claudeResult;
-            try {
-              claudeResult = JSON.parse(claudeResponseText);
-            } catch (e) {
-              return { responseText: claudeResponseText.trim() };
-            }
-
-            if (claudeResult.error) {
-              throw new Error(`Pollinations (claude fallback) returned an error: ${claudeResult.error.message || JSON.stringify(claudeResult.error)}`);
-            }
-
-            const replyText = claudeResult.choices?.[0]?.message?.content;
-            if (replyText) {
-              return { responseText: replyText.trim() };
-            }
-
-            throw new Error('Claude fallback returned invalid response structure');
-          } catch (claudeError) {
-            // If Claude fallback fails, throw original error
-            throw new Error(`Pollinations (${target.name}) request failed with status ${response.status}: ${detail}`);
-          }
-        }
+        // IMPORTANT: Do NOT silently fall back to expensive Anthropic models on content-filter errors.
+        // Bubble the error up so the user can adjust the prompt or choose a different model explicitly.
 
         const error = new Error(`Pollinations (${target.name}) request failed with status ${response.status}: ${detail}`);
 

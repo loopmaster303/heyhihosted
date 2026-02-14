@@ -29,7 +29,7 @@ export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> =
   const getLabel = () => {
     if (!selectedModelId) return 'Referenzen';
     // Check if video model
-    if (selectedModelId === 'wan' || selectedModelId === 'seedance' || selectedModelId === 'seedance-pro') {
+    if (selectedModelId === 'wan-video') {
         return 'Start-Frame';
     }
     return 'Referenzen';

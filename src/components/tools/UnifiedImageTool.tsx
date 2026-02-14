@@ -74,8 +74,9 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
     if (!currentModelConfig) return;
     const modelInfo = getUnifiedModel(selectedModelId);
 
-    // 0. Validation for Pure Image-to-Video Models
-    const isPureI2V = selectedModelId === 'wan' || selectedModelId === 'seedance' || selectedModelId === 'seedance-pro';
+    // 0. Validation for Pure Image-to-Video Models (requires start frame)
+    // Note: grok-video is hybrid (T2V + optional I2V), so we must NOT require an image.
+    const isPureI2V = selectedModelId === 'wan-video';
     if (isPureI2V && uploadedImages.length === 0) {
         toast({ title: "Start-Frame Required", description: "This model requires at least one reference image to start.", variant: "destructive" });
         return;

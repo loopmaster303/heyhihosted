@@ -231,7 +231,7 @@ Skips shortcuts when typing in input/textarea (except Escape).
 type ToolMode = 'standard' | 'visualize' | 'compose' | 'research' | 'code';
 ```
 
-Manages badge row toggles, mode switching, file selection, and submit handling. Code mode has preset model IDs: `qwen-coder`, `deepseek`, `glm`, `gemini-large`.
+Manages badge row toggles, mode switching, file selection, and submit handling. Code mode switches to a specialized system prompt, but does not force a specific model ID.
 
 ---
 

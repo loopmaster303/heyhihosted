@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getUserVisibleTextModels } from '@/config/chat-options';
+import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { modelIcons, featuredModels } from '@/config/ui-constants';
 import { ModalPopup } from '@/components/ui/popup';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -29,16 +29,16 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     const [isOpen, setIsOpen] = useState(false);
     const [expanded, setExpanded] = useState(false);
 
-    const userVisibleModels = getUserVisibleTextModels();
+    const allModels = AVAILABLE_POLLINATIONS_MODELS;
 
     const filteredModels = modelFilterIds && modelFilterIds.length > 0
-        ? modelFilterIds.map((id) => userVisibleModels.find((model) => model.id === id)).filter(Boolean)
+        ? modelFilterIds.map((id) => allModels.find((model) => model.id === id)).filter(Boolean)
         : null;
 
     // Filter featured models
-    const featuredList = filteredModels ?? featuredModels.map(f => userVisibleModels.find(m => m.id === f.id)).filter(Boolean);
+    const featuredList = filteredModels ?? featuredModels.map(f => allModels.find(m => m.id === f.id)).filter(Boolean);
     // Filter other models
-    const otherModels = filteredModels ? [] : userVisibleModels.filter(m => !featuredModels.some(f => f.id === m.id));
+    const otherModels = filteredModels ? [] : allModels.filter(m => !featuredModels.some(f => f.id === m.id));
 
     const closePopover = useCallback(() => {
         setIsOpen(false);
@@ -130,7 +130,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         >
             <div className="flex items-center gap-1.5 min-w-0">
                 {(() => {
-                    const model = userVisibleModels.find(m => m.id === selectedModelId);
+                    const model = allModels.find(m => m.id === selectedModelId);
                     const icon = modelIcons[selectedModelId];
                     // Distinguishable short names
                     let displayName = model?.name || 'AI';
@@ -178,7 +178,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         >
             <div className="flex items-center gap-1.5 truncate max-w-full">
                 {(() => {
-                    const modelName = userVisibleModels.find(m => m.id === selectedModelId)?.name || 'AI';
+                    const modelName = allModels.find(m => m.id === selectedModelId)?.name || 'AI';
                     if (isMobile) {
                         return (
                             <div className="flex items-center gap-1">
