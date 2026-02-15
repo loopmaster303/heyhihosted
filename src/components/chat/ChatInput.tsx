@@ -3,7 +3,7 @@
 import type React from 'react';
 import { Button } from '@/components/ui/button';
 import { UnifiedInput } from '@/components/ui/unified-input';
-import { Settings2, AudioWaveform, Square, ArrowUp, Plus, X } from 'lucide-react';
+import { Settings2, AudioWaveform, Square, ArrowUp, Plus, X, Sparkles } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
 import { MobileOptionsMenu } from './input/MobileOptionsMenu';
 import { QuickSettingsBadges } from './input/QuickSettingsBadges';
@@ -403,16 +403,17 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
 
                             {/* Enhance Prompt Button - image mode */}
                             {isImageMode && visualizeToolState && (
-                                <div className="hidden md:flex">
+                                <div className="flex">
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         onClick={visualizeToolState.handleEnhancePrompt}
                                         disabled={!inputValue.trim() || isLoading || visualizeToolState.isEnhancing || visualizeToolState.isUploading || isRecording || isTranscribing}
-                                        className="group rounded-lg h-9 w-auto px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
+                                        className="group rounded-lg h-9 w-auto px-2 md:px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
                                         aria-label="Enhance prompt"
                                     >
-                                        <span className="text-xs md:text-sm font-medium">
+                                        <Sparkles className={`w-4 h-4 md:hidden${visualizeToolState.isEnhancing ? ' animate-pulse' : ''}`} />
+                                        <span className="hidden md:inline text-sm font-medium">
                                             {visualizeToolState.isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
                                         </span>
                                     </Button>
@@ -421,7 +422,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
 
                             {/* Enhance Prompt Button - compose mode */}
                             {isComposeMode && composeToolState && (
-                                <div className="hidden md:flex">
+                                <div className="flex">
                                     <Button
                                         type="button"
                                         variant="ghost"
@@ -432,10 +433,11 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                             }
                                         }}
                                         disabled={!inputValue.trim() || isLoading || composeToolState.isEnhancing || isRecording || isTranscribing}
-                                        className="group rounded-lg h-9 w-auto px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
+                                        className="group rounded-lg h-9 w-auto px-2 md:px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
                                         aria-label="Enhance prompt"
                                     >
-                                        <span className="text-xs md:text-sm font-medium">
+                                        <Sparkles className={`w-4 h-4 md:hidden${composeToolState.isEnhancing ? ' animate-pulse' : ''}`} />
+                                        <span className="hidden md:inline text-sm font-medium">
                                             {composeToolState.isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
                                         </span>
                                     </Button>
