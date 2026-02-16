@@ -3,7 +3,7 @@
 import type React from 'react';
 import { Button } from '@/components/ui/button';
 import { UnifiedInput } from '@/components/ui/unified-input';
-import { Settings2, AudioWaveform, Square, ArrowUp, Plus, X } from 'lucide-react';
+import { Settings2, AudioWaveform, Square, ArrowUp, Plus, X, Sparkles, Loader2 } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
 import { MobileOptionsMenu } from './input/MobileOptionsMenu';
 import { QuickSettingsBadges } from './input/QuickSettingsBadges';
@@ -403,25 +403,37 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
 
                             {/* Enhance Prompt Button - image mode */}
                             {isImageMode && visualizeToolState && (
-                                <div className="hidden md:flex">
+                                <div className="flex">
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         onClick={visualizeToolState.handleEnhancePrompt}
                                         disabled={!inputValue.trim() || isLoading || visualizeToolState.isEnhancing || visualizeToolState.isUploading || isRecording || isTranscribing}
-                                        className="group rounded-lg h-9 w-auto px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
+                                        className="group rounded-lg h-9 w-9 md:w-auto px-0 md:px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
                                         aria-label="Enhance prompt"
                                     >
-                                        <span className="text-xs md:text-sm font-medium">
-                                            {visualizeToolState.isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
-                                        </span>
+                                        {visualizeToolState.isEnhancing ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin md:mr-2" />
+                                                <span className="hidden md:inline text-xs md:text-sm font-medium">
+                                                    {t('message.loading')}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles className="w-4 h-4 md:hidden" />
+                                                <span className="hidden md:inline text-xs md:text-sm font-medium">
+                                                    {t('action.enhancePrompt')}
+                                                </span>
+                                            </>
+                                        )}
                                     </Button>
                                 </div>
                             )}
 
                             {/* Enhance Prompt Button - compose mode */}
                             {isComposeMode && composeToolState && (
-                                <div className="hidden md:flex">
+                                <div className="flex">
                                     <Button
                                         type="button"
                                         variant="ghost"
@@ -432,12 +444,24 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                             }
                                         }}
                                         disabled={!inputValue.trim() || isLoading || composeToolState.isEnhancing || isRecording || isTranscribing}
-                                        className="group rounded-lg h-9 w-auto px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
+                                        className="group rounded-lg h-9 w-9 md:w-auto px-0 md:px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
                                         aria-label="Enhance prompt"
                                     >
-                                        <span className="text-xs md:text-sm font-medium">
-                                            {composeToolState.isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
-                                        </span>
+                                        {composeToolState.isEnhancing ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin md:mr-2" />
+                                                <span className="hidden md:inline text-xs md:text-sm font-medium">
+                                                    {t('message.loading')}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles className="w-4 h-4 md:hidden" />
+                                                <span className="hidden md:inline text-xs md:text-sm font-medium">
+                                                    {t('action.enhancePrompt')}
+                                                </span>
+                                            </>
+                                        )}
                                     </Button>
                                 </div>
                             )}

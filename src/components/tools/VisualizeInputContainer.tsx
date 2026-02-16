@@ -4,7 +4,7 @@ import React, { useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { UnifiedInput } from '@/components/ui/unified-input';
-import { SlidersHorizontal, Plus, Loader2, ArrowUp } from 'lucide-react';
+import { SlidersHorizontal, Plus, Loader2, ArrowUp, Sparkles } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
 import { type UnifiedModelConfig } from '@/config/unified-model-configs';
 import { VisualizeInlineHeader } from './visualize/VisualizeInlineHeader';
@@ -147,19 +147,31 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
 
                     rightActions={
                          <div className="flex items-center gap-0">
-                            {/* Enhance - Hidden on Mobile */}
-                            <div className="hidden md:flex">
+                            {/* Enhance - Visible on Mobile as Icon */}
+                            <div className="flex">
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     onClick={onEnhancePrompt}
                                     disabled={!prompt.trim() || loading || isEnhancing || isUploading || disabled}
-                                    className="group rounded-lg h-14 w-auto px-3 md:h-12 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
+                                    className="group rounded-lg h-10 w-10 md:h-12 md:w-auto px-0 md:px-3 transition-colors duration-300 text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
                                     aria-label="Enhance prompt"
                                 >
-                                    <span className="text-xs md:text-sm font-medium">
-                                        {isEnhancing ? t('message.loading') : t('action.enhancePrompt')}
-                                    </span>
+                                    {isEnhancing ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin md:mr-2" />
+                                            <span className="hidden md:inline text-xs md:text-sm font-medium">
+                                                {t('message.loading')}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="w-5 h-5 md:hidden" />
+                                            <span className="hidden md:inline text-xs md:text-sm font-medium">
+                                                {t('action.enhancePrompt')}
+                                            </span>
+                                        </>
+                                    )}
                                 </Button>
                             </div>
 

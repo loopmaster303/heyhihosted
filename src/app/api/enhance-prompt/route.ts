@@ -147,8 +147,8 @@ export async function POST(request: NextRequest) {
     const systemMessage = `${baseGuidelines}\n\n${outputLanguageGuard}\n\n${noContentRestrictionsGuard}\n\n${strictOutputOnlyGuard}${lengthGuard ? '\n\n' + lengthGuard : ''}`;
 
     // Prompt enhancement: primary model + fallback if output is low-quality (suffix-only) or request fails.
-    const primaryEnhancerModelId = 'claude-fast';
-    const fallbackEnhancerModelId = 'gemini-fast';
+    const primaryEnhancerModelId = 'claude';
+    const fallbackEnhancerModelId = 'mistral';
     // BYOP: Resolve API key (user key from header → env var fallback)
     const pollenKey = resolvePollenKey(request);
     let enhancedText: string | null = null;
