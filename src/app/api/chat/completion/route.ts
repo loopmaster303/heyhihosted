@@ -1,14 +1,9 @@
-import { generateText } from 'ai';
-import { createPollinations } from 'ai-sdk-pollinations';
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handler';
 import { WebContextService } from '@/lib/services/web-context-service';
-
-// Initialize Pollinations Provider with API Key
-const pollinations = createPollinations({
-  apiKey: process.env.POLLEN_API_KEY,
-});
+import { resolvePollenKey } from '@/lib/resolve-pollen-key';
+import { httpsPost } from '@/lib/https-post';
 
 // Validation schema
 const ChatCompletionSchema = z.object({
@@ -19,43 +14,48 @@ const ChatCompletionSchema = z.object({
   skipSmartRouter: z.boolean().optional(),
 });
 
+const POLLINATIONS_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
+
 /**
- * Perplexity models require strict user↔assistant alternation.
- * This merges consecutive same-role messages and ensures the
- * history starts with a user message.
+ * Sanitize messages for the Pollinations OpenAI-compatible API.
  */
-function ensureMessageAlternation(messages: any[]): any[] {
-  const cleaned: any[] = [];
+function sanitizeMessagesForApi(rawMessages: any[]): any[] {
+  return rawMessages.map((msg: any) => {
+    const role = msg.role;
 
-  for (const msg of messages) {
-    const last = cleaned[cleaned.length - 1];
-
-    if (last && last.role === msg.role) {
-      // Merge consecutive same-role messages
-      const lastContent = typeof last.content === 'string' ? last.content : JSON.stringify(last.content);
-      const msgContent = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-      last.content = `${lastContent}\n\n${msgContent}`;
-    } else {
-      cleaned.push({ ...msg });
+    if (typeof msg.content === 'string') {
+      return { role, content: msg.content };
     }
-  }
 
-  // Perplexity requires first non-system message to be 'user'
-  if (cleaned.length > 0 && cleaned[0].role !== 'user') {
-    cleaned.unshift({ role: 'user', content: '(Continue)' });
-  }
+    if (Array.isArray(msg.content)) {
+      const parts = msg.content.map((part: any) => {
+        if (part.type === 'text') {
+          return { type: 'text', text: part.text || '' };
+        }
+        if (part.type === 'image_url' && part.image_url?.url) {
+          return {
+            type: 'image_url',
+            image_url: { url: part.image_url.remoteUrl || part.image_url.url }
+          };
+        }
+        return { type: 'text', text: part.text || '' };
+      });
+      return { role, content: parts };
+    }
 
-  // Ensure last message is 'user' (required for completion)
-  if (cleaned.length > 0 && cleaned[cleaned.length - 1].role !== 'user') {
-    cleaned.push({ role: 'user', content: '(Continue)' });
-  }
-
-  return cleaned;
+    return { role, content: String(msg.content ?? '') };
+  });
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
+    // BYOP: Resolve API key (user key from header → env var fallback)
+    const apiKey = resolvePollenKey(request);
+    if (!apiKey) {
+      throw new ApiError(500, 'No Pollinations API key configured. Set POLLEN_API_KEY in .env.local or provide a BYOP key.');
+    }
 
     // Validate request
     const { messages, modelId, systemPrompt, webBrowsingEnabled, skipSmartRouter } = validateRequest(ChatCompletionSchema, body);
@@ -73,10 +73,6 @@ export async function POST(request: Request) {
     }
 
     const currentDate = new Date().toISOString().split('T')[0];
-    // Always-on web context:
-    // - Light mode for normal chat
-    // - Deep mode when user toggles Deep Research
-    // Skip only for very short / trivial inputs (handled in WebContextService too).
     const shouldFetchWebContext =
       !skipSmartRouter &&
       userQuery.trim().length > 3;
@@ -99,29 +95,57 @@ export async function POST(request: Request) {
       }
     }
 
-    // NOTE: We no longer route the main completion to search models.
-    // Web context is injected (when enabled) and the user's selected model is used for generation.
-    const sanitizedMessages = messages;
+    // Sanitize messages
+    const sanitizedMessages = sanitizeMessagesForApi(messages);
 
-    // === EXECUTE GENERATION (BLOCKING) ===
-    console.log('[API] Executing generateText (non-streaming)...');
-    const result = await generateText({
-      model: pollinations(modelId),
-      messages: sanitizedMessages as any,
-      system: finalSystemPrompt,
-    });
+    // Build final messages array with system prompt
+    const apiMessages = [
+      { role: 'system', content: finalSystemPrompt },
+      ...sanitizedMessages,
+    ];
 
-    console.log('[API] Generation complete. Length:', result.text.length);
+    // === CALL POLLINATIONS API via curl child_process (bypasses Next.js fetch patching) ===
+    // Next.js 16 completely intercepts outgoing http/https requests and strips Authorization headers.
+    // Using execSync('curl ...') is the only reliable way to bypass this interception.
+    
+    console.log(`[API] Pollinations: model=${modelId}, msgs=${apiMessages.length}`);
+
+    const pollinationsResponse = await httpsPost(
+      POLLINATIONS_API_URL,
+      {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      JSON.stringify({
+        model: modelId,
+        messages: apiMessages,
+      })
+    );
+
+    if (pollinationsResponse.status !== 200) {
+      let detail = pollinationsResponse.body;
+      try {
+        const errorJson = JSON.parse(pollinationsResponse.body);
+        detail = errorJson.error?.message || errorJson.error || pollinationsResponse.body;
+      } catch { }
+      console.error(`[API] Pollinations ${pollinationsResponse.status}:`, detail);
+      throw new ApiError(pollinationsResponse.status, `Pollinations API error: ${detail}`);
+    }
+
+    const result = JSON.parse(pollinationsResponse.body);
+    const responseText = result.choices?.[0]?.message?.content || '';
+
+    console.log('[API] Generation complete. Length:', responseText.length);
 
     return NextResponse.json({
-        choices: [
-            {
-                message: {
-                    content: result.text,
-                    role: 'assistant'
-                }
-            }
-        ]
+      choices: [
+        {
+          message: {
+            content: responseText,
+            role: 'assistant'
+          }
+        }
+      ]
     });
 
   } catch (error) {

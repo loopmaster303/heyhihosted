@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolvePollenKey } from '@/lib/resolve-pollen-key';
+import { httpsFetchBinary } from '@/lib/https-post';
 
 const POLLINATIONS_BASE = 'https://gen.pollinations.ai';
 
@@ -18,41 +20,32 @@ export async function POST(request: NextRequest) {
 
     // Build Universal request (GET)
     const encodedPrompt = encodeURIComponent(prompt);
-    // Pollinations expects duration as seconds (number), without a trailing "s".
     const url = `${POLLINATIONS_BASE}/audio/${encodedPrompt}?model=elevenmusic&duration=${validDuration}&instrumental=${instrumental}`;
 
     console.log('[Compose] Requesting audio (Universal):', url);
 
-    // Get API key if available
-    const apiKey = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_KEY;
+    // BYOP: Resolve API key (user key from header → env var fallback)
+    const apiKey = resolvePollenKey(request);
 
-    const headers: HeadersInit = {};
+    const headers: Record<string, string> = {};
     if (apiKey) {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
-    // Fetch audio from Pollinations
-    const response = await fetch(url, { 
-      method: 'GET',
-      headers
-    });
+    // Fetch audio via curl (bypasses Next.js fetch patching)
+    const resp = await httpsFetchBinary(url, headers);
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('[Compose] API Error:', response.status, errorText);
+    if (resp.status !== 200) {
+      console.error('[Compose] API Error:', resp.status);
       return NextResponse.json(
-        { error: `Pollinations API error: ${response.status} - ${errorText}` },
-        { status: response.status }
+        { error: `Pollinations API error: ${resp.status}` },
+        { status: resp.status }
       );
     }
 
-    // Get the audio data
-    const audioBuffer = await response.arrayBuffer();
-    const contentType = response.headers.get('content-type') || 'audio/mpeg';
-
     // Return audio as base64 for easy client handling
-    const base64Audio = Buffer.from(audioBuffer).toString('base64');
-    const audioDataUrl = `data:${contentType};base64,${base64Audio}`;
+    const base64Audio = resp.buffer.toString('base64');
+    const audioDataUrl = `data:${resp.contentType};base64,${base64Audio}`;
 
     return NextResponse.json({
       audioUrl: audioDataUrl,

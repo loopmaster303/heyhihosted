@@ -28,20 +28,22 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 ## Available Models
 
 ### Chat (LLMs)
-| Category | Models |
-|----------|--------|
-| **Standard** | Claude Haiku 4.5, GPT-5 Nano, GPT-5, Gemini 2.5 Flash, Gemini 3 Flash Search, Grok 4 Fast, Mistral |
-| **Advanced** | Claude Sonnet 4.5, Claude Opus 4.6, GPT-5.2, Gemini 3 Pro, Gemini 3 Flash, Deepseek V 3.2, Kimi K2.5, GLM-5 |
-| **Search** | Sonar (fast), Sonar Reasoning |
-| **Specialized** | Qwen 3 Coder 30B, Qwen 3 Character |
+
+| Category            | Models                                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Standard (Free)** | Gemini 2.5 Flash, Mistral, Amazon Nova Micro, GPT-5 Nano, Gemini 3 Flash Search, Grok 4 Fast, Claude Haiku 4.5                         |
+| **Advanced (Paid)** | _Requires Pollen Key_ <br> Claude Sonnet 4.5, Claude Opus 4.6, GPT-5.2, Gemini 3 Pro, Gemini 3 Flash, Deepseek V 3.2, Kimi K2.5, GLM-5 |
+| **Search**          | Sonar (fast), Sonar Reasoning                                                                                                          |
+| **Specialized**     | Qwen 3 Coder 30B, Qwen 3 Character                                                                                                     |
 
 ### Image & Video Generation
-| Group | Models |
-|-------|--------|
-| **Fast** | Z-Image, Flux.1 |
-| **Editing** | Kontext, Klein Large, GPT-Image 1.5, Nano Banana |
-| **Advanced** | Nano Banana Pro, Seedream Pro, Flux 2 Max |
-| **Video** | Seedance, Wan, LTX 2, Grok Imagine Video |
+
+| Group        | Models                                           |
+| ------------ | ------------------------------------------------ |
+| **Fast**     | Z-Image, Flux.1                                  |
+| **Editing**  | Kontext, Klein Large, GPT-Image 1.5, Nano Banana |
+| **Advanced** | Nano Banana Pro, Seedream Pro, Flux 2 Max        |
+| **Video**    | Seedance, Wan, LTX 2, Grok Imagine Video         |
 
 ## Tech Stack
 
@@ -83,4 +85,5 @@ npm test             # Jest tests
 ```
 
 ---
-*Created with energy by [Loopmaster](https://github.com/johnmeckel) (John Meckel)*
+
+_Created with energy by [Loopmaster](https://github.com/johnmeckel) (John Meckel)_

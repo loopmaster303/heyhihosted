@@ -176,6 +176,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                 <div className="mt-2 text-[10px] sm:text-xs font-bold tracking-[0.3em] text-foreground/30 uppercase pointer-events-auto text-center w-full">
                   EVERYONE CAN SAY HI TO AI
                 </div>
+                <div className="mt-3 text-[10px] sm:text-xs text-foreground/50 font-medium tracking-wide pointer-events-auto text-center w-full max-w-xl mx-auto px-4 leading-relaxed">
+                  NOTICE. For Full Access provide your own Pollen Key via Pollinations in the Sidebar. <br className="hidden sm:block" />
+                  For more Informations visit: <a href="https://enter.pollinations.ai" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors underline decoration-border/30">enter.pollinations.ai</a>
+                </div>
               </div>
             </div>
           )}

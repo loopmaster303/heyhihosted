@@ -1,6 +1,8 @@
 // src/lib/services/web-context-service.ts
 // Service for fetching realtime-ish web context via Pollinations chat completions
 
+import { httpsPost } from '@/lib/https-post';
+
 export interface WebContext {
     facts: string[];
     timestamp: string;
@@ -16,7 +18,7 @@ interface PollinationsChatResponse {
     }>;
 }
 
-const POLLEN_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
+const POLLEN_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
 // Always-on web context needs realistic timeouts (otherwise it devolves into near-constant timeouts).
 const LIGHT_TIMEOUT_MS = 4000;
 const DEEP_TIMEOUT_MS = 10000;
@@ -96,13 +98,13 @@ Beispiel:
 - Wetter Berlin: 4°C, bewölkt
 Keine Einleitung, keine Erklärung, nur Fakten.`;
 
-        const response = await fetch(POLLEN_API_URL, {
-            method: 'POST',
-            headers: {
+        const resp = await httpsPost(
+            POLLEN_API_URL,
+            {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
             },
-            body: JSON.stringify({
+            JSON.stringify({
                 model: 'gemini-search',
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -110,14 +112,14 @@ Keine Einleitung, keine Erklärung, nur Fakten.`;
                 ],
                 max_tokens: 300,
                 temperature: 0.1,
-            }),
-        });
+            })
+        );
 
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+        if (resp.status !== 200) {
+            throw new Error(`API error: ${resp.status}`);
         }
 
-        const data: PollinationsChatResponse = await response.json();
+        const data: PollinationsChatResponse = JSON.parse(resp.body);
         const content = data.choices?.[0]?.message?.content || '';
 
         return {
@@ -142,13 +144,13 @@ Format:
 - Weiterer Fakt [Quelle: andere-domain.de]
 Keine Einleitung, keine Zusammenfassung, nur Fakten mit Quellen.`;
 
-        const response = await fetch(POLLEN_API_URL, {
-            method: 'POST',
-            headers: {
+        const resp = await httpsPost(
+            POLLEN_API_URL,
+            {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
             },
-            body: JSON.stringify({
+            JSON.stringify({
                 model: 'sonar',
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -156,14 +158,14 @@ Keine Einleitung, keine Zusammenfassung, nur Fakten mit Quellen.`;
                 ],
                 max_tokens: 800,
                 temperature: 0.2,
-            }),
-        });
+            })
+        );
 
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+        if (resp.status !== 200) {
+            throw new Error(`API error: ${resp.status}`);
         }
 
-        const data: PollinationsChatResponse = await response.json();
+        const data: PollinationsChatResponse = JSON.parse(resp.body);
         const content = data.choices?.[0]?.message?.content || '';
         const facts = this.parseFacts(content);
 

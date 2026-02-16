@@ -34,9 +34,9 @@ describe('ChatService', () => {
             const result = await ChatService.sendChatCompletion(defaultOptions);
 
             expect(result).toBe('Hello there!');
-            expect(mockFetch).toHaveBeenCalledWith('/api/chat/completion', {
+            expect(mockFetch).toHaveBeenCalledWith('/api/chat/completion', expect.objectContaining({
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     messages: defaultOptions.messages,
                     modelId: defaultOptions.modelId,
@@ -44,7 +44,7 @@ describe('ChatService', () => {
                     webBrowsingEnabled: undefined,
                     stream: false,
                 }),
-            });
+            }));
         });
 
         it('should handle API errors gracefully', async () => {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { handleApiError, validateRequest } from '@/lib/api-error-handler';
 import { imageUrl, videoUrl } from '@/lib/pollinations-sdk';
+import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 
 /**
  * Pollinations Generation Route (Safe Mode)
@@ -50,7 +51,8 @@ export async function POST(request: Request) {
     } = validateRequest(ImageGenerationSchema, body);
 
     // --- SDK Migration ---
-    const apiKey = process.env.POLLEN_API_KEY;
+    // BYOP: Resolve API key (user key from header → env var fallback)
+    const apiKey = resolvePollenKey(request);
     const hasToken = !!apiKey && apiKey.trim() !== '';
 
     // Model Logic

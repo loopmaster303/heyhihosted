@@ -8,6 +8,7 @@ import {
 } from '@/types/api';
 import { getUnifiedModel } from '@/config/unified-image-models';
 import { processSseStream } from '@/utils/chatHelpers';
+import { getPollenHeaders } from '@/lib/pollen-key';
 
 export interface SendMessageOptions {
     messages: ApiChatMessage[];
@@ -62,7 +63,7 @@ export class ChatService {
 
         const response = await fetch('/api/chat/completion', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
             body: JSON.stringify(body),
         });
 
@@ -164,7 +165,7 @@ export class ChatService {
 
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
             body: JSON.stringify(body),
         });
 
@@ -196,7 +197,7 @@ export class ChatService {
 
         const response = await fetch('/api/chat/title', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
             body: JSON.stringify({
                 messages: messagesArray
             }),

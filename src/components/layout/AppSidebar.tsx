@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import GallerySidebarSection from '@/components/gallery/GallerySidebarSection';
 import PersonalizationSidebarSection from '@/components/sidebar/PersonalizationSidebarSection';
+import PollenAccountSidebarSection from '@/components/sidebar/PollenAccountSidebarSection';
 import { useLanguage } from '@/components/LanguageProvider';
 
 interface ConversationItem {
@@ -110,6 +111,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
           <GallerySidebarSection />
           <PersonalizationSidebarSection />
+          <PollenAccountSidebarSection />
 
           <div className="flex-1" />
         </div>

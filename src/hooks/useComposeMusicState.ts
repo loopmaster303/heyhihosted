@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { getPollenHeaders } from '@/lib/pollen-key';
 
 export interface ComposeMusicState {
   duration: number;
@@ -49,7 +50,7 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
     try {
       const response = await fetch('/api/compose', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
         body: JSON.stringify({ prompt, duration, instrumental }),
       });
 
@@ -77,7 +78,7 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
     try {
       const response = await fetch('/api/enhance-prompt', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
         body: JSON.stringify({
           prompt,
           modelId: 'compose',

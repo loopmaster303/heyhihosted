@@ -16,6 +16,8 @@ import WANIcon from '../assets/icons-models/wan.png';
 import ZAIFarbeIcon from '../assets/icons-models/zaifarbe.png';
 import LTXLogo from '../assets/icons-models/ltxlogo.png';
 
+import AmazonNovaIcon from '../assets/icons-models/Amazon Nova.png';
+
 // Model Icon Mapping (LLM)
 export const modelIcons: Record<string, any> = {
     'claude': ClaudeIcon,
@@ -38,6 +40,8 @@ export const modelIcons: Record<string, any> = {
     'perplexity-fast': PerplexityIcon,
     'qwen-coder': QwenIcon,
     'qwen-character': QwenIcon,
+    'nova-micro': AmazonNovaIcon,
+    'nova-lite': AmazonNovaIcon,
 };
 
 export const modelDisplayMap: Record<string, string> = {
@@ -65,7 +69,8 @@ export const modelDisplayMap: Record<string, string> = {
 // NEW FEATURED LIST - STANDARD MODELS
 export const featuredModels = [
     { id: 'gemini-fast', emoji: '⚡', highlight: 'Lite' },
-    { id: 'deepseek', emoji: '🧠', highlight: 'V3.2' },
+    { id: 'mistral', emoji: '💨', highlight: 'Fast' },
+    { id: 'nova-micro', emoji: '🌟', highlight: 'Micro' },
     { id: 'openai-fast', emoji: '🚀', highlight: 'Nano' },
 ];
 

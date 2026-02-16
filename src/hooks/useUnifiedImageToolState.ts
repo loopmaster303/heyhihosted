@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/components/LanguageProvider';
+import { getPollenHeaders } from '@/lib/pollen-key';
 import { unifiedModelConfigs, getUnifiedModelConfig, type UnifiedModelConfig } from '@/config/unified-model-configs';
 import { getUnifiedModel } from '@/config/unified-image-models';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -312,7 +313,7 @@ export function useUnifiedImageToolState() {
         try {
             const response = await fetch('/api/enhance-prompt', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
                 body: JSON.stringify({
                     prompt,
                     modelId: selectedModelId,

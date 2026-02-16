@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError, validateRequest } from '@/lib/api-error-handler';
 import { z } from 'zod';
+import { resolvePollenKey } from '@/lib/resolve-pollen-key';
+import { httpsPost } from '@/lib/https-post';
 
-const POLLEN_CHAT_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
+const POLLEN_CHAT_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
 
 // Validation schema
 const TitleGenerationSchema = z.object({
@@ -48,7 +50,8 @@ Rules:
 
 Return ONLY the title, nothing else.`;
 
-    const pollenApiKey = process.env.POLLEN_API_KEY;
+    // BYOP: Resolve API key (user key from header → env var fallback)
+    const pollenApiKey = resolvePollenKey(request);
 
     if (!pollenApiKey) {
       console.warn('[Title API] POLLEN_API_KEY not set, returning fallback title');
@@ -61,35 +64,34 @@ Return ONLY the title, nothing else.`;
     }
 
     try {
-      const response = await fetch(POLLEN_CHAT_API_URL, {
-        method: 'POST',
-        headers: {
+      const resp = await httpsPost(
+        POLLEN_CHAT_API_URL,
+        {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${pollenApiKey}`,
         },
-        body: JSON.stringify({
-          model: 'gemini-fast', // Cost-first: fast and cheap for short responses
+        JSON.stringify({
+          model: 'gemini-fast',
           messages: [{ role: 'user', content: titlePrompt }],
           max_tokens: 50,
           temperature: 0.3,
-        }),
-      });
+        })
+      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[Title API] Pollinations error (${response.status}):`, errorText);
+      if (resp.status !== 200) {
+        console.error(`[Title API] Pollinations error (${resp.status}):`, resp.body);
         return NextResponse.json({
           success: false,
-          error: `Pollinations error: ${response.status}`,
+          error: `Pollinations error: ${resp.status}`,
           title: fallbackTitle,
           provider: 'fallback'
         });
       }
 
-      const result = await response.json();
+      const result = JSON.parse(resp.body);
       const title = result.choices?.[0]?.message?.content?.trim()
-        .replace(/^["']|["']$/g, '') // Remove quotes
-        .substring(0, 50) || 'New Chat'; // Limit length
+        .replace(/^["']|["']$/g, '')
+        .substring(0, 50) || 'New Chat';
 
       return NextResponse.json({
         success: true,

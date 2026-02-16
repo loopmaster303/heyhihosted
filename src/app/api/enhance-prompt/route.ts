@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ENHANCEMENT_PROMPTS, DEFAULT_ENHANCEMENT_PROMPT, COMPOSE_ENHANCEMENT_PROMPT } from '@/config/enhancement-prompts';
 import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
+import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 
 // Map UI model keys to enhancement prompt keys if they differ
 const MODEL_ALIASES: Record<string, string> = {
@@ -148,7 +149,8 @@ export async function POST(request: NextRequest) {
     // Prompt enhancement: primary model + fallback if output is low-quality (suffix-only) or request fails.
     const primaryEnhancerModelId = 'claude-fast';
     const fallbackEnhancerModelId = 'gemini-fast';
-    const pollenKey = process.env.POLLEN_API_KEY || process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONS_API_TOKEN;
+    // BYOP: Resolve API key (user key from header → env var fallback)
+    const pollenKey = resolvePollenKey(request);
     let enhancedText: string | null = null;
     let usedModel: string = primaryEnhancerModelId;
 

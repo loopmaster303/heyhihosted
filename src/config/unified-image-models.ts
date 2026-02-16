@@ -225,11 +225,11 @@ export interface VisualizeModelGroup {
 
 const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
   {
-    key: 'image-fast',
-    label: 'FAST',
+    key: 'image-free',
+    label: 'FREE',
     category: 'Standard',
     kind: 'image',
-    modelIds: ['zimage', 'flux'],
+    modelIds: ['flux', 'zimage'],
   },
   {
     key: 'image-editing',

@@ -11,6 +11,7 @@
  */
 
 import { z } from 'zod';
+import { httpsPost } from '@/lib/https-post';
 
 // This schema defines a single message part, which can be text or an image URL.
 const ApiContentPartSchema = z.union([
@@ -50,7 +51,7 @@ export interface PollinationsChatOutput {
   responseText: string;
 }
 
-const POLLEN_CHAT_API_URL = 'https://enter.pollinations.ai/api/generate/v1/chat/completions';
+const POLLEN_CHAT_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
 const LEGACY_POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
 const LEGACY_FALLBACK_MODELS = new Set(['openai-large', 'openai-reasoning', 'gemini-search']);
 
@@ -111,6 +112,7 @@ export async function getPollinationsChatCompletion(
         throw new Error(`Missing API key for target ${target.name}`);
       }
 
+      // Use rawFetch to bypass Next.js 16 patched fetch
       headers['Authorization'] = `Bearer ${target.apiKey}`;
 
       const payloadForTarget = {
@@ -118,15 +120,17 @@ export async function getPollinationsChatCompletion(
         model: target.name === 'legacy' ? mapModelForLegacy(payload.model) : payload.model,
       };
 
-      const response = await fetch(target.url, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(payloadForTarget),
-      });
+      // Use httpsPost (Node.js https module) to bypass Next.js fetch patching
+      const httpResp = await httpsPost(
+        target.url,
+        headers,
+        JSON.stringify(payloadForTarget)
+      );
 
-      const responseText = await response.text();
+      const responseText = httpResp.body;
+      const responseStatus = httpResp.status;
 
-      if (!response.ok) {
+      if (responseStatus < 200 || responseStatus >= 300) {
         let errorData;
         try {
           errorData = JSON.parse(responseText);
@@ -139,7 +143,7 @@ export async function getPollinationsChatCompletion(
 
         // Check if this is a content filter error (Azure OpenAI content management policy)
         let isContentFilterError = false;
-        if (response.status === 400) {
+        if (responseStatus === 400) {
           const errorMessage = typeof errorData === 'string'
             ? errorData
             : errorData?.error?.message || errorData?.message || '';
@@ -151,20 +155,19 @@ export async function getPollinationsChatCompletion(
         // IMPORTANT: Do NOT silently fall back to expensive Anthropic models on content-filter errors.
         // Bubble the error up so the user can adjust the prompt or choose a different model explicitly.
 
-        const error = new Error(`Pollinations (${target.name}) request failed with status ${response.status}: ${detail}`);
+        const error = new Error(`Pollinations (${target.name}) request failed with status ${responseStatus}: ${detail}`);
 
         // Only attempt legacy fallback if pollen returns 5xx; for 4xx bubble up immediately.
-        if (target.name === 'pollen' && response.status >= 500) {
-          console.warn(`[getPollinationsChatCompletion] Pollen API returned 5xx (${response.status}), attempting legacy fallback...`);
+        if (target.name === 'pollen' && responseStatus >= 500) {
+          console.warn(`[getPollinationsChatCompletion] Pollen API returned 5xx (${responseStatus}), attempting legacy fallback...`);
           lastError = error;
-          continue; // Try next target (legacy) if available
+          continue;
         }
 
-        // For 4xx errors or legacy errors, log and throw immediately
-        if (response.status < 500) {
-          console.error(`[getPollinationsChatCompletion] ${target.name} API returned 4xx (${response.status}):`, detail);
+        if (responseStatus < 500) {
+          console.error(`[getPollinationsChatCompletion] ${target.name} API returned 4xx (${responseStatus}):`, detail);
         } else {
-          console.error(`[getPollinationsChatCompletion] ${target.name} API returned 5xx (${response.status}):`, detail);
+          console.error(`[getPollinationsChatCompletion] ${target.name} API returned 5xx (${responseStatus}):`, detail);
         }
         throw error;
       }
