@@ -10,7 +10,9 @@ import path from 'path';
  * which uses an unpatched `https` module.
  */
 
-const PROXY_SCRIPT = path.join(process.cwd(), 'src', 'lib', 'auth-proxy.js');
+// Dynamic path construction to avoid Turbopack static analysis/resolution
+const scriptName = 'auth-proxy.js';
+const PROXY_SCRIPT = path.join(process.cwd(), 'src', 'lib', scriptName);
 
 interface ProxyResponse {
   status: number;
