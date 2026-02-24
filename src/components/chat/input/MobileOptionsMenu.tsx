@@ -17,6 +17,7 @@ import {
     Code2,
     Globe,
     MessageSquare,
+    Music2,
     Mic,
     ChevronDown,
     ChevronUp,
@@ -41,6 +42,8 @@ interface MobileOptionsMenuProps {
 
     // Tools props
     onToggleImageMode: () => void;
+    isComposeMode: boolean;
+    onToggleComposeMode: () => void;
     isCodeMode: boolean;
     onToggleCodeMode?: () => void;
     webBrowsingEnabled: boolean;
@@ -65,6 +68,8 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
     hideUploadSection = false,
     // Tools
     onToggleImageMode,
+    isComposeMode,
+    onToggleComposeMode,
     isCodeMode,
     onToggleCodeMode,
     webBrowsingEnabled,
@@ -218,16 +223,35 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                                 onClick={() => {
                                                                     if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
                                                                     if (webBrowsingEnabled) onToggleWebBrowsing();
+                                                                    if (isComposeMode) onToggleComposeMode();
                                                                 }}
                                                                 className={cn(
                                                                     "flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10",
-                                                                    !isCodeMode && !webBrowsingEnabled && "bg-primary/10"
+                                                                    !isCodeMode && !webBrowsingEnabled && !isComposeMode && "bg-primary/10"
                                                                 )}
                                                             >
                                                                 <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
                                                                     <MessageSquare className="w-4 h-4" />
                                                                 </div>
                                                                 <span className="text-sm font-medium">{t('tools.standardChat')}</span>
+                                                            </DropdownMenuItem>
+
+                                                            <DropdownMenuItem
+                                                                onClick={() => {
+                                                                    if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
+                                                                    if (webBrowsingEnabled) onToggleWebBrowsing();
+                                                                    onToggleComposeMode();
+                                                                }}
+                                                                className={cn(
+                                                                    "flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10",
+                                                                    isComposeMode && "bg-mode-compose/10"
+                                                                )}
+                                                            >
+                                                                <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
+                                                                    <Music2 className="w-4 h-4" />
+                                                                </div>
+                                                                <span className="text-sm font-medium">{t('tools.compose')}</span>
+                                                                {isComposeMode && <div className="w-2 h-2 rounded-full bg-mode-compose/60 animate-pulse ml-auto" />}
                                                             </DropdownMenuItem>
 
                                                             <DropdownMenuItem

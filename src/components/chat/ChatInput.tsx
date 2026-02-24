@@ -255,6 +255,8 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                     )}
                                     hideUploadSection={isImageMode}
                                     onToggleImageMode={onToggleImageMode}
+                                    isComposeMode={isComposeMode || false}
+                                    onToggleComposeMode={onToggleComposeMode || (() => {})}
                                     isCodeMode={isCodeMode || false}
                                     onToggleCodeMode={onToggleCodeMode}
                                     webBrowsingEnabled={webBrowsingEnabled}

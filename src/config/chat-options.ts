@@ -56,6 +56,15 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     maxTokens: 4096,
   },
   {
+    id: "deepseek",
+    name: "Deepseek V3.2",
+    description: "Starkes Reasoning und Coding, open-weight.",
+    vision: false,
+    category: "Standard",
+    contextWindow: 64000,
+    maxTokens: 4096,
+  },
+  {
     id: "openai",
     name: "GPT-5",
     description: "Ausgewogen für alltägliche Aufgaben.",
@@ -80,15 +89,6 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     vision: true,
     category: "Standard",
     contextWindow: 1000000,
-    maxTokens: 4096,
-  },
-  {
-    id: "mistral",
-    name: "Mistral",
-    description: "Effizient und präzise für schnelle Antworten.",
-    vision: false,
-    category: "Standard",
-    contextWindow: 64000,
     maxTokens: 4096,
   },
   {
@@ -146,15 +146,6 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     category: "Advanced",
     contextWindow: 1000000,
     maxTokens: 8192,
-  },
-  {
-    id: "deepseek",
-    name: "Deepseek V3.2",
-    description: "Fortgeschrittenes Reasoning und spezialisiert auf Coding.",
-    vision: false,
-    category: "Advanced",
-    contextWindow: 64000,
-    maxTokens: 4096,
   },
   {
     id: "perplexity-reasoning",

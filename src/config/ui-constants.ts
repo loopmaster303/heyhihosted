@@ -69,9 +69,9 @@ export const modelDisplayMap: Record<string, string> = {
 // NEW FEATURED LIST - STANDARD MODELS
 export const featuredModels = [
     { id: 'gemini-fast', emoji: '⚡', highlight: 'Lite' },
-    { id: 'mistral', emoji: '💨', highlight: 'Fast' },
     { id: 'nova-micro', emoji: '🌟', highlight: 'Micro' },
     { id: 'openai-fast', emoji: '🚀', highlight: 'Nano' },
+    { id: 'deepseek', emoji: '🔍', highlight: 'V3' },
 ];
 
 // Image Model Icon Mapping
