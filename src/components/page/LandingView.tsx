@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import ChatInput from '@/components/chat/ChatInput';
 import { useChat } from '@/components/ChatProvider';
 import { useLanguage } from '@/components/LanguageProvider';
+import { useComposeMusicState } from '@/hooks/useComposeMusicState';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 
 interface LandingViewProps {
@@ -24,6 +25,7 @@ const LandingView: React.FC<LandingViewProps> = ({
     const { language } = useLanguage();
     const isEn = language === 'en';
     const [showInputContainer, setShowInputContainer] = useState(false);
+    const composeToolState = useComposeMusicState();
 
     // Show input container after a delay (synced with particle formation)
     useEffect(() => {
@@ -39,7 +41,7 @@ const LandingView: React.FC<LandingViewProps> = ({
     // Handle send - navigate to chat regardless, image mode state is preserved
     const handleSendMessage = useCallback((message: string) => {
         if (!message.trim()) return;
-        
+
         // Set the prompt in visualizeToolState if in image mode
         if (chat.isImageMode) {
             visualizeToolState.setPrompt(message.trim());
@@ -47,6 +49,13 @@ const LandingView: React.FC<LandingViewProps> = ({
         // Navigate to chat - the isImageMode flag is already set so ChatInterface will handle it
         onNavigateToChat(message.trim());
     }, [chat.isImageMode, visualizeToolState, onNavigateToChat]);
+
+    // Compose submit on landing: navigate to chat (compose will be active)
+    const handleComposeSubmit = useCallback((e?: React.FormEvent) => {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (!chat.chatInputValue.trim()) return;
+        onNavigateToChat(chat.chatInputValue.trim());
+    }, [chat.chatInputValue, onNavigateToChat]);
 
     return (
         <div className="relative h-full px-4 py-10 overflow-hidden">
@@ -75,12 +84,14 @@ const LandingView: React.FC<LandingViewProps> = ({
                                 onToggleImageMode={chat.toggleImageMode}
                                 isCodeMode={chat.activeConversation?.isCodeMode || false}
                                 onToggleCodeMode={() => {
-                                    chat.setActiveConversation(prev => 
+                                    chat.setActiveConversation(prev =>
                                         prev ? { ...prev, isCodeMode: !prev.isCodeMode } : prev
                                     );
                                 }}
                                 isComposeMode={chat.isComposeMode}
                                 onToggleComposeMode={chat.toggleComposeMode}
+                                composeToolState={composeToolState}
+                                onComposeSubmit={handleComposeSubmit}
                                 selectedModelId={selectedModelId}
                                 handleModelChange={onModelChange}
                                 selectedResponseStyleName={chat.activeConversation?.selectedResponseStyleName || "Basic"}

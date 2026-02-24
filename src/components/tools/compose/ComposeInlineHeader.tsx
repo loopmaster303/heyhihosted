@@ -34,8 +34,10 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
   return (
     <div
       className={cn(
-        "relative flex flex-wrap items-center gap-y-1 bg-muted/10 backdrop-blur-sm rounded-xl overflow-hidden mb-2",
-        variant === 'framed' && "border border-border/30",
+        "relative flex flex-wrap items-center gap-y-1 backdrop-blur-sm rounded-xl overflow-hidden mb-2",
+        variant === 'framed'
+          ? "border border-border/30 bg-muted/10"
+          : "bg-mode-compose/8 border border-mode-compose/20",
         className
       )}
     >
