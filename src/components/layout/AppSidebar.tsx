@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   PlusIcon,
@@ -8,6 +9,7 @@ import {
   ChevronDown,
   Menu,
   Trash2,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import GallerySidebarSection from '@/components/gallery/GallerySidebarSection';
@@ -34,6 +36,7 @@ interface AppSidebarProps {
 
 const AppSidebar: React.FC<AppSidebarProps> = ({
   onNewChat,
+  currentPath,
   allConversations = [],
   activeConversation = null,
   onSelectChat,
@@ -43,9 +46,15 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 }) => {
   const [historyExpanded, setHistoryExpanded] = useState(true);
   const { t } = useLanguage();
+  const router = useRouter();
 
   const handleClose = () => {
     if (onToggle) onToggle();
+  };
+
+  const navigateTo = (path: string) => {
+    router.push(path);
+    handleClose();
   };
 
   const formatTime = (date: Date | string | undefined): string => {
@@ -79,6 +88,20 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
           <Button onClick={() => { onNewChat?.(); handleClose(); }} size="sm" className="rounded-xl mb-6 h-9 text-xs bg-primary/80 hover:bg-primary text-primary-foreground shadow-glow-primary border-0">
             <PlusIcon className="h-4 w-4 mr-2" /> {t('nav.newConversation')}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigateTo('/about')}
+            className={cn(
+              'w-full justify-start rounded-xl mb-5 h-9 text-xs border transition-colors',
+              currentPath === '/about'
+                ? 'bg-primary/10 border-primary/30 text-primary'
+                : 'border-transparent text-foreground/75 hover:bg-primary/5 hover:border-primary/20'
+            )}
+          >
+            <Info className="h-4 w-4 mr-2" /> {t('nav.about')}
           </Button>
 
           {/* Chat History */}

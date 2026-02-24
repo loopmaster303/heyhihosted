@@ -103,7 +103,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     // Hybrid: text-to-video + optional start frame (image-to-video).
     supportsReference: true, 
     isFree: true, 
-    enabled: true, 
+    enabled: false, 
     description: 'xAI Grok Video (T2V / optional I2V)',
     maxImages: 1,
     supportsAudio: false,
@@ -138,7 +138,7 @@ const REPLICATE_MODELS: UnifiedImageModel[] = [
     maxImages: 4,
     requiresPassword: false, 
     description: 'Highest fidelity (Black Forest Labs)',
-    enabled: true
+    enabled: false
   },
   {
     id: 'flux-2-klein-9b',

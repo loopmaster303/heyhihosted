@@ -4,11 +4,10 @@ import AppLayout from '@/components/layout/AppLayout';
 import { ChatProvider } from '@/components/ChatProvider';
 import { useChat } from '@/components/ChatProvider';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { useLanguage } from '@/components/LanguageProvider';
+import AboutScrollContainer from '@/components/page/about/AboutScrollContainer';
 
 function AboutPageContent() {
   const chat = useChat();
-  const { t } = useLanguage();
   const router = useRouter();
 
   return (
@@ -29,11 +28,8 @@ function AboutPageContent() {
       allConversations={chat.allConversations}
       activeConversation={chat.activeConversation}
     >
-      <main className="flex flex-col flex-grow items-center justify-center p-4 text-center">
-        <h2 className="text-3xl font-code text-foreground">{t('about.title')}</h2>
-        <p className="text-muted-foreground mt-4 max-w-md">
-          {t('about.description')}
-        </p>
+      <main className="flex flex-col flex-grow py-6 md:py-10">
+        <AboutScrollContainer />
       </main>
     </AppLayout>
   );

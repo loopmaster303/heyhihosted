@@ -7,13 +7,15 @@ import { useLanguage } from '@/components/LanguageProvider';
 
 export function OfflineIndicator() {
     const { t } = useLanguage();
-    const [isOnline, setIsOnline] = useState(
-        () => (typeof navigator !== 'undefined' ? navigator.onLine : true)
-    );
+    const [isMounted, setIsMounted] = useState(false);
+    const [isOnline, setIsOnline] = useState(true);
     const [showIndicator, setShowIndicator] = useState(false);
     const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
+        setIsMounted(true);
+        setIsOnline(navigator.onLine);
+
         const handleOnline = () => {
             setIsOnline(true);
             // Show "back online" briefly
@@ -42,6 +44,8 @@ export function OfflineIndicator() {
             }
         };
     }, []);
+
+    if (!isMounted) return null;
 
     // Don't render if online and indicator not showing
     if (isOnline && !showIndicator) return null;
