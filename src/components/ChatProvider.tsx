@@ -174,9 +174,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
   const toggleImageMode = useCallback((forcedState?: boolean, modelId?: string) => {
     if (!activeConversation) return;
     const newImageModeState = forcedState !== undefined ? forcedState : !(activeConversation.isImageMode ?? false);
-    setActiveConversation((prev: Conversation | null) => prev ? { ...prev, isImageMode: newImageModeState } : prev);
+    setActiveConversation((prev: Conversation | null) => prev ? {
+      ...prev,
+      isImageMode: newImageModeState,
+      ...(newImageModeState ? { isComposeMode: false } : {})
+    } : prev);
     if (newImageModeState) {
-      handleFileSelect(null, null); 
+      handleFileSelect(null, null);
       if (modelId) {
         setSelectedImageModelId(modelId);
       }
@@ -186,7 +190,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
   const toggleComposeMode = useCallback((forcedState?: boolean) => {
     if (!activeConversation) return;
     const newComposeModeState = forcedState !== undefined ? forcedState : !(activeConversation.isComposeMode ?? false);
-    setActiveConversation((prev: Conversation | null) => prev ? { ...prev, isComposeMode: newComposeModeState } : prev);
+    setActiveConversation((prev: Conversation | null) => prev ? {
+      ...prev,
+      isComposeMode: newComposeModeState,
+      ...(newComposeModeState ? { isImageMode: false } : {})
+    } : prev);
     if (newComposeModeState) {
       handleFileSelect(null, null);
     }
@@ -605,7 +613,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
         let enrichedPrompt = effectivePrompt;
         // Only embed reference URLs in the prompt text for non-Pollinations models (e.g. Replicate).
         // Pollinations receives images via the dedicated `image` query parameter — embedding
-        // full S3 signed URLs or data-URIs in the prompt would blow up the GET URL.
+        // full hosted URLs or data-URIs in the prompt would blow up the GET URL.
         if (resolvedReferenceUrls.length > 0 && !isPollinationsModel) {
             const imageList = resolvedReferenceUrls.map((url, i) => `IMAGE_${i + 1}: ${url}`).join('\n');
             enrichedPrompt = `User provided the following reference images:\n${imageList}\n\nTask: ${effectivePrompt}`;
@@ -842,12 +850,14 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
   const startNewChat = useCallback((initialOptionsOrModelId?: string | {
     initialModelId?: string;
     isImageMode?: boolean;
+    isComposeMode?: boolean;
     isCodeMode?: boolean;
     webBrowsingEnabled?: boolean;
   }) => {
     // Parse arguments
     let initialModelId: string | undefined;
     let initialImageMode = false;
+    let initialComposeMode = false;
     let initialCodeMode = false;
     let initialWebBrowsing = false;
 
@@ -856,6 +866,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     } else if (typeof initialOptionsOrModelId === 'object') {
         initialModelId = initialOptionsOrModelId.initialModelId;
         initialImageMode = !!initialOptionsOrModelId.isImageMode;
+        initialComposeMode = !!initialOptionsOrModelId.isComposeMode;
         initialCodeMode = !!initialOptionsOrModelId.isCodeMode;
         initialWebBrowsing = !!initialOptionsOrModelId.webBrowsingEnabled;
     }
@@ -867,6 +878,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
             ...prev, 
             selectedModelId: safeInitialModelId,
             isImageMode: initialImageMode || prev.isImageMode, // Preserve or Override
+            isComposeMode: initialComposeMode,
             isCodeMode: initialCodeMode || prev.isCodeMode,
             webBrowsingEnabled: initialWebBrowsing || prev.webBrowsingEnabled
         } : null);
@@ -883,6 +895,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       updatedAt: new Date().toISOString(),
       toolType: 'long language loops',
       isImageMode: initialImageMode,
+      isComposeMode: initialComposeMode,
       isCodeMode: initialCodeMode,
       webBrowsingEnabled: initialWebBrowsing,
       selectedModelId: (
@@ -1083,6 +1096,7 @@ function normalizeLegacyTextModelId(id: string): string {
   if (!id) return id;
   if (id === 'kimi-k2-thinking') return 'kimi';
   if (id === 'nomnom') return 'perplexity-fast';
+  if (id === 'nova-micro') return 'nova-fast';
   return id;
 }
 

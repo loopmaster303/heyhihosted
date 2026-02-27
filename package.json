@@ -12,8 +12,6 @@
     "setup:pollicode": "node tools/oh-my-pollicode/install.js"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.699.0",
-    "@aws-sdk/s3-request-presigner": "^3.699.0",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-checkbox": "^1.1.4",
     "@radix-ui/react-dialog": "^1.1.15",

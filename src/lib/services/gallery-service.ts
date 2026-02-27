@@ -105,7 +105,7 @@ export const GalleryService = {
 
   /**
    * Save a generated asset (from Pollinations/Replicate) to the vault.
-   * Handles both Pollinations (S3 ingest) and Replicate (direct fetch) flows.
+   * Handles both Pollinations (Media Storage ingest) and Replicate (direct fetch) flows.
    *
    * @returns The asset ID if successfully saved, undefined otherwise
    */
@@ -121,7 +121,7 @@ export const GalleryService = {
 
     try {
       if (isPollinations) {
-        // Pollinations flow: ingest to S3, store storageKey
+        // Pollinations flow: ingest to Media Storage, store hash in storageKey
         if (!sessionId) {
           console.warn('[GalleryService] sessionId required for Pollinations assets');
           return undefined;
@@ -139,7 +139,7 @@ export const GalleryService = {
           storageKey: ingest.key,
         });
 
-        console.log(`📸 Pollinations asset saved: ${assetId} (key: ${ingest.key})`);
+        console.log(`📸 Pollinations asset saved: ${assetId} (media hash: ${ingest.key})`);
         return assetId;
       } else {
         // Replicate flow: fetch blob, store locally

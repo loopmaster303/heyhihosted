@@ -12,6 +12,7 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { DEFAULT_POLLINATIONS_MODEL_ID } from '@/config/chat-options';
 import { useUnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import LandingView from '@/components/page/LandingView';
+import type { UploadedReference } from '@/types';
 
 // App States - simplified: no more 'visualize' state
 type AppState = 'landing' | 'chat';
@@ -29,7 +30,16 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
     const [isClient, setIsClient] = useState(false);
     const [appState, setAppState] = useState<AppState>(initialState);
     const [landingSelectedModelId, setLandingSelectedModelId] = useState<string>(defaultTextModelId);
-    const [pendingMessage, setPendingMessage] = useState<{ text: string, isImage: boolean } | null>(null);
+    const [pendingMessage, setPendingMessage] = useState<{
+        text: string;
+        isImage: boolean;
+        isCompose: boolean;
+        imageConfig?: {
+            formFields: Record<string, any>;
+            uploadedImages: UploadedReference[];
+            selectedModelId: string;
+        };
+    } | null>(null);
     const activeConversationId = chat.activeConversation?.id;
     const activeConversationMessageCount = chat.activeConversation?.messages.length ?? 0;
     const sendMessage = chat.sendMessage;
@@ -44,9 +54,14 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
         
         // Only flush if we are in chat state and the conversation is empty (newly created)
         if (appState === 'chat' && activeConversationMessageCount === 0) {
-            const { text, isImage } = pendingMessage;
+            const { text, isImage, isCompose, imageConfig } = pendingMessage;
             setPendingMessage(null); // Clear first to avoid double-send
-            sendMessage(text, { isImageModeIntent: isImage });
+            if (isCompose) {
+                // Pre-fill input; ChatInterface's mount effect will auto-submit via handleComposeSubmit
+                chat.setChatInputValue(text);
+            } else {
+                sendMessage(text, { isImageModeIntent: isImage, imageConfig });
+            }
         }
     }, [activeConversationId, activeConversationMessageCount, sendMessage, pendingMessage, appState, isClient]);
 
@@ -76,22 +91,40 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
         
         // Capture current state from Landing Page toggles (which affect activeConversation or global state)
         const isImageModeActive = chat.isImageMode;
+        const isComposeModeActive = chat.isComposeMode;
         const isWebBrowsingActive = chat.webBrowsingEnabled;
         const isCodeModeActive = !!chat.activeConversation?.isCodeMode;
+        const imageConfig = isImageModeActive ? {
+            formFields: { ...visualizeToolState.formFields },
+            uploadedImages: [...visualizeToolState.uploadedImages],
+            selectedModelId: visualizeToolState.selectedModelId
+        } : undefined;
 
         // 1. Buffer the message
-        setPendingMessage({ text: initialMessage, isImage: isImageModeActive });
+        setPendingMessage({
+            text: initialMessage,
+            isImage: isImageModeActive,
+            isCompose: isComposeModeActive,
+            imageConfig
+        });
         
         // 2. Start new chat with CURRENT Landing State flags
         chat.startNewChat({
             initialModelId: landingSelectedModelId,
             isImageMode: isImageModeActive,
+            isComposeMode: isComposeModeActive,
             webBrowsingEnabled: isWebBrowsingActive,
             isCodeMode: isCodeModeActive
         });
         
         setAppState('chat');
-    }, [chat, landingSelectedModelId]);
+    }, [
+        chat,
+        landingSelectedModelId,
+        visualizeToolState.formFields,
+        visualizeToolState.uploadedImages,
+        visualizeToolState.selectedModelId
+    ]);
 
 
     // Handle new chat (from sidebar) - reset to landing

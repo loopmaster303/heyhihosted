@@ -111,7 +111,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                     variant="ghost"
                     className={cn(
                         "group rounded-lg h-12 w-12 transition-all duration-300 relative",
-                        (isImageMode || isCodeMode || webBrowsingEnabled)
+                        (isImageMode || isCodeMode || webBrowsingEnabled || isComposeMode)
                             ? "bg-muted/50"
                             : "text-gray-600 dark:text-gray-200"
                     )}
@@ -119,7 +119,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                 >
                     <div className="relative">
                         <MoreVertical className="w-5 h-5" />
-                        {(isImageMode || isCodeMode || webBrowsingEnabled) && (
+                        {(isImageMode || isCodeMode || webBrowsingEnabled || isComposeMode) && (
                             <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full animate-pulse bg-primary/60" />
                         )}
                     </div>
@@ -203,6 +203,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                             if (isImageMode) { onToggleImageMode(); return; }
                                                             if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
                                                             if (webBrowsingEnabled) onToggleWebBrowsing();
+                                                            if (isComposeMode) onToggleComposeMode();
                                                             onToggleImageMode();
                                                         }}
                                                         className={cn(

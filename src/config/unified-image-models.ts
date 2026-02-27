@@ -43,6 +43,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Seedream 4.0 - ByteDance ARK' },
   { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 2.5 Flash Image' },
   { id: 'zimage', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast 6B Flux' },
+  { id: 'grok-imagine', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'xAI Grok Image (Text to Image)' },
 
   // ADVANCED Image Models
   { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3 Pro Image (4K)' },
@@ -103,7 +104,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     // Hybrid: text-to-video + optional start frame (image-to-video).
     supportsReference: true, 
     isFree: true, 
-    enabled: false, 
+    enabled: true, 
     description: 'xAI Grok Video (T2V / optional I2V)',
     maxImages: 1,
     supportsAudio: false,
@@ -229,7 +230,7 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'FREE',
     category: 'Standard',
     kind: 'image',
-    modelIds: ['flux', 'zimage'],
+    modelIds: ['flux', 'zimage', 'grok-imagine'],
   },
   {
     key: 'image-editing',

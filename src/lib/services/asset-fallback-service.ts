@@ -7,6 +7,7 @@
 
 import { DatabaseService, type Asset } from '@/lib/services/database';
 import { BlobManager } from '@/lib/blob-manager';
+import { requestSignedRead } from '@/lib/upload/s3-upload';
 
 interface FallbackOptions {
   maxRetries?: number;
@@ -16,7 +17,7 @@ interface FallbackOptions {
 
 interface AssetUrlResult {
   url: string | null;
-  source: 'blob' | 'remote' | 's3-signed' | 'downloaded';
+  source: 'blob' | 'remote' | 'media' | 'downloaded';
   needsCleanup: boolean;
 }
 
@@ -32,7 +33,7 @@ const DEFAULT_OPTIONS: Required<FallbackOptions> = {
  * Priority order:
  * 1. Local blob (fastest, no network)
  * 2. Remote URL (if provided)
- * 3. S3 signed URL via storageKey (with retry)
+ * 3. Media URL via storageKey/hash (with retry)
  * 4. Download and cache if only remote URL exists
  *
  * @param assetId The asset ID to resolve
@@ -68,7 +69,7 @@ export async function resolveAssetUrl(
     return { url: asset.remoteUrl, source: 'remote', needsCleanup: false };
   }
 
-  // 3. Try S3 signed URL with retry
+  // 3. Try media URL with retry
   if (asset.storageKey) {
     const signedUrl = await fetchSignedUrlWithRetry(asset.storageKey, opts.maxRetries, opts.retryDelay);
     if (signedUrl) {
@@ -78,7 +79,7 @@ export async function resolveAssetUrl(
           console.warn(`[AssetFallback] Background cache failed for ${assetId}:`, err);
         });
       }
-      return { url: signedUrl, source: 's3-signed', needsCleanup: false };
+      return { url: signedUrl, source: 'media', needsCleanup: false };
     }
   }
 
@@ -87,7 +88,7 @@ export async function resolveAssetUrl(
 }
 
 /**
- * Fetch S3 signed URL with exponential backoff retry.
+ * Resolve media URL from storage key/hash with exponential backoff retry.
  */
 async function fetchSignedUrlWithRetry(
   storageKey: string,
@@ -98,20 +99,10 @@ async function fetchSignedUrlWithRetry(
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const response = await fetch('/api/upload/sign-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: storageKey }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Sign-read API failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await requestSignedRead(storageKey);
       if (data?.downloadUrl) {
         if (attempt > 0) {
-          console.log(`[AssetFallback] S3 signed URL retrieved on retry ${attempt + 1}`);
+          console.log(`[AssetFallback] Media URL retrieved on retry ${attempt + 1}`);
         }
         return data.downloadUrl;
       }

@@ -40,7 +40,7 @@ export const modelIcons: Record<string, any> = {
     'perplexity-fast': PerplexityIcon,
     'qwen-coder': QwenIcon,
     'qwen-character': QwenIcon,
-    'nova-micro': AmazonNovaIcon,
+    'nova-fast': AmazonNovaIcon,
     'nova-lite': AmazonNovaIcon,
 };
 
@@ -69,7 +69,7 @@ export const modelDisplayMap: Record<string, string> = {
 // NEW FEATURED LIST - STANDARD MODELS
 export const featuredModels = [
     { id: 'gemini-fast', emoji: '⚡', highlight: 'Lite' },
-    { id: 'nova-micro', emoji: '🌟', highlight: 'Micro' },
+    { id: 'nova-fast', emoji: '🌟', highlight: 'Micro' },
     { id: 'openai-fast', emoji: '🚀', highlight: 'Nano' },
     { id: 'deepseek', emoji: '🔍', highlight: 'V3' },
 ];
@@ -95,6 +95,7 @@ export const imageModelIcons: Record<string, any> = {
     'z-image-turbo': WANIcon,
     'zimage': WANIcon,
     'qwen-image-edit-plus': QwenIcon,
+    'grok-imagine': GrokIcon,
     'grok-video': GrokIcon,
     'ltx-2': LTXLogo,
     // NEW Replicate models

@@ -50,6 +50,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
     } = useChat();
 
     const composeToolState = useComposeMusicState();
+    const didAutoComposeRef = React.useRef(false);
+
+    // Auto-submit when arriving from landing page with compose mode + pre-filled input.
+    // chatInputValue is set asynchronously after mount, so we watch it as a dep.
+    // The ref guard ensures we only auto-submit once per component lifetime.
+    useEffect(() => {
+        const messages = activeConversation?.messages;
+        if (!didAutoComposeRef.current &&
+            isComposeMode &&
+            chatInputValue.trim() &&
+            (!messages || messages.length === 0) &&
+            !isAiResponding) {
+            didAutoComposeRef.current = true;
+            handleComposeSubmit();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [chatInputValue, isComposeMode]);
 
     const handleComposeSubmit = async (e?: React.FormEvent) => {
         if (e && typeof e.preventDefault === 'function') {

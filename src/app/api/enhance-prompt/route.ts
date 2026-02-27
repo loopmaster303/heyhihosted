@@ -32,6 +32,7 @@ const MODEL_ALIASES: Record<string, string> = {
   'ltx-2': 'ltx-2',
   'ltx-video': 'ltx-2',
   'grok-video': 'grok-video',
+  'grok-imagine': 'grok-imagine',
   'gpt-image': 'default', // Generic model, uses default prompt
   'nanobanana': 'nanobanana',
   'nanobanana-pro': 'nanobanana-pro',

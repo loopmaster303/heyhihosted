@@ -1,0 +1,1 @@
+[    3367ms] [WARNING] Image with src "/_next/static/media/gemini-color.cf2f27d6.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297

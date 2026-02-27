@@ -1,3 +1,6 @@
+import { getPollenHeaders } from '@/lib/pollen-key';
+
+// Backward-compatible shapes (legacy S3 naming retained to avoid broad refactors).
 export interface SignedUploadResponse {
   uploadUrl: string;
   downloadUrl: string;
@@ -15,43 +18,32 @@ export interface SignedUploadOptions {
   folder?: string;
 }
 
-export async function requestSignedUpload(
-  filename: string,
-  contentType?: string,
-  options?: SignedUploadOptions
-): Promise<SignedUploadResponse> {
-  const response = await fetch('/api/upload/sign', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      filename,
-      contentType,
-      sessionId: options?.sessionId,
-      folder: options?.folder,
-    }),
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data?.error || 'Failed to sign upload');
-  }
-
-  return data as SignedUploadResponse;
+interface MediaUploadResponse {
+  id: string;
+  url: string;
+  contentType: string;
+  size: number;
+  duplicate: boolean;
 }
 
-export async function uploadToSignedUrl(uploadUrl: string, file: Blob, contentType?: string) {
-  const headers: Record<string, string> = {};
-  if (contentType) headers['Content-Type'] = contentType;
+const IMMUTABLE_EXPIRES_SECONDS = 60 * 60 * 24 * 365 * 10;
 
-  const response = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers,
-    body: file,
-  });
+function getMediaUrlFromKey(key: string): string {
+  return `https://media.pollinations.ai/${encodeURIComponent(key)}`;
+}
 
-  if (!response.ok) {
-    throw new Error('Upload failed');
-  }
+// Deprecated in hard-cut mode: upload is now one-step via /api/media/upload.
+export async function requestSignedUpload(
+  _filename: string,
+  _contentType?: string,
+  _options?: SignedUploadOptions
+): Promise<SignedUploadResponse> {
+  throw new Error('requestSignedUpload is no longer supported. Use uploadFileToS3WithKey() directly.');
+}
+
+// Deprecated in hard-cut mode: upload URLs are no longer used.
+export async function uploadToSignedUrl(_uploadUrl: string, _file: Blob, _contentType?: string) {
+  throw new Error('uploadToSignedUrl is no longer supported. Use uploadFileToS3WithKey() directly.');
 }
 
 export async function uploadFileToS3(
@@ -68,24 +60,39 @@ export async function uploadFileToS3WithKey(
   file: Blob,
   filename: string,
   contentType?: string,
-  options?: SignedUploadOptions
+  _options?: SignedUploadOptions
 ): Promise<SignedUploadResponse> {
-  const signed = await requestSignedUpload(filename, contentType, options);
-  await uploadToSignedUrl(signed.uploadUrl, file, contentType);
-  return signed;
-}
+  const normalizedContentType = contentType || file.type || 'application/octet-stream';
+  const uploadFile = file instanceof File
+    ? file
+    : new File([file], filename || `upload-${Date.now()}.bin`, { type: normalizedContentType });
 
-export async function requestSignedRead(key: string): Promise<SignedReadResponse> {
-  const response = await fetch('/api/upload/sign-read', {
+  const formData = new FormData();
+  formData.append('file', uploadFile, uploadFile.name || filename);
+
+  const response = await fetch('/api/media/upload', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key }),
+    headers: { ...getPollenHeaders() },
+    body: formData,
   });
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data?.error || 'Failed to sign read');
+    throw new Error(data?.error || 'Failed to upload media');
   }
 
-  return data as SignedReadResponse;
+  const media = data as MediaUploadResponse;
+  return {
+    uploadUrl: '',
+    downloadUrl: media.url,
+    key: media.id,
+    expiresIn: IMMUTABLE_EXPIRES_SECONDS,
+  };
+}
+
+export async function requestSignedRead(key: string): Promise<SignedReadResponse> {
+  return {
+    downloadUrl: getMediaUrlFromKey(key),
+    expiresIn: IMMUTABLE_EXPIRES_SECONDS,
+  };
 }

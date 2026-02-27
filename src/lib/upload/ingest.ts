@@ -1,3 +1,5 @@
+import { getPollenHeaders } from '@/lib/pollen-key';
+
 export interface IngestResponse {
   key: string;
   contentType: string;
@@ -8,9 +10,9 @@ export async function ingestGeneratedAsset(
   sessionId: string,
   kind?: 'image' | 'video'
 ): Promise<IngestResponse> {
-  const response = await fetch('/api/upload/ingest', {
+  const response = await fetch('/api/media/ingest', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
     body: JSON.stringify({ sourceUrl, sessionId, kind }),
   });
 

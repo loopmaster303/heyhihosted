@@ -15,6 +15,7 @@ const ChatCompletionSchema = z.object({
 });
 
 const POLLINATIONS_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
+const DEFAULT_CHAT_MAX_TOKENS = 1200;
 
 /**
  * Sanitize messages for the Pollinations OpenAI-compatible API.
@@ -119,6 +120,7 @@ export async function POST(request: Request) {
       JSON.stringify({
         model: modelId,
         messages: apiMessages,
+        max_tokens: DEFAULT_CHAT_MAX_TOKENS,
       })
     );
 

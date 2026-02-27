@@ -1,7 +1,7 @@
 /**
  * Centralized mapping of Replicate model IDs to their expected reference image parameter names.
  * Each Replicate model has its own API schema — this mapping ensures the correct parameter
- * name is used when passing S3 signed URLs as reference images.
+ * name is used when passing hosted media URLs as reference images.
  *
  * Single Source of Truth — used by both UnifiedImageTool.tsx and ChatProvider.tsx.
  */

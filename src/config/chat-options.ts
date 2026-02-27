@@ -92,7 +92,7 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = [
     maxTokens: 4096,
   },
   {
-    id: "nova-micro",
+    id: "nova-fast",
     name: "Amazon Nova Micro",
     description: "Extrem effizient für einfachste Aufgaben.",
     vision: false,

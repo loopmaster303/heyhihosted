@@ -54,6 +54,7 @@ export interface PollinationsChatOutput {
 const POLLEN_CHAT_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
 const LEGACY_POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
 const LEGACY_FALLBACK_MODELS = new Set(['openai-large', 'openai-reasoning', 'gemini-search']);
+const DEFAULT_CHAT_MAX_TOKENS = 1200;
 
 /**
  * Main function to get a chat completion from Pollinations.
@@ -78,9 +79,9 @@ export async function getPollinationsChatCompletion(
     messages: historyMessages, // Directly use the history messages
   };
 
-  if (typeof maxCompletionTokens === 'number') {
-    payload.max_tokens = maxCompletionTokens;
-  }
+  payload.max_tokens = typeof maxCompletionTokens === 'number'
+    ? maxCompletionTokens
+    : DEFAULT_CHAT_MAX_TOKENS;
 
   // Add system prompt as a top-level parameter if it exists and is not empty
   // This is more compatible across different Pollinations models than using role: 'system'

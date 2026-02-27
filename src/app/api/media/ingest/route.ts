@@ -10,7 +10,7 @@ const IngestSchema = z.object({
 
 const MEDIA_UPLOAD_URL = 'https://media.pollinations.ai/upload';
 const MIN_BYTES = 1000;
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // Pollinations OpenAPI currently documents 10MB.
 
 function fallbackContentType(kind?: 'image' | 'video') {
   return kind === 'video' ? 'video/mp4' : 'image/jpeg';
@@ -18,10 +18,6 @@ function fallbackContentType(kind?: 'image' | 'video') {
 
 export const runtime = 'nodejs';
 
-/**
- * Legacy compatibility route.
- * Maintains existing API shape while ingesting to Pollinations Media Storage.
- */
 export async function POST(request: Request) {
   try {
     const apiKey = resolvePollenKey(request);

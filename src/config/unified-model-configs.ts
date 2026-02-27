@@ -158,6 +158,18 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'jpg', hidden: true },
     ],
   },
+  'grok-imagine': {
+    id: 'grok-imagine',
+    name: 'Grok Imagine',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
   'z-image-turbo': {
     id: 'z-image-turbo',
     name: 'Z-Image-Turbo',
