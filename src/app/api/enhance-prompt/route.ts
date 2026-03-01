@@ -17,7 +17,8 @@ const MODEL_ALIASES: Record<string, string> = {
   'hailuo-02': 'hailuo-02',
   // Config uses 'seedream-4.0' but UI uses 'seedream-4'
   'seedream-4': 'seedream-4.0',
-  'seedream-pro': 'seedream-pro',
+  'seedream-pro': 'seedream',
+  'seedream5': 'seedream5',
   'wan-2.5-t2v': 'wan',
   'wan-2.5-i2v': 'wan',
   'wan': 'wan',
@@ -31,17 +32,18 @@ const MODEL_ALIASES: Record<string, string> = {
   'seedance-fast': 'seedance',
   'ltx-2': 'ltx-2',
   'ltx-video': 'ltx-2',
-  'grok-video': 'grok-video',
-  'grok-imagine': 'grok-imagine',
+  'grok-video': 'seedance',
+  'grok-imagine': 'nanobanana',
   'gpt-image': 'default', // Generic model, uses default prompt
   'nanobanana': 'nanobanana',
   'nanobanana-pro': 'nanobanana-pro',
+  'nanobanana-2': 'nanobanana-2',
   // flux-2-dev removed from UI; use closest prompt family.
   'flux-2-dev': 'flux',
   // NEW Replicate model mappings
   'flux-2-max': 'flux', // Similar family
   'flux-2-klein-9b': 'klein-large', // Same as Pollinations klein-large
-  'grok-imagine-video': 'grok-video', // Same as Pollinations grok-video
+  'grok-imagine-video': 'seedance', // Closest remaining video prompt family
 };
 
 function selectGuidelines(modelId: string): string {

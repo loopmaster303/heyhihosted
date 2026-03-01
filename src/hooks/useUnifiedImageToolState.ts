@@ -17,24 +17,15 @@ export const pollinationUploadModels = [
     'flux',
     'gpt-image',
     'gptimage-large',
-    'seedream-pro',
     'seedream',
+    'seedream5',
     'nanobanana',
     'nanobanana-pro',
+    'nanobanana-2',
     'klein-large',
     'kontext',
     'wan',
-    'grok-video'
-];
-
-export const replicateUploadModels = [
-    'flux-2-pro',
-    'flux-kontext-pro',
-    'wan-video',
-    'z-image-turbo',
-    'flux-2-max',
-    'flux-2-klein-9b',
-    'grok-imagine-video',
+    'seedance',
 ];
 
 export const gptImagePresets: Record<string, { width: number; height: number }> = {
@@ -51,6 +42,12 @@ function normalizeLegacyImageModelId(id: string): string {
     if (id === 'seedance-fast') return 'seedance';
     if (id === 'ltx-video') return 'ltx-2';
     if (id === 'flux-2-dev') return 'flux';
+    if (id === 'z-image-turbo') return 'zimage';
+    if (id === 'flux-2-pro' || id === 'flux-kontext-pro') return 'kontext';
+    if (id === 'flux-2-max' || id === 'flux-2-klein-9b') return 'klein-large';
+    if (id === 'wan-video' || id === 'wan-2.5-t2v') return 'wan';
+    if (id === 'grok-imagine' || id === 'grok-video' || id === 'grok-imagine-video') return 'nanobanana';
+    if (id === 'seedream-pro') return 'seedream5';
     return id;
 }
 
@@ -72,7 +69,7 @@ export function useUnifiedImageToolState() {
     }, [defaultImageModelId, normalizedDefaultImageModelId, setDefaultImageModelId]);
 
     const availableModels = useMemo(
-        () => Object.keys(unifiedModelConfigs).filter(id => getUnifiedModel(id)?.enabled ?? true),
+        () => Object.keys(unifiedModelConfigs).filter(id => getUnifiedModel(id)?.enabled ?? false),
         []
     );
     const initialModelId = availableModels.includes(normalizedDefaultImageModelId)
@@ -109,8 +106,8 @@ export function useUnifiedImageToolState() {
 
     // Derived states
     const isGptImage = selectedModelId === 'gpt-image' || selectedModelId === 'gptimage-large';
-    const isSeedream = selectedModelId === 'seedream' || selectedModelId === 'seedream-pro';
-    const isNanoPollen = selectedModelId === 'nanobanana' || selectedModelId === 'nanobanana-pro';
+    const isSeedream = selectedModelId === 'seedream' || selectedModelId === 'seedream-pro' || selectedModelId === 'seedream5';
+    const isNanoPollen = selectedModelId === 'nanobanana' || selectedModelId === 'nanobanana-pro' || selectedModelId === 'nanobanana-2';
     
     // Dynamic check for any Pollinations image model
     const isPollenModel = useMemo(() => {
@@ -136,13 +133,6 @@ export function useUnifiedImageToolState() {
             return modelInfo.maxImages;
         }
 
-        // 2. Fallbacks (Legacy)
-        if (selectedModelId === 'flux-2-pro') return 8;
-        if (selectedModelId === 'nanobanana-pro') return 14;
-        if (selectedModelId === 'qwen-image-edit-plus') return 3;
-        if (selectedModelId === 'flux-kontext-pro') return 1;
-        if (selectedModelId === 'wan-video') return 1;
-        
         // Default for Pollinations flux/kontext is usually 1 (prompt injection or img2img)
         if (selectedModelId === 'flux' || selectedModelId === 'kontext') return 1;
 
@@ -230,11 +220,10 @@ export function useUnifiedImageToolState() {
         }
 
         const modelInfo = getUnifiedModel(selectedModelId);
-        const needsUpload = modelInfo?.provider === 'replicate' && modelInfo?.supportsReference;
-        const allUploadModels = [...pollinationUploadModels, ...replicateUploadModels];
+        const allUploadModels = [...pollinationUploadModels];
         const isPollinations = modelInfo?.provider === 'pollinations';
 
-        if (needsUpload || allUploadModels.includes(selectedModelId)) {
+        if (allUploadModels.includes(selectedModelId)) {
             setIsUploading(true);
 
             if (isPollinations && maxImages === 1 && imageFiles.length > 1) {

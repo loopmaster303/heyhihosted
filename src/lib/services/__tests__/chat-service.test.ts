@@ -192,10 +192,10 @@ describe('ChatService', () => {
             }));
         });
 
-        it('should pass reference image for Replicate grok-imagine-video', async () => {
+        it('should pass reference image for Pollinations video generation', async () => {
             const options: GenerateImageOptions = {
                 prompt: 'Animate this image',
-                modelId: 'grok-imagine-video',
+                modelId: 'seedance',
                 image: 'https://example.com/reference.png',
                 aspect_ratio: '16:9',
                 duration: 5,
@@ -209,16 +209,16 @@ describe('ChatService', () => {
             const result = await ChatService.generateImage(options);
 
             expect(result).toBe('https://example.com/video.mp4');
-            expect(mockFetch).toHaveBeenCalledWith('/api/replicate', expect.objectContaining({
+            expect(mockFetch).toHaveBeenCalledWith('/api/generate', expect.objectContaining({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             }));
 
             const fetchArgs = mockFetch.mock.calls[0]?.[1];
             const parsedBody = JSON.parse(fetchArgs.body);
-            expect(parsedBody.model).toBe('grok-imagine-video');
-            expect(parsedBody.image_url).toBe('https://example.com/reference.png');
-            expect(parsedBody.aspect_ratio).toBe('16:9');
+            expect(parsedBody.model).toBe('seedance');
+            expect(parsedBody.image).toBe('https://example.com/reference.png');
+            expect(parsedBody.aspectRatio).toBe('16:9');
         });
     });
 });

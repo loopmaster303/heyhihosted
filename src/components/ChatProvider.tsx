@@ -29,7 +29,6 @@ import { GalleryService } from '@/lib/services/gallery-service';
 import { uploadFileToS3 } from '@/lib/upload/s3-upload';
 import { getClientSessionId } from '@/lib/session';
 import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
-import { getReplicateImageParam } from '@/lib/image-generation/replicate-image-params';
 import { toDate } from '@/utils/chatHelpers';
 
 export interface UseChatLogicProps {
@@ -603,21 +602,14 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       if (isImagePrompt && effectivePrompt) {
         const imageConfig = options.imageConfig;
         const modelInfo = getUnifiedModel(selectedImageModelId);
-        const isPollinationsModel = modelInfo?.provider === 'pollinations';
-        const isPollinationsVideo = isPollinationsModel && modelInfo?.kind === 'video';
+        const isPollinationsModel = true;
+        const isPollinationsVideo = modelInfo?.kind === 'video';
 
         const resolvedReferenceUrls = imageConfig
           ? await resolveReferenceUrls(imageConfig.uploadedImages)
           : [];
 
-        let enrichedPrompt = effectivePrompt;
-        // Only embed reference URLs in the prompt text for non-Pollinations models (e.g. Replicate).
-        // Pollinations receives images via the dedicated `image` query parameter — embedding
-        // full hosted URLs or data-URIs in the prompt would blow up the GET URL.
-        if (resolvedReferenceUrls.length > 0 && !isPollinationsModel) {
-            const imageList = resolvedReferenceUrls.map((url, i) => `IMAGE_${i + 1}: ${url}`).join('\n');
-            enrichedPrompt = `User provided the following reference images:\n${imageList}\n\nTask: ${effectivePrompt}`;
-        }
+        const enrichedPrompt = effectivePrompt;
 
         const imageParams: any = {
           prompt: enrichedPrompt.trim(),
@@ -627,59 +619,26 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
         if (imageConfig) {
           const { formFields } = imageConfig;
           if (resolvedReferenceUrls.length > 0) {
-            if (!isPollinationsModel) {
-              // Replicate: Use model-specific parameter name (centralized mapping)
-              const replicateParam = getReplicateImageParam(selectedImageModelId, resolvedReferenceUrls);
-              if (replicateParam) {
-                imageParams[replicateParam.paramName] = replicateParam.paramValue;
-              }
-            } else {
-              // Pollinations: Always use 'image'
-              imageParams.image = resolvedReferenceUrls;
-            }
+            // Pollinations: Always use 'image'
+            imageParams.image = resolvedReferenceUrls;
           }
 
-          if (isPollinationsModel) {
-            if (modelInfo?.kind === 'video' || selectedImageModelId.includes('wan') || formFields.duration) {
-              if (formFields.aspect_ratio) imageParams.aspect_ratio = formFields.aspect_ratio;
-              
-              // Duration: Safe Parsing
-              if (formFields.duration !== undefined && formFields.duration !== null) {
-                  imageParams.duration = Number(formFields.duration);
-              }
-              
-              // Audio: Explicit Boolean Check
-              if (formFields.audio !== undefined) {
-                  imageParams.audio = formFields.audio;
-              }
-            } else {
-              imageParams.width = formFields.width || 1024;
-              imageParams.height = formFields.height || 1024;
+          if (modelInfo?.kind === 'video' || selectedImageModelId.includes('wan') || formFields.duration) {
+            if (formFields.aspect_ratio) imageParams.aspect_ratio = formFields.aspect_ratio;
+
+            // Duration: Safe Parsing
+            if (formFields.duration !== undefined && formFields.duration !== null) {
+              imageParams.duration = Number(formFields.duration);
             }
-          } else if (selectedImageModelId === 'z-image-turbo') {
-            const aspectRatio = formFields.aspect_ratio || '1:1';
-            const aspectRatioMap: Record<string, { width: number; height: number }> = {
-              '1:1': { width: 1024, height: 1024 },
-              '4:3': { width: 1024, height: 768 },
-              '3:4': { width: 768, height: 1024 },
-              '16:9': { width: 1344, height: 768 },
-              '9:16': { width: 768, height: 1344 },
-            };
-            const dims = aspectRatioMap[aspectRatio] || { width: 1024, height: 1024 };
-            imageParams.width = dims.width;
-            imageParams.height = dims.height;
+
+            // Audio: Explicit Boolean Check
+            if (formFields.audio !== undefined) {
+              imageParams.audio = formFields.audio;
+            }
           } else {
-             if (formFields.aspect_ratio) imageParams.aspect_ratio = formFields.aspect_ratio;
-             if (formFields.resolution) imageParams.resolution = formFields.resolution;
-             if (formFields.duration) imageParams.duration = Number(formFields.duration);
-          }
-
-          if (!isPollinationsModel) {
-             imageParams.output_format = formFields.output_format;
-             if (selectedImageModelId === 'flux-2-pro') {
-                imageParams.safety_tolerance = 5;
-                imageParams.output_quality = 100;
-             }
+            imageParams.width = formFields.width || 1024;
+            imageParams.height = formFields.height || 1024;
+            if (formFields.resolution) imageParams.resolution = formFields.resolution;
           }
         } 
 
@@ -979,8 +938,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
 
   const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), [setIsHistoryPanelOpen]);
   const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), [setIsAdvancedPanelOpen]);
-  const toggleWebBrowsing = useCallback(() => {
-    setActiveConversation((prev: Conversation | null) => prev ? { ...prev, webBrowsingEnabled: !(prev.webBrowsingEnabled ?? false) } : prev);
+  const toggleWebBrowsing = useCallback((forcedState?: boolean) => {
+    setActiveConversation((prev: Conversation | null) => prev ? {
+      ...prev,
+      webBrowsingEnabled: forcedState !== undefined ? forcedState : !(prev.webBrowsingEnabled ?? false)
+    } : prev);
   }, [setActiveConversation]);
 
   const handleCopyToClipboard = useCallback((text: string) => {

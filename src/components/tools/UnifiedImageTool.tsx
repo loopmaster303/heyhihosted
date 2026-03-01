@@ -14,7 +14,6 @@ import { GalleryService } from '@/lib/services/gallery-service';
 import { uploadFileToS3WithKey } from '@/lib/upload/s3-upload';
 import { getClientSessionId } from '@/lib/session';
 import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
-import { getReplicateImageParam } from '@/lib/image-generation/replicate-image-params';
 import VisualizeInputContainer from '@/components/tools/VisualizeInputContainer';
 // import { persistRemoteImage } from '@/lib/services/local-image-storage';
 import { ExternalLink } from 'lucide-react';
@@ -23,11 +22,10 @@ import { Button } from '@/components/ui/button';
 const MAX_REFERENCE_IMAGES = 14;
 
 interface UnifiedImageToolProps {
-  password?: string;
   sharedToolState?: ReturnType<typeof useUnifiedImageToolState>;
 }
 
-const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToolState }) => {
+const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) => {
   const { toast } = useToast();
   const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
@@ -74,14 +72,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
     if (!currentModelConfig) return;
     const modelInfo = getUnifiedModel(selectedModelId);
 
-    // 0. Validation for Pure Image-to-Video Models (requires start frame)
-    // Note: grok-video is hybrid (T2V + optional I2V), so we must NOT require an image.
-    const isPureI2V = selectedModelId === 'wan-video';
-    if (isPureI2V && uploadedImages.length === 0) {
-        toast({ title: "Start-Frame Required", description: "This model requires at least one reference image to start.", variant: "destructive" });
-        return;
-    }
-
     setLoading(true);
     setSelectedImage(null);
 
@@ -120,7 +110,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
 
       const modelInfo = getUnifiedModel(selectedModelId);
       const isPollinations = modelInfo?.provider === 'pollinations';
-      const isPollinationsVideo = isPollinations && modelInfo?.kind === 'video';
+      const isPollinationsVideo = modelInfo?.kind === 'video';
 
       // 2. Prepare Enriched Prompt
       // REMOVED: Legacy behavior. We now pass 'image' param explicitly.
@@ -141,16 +131,8 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       };
 
       if (referenceUrls.length > 0) {
-          if (!isPollinations) {
-            // Replicate: Use model-specific parameter name (centralized mapping)
-            const replicateParam = getReplicateImageParam(selectedModelId, referenceUrls);
-            if (replicateParam) {
-              payload[replicateParam.paramName] = replicateParam.paramValue;
-            }
-          } else {
-            // Pollinations: Always use 'image' parameter
-            payload.image = referenceUrls;
-          }
+          // Pollinations: Always use 'image' parameter
+          payload.image = referenceUrls;
       }
 
       if (!isPollinationsVideo) {
@@ -163,22 +145,16 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
       }
 
       if (formFields.seed) payload.seed = Number(formFields.seed);
-      if (isPollinations) {
-          if (isPollinationsVideo) {
-            if (formFields.aspect_ratio) payload.aspectRatio = formFields.aspect_ratio;
-            if (formFields.duration) payload.duration = Number(formFields.duration);
-            if (formFields.audio !== undefined) payload.audio = formFields.audio;
-          } else {
-            if (formFields.enhance) payload.enhance = true;
-            if (formFields.transparent) payload.transparent = true;
-          }
+      if (isPollinationsVideo) {
+        if (formFields.aspect_ratio) payload.aspectRatio = formFields.aspect_ratio;
+        if (formFields.duration) payload.duration = Number(formFields.duration);
+        if (formFields.audio !== undefined) payload.audio = formFields.audio;
+      } else {
+        if (formFields.enhance) payload.enhance = true;
+        if (formFields.transparent) payload.transparent = true;
       }
 
-      if (!isPollinations) {
-        payload.password = password || '';
-      }
-
-      const endpoint = isPollinations ? '/api/generate' : '/api/replicate';
+      const endpoint = '/api/generate';
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -267,7 +243,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ password, sharedToo
     } finally {
       setLoading(false);
     }
-  }, [prompt, uploadedImages, currentModelConfig, selectedModelId, password, formFields, toast]);
+  }, [prompt, uploadedImages, currentModelConfig, selectedModelId, formFields, toast]);
 
   // Handle shared state hydration (if needed for prompts)
   useEffect(() => {

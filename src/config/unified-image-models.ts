@@ -1,25 +1,24 @@
 /**
  * Unified Image Model Registry
- * Combines Pollinations and Replicate models into a single registry
+ * Pollinations-only model catalog for image/video generation.
  */
 
-export type ImageProvider = 'pollinations' | 'replicate' | 'mistral';
+export type ImageProvider = 'pollinations';
 export type ImageKind = 'image' | 'video';
 export type ImageCategory = 'Standard' | 'Advanced';
 
 export interface UnifiedImageModel {
-  id: string; // Unique model identifier
-  name: string; // Display name
+  id: string;
+  name: string;
   provider: ImageProvider;
   kind: ImageKind;
-  category?: ImageCategory; // Standard = featured, Advanced = expanded popup
+  category?: ImageCategory;
   description?: string;
-  supportsReference?: boolean; // Can use reference images
-  maxImages?: number; // New: Maximum allowed reference images
-  isFree?: boolean; // Free tier available (Pollinations)
-  requiresPassword?: boolean; // Requires password (Replicate premium)
-  enabled?: boolean; // Whether the model is enabled (default true)
-  supportsAudio?: boolean; // Does the model generate audio?
+  supportsReference?: boolean;
+  maxImages?: number;
+  isFree?: boolean;
+  enabled?: boolean;
+  supportsAudio?: boolean;
   durationRange?: {
     min?: number;
     max?: number;
@@ -28,43 +27,40 @@ export interface UnifiedImageModel {
   };
 }
 
-/**
- * Pollinations Models (Free tier)
- * Standard: seedream, gpt-image, nanobanana, zimage
- * Advanced: kontext, nanobanana-pro, seedream-pro
- */
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
   { id: 'flux', name: 'Flux.1 Fast', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
   { id: 'klein-large', name: 'Flux.2 klein 9B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'FLUX.2 Klein 9B' },
+  // Internal fallback for klein-large (9B) when it is unavailable. Not shown in UI.
+  { id: 'klein', name: 'Flux.2 klein 4B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: false, description: 'FLUX.2 Klein 4B (internal fallback for 9B)' },
   { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware frame editing' },
   { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: false, description: 'GPT Image 1 Mini' },
   { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: true, enabled: true, description: 'Advanced OpenAI Image' },
-  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Seedream 4.0 - ByteDance ARK' },
+  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Deprecated - use seedream5' },
+  { id: 'seedream5', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: true, description: 'Seedream 5.0 Lite - ByteDance' },
   { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 2.5 Flash Image' },
   { id: 'zimage', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast 6B Flux' },
-  { id: 'grok-imagine', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'xAI Grok Image (Text to Image)' },
 
   // ADVANCED Image Models
   { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3 Pro Image (4K)' },
-  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 10, isFree: true, enabled: true, description: 'Seedream 4.5 Pro (4K)' },
+  { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3.1 Flash Image' },
+  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Deprecated - use seedream5' },
 
   // STANDARD Video Models
-  { 
-    id: 'seedance', 
-    name: 'Seedance', 
-    provider: 'pollinations', 
-    kind: 'video', 
-    category: 'Standard', 
-	    // Text-to-video model (no image reference input).
-	    supportsReference: false, 
-	    maxImages: 0, 
-	    isFree: true, 
-	    enabled: true,
-	    description: 'Seedance Lite (BytePlus) (T2V)',
-	    supportsAudio: false,
-	    durationRange: { options: [5, 10] }
-	  },
+  {
+    id: 'seedance',
+    name: 'Seedance',
+    provider: 'pollinations',
+    kind: 'video',
+    category: 'Standard',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: true,
+    enabled: true,
+    description: 'Seedance Lite (BytePlus) (T2V / optional I2V)',
+    supportsAudio: false,
+    durationRange: { options: [5, 10] },
+  },
 
   // ADVANCED Video Models
   {
@@ -79,141 +75,26 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     description: '2-15s, 1080p (Alibaba Wan 2.6) (T2V / optional I2V)',
     maxImages: 1,
     supportsAudio: true,
-    durationRange: { options: [5, 10, 15] }
+    durationRange: { options: [5, 10, 15] },
   },
-  { 
-    id: 'ltx-2', 
-    name: 'LTX 2 Fast', 
-    provider: 'pollinations', 
-    kind: 'video', 
-    category: 'Advanced', 
-    supportsReference: false, 
-    isFree: true, 
-    enabled: true, 
+  {
+    id: 'ltx-2',
+    name: 'LTX 2 Fast',
+    provider: 'pollinations',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: false,
+    isFree: true,
+    enabled: true,
     description: 'Lightricks LTX 2 (T2V)',
     maxImages: 0,
     supportsAudio: true,
-    durationRange: { options: [6, 8, 10] }
-  },
-  { 
-    id: 'grok-video', 
-    name: 'Grok Imagine Video', 
-    provider: 'pollinations', 
-    kind: 'video', 
-    category: 'Advanced', 
-    // Hybrid: text-to-video + optional start frame (image-to-video).
-    supportsReference: true, 
-    isFree: true, 
-    enabled: true, 
-    description: 'xAI Grok Video (T2V / optional I2V)',
-    maxImages: 1,
-    supportsAudio: false,
-    durationRange: { options: [6] }
+    durationRange: { options: [6, 8, 10] },
   },
 ];
 
-/**
- * Replicate Models (Premium tier)
- * All Advanced category
- */
-const REPLICATE_MODELS: UnifiedImageModel[] = [
-  // Video Generation (Advanced)
-  { id: 'wan-2.5-t2v', name: 'Wan 2.5 T2V', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: false, requiresPassword: false, description: 'Text to Video', enabled: false },
-  { id: 'wan-video', name: 'Wan 2.5 I2V', provider: 'replicate', kind: 'video', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Image to Video', enabled: false },
-
-  // Image Generation (Standard - flux-kontext is featured)
-  { id: 'flux-kontext-pro', name: 'Flux Kontext Pro', provider: 'replicate', kind: 'image', category: 'Standard', supportsReference: true, requiresPassword: false, description: 'Context Edit', enabled: false },
-
-  // Image Generation (Advanced)
-  { id: 'flux-2-pro', name: 'Flux 2 Pro', provider: 'replicate', kind: 'image', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'High Quality', enabled: false },
-  { id: 'z-image-turbo', name: 'Z-Image Turbo (Replicate)', provider: 'replicate', kind: 'image', category: 'Advanced', supportsReference: true, requiresPassword: false, description: 'Fast Image', enabled: false },
-
-  // NEW Replicate Models (Standby)
-  { 
-    id: 'flux-2-max', 
-    name: 'Flux 2 Max (Replicate)', 
-    provider: 'replicate', 
-    kind: 'image', 
-    category: 'Advanced', 
-    supportsReference: true, 
-    maxImages: 4,
-    requiresPassword: false, 
-    description: 'Highest fidelity (Black Forest Labs)',
-    enabled: false
-  },
-  {
-    id: 'flux-2-klein-9b',
-    name: 'Flux 2 Klein 9B (Replicate)',
-    provider: 'replicate',
-    kind: 'image',
-    category: 'Advanced',
-    supportsReference: true,
-    maxImages: 4,
-    requiresPassword: false,
-    description: '4-step distilled, fast',
-    enabled: false
-  },
-  { 
-    id: 'grok-imagine-video', 
-    name: 'Grok Imagine Video (Replicate)', 
-    provider: 'replicate', 
-    kind: 'video', 
-    category: 'Advanced', 
-    supportsReference: true, 
-    maxImages: 1,
-    requiresPassword: false, 
-    description: 'xAI Grok Video (Replicate)', 
-    enabled: false,
-    supportsAudio: false,
-    durationRange: { min: 1, max: 15, step: 1 }
-  },
-];
-
-
-/**
- * Mistral Models (for image generation capabilities)
- * Note: Mistral models are primarily for text but can be used for prompt enhancement
- */
-const MISTRAL_MODELS: UnifiedImageModel[] = [
-  {
-    id: 'mistral-large-3',
-    name: 'Mistral Large 3',
-    provider: 'mistral',
-    kind: 'image',
-    description: 'Advanced prompt enhancement for image generation',
-    supportsReference: false,
-    isFree: false,
-    enabled: true
-  },
-  {
-    id: 'mistral-medium-3.1',
-    name: 'Mistral Medium 3.1',
-    provider: 'mistral',
-    kind: 'image',
-    description: 'Balanced prompt enhancement for image generation',
-    supportsReference: false,
-    isFree: false,
-    enabled: true
-  },
-  {
-    id: 'mistral-small-3',
-    name: 'Mistral Small 3',
-    provider: 'mistral',
-    kind: 'image',
-    description: 'Fast prompt enhancement for image generation',
-    supportsReference: false,
-    isFree: false,
-    enabled: true
-  },
-];
-
-/**
- * All unified models
- */
 export const UNIFIED_IMAGE_MODELS: UnifiedImageModel[] = [
   ...POLLINATIONS_MODELS,
-  ...REPLICATE_MODELS,
-  ...MISTRAL_MODELS,
 ];
 
 export interface VisualizeModelGroup {
@@ -230,7 +111,7 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'FREE',
     category: 'Standard',
     kind: 'image',
-    modelIds: ['flux', 'zimage', 'grok-imagine'],
+    modelIds: ['flux', 'zimage'],
   },
   {
     key: 'image-editing',
@@ -244,14 +125,14 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'ADVANCED',
     category: 'Advanced',
     kind: 'image',
-    modelIds: ['nanobanana-pro', 'seedream-pro', 'flux-2-max'],
+    modelIds: ['nanobanana-pro', 'nanobanana-2', 'seedream5'],
   },
   {
     key: 'video',
     label: 'VIDEO',
     category: 'Advanced',
     kind: 'video',
-    modelIds: ['seedance', 'wan', 'ltx-2', 'grok-video'],
+    modelIds: ['seedance', 'wan', 'ltx-2'],
   },
 ];
 
@@ -264,51 +145,26 @@ export function getVisualizeModelGroups(): Array<VisualizeModelGroup & { models:
   })).filter(group => group.models.length > 0);
 }
 
-/**
- * Get model by ID
- */
 export function getUnifiedModel(modelId: string): UnifiedImageModel | undefined {
   return UNIFIED_IMAGE_MODELS.find(m => m.id === modelId);
 }
 
-/**
- * Get models by provider
- */
 export function getModelsByProvider(provider: ImageProvider): UnifiedImageModel[] {
   return UNIFIED_IMAGE_MODELS.filter(m => m.provider === provider && (m.enabled ?? true));
 }
 
-/**
- * Get models by kind
- */
 export function getModelsByKind(kind: ImageKind): UnifiedImageModel[] {
   return UNIFIED_IMAGE_MODELS.filter(m => m.kind === kind && (m.enabled ?? true));
 }
 
-/**
- * Get image-only models (for chat)
- */
 export function getImageModels(): UnifiedImageModel[] {
   return UNIFIED_IMAGE_MODELS.filter(m => m.kind === 'image' && (m.enabled ?? true));
 }
 
-/**
- * Get free models (Pollinations)
- */
 export function getFreeModels(): UnifiedImageModel[] {
   return UNIFIED_IMAGE_MODELS.filter(m => m.isFree === true && (m.enabled ?? true));
 }
 
-/**
- * Get premium models (Replicate)
- */
-export function getPremiumModels(): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m => m.provider === 'replicate' && (m.enabled ?? true));
-}
-
-/**
- * Get Standard (featured) models by kind
- */
 export function getStandardModels(kind?: ImageKind): UnifiedImageModel[] {
   return UNIFIED_IMAGE_MODELS.filter(m =>
     m.category === 'Standard' &&
@@ -317,9 +173,6 @@ export function getStandardModels(kind?: ImageKind): UnifiedImageModel[] {
   );
 }
 
-/**
- * Get Advanced models by kind
- */
 export function getAdvancedModels(kind?: ImageKind): UnifiedImageModel[] {
   return UNIFIED_IMAGE_MODELS.filter(m =>
     m.category === 'Advanced' &&
@@ -328,11 +181,7 @@ export function getAdvancedModels(kind?: ImageKind): UnifiedImageModel[] {
   );
 }
 
-/**
- * Chat-only image models (limited selection)
- * Only: seedream, zimage, nanobanana
- */
-const CHAT_IMAGE_MODEL_IDS = ['seedream', 'zimage', 'nanobanana'];
+const CHAT_IMAGE_MODEL_IDS = ['seedream5', 'zimage', 'nanobanana'];
 export function getChatImageModels(): UnifiedImageModel[] {
   return UNIFIED_IMAGE_MODELS.filter(m =>
     CHAT_IMAGE_MODEL_IDS.includes(m.id) &&

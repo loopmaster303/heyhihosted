@@ -18,8 +18,6 @@ interface PersonalizationToolProps {
   setUserDisplayName: (name: string) => void;
   customSystemPrompt: string;
   setCustomSystemPrompt: (prompt: string) => void;
-  replicateToolPassword?: string;
-  setReplicateToolPassword?: (password: string) => void;
   selectedModelId?: string;
   onModelChange?: (modelId: string) => void;
   selectedVoice?: string;
@@ -33,8 +31,6 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   setUserDisplayName,
   customSystemPrompt,
   setCustomSystemPrompt,
-  replicateToolPassword,
-  setReplicateToolPassword,
   selectedModelId,
   onModelChange,
   selectedVoice,
@@ -394,18 +390,6 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
           </div>
         )}
 
-        {/* Hidden Raw Image Key */}
-        {setReplicateToolPassword && (
-          <div className="hidden">
-            <Input
-              type="password"
-              value={replicateToolPassword || ''}
-              onChange={(e) => setReplicateToolPassword(e.target.value)}
-              placeholder="Enter access key for image-gen/raw..."
-              className="border-border focus-visible:ring-primary text-base font-code bg-tool-input-bg"
-            />
-          </div>
-        )}
       </div>
     </div>
   );
