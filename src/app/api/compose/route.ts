@@ -15,17 +15,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate duration (3-300 seconds)
-    const validDuration = Math.max(3, Math.min(300, Number(duration)));
+    // BYOP: Resolve API key (user key from header → env var fallback)
+    const apiKey = resolvePollenKey(request);
+
+    // Free tier: max 120s. Own Pollen key: full 300s.
+    const maxDuration = apiKey ? 300 : 120;
+    const validDuration = Math.max(3, Math.min(maxDuration, Number(duration)));
 
     // Build Universal request (GET)
     const encodedPrompt = encodeURIComponent(prompt);
     const url = `${POLLINATIONS_BASE}/audio/${encodedPrompt}?model=elevenmusic&duration=${validDuration}&instrumental=${instrumental}`;
 
     console.log('[Compose] Requesting audio (Universal):', url);
-
-    // BYOP: Resolve API key (user key from header → env var fallback)
-    const apiKey = resolvePollenKey(request);
 
     const headers: Record<string, string> = {};
     if (apiKey) {
