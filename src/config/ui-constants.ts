@@ -30,11 +30,6 @@ export const modelIcons: Record<string, any> = {
     'gemini-search': GeminiIcon,
     'glm': ZAIFarbeIcon,
     'mistral': MistralIcon,
-    'openai': OpenAIIcon,
-    'openai-large': OpenAIIcon,
-    'openai-fast': OpenAIIcon,
-    'openai-reasoning': OpenAIIcon,
-    'grok': GrokIcon,
     'kimi': KimiIcon,
     'perplexity-reasoning': PerplexityIcon,
     'perplexity-fast': PerplexityIcon,
@@ -54,11 +49,7 @@ export const modelDisplayMap: Record<string, string> = {
     'gemini-search': 'Gemini Search',
     'glm': 'Z.ai GLM-5',
     'mistral': 'Mistral',
-    'openai': 'GPT 5',
-    'openai-large': 'GPT 5.2',
-    'openai-fast': 'OpenAI GPT-5 Nano',
     'deepseek': 'Deepseek V3.2',
-    'grok': 'Grok 4',
     'kimi': 'Kimi K2.5',
     'perplexity-reasoning': 'Sonar Reason',
     'perplexity-fast': 'Sonar',
@@ -70,7 +61,7 @@ export const modelDisplayMap: Record<string, string> = {
 export const featuredModels = [
     { id: 'gemini-fast', emoji: '⚡', highlight: 'Lite' },
     { id: 'nova-fast', emoji: '🌟', highlight: 'Micro' },
-    { id: 'openai-fast', emoji: '🚀', highlight: 'Nano' },
+    { id: 'claude-fast', emoji: '⚡', highlight: 'Haiku' },
     { id: 'deepseek', emoji: '🔍', highlight: 'V3' },
 ];
 
