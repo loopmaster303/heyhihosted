@@ -6,8 +6,6 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import LanguageToggle from '@/components/LanguageToggle';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from '@/components/LanguageProvider';
 import { AVAILABLE_POLLINATIONS_MODELS, isKnownPollinationsTextModelId, DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
@@ -58,8 +56,6 @@ const PersonalizationSidebarSection: React.FC = () => {
         extra: 'Individual AI Instruction',
         defaultText: 'Standard Text Model',
         defaultImage: 'Standard Image Model',
-        theme: 'Theme',
-        language: 'Language',
         voice: 'AI Voice',
         namePlaceholder: 'user',
         extraPlaceholder: 'Special wishes for your Assistance? - just add it for a more individual Experience',
@@ -71,8 +67,6 @@ const PersonalizationSidebarSection: React.FC = () => {
         extra: 'Individuelle KI Anweisung',
         defaultText: 'Standard Text Modell',
         defaultImage: 'Standard Bild Modell',
-        theme: 'Farbschema',
-        language: 'Sprache',
         voice: 'KI-Stimme',
         namePlaceholder: 'user',
         extraPlaceholder: 'Sonderwünsche für deinen Assistenten? - Schreibs einfach hier rein für eine individuellere Erfahrung.',
@@ -193,19 +187,6 @@ const PersonalizationSidebarSection: React.FC = () => {
             </Select>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-              {labels.theme}
-            </span>
-            <ThemeToggle />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-              {labels.language}
-            </span>
-            <LanguageToggle />
-          </div>
         </div>
       )}
     </div>

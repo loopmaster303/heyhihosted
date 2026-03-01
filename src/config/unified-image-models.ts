@@ -37,13 +37,13 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: false, description: 'GPT Image 1 Mini' },
   { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: true, enabled: true, description: 'Advanced OpenAI Image' },
   { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Deprecated - use seedream5' },
-  { id: 'seedream5', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: true, description: 'Seedream 5.0 Lite - ByteDance' },
+  { id: 'seedream5', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Seedream 5.0 Lite - ByteDance' },
   { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 2.5 Flash Image' },
   { id: 'zimage', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast 6B Flux' },
 
   // ADVANCED Image Models
   { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3 Pro Image (4K)' },
-  { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3.1 Flash Image' },
+  { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: false, description: 'Gemini 3.1 Flash Image' },
   { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Deprecated - use seedream5' },
 
   // STANDARD Video Models

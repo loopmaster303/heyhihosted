@@ -73,17 +73,9 @@ Auto-detects user intent via regex (German + English):
 - Endpoint: `src/app/api/compose/route.ts` calls Pollinations audio with `model=elevenmusic`
 - VibeCraft enhancement prompt (`COMPOSE_ENHANCEMENT_PROMPT` in `enhancement-prompts.ts`)
 
-**Replicate Image/Video** (`/api/replicate`):
-
-- Server-side polling via Replicate predictions API
-- Model endpoints mapped in `MODEL_ENDPOINTS` (`src/app/api/replicate/route.ts`)
-- Reference images via S3 signed URLs (same upload flow as Pollinations)
-- Parameter name mapping: `getReplicateImageParam()` in `src/lib/image-generation/replicate-image-params.ts`
-- Hidden defaults injected per model (e.g. `output_quality: 100` for flux-2-max)
-
 **Text-to-Speech** (`/api/tts`):
 
-- Replicate SDK (`minimax/speech-02-turbo`)
+- Replicate SDK (`minimax/speech-02-turbo`) — TTS only, Replicate is not used for image/video
 
 **Speech-to-Text** (`/api/stt`):
 
@@ -108,47 +100,27 @@ Auto-detects user intent via regex (German + English):
 
 ### Reference Images
 
-**Upload Flow (unified for Pollinations + Replicate):**
+**Upload Flow:**
 
 1. User selects image(s) → uploaded to S3 via signed URL
 2. Stored as `UploadedReference[]`: `{ url, key, expiresAt }`
 3. Before API call: `resolveReferenceUrls()` refreshes expired URLs
-4. Passed to API with correct parameter name per provider/model
+4. Passed to Pollinations API as `image` parameter (`string[]`)
 
-**Critical: Upload Model Lists** (`useUnifiedImageToolState.ts`):
+**Critical: Upload Model List** (`useUnifiedImageToolState.ts`):
 
 - `pollinationUploadModels` — every Pollinations model with `supportsReference: true` **must** be listed
-- `replicateUploadModels` — every Replicate model with `supportsReference: true` **must** be listed
 - If missing, upload falls back to local Data-URI (base64 ~940K chars) which explodes GET URLs
-
-**Replicate Parameter Mapping** (`src/lib/image-generation/replicate-image-params.ts`):
-Replicate models use different API parameter names for reference images. The centralized `getReplicateImageParam()` maps model IDs to the correct parameter:
-
-| Model                                   | API Parameter  | Value Type |
-| --------------------------------------- | -------------- | ---------- |
-| flux-2-max, flux-2-klein-9b, flux-2-pro | `input_images` | `string[]` |
-| flux-kontext-pro                        | `input_image`  | `string`   |
-| grok-imagine-video, wan-video           | `image`        | `string`   |
-| All Pollinations models                 | `image`        | `string[]` |
-
-This mapping is used by **both** code paths:
-
-- `UnifiedImageTool.tsx` (standalone Visualize tool → `/api/replicate` direct)
-- `ChatProvider.tsx` → `ChatService.generateImage()` (chat input with image mode)
 
 **Model Limits** (`src/config/unified-image-models.ts`):
 
-| Model                    | Max Images | Provider     | Notes                             |
-| ------------------------ | ---------- | ------------ | --------------------------------- |
-| nanobanana(-pro)         | 14         | Pollinations | Gemini-based                      |
-| seedream(-pro)           | 10         | Pollinations | ByteDance                         |
-| gptimage-large           | 8          | Pollinations | OpenAI                            |
-| gpt-image                | 4          | Pollinations | OpenAI Mini (disabled)            |
-| flux-2-max               | 4          | Replicate    | Black Forest Labs, `input_images` |
-| kontext, klein-large     | 1          | Pollinations | Context editing                   |
-| grok-imagine-video       | 1          | Replicate    | Video, `image` param              |
-| wan, seedance(-pro)      | 1          | Pollinations | **Image-to-Video only**           |
-| flux, flux-2-dev, zimage | 0          | Pollinations | No reference support              |
+| Model                | Max Images | Notes                      |
+| -------------------- | ---------- | -------------------------- |
+| nanobanana(-pro)     | 14         | Gemini-based               |
+| gptimage-large       | 8          | OpenAI                     |
+| kontext, klein-large | 1          | Context editing            |
+| wan, seedance        | 1          | Image-to-Video only        |
+| flux, zimage, ltx-2  | 0          | No reference support       |
 
 Logic in `useUnifiedImageToolState`: auto-truncates images when switching to model with lower limit.
 
@@ -156,12 +128,12 @@ Logic in `useUnifiedImageToolState`: auto-truncates images when switching to mod
 
 The Visualize Bar organizes models into 4 groups (`src/config/unified-image-models.ts`):
 
-| Group        | Category | Models                                            | Visibility         |
-| ------------ | -------- | ------------------------------------------------- | ------------------ |
-| **FAST**     | Standard | zimage, flux, flux-2-dev                          | Always visible     |
-| **EDITING**  | Standard | kontext, klein-large, gptimage-large, nanobanana  | Always visible     |
-| **ADVANCED** | Advanced | nanobanana-pro, seedream-pro, flux-2-max          | Behind "Show More" |
-| **VIDEO**    | Advanced | seedance-fast, wan, ltx-video, grok-imagine-video | Behind "Show More" |
+| Group        | Category | Models                                           | Visibility         |
+| ------------ | -------- | ------------------------------------------------ | ------------------ |
+| **FREE**     | Standard | flux, zimage                                     | Always visible     |
+| **EDITING**  | Standard | kontext, klein-large, gptimage-large, nanobanana | Always visible     |
+| **ADVANCED** | Advanced | nanobanana-pro (+ 2 disabled: nanobanana-2, seedream5) | Behind "Show More" |
+| **VIDEO**    | Advanced | seedance, wan, ltx-2                             | Behind "Show More" |
 
 Standard groups are always visible; Advanced groups are behind a "Show More" toggle.
 Order of `modelIds` in each group determines display order in the UI.
@@ -227,11 +199,11 @@ See [docs/PRODUCT_IDENTITY.md](docs/PRODUCT_IDENTITY.md) for full identity speci
 
 ### Chat Model Categories
 
-| Category            | Models                                                                                                                                                                                    |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Standard (Free)** | `claude-fast`, `gemini-search`, `openai-fast`, `openai`, `grok`, `gemini-fast`, `mistral`, `nova-micro`                                                                                   |
-| **Advanced (Paid)** | **Requires Pollen Key**<br>`openai-large`, `claude-large`, `claude`, `gemini-large`, `gemini`, `deepseek`, `perplexity-reasoning`, `nomnom`, `perplexity-fast`, `kimi-k2-thinking`, `glm` |
-| **Specialized**     | `qwen-coder`, `qwen-character`                                                                                                                                                            |
+| Category            | Models                                                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Standard (Free)** | `claude-fast`, `gemini-fast`, `gemini-search`, `nova-fast`                                                                                      |
+| **Advanced (Paid)** | **Requires Pollen Key**<br>`claude`, `claude-large`, `gemini`, `gemini-large`, `deepseek`, `perplexity-fast`, `perplexity-reasoning`, `kimi`, `glm` |
+| **Specialized**     | `qwen-coder`                                                                                                                                    |
 
 ### Response Styles
 
@@ -261,13 +233,6 @@ Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical — e
 - ✅ Server-side GET fetch fallback for URLs >2000 chars (returns base64 data URL)
 - ✅ Prompt enhancement pipeline (`/api/enhance-prompt`) with 1000-char cap
 
-**Image/Video — Replicate** (`/api/replicate`):
-
-- ✅ Server-side prediction polling with configurable timeouts
-- ✅ Reference images via S3 signed URLs (same flow as Pollinations)
-- ✅ Centralized parameter mapping (`replicate-image-params.ts`)
-- ✅ Models: flux-2-max, grok-imagine-video (+ disabled: flux-2-pro, flux-kontext-pro, etc.)
-
 **Compose/Music** (`/api/compose` via Pollinations):
 
 - ✅ Compose mode with `useComposeMusicState` hook
@@ -281,7 +246,7 @@ Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical — e
 **Requirements:**
 
 - `POLLEN_API_KEY` - Pollinations API access
-- `REPLICATE_API_TOKEN` - TTS + Replicate image/video generation
+- `REPLICATE_API_TOKEN` - TTS only (`/api/tts` via minimax/speech-02-turbo)
 - AWS credentials for S3 asset storage
 
 ## Known Technical Debt
@@ -298,7 +263,7 @@ Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical — e
 
 - [x] Image-Generation Loop: Centralized `GalleryService.saveGeneratedAsset()` handles all generation flows (2026-01-22)
   - Refactored duplicate code in `ChatProvider.tsx` and `UnifiedImageTool.tsx`
-  - Supports both Pollinations (S3) and Replicate (blob) storage
+  - Pollinations assets stored via S3 ingestion pipeline
 - [x] Blob-Management: Global `BlobManager` with automatic cleanup (2026-01-22)
   - Reference counting for shared blob URLs
   - Automatic cleanup on unmount and page unload
@@ -332,8 +297,7 @@ Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical — e
 
 ```
 POLLEN_API_KEY            # Pollinations API (also accepts POLLINATIONS_API_KEY / POLLINATIONS_API_TOKEN)
-REPLICATE_API_TOKEN       # TTS + Replicate image/video generation
-REPLICATE_TOOL_PASSWORD   # Optional: password-protects /api/replicate endpoint
+REPLICATE_API_TOKEN       # TTS only (/api/tts, minimax/speech-02-turbo)
 DEEPGRAM_API_KEY          # STT (used in stt-flow.ts)
 AWS_REGION, AWS_S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 ```

@@ -35,7 +35,6 @@ Toggle web browsing for real-time search and source analysis via Sonar models (S
 
 ### AI Infrastructure & Connectivity
 - **Primary Provider**: [Pollinations.ai](https://pollinations.ai) — Chat, image, and video generation (free tier + authenticated Pollen API).
-- **Secondary Provider**: [Replicate](https://replicate.com) — Premium image/video models.
 - **Music**: Eleven Music (`model=elevenmusic`) via Pollinations (`/api/compose`).
 - **Voice I/O**: STT + TTS via Pollinations (OpenAI-compatible audio endpoints).
 - **SDK**: Vercel AI SDK with `ai-sdk-pollinations` provider for chat completions.
@@ -53,7 +52,7 @@ The app's self-knowledge is defined in `src/config/chat-options.ts`:
 ### Identity Protocol (`SYSTEM_IDENTITY_PROTOCOL`)
 - **Name**: hey.hi
 - **Nature**: High-performance AI Interface (UI), not a standalone model.
-- **Brain**: Connects to external models via APIs (Pollinations.ai, Replicate.com).
+- **Brain**: Connects to external models via Pollinations.ai API.
 - **Privacy**: Local-First. No server-side chat storage. Data lives ONLY in user's browser.
 - **Not Human**: Computer program. Never claims human status.
 - **Neutrality**: Does not judge user intent or conversation topics.

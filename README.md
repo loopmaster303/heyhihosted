@@ -13,7 +13,7 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 ## Key Features
 
 - **Multimodal Chat**: Discuss ideas with Claude, GPT, Gemini, Grok, Deepseek, Mistral, and more. Full vision support included.
-- **Generative Media**: Create images and videos instantly via Pollinations and Replicate APIs.
+- **Generative Media**: Create images and videos instantly via Pollinations API.
 - **Compose Mode**: Music composing with **Eleven Music** (`model=elevenmusic`) via **Pollinations** (`/api/compose`).
 - **Code Mode**: Dedicated coding assistant with specialized system prompts and model routing.
 - **Deep Research**: Toggle web browsing for real-time search and source analysis (Sonar / Sonar Reasoning).
@@ -40,10 +40,10 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 
 | Group        | Models                                           |
 | ------------ | ------------------------------------------------ |
-| **Fast**     | Z-Image, Flux.1                                  |
+| **Free**     | Z-Image, Flux.1                                  |
 | **Editing**  | Kontext, Klein Large, GPT-Image 1.5, Nano Banana |
-| **Advanced** | Nano Banana Pro, Seedream Pro, Flux 2 Max        |
-| **Video**    | Seedance, Wan, LTX 2, Grok Imagine Video         |
+| **Advanced** | Nano Banana Pro                                  |
+| **Video**    | Seedance, Wan 2.6, LTX 2 Fast                    |
 
 ## Tech Stack
 
@@ -53,7 +53,7 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 - **UI Components**: Radix UI / Shadcn
 - **Storage**: IndexedDB (via Dexie.js) + AWS S3 for generated assets
 - **AI SDK**: Vercel AI SDK with `ai-sdk-pollinations` provider
-- **AI Providers**: Pollinations.ai (chat, image, video, audio), Replicate (image, video)
+- **AI Providers**: Pollinations.ai (chat, image, video, audio), Replicate (TTS only)
 
 ## Project Structure
 
