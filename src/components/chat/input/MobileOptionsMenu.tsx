@@ -41,13 +41,13 @@ interface MobileOptionsMenuProps {
     hideUploadSection?: boolean;
 
     // Tools props
-    onToggleImageMode: () => void;
+    onToggleImageMode: (forcedState?: boolean) => void;
     isComposeMode: boolean;
-    onToggleComposeMode: () => void;
+    onToggleComposeMode: (forcedState?: boolean) => void;
     isCodeMode: boolean;
-    onToggleCodeMode?: () => void;
+    onToggleCodeMode?: (forcedState?: boolean) => void;
     webBrowsingEnabled: boolean;
-    onToggleWebBrowsing: () => void;
+    onToggleWebBrowsing: (forcedState?: boolean) => void;
 
     // Quick Settings props
     selectedVoice: string;
@@ -200,11 +200,14 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                 <>
                                                     <DropdownMenuItem
                                                         onClick={() => {
-                                                            if (isImageMode) { onToggleImageMode(); return; }
-                                                            if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
-                                                            if (webBrowsingEnabled) onToggleWebBrowsing();
-                                                            if (isComposeMode) onToggleComposeMode();
-                                                            onToggleImageMode();
+                                                            if (isImageMode) {
+                                                                onToggleImageMode(false);
+                                                                return;
+                                                            }
+                                                            if (onToggleCodeMode) onToggleCodeMode(false);
+                                                            onToggleWebBrowsing(false);
+                                                            onToggleComposeMode(false);
+                                                            onToggleImageMode(true);
                                                         }}
                                                         className={cn(
                                                             "flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10",
@@ -222,9 +225,9 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                         <>
                                                             <DropdownMenuItem
                                                                 onClick={() => {
-                                                                    if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
-                                                                    if (webBrowsingEnabled) onToggleWebBrowsing();
-                                                                    if (isComposeMode) onToggleComposeMode();
+                                                                    if (onToggleCodeMode) onToggleCodeMode(false);
+                                                                    onToggleWebBrowsing(false);
+                                                                    onToggleComposeMode(false);
                                                                 }}
                                                                 className={cn(
                                                                     "flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10",
@@ -239,9 +242,10 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
 
                                                             <DropdownMenuItem
                                                                 onClick={() => {
-                                                                    if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
-                                                                    if (webBrowsingEnabled) onToggleWebBrowsing();
-                                                                    onToggleComposeMode();
+                                                                    if (onToggleCodeMode) onToggleCodeMode(false);
+                                                                    onToggleWebBrowsing(false);
+                                                                    onToggleImageMode(false);
+                                                                    onToggleComposeMode(!isComposeMode);
                                                                 }}
                                                                 className={cn(
                                                                     "flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10",
@@ -257,8 +261,10 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
 
                                                             <DropdownMenuItem
                                                                 onClick={() => {
-                                                                    if (isCodeMode && onToggleCodeMode) onToggleCodeMode();
-                                                                    onToggleWebBrowsing();
+                                                                    if (onToggleCodeMode) onToggleCodeMode(false);
+                                                                    onToggleComposeMode(false);
+                                                                    onToggleImageMode(false);
+                                                                    onToggleWebBrowsing(!webBrowsingEnabled);
                                                                 }}
                                                                 className={cn(
                                                                     "flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10",
@@ -275,8 +281,10 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                             {onToggleCodeMode && (
                                                                 <DropdownMenuItem
                                                                     onClick={() => {
-                                                                        if (webBrowsingEnabled) onToggleWebBrowsing();
-                                                                        onToggleCodeMode();
+                                                                        onToggleWebBrowsing(false);
+                                                                        onToggleComposeMode(false);
+                                                                        onToggleImageMode(false);
+                                                                        onToggleCodeMode(!isCodeMode);
                                                                     }}
                                                                     className={cn(
                                                                         "flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10",

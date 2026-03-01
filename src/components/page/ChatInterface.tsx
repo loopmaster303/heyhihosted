@@ -13,6 +13,8 @@ interface ChatInterfaceProps {
     visualizeToolState: UnifiedImageToolState;
 }
 
+const LANDING_COMPOSE_AUTOSTART_KEY = 'landing-compose-autostart';
+
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => {
     const {
         activeConversation,
@@ -50,23 +52,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
     } = useChat();
 
     const composeToolState = useComposeMusicState();
-    const didAutoComposeRef = React.useRef(false);
-
-    // Auto-submit when arriving from landing page with compose mode + pre-filled input.
-    // chatInputValue is set asynchronously after mount, so we watch it as a dep.
-    // The ref guard ensures we only auto-submit once per component lifetime.
-    useEffect(() => {
-        const messages = activeConversation?.messages;
-        if (!didAutoComposeRef.current &&
-            isComposeMode &&
-            chatInputValue.trim() &&
-            (!messages || messages.length === 0) &&
-            !isAiResponding) {
-            didAutoComposeRef.current = true;
-            handleComposeSubmit();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [chatInputValue, isComposeMode]);
 
     const handleComposeSubmit = async (e?: React.FormEvent) => {
         if (e && typeof e.preventDefault === 'function') {
@@ -135,6 +120,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
             setIsAiResponding(false);
         }
     };
+
+    // Auto-submit compose only when explicitly requested by Landing -> Chat transition.
+    // This prevents unexpected auto-generation when users switch modes manually in Chat.
+    useEffect(() => {
+        if (!isComposeMode || !chatInputValue.trim() || isAiResponding) return;
+        const messages = activeConversation?.messages;
+        if (messages && messages.length > 0) return;
+
+        try {
+            const shouldAutostart = sessionStorage.getItem(LANDING_COMPOSE_AUTOSTART_KEY) === '1';
+            if (!shouldAutostart) return;
+            sessionStorage.removeItem(LANDING_COMPOSE_AUTOSTART_KEY);
+        } catch {
+            return;
+        }
+
+        handleComposeSubmit();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isComposeMode, chatInputValue, isAiResponding, activeConversation?.messages?.length]);
 
     // Keyboard shortcuts: Cmd+K = new chat
     useKeyboardShortcuts({
@@ -207,8 +211,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                     webBrowsingEnabled={webBrowsingEnabled}
                     onToggleWebBrowsing={toggleWebBrowsing}
                     isCodeMode={!!activeConversation.isCodeMode}
-                    onToggleCodeMode={() => {
-                        const turnedOn = !activeConversation.isCodeMode;
+                    onToggleCodeMode={(forcedState?: boolean) => {
+                        const turnedOn = forcedState !== undefined ? forcedState : !activeConversation.isCodeMode;
                         setActiveConversation(prev => prev ? { ...prev, isCodeMode: turnedOn } : prev);
                     }}
                     isComposeMode={isComposeMode}

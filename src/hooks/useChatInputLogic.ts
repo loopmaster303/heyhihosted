@@ -15,15 +15,15 @@ export interface UseChatInputLogicProps {
     inputValue: string;
     onInputChange: (value: string | ((prev: string) => string)) => void;
     isImageMode: boolean;
-    onToggleImageMode: () => void;
+    onToggleImageMode: (forcedState?: boolean) => void;
     isCodeMode?: boolean;
-    onToggleCodeMode?: () => void;
+    onToggleCodeMode?: (forcedState?: boolean) => void;
     isComposeMode?: boolean;
-    onToggleComposeMode?: () => void;
+    onToggleComposeMode?: (forcedState?: boolean) => void;
     selectedModelId: string;
     handleModelChange: (modelId: string) => void;
     webBrowsingEnabled: boolean;
-    onToggleWebBrowsing: () => void;
+    onToggleWebBrowsing: (forcedState?: boolean) => void;
     isRecording: boolean;
     visualizeToolState?: UnifiedImageToolState;
 }
@@ -110,16 +110,16 @@ export function useChatInputLogic({
         const shouldEnableCode = mode === 'code';
 
         if (isImageMode !== shouldEnableImage) {
-            onToggleImageMode();
+            onToggleImageMode(shouldEnableImage);
         }
         if (onToggleComposeMode && isComposeMode !== shouldEnableCompose) {
-            onToggleComposeMode();
+            onToggleComposeMode(shouldEnableCompose);
         }
         if (webBrowsingEnabled !== shouldEnableWeb) {
-            onToggleWebBrowsing();
+            onToggleWebBrowsing(shouldEnableWeb);
         }
         if (onToggleCodeMode && isCodeMode !== shouldEnableCode) {
-            onToggleCodeMode();
+            onToggleCodeMode(shouldEnableCode);
         }
         setActiveBadgeRow(null);
     }, [isImageMode, isComposeMode, webBrowsingEnabled, isCodeMode, onToggleImageMode, onToggleComposeMode, onToggleWebBrowsing, onToggleCodeMode]);

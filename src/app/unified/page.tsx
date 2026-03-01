@@ -16,6 +16,7 @@ import type { UploadedReference } from '@/types';
 
 // App States - simplified: no more 'visualize' state
 type AppState = 'landing' | 'chat';
+const LANDING_COMPOSE_AUTOSTART_KEY = 'landing-compose-autostart';
 
 interface UnifiedAppContentProps {
     initialState?: AppState;
@@ -63,7 +64,7 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
                 sendMessage(text, { isImageModeIntent: isImage, imageConfig });
             }
         }
-    }, [activeConversationId, activeConversationMessageCount, sendMessage, pendingMessage, appState, isClient]);
+    }, [activeConversationId, activeConversationMessageCount, chat, sendMessage, pendingMessage, appState, isClient]);
 
     useEffect(() => {
         if (!isClient) return;
@@ -107,6 +108,17 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             isCompose: isComposeModeActive,
             imageConfig
         });
+
+        // Compose autostart should only run for explicit Landing -> Chat transitions.
+        try {
+            if (isComposeModeActive) {
+                sessionStorage.setItem(LANDING_COMPOSE_AUTOSTART_KEY, '1');
+            } else {
+                sessionStorage.removeItem(LANDING_COMPOSE_AUTOSTART_KEY);
+            }
+        } catch {
+            // Ignore storage access issues.
+        }
         
         // 2. Start new chat with CURRENT Landing State flags
         chat.startNewChat({

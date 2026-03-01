@@ -83,9 +83,9 @@ const LandingView: React.FC<LandingViewProps> = ({
                                 isImageMode={chat.isImageMode}
                                 onToggleImageMode={chat.toggleImageMode}
                                 isCodeMode={chat.activeConversation?.isCodeMode || false}
-                                onToggleCodeMode={() => {
+                                onToggleCodeMode={(forcedState?: boolean) => {
                                     chat.setActiveConversation(prev =>
-                                        prev ? { ...prev, isCodeMode: !prev.isCodeMode } : prev
+                                        prev ? { ...prev, isCodeMode: forcedState !== undefined ? forcedState : !prev.isCodeMode } : prev
                                     );
                                 }}
                                 isComposeMode={chat.isComposeMode}
