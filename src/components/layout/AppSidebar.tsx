@@ -16,6 +16,8 @@ import GallerySidebarSection from '@/components/gallery/GallerySidebarSection';
 import PersonalizationSidebarSection from '@/components/sidebar/PersonalizationSidebarSection';
 import PollenAccountSidebarSection from '@/components/sidebar/PollenAccountSidebarSection';
 import { useLanguage } from '@/components/LanguageProvider';
+import LanguageToggle from '@/components/LanguageToggle';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface ConversationItem {
   id: string;
@@ -80,7 +82,11 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
       <aside className="fixed inset-y-0 left-0 w-[90vw] sm:w-80 md:w-72 bg-sidebar-background/85 backdrop-blur-2xl border-r border-sidebar-border/40 z-[70] animate-in slide-in-from-left duration-300 shadow-glass overflow-hidden">
         <div className="h-full min-h-0 flex flex-col p-4 overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center justify-end mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-1">
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
             <Button variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8 rounded-full hover:bg-primary/10" aria-label="Collapse sidebar">
               <Menu className="h-4 w-4 opacity-60" />
             </Button>
