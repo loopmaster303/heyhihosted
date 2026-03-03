@@ -488,9 +488,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.4, ease: [0.25, 0.4, 0.25, 1] }}
+      initial={isUser
+        ? { clipPath: 'inset(0 0 0 100%)', opacity: 0 }
+        : { clipPath: 'inset(0 100% 0 0)', opacity: 0, scale: 0.99 }
+      }
+      animate={isUser
+        ? { clipPath: 'inset(0 0% 0 0%)', opacity: 1 }
+        : { clipPath: 'inset(0 0% 0 0%)', opacity: 1, scale: 1 }
+      }
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
         'flex items-start gap-3 my-4 w-full group',
         isUser ? 'justify-end' : 'justify-start'
@@ -502,7 +508,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           isMediaOnly ? 'p-0 bg-transparent border-none shadow-none max-w-full' : 'max-w-[85%] p-4 rounded-3xl px-6 py-4 shadow-sm',
           !isMediaOnly && isUser
             ? 'bg-primary/20 text-foreground border border-primary/20 shadow-sm backdrop-blur-md'
-            : !isMediaOnly && 'bg-glass-background/40 backdrop-blur-xl text-foreground border border-glass-border shadow-glass'
+            : !isMediaOnly && 'message-bubble-ai bg-glass-background/40 backdrop-blur-xl text-foreground border border-glass-border shadow-glass'
         )}
       >
         <div className="flex flex-col">

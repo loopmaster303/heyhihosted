@@ -42,6 +42,15 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
+            {/* SVG filter defs — Way of Code noise-border for AI bubbles */}
+            <svg aria-hidden="true" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+              <defs>
+                <filter id="noise-border">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="2" />
+                  <feDisplacementMap in="SourceGraphic" scale="2" />
+                </filter>
+              </defs>
+            </svg>
             {children}
             <Toaster />
           </LanguageProvider>

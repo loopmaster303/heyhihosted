@@ -2,6 +2,7 @@ import React from 'react';
 import { Palette, Code2, Globe, MessageSquare, Music2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/LanguageProvider';
+import { ModeButtonOverlay } from '@/components/ui/ModeButtonOverlay';
 
 type ToolMode = 'standard' | 'visualize' | 'compose' | 'research' | 'code';
 
@@ -52,15 +53,16 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
                 aria-pressed={isImageMode}
                 aria-label={t('tools.visualize')}
                 className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:-translate-y-0.5 shrink-0",
+                    "relative flex items-center gap-2 px-3 py-1.5 rounded-full border transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:-translate-y-0.5 shrink-0",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     isImageMode
                         ? "bg-mode-visualize/10 text-mode-visualize font-bold border border-mode-visualize/60"
                         : "bg-transparent border-border/30 text-muted-foreground"
                 )}
             >
-                <Palette className="w-3.5 h-3.5" />
-                <span className="text-xs font-bold">{t('tools.visualize')}</span>
+                <ModeButtonOverlay mode="visualize" isActive={isImageMode} />
+                <Palette className="w-3.5 h-3.5 relative z-10" />
+                <span className="text-xs font-bold relative z-10">{t('tools.visualize')}</span>
             </button>
 
             {/* Compose Mode (Music) */}
@@ -70,15 +72,16 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
                 aria-pressed={isComposeMode}
                 aria-label={t('tools.compose')}
                 className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:-translate-y-0.5 shrink-0",
+                    "relative flex items-center gap-2 px-3 py-1.5 rounded-full border transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:-translate-y-0.5 shrink-0",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     isComposeMode
                         ? "bg-mode-compose/10 text-mode-compose font-bold border border-mode-compose/60"
                         : "bg-transparent border-border/30 text-muted-foreground"
                 )}
             >
-                <Music2 className="w-3.5 h-3.5" />
-                <span className="text-xs font-bold">{t('tools.compose')}</span>
+                <ModeButtonOverlay mode="compose" isActive={isComposeMode} />
+                <Music2 className="w-3.5 h-3.5 relative z-10" />
+                <span className="text-xs font-bold relative z-10">{t('tools.compose')}</span>
             </button>
 
              {/* Deep Research Mode */}
@@ -107,15 +110,16 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
                     aria-pressed={isCodeMode}
                     aria-label={t('tools.code')}
                     className={cn(
-                        "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:-translate-y-0.5 shrink-0",
+                        "relative flex items-center gap-2 px-3 py-1.5 rounded-full border transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:-translate-y-0.5 shrink-0",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                         isCodeMode
                             ? "bg-mode-code/10 text-mode-code font-bold border border-mode-code/60"
                             : "bg-transparent border-border/30 text-muted-foreground"
                     )}
                 >
-                    <Code2 className="w-3.5 h-3.5" />
-                    <span className="text-xs font-bold">{t('tools.code')}</span>
+                    <ModeButtonOverlay mode="code" isActive={isCodeMode} />
+                    <Code2 className="w-3.5 h-3.5 relative z-10" />
+                    <span className="text-xs font-bold relative z-10">{t('tools.code')}</span>
                 </button>
             )}
         </div>

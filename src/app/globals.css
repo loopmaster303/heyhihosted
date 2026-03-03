@@ -428,6 +428,27 @@ h6 {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
   }
 
+  /* === Way of Code: AI Bubble Glow === */
+  .message-bubble-ai {
+    position: relative;
+    filter: url(#noise-border);
+  }
+  .message-bubble-ai::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 30% 50%, hsl(var(--primary) / 0.05), transparent 70%);
+    mix-blend-mode: screen;
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Toned-down in light mode — screen blend is too intense on white */
+  .light .message-bubble-ai::before {
+    mix-blend-mode: normal;
+    opacity: 0.03;
+  }
+
   /* Global Scrollbar Hiding (Keep functionality, hide UI) */
   .no-scrollbar::-webkit-scrollbar,
   *::-webkit-scrollbar {

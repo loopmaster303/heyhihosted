@@ -3,6 +3,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ChatInput from '@/components/chat/ChatInput';
+import FlowField from '@/components/ui/FlowField';
 import { useChat } from '@/components/ChatProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useComposeMusicState } from '@/hooks/useComposeMusicState';
@@ -59,6 +60,7 @@ const LandingView: React.FC<LandingViewProps> = ({
 
     return (
         <div className="relative h-full px-4 py-10 overflow-hidden">
+            <FlowField isTyping={chat.chatInputValue.length > 0} isActive={true} />
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
