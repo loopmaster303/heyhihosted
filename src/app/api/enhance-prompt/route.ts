@@ -42,11 +42,13 @@ const MODEL_ALIASES: Record<string, string> = {
   'flux-2-max': 'flux-2-dev', // Same FLUX.2 family — use dedicated prompt
   'flux-2-klein-9b': 'klein-large', // Same as Pollinations klein-large
   'grok-imagine-video': 'seedance', // Closest remaining video prompt family
+  // Suno: route to suno-v5 Dual-Brain prompt (not VibeCraft)
+  'suno': 'suno-v5',
 };
 
 function selectGuidelines(modelId: string): string {
-  // Compose / Music models use the dedicated VibeCraft prompt
-  if (modelId === 'elevenmusic' || modelId === 'compose' || modelId === 'suno') {
+  // Compose / Music models: elevenmusic + compose → VibeCraft; suno → alias to suno-v5 Dual-Brain (via MODEL_ALIASES)
+  if (modelId === 'elevenmusic' || modelId === 'compose') {
     return COMPOSE_ENHANCEMENT_PROMPT;
   }
   const key = MODEL_ALIASES[modelId] || modelId;

@@ -8,6 +8,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { useComposeMusicState } from '@/hooks/useComposeMusicState';
 import { generateUUID } from '@/lib/uuid';
 import { ChatMessage } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface ChatInterfaceProps {
     visualizeToolState: UnifiedImageToolState;
@@ -51,6 +52,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
     } = useChat();
 
     const composeToolState = useComposeMusicState();
+    const { toast } = useToast();
 
     const handleComposeSubmit = async (e?: React.FormEvent) => {
         if (e && typeof e.preventDefault === 'function') {
@@ -110,11 +112,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                     return { ...prev, messages: [...filtered, assistantMsg] };
                 });
             } else {
+                // generateMusic already toasted — just clean up loading
                 setActiveConversation(prev => prev ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== 'loading') } : null);
             }
         } catch (err) {
             console.error('Compose failed:', err);
             setActiveConversation(prev => prev ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== 'loading') } : null);
+            toast({
+                title: 'Fehler bei der Musikgenerierung',
+                description: err instanceof Error ? err.message : 'Unbekannter Fehler',
+                variant: 'destructive',
+            });
         } finally {
             setIsAiResponding(false);
         }

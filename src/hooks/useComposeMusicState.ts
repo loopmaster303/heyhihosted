@@ -70,11 +70,16 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
+      toast({
+        title: 'Musik-Generierung fehlgeschlagen',
+        description: message,
+        variant: 'destructive',
+      });
       return null;
     } finally {
       setIsGenerating(false);
     }
-  }, [duration, instrumental, selectedModel]);
+  }, [duration, instrumental, selectedModel, toast]);
 
   const enhancePrompt = useCallback(async (prompt: string): Promise<string | null> => {
     if (!prompt.trim() || isEnhancing) return null;
