@@ -3,7 +3,7 @@
 import type React from 'react';
 import { Button } from '@/components/ui/button';
 import { UnifiedInput } from '@/components/ui/unified-input';
-import { Settings2, AudioWaveform, Square, ArrowUp, Plus, X, Sparkles, Loader2 } from 'lucide-react';
+import { Settings2, AudioWaveform, Square, ArrowUp, Plus, X, Sparkles, Loader2, FileText } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
 import { MobileOptionsMenu } from './input/MobileOptionsMenu';
 import { QuickSettingsBadges } from './input/QuickSettingsBadges';
@@ -39,6 +39,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
     const {
         isLoading,
         uploadedFilePreviewUrl,
+        onFileSelect,
         inputValue,
         onInputChange,
         isImageMode,
@@ -184,6 +185,35 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
             rows.push(
                 <div key="badge-panel" ref={badgePanelRef} className="flex flex-col gap-2">
                     {panelRows}
+                </div>
+            );
+        }
+        // Attachment thumbnail — standard mode only (not image/compose)
+        if (!isImageMode && !isComposeMode && uploadedFilePreviewUrl) {
+            const isImageFile = uploadedFilePreviewUrl.startsWith('data:image/');
+            rows.push(
+                <div key="attachment-preview" className="flex items-center gap-2 px-3 py-1.5">
+                    <div className="relative flex-shrink-0">
+                        {isImageFile ? (
+                            <img
+                                src={uploadedFilePreviewUrl}
+                                alt="Anhang"
+                                className="h-12 w-12 rounded-lg object-cover border border-border/30"
+                            />
+                        ) : (
+                            <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/30 bg-muted">
+                                <FileText className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => onFileSelect(null, null)}
+                            className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-background hover:opacity-80"
+                            aria-label="Anhang entfernen"
+                        >
+                            <X className="h-2.5 w-2.5" />
+                        </button>
+                    </div>
                 </div>
             );
         }

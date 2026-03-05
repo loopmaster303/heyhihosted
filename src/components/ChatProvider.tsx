@@ -724,6 +724,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
           modelId: modelIdForRequest,
           systemPrompt: systemPromptForRequest,
           webBrowsingEnabled,
+          skipSmartRouter: isFileUpload || undefined,
         }, (delta: string) => {
           streamedContent = delta;
           const updatedAssistantMessage: ChatMessage = { ...baseAssistantMessage, content: streamedContent, isStreaming: true };

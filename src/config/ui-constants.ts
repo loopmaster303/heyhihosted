@@ -18,6 +18,7 @@ import ZAIFarbeIcon from '../assets/icons-models/zaifarbe.png';
 import LTXLogo from '../assets/icons-models/ltxlogo.png';
 
 import AmazonNovaIcon from '../assets/icons-models/Amazon Nova.png';
+import StepAIIcon from '../assets/icons-models/Step AI logo.png';
 
 // Model Icon Mapping (LLM)
 export const modelIcons: Record<string, any> = {
@@ -39,6 +40,7 @@ export const modelIcons: Record<string, any> = {
     'qwen-character': QwenIcon,
     'nova-fast': AmazonNovaIcon,
     'nova-lite': AmazonNovaIcon,
+    'step-3.5-flash': StepAIIcon,
 };
 
 export const modelDisplayMap: Record<string, string> = {
