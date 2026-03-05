@@ -3,11 +3,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Music2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DURATION_OPTIONS } from '@/hooks/useComposeMusicState';
+import { DURATION_OPTIONS, type ComposeMusicModel } from '@/hooks/useComposeMusicState';
 
 interface ComposeInlineHeaderProps {
+  selectedModel: ComposeMusicModel;
   duration: number;
   instrumental: boolean;
+  onModelChange: (model: ComposeMusicModel) => void;
   onDurationChange: (duration: number) => void;
   onInstrumentalChange: (instrumental: boolean) => void;
   disabled?: boolean;
@@ -23,8 +25,10 @@ const triggerClass =
   "h-6 text-[10px] border-0 bg-transparent p-0 focus:ring-0 gap-1 w-auto min-w-[60px] text-foreground font-semibold hover:text-primary transition-colors [&>span]:flex [&>span]:items-center [&>span]:gap-1.5";
 
 export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
+  selectedModel,
   duration,
   instrumental,
+  onModelChange,
   onDurationChange,
   onInstrumentalChange,
   disabled = false,
@@ -44,10 +48,22 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
       {/* Model Badge */}
       <div className={badgeClass}>
         <span className={labelClass}>Modell</span>
-        <div className={cn(triggerClass, "flex items-center gap-1.5 opacity-80 cursor-default")}>
-            <Music2 className="w-3.5 h-3.5 text-purple-500" />
-            <span className="truncate">Elevenlabs Music</span>
-        </div>
+        <Select
+          value={selectedModel}
+          onValueChange={(val) => onModelChange(val as ComposeMusicModel)}
+          disabled={disabled}
+        >
+          <SelectTrigger className={triggerClass}>
+            <div className="flex items-center gap-1.5">
+              <Music2 className="w-3.5 h-3.5 text-purple-500" />
+              <SelectValue />
+            </div>
+          </SelectTrigger>
+          <SelectContent className="bg-background/95 backdrop-blur-md border-border/40">
+            <SelectItem value="elevenmusic">ElevenMusic</SelectItem>
+            <SelectItem value="suno">Suno v5</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Duration Selector */}

@@ -3,10 +3,11 @@ import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import { httpsFetchBinary } from '@/lib/https-post';
 
 const POLLINATIONS_BASE = 'https://gen.pollinations.ai';
+type ComposeModel = 'elevenmusic' | 'suno';
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, duration = 60, instrumental = false } = await request.json();
+    const { prompt, duration = 60, instrumental = false, model = 'elevenmusic' } = await request.json();
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -15,6 +16,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const selectedModel: ComposeModel = model === 'suno' ? 'suno' : 'elevenmusic';
+
     // BYOP: Resolve API key (user key from header → env var fallback)
     const apiKey = resolvePollenKey(request);
 
@@ -22,19 +25,21 @@ export async function POST(request: NextRequest) {
     const maxDuration = apiKey ? 300 : 120;
     const validDuration = Math.max(3, Math.min(maxDuration, Number(duration)));
 
-    // Build Universal request (GET)
-    const encodedPrompt = encodeURIComponent(prompt);
-    const url = `${POLLINATIONS_BASE}/audio/${encodedPrompt}?model=elevenmusic&duration=${validDuration}&instrumental=${instrumental}`;
-
-    console.log('[Compose] Requesting audio (Universal):', url);
-
     const headers: Record<string, string> = {};
     if (apiKey) {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
-    // Fetch audio via curl (bypasses Next.js fetch patching)
-    const resp = await httpsFetchBinary(url, headers);
+    let resp: { status: number; buffer: Buffer; contentType: string };
+    // Both models use the Pollinations universal audio endpoint (GET).
+    // The OpenAI-compatible POST /v1/audio/speech endpoint does not support
+    // the music-specific `duration` and `instrumental` params — they are silently
+    // ignored and Pollinations falls back to its own defaults (60s, vocals).
+    const encodedPrompt = encodeURIComponent(prompt);
+    const audioModel = selectedModel === 'suno' ? 'suno' : 'elevenmusic';
+    const url = `${POLLINATIONS_BASE}/audio/${encodedPrompt}?model=${audioModel}&duration=${validDuration}&instrumental=${instrumental}`;
+    console.log('[Compose] Requesting audio:', url.slice(0, 120) + (url.length > 120 ? '…' : ''));
+    resp = await httpsFetchBinary(url, headers);
 
     if (resp.status !== 200) {
       console.error('[Compose] API Error:', resp.status);
@@ -53,6 +58,7 @@ export async function POST(request: NextRequest) {
       prompt,
       duration: validDuration,
       instrumental,
+      model: selectedModel,
     });
 
   } catch (error) {

@@ -128,8 +128,10 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
             rows.push(
                 <ComposeInlineHeader
                     key="compose-header"
+                    selectedModel={composeToolState.selectedModel}
                     duration={composeToolState.duration}
                     instrumental={composeToolState.instrumental}
+                    onModelChange={composeToolState.setSelectedModel}
                     onDurationChange={composeToolState.setDuration}
                     onInstrumentalChange={composeToolState.setInstrumental}
                     disabled={isLoading}
@@ -156,11 +158,9 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                 <UploadBadges
                     key="upload-badges"
                     isLoading={isLoading}
-                    isImageMode={isImageMode}
                     onImageUploadClick={() => imageInputRef.current?.click()}
                     onDocUploadClick={() => docInputRef.current?.click()}
                     onCameraClick={openCamera}
-                    allowImageUploadInImageMode={!!(isImageMode && visualizeToolState?.supportsReference)}
                     disableImageUpload={!!(
                         isImageMode &&
                         visualizeToolState?.supportsReference &&
@@ -247,13 +247,11 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                     onImageUploadClick={() => imageInputRef.current?.click()}
                                     onDocUploadClick={() => docInputRef.current?.click()}
                                     onCameraClick={openCamera}
-                                    allowImageUploadInImageMode={!!(isImageMode && visualizeToolState?.supportsReference)}
                                     disableImageUpload={!!(
                                         isImageMode &&
                                         visualizeToolState?.supportsReference &&
                                         (visualizeToolState.isUploading || visualizeToolState.uploadedImages.length >= visualizeToolState.maxImages)
                                     )}
-                                    hideUploadSection={isImageMode}
                                     onToggleImageMode={onToggleImageMode}
                                     isComposeMode={isComposeMode || false}
                                     onToggleComposeMode={onToggleComposeMode || (() => {})}
@@ -287,21 +285,19 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 </Button>
                                 )}
 
-                                {/* Upload Toggle - hide in image mode */}
-                                {!isImageMode && (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={() => toggleBadgeRow('upload')}
-                                        className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all ${
-                                            activeBadgeRow === 'upload'
-                                                ? "text-foreground shadow-sm hover:shadow-md"
-                                                : "bg-transparent text-foreground/80 hover:shadow-sm"
-                                        }`}
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                    </Button>
-                                )}
+                                {/* Upload Toggle */}
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => toggleBadgeRow('upload')}
+                                    className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all ${
+                                        activeBadgeRow === 'upload'
+                                            ? "text-foreground shadow-sm hover:shadow-md"
+                                            : "bg-transparent text-foreground/80 hover:shadow-sm"
+                                    }`}
+                                >
+                                    <Plus className="w-4 h-4" />
+                                </Button>
 
                                 {/* Tools Toggle */}
                                 {!hasActiveTool && (

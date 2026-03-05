@@ -126,6 +126,10 @@ class BlobManagerClass {
     let cleaned = 0;
 
     for (const [id, entry] of this.registry.entries()) {
+      // Never revoke URLs that are still referenced by active consumers.
+      // Revoking in-use URLs can break rendered media after the interval timer fires.
+      if (entry.refCount > 0) continue;
+
       if (now - entry.createdAt > maxAgeMs) {
         URL.revokeObjectURL(entry.url);
         this.registry.delete(id);

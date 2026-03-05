@@ -516,7 +516,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         </div>
 
         {isAssistant && message.id !== 'loading' && !isMediaOnly && (
-          <div className="absolute top-full mt-1 left-1 flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+          <div className="mt-2 flex items-center gap-0.5 transition-all duration-200 md:mt-0 md:max-h-0 md:overflow-hidden md:opacity-0 md:pointer-events-none md:group-hover:mt-2 md:group-hover:max-h-8 md:group-hover:opacity-100 md:group-hover:pointer-events-auto">
             {hasAudioContent && onPlayAudio && (
               <Button
                 variant="ghost"

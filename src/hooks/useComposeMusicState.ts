@@ -2,7 +2,10 @@ import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { getPollenHeaders } from '@/lib/pollen-key';
 
+export type ComposeMusicModel = 'elevenmusic' | 'suno';
+
 export interface ComposeMusicState {
+  selectedModel: ComposeMusicModel;
   duration: number;
   instrumental: boolean;
   isGenerating: boolean;
@@ -12,6 +15,7 @@ export interface ComposeMusicState {
 }
 
 export interface ComposeMusicActions {
+  setSelectedModel: (model: ComposeMusicModel) => void;
   setDuration: (duration: number) => void;
   setInstrumental: (instrumental: boolean) => void;
   generateMusic: (prompt: string) => Promise<string | null>;
@@ -29,6 +33,7 @@ export const DURATION_OPTIONS = [
 ];
 
 export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions {
+  const [selectedModel, setSelectedModel] = useState<ComposeMusicModel>('elevenmusic');
   const [duration, setDuration] = useState(60);
   const [instrumental, setInstrumental] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -51,7 +56,7 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
       const response = await fetch('/api/compose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
-        body: JSON.stringify({ prompt, duration, instrumental }),
+        body: JSON.stringify({ prompt, duration, instrumental, model: selectedModel }),
       });
 
       const data = await response.json();
@@ -69,7 +74,7 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
     } finally {
       setIsGenerating(false);
     }
-  }, [duration, instrumental]);
+  }, [duration, instrumental, selectedModel]);
 
   const enhancePrompt = useCallback(async (prompt: string): Promise<string | null> => {
     if (!prompt.trim() || isEnhancing) return null;
@@ -81,7 +86,7 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
         headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
         body: JSON.stringify({
           prompt,
-          modelId: 'compose',
+          modelId: selectedModel,
           language: 'de',
         }),
       });
@@ -107,7 +112,7 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
     } finally {
       setIsEnhancing(false);
     }
-  }, [isEnhancing, toast]);
+  }, [isEnhancing, toast, selectedModel]);
 
   const reset = useCallback(() => {
     setAudioUrl(null);
@@ -116,12 +121,14 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
   }, []);
 
   return {
+    selectedModel,
     duration,
     instrumental,
     isGenerating,
     isEnhancing,
     audioUrl,
     error,
+    setSelectedModel,
     setDuration,
     setInstrumental,
     generateMusic,

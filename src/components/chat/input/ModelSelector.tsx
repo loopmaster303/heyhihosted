@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
-import { modelIcons, featuredModels } from '@/config/ui-constants';
+import { modelIcons, featuredModels, modelDisplayMap } from '@/config/ui-constants';
 import { ModalPopup } from '@/components/ui/popup';
 import { useLanguage } from '@/components/LanguageProvider';
 
@@ -132,21 +132,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 {(() => {
                     const model = allModels.find(m => m.id === selectedModelId);
                     const icon = modelIcons[selectedModelId];
-                    // Distinguishable short names
-                    let displayName = model?.name || 'AI';
-                    const normalizedName = displayName.toLowerCase();
-                    
-                    if (displayName.includes('Haiku')) displayName = 'Claude Haiku';
-                    else if (displayName.includes('Sonnet')) displayName = 'Claude Sonnet';
-                    else if (displayName.includes('Opus')) displayName = 'Claude Opus';
-                    else if (displayName.includes('GPT-5.2')) displayName = 'GPT 5.2';
-                    else if (displayName.includes('Nano')) displayName = 'GPT Nano';
-                    else if (displayName.includes('Gemini 3 Pro')) displayName = 'Gemini Pro';
-                    else if (displayName.includes('Gemini 3 Flash')) displayName = 'Gemini Flash';
-                    else if (displayName.includes('Grok')) displayName = 'Grok 4';
-                    else if (normalizedName.includes('deepseek')) displayName = 'Deepseek';
-                    else if (displayName.includes('Thinking')) displayName = 'Kimi Think';
-                    else if (displayName.includes('Coder')) displayName = 'Qwen Code';
+                    const displayName = modelDisplayMap[selectedModelId] || model?.name || 'AI';
                     
                     return (
                         <>

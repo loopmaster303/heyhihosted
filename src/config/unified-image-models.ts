@@ -30,7 +30,7 @@ export interface UnifiedImageModel {
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
   { id: 'flux', name: 'Flux.1 Fast', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
-  { id: 'klein-large', name: 'Flux.2 klein 9B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'FLUX.2 Klein 9B' },
+  { id: 'klein-large', name: 'Flux.2 klein 9B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 2, isFree: true, enabled: true, description: 'FLUX.2 Klein 9B' },
   // Internal fallback for klein-large (9B) when it is unavailable. Not shown in UI.
   { id: 'klein', name: 'Flux.2 klein 4B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: false, description: 'FLUX.2 Klein 4B (internal fallback for 9B)' },
   { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware frame editing' },
@@ -44,6 +44,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // ADVANCED Image Models
   { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3 Pro Image (4K)' },
   { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3.1 Flash Image' },
+  { id: 'flux-2-dev', name: 'Flux.2 Dev', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'FLUX.2 Dev (api.airforce)' },
   { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Deprecated - use seedream5' },
 
   // STANDARD Video Models
@@ -125,7 +126,7 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'ADVANCED',
     category: 'Advanced',
     kind: 'image',
-    modelIds: ['nanobanana-pro', 'nanobanana-2', 'seedream5'],
+    modelIds: ['flux-2-dev', 'nanobanana-pro', 'nanobanana-2', 'seedream5'],
   },
   {
     key: 'video',

@@ -11,6 +11,7 @@
     "test": "jest --watch",
     "setup:pollicode": "node tools/oh-my-pollicode/install.js",
     "audit:run": "bash scripts/audit/audit.sh",
+    "audit:docs-drift": "bash scripts/audit/check-doc-drift.sh",
     "audit:install": "cp scripts/audit/com.heyhihosted.audit.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.heyhihosted.audit.plist && echo 'Cron installiert — läuft täglich 08:00'",
     "audit:uninstall": "launchctl unload ~/Library/LaunchAgents/com.heyhihosted.audit.plist && rm ~/Library/LaunchAgents/com.heyhihosted.audit.plist && echo 'Cron deinstalliert'"
   },

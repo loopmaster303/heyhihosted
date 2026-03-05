@@ -140,9 +140,11 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
         payload.height = formFields.height || 1024;
         payload.quality = 'hd';
         payload.nologo = true;
-        // AUTOMATIC QUALITY BOOST: Standard anti-matsch list for better results
-        payload.negative_prompt = "blur, low quality, distorted, bad anatomy, pixelated, watermark, text, signature, ugly, bad hands, deformed, grainy";
       }
+
+      // Negative Prompt Logic: Use user input if available, otherwise apply default boost only for images
+      const defaultNegative = isPollinationsVideo ? "" : "blur, low quality, distorted, bad anatomy, pixelated, watermark, text, signature, ugly, bad hands, deformed, grainy";
+      payload.negative_prompt = formFields.negative_prompt || defaultNegative;
 
       if (formFields.seed) payload.seed = Number(formFields.seed);
       if (isPollinationsVideo) {

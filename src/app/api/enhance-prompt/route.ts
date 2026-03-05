@@ -38,17 +38,15 @@ const MODEL_ALIASES: Record<string, string> = {
   'nanobanana': 'nanobanana',
   'nanobanana-pro': 'nanobanana-pro',
   'nanobanana-2': 'nanobanana-2',
-  // flux-2-dev removed from UI; use closest prompt family.
-  'flux-2-dev': 'flux',
   // NEW Replicate model mappings
-  'flux-2-max': 'flux', // Similar family
+  'flux-2-max': 'flux-2-dev', // Same FLUX.2 family — use dedicated prompt
   'flux-2-klein-9b': 'klein-large', // Same as Pollinations klein-large
   'grok-imagine-video': 'seedance', // Closest remaining video prompt family
 };
 
 function selectGuidelines(modelId: string): string {
   // Compose / Music models use the dedicated VibeCraft prompt
-  if (modelId === 'elevenmusic' || modelId === 'compose') {
+  if (modelId === 'elevenmusic' || modelId === 'compose' || modelId === 'suno') {
     return COMPOSE_ENHANCEMENT_PROMPT;
   }
   const key = MODEL_ALIASES[modelId] || modelId;
@@ -118,7 +116,7 @@ export async function POST(request: NextRequest) {
 
 
     // Get model-specific enhancement guidelines
-    const isComposeModel = modelId === 'elevenmusic' || modelId === 'compose';
+    const isComposeModel = modelId === 'elevenmusic' || modelId === 'compose' || modelId === 'suno' || modelId === 'suno-v5';
     const baseGuidelines = selectGuidelines(modelId);
     
     // Only enforce English output - let the enhancement prompts control the format

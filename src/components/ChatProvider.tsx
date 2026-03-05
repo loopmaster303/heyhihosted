@@ -958,15 +958,21 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
   const regenerateLastResponse = useCallback(async () => {
     if (!activeConversation || isAiResponding) return;
 
-    const lastMessageIndex = activeConversation.messages.length - 1;
-    const lastMessage = activeConversation.messages[lastMessageIndex];
+    const lastAssistantIndex = activeConversation.messages
+      .map((message, index) => ({ message, index }))
+      .reverse()
+      .find(({ message }) => message.role === 'assistant')?.index ?? -1;
 
-    if (!lastMessage || lastMessage.role !== 'assistant') {
-      toast({ title: "Action Not Available", description: "You can only regenerate the AI's most recent response.", variant: "destructive" });
+    if (lastAssistantIndex === -1) {
+      toast({
+        title: "Action Not Available",
+        description: "There is no assistant response to regenerate yet.",
+        variant: "destructive"
+      });
       return;
     }
 
-    const messagesForRegeneration = activeConversation.messages.slice(0, lastMessageIndex);
+    const messagesForRegeneration = activeConversation.messages.slice(0, lastAssistantIndex);
 
     await sendMessage("", { 
       isRegeneration: true,
@@ -1057,7 +1063,6 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 function normalizeLegacyTextModelId(id: string): string {
   if (!id) return id;
   if (id === 'kimi-k2-thinking') return 'kimi';
-  if (id === 'nomnom') return 'perplexity-fast';
   if (id === 'nova-micro') return 'nova-fast';
   return id;
 }

@@ -11,8 +11,10 @@ import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
 import { getUnifiedModel } from '@/config/unified-image-models';
 import { useLanguage } from '../LanguageProvider';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import DecryptedText from '@/components/ui/DecryptedText';
 import GradualBlur from '@/components/ui/GradualBlur';
+import { usePollenKey } from '@/hooks/usePollenKey';
 
 // Dynamic import for ASCIIText (canvas-based, client-only)
 const ASCIIText = dynamic(() => import('@/components/ui/ASCIIText'), {
@@ -89,6 +91,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const [sidebarExpanded, setSidebarExpanded] = useLocalStorageState<boolean>('sidebarExpanded', false);
   const { language } = useLanguage();
+  const { isConnected, connectOAuth } = usePollenKey();
 
   // Get username for header display
   const [userDisplayName] = useState(getInitialDisplayName);
@@ -127,8 +130,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
       {/* MINIMAL TOPBAR - Chat Mode Only */}
       {appState === 'chat' && (
         <>
-          <header className="fixed top-3 left-14 right-0 z-50 h-10 flex items-center px-4">
-            <span className="text-sm font-medium text-primary/70 truncate">
+          <header className="fixed top-3 left-14 right-0 z-50 h-11 flex items-center px-4">
+            <span className="text-base md:text-lg font-medium text-primary/70 truncate">
               <DecryptedText
                 text={activeConversation?.title || 'hey.hi'}
                 speed={50}
@@ -176,15 +179,25 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                 <div className="mt-2 text-[10px] sm:text-xs font-bold tracking-[0.3em] text-foreground/30 uppercase pointer-events-auto text-center w-full">
                   EVERYONE CAN SAY HI TO AI
                 </div>
-                <div className="mt-3 pointer-events-auto mx-auto max-w-lg px-4">
-                  <div className="rounded-xl border border-foreground/10 bg-foreground/5 px-4 py-3 font-mono text-[10px] sm:text-[11px] leading-relaxed text-foreground/60">
-                    <span className="font-bold text-foreground/80">BETA NOTICE:</span>{' '}
-                    THIS IS A PROJECT IN PROGRESS. IM A SINGLE VIBE DEV WHOS REFTHINKING AND MAYBE REFACTORING — BUT PLEASE TEST AND REACH OUT FOR FULL ACCESS OR JUST BRING YOUR OWN API KEY{' '}
-                    <span className="font-bold text-foreground/80">→ SIDEBAR.</span>{' '}
-                    THIS PROJECT IS KINDLY SUPPORTED BY{' '}
-                    <a href="https://enter.pollinations.ai" target="_blank" rel="noopener noreferrer" className="font-bold text-foreground/80 underline underline-offset-2 hover:text-foreground transition-colors">POLLINATIONS.</a>{' '}
-                    THANK YOU GUYS. SUPPORT DEMOCRATIZING AI OUT OF THEIR CORPORATE DRESS.{' '}
-                    <span className="font-bold">I LOVE HUMANS.</span>
+                <div className="mt-1 flex flex-col items-center gap-0.5 pointer-events-auto">
+                  {isConnected ? (
+                    <span className="text-[9px] sm:text-[10px] font-bold tracking-[0.2em] text-green-500/60 uppercase">
+                      Connected
+                    </span>
+                  ) : (
+                    <button
+                      onClick={connectOAuth}
+                      className="text-[9px] sm:text-[10px] font-bold tracking-[0.2em] text-foreground/30 hover:text-foreground/60 uppercase transition-colors underline underline-offset-2"
+                    >
+                      Connect to Pollinations for full access
+                    </button>
+                  )}
+                  <div className="text-[9px] sm:text-[10px] font-bold tracking-[0.2em] text-foreground/20 uppercase">
+                    Beta Test Phase ·{' '}
+                    <Link href="/about" className="underline underline-offset-2 hover:text-foreground/40 transition-colors">
+                      Click here
+                    </Link>
+                    {' '}for more Information.
                   </div>
                 </div>
               </div>

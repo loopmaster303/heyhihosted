@@ -27,6 +27,7 @@ eval $(bash "$SCRIPT_DIR/check-security.sh" 2>>"$LOG_FILE")
 eval $(bash "$SCRIPT_DIR/check-deps.sh" 2>>"$LOG_FILE")
 eval $(bash "$SCRIPT_DIR/check-pollinations.sh" 2>>"$LOG_FILE")
 eval $(bash "$SCRIPT_DIR/check-ux.sh" 2>>"$LOG_FILE")
+eval $(bash "$SCRIPT_DIR/check-doc-drift.sh" 2>>"$LOG_FILE")
 
 echo "" | tee -a "$LOG_FILE"
 echo "Alle Checks abgeschlossen. Erstelle Report..." | tee -a "$LOG_FILE"
@@ -44,6 +45,14 @@ else
   UX_LINE="🎨 <b>UX</b> ${UX_STATUS}${UX_DETAIL}"
 fi
 
+# Doc-Drift-Zeile bauen
+if [ -n "${DOC_DRIFT_FINDINGS:-}" ]; then
+  DOC_LINE="🧾 <b>Docs Drift</b> ${DOC_DRIFT_STATUS}${DOC_DRIFT_DETAIL}
+  Treffer: <code>${DOC_DRIFT_FINDINGS}</code>"
+else
+  DOC_LINE="🧾 <b>Docs Drift</b> ${DOC_DRIFT_STATUS}${DOC_DRIFT_DETAIL}"
+fi
+
 # Pollinations-Zeile bauen
 if [ -n "${POLL_NEW_MODELS:-}" ]; then
   POLL_LINE="🔌 <b>Pollinations</b> ${POLL_STATUS}${POLL_DETAIL}
@@ -55,7 +64,7 @@ fi
 
 # Gesamtstatus ermitteln
 ALL_OK=true
-for STATUS in "${BUILD_TYPECHECK_STATUS:-✅}" "${BUILD_LINT_STATUS:-✅}" "${SECURITY_STATUS:-✅}" "${ENV_STATUS:-✅}"; do
+for STATUS in "${BUILD_TYPECHECK_STATUS:-✅}" "${BUILD_LINT_STATUS:-✅}" "${SECURITY_STATUS:-✅}" "${ENV_STATUS:-✅}" "${DOC_DRIFT_STATUS:-✅}"; do
   if [[ "$STATUS" == "❌" ]] || [[ "$STATUS" == "🚨" ]]; then
     ALL_OK=false
     break
@@ -84,6 +93,8 @@ MESSAGE="${HEADER}
 ${POLL_LINE}
 
 ${UX_LINE}
+
+${DOC_LINE}
 
 <i>Log: ~/.heyhihosted-audit.log</i>"
 

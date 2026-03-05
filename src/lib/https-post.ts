@@ -104,3 +104,12 @@ export async function httpsFetchBinary(
   const res = await runNodeProxy('GET', url, headers);
   return { status: res.status, buffer: res.buffer, contentType: res.contentType };
 }
+
+export async function httpsFetchBinaryPost(
+  url: string,
+  headers: Record<string, string> = {},
+  body: string
+): Promise<{ status: number; buffer: Buffer; contentType: string }> {
+  const res = await runNodeProxy('POST', url, headers, body);
+  return { status: res.status, buffer: res.buffer, contentType: res.contentType };
+}

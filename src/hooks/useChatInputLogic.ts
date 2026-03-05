@@ -72,8 +72,7 @@ export function useChatInputLogic({
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    const visibleBadgeRow = (isImageMode && activeBadgeRow === 'upload')
-        || (hasActiveTool && activeBadgeRow === 'tools')
+    const visibleBadgeRow = (hasActiveTool && activeBadgeRow === 'tools')
         ? null
         : activeBadgeRow;
 
@@ -96,12 +95,12 @@ export function useChatInputLogic({
     });
 
     const toggleBadgeRow = useCallback((row: 'tools' | 'upload' | 'settings') => {
-        if ((row === 'upload' && isImageMode) || (row === 'tools' && hasActiveTool)) {
+        if (row === 'tools' && hasActiveTool) {
             setActiveBadgeRow(null);
             return;
         }
         setActiveBadgeRow(current => current === row ? null : row);
-    }, [isImageMode, hasActiveTool]);
+    }, [hasActiveTool]);
 
     const setActiveMode = useCallback((mode: ToolMode) => {
         const shouldEnableImage = mode === 'visualize';

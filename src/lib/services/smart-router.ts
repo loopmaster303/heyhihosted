@@ -81,9 +81,9 @@ export class SmartRouter {
 
   /**
    * Returns the best model for "Deep Research" (Explicit Toggle).
-   * Currently 'perplexity-fast' (Sonar).
+   * Uses `nomnom` when available for deeper research-oriented responses.
    */
   static getDeepResearchModel(): string {
-    return 'perplexity-fast';
+    return 'nomnom';
   }
 }

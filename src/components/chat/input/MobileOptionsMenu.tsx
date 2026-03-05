@@ -36,7 +36,6 @@ interface MobileOptionsMenuProps {
     onImageUploadClick: () => void;
     onDocUploadClick: () => void;
     onCameraClick: () => void;
-    allowImageUploadInImageMode?: boolean;
     disableImageUpload?: boolean;
     hideUploadSection?: boolean;
 
@@ -63,7 +62,6 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
     onImageUploadClick,
     onDocUploadClick,
     onCameraClick,
-    allowImageUploadInImageMode = false,
     disableImageUpload = false,
     hideUploadSection = false,
     // Tools
@@ -165,7 +163,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                 <>
                                                     <DropdownMenuItem
                                                         onClick={onImageUploadClick}
-                                                        disabled={isLoading || (isImageMode && !allowImageUploadInImageMode) || disableImageUpload}
+                                                        disabled={isLoading || disableImageUpload}
                                                         className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10"
                                                     >
                                                         <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
@@ -175,7 +173,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         onClick={onDocUploadClick}
-                                                        disabled={isLoading || isImageMode}
+                                                        disabled={isLoading}
                                                         className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10"
                                                     >
                                                         <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
@@ -185,7 +183,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         onClick={onCameraClick}
-                                                        disabled={isLoading || isImageMode}
+                                                        disabled={isLoading}
                                                         className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10"
                                                     >
                                                         <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">

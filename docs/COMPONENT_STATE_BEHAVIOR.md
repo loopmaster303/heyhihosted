@@ -35,9 +35,8 @@ ChatProvider.tsx → useChatLogic()
 ├── useChatAudio()                    # TTS playback logic
 ├── useChatRecording()                # Voice recording logic (STT)
 ├── useChatEffects()                  # Side effects (auto-scroll, restore)
-├── useUnifiedImageToolState()        # Visualize bar (via ChatInput)
-├── useComposeMusicState()            # Compose/music bar (via ChatInput)
-└── (Shortcuts wired in `ChatInterface.tsx`) # Global keyboard shortcuts
+├── useUnifiedImageToolState()        # Visualize bar (passed from unified page)
+└── (Shortcuts + compose state in `ChatInterface.tsx`) # Global keyboard shortcuts + compose hook
 ```
 
 ### Props Interface (`UseChatLogicProps`)
@@ -188,18 +187,17 @@ Skips shortcuts when typing in input/textarea (except Escape).
 ### Image Generation Flow
 
 1. **Input Submission**: Checks for text prompt and/or reference images.
-2. **Reference Upload**: Images uploaded to S3 via `/api/upload/sign` (signed URL), stored as `UploadedReference[]`.
+2. **Reference Upload**: Images uploaded via `/api/media/upload` (Pollinations Media Storage), stored as `UploadedReference[]`.
 3. **API Routing**:
-   - Pollinations models → `/api/generate` (GET-based URL generation)
-   - Replicate models → `/api/replicate` (server-side polling)
+   - All enabled image/video models → `/api/generate` (Pollinations URL generation)
 4. **Persistence**: Assets saved via `GalleryService.saveGeneratedAsset()` to IndexedDB `assets` table. Chat message stores an `assetId` reference, not the asset itself.
 
 ---
 
 ## 5. Compose Mode (Music Generation)
 
-* **State Hook**: `src/hooks/useComposeMusicState.ts`
-* **UI Component**: `src/components/tools/ComposeTool.tsx` (via `ComposeInlineHeader`)
+* **State Hook**: `src/hooks/useComposeMusicState.ts` (instantiated in `src/components/page/ChatInterface.tsx`)
+* **UI Component**: Compose controls in `src/components/chat/ChatInput.tsx` + audio message rendering in chat
 * **Trigger**: Activated via **Tools -> Compose** in the Chat Input bar.
 
 ### State
@@ -246,7 +244,6 @@ Manages badge row toggles, mode switching, file selection, and submit handling. 
 |------|-------------|
 | `userDisplayName` | How the AI addresses the user |
 | `customSystemPrompt` | Overrides default assistant behavior |
-| `replicateToolPassword` | Optional auth for `/api/replicate` |
 | `selectedModelId` | Default LLM choice |
 | `selectedVoice` | TTS voice selection |
 | `selectedImageModelId` | Default image model |

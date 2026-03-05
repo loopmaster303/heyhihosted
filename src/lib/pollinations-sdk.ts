@@ -33,6 +33,7 @@ export interface VideoOptions extends PollinationsOptions {
     aspectRatio?: string;
     duration?: number;
     audio?: boolean;
+    negativePrompt?: string;
     referenceImage?: string | string[]; // URL(s)
 }
 
@@ -95,6 +96,7 @@ export async function videoUrl(prompt: string, options: VideoOptions = {}): Prom
     if (options.aspectRatio) params.append('aspectRatio', options.aspectRatio);
     if (options.duration) params.append('duration', String(options.duration));
     if (options.audio !== undefined) params.append('audio', String(options.audio));
+    if (options.negativePrompt) params.append('negative_prompt', options.negativePrompt);
     
     // Reference Images
     if (options.referenceImage) {

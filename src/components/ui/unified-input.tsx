@@ -139,7 +139,7 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
       
       {/* Disclaimer */}
       <div className="mt-3 text-center hidden lg:block">
-         <p className="text-[10px] md:text-xs text-muted-foreground/60 px-4">
+         <p className="text-[9px] md:text-[10px] text-muted-foreground/60 px-4">
           {t('chat.disclaimer')}
         </p>
       </div>

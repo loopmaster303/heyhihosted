@@ -39,7 +39,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
         handleVoiceChange,
         selectedVoice,
         selectedImageModelId,
-        lastUserMessageId,
         handlePlayAudio,
         playingMessageId,
         isTtsLoadingForId,
@@ -175,7 +174,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                     >
                         <ChatView
                             messages={messages}
-                            lastUserMessageId={lastUserMessageId}
                             isAiResponding={isAiResponding}
                             onPlayAudio={handlePlayAudio}
                             playingMessageId={playingMessageId}

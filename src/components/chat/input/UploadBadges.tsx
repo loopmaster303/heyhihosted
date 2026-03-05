@@ -4,24 +4,20 @@ import { cn } from '@/lib/utils';
 
 interface UploadBadgesProps {
     isLoading: boolean;
-    isImageMode: boolean;
     onImageUploadClick: () => void;
     onDocUploadClick: () => void;
     onCameraClick: () => void;
-    allowImageUploadInImageMode?: boolean;
     disableImageUpload?: boolean;
 }
 
 export const UploadBadges: React.FC<UploadBadgesProps> = ({
     isLoading,
-    isImageMode,
     onImageUploadClick,
     onDocUploadClick,
     onCameraClick,
-    allowImageUploadInImageMode = false,
     disableImageUpload = false
 }) => {
-    const canUploadImage = !isLoading && (!isImageMode || allowImageUploadInImageMode) && !disableImageUpload;
+    const canUploadImage = !isLoading && !disableImageUpload;
 
     return (
         <div className="flex items-center gap-2 overflow-x-auto pb-0 scrollbar-hide mask-fade-right">
@@ -50,12 +46,12 @@ export const UploadBadges: React.FC<UploadBadgesProps> = ({
             <button
                 type="button"
                 onClick={() => {
-                   if (!isLoading && !isImageMode) onDocUploadClick();
+                   if (!isLoading) onDocUploadClick();
                 }}
-                disabled={isLoading || isImageMode}
+                disabled={isLoading}
                 className={cn(
                     "inline-flex h-9 w-9 items-center justify-center rounded-full border transition-[transform,box-shadow,background-color,opacity] duration-200 ease-out shrink-0",
-                    (isLoading || isImageMode)
+                    isLoading
                         ? "opacity-50 cursor-not-allowed bg-transparent border-border/20"
                         : "bg-transparent border-border/30 hover:shadow-md hover:-translate-y-0.5"
                 )}
@@ -70,12 +66,12 @@ export const UploadBadges: React.FC<UploadBadgesProps> = ({
              <button
                 type="button"
                 onClick={() => {
-                   if (!isLoading && !isImageMode) onCameraClick();
+                   if (!isLoading) onCameraClick();
                 }}
-                disabled={isLoading || isImageMode}
+                disabled={isLoading}
                 className={cn(
                     "inline-flex h-9 w-9 items-center justify-center rounded-full border transition-[transform,box-shadow,background-color,opacity] duration-200 ease-out shrink-0",
-                    (isLoading || isImageMode)
+                    isLoading
                         ? "opacity-50 cursor-not-allowed bg-transparent border-border/20"
                         : "bg-transparent border-border/30 hover:shadow-md hover:-translate-y-0.5"
                 )}

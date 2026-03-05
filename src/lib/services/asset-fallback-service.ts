@@ -15,7 +15,7 @@ interface FallbackOptions {
   downloadMissingBlob?: boolean;
 }
 
-interface AssetUrlResult {
+export interface AssetUrlResult {
   url: string | null;
   source: 'blob' | 'remote' | 'media' | 'downloaded';
   needsCleanup: boolean;
@@ -166,12 +166,11 @@ async function downloadAndCacheAsset(
  * Refresh an expired or invalid asset URL.
  * Useful when a displayed asset URL suddenly fails (e.g., S3 URL expired).
  */
-export async function refreshAssetUrl(assetId: string): Promise<string | null> {
-  const result = await resolveAssetUrl(assetId, {
+export async function refreshAssetUrl(assetId: string): Promise<AssetUrlResult> {
+  return resolveAssetUrl(assetId, {
     maxRetries: 2,
     downloadMissingBlob: true,
   });
-  return result.url;
 }
 
 /**

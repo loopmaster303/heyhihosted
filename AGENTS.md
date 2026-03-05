@@ -49,8 +49,8 @@ This document defines the strict workflow and principles for all AI Agents worki
 ## 3. Project Status (Feb 2026)
 
 - **Phase 1 (Asset & Gallery Deep-Sync):** Complete. Centralized `GalleryService.saveGeneratedAsset()`, global `BlobManager`, `AssetFallbackService` with retry.
-- **Phase 2 (Code-Hygiene & Legacy):** Complete. Legacy model refs removed, streaming deferred (using `generateText`), ChatView evaluated.
+- **Phase 2 (Code-Hygiene & Legacy):** Complete. Legacy model refs removed, streaming deferred (JSON responses via `/api/chat/completion`), ChatView evaluated.
 - **Phase 3 (Security & Performance):** Long-term. Web Crypto API encryption planned.
-- **Upload Pipeline:** Unified via S3 signed URLs (Catbox removed). Reference images use `resolveReferenceUrls()`.
-- **Smart Router:** Auto-detects search intent (German + English) → routes to `sona`/`perplexity-fast`. Deep Research → `nomnom`.
+- **Upload Pipeline:** Unified via Pollinations Media Storage (`/api/media/upload`, `/api/media/ingest`). Reference images use `resolveReferenceUrls()`.
+- **Smart Router:** Auto-detects search intent (German + English) → routes to `perplexity-fast`. Deep Research routes to `nomnom`.
 - **Compose Mode:** Music composing with Eleven Music (`model=elevenmusic`) via Pollinations (`/api/compose`) (`useComposeMusicState`) with VibeCraft prompt enhancement.

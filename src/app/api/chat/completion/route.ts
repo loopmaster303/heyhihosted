@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handler';
 import { WebContextService } from '@/lib/services/web-context-service';
+import { SmartRouter } from '@/lib/services/smart-router';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import { httpsPost } from '@/lib/https-post';
 
@@ -74,10 +75,28 @@ export async function POST(request: Request) {
     }
 
     const currentDate = new Date().toISOString().split('T')[0];
+    const normalizedQuery = userQuery.trim();
+    const hasMeaningfulQuery = normalizedQuery.length > 3;
+    const smartRouterEnabled = !skipSmartRouter;
+    const isDeepResearchMode = !!webBrowsingEnabled;
+    const inferredSearchIntent =
+      smartRouterEnabled &&
+      hasMeaningfulQuery &&
+      SmartRouter.shouldRouteToSearch(normalizedQuery);
     const shouldFetchWebContext =
-      !skipSmartRouter &&
-      userQuery.trim().length > 3;
-    const webContextMode = webBrowsingEnabled ? 'deep' : 'light';
+      smartRouterEnabled &&
+      hasMeaningfulQuery &&
+      (isDeepResearchMode || inferredSearchIntent);
+    const webContextMode = isDeepResearchMode ? 'deep' : 'light';
+
+    let routedModelId = modelId;
+    if (smartRouterEnabled && hasMeaningfulQuery) {
+      if (isDeepResearchMode) {
+        routedModelId = SmartRouter.getDeepResearchModel();
+      } else if (inferredSearchIntent) {
+        routedModelId = SmartRouter.getLiveSearchModel();
+      }
+    }
 
     const systemDateBlock = shouldFetchWebContext
       ? `Current Date: ${currentDate}.\nWEB CONTEXT MODE: ${webContextMode}. If <web_context> facts are provided, use them. If none are provided, do not invent live data; ask one clarifying question.`
@@ -87,7 +106,7 @@ export async function POST(request: Request) {
 
     if (shouldFetchWebContext) {
       try {
-        const webContext = await WebContextService.getContext(userQuery, webContextMode);
+        const webContext = await WebContextService.getContext(userQuery, webContextMode, apiKey);
         if (webContext && webContext.facts.length > 0) {
           finalSystemPrompt = WebContextService.injectIntoSystemPrompt(finalSystemPrompt, webContext);
         }
@@ -105,11 +124,12 @@ export async function POST(request: Request) {
       ...sanitizedMessages,
     ];
 
-    // === CALL POLLINATIONS API via curl child_process (bypasses Next.js fetch patching) ===
-    // Next.js 16 completely intercepts outgoing http/https requests and strips Authorization headers.
-    // Using execSync('curl ...') is the only reliable way to bypass this interception.
+    // === CALL POLLINATIONS API via Node https helper ===
+    // Next.js 16 can patch outbound fetch behavior; we use httpsPost for deterministic headers.
     
-    console.log(`[API] Pollinations: model=${modelId}, msgs=${apiMessages.length}`);
+    console.log(
+      `[API] Pollinations: model=${routedModelId}, original=${modelId}, webContext=${shouldFetchWebContext ? webContextMode : 'off'}, msgs=${apiMessages.length}`
+    );
 
     const pollinationsResponse = await httpsPost(
       POLLINATIONS_API_URL,
@@ -118,7 +138,7 @@ export async function POST(request: Request) {
         'Authorization': `Bearer ${apiKey}`,
       },
       JSON.stringify({
-        model: modelId,
+        model: routedModelId,
         messages: apiMessages,
         max_tokens: DEFAULT_CHAT_MAX_TOKENS,
       })

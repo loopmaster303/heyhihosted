@@ -2,6 +2,7 @@
 // Service for fetching realtime-ish web context via Pollinations chat completions
 
 import { httpsPost } from '@/lib/https-post';
+import { SmartRouter } from '@/lib/services/smart-router';
 
 export interface WebContext {
     facts: string[];
@@ -45,7 +46,8 @@ export class WebContextService {
      */
     static async getContext(
         query: string,
-        mode: 'light' | 'deep' = 'light'
+        mode: 'light' | 'deep' = 'light',
+        apiKey?: string
     ): Promise<WebContext> {
         // Check if we should skip this query
         if (this.shouldSkip(query)) {
@@ -64,8 +66,8 @@ export class WebContextService {
         try {
             const result = await Promise.race([
                 mode === 'light'
-                    ? this.fetchLightContext(query)
-                    : this.fetchDeepContext(query),
+                    ? this.fetchLightContext(query, apiKey)
+                    : this.fetchDeepContext(query, apiKey),
                 this.timeout(timeoutMs)
             ]);
 
@@ -84,9 +86,9 @@ export class WebContextService {
     /**
      * Light Context: Quick facts, minimal latency
      */
-    private static async fetchLightContext(query: string): Promise<WebContext> {
-        const apiKey = process.env.POLLEN_API_KEY;
-        if (!apiKey) {
+    private static async fetchLightContext(query: string, apiKey?: string): Promise<WebContext> {
+        const resolvedKey = apiKey || process.env.POLLEN_API_KEY;
+        if (!resolvedKey) {
             return this.emptyContext('light');
         }
 
@@ -102,10 +104,10 @@ Keine Einleitung, keine Erklärung, nur Fakten.`;
             POLLEN_API_URL,
             {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
+                'Authorization': `Bearer ${resolvedKey}`,
             },
             JSON.stringify({
-                model: 'gemini-search',
+                model: SmartRouter.getLiveSearchModel(),
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: `Aktuelle Fakten zu: ${query}` }
@@ -132,9 +134,9 @@ Keine Einleitung, keine Erklärung, nur Fakten.`;
     /**
      * Deep Context: Comprehensive research with sources
      */
-    private static async fetchDeepContext(query: string): Promise<WebContext> {
-        const apiKey = process.env.POLLEN_API_KEY;
-        if (!apiKey) {
+    private static async fetchDeepContext(query: string, apiKey?: string): Promise<WebContext> {
+        const resolvedKey = apiKey || process.env.POLLEN_API_KEY;
+        if (!resolvedKey) {
             return this.emptyContext('deep');
         }
 
@@ -148,10 +150,10 @@ Keine Einleitung, keine Zusammenfassung, nur Fakten mit Quellen.`;
             POLLEN_API_URL,
             {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
+                'Authorization': `Bearer ${resolvedKey}`,
             },
             JSON.stringify({
-                model: 'sonar',
+                model: SmartRouter.getDeepResearchModel(),
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: `Recherchiere ausführlich: ${query}` }

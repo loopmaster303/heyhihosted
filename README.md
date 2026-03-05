@@ -21,7 +21,7 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 - **Voice I/O**: Speech-to-text and text-to-speech via Pollinations (OpenAI-compatible endpoints).
 - **Prompt Enhancement**: AI-powered prompt optimization for image and music generation.
 - **Local Vault**: Chats, memories, and generated assets stored locally in your browser (IndexedDB). They never expire and stay private.
-- **Gallery**: Browse and manage all generated images and videos with S3-backed storage.
+- **Gallery**: Browse and manage all generated images and videos with Pollinations Media Storage + local fallback.
 - **CRT Terminal Identity**: A specialized UI inspired by terminal aesthetics with real-time system feedback.
 - **No-Auth Architecture**: Instant utility. No sign-up, no logins.
 
@@ -51,7 +51,7 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 - **Language**: TypeScript (strict mode)
 - **Styling**: Tailwind CSS (Glassmorphism & CRT effects)
 - **UI Components**: Radix UI / Shadcn
-- **Storage**: IndexedDB (via Dexie.js) + AWS S3 for generated assets
+- **Storage**: IndexedDB (via Dexie.js) + Pollinations Media Storage (content-addressed)
 - **AI SDK**: Vercel AI SDK with `ai-sdk-pollinations` provider
 - **AI Providers**: Pollinations.ai (chat, image, video, audio), Replicate (TTS only)
 

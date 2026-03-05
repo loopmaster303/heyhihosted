@@ -14,7 +14,6 @@ import type { UploadedReference } from '@/types';
 
 // Define which models need image upload
 export const pollinationUploadModels = [
-    'flux',
     'gpt-image',
     'gptimage-large',
     'seedream',
@@ -26,6 +25,7 @@ export const pollinationUploadModels = [
     'kontext',
     'wan',
     'seedance',
+    'flux-2-dev',
 ];
 
 export const gptImagePresets: Record<string, { width: number; height: number }> = {
@@ -41,7 +41,6 @@ function normalizeLegacyImageModelId(id: string): string {
     // Pollinations model ID drift + removals
     if (id === 'seedance-fast') return 'seedance';
     if (id === 'ltx-video') return 'ltx-2';
-    if (id === 'flux-2-dev') return 'flux';
     if (id === 'z-image-turbo') return 'zimage';
     if (id === 'flux-2-pro' || id === 'flux-kontext-pro') return 'kontext';
     if (id === 'flux-2-max' || id === 'flux-2-klein-9b') return 'klein-large';

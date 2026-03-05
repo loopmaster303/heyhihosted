@@ -64,12 +64,12 @@ const LandingView: React.FC<LandingViewProps> = ({
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
-                    animate={{ 
-                        opacity: showInputContainer ? 1 : 0, 
-                        y: showInputContainer ? 0 : 30 
+                    animate={{
+                        opacity: showInputContainer ? 1 : 0,
+                        y: showInputContainer ? 0 : 30
                     }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="w-full max-w-4xl pointer-events-auto flex flex-col items-center"
+                    className="w-full max-w-4xl pointer-events-auto flex flex-col items-center gap-3"
                 >
                     {/* ChatInput Bar */}
                     <div className="w-full">

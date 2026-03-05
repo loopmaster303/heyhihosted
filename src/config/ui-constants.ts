@@ -4,6 +4,7 @@ import GeminiIcon from '../assets/icons-models/gemini-color.png';
 import GrokIcon from '../assets/icons-models/grokfarbe.png';
 import KimiIcon from '../assets/icons-models/kimifarbe.png';
 import MistralIcon from '../assets/icons-models/mistral-color.png';
+import PollinationsIcon from '../assets/icons-models/pollinations.png';
 
 import OpenAIIcon from '../assets/icons-models/openfarbe.png';
 import PerplexityIcon from '../assets/icons-models/perplexity-color.png';
@@ -33,6 +34,7 @@ export const modelIcons: Record<string, any> = {
     'kimi': KimiIcon,
     'perplexity-reasoning': PerplexityIcon,
     'perplexity-fast': PerplexityIcon,
+    'nomnom': PollinationsIcon,
     'qwen-coder': QwenIcon,
     'qwen-character': QwenIcon,
     'nova-fast': AmazonNovaIcon,
@@ -40,21 +42,23 @@ export const modelIcons: Record<string, any> = {
 };
 
 export const modelDisplayMap: Record<string, string> = {
-    'claude': 'Claude 4.5',
+    'claude': 'Claude Sonnet 4.6',
     'claude-fast': 'Claude Haiku',
     'claude-large': 'Claude Opus',
-    'gemini-large': 'Gemini 3 Pro',
+    'gemini-large': 'Gemini 3.1 Pro',
     'gemini': 'Gemini Flash',
     'gemini-fast': 'Google Gemini 2.5 Flash Lite',
     'gemini-search': 'Gemini Search',
     'glm': 'Z.ai GLM-5',
     'mistral': 'Mistral',
-    'deepseek': 'Deepseek V3.2',
+    'deepseek': 'DeepSeek V3.2',
     'kimi': 'Kimi K2.5',
-    'perplexity-reasoning': 'Sonar Reason',
+    'perplexity-reasoning': 'Sonar Reasoning',
     'perplexity-fast': 'Sonar',
-    'qwen-coder': 'Qwen Coder',
+    'nomnom': 'NomNom (Alpha)',
+    'qwen-coder': 'Qwen3 Coder 30B',
     'qwen-character': 'Qwen Character',
+    'step-3.5-flash': 'Step 3.5 Flash',
 };
 
 // NEW FEATURED LIST - STANDARD MODELS
@@ -76,6 +80,7 @@ export const imageModelIcons: Record<string, any> = {
     'nanobanana-pro': '🍌',
     'nanobanana-2': '🍌',
     'flux': FluxFarbeIcon,
+    'flux-2-dev': FluxFarbeIcon,
     'klein-large': FluxFarbeIcon,
     'kontext': FluxFarbeIcon,
     'wan': WANIcon,

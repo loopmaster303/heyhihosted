@@ -42,7 +42,7 @@ Toggle web browsing for real-time search and source analysis via Sonar models (S
 ### Data & Vault
 - **Persistence**: Local-First Hybrid Storage.
     - **IndexedDB (Dexie v3)**: Primary database for conversations, messages, memories, and asset metadata.
-    - **AWS S3**: Remote storage for generated images/videos with signed URL access.
+    - **Pollinations Media Storage**: Content-addressed remote storage for generated images/videos.
     - **LocalStorage**: Lightweight UI preferences and settings.
 
 ## 4. System Identity (Embedded in System Prompts)

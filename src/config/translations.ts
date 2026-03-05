@@ -6,7 +6,7 @@ export const translations = {
         'chat.placeholder': 'Du kannst mit der Maschine alles diskutieren, sie im Web suchen lassen, Dateien analysieren oder eine Idee visualisieren',
         'chat.noHistory': 'Noch keine Historie.',
         'chat.searchPlaceholder': 'Gespräche durchsuchen...', 
-        'chat.webBrowsingEnabled': 'Web-Browsing Aktiviert (Gemini Search)',
+        'chat.webBrowsingEnabled': 'Web-Browsing Aktiviert (Smart Router)',
         'chat.webBrowsingDisabled': 'Web-Browsing Deaktiviert',
         'models.capability.vision': 'Vision',
         'models.capability.web': 'Websuche',
@@ -25,7 +25,7 @@ export const translations = {
         'chat.image': 'Bild',
         'chat.document': 'Dokument',
         'chat.camera': 'Kamera',
-        'chat.disclaimer': 'Sei dir bewusst, dass KI Fehler macht und kein Mensch ist, auch wenn sie so antwortet. Überprüfe die Ergebnisse, wenn du dir unsicher bist.',
+        'chat.disclaimer': 'Bleib kritisch bei KI-Antworten und Prompts. KI macht Fehler. Wie wir alle.',
 
         // Navigation & Headers
         'nav.conversations': 'Konversationen',
@@ -189,6 +189,7 @@ export const translations = {
         'visualize.duration': 'Dauer',
         'visualize.audio': 'Audio',
         'visualize.format': 'Format',
+        'visualize.negativePrompt': 'Negative Prompt',
         'visualize.active': 'Aktiv',
         'visualize.showMore': 'Mehr anzeigen',
         'visualize.showLess': 'Weniger anzeigen',
@@ -228,7 +229,7 @@ export const translations = {
         'chat.image': 'Image',
         'chat.document': 'Document',
         'chat.camera': 'Camera',
-        'chat.disclaimer': "Be aware that AI makes mistakes and is not human, even if it responds that way. Check the results if you're unsure.",
+        'chat.disclaimer': 'Be critical of AI responses and prompts. AI makes mistakes. Like we all do.',
 
         // Navigation & Headers
         'nav.conversations': 'Conversations',
@@ -392,6 +393,7 @@ export const translations = {
         'visualize.duration': 'Duration',
         'visualize.audio': 'Audio',
         'visualize.format': 'Format',
+        'visualize.negativePrompt': 'Negative Prompt',
         'visualize.active': 'Active',
         'visualize.showMore': 'Show more',
         'visualize.showLess': 'Show less',

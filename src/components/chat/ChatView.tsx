@@ -6,11 +6,9 @@ import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import type { ChatMessage } from '@/types';
 import MessageBubble from './MessageBubble';
 import { cn } from '@/lib/utils';
-import { useLanguage } from '@/components/LanguageProvider';
 
 interface ChatViewProps {
   messages: ChatMessage[];
-  lastUserMessageId: string | null;
   isAiResponding: boolean;
   onPlayAudio: (text: string, messageId: string) => void;
   playingMessageId: string | null;
@@ -22,7 +20,6 @@ interface ChatViewProps {
 
 const ChatView: React.FC<ChatViewProps> = ({
   messages,
-  lastUserMessageId,
   isAiResponding,
   onPlayAudio,
   playingMessageId,
@@ -31,7 +28,6 @@ const ChatView: React.FC<ChatViewProps> = ({
   onRegenerate,
   className,
 }) => {
-  const { t } = useLanguage();
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const animatedAssistantMessagesRef = useRef<Set<string>>(new Set());
 
@@ -48,22 +44,6 @@ const ChatView: React.FC<ChatViewProps> = ({
       });
     }
   }, [messages.length, isAiResponding]);
-
-  // Scroll to specific message when lastUserMessageId changes
-  useEffect(() => {
-    if (lastUserMessageId) {
-      const index = messages.findIndex(m => m.id === lastUserMessageId);
-      if (index !== -1) {
-        requestAnimationFrame(() => {
-          virtuosoRef.current?.scrollToIndex({
-            index,
-            behavior: 'smooth',
-            align: 'start',
-          });
-        });
-      }
-    }
-  }, [lastUserMessageId, messages]);
 
   const isLastMessageForRegeneration = useCallback((index: number) => {
     if (messages[index].role !== 'assistant') return false;

@@ -1,41 +1,46 @@
-# Codex Gallery POV
+# Codex Gallery Page POV
 
-## Current state (aligned with S3 only)
-The gallery is now backed by a canonical local-first assets table. Generated media is ingested into S3, and the asset record stores the S3 key. The UI resolves signed URLs on demand via `/api/upload/sign-read`. This removes the prior split between chat message URLs and gallery storage.
+Scope: Dieses Dokument beschreibt die **Gallery Page** (`src/app/gallery/page.tsx`), nicht die Mini-/Sidebar-Gallery.
+
+## Current state (aligned with Pollinations Media Storage)
+The gallery is backed by a canonical local-first assets table. Generated media is ingested into Pollinations Media Storage, and the asset record stores the media hash as `storageKey`. The UI resolves immutable media URLs on demand via `https://media.pollinations.ai/{hash}`.
 
 ## Chat image generation and saving
 - `src/components/ChatProvider.tsx`
-  - Image prompt flow calls `ChatService.generateImage(...)` and then ingests the result into S3 via `/api/upload/ingest`.
+  - Image prompt flow calls `ChatService.generateImage(...)` and ingests the result via `/api/media/ingest`.
   - The resulting asset record is written to IndexedDB (`DatabaseService.saveAsset`) with `storageKey` and metadata.
   - Assistant messages reference the asset via `metadata.assetId` for hydration.
 - `src/lib/services/chat-service.ts`
-  - `generateImage(...)` chooses `/api/generate` (Pollinations) or `/api/replicate`.
+  - `generateImage(...)` uses `/api/generate` for Pollinations image/video generation.
 - `src/app/api/generate/route.ts`
   - Generates Pollinations URLs for image and video models.
-- `src/app/api/upload/sign/route.ts`
-  - Creates signed S3 upload + read URLs.
-- `src/app/api/upload/ingest/route.ts`
-  - Polls a remote URL, then writes the binary into S3 and returns `key` + content type.
+- `src/app/api/media/upload/route.ts`
+  - Uploads user references to Pollinations Media Storage (`/upload`) and returns hash URL.
+- `src/app/api/media/ingest/route.ts`
+  - Polls a generated remote URL, uploads binary to Media Storage, returns `key` + content type.
 - `src/hooks/useAssetUrl.ts`
-  - Resolves assets: local blob -> immediate object URL; S3 `storageKey` -> signed read URL.
+  - Resolves assets with fallback chain: local blob -> remote URL -> media hash URL.
 
-## Gallery and image history
+## Gallery Page rendering
 - `src/hooks/useGalleryAssets.ts`
   - Live-query of IndexedDB `assets`, most recent first.
-- `src/components/gallery/GallerySidebarSection.tsx` and `src/app/gallery/page.tsx`
-  - Render assets using `useAssetUrl`, supporting both images and videos.
+- `src/app/gallery/page.tsx`
+  - Rendert Assets via `useAssetUrl`, inkl. Image/Video support.
 
-## Storage model (Hybrid: S3 Primary + Local Blobs)
-- **Primary Strategy (Pollinations)**: Generated media is ingested into S3. The asset record in IndexedDB stores the `storageKey`.
-- **Fallback Strategy (Other Providers)**: For providers where ingestion fails or is skipped, the raw Blob is stored directly in IndexedDB (`asset.blob`).
+## Out of scope
+- `src/components/gallery/GallerySidebarSection.tsx` (Mini-/Sidebar-Gallery)
+
+## Storage model (Hybrid: Media Storage Primary + Local Blobs)
+- **Primary Strategy (Pollinations)**: Generated media is ingested into Pollinations Media Storage. The asset record in IndexedDB stores the `storageKey` hash.
+- **Fallback Strategy**: If ingestion fails or is skipped, the raw Blob is stored directly in IndexedDB (`asset.blob`).
 - **Local-first persistence**: IndexedDB is the single source of truth for asset metadata.
 - **Hydration**: The `useAssetUrl` hook automatically handles both strategies:
-  - If `storageKey` is present -> resolves signed S3 URL.
+  - If `storageKey` is present -> resolves media URL (`https://media.pollinations.ai/{hash}`).
   - If `blob` is present -> creates local Object URL.
 
 ## Remaining risks
-- Signed reference URLs can expire; generation flows should re-sign before use when keys are available.
+- Blob-backed object URLs must not be revoked while still in use by mounted components.
 - Asset records should remain the canonical source of gallery media; avoid reintroducing parallel storage paths.
 
 ## Bottom line
-The gallery is now driven by a single assets vault with S3-backed media, which is stable and easy to reason about. Future changes should keep this single source of truth intact.
+The gallery is now driven by a single assets vault with Media-Storage-backed assets, stable fallback resolution, and local-first metadata. Future changes should keep this single source of truth intact.

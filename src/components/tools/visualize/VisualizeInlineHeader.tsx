@@ -440,6 +440,21 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
         </div>
       )}
 
+      {/* Negative Prompt */}
+      {currentModelConfig.inputs.find(i => i.name === 'negative_prompt') && (
+        <div className={badgeClass}>
+          <span className={labelClass}>{t('visualize.negativePrompt')}</span>
+          <input
+            type="text"
+            value={formFields.negative_prompt || ''}
+            onChange={(e) => handleFieldChange('negative_prompt', e.target.value)}
+            disabled={disabled}
+            placeholder="..."
+            className="bg-transparent border-0 text-[10px] font-semibold focus:ring-0 w-[80px] md:w-[150px] text-foreground placeholder:text-muted-foreground/50 outline-none"
+          />
+        </div>
+      )}
+
       {inlineContent && (
         <div className={badgeClass}>
           {inlineContent}

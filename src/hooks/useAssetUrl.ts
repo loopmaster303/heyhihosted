@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { resolveAssetUrl, refreshAssetUrl } from '@/lib/services/asset-fallback-service';
 import { BlobManager } from '@/lib/blob-manager';
 
@@ -14,10 +14,21 @@ export function useAssetUrl(assetId?: string, initialUrl?: string) {
 
   // Track if we need to cleanup a blob URL
   const [needsCleanup, setNeedsCleanup] = useState(false);
+  const activeUrlRef = useRef<{ url: string | null; needsCleanup: boolean }>({
+    url: initialUrl || null,
+    needsCleanup: false,
+  });
 
   useEffect(() => {
     if (!assetId) {
+      // If the previous resolved URL was blob-backed, release it when asset binding disappears.
+      if (activeUrlRef.current.url && activeUrlRef.current.needsCleanup) {
+        BlobManager.releaseURL(activeUrlRef.current.url);
+      }
+
+      activeUrlRef.current = { url: initialUrl || null, needsCleanup: false };
       setUrl(initialUrl || null);
+      setNeedsCleanup(false);
       setIsLoading(false);
       setError(null);
       return;
@@ -40,6 +51,7 @@ export function useAssetUrl(assetId?: string, initialUrl?: string) {
         if (result.url && isMounted) {
           currentUrl = result.url;
           currentNeedsCleanup = result.needsCleanup;
+          activeUrlRef.current = { url: result.url, needsCleanup: result.needsCleanup };
           setUrl(result.url);
           setNeedsCleanup(result.needsCleanup);
         } else if (isMounted) {
@@ -62,10 +74,13 @@ export function useAssetUrl(assetId?: string, initialUrl?: string) {
 
     return () => {
       isMounted = false;
-      // Only cleanup blob URLs created by BlobManager
-      if (currentUrl && currentNeedsCleanup) {
-        BlobManager.releaseURL(currentUrl);
+      // Cleanup the current active blob URL tracked by this hook.
+      if (activeUrlRef.current.url && activeUrlRef.current.needsCleanup) {
+        BlobManager.releaseURL(activeUrlRef.current.url);
       }
+      // Keep local vars consistent for safety/debugging.
+      currentUrl = null;
+      currentNeedsCleanup = false;
     };
   }, [assetId, initialUrl]);
 
@@ -77,13 +92,15 @@ export function useAssetUrl(assetId?: string, initialUrl?: string) {
     setError(null);
 
     try {
-      const newUrl = await refreshAssetUrl(assetId);
-      if (newUrl) {
+      const result = await refreshAssetUrl(assetId);
+      if (result.url) {
         // Cleanup old URL if needed
-        if (url && needsCleanup) {
-          BlobManager.releaseURL(url);
+        if (activeUrlRef.current.url && activeUrlRef.current.needsCleanup) {
+          BlobManager.releaseURL(activeUrlRef.current.url);
         }
-        setUrl(newUrl);
+        activeUrlRef.current = { url: result.url, needsCleanup: result.needsCleanup };
+        setUrl(result.url);
+        setNeedsCleanup(result.needsCleanup);
       } else {
         setError('Failed to refresh asset URL');
       }
@@ -94,7 +111,7 @@ export function useAssetUrl(assetId?: string, initialUrl?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [assetId, url, needsCleanup]);
+  }, [assetId]);
 
   return { url, isLoading, error, refresh };
 }
