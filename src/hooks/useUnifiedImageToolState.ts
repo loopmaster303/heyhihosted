@@ -26,6 +26,7 @@ export const pollinationUploadModels = [
     'wan',
     'seedance',
     'flux-2-dev',
+    'grok-video',
 ];
 
 export const gptImagePresets: Record<string, { width: number; height: number }> = {
@@ -45,7 +46,8 @@ function normalizeLegacyImageModelId(id: string): string {
     if (id === 'flux-2-pro' || id === 'flux-kontext-pro') return 'kontext';
     if (id === 'flux-2-max' || id === 'flux-2-klein-9b') return 'klein-large';
     if (id === 'wan-video' || id === 'wan-2.5-t2v') return 'wan';
-    if (id === 'grok-imagine' || id === 'grok-video' || id === 'grok-imagine-video') return 'nanobanana';
+    if (id === 'grok-imagine') return 'grok-image';
+    if (id === 'grok-imagine-video') return 'grok-video';
     if (id === 'seedream-pro') return 'seedream5';
     return id;
 }

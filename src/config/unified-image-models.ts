@@ -46,6 +46,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3.1 Flash Image' },
   { id: 'flux-2-dev', name: 'Flux.2 Dev', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'FLUX.2 Dev (api.airforce)' },
   { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Deprecated - use seedream5' },
+  { id: 'grok-image', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Grok Aurora — autoregressive architecture' },
 
   // STANDARD Video Models
   {
@@ -92,6 +93,20 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     supportsAudio: true,
     durationRange: { options: [6, 8, 10] },
   },
+  {
+    id: 'grok-video',
+    name: 'Grok Video',
+    provider: 'pollinations',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: true,
+    enabled: true,
+    description: 'Grok Video — native audio, T2V + I2V',
+    supportsAudio: true,
+    durationRange: { options: [5, 10] },
+  },
 ];
 
 export const UNIFIED_IMAGE_MODELS: UnifiedImageModel[] = [
@@ -126,14 +141,14 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'ADVANCED',
     category: 'Advanced',
     kind: 'image',
-    modelIds: ['flux-2-dev', 'nanobanana-pro', 'nanobanana-2', 'seedream5'],
+    modelIds: ['flux-2-dev', 'nanobanana-pro', 'nanobanana-2', 'seedream5', 'grok-image'],
   },
   {
     key: 'video',
     label: 'VIDEO',
     category: 'Advanced',
     kind: 'video',
-    modelIds: ['seedance', 'wan', 'ltx-2'],
+    modelIds: ['seedance', 'wan', 'ltx-2', 'grok-video'],
   },
 ];
 

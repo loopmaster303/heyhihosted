@@ -32,8 +32,6 @@ const MODEL_ALIASES: Record<string, string> = {
   'seedance-fast': 'seedance',
   'ltx-2': 'ltx-2',
   'ltx-video': 'ltx-2',
-  'grok-video': 'seedance',
-  'grok-imagine': 'nanobanana',
   'gpt-image': 'default', // Generic model, uses default prompt
   'nanobanana': 'nanobanana',
   'nanobanana-pro': 'nanobanana-pro',
@@ -41,7 +39,7 @@ const MODEL_ALIASES: Record<string, string> = {
   // NEW Replicate model mappings
   'flux-2-max': 'flux-2-dev', // Same FLUX.2 family — use dedicated prompt
   'flux-2-klein-9b': 'klein-large', // Same as Pollinations klein-large
-  'grok-imagine-video': 'seedance', // Closest remaining video prompt family
+  // grok-imagine-video: handled via alias in enhancement-prompts.ts → grok-video
   // Suno: route to suno-v5 Dual-Brain prompt (not VibeCraft)
   'suno': 'suno-v5',
 };

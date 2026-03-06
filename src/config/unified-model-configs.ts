@@ -194,6 +194,31 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'jpg', hidden: true },
     ],
   },
+  'grok-image': {
+    id: 'grok-image',
+    name: 'Grok Imagine',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'grok-video': {
+    id: 'grok-video',
+    name: 'Grok Video',
+    outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 5 },
+      { name: 'audio', default: true },
+      { name: 'seed' },
+      { name: 'output_format', default: 'mp4', hidden: true },
+    ],
+  },
 };
 
 export function getUnifiedModelConfig(modelId: string): UnifiedModelConfig | undefined {

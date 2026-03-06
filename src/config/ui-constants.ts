@@ -88,4 +88,6 @@ export const imageModelIcons: Record<string, any> = {
     'wan': WANIcon,
     'zimage': WANIcon,
     'ltx-2': LTXLogo,
+    'grok-image': GrokIcon,
+    'grok-video': GrokIcon,
 };
