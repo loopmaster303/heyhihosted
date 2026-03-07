@@ -176,28 +176,30 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                     className="w-full h-full"
                   />
                 </div>
-                <div className="mt-2 text-[10px] sm:text-xs font-bold tracking-[0.3em] text-foreground/30 uppercase pointer-events-auto text-center w-full">
+                <div className="mt-2 text-[11px] sm:text-xs font-bold tracking-[0.28em] uppercase pointer-events-auto text-center w-full"
+                  style={{ color: 'rgba(179, 136, 255, 0.7)' }}
+                >
                   EVERYONE CAN SAY HI TO AI
                 </div>
-                <div className="mt-1 flex flex-col items-center gap-0.5 pointer-events-auto">
+                <div className="mt-1 flex flex-col items-center gap-1 pointer-events-auto">
                   {isConnected ? (
-                    <span className="text-[9px] sm:text-[10px] font-bold tracking-[0.2em] text-green-500/60 uppercase">
+                    <span className="text-[10px] sm:text-xs font-bold tracking-[0.2em] text-green-500/80 uppercase">
                       Connected
                     </span>
                   ) : (
                     <button
                       onClick={connectOAuth}
-                      className="text-[9px] sm:text-[10px] font-bold tracking-[0.2em] text-foreground/30 hover:text-foreground/60 uppercase transition-colors underline underline-offset-2"
+                      className="text-[10px] sm:text-xs font-bold tracking-[0.2em] text-foreground/55 hover:text-foreground/80 uppercase transition-colors underline underline-offset-2"
                     >
                       Connect to Pollinations for full access
                     </button>
                   )}
-                  <div className="text-[9px] sm:text-[10px] font-bold tracking-[0.2em] text-foreground/20 uppercase">
+                  <div className="text-[10px] sm:text-xs font-bold tracking-[0.18em] text-foreground/55 uppercase">
                     Beta Test Phase ·{' '}
-                    <Link href="/about" className="underline underline-offset-2 hover:text-foreground/40 transition-colors">
+                    <Link href="/about" className="underline underline-offset-2 text-foreground/70 hover:text-foreground transition-colors">
                       Click here
                     </Link>
-                    {' '}for more Information.
+                    {' '}for more information.
                   </div>
                 </div>
               </div>

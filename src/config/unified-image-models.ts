@@ -46,7 +46,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3.1 Flash Image' },
   { id: 'flux-2-dev', name: 'Flux.2 Dev', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'FLUX.2 Dev (api.airforce)' },
   { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Deprecated - use seedream5' },
-  { id: 'grok-image', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Grok Aurora — autoregressive architecture' },
+  { id: 'grok-image', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Grok Aurora — autoregressive architecture (API alias: grok-imagine)' },
 
   // STANDARD Video Models
   {

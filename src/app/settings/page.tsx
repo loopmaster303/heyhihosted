@@ -1,34 +1,35 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { ChatProvider, useChat } from '@/components/ChatProvider';
+import { ChatProvider, useChatConversation, useChatPanels } from '@/components/ChatProvider';
 import AppLayout from '@/components/layout/AppLayout';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/components/LanguageProvider';
 
 function SettingsPageContent() {
-  const chat = useChat();
+  const conversation = useChatConversation();
+  const panels = useChatPanels();
   const { t } = useLanguage(); // keep for translated labels in this view
   const router = useRouter();
 
   return (
     <AppLayout
       onNewChat={() => {
-        chat.startNewChat();
+        conversation.startNewChat();
         router.push('/unified');
       }}
-      onToggleHistoryPanel={chat.toggleHistoryPanel}
+      onToggleHistoryPanel={panels.toggleHistoryPanel}
       currentPath="/settings"
-      chatHistory={chat.allConversations.filter(c => c.toolType === 'long language loops')}
+      chatHistory={conversation.allConversations.filter(c => c.toolType === 'long language loops')}
       onSelectChat={(id) => {
-        chat.selectChat(id);
+        conversation.selectChat(id);
         router.push('/unified');
       }}
-      onDeleteChat={chat.deleteChat}
-      isHistoryPanelOpen={chat.isHistoryPanelOpen}
-      allConversations={chat.allConversations}
-      activeConversation={chat.activeConversation}
+      onDeleteChat={conversation.deleteChat}
+      isHistoryPanelOpen={panels.isHistoryPanelOpen}
+      allConversations={conversation.allConversations}
+      activeConversation={conversation.activeConversation}
     >
       <main className="flex flex-col flex-grow items-center justify-center p-6 text-center gap-3">
         <h1 className="text-lg font-semibold">{t('settings.sidebarNoticeTitle')}</h1>

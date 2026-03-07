@@ -2,7 +2,13 @@ import React, { useEffect } from 'react';
 import ChatView from '@/components/chat/ChatView';
 import ChatInput from '@/components/chat/ChatInput';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
-import { useChat } from '@/components/ChatProvider';
+import {
+    useChatComposer,
+    useChatConversation,
+    useChatMedia,
+    useChatModes,
+    useChatPanels,
+} from '@/components/ChatProvider';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useComposeMusicState } from '@/hooks/useComposeMusicState';
@@ -17,39 +23,11 @@ interface ChatInterfaceProps {
 const LANDING_COMPOSE_AUTOSTART_KEY = 'landing-compose-autostart';
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => {
-    const {
-        activeConversation,
-        isAiResponding,
-        setIsAiResponding,
-        sendMessage,
-        chatInputValue,
-        setChatInputValue,
-        isImageMode,
-        toggleImageMode,
-        isComposeMode,
-        toggleComposeMode,
-        handleFileSelect,
-        closeHistoryPanel,
-        closeAdvancedPanel,
-        toggleHistoryPanel,
-        toggleWebBrowsing,
-        webBrowsingEnabled,
-        startNewChat,
-        handleModelChange,
-        handleStyleChange,
-        handleVoiceChange,
-        selectedVoice,
-        selectedImageModelId,
-        handlePlayAudio,
-        playingMessageId,
-        isTtsLoadingForId,
-        handleCopyToClipboard,
-        regenerateLastResponse,
-        isRecording, isTranscribing, startRecording, stopRecording,
-        openCamera,
-        setActiveConversation,
-        handleImageModelChange,
-    } = useChat();
+    const composer = useChatComposer();
+    const conversation = useChatConversation();
+    const media = useChatMedia();
+    const modes = useChatModes();
+    const panels = useChatPanels();
 
     const composeToolState = useComposeMusicState();
     const { toast } = useToast();
@@ -58,10 +36,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
         if (e && typeof e.preventDefault === 'function') {
             e.preventDefault();
         }
-        const prompt = chatInputValue.trim();
-        if (!prompt || !activeConversation) return;
+        const prompt = composer.chatInputValue.trim();
+        if (!prompt || !conversation.activeConversation) return;
 
-        setIsAiResponding(true);
+        composer.setIsAiResponding(true);
 
         // 1. Add User Message
         const userMsg: ChatMessage = {
@@ -72,8 +50,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
             toolType: 'compose'
         };
 
-        setActiveConversation(prev => prev ? { ...prev, messages: [...(prev.messages || []), userMsg] } : null);
-        setChatInputValue('');
+        conversation.setActiveConversation(prev => prev ? { ...prev, messages: [...(prev.messages || []), userMsg] } : null);
+        composer.setChatInputValue('');
 
         // 2. Add temporary Loading Message
         const loadingMsg: ChatMessage = {
@@ -82,7 +60,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
             content: '',
             timestamp: new Date().toISOString(),
         };
-        setActiveConversation(prev => prev ? { ...prev, messages: [...(prev.messages || []), loadingMsg] } : null);
+        conversation.setActiveConversation(prev => prev ? { ...prev, messages: [...(prev.messages || []), loadingMsg] } : null);
 
         // 3. Generate Music
         try {
@@ -106,33 +84,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                     timestamp: new Date().toISOString(),
                     toolType: 'compose'
                 };
-                setActiveConversation(prev => {
+                conversation.setActiveConversation(prev => {
                     if (!prev) return null;
                     const filtered = (prev.messages || []).filter(m => m.id !== 'loading');
                     return { ...prev, messages: [...filtered, assistantMsg] };
                 });
             } else {
                 // generateMusic already toasted — just clean up loading
-                setActiveConversation(prev => prev ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== 'loading') } : null);
+                conversation.setActiveConversation(prev => prev ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== 'loading') } : null);
             }
         } catch (err) {
             console.error('Compose failed:', err);
-            setActiveConversation(prev => prev ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== 'loading') } : null);
+            conversation.setActiveConversation(prev => prev ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== 'loading') } : null);
             toast({
                 title: 'Fehler bei der Musikgenerierung',
                 description: err instanceof Error ? err.message : 'Unbekannter Fehler',
                 variant: 'destructive',
             });
         } finally {
-            setIsAiResponding(false);
+            composer.setIsAiResponding(false);
         }
     };
 
     // Auto-submit compose only when explicitly requested by Landing -> Chat transition.
     // This prevents unexpected auto-generation when users switch modes manually in Chat.
     useEffect(() => {
-        if (!isComposeMode || !chatInputValue.trim() || isAiResponding) return;
-        const messages = activeConversation?.messages;
+        if (!modes.isComposeMode || !composer.chatInputValue.trim() || composer.isAiResponding) return;
+        const messages = conversation.activeConversation?.messages;
         if (messages && messages.length > 0) return;
 
         try {
@@ -145,30 +123,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
 
         handleComposeSubmit();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isComposeMode, chatInputValue, isAiResponding, activeConversation?.messages?.length]);
+    }, [modes.isComposeMode, composer.chatInputValue, composer.isAiResponding, conversation.activeConversation?.messages?.length]);
 
     // Keyboard shortcuts: Cmd+K = new chat
     useKeyboardShortcuts({
-        onNewChat: startNewChat,
-        onToggleSidebar: toggleHistoryPanel,
+        onNewChat: conversation.startNewChat,
+        onToggleSidebar: panels.toggleHistoryPanel,
         onEscape: () => {
-            closeHistoryPanel();
-            closeAdvancedPanel();
+            panels.closeHistoryPanel();
+            panels.closeAdvancedPanel();
         },
     });
 
     // Sync image model when in image mode
     useEffect(() => {
-        if (!isImageMode) return;
-        if (visualizeToolState.selectedModelId !== selectedImageModelId) {
-            handleImageModelChange(visualizeToolState.selectedModelId);
+        if (!modes.isImageMode) return;
+        if (visualizeToolState.selectedModelId !== modes.selectedImageModelId) {
+            modes.handleImageModelChange(visualizeToolState.selectedModelId);
         }
-    }, [isImageMode, visualizeToolState.selectedModelId, selectedImageModelId, handleImageModelChange]);
+    }, [modes.isImageMode, visualizeToolState.selectedModelId, modes.selectedImageModelId, modes.handleImageModelChange]);
 
-    if (!activeConversation) {
+    if (!conversation.activeConversation) {
         return null; // Don't show anything while loading to prevent flicker
     }
 
+    const activeConversation = conversation.activeConversation;
     const { messages, selectedModelId, selectedResponseStyleName, uploadedFilePreview } = activeConversation;
 
     return (
@@ -182,12 +161,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                     >
                         <ChatView
                             messages={messages}
-                            isAiResponding={isAiResponding}
-                            onPlayAudio={handlePlayAudio}
-                            playingMessageId={playingMessageId}
-                            isTtsLoadingForId={isTtsLoadingForId}
-                            onCopyToClipboard={handleCopyToClipboard}
-                            onRegenerate={regenerateLastResponse}
+                            isAiResponding={composer.isAiResponding}
+                            onPlayAudio={media.handlePlayAudio}
+                            playingMessageId={media.playingMessageId}
+                            isTtsLoadingForId={media.isTtsLoadingForId}
+                            onCopyToClipboard={composer.handleCopyToClipboard}
+                            onRegenerate={composer.regenerateLastResponse}
                         />
                     </ErrorBoundary>
                 ) : (
@@ -198,7 +177,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
 
             <div className="shrink-0 px-4 pb-4">
                 <ChatInput
-                    onSendMessage={(msg, opts) => sendMessage(msg, {
+                    onSendMessage={(msg, opts) => composer.sendMessage(msg, {
                         ...opts,
                         imageConfig: {
                             formFields: visualizeToolState.formFields,
@@ -206,36 +185,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => 
                             selectedModelId: visualizeToolState.selectedModelId
                         }
                     })}
-                    isLoading={isAiResponding}
+                    isLoading={composer.isAiResponding}
                     uploadedFilePreviewUrl={uploadedFilePreview || null}
-                    onFileSelect={(file, type) => handleFileSelect(file, type)}
+                    onFileSelect={(file, type) => media.handleFileSelect(file, type)}
                     isLongLanguageLoopActive={true}
-                    inputValue={chatInputValue}
-                    onInputChange={setChatInputValue}
-                    isImageMode={isImageMode}
-                    onToggleImageMode={toggleImageMode}
-                    webBrowsingEnabled={webBrowsingEnabled}
-                    onToggleWebBrowsing={toggleWebBrowsing}
+                    inputValue={composer.chatInputValue}
+                    onInputChange={composer.setChatInputValue}
+                    isImageMode={modes.isImageMode}
+                    onToggleImageMode={modes.toggleImageMode}
+                    webBrowsingEnabled={modes.webBrowsingEnabled}
+                    onToggleWebBrowsing={modes.toggleWebBrowsing}
                     isCodeMode={!!activeConversation.isCodeMode}
                     onToggleCodeMode={(forcedState?: boolean) => {
                         const turnedOn = forcedState !== undefined ? forcedState : !activeConversation.isCodeMode;
-                        setActiveConversation(prev => prev ? { ...prev, isCodeMode: turnedOn } : prev);
+                        conversation.setActiveConversation(prev => prev ? { ...prev, isCodeMode: turnedOn } : prev);
                     }}
-                    isComposeMode={isComposeMode}
-                    onToggleComposeMode={toggleComposeMode}
+                    isComposeMode={modes.isComposeMode}
+                    onToggleComposeMode={modes.toggleComposeMode}
                     composeToolState={composeToolState}
                     onComposeSubmit={handleComposeSubmit}
                     selectedModelId={selectedModelId!}
-                    handleModelChange={handleModelChange}
+                    handleModelChange={modes.handleModelChange}
                     selectedResponseStyleName={selectedResponseStyleName!}
-                    handleStyleChange={handleStyleChange}
-                    selectedVoice={selectedVoice}
-                    handleVoiceChange={handleVoiceChange}
-                    isRecording={isRecording}
-                    isTranscribing={isTranscribing}
-                    startRecording={startRecording}
-                    stopRecording={stopRecording}
-                    openCamera={openCamera}
+                    handleStyleChange={modes.handleStyleChange}
+                    selectedVoice={modes.selectedVoice}
+                    handleVoiceChange={modes.handleVoiceChange}
+                    isRecording={media.isRecording}
+                    isTranscribing={media.isTranscribing}
+                    startRecording={media.startRecording}
+                    stopRecording={media.stopRecording}
+                    openCamera={media.openCamera}
                     visualizeToolState={visualizeToolState}
                 />
             </div>

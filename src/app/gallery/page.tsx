@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import AppLayout from '@/components/layout/AppLayout';
-import { ChatProvider, useChat } from '@/components/ChatProvider';
+import { ChatProvider, useChatConversation, useChatPanels } from '@/components/ChatProvider';
 import PageLoader from '@/components/ui/PageLoader';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useGalleryAssets } from '@/hooks/useGalleryAssets';
@@ -154,7 +154,8 @@ const VaultTrackItem = ({
 };
 
 function GalleryPageContent() {
-  const chat = useChat();
+  const conversation = useChatConversation();
+  const panels = useChatPanels();
   const router = useRouter();
   const { assets, isLoading, clearAllAssets, toggleStarred } = useGalleryAssets();
   const [lightboxData, setLightboxData] = useState<{ url: string, type: 'image' | 'video' } | null>(null);
@@ -185,11 +186,11 @@ function GalleryPageContent() {
     <AppLayout
         appState="gallery"
         currentPath="/gallery"
-        onNewChat={() => { chat.startNewChat(); router.push('/'); }}
-        onToggleHistoryPanel={chat.toggleHistoryPanel}
-        allConversations={chat.allConversations} 
-        activeConversation={chat.activeConversation}
-        isHistoryPanelOpen={chat.isHistoryPanelOpen}
+        onNewChat={() => { conversation.startNewChat(); router.push('/'); }}
+        onToggleHistoryPanel={panels.toggleHistoryPanel}
+        allConversations={conversation.allConversations} 
+        activeConversation={conversation.activeConversation}
+        isHistoryPanelOpen={panels.isHistoryPanelOpen}
     >
       <div className="flex flex-col h-full w-full bg-background text-foreground">
         

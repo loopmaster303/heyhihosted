@@ -41,7 +41,7 @@ export default function AboutHero() {
           />
         </div>
 
-        <p className="mt-4 text-[11px] sm:text-xs uppercase tracking-[0.22em] text-foreground/45 font-semibold">
+        <p className="mt-4 font-mono text-xs text-primary/40 tracking-wide">
           {t('about.hero.kicker')}
         </p>
 

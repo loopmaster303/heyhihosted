@@ -11,17 +11,13 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { AVAILABLE_POLLINATIONS_MODELS, isKnownPollinationsTextModelId, DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
 import { getImageModels } from '@/config/unified-image-models';
 import { unifiedModelConfigs } from '@/config/unified-model-configs';
-import { useChat } from '@/components/ChatProvider';
+import { useChatConversation, useChatModes } from '@/components/ChatProvider';
 import { Mic, MessageSquare } from 'lucide-react';
 
 const PersonalizationSidebarSection: React.FC = () => {
   const { language } = useLanguage();
-  const { 
-    selectedVoice, 
-    handleVoiceChange, 
-    activeConversation, 
-    handleStyleChange 
-  } = useChat();
+  const { activeConversation } = useChatConversation();
+  const { selectedVoice, handleVoiceChange, handleStyleChange } = useChatModes();
 
   const [isOpen, setIsOpen] = useState(false);
 

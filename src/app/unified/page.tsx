@@ -2,7 +2,14 @@
 
 import React, { useCallback, useEffect, useState, Suspense } from 'react';
 import { usePathname } from 'next/navigation';
-import { ChatProvider, useChat } from '@/components/ChatProvider';
+import {
+    ChatProvider,
+    useChatComposer,
+    useChatConversation,
+    useChatMedia,
+    useChatModes,
+    useChatPanels,
+} from '@/components/ChatProvider';
 import ChatInterface from '@/components/page/ChatInterface';
 import CameraCaptureDialog from '@/components/dialogs/CameraCaptureDialog';
 import AppLayout from '@/components/layout/AppLayout';
@@ -23,7 +30,11 @@ interface UnifiedAppContentProps {
 }
 
 function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps) {
-    const chat = useChat();
+    const composer = useChatComposer();
+    const conversation = useChatConversation();
+    const media = useChatMedia();
+    const modes = useChatModes();
+    const panels = useChatPanels();
     const visualizeToolState = useUnifiedImageToolState();
     const pathname = usePathname();
     const [defaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
@@ -41,9 +52,9 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             selectedModelId: string;
         };
     } | null>(null);
-    const activeConversationId = chat.activeConversation?.id;
-    const activeConversationMessageCount = chat.activeConversation?.messages.length ?? 0;
-    const sendMessage = chat.sendMessage;
+    const activeConversationId = conversation.activeConversation?.id;
+    const activeConversationMessageCount = conversation.activeConversation?.messages.length ?? 0;
+    const sendMessage = composer.sendMessage;
 
     useEffect(() => {
         setIsClient(true);
@@ -59,12 +70,12 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             setPendingMessage(null); // Clear first to avoid double-send
             if (isCompose) {
                 // Pre-fill input; ChatInterface's mount effect will auto-submit via handleComposeSubmit
-                chat.setChatInputValue(text);
+                composer.setChatInputValue(text);
             } else {
                 sendMessage(text, { isImageModeIntent: isImage, imageConfig });
             }
         }
-    }, [activeConversationId, activeConversationMessageCount, chat, sendMessage, pendingMessage, appState, isClient]);
+    }, [activeConversationId, activeConversationMessageCount, composer, sendMessage, pendingMessage, appState, isClient]);
 
     useEffect(() => {
         if (!isClient) return;
@@ -91,10 +102,10 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
         if (!initialMessage) return;
         
         // Capture current state from Landing Page toggles (which affect activeConversation or global state)
-        const isImageModeActive = chat.isImageMode;
-        const isComposeModeActive = chat.isComposeMode;
-        const isWebBrowsingActive = chat.webBrowsingEnabled;
-        const isCodeModeActive = !!chat.activeConversation?.isCodeMode;
+        const isImageModeActive = modes.isImageMode;
+        const isComposeModeActive = modes.isComposeMode;
+        const isWebBrowsingActive = modes.webBrowsingEnabled;
+        const isCodeModeActive = !!conversation.activeConversation?.isCodeMode;
         const imageConfig = isImageModeActive ? {
             formFields: { ...visualizeToolState.formFields },
             uploadedImages: [...visualizeToolState.uploadedImages],
@@ -121,7 +132,7 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
         }
         
         // 2. Start new chat with CURRENT Landing State flags
-        chat.startNewChat({
+        conversation.startNewChat({
             initialModelId: landingSelectedModelId,
             isImageMode: isImageModeActive,
             isComposeMode: isComposeModeActive,
@@ -131,7 +142,8 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
         
         setAppState('chat');
     }, [
-        chat,
+        conversation,
+        modes,
         landingSelectedModelId,
         visualizeToolState.formFields,
         visualizeToolState.uploadedImages,
@@ -141,9 +153,9 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
 
     // Handle new chat (from sidebar) - reset to landing
     const handleNewChat = useCallback(() => {
-        chat.startNewChat();
+        conversation.startNewChat();
         setAppState('landing');
-    }, [chat]);
+    }, [conversation]);
 
     if (!isClient) {
         return <PageLoader text="App wird geladen..." />;
@@ -153,28 +165,28 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
     const currentPath = appState === 'landing' ? '/' : '/chat';
 
     // Get chat history from ChatProvider
-    const chatHistory = chat.allConversations.filter(c => c.toolType === 'long language loops');
+    const chatHistory = conversation.allConversations.filter(c => c.toolType === 'long language loops');
 
     return (
         <AppLayout
             appState={appState}
             onNewChat={handleNewChat}
-            onToggleHistoryPanel={chat.toggleHistoryPanel}
+            onToggleHistoryPanel={panels.toggleHistoryPanel}
             currentPath={currentPath}
             chatHistory={chatHistory}
             onSelectChat={(id) => {
-                chat.selectChat(id);
+                conversation.selectChat(id);
                 setAppState('chat');
             }}
-            onDeleteChat={chat.deleteChat}
-            isHistoryPanelOpen={chat.isHistoryPanelOpen}
-            allConversations={chat.allConversations}
-            activeConversation={chat.activeConversation}
-            isAiResponding={chat.isAiResponding}
+            onDeleteChat={conversation.deleteChat}
+            isHistoryPanelOpen={panels.isHistoryPanelOpen}
+            allConversations={conversation.allConversations}
+            activeConversation={conversation.activeConversation}
+            isAiResponding={composer.isAiResponding}
             // Chat Model Props
-            selectedModelId={appState === 'landing' ? landingSelectedModelId : (chat.activeConversation?.selectedModelId || 'claude')}
-            onModelChange={appState === 'landing' ? setLandingSelectedModelId : chat.handleModelChange}
-            selectedResponseStyleName={chat.activeConversation?.selectedResponseStyleName}
+            selectedModelId={appState === 'landing' ? landingSelectedModelId : (conversation.activeConversation?.selectedModelId || 'claude')}
+            onModelChange={appState === 'landing' ? setLandingSelectedModelId : modes.handleModelChange}
+            selectedResponseStyleName={conversation.activeConversation?.selectedResponseStyleName}
             selectedImageModelId={visualizeToolState.selectedModelId}
         >
             {/* Landing State */}
@@ -196,9 +208,9 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
 
             {/* Dialogs */}
             <CameraCaptureDialog
-                isOpen={chat.isCameraOpen}
-                onOpenChange={chat.closeCamera}
-                onCapture={(dataUri) => chat.handleFileSelect(dataUri, 'image/jpeg')}
+                isOpen={media.isCameraOpen}
+                onOpenChange={media.closeCamera}
+                onCapture={(dataUri) => media.handleFileSelect(dataUri, 'image/jpeg')}
             />
         </AppLayout>
     );

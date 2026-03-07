@@ -58,6 +58,7 @@ export async function POST(request: Request) {
     // Model Logic
     let modelId: string = model || 'flux';
     if (model === 'zimage') modelId = 'z-image-turbo';
+    if (model === 'grok-image') modelId = 'grok-imagine';
 
     const isVideoModel = VIDEO_MODELS.has(modelId);
 
