@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronRight, Copy, Download, Image as ImageIcon, Trash2, X } from 'lucide-react';
+import { ChevronRight, Copy, Download, Heart, Image as ImageIcon, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useGalleryAssets } from '@/hooks/useGalleryAssets';
@@ -71,12 +71,14 @@ const GalleryPanelItem = ({
   onDownload,
   onCopyPrompt,
   onDelete,
+  onToggleStar,
 }: {
   asset: Asset;
   onOpen: (assetId: string, type: 'image' | 'video') => void;
   onDownload: (url: string, filename: string) => void;
   onCopyPrompt: (prompt?: string) => void;
   onDelete: (id: string) => void;
+  onToggleStar: (id: string) => void;
 }) => {
   const { t } = useLanguage();
   const { url } = useAssetUrl(asset.id);
@@ -98,6 +100,11 @@ const GalleryPanelItem = ({
     <div className="break-inside-avoid rounded-xl bg-glass-background/30 backdrop-blur-md overflow-hidden group">
       <div className="relative w-full bg-muted/10">
         {!url && <div className="absolute inset-0 animate-pulse bg-muted/20" />}
+        {asset.starred && (
+          <div className="absolute top-1.5 left-1.5 z-10 text-yellow-400 text-[10px] leading-none">
+            ★
+          </div>
+        )}
         {url && isVideo ? (
           <video
             src={url}
@@ -120,6 +127,19 @@ const GalleryPanelItem = ({
         ) : null}
         {url && (
           <div className="absolute inset-x-0 bottom-0 px-2 py-2 flex items-center justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/60 via-black/15 to-transparent">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onToggleStar(asset.id)}
+              className={cn(
+                "h-7 w-7 rounded-full bg-black/50 hover:bg-black/70",
+                asset.starred ? "text-red-400" : "text-white"
+              )}
+              title="Like"
+              aria-label="Like"
+            >
+              <Heart className={cn("h-3.5 w-3.5", asset.starred && "fill-current")} />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -158,7 +178,7 @@ const GalleryPanelItem = ({
 };
 
 const GallerySidebarSection: React.FC = () => {
-  const { assets, isLoading, deleteAsset, clearAllAssets } = useGalleryAssets();
+  const { assets, isLoading, deleteAsset, clearAllAssets, toggleStarred } = useGalleryAssets();
   const [isOpen, setIsOpen] = useState(false);
   const [lightboxData, setLightboxData] = useState<LightboxData | null>(null);
   const { toast } = useToast();
@@ -284,6 +304,7 @@ const GallerySidebarSection: React.FC = () => {
                       onDownload={handleDownload}
                       onCopyPrompt={handleCopyPrompt}
                       onDelete={deleteAsset}
+                      onToggleStar={toggleStarred}
                     />
                   ))}
                 </div>
