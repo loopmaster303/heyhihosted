@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronRight, Copy, Download, Heart, Image as ImageIcon, Trash2, X } from 'lucide-react';
+import { ChevronRight, Copy, Download, Heart, Image as ImageIcon, Music, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useGalleryAssets } from '@/hooks/useGalleryAssets';
@@ -10,6 +10,7 @@ import { useAssetUrl } from '@/hooks/useAssetUrl';
 import type { Asset } from '@/lib/services/database';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/components/LanguageProvider';
+import Link from 'next/link';
 
 const MAX_PREVIEW = 3;
 const MAX_PANEL = 12;
@@ -62,6 +63,85 @@ const GalleryThumb = ({
         <img src={url} alt={asset.prompt || "Gallery item"} className="h-full w-full object-cover" />
       )}
     </button>
+  );
+};
+
+const TrackItem = ({
+  asset,
+  onCopyPrompt,
+  onDelete,
+  onToggleStar,
+}: {
+  asset: Asset;
+  onCopyPrompt: (prompt?: string) => void;
+  onDelete: (id: string) => void;
+  onToggleStar: (id: string) => void;
+}) => {
+  const { url } = useAssetUrl(asset.id);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement>(null);
+  const title = asset.prompt
+    ? asset.prompt.split(' ').slice(0, 5).join(' ') + (asset.prompt.split(' ').length > 5 ? '…' : '')
+    : 'untitled track';
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    audioRef.current.play().then(() => {
+      setIsPlaying(true);
+    }).catch(() => {
+      setIsPlaying(false);
+    });
+  };
+
+  return (
+    <div className="flex items-center gap-3 px-1 py-2 rounded-lg hover:bg-muted/20 group">
+      {url && <audio ref={audioRef} src={url} onEnded={() => setIsPlaying(false)} className="hidden" />}
+      <button
+        onClick={togglePlay}
+        className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0 hover:bg-primary/20 transition-colors"
+        aria-label={isPlaying ? 'Pause' : 'Play'}
+      >
+        {isPlaying ? (
+          <span className="text-[10px] font-bold">▐▐</span>
+        ) : (
+          <span className="text-[10px] font-bold pl-0.5">▶</span>
+        )}
+      </button>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-mono text-foreground/80 truncate">{title}</p>
+        <p className="text-[10px] text-muted-foreground/60 font-mono">{asset.modelId || 'elevenmusic'}</p>
+      </div>
+      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button
+          variant="ghost" size="icon"
+          onClick={() => onCopyPrompt(asset.prompt)}
+          className="h-6 w-6 rounded text-muted-foreground hover:text-foreground"
+        >
+          <Copy className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost" size="icon"
+          onClick={() => onToggleStar(asset.id)}
+          className={cn("h-6 w-6 rounded", asset.starred ? "text-red-400" : "text-muted-foreground hover:text-foreground")}
+        >
+          <Heart className={cn("h-3 w-3", asset.starred && "fill-current")} />
+        </Button>
+        <Button
+          variant="ghost" size="icon"
+          onClick={() => onDelete(asset.id)}
+          className="h-6 w-6 rounded text-muted-foreground hover:text-red-400"
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
   );
 };
 
@@ -181,11 +261,21 @@ const GallerySidebarSection: React.FC = () => {
   const { assets, isLoading, deleteAsset, clearAllAssets, toggleStarred } = useGalleryAssets();
   const [isOpen, setIsOpen] = useState(false);
   const [lightboxData, setLightboxData] = useState<LightboxData | null>(null);
+  const [activeTab, setActiveTab] = useState<'images' | 'tracks'>('images');
   const { toast } = useToast();
   const { t } = useLanguage();
 
-  const recentAssets = useMemo(() => assets.slice(0, MAX_PREVIEW), [assets]);
-  const panelAssets = useMemo(() => assets.slice(0, MAX_PANEL), [assets]);
+  const imageAssets = useMemo(
+    () => assets.filter((asset) => !asset.contentType?.startsWith('audio/')),
+    [assets]
+  );
+  const trackAssets = useMemo(
+    () => assets.filter((asset) => asset.contentType?.startsWith('audio/')),
+    [assets]
+  );
+  const recentAssets = useMemo(() => imageAssets.slice(0, MAX_PREVIEW), [imageAssets]);
+  const panelImages = useMemo(() => imageAssets.slice(0, MAX_PANEL), [imageAssets]);
+  const panelTracks = useMemo(() => trackAssets.slice(0, MAX_PANEL), [trackAssets]);
 
   const handleDownload = (url: string, filename: string) => {
     try {
@@ -289,30 +379,87 @@ const GallerySidebarSection: React.FC = () => {
               </Button>
             </div>
 
-            <div className="max-h-[55vh] overflow-y-auto p-4 pt-3 no-scrollbar">
-              {panelAssets.length === 0 ? (
-                <div className="py-8 text-center text-xs text-muted-foreground/70">
-                  {t('gallery.emptyPanel')}
-                </div>
+            <div className="flex gap-1 px-4 pt-3 pb-2">
+              <button
+                onClick={() => setActiveTab('images')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium transition-colors",
+                  activeTab === 'images'
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <ImageIcon className="h-3 w-3" />
+                Images
+                {imageAssets.length > 0 && (
+                  <span className="text-[10px] opacity-60">{imageAssets.length}</span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('tracks')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium transition-colors",
+                  activeTab === 'tracks'
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Music className="h-3 w-3" />
+                Tracks
+                {trackAssets.length > 0 && (
+                  <span className="text-[10px] opacity-60">{trackAssets.length}</span>
+                )}
+              </button>
+            </div>
+
+            <div className="max-h-[55vh] overflow-y-auto px-4 pb-3 no-scrollbar">
+              {activeTab === 'images' ? (
+                panelImages.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground/70">
+                    {t('gallery.emptyPanel')}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 min-[520px]:grid-cols-3 gap-3">
+                    {panelImages.map((asset) => (
+                      <GalleryPanelItem
+                        key={asset.id}
+                        asset={asset}
+                        onOpen={(assetId, type) => setLightboxData({ assetId, type })}
+                        onDownload={handleDownload}
+                        onCopyPrompt={handleCopyPrompt}
+                        onDelete={deleteAsset}
+                        onToggleStar={toggleStarred}
+                      />
+                    ))}
+                  </div>
+                )
               ) : (
-                <div className="grid grid-cols-2 min-[520px]:grid-cols-3 gap-3">
-                  {panelAssets.map((asset) => (
-                    <GalleryPanelItem
-                      key={asset.id}
-                      asset={asset}
-                      onOpen={(assetId, type) => setLightboxData({ assetId, type })}
-                      onDownload={handleDownload}
-                      onCopyPrompt={handleCopyPrompt}
-                      onDelete={deleteAsset}
-                      onToggleStar={toggleStarred}
-                    />
-                  ))}
-                </div>
+                panelTracks.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground/70">
+                    Noch keine Tracks. Compose-Modus öffnen.
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {panelTracks.map((asset) => (
+                      <TrackItem
+                        key={asset.id}
+                        asset={asset}
+                        onCopyPrompt={handleCopyPrompt}
+                        onDelete={deleteAsset}
+                        onToggleStar={toggleStarred}
+                      />
+                    ))}
+                  </div>
+                )
               )}
             </div>
 
             {assets.length > 0 && (
-              <div className="px-4 pb-4" />
+              <div className="px-4 pb-4 pt-2 border-t border-border/20 flex justify-between items-center">
+                <Link href="/gallery" className="text-xs font-mono text-primary/60 hover:text-primary transition-colors">
+                  open vault →
+                </Link>
+              </div>
             )}
           </div>
         </div>,
