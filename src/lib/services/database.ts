@@ -35,6 +35,7 @@ export interface Asset {
   timestamp: number;
   storageKey?: string;
   remoteUrl?: string;
+  starred?: boolean;
 }
 
 // --- Die Dexie Datenbank-Klasse ---
@@ -53,6 +54,13 @@ export class HeyHiDatabase extends Dexie {
       messages: 'id, conversationId, timestamp',
       memories: '++id, key, updatedAt',
       assets: 'id, conversationId, timestamp'
+    });
+
+    this.version(4).stores({
+      conversations: 'id, title, updatedAt, toolType',
+      messages: 'id, conversationId, timestamp',
+      memories: '++id, key, updatedAt',
+      assets: 'id, conversationId, timestamp, starred'
     });
   }
 }
@@ -160,6 +168,13 @@ export const DatabaseService = {
 
   async deleteAsset(id: string) {
     return await db.assets.delete(id);
+  },
+
+  async toggleStarred(id: string): Promise<void> {
+    const asset = await db.assets.get(id);
+    if (asset) {
+      await db.assets.update(id, { starred: !asset.starred });
+    }
   },
 
   // Full Object logic
