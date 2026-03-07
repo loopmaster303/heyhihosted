@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/services/database';
+import { DatabaseService } from '@/lib/services/database';
 import type { Asset } from '@/lib/services/database';
 
 /**
@@ -9,12 +10,18 @@ import type { Asset } from '@/lib/services/database';
 export function useGalleryAssets() {
   const assets = useLiveQuery(
     async () => {
-      // Query assets, sort by timestamp descending, and limit to 50 for performance
-      return await db.assets
+      const all = await db.assets
         .orderBy('timestamp')
         .reverse()
         .limit(50)
         .toArray();
+
+      // Keep Dexie's timestamp ordering, but float starred items to the top.
+      return all.sort((a, b) => {
+        if (a.starred && !b.starred) return -1;
+        if (!a.starred && b.starred) return 1;
+        return 0;
+      });
     },
     []
   );
@@ -29,10 +36,15 @@ export function useGalleryAssets() {
     await db.assets.clear();
   };
 
+  const toggleStarred = async (id: string) => {
+    await DatabaseService.toggleStarred(id);
+  };
+
   return {
     assets: assets || [],
     isLoading,
     deleteAsset,
-    clearAllAssets
+    clearAllAssets,
+    toggleStarred,
   };
 }
