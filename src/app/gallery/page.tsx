@@ -176,6 +176,10 @@ function GalleryPageContent() {
   const setSelectedContent = (url: string, type: 'image' | 'video') => {
       setLightboxData({ url, type });
   };
+  const activeCount = activeTab === 'images' ? imageAssets.length : trackAssets.length;
+  const activeLabel = activeTab === 'images'
+    ? (activeCount === 1 ? 'image' : 'images')
+    : (activeCount === 1 ? 'track' : 'tracks');
 
   return (
     <AppLayout
@@ -196,7 +200,7 @@ function GalleryPageContent() {
                     <span className="text-primary">/</span>
                     <span>pollinations_vault</span>
                     <span className="text-xs font-normal text-muted-foreground ml-2 border border-border/50 px-2 py-0.5 rounded-full bg-muted/20">
-                        {activeTab === 'images' ? imageAssets.length : trackAssets.length} {activeTab}
+                        {activeCount} {activeLabel}
                     </span>
                 </h1>
                 
