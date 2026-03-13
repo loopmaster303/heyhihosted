@@ -35,24 +35,6 @@ export interface PollinationsChatCompletionResponse {
   };
 }
 
-// ===== Replicate API =====
-
-export interface ReplicatePredictionRequest {
-  version: string;
-  input: Record<string, unknown>;
-}
-
-export interface ReplicatePrediction {
-  id: string;
-  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
-  output?: string | string[] | null;
-  error?: string | null;
-  urls?: {
-    get: string;
-    cancel?: string;
-  };
-}
-
 // ===== Image Generation API =====
 
 export interface ImageGenerationRequest {
@@ -128,4 +110,3 @@ export function isPollinationsChatResponse(data: unknown): data is PollinationsC
     Array.isArray((data as PollinationsChatCompletionResponse).choices)
   );
 }
-

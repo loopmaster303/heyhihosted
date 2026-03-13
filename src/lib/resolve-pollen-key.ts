@@ -1,3 +1,5 @@
+import { normalizePollenKey } from '@/lib/pollen-key-validation';
+
 /**
  * Server-side utility to resolve the Pollinations API key.
  *
@@ -5,9 +7,10 @@
  * This is the SINGLE source of truth for API key resolution on all server routes.
  */
 export function resolvePollenKey(request: Request): string | undefined {
-  const userKey = request.headers.get('X-Pollen-Key');
-  if (userKey && userKey.trim()) return userKey.trim();
-  return process.env.POLLEN_API_KEY
-    || process.env.POLLINATIONS_API_KEY
-    || process.env.POLLINATIONS_API_TOKEN;
+  const userKey = normalizePollenKey(request.headers.get('X-Pollen-Key'));
+  if (userKey) return userKey;
+
+  return normalizePollenKey(process.env.POLLEN_API_KEY)
+    || normalizePollenKey(process.env.POLLINATIONS_API_KEY)
+    || normalizePollenKey(process.env.POLLINATIONS_API_TOKEN);
 }

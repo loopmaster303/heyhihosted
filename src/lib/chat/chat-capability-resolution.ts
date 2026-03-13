@@ -1,6 +1,7 @@
 import {
   AVAILABLE_POLLINATIONS_MODELS,
   DEFAULT_POLLINATIONS_MODEL_ID,
+  findVisiblePollinationsModelById,
   isKnownPollinationsTextModelId,
   type PollinationsModel,
 } from '@/config/chat-options';
@@ -72,9 +73,7 @@ export function resolveRequestCapabilities(
   input: RequestCapabilityInput,
 ): RequestCapabilityResolution {
   const requestedModelId = resolveEffectiveTextModel(input.selectedModelId);
-  const requestedModel =
-    AVAILABLE_POLLINATIONS_MODELS.find((model) => model.id === requestedModelId) ||
-    AVAILABLE_POLLINATIONS_MODELS[0];
+  const requestedModel = findVisiblePollinationsModelById(requestedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
 
   const isImageModeIntent = !!input.isImageModeIntent;
   const requiresVisionModel = input.hasUploadedFile && !isImageModeIntent;

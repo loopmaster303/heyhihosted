@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { GalleryService } from '@/lib/services/gallery-service';
+import { OutputService } from '@/lib/services/output-service';
 import { getPollenHeaders } from '@/lib/pollen-key';
 
 export type ComposeMusicModel = 'elevenmusic' | 'suno';
@@ -69,7 +69,7 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
       setAudioUrl(data.audioUrl);
 
       // Compose currently returns a data URL, so we persist the track locally as a blob-backed asset.
-      GalleryService.saveGeneratedAsset({
+      OutputService.saveGeneratedAsset({
         url: data.audioUrl,
         prompt,
         modelId: selectedModel,

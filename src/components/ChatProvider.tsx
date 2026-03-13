@@ -45,8 +45,8 @@ import { useChatEffects } from '@/hooks/useChatEffects';
 import { ChatService } from '@/lib/services/chat-service';
 import { MemoryService } from '@/lib/services/memory-service';
 import { DatabaseService } from '@/lib/services/database';
-import { GalleryService } from '@/lib/services/gallery-service';
-import { uploadFileToS3 } from '@/lib/upload/s3-upload';
+import { OutputService } from '@/lib/services/output-service';
+import { uploadFileToPollinationsMediaUrl } from '@/lib/upload/pollinations-media';
 import { getClientSessionId } from '@/lib/session';
 import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
 import { toDate } from '@/utils/chatHelpers';
@@ -381,11 +381,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       ),
       extractMemories: MemoryService.extractMemories,
       saveUploadedAsset: DatabaseService.saveAsset,
-      uploadFileToS3,
+      uploadFileToPollinationsMediaUrl,
       resolveReferenceUrls,
       getUnifiedModel,
       generateImage: ChatService.generateImage,
-      saveGeneratedAsset: GalleryService.saveGeneratedAsset,
+      saveGeneratedAsset: OutputService.saveGeneratedAsset,
       createId: generateUUID,
       createTimestamp: () => new Date().toISOString(),
       getSessionId: getClientSessionId,

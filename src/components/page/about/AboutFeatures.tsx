@@ -8,7 +8,6 @@ const features = [
   { key: 'about.features.items.visualize', id: 'visualize', accent: 'text-mode-visualize' },
   { key: 'about.features.items.compose',  id: 'compose',  accent: 'text-mode-compose' },
   { key: 'about.features.items.research', id: 'research', accent: 'text-mode-research' },
-  { key: 'about.features.items.code',     id: 'code',     accent: 'text-mode-code' },
   { key: 'about.features.items.privacy',  id: 'privacy',  accent: 'text-primary' },
 ] as const;
 

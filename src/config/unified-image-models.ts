@@ -30,22 +30,24 @@ export interface UnifiedImageModel {
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
   { id: 'flux', name: 'Flux.1 Fast', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
-  { id: 'klein-large', name: 'Flux.2 klein 9B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 2, isFree: true, enabled: true, description: 'FLUX.2 Klein 9B' },
-  // Internal fallback for klein-large (9B) when it is unavailable. Not shown in UI.
-  { id: 'klein', name: 'Flux.2 klein 4B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: false, description: 'FLUX.2 Klein 4B (internal fallback for 9B)' },
-  { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware frame editing' },
-  { id: 'gpt-image', name: 'GPT-Image', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: false, description: 'GPT Image 1 Mini' },
-  { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: true, enabled: true, description: 'Advanced OpenAI Image' },
-  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Deprecated - use seedream5' },
-  { id: 'seedream5', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: true, description: 'Seedream 5.0 Lite - ByteDance' },
-  { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 2.5 Flash Image' },
+  { id: 'dirtberry', name: 'Dirtberry', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: false, description: 'Quick realistic image generation via api.airforce' },
   { id: 'zimage', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast 6B Flux' },
+  { id: 'gpt-image', name: 'GPT Image 1 Mini', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'OpenAI image generation with reference support' },
+  // Internal fallback for klein-large (9B) when it is unavailable. Not shown in UI.
+  { id: 'klein', name: 'Flux.2 Klein 4B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: false, description: 'FLUX.2 Klein 4B (internal fallback for 9B)' },
+  { id: 'klein-large', name: 'Flux.2 klein 9B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 2, isFree: true, enabled: false, description: 'FLUX.2 Klein 9B' },
+  { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Context-aware frame editing' },
+  { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: false, enabled: false, description: 'Advanced OpenAI Image' },
+  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: false, enabled: false, description: 'Deprecated - use seedream5' },
+  { id: 'seedream5', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: false, enabled: false, description: 'Seedream 5.0 Lite - ByteDance' },
+  { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 2.5 Flash Image' },
 
   // ADVANCED Image Models
-  { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3 Pro Image (4K)' },
-  { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: true, enabled: true, description: 'Gemini 3.1 Flash Image' },
-  { id: 'flux-2-dev', name: 'Flux.2 Dev', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'FLUX.2 Dev (api.airforce)' },
-  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 10, isFree: true, enabled: false, description: 'Deprecated - use seedream5' },
+  { id: 'imagen-4', name: 'Imagen 4', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Google image generation via api.airforce' },
+  { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 3 Pro Image (4K)' },
+  { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 3.1 Flash Image' },
+  { id: 'flux-2-dev', name: 'Flux.2 Dev', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 4, isFree: true, enabled: false, description: 'FLUX.2 Dev (api.airforce)' },
+  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 10, isFree: false, enabled: false, description: 'Deprecated - use seedream5' },
   { id: 'grok-image', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Grok Aurora — autoregressive architecture (API alias: grok-imagine)' },
 
   // STANDARD Video Models
@@ -57,8 +59,8 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     category: 'Standard',
     supportsReference: true,
     maxImages: 1,
-    isFree: true,
-    enabled: true,
+    isFree: false,
+    enabled: false,
     description: 'Seedance Lite (BytePlus) (T2V / optional I2V)',
     supportsAudio: false,
     durationRange: { options: [5, 10] },
@@ -72,8 +74,8 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     kind: 'video',
     category: 'Advanced',
     supportsReference: true,
-    isFree: true,
-    enabled: true,
+    isFree: false,
+    enabled: false,
     description: '2-15s, 1080p (Alibaba Wan 2.6) (T2V / optional I2V)',
     maxImages: 1,
     supportsAudio: true,
@@ -86,8 +88,8 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     kind: 'video',
     category: 'Advanced',
     supportsReference: false,
-    isFree: true,
-    enabled: true,
+    isFree: false,
+    enabled: false,
     description: 'Lightricks LTX 2 (T2V)',
     maxImages: 0,
     supportsAudio: true,
@@ -127,28 +129,28 @@ const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
     label: 'FREE',
     category: 'Standard',
     kind: 'image',
-    modelIds: ['flux', 'zimage'],
+    modelIds: ['flux', 'dirtberry', 'zimage'],
   },
   {
     key: 'image-editing',
     label: 'EDITING',
     category: 'Standard',
     kind: 'image',
-    modelIds: ['kontext', 'klein-large', 'gptimage-large', 'nanobanana'],
+    modelIds: ['gpt-image', 'klein-large'],
   },
   {
     key: 'image-advanced',
     label: 'ADVANCED',
     category: 'Advanced',
     kind: 'image',
-    modelIds: ['flux-2-dev', 'nanobanana-pro', 'nanobanana-2', 'seedream5', 'grok-image'],
+    modelIds: ['flux-2-dev', 'imagen-4', 'grok-image'],
   },
   {
     key: 'video',
     label: 'VIDEO',
     category: 'Advanced',
     kind: 'video',
-    modelIds: ['seedance', 'wan', 'ltx-2', 'grok-video'],
+    modelIds: ['grok-video'],
   },
 ];
 
@@ -197,7 +199,7 @@ export function getAdvancedModels(kind?: ImageKind): UnifiedImageModel[] {
   );
 }
 
-const CHAT_IMAGE_MODEL_IDS = ['seedream5', 'zimage', 'nanobanana'];
+const CHAT_IMAGE_MODEL_IDS = ['zimage', 'flux', 'gpt-image'];
 export function getChatImageModels(): UnifiedImageModel[] {
   return UNIFIED_IMAGE_MODELS.filter(m =>
     CHAT_IMAGE_MODEL_IDS.includes(m.id) &&

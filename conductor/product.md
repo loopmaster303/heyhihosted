@@ -1,9 +1,9 @@
-# Product Context: HeyHi
+# Product Context: hey.hi
 
 > "Just say </hey.hi> to run multiple AI."
 
 ## 1. Project Overview
-**HeyHi** is a lightweight, privacy-focused, and accessible AI platform. It aims to democratize access to state-of-the-art AI models (Text, Image, Video, Audio) by removing barriers like paywalls and complex setups.
+**hey.hi** is a lightweight, privacy-focused, and accessible AI platform. It aims to democratize access to state-of-the-art AI models (text, image, video, audio) by removing barriers like paywalls and complex setups.
 
 - **Goal**: Provide easy, free/low-barrier access to AI generation.
 - **Philosophy**: Privacy-first (local storage), frictionless experience (no login required for core features).
@@ -21,22 +21,21 @@
 - **Runtime**: Next.js Server Routes (Edge/Node.js compatible)
 - **Deployment**: Vercel
 - **Storage**:
-  - **User Data**: **IndexedDB** via Dexie v3 (conversations, messages, memories, assets)
-  - **Assets**: AWS S3 (signed URL access for generated images/videos)
+  - **User Data**: **IndexedDB** via Dexie v4 (conversations, messages, memories, output metadata)
+  - **Generated Media**: Pollinations Media Storage (hash-based media URLs with local metadata)
   - **UI Prefs**: LocalStorage
 
 ### AI Integration Layer
 - **Primary Provider**: [Pollinations.ai](https://pollinations.ai) — Chat, image, video, audio, music
-- **TTS**: [Replicate](https://replicate.com) (`minimax/speech-02-turbo`) — TTS only
 - **Features**:
   - **Text**: Unified chat with Smart Router (auto-detects search intent → Sonar)
-  - **Image/Video**: Integrated **Visualize** tool (Pollinations-only: Flux, Gemini, Wan, Seedance, LTX)
+  - **Image/Video**: Integrated **Visualize** tool (Pollinations-only, visible set depends on current enabled registry)
   - **Music**: Compose Mode via Eleven Music (`model=elevenmusic`) with VibeCraft prompt enhancement
-  - **Audio**: Deepgram STT, Replicate/Pollinations TTS
+  - **Audio**: Pollinations STT + TTS
 
 ## 3. Core Features
 1.  **Unified Chat**: Central hub for all AI interactions (Text, Image, Video). Supports Markdown and code highlighting.
-2.  **Integrated Visualize**: In-chat media generation tool with Standard and Advanced modes. Activated via Tools menu.
+2.  **Integrated Visualize**: In-chat media generation tool for image and video workflows. Activated via the Tools menu.
 3.  **Voice Interaction**: Speech-to-Text and Text-to-Speech integration.
 4.  **No-Auth Access**: Immediate utility without account creation.
 

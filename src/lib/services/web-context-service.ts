@@ -1,5 +1,6 @@
 // src/lib/services/web-context-service.ts
-// Service for fetching realtime-ish web context via Pollinations chat completions
+// Optional service for fetching realtime-ish web context via Pollinations chat completions.
+// It is not the default path for delegated search/research requests.
 
 import { httpsPost } from '@/lib/https-post';
 import { SmartRouter } from '@/lib/services/smart-router';

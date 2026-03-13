@@ -60,7 +60,7 @@ const GalleryThumb = ({
         />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt={asset.prompt || "Gallery item"} className="h-full w-full object-cover" />
+        <img src={url} alt={asset.prompt || "Output item"} className="h-full w-full object-cover" />
       )}
     </button>
   );
@@ -171,7 +171,7 @@ const GalleryPanelItem = ({
 
   const handleDownload = () => {
     if (!url) return;
-    const baseName = asset.prompt || 'gallery-item';
+    const baseName = asset.prompt || 'output-item';
     const ext = isVideo ? 'mp4' : 'png';
     onDownload(url, `${baseName.slice(0, 24)}.${ext}`);
   };
@@ -200,7 +200,7 @@ const GalleryPanelItem = ({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={url}
-            alt={asset.prompt || "Gallery item"}
+            alt={asset.prompt || "Output item"}
             className="w-full h-auto object-contain cursor-pointer"
             onClick={handleOpen}
           />
@@ -390,7 +390,7 @@ const GallerySidebarSection: React.FC = () => {
                 )}
               >
                 <ImageIcon className="h-3 w-3" />
-                Images
+                {t('gallery.tabImages')}
                 {imageAssets.length > 0 && (
                   <span className="text-[10px] opacity-60">{imageAssets.length}</span>
                 )}
@@ -405,7 +405,7 @@ const GallerySidebarSection: React.FC = () => {
                 )}
               >
                 <Music className="h-3 w-3" />
-                Tracks
+                {t('gallery.tabTracks')}
                 {trackAssets.length > 0 && (
                   <span className="text-[10px] opacity-60">{trackAssets.length}</span>
                 )}
@@ -436,7 +436,7 @@ const GallerySidebarSection: React.FC = () => {
               ) : (
                 panelTracks.length === 0 ? (
                   <div className="py-8 text-center text-xs text-muted-foreground/70">
-                    Noch keine Tracks. Compose-Modus öffnen.
+                    {t('gallery.emptyTracksHint')}
                   </div>
                 ) : (
                   <div className="space-y-1">
@@ -457,7 +457,7 @@ const GallerySidebarSection: React.FC = () => {
             {assets.length > 0 && (
               <div className="px-4 pb-4 pt-2 border-t border-border/20 flex justify-between items-center">
                 <Link href="/gallery" className="text-xs font-mono text-primary/60 hover:text-primary transition-colors">
-                  open vault →
+                  {t('gallery.openFull')}
                 </Link>
               </div>
             )}
@@ -518,7 +518,7 @@ const GalleryLightboxContent = ({ assetId, type }: { assetId: string; type: 'ima
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={url}
-      alt="Fullscreen view"
+      alt={t('gallery.fullscreenAlt')}
       className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-glass-heavy border border-white/10"
     />
   );

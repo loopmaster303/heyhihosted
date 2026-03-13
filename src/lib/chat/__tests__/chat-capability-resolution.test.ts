@@ -4,10 +4,19 @@ import {
   resolveRequestCapabilities,
   resolveStartNewChatState,
 } from '../chat-capability-resolution';
+import { VISIBLE_POLLINATIONS_MODEL_IDS } from '@/config/chat-options';
 
 describe('chat capability resolution', () => {
+  it('falls back to the default text model when no id is provided', () => {
+    expect(resolveEffectiveTextModel(undefined)).toBe('gemini-fast');
+  });
+
   it('falls back to the default text model for unknown ids', () => {
     expect(resolveEffectiveTextModel('definitely-not-real')).toBe('gemini-fast');
+  });
+
+  it('falls back to the default text model for hidden legacy ids', () => {
+    expect(resolveEffectiveTextModel('openai')).toBe('gemini-fast');
   });
 
   it('keeps compose and visualize mutually exclusive when compose wins', () => {
@@ -52,10 +61,20 @@ describe('chat capability resolution', () => {
         isImageModeIntent: false,
       })
     ).toMatchObject({
-      selectedModelId: 'claude-fast',
+      selectedModelId: 'claude-airforce',
       requiresVisionModel: true,
       didFallbackToVisionModel: true,
     });
+  });
+
+  it('never resolves request capabilities to a non-visible text model id', () => {
+    const resolution = resolveRequestCapabilities({
+      selectedModelId: 'openai',
+      hasUploadedFile: false,
+      isImageModeIntent: false,
+    });
+
+    expect(VISIBLE_POLLINATIONS_MODEL_IDS).toContain(resolution.selectedModelId);
   });
 
   it('does not force code mode during visualize requests', () => {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
+import { validateRemoteMediaUrl } from '@/lib/media/remote-fetch-policy';
 
 const IngestSchema = z.object({
   sourceUrl: z.string().url(),
@@ -27,6 +28,14 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { sourceUrl, kind } = IngestSchema.parse(body);
+    const urlPolicy = validateRemoteMediaUrl(sourceUrl);
+
+    if (!urlPolicy.allowed) {
+      return NextResponse.json(
+        { error: 'Source URL is not allowed for media ingest' },
+        { status: 400 }
+      );
+    }
 
     const startTime = Date.now();
     const pollTimeout = kind === 'video' ? 180000 : 60000;
@@ -36,8 +45,15 @@ export async function POST(request: Request) {
     let contentType: string | null = null;
 
     while (Date.now() - startTime < pollTimeout) {
-      const response = await fetch(sourceUrl);
+      const response = await fetch(sourceUrl, { redirect: 'error' });
       if (response.ok) {
+        const contentLength = Number(response.headers.get('content-length'));
+        if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
+          return NextResponse.json(
+            { error: 'Generated media exceeds Pollinations Media Storage limit (max 10MB)' },
+            { status: 413 }
+          );
+        }
         contentType = response.headers.get('content-type');
         const arrayBuffer = await response.arrayBuffer();
         if (arrayBuffer.byteLength > MIN_BYTES) {

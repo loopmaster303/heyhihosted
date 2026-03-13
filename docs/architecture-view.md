@@ -13,15 +13,14 @@ graph TB
     
     subgraph "Next.js Backend"
         API[API Routes]
-        WebContext[WebContextService (RAG)]
-        Auth[Authentication Middleware]
+        WebContext[WebContextService]
+        Uploads[Media Upload + Ingest]
     end
     
     subgraph "External Services"
         Pollinations[Pollinations API]
-        Replicate[Replicate API]
-        S3[AWS S3 (Asset Vault)]
-        WebSearch[Search via Pollinations (Sonar / Gemini Search)]
+        Media[Pollinations Media Storage]
+        WebSearch[Search via Pollinations]
     end
     
     UI --> State
@@ -31,7 +30,8 @@ graph TB
     API --> WebContext
     WebContext --> WebSearch
     API --> Pollinations
-    API --> Replicate
+    API --> Uploads
+    Uploads --> Media
     Hooks --> Local
 ```
 
@@ -50,14 +50,14 @@ graph TD
         Home[/unified]
         Settings[/settings]
         About[/about]
-        Gallery[/gallery]
+        Output[/gallery]
     end
     
     subgraph "Feature Components"
         Landing[LandingView]
         Chat[ChatInterface]
         Personalization[PersonalizationTool]
-        GalleryGrid[GalleryGrid]
+        OutputGrid[GalleryGrid]
     end
     
     subgraph "Integrated Tools"
@@ -69,7 +69,7 @@ graph TD
     Landing -.-> ImageTool
     Chat -.-> ImageTool
     Settings --> Personalization
-    Gallery --> GalleryGrid
+    Output --> OutputGrid
 ```
 
 ## Data Flow Architecture
@@ -127,20 +127,20 @@ graph LR
     subgraph "Browser Storage (Dexie.js)"
         Conversations[Conversations Table]
         Messages[Messages Table]
-        Assets[Assets Table (Blobs)]
+        Assets[Assets Table (Metadata + optional Blob fallback)]
         Memories[Memories Table]
     end
     
     subgraph "Remote Storage"
-        S3[AWS S3]
+        Media[Pollinations Media Storage]
     end
     
     Conversations -- "Metadata" --> ChatProvider
     Messages -- "Content" --> ChatProvider
-    Assets -- "Binary Data" --> ChatProvider
-    
-    S3 -- "Signed URLs" --> API
-    API -- "Proxy" --> ChatProvider
+    Assets -- "Metadata + optional fallback blob" --> ChatProvider
+
+    Media -- "Immutable media URLs" --> API
+    API -- "Resolve via storageKey / remoteUrl" --> ChatProvider
 ```
 
 ## Dexie Database Schema (v3)
@@ -151,5 +151,5 @@ The application uses a typed Dexie.js database instance (`HeyHiDatabase`) with t
 | :--- | :--- | :--- | :--- |
 | **`conversations`** | `id` (UUID) | `updatedAt`, `modelId` | Stores chat session metadata, title, and settings. |
 | **`messages`** | `id` (UUID) | `conversationId`, `timestamp` | Stores individual messages, including content and references. |
-| **`assets`** | `id` (UUID) | `conversationId`, `timestamp` | Stores binary data (Blobs) for images/audio to avoid LocalStorage limits. |
+| **`assets`** | `id` (UUID) | `conversationId`, `timestamp` | Stores asset metadata plus optional blob fallback for images/audio/video. |
 | **`memories`** | `id` (UUID) | `type`, `importance` | Stores AI-generated memories and user facts (Future use). |

@@ -14,6 +14,7 @@ node_modules/
 # Build files
 .next/
 out/
+*.tsbuildinfo
 
 # Env files
 .env.local
@@ -26,3 +27,6 @@ gcp-credentials.json
 .env
 .env
 .DS_Store
+.playwright-mcp/
+server.log
+test-*.png

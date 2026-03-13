@@ -32,11 +32,13 @@ const MODEL_ALIASES: Record<string, string> = {
   'seedance-fast': 'seedance',
   'ltx-2': 'ltx-2',
   'ltx-video': 'ltx-2',
-  'gpt-image': 'default', // Generic model, uses default prompt
+  'gpt-image': 'gptimage',
+  'imagen-4': 'nanobanana',
+  'imagen': 'nanobanana',
   'nanobanana': 'nanobanana',
   'nanobanana-pro': 'nanobanana-pro',
   'nanobanana-2': 'nanobanana-2',
-  // NEW Replicate model mappings
+  // Legacy community aliases
   'flux-2-max': 'flux-2-dev', // Same FLUX.2 family — use dedicated prompt
   'flux-2-klein-9b': 'klein-large', // Same as Pollinations klein-large
   // grok-imagine-video: handled via alias in enhancement-prompts.ts → grok-video
@@ -148,8 +150,8 @@ export async function POST(request: NextRequest) {
     const systemMessage = `${baseGuidelines}\n\n${outputLanguageGuard}\n\n${noContentRestrictionsGuard}\n\n${strictOutputOnlyGuard}${lengthGuard ? '\n\n' + lengthGuard : ''}`;
 
     // Prompt enhancement: primary model + fallback if output is low-quality (suffix-only) or request fails.
-    const primaryEnhancerModelId = 'claude';
-    const fallbackEnhancerModelId = 'mistral';
+    const primaryEnhancerModelId = 'claude-airforce';
+    const fallbackEnhancerModelId = 'claude-fast';
     // BYOP: Resolve API key (user key from header → env var fallback)
     const pollenKey = resolvePollenKey(request);
     let enhancedText: string | null = null;

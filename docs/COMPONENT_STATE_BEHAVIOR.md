@@ -1,7 +1,7 @@
 # Component & App State Behavior Specifications
 
 This document details the actual state machines, routes, and logic flows of the application.
-**Last Updated:** February 2026
+**Last Updated:** March 2026
 
 ## 1. Global Application State
 
@@ -190,7 +190,7 @@ Skips shortcuts when typing in input/textarea (except Escape).
 2. **Reference Upload**: Images uploaded via `/api/media/upload` (Pollinations Media Storage), stored as `UploadedReference[]`.
 3. **API Routing**:
    - All enabled image/video models → `/api/generate` (Pollinations URL generation)
-4. **Persistence**: Assets saved via `GalleryService.saveGeneratedAsset()` to IndexedDB `assets` table. Chat message stores an `assetId` reference, not the asset itself.
+4. **Persistence**: Assets saved via `OutputService.saveGeneratedAsset()` to IndexedDB `assets` table. Chat messages store an `assetId` reference, not the asset itself.
 
 ---
 
@@ -215,6 +215,8 @@ Skips shortcuts when typing in input/textarea (except Escape).
 - `generateMusic(prompt)` — calls `/api/compose` (Pollinations Eleven Music, `model=elevenmusic`)
 - `enhancePrompt(prompt)` — calls `/api/enhance-prompt` with VibeCraft prompt
 - `reset()` — clears state
+
+The current UI exposes Eleven Music only. Additional compose model IDs may still exist in enhancement/config code, but are not part of the visible product while upstream availability is unstable.
 
 ---
 

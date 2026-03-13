@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { validateRemoteMediaUrl } from '@/lib/media/remote-fetch-policy';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -8,8 +9,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'No URL provided' }, { status: 400 });
   }
 
+  const urlPolicy = validateRemoteMediaUrl(imageUrl);
+  if (!urlPolicy.allowed) {
+    return NextResponse.json({ error: 'URL is not allowed for image proxy' }, { status: 400 });
+  }
+
   try {
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, { redirect: 'error' });
     if (!response.ok) throw new Error('Failed to fetch image');
 
     const blob = await response.arrayBuffer();

@@ -1,307 +1,85 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Assistant guidance for Claude working in this repository.
 
-## Project Overview
+## Start Here
 
-**hey.hi** is a privacy-focused, local-first AI chat interface powered by Pollinations.ai. Multimodal chat (text, image, video) with no server-side storage—all data lives in the browser's IndexedDB.
+1. Read [AGENTS.md](/Users/johnmeckel/heyhihosted/AGENTS.md) first. It is the workflow constitution for this repo.
+2. Treat [README.md](/Users/johnmeckel/heyhihosted/README.md), [docs/PRODUCT_AUDIT_2026-03-13.md](/Users/johnmeckel/heyhihosted/docs/PRODUCT_AUDIT_2026-03-13.md), and [docs/PRODUCT_AUDIT_FOLLOWUP_2026-03-13.md](/Users/johnmeckel/heyhihosted/docs/PRODUCT_AUDIT_FOLLOWUP_2026-03-13.md) as the current product/runtime truth.
+3. Use [docs/README.md](/Users/johnmeckel/heyhihosted/docs/README.md) as the docs map for active vs archived material.
+4. Prefer updating one canonical truth document instead of duplicating architecture notes in multiple places.
+
+## Project Snapshot
+
+**hey.hi** is a local-first AI workspace built on Next.js 16 and Pollinations.ai.
+
+- Unified app shell with `landing` and `chat` states at `/unified`
+- Visible user modes: `standard`, `visualize`, `compose`, `research`
+- Code mode exists as an internal response-mode flag, not as a separate visible tool
+- Generated media lives in Pollinations Media Storage, while conversations, memories, settings, and output metadata live locally in IndexedDB / localStorage
+- The product surface now calls the generated-media area **Output**
+
+## Current Runtime Truth
+
+### Visible text models
+- `claude-airforce`
+- `claude-fast`
+- `gemini-fast`
+- `gemini-search`
+- `deepseek`
+- `step-3.5-flash`
+- `nova-fast`
+- `mistral`
+- `perplexity-fast`
+- `perplexity-reasoning`
+- `nomnom`
+- `kimi`
+- `glm`
+- `minimax`
+- `qwen-coder`
+- `qwen-character`
+
+### Visible image/video models
+- `flux`
+- `zimage`
+- `gpt-image`
+- `imagen-4`
+- `grok-image`
+- `grok-video`
+
+### Key implementation notes
+- Search/research routing is delegated through a single strategy path; `WebContextService` is optional helper logic, not the default delegated path.
+- BYOP key handling is partially hardened but still XSS-sensitive because the key remains in web storage.
+- Manual availability governance is centralized in [src/config/chat-options.ts](/Users/johnmeckel/heyhihosted/src/config/chat-options.ts) and [src/config/unified-image-models.ts](/Users/johnmeckel/heyhihosted/src/config/unified-image-models.ts).
+- Compose state is shared across landing/chat via the unified page layer.
+
+## Important Files
+
+- [src/app/unified/page.tsx](/Users/johnmeckel/heyhihosted/src/app/unified/page.tsx): top-level unified shell
+- [src/components/ChatProvider.tsx](/Users/johnmeckel/heyhihosted/src/components/ChatProvider.tsx): state orchestration
+- [src/hooks/useChatState.ts](/Users/johnmeckel/heyhihosted/src/hooks/useChatState.ts): persistence-oriented base state
+- [src/config/chat-options.ts](/Users/johnmeckel/heyhihosted/src/config/chat-options.ts): text-model truth, response styles, system prompts
+- [src/config/unified-image-models.ts](/Users/johnmeckel/heyhihosted/src/config/unified-image-models.ts): visible image/video model truth
+- [src/lib/services/output-service.ts](/Users/johnmeckel/heyhihosted/src/lib/services/output-service.ts): output persistence adapter
 
 ## Commands
 
 ```bash
-npm run dev          # Development server (Turbopack)
-npm run build        # Production build
-npm run lint         # ESLint
-npm run typecheck    # TypeScript check
-npm test             # Jest tests (watch mode)
-npm test -- --testPathPattern="chat-service"  # Run specific test
+npm run dev
+npm run build
+npm run lint
+npm run typecheck
+npm test
 ```
 
-## Architecture
+For focused tests, prefer:
 
-### Unified App Structure
-
-Single-page architecture at `/unified` with two app states (`landing` | `chat`).
-
-The **Visualize Bar** (`VisualizeInlineHeader`) opens inline when image mode is active, providing:
-
-- Model selection (image/video)
-- Parameters: aspect ratio, duration (video), audio toggle
-- Reference image upload
-
-### Behavioral Modes
-
-Conversation-level flags:
-
-- **isImageMode**: Routes prompts to Pollinations image/video generation
-- **isComposeMode**: Music composing with Eleven Music (`model=elevenmusic`) via Pollinations (`/api/compose`) (`useComposeMusicState`)
-- **isCodeMode**: Activates `CODE_REASONING_SYSTEM_PROMPT` for programming
-- **webBrowsingEnabled**: Deep Research mode → routes to `nomnom` model
-
-### Smart Router (`src/lib/services/smart-router.ts`)
-
-Auto-detects user intent via regex (German + English):
-
-- **Search intent** (temporal keywords, news, prices) → `perplexity-fast`
-- **Deep Research toggle** → `nomnom` or `perplexity-reasoning`
-- **Normal chat** → User's selected model
-
-### API Layer
-
-**Chat** (`/api/chat/completion`):
-
-- Vercel AI SDK (`generateText`) with `ai-sdk-pollinations` provider
-
-**Image/Video Generation** (`/api/generate`):
-
-- Custom Pollinations SDK shim (`src/lib/pollinations-sdk.ts`)
-- All models via Pollinations API
-- **Pollinations supports GET only** (`/image/{prompt}?params`) — no POST endpoint
-- URL limit ~2000 chars; if exceeded, server fetches image via GET and returns base64 data URL
-
-**Prompt Enhancement** (`/api/enhance-prompt`):
-
-- LLM-based prompt optimization for image and music generation
-- Model-specific system prompts (`src/config/enhancement-prompts.ts`)
-- Routing: `modelId` selects which enhancement prompt to use
-- Image models: max 1000 chars output (3-layer cap: `maxCompletionTokens: 250`, system prompt rule, hard-cap after sanitize)
-- Compose/music: max ~4100 chars output (no URL constraint, goes to `/api/compose`)
-
-**Music Generation** (`/api/compose` via Pollinations):
-
-- Compose mode uses `useComposeMusicState` hook with `enhancePrompt()` + `isEnhancing`
-- Endpoint: `src/app/api/compose/route.ts` calls Pollinations audio with `model=elevenmusic`
-- VibeCraft enhancement prompt (`COMPOSE_ENHANCEMENT_PROMPT` in `enhancement-prompts.ts`)
-
-**Text-to-Speech** (`/api/tts`):
-
-- Replicate SDK (`minimax/speech-02-turbo`) — TTS only, Replicate is not used for image/video
-
-**Speech-to-Text** (`/api/stt`):
-
-- Deepgram API via `stt-flow.ts`
-
-**Title Generation** (`/api/chat/title`):
-
-- Auto-generates conversation titles via Pollinations
-
-**Image Proxy** (`/api/proxy-image`):
-
-- Privacy-respecting proxy for external images
-
-**Compose/Music** (`/api/compose`):
-
-- Pollinations Eleven Music (`model=elevenmusic`) composing endpoint
-
-**S3 Upload** (`/api/upload/sign`, `/api/upload/sign-read`, `/api/upload/ingest`):
-
-- Signed URL generation for uploads and reads
-- Asset ingestion pipeline (polls Pollinations, copies to S3)
-
-### Reference Images
-
-**Upload Flow:**
-
-1. User selects image(s) → uploaded to S3 via signed URL
-2. Stored as `UploadedReference[]`: `{ url, key, expiresAt }`
-3. Before API call: `resolveReferenceUrls()` refreshes expired URLs
-4. Passed to Pollinations API as `image` parameter (`string[]`)
-
-**Critical: Upload Model List** (`useUnifiedImageToolState.ts`):
-
-- `pollinationUploadModels` — every Pollinations model with `supportsReference: true` **must** be listed
-- If missing, upload falls back to local Data-URI (base64 ~940K chars) which explodes GET URLs
-
-**Model Limits** (`src/config/unified-image-models.ts`):
-
-| Model                | Max Images | Notes                      |
-| -------------------- | ---------- | -------------------------- |
-| nanobanana(-pro)     | 14         | Gemini-based               |
-| gptimage-large       | 8          | OpenAI                     |
-| kontext, klein-large | 1          | Context editing            |
-| wan, seedance        | 1          | Image-to-Video only        |
-| flux, zimage, ltx-2  | 0          | No reference support       |
-
-Logic in `useUnifiedImageToolState`: auto-truncates images when switching to model with lower limit.
-
-### Visualize Model Groups
-
-The Visualize Bar organizes models into 4 groups (`src/config/unified-image-models.ts`):
-
-| Group        | Category | Models                                           | Visibility         |
-| ------------ | -------- | ------------------------------------------------ | ------------------ |
-| **FREE**     | Standard | flux, zimage                                     | Always visible     |
-| **EDITING**  | Standard | kontext, klein-large, gptimage-large, nanobanana | Always visible     |
-| **ADVANCED** | Advanced | nanobanana-pro (+ 2 disabled: nanobanana-2, seedream5) | Behind "Show More" |
-| **VIDEO**    | Advanced | seedance, wan, ltx-2                             | Behind "Show More" |
-
-Standard groups are always visible; Advanced groups are behind a "Show More" toggle.
-Order of `modelIds` in each group determines display order in the UI.
-Disabled models (`enabled: false`) are automatically filtered out by `getVisualizeModelGroups()`.
-
-### Asset Storage (Gallery)
-
-**After Generation:**
-
-1. Pollinations returns URL → `/api/upload/ingest` polls until ready
-2. Copies to S3: `generated/{sessionId}/{timestamp}.{ext}`
-3. IndexedDB stores metadata + `storageKey` (no blob)
-
-**Display:**
-
-- `useGalleryAssets()` loads from IndexedDB (limit 50)
-- `useAssetUrl(id)` resolves: `storageKey` → signed S3 URL
-
-### State Management
-
-```
-ChatProvider.tsx (orchestrator)
-├── useChatState()              # Core state & persistence
-├── useChatAudio()              # TTS playback
-├── useChatRecording()          # Voice input
-├── useUnifiedImageToolState()  # Visualize bar state
-├── useComposeMusicState()      # Compose/music bar state
-└── useChatEffects()            # Side effects
+```bash
+CI=1 npm test -- --runInBand path/to/test.ts
 ```
 
-**MemoryService isolation**: `MemoryService.extractMemories()` is called in the `finally` block of `sendMessage()` but **only for text chat** (`!isImagePrompt`). It internally calls `ChatService.sendChatCompletion()`, which would route through Smart Router and potentially trigger search models — must never run during image/video generation.
+## Cleanup Rules
 
-### Database (Dexie v3 / IndexedDB)
-
-```typescript
-conversations: "id, title, updatedAt, toolType";
-messages: "id, conversationId, timestamp";
-memories: "++id, key, updatedAt";
-assets: "id, conversationId, timestamp"; // storageKey is a field but not indexed
-```
-
-## App Identity & System Prompts (`src/config/chat-options.ts`)
-
-The app's self-knowledge is embedded in system prompts sent with every chat request:
-
-- **`SYSTEM_IDENTITY_PROTOCOL`**: Name ("hey.hi"), nature ("AI Interface, not standalone model"), privacy policy, transparency rules, "Not Human" identity.
-- **`SHARED_SAFETY_PROTOCOL`**: Crisis intervention — detects distress (Condition A → stay present) and acute danger (Condition B → redirect to 112/crisis hotline 0800 111 0 111).
-- **`OUTPUT_LANGUAGE_GUARD`**: Default German, switches to English if user writes English.
-- **`CODE_REASONING_SYSTEM_PROMPT`**: Code Mode identity ("Senior Software Engineer").
-
-All five **Response Styles** (Basic, Precise, Deep Dive, Emotional Support, Philosophical) compose these protocols into their system prompt via XML structure.
-
-See [docs/PRODUCT_IDENTITY.md](docs/PRODUCT_IDENTITY.md) for full identity specification.
-
-## Key Configurations
-
-### Chat Models (`src/config/chat-options.ts`)
-
-- Default: `claude-fast` (Claude Haiku 4.5)
-- Auto-routed search: `perplexity-fast` (Sonar)
-- Deep research: `nomnom`
-- Code Mode models: `qwen-coder`, `deepseek`, `glm`, `gemini-large`
-
-### Chat Model Categories
-
-| Category            | Models                                                                                                                                          |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Standard (Free)** | `claude-fast`, `gemini-fast`, `gemini-search`, `nova-fast`                                                                                      |
-| **Advanced (Paid)** | **Requires Pollen Key**<br>`claude`, `claude-large`, `gemini`, `gemini-large`, `deepseek`, `perplexity-fast`, `perplexity-reasoning`, `kimi`, `glm` |
-| **Specialized**     | `qwen-coder`                                                                                                                                    |
-
-### Response Styles
-
-Five personas: Basic, Precise, Deep Dive, Emotional Support, Philosophical — each with XML-structured system prompts composing Safety Protocol + Identity Protocol + Language Guard + persona-specific identity.
-
-## Current API Status ✅
-
-**Status: All APIs Working**
-
-**Versions:**
-
-- `ai`: 6.0.45 (installed)
-- `ai-sdk-pollinations`: 0.0.1 (installed)
-
-**Chat** (`/api/chat/completion`):
-
-- ✅ Using `ai-sdk-pollinations` with `generateText` (non-streaming)
-- ✅ Smart Router integration for auto search detection
-- ✅ Web Context Service for enhanced responses
-- ✅ Returns JSON: `{ choices: [{ message: { content, role } }] }`
-- ⏳ Streaming (`streamText`) deferred until SDK stabilizes (see Phase 2 docs)
-
-**Image/Video — Pollinations** (`/api/generate`):
-
-- ✅ Custom SDK shim (`src/lib/pollinations-sdk.ts`)
-- ✅ All Pollinations models supported
-- ✅ Server-side GET fetch fallback for URLs >2000 chars (returns base64 data URL)
-- ✅ Prompt enhancement pipeline (`/api/enhance-prompt`) with 1000-char cap
-
-**Compose/Music** (`/api/compose` via Pollinations):
-
-- ✅ Compose mode with `useComposeMusicState` hook
-- ✅ Pollinations audio with `model=elevenmusic`
-- ✅ VibeCraft enhancement prompt for music descriptions
-
-**TTS** (`/api/tts`):
-
-- ✅ Replicate SDK (`minimax/speech-02-turbo`)
-
-**Requirements:**
-
-- `POLLEN_API_KEY` - Pollinations API access
-- `REPLICATE_API_TOKEN` - TTS only (`/api/tts` via minimax/speech-02-turbo)
-- AWS credentials for S3 asset storage
-
-## Known Technical Debt
-
-1. **Large Components**: `ChatInput.tsx` (~470 lines), `ChatProvider.tsx` (~1000 lines)
-2. **Type Safety**: `Conversation` mixes persisted and runtime state
-3. **Test Coverage**: Low on core logic
-
-## Roadmap (2026-01-22)
-
-### Phase 1: Asset & Gallery Deep-Sync ✅ COMPLETE
-
-**Completion**: 2026-01-22 | **Full Summary**: [docs/phase-1-complete.md](docs/phase-1-complete.md)
-
-- [x] Image-Generation Loop: Centralized `GalleryService.saveGeneratedAsset()` handles all generation flows (2026-01-22)
-  - Refactored duplicate code in `ChatProvider.tsx` and `UnifiedImageTool.tsx`
-  - Pollinations assets stored via S3 ingestion pipeline
-- [x] Blob-Management: Global `BlobManager` with automatic cleanup (2026-01-22)
-  - Reference counting for shared blob URLs
-  - Automatic cleanup on unmount and page unload
-  - Periodic cleanup of old URLs (5-minute intervals)
-  - React hooks: `useBlobUrl()` and `useBlobUrls()`
-  - Integrated into `useAssetUrl`, `DatabaseService.getAssetUrl()`
-  - Debug stats: `BlobManager.getStats()` and `BlobManager.debug()`
-- [x] Fallback-Handling: `AssetFallbackService` with comprehensive fallback chain (2026-01-22)
-  - Auto-fetch from S3 with exponential backoff retry (max 3 attempts)
-  - Automatic download and cache of missing blobs in background
-  - Fallback priority: blob → remoteUrl → S3 signed URL → download & cache
-  - Enhanced `useAssetUrl` with `refresh()` method for expired URLs
-  - `useAssetPrecache()` hook for gallery pre-loading
-  - `GalleryService.verifyAndRepairAssets()` for bulk asset repair
-
-### Phase 2: Code-Hygiene & Legacy ✅ COMPLETE
-
-**Completion**: 2026-01-22
-
-- [x] Remove legacy model refs: Verified `gpt-oss-120b` already removed from codebase
-- [x] Streaming status documented: `generateText` working, `streamText` deferred until SDK stable
-  - See: [docs/streaming-status.md](docs/streaming-status.md)
-- [x] ChatView.tsx evaluated: 143 lines, well-structured, no refactoring needed
-
-### Phase 3: Security & Performance (LONG-TERM)
-
-- [ ] Web Crypto API encryption for `messages` and `memories` tables
-- [ ] Migrate remaining localStorage settings to Dexie
-
-## Environment Variables
-
-```
-POLLEN_API_KEY            # Pollinations API (also accepts POLLINATIONS_API_KEY / POLLINATIONS_API_TOKEN)
-REPLICATE_API_TOKEN       # TTS only (/api/tts, minimax/speech-02-turbo)
-DEEPGRAM_API_KEY          # STT (used in stt-flow.ts)
-AWS_REGION, AWS_S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-```
-
-## Import Alias
-
-`@/*` maps to `./src/*`
+- Do not invent new truth docs when an existing active doc can be updated.
+- Avoid model-name marketing copy unless it is clearly tied to the current visible registry.
+- Treat `README.md`, `CLAUDE.md`, and `GEMINI.md` as synchronized adapters over the same runtime truth.

@@ -12,12 +12,18 @@ DOC_DRIFT_FINDINGS=""
 TARGET_FILES=(
   "README.md"
   "AGENTS.md"
+  "CLAUDE.md"
+  "GEMINI.md"
+  "conductor/product.md"
   "docs/COMPONENT_STATE_BEHAVIOR.md"
+  "docs/PRODUCT_IDENTITY.md"
+  "docs/architecture-view.md"
+  "docs/asset-fallback-service.md"
   "docs/codexgallery.md"
   "docs/streaming-status.md"
 )
 
-PATTERN='\/api\/upload\/sign-read|\/api\/upload\/sign|\/api\/upload\/ingest|\/api\/replicate'
+PATTERN='\/api\/upload\/sign-read|\/api\/upload\/sign|\/api\/upload\/ingest|\/api\/replicate|Replicate|Deepgram|AWS S3|signed S3|model=suno|Suno v5|ai-sdk-pollinations|Vercel AI SDK'
 
 MATCH_FILE="/tmp/heyhi_doc_drift_matches.txt"
 : > "$MATCH_FILE"

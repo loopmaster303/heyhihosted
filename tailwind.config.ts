@@ -29,7 +29,7 @@ export default {
           low: 'hsl(var(--surface-container-low))',
           high: 'hsl(var(--surface-container-high))',
         },
-        // Custom tool colors used across tools (e.g., ReplicateImageTool)
+        // Custom tool colors used across tools
         'tool-input-bg': 'hsl(var(--tool-input-bg))',
         'tool-button-bg': 'hsl(var(--tool-button-bg))',
         mode: {

@@ -16,6 +16,7 @@ import { Download, Maximize2, X, Image as ImageIcon, Trash2, MessageSquare, Hear
 import { Button } from '@/components/ui/button';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/components/LanguageProvider';
 
 /**
  * Individual Gallery Item Component
@@ -117,7 +118,7 @@ const GalleryItem = ({
   );
 };
 
-const VaultTrackItem = ({
+const OutputTrackItem = ({
   asset,
   onToggleStar,
 }: {
@@ -157,6 +158,7 @@ function GalleryPageContent() {
   const conversation = useChatConversation();
   const panels = useChatPanels();
   const router = useRouter();
+  const { t } = useLanguage();
   const { assets, isLoading, clearAllAssets, toggleStarred } = useGalleryAssets();
   const [lightboxData, setLightboxData] = useState<{ url: string, type: 'image' | 'video' } | null>(null);
   const [activeTab, setActiveTab] = useState<'images' | 'tracks'>('images');
@@ -171,7 +173,7 @@ function GalleryPageContent() {
   );
 
   if (isLoading) {
-    return <PageLoader text="Lade Artefakte..." />;
+    return <PageLoader text={t('gallery.pageLoading')} />;
   }
 
   const setSelectedContent = (url: string, type: 'image' | 'video') => {
@@ -179,8 +181,8 @@ function GalleryPageContent() {
   };
   const activeCount = activeTab === 'images' ? imageAssets.length : trackAssets.length;
   const activeLabel = activeTab === 'images'
-    ? (activeCount === 1 ? 'image' : 'images')
-    : (activeCount === 1 ? 'track' : 'tracks');
+    ? t('gallery.tabImages').toLowerCase()
+    : t('gallery.tabTracks').toLowerCase();
 
   return (
     <AppLayout
@@ -199,9 +201,12 @@ function GalleryPageContent() {
             <div className="flex justify-between items-center mb-4">
                 <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
                     <span className="text-primary">/</span>
-                    <span>pollinations_vault</span>
+                    <span>{t('gallery.pageTitle')}</span>
                     <span className="text-xs font-normal text-muted-foreground ml-2 border border-border/50 px-2 py-0.5 rounded-full bg-muted/20">
                         {activeCount} {activeLabel}
+                    </span>
+                    <span className="hidden md:inline text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/60">
+                        {t('gallery.pageBadge')}
                     </span>
                 </h1>
                 
@@ -210,20 +215,24 @@ function GalleryPageContent() {
                      variant="ghost" 
                      size="sm" 
                      onClick={() => {
-                        if(confirm("Wirklich alle Artefakte aus dem Vault löschen? Diese Aktion kann nicht rückgängig gemacht werden.")) clearAllAssets();
+                        if(confirm(t('gallery.clearConfirm'))) clearAllAssets();
                      }}
                      className="text-red-500 hover:text-red-400 hover:bg-red-950/20 gap-2"
                    >
                      <Trash2 className="w-4 h-4" />
-                     <span className="hidden sm:inline">Clear Vault</span>
+                     <span className="hidden sm:inline">{t('action.clearVault')}</span>
                    </Button>
                 )}
             </div>
 
+            <p className="max-w-2xl text-sm text-muted-foreground/70">
+              {t('gallery.pageDescription')}
+            </p>
+
             <div className="flex gap-1">
               {[
-                { key: 'images', label: 'Images', icon: ImageIcon, count: imageAssets.length },
-                { key: 'tracks', label: 'Tracks', icon: Music, count: trackAssets.length },
+                { key: 'images', label: t('gallery.tabImages'), icon: ImageIcon, count: imageAssets.length },
+                { key: 'tracks', label: t('gallery.tabTracks'), icon: Music, count: trackAssets.length },
               ].map(tab => (
                 <button
                   key={tab.key}
@@ -251,9 +260,9 @@ function GalleryPageContent() {
                         <div className="w-20 h-20 border-2 border-dashed border-current rounded-2xl mb-6 flex items-center justify-center">
                             <ImageIcon className="w-10 h-10" />
                         </div>
-                        <p className="text-lg font-medium">Keine Artefakte gefunden.</p>
+                        <p className="text-lg font-medium">{t('gallery.pageEmptyTitle')}</p>
                         <p className="text-sm mt-2 text-center max-w-xs">
-                            Bilder, die du im Chat generierst, werden automatisch hier lokal in deinem Vault gesichert.
+                            {t('gallery.pageEmptyDescription')}
                         </p>
                         <Button 
                             variant="outline" 
@@ -261,7 +270,7 @@ function GalleryPageContent() {
                             onClick={() => router.push('/')}
                         >
                             <MessageSquare className="w-4 h-4" />
-                            Zum Chat
+                            {t('gallery.backToChat')}
                         </Button>
                     </div>
                 ) : (
@@ -280,13 +289,13 @@ function GalleryPageContent() {
                 trackAssets.length === 0 ? (
                     <div className="h-[40vh] flex flex-col items-center justify-center text-muted-foreground opacity-50">
                         <Music className="w-10 h-10 mb-4" />
-                        <p className="text-sm font-medium">Keine Tracks gefunden.</p>
-                        <p className="text-xs mt-1">Im Compose-Modus Musik generieren.</p>
+                        <p className="text-sm font-medium">{t('gallery.emptyTracks')}</p>
+                        <p className="text-xs mt-1">{t('gallery.emptyTracksHint')}</p>
                     </div>
                 ) : (
                     <div className="columns-1 sm:columns-2 md:columns-3 gap-4 space-y-4 mx-auto">
                         {trackAssets.map((asset) => (
-                            <VaultTrackItem
+                            <OutputTrackItem
                               key={asset.id}
                               asset={asset}
                               onToggleStar={toggleStarred}
@@ -315,7 +324,7 @@ function GalleryPageContent() {
                 ) : (
                     <Image
                         src={lightboxData.url}
-                        alt="Fullscreen view"
+                        alt={t('gallery.fullscreenAlt')}
                         width={1920}
                         height={1080}
                         unoptimized
@@ -339,7 +348,7 @@ function GalleryPageContent() {
 // --- MAIN EXPORT WITH PROVIDERS ---
 export default function GalleryPage() {
   return (
-    <ErrorBoundary fallbackTitle="Gallery Error">
+    <ErrorBoundary fallbackTitle="Output Error">
       <ChatProvider> 
         <GalleryPageContent />
       </ChatProvider>

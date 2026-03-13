@@ -1,8 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  getStoredPollenKey,
+  removeStoredPollenKey,
+  storePollenKey,
+} from '@/lib/client-pollen-key';
+import { getPollenHeaders } from '@/lib/pollen-key';
 
-const STORAGE_KEY = 'pollenApiKey';
 const ACCOUNT_POLL_INTERVAL = 60_000; // 60s
 
 export interface PollenAccountInfo {
@@ -24,19 +29,6 @@ export interface UsePollenKeyReturn {
   connectManual: (key: string) => void;
   disconnect: () => void;
   refreshAccount: () => Promise<void>;
-}
-
-function getStoredKey(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(STORAGE_KEY);
-}
-
-function storeKey(key: string): void {
-  localStorage.setItem(STORAGE_KEY, key);
-}
-
-function removeKey(): void {
-  localStorage.removeItem(STORAGE_KEY);
 }
 
 /**
@@ -74,13 +66,15 @@ export function usePollenKey(): UsePollenKeyReturn {
     // 1. Check URL fragment first (OAuth redirect case)
     const fragmentKey = extractKeyFromFragment();
     if (fragmentKey) {
-      storeKey(fragmentKey);
-      setPollenKey(fragmentKey);
+      const storedKey = storePollenKey(fragmentKey);
+      if (storedKey) {
+        setPollenKey(storedKey);
+      }
       return;
     }
 
     // 2. Check localStorage (existing session)
-    const storedKey = getStoredKey();
+    const storedKey = getStoredPollenKey();
     if (storedKey) {
       setPollenKey(storedKey);
     }
@@ -88,7 +82,7 @@ export function usePollenKey(): UsePollenKeyReturn {
 
   // Fetch account info directly from Pollinations API (no proxy needed)
   const refreshAccount = useCallback(async () => {
-    const key = getStoredKey();
+    const key = getStoredPollenKey();
     if (!key) {
       setAccountInfo(null);
       return;
@@ -96,11 +90,9 @@ export function usePollenKey(): UsePollenKeyReturn {
 
     setIsLoadingAccount(true);
     try {
-      const response = await fetch('https://enter.pollinations.ai/api/account/balance', {
+      const response = await fetch('/api/pollen/account', {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${key}`,
-        },
+        headers: getPollenHeaders(),
       });
 
       if (!response.ok) {
@@ -110,15 +102,7 @@ export function usePollenKey(): UsePollenKeyReturn {
       }
 
       const data = await response.json();
-      setAccountInfo({
-        balance: data.balance ?? data.pollen_count ?? null,
-        expiresAt: data.expires_at ?? null,
-        expiresIn: data.expires_in ?? null,
-        valid: data.valid ?? true,
-        keyType: data.key_type ?? null,
-        pollenBudget: data.pollen_budget ?? null,
-        rateLimitEnabled: data.rate_limit_enabled ?? false,
-      });
+      setAccountInfo(data);
     } catch (error) {
       console.warn('[BYOP] Account info fetch error:', error);
       setAccountInfo(null);
@@ -165,15 +149,14 @@ export function usePollenKey(): UsePollenKeyReturn {
 
   // Manual Key Connect
   const connectManual = useCallback((key: string) => {
-    const trimmed = key.trim();
-    if (!trimmed) return;
-    storeKey(trimmed);
-    setPollenKey(trimmed);
+    const storedKey = storePollenKey(key);
+    if (!storedKey) return;
+    setPollenKey(storedKey);
   }, []);
 
   // Disconnect
   const disconnect = useCallback(() => {
-    removeKey();
+    removeStoredPollenKey();
     setPollenKey(null);
     setAccountInfo(null);
   }, []);

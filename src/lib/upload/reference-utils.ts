@@ -1,5 +1,5 @@
 import type { UploadedReference } from '@/types';
-import { requestSignedRead } from '@/lib/upload/s3-upload';
+import { resolvePollinationsMediaUrl } from '@/lib/upload/pollinations-media';
 
 const DEFAULT_STALE_BUFFER_MS = 60_000;
 
@@ -25,13 +25,13 @@ export async function resolveReferenceUrls(
     }
 
     try {
-      const signed = await requestSignedRead(ref.key);
-      if (signed.downloadUrl) {
-        resolved.push(signed.downloadUrl);
+      const media = await resolvePollinationsMediaUrl(ref.key);
+      if (media.mediaUrl) {
+        resolved.push(media.mediaUrl);
         continue;
       }
     } catch (error) {
-      console.warn('[resolveReferenceUrls] Failed to refresh signed URL:', error);
+      console.warn('[resolveReferenceUrls] Failed to refresh media URL:', error);
     }
 
     if (ref.url) resolved.push(ref.url);

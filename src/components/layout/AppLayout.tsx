@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import AppSidebar from './AppSidebar';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
-import { AVAILABLE_POLLINATIONS_MODELS } from '@/config/chat-options';
+import { DEFAULT_IMAGE_MODEL, findVisiblePollinationsModelById } from '@/config/chat-options';
 import { getUnifiedModel } from '@/config/unified-image-models';
 import { useLanguage } from '../LanguageProvider';
 import dynamic from 'next/dynamic';
@@ -83,7 +83,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   selectedModelId,
   onModelChange,
   selectedResponseStyleName = "Basic",
-  selectedImageModelId = "nanobanana",
+  selectedImageModelId = DEFAULT_IMAGE_MODEL,
   visualSelectedModelId,
   onVisualModelChange,
   isVisualModelSelectorOpen,
@@ -98,18 +98,26 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 640 : false
   );
+  const [viewportHeight, setViewportHeight] = useState(() =>
+    typeof window !== 'undefined' ? window.innerHeight : 900
+  );
 
   useEffect(() => {
-    const checkMobile = () => {
+    const syncViewportState = () => {
       setIsMobile(window.innerWidth < 640);
+      setViewportHeight(window.innerHeight);
     };
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    syncViewportState();
+    window.addEventListener('resize', syncViewportState);
+    return () => window.removeEventListener('resize', syncViewportState);
   }, []);
+
+  const isShortViewport = viewportHeight < 820;
+  const isVeryShortViewport = viewportHeight < 700;
 
   // Compute display names for the header
   const llmName = useMemo(() => {
-      const model = AVAILABLE_POLLINATIONS_MODELS.find(m => m.id === selectedModelId);
+      const model = findVisiblePollinationsModelById(selectedModelId);
       return model ? model.name : (selectedModelId || "ai");
   }, [selectedModelId]);
 
@@ -125,7 +133,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   }, [userDisplayName]);
 
   return (
-    <div className="relative flex flex-col h-screen bg-background text-foreground overflow-hidden">
+    <div className="relative flex min-h-[100dvh] h-[100dvh] flex-col bg-background text-foreground overflow-hidden">
       
       {/* MINIMAL TOPBAR - Chat Mode Only */}
       {appState === 'chat' && (
@@ -160,12 +168,36 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         <main className="flex-1 overflow-y-auto transition-all duration-300 relative bg-background w-full">
           {/* ASCII Header - NUR in Landing View */}
           {appState === 'landing' && (
-            <div className="fixed top-12 sm:top-16 md:top-20 left-4 right-4 z-40 transition-all duration-700 pointer-events-none flex flex-col items-center">
+            <div
+              className={cn(
+                "fixed left-4 right-4 z-40 transition-all duration-700 pointer-events-none flex flex-col items-center",
+                isVeryShortViewport
+                  ? "top-7 sm:top-8"
+                  : isShortViewport
+                    ? "top-9 sm:top-11 md:top-12"
+                    : "top-12 sm:top-16 md:top-20"
+              )}
+            >
               <div className="flex flex-col items-center w-full">
-                <div className="w-full h-28 sm:h-32 md:h-36 pointer-events-auto">
+                <div
+                  className={cn(
+                    "w-full pointer-events-auto",
+                    isVeryShortViewport
+                      ? "h-16 sm:h-20"
+                      : isShortViewport
+                        ? "h-20 sm:h-24 md:h-28"
+                        : "h-28 sm:h-32 md:h-36"
+                  )}
+                >
                   <ASCIIText
                     text={headerText}
-                    asciiFontSize={isMobile ? 7 : 10}
+                    asciiFontSize={
+                      isVeryShortViewport
+                        ? (isMobile ? 5 : 7)
+                        : isShortViewport
+                          ? (isMobile ? 6 : 8)
+                          : (isMobile ? 7 : 10)
+                    }
                     densityScale={1.2}
                     enableWaves={true}
                     enableGlitch={true}
@@ -176,37 +208,82 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                     className="w-full h-full"
                   />
                 </div>
-                <div className="mt-2 text-[11px] sm:text-xs font-bold tracking-[0.28em] uppercase pointer-events-auto text-center w-full"
-                  style={{ color: 'rgba(179, 136, 255, 0.7)' }}
+                {!isVeryShortViewport && (
+                  <div
+                    className={cn(
+                      "pointer-events-auto text-center w-full font-bold uppercase",
+                      isShortViewport
+                        ? "mt-1 text-[10px] sm:text-[11px] tracking-[0.22em]"
+                        : "mt-2 text-[11px] sm:text-xs tracking-[0.28em]"
+                    )}
+                    style={{ color: 'rgba(179, 136, 255, 0.7)' }}
+                  >
+                    EVERYONE CAN SAY HI TO AI
+                  </div>
+                )}
+                <div
+                  className={cn(
+                    "pointer-events-auto flex flex-col items-center",
+                    isVeryShortViewport ? "mt-1 gap-0.5" : "mt-1 gap-1"
+                  )}
                 >
-                  EVERYONE CAN SAY HI TO AI
-                </div>
-                <div className="mt-1 flex flex-col items-center gap-1 pointer-events-auto">
                   {isConnected ? (
-                    <span className="text-[10px] sm:text-xs font-bold tracking-[0.2em] text-green-500/80 uppercase">
+                    <span
+                      className={cn(
+                        "font-bold text-green-500/80 uppercase",
+                        isVeryShortViewport
+                          ? "text-[9px] sm:text-[10px] tracking-[0.14em]"
+                          : "text-[10px] sm:text-xs tracking-[0.2em]"
+                      )}
+                    >
                       Connected
                     </span>
                   ) : (
                     <button
                       onClick={connectOAuth}
-                      className="text-[10px] sm:text-xs font-bold tracking-[0.2em] text-foreground/55 hover:text-foreground/80 uppercase transition-colors underline underline-offset-2"
+                      className={cn(
+                        "font-bold text-foreground/55 hover:text-foreground/80 uppercase transition-colors underline underline-offset-2",
+                        isVeryShortViewport
+                          ? "text-[9px] sm:text-[10px] tracking-[0.12em]"
+                          : "text-[10px] sm:text-xs tracking-[0.2em]"
+                      )}
                     >
                       Connect to Pollinations for full access
                     </button>
                   )}
-                  <div className="text-[10px] sm:text-xs font-bold tracking-[0.18em] text-foreground/55 uppercase">
-                    Beta Test Phase ·{' '}
-                    <Link href="/about" className="underline underline-offset-2 text-foreground/70 hover:text-foreground transition-colors">
-                      Click here
-                    </Link>
-                    {' '}for more information.
-                  </div>
+                  {!isVeryShortViewport && (
+                    <div
+                      className={cn(
+                        "font-bold text-foreground/55 uppercase text-center",
+                        isShortViewport
+                          ? "text-[9px] sm:text-[10px] tracking-[0.12em]"
+                          : "text-[10px] sm:text-xs tracking-[0.18em]"
+                      )}
+                    >
+                      Beta Test Phase ·{' '}
+                      <Link href="/about" className="underline underline-offset-2 text-foreground/70 hover:text-foreground transition-colors">
+                        Click here
+                      </Link>
+                      {' '}for more information.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          <div className="mx-auto max-w-5xl h-full flex flex-col relative w-full px-2 md:px-4 bg-background pt-20">
+          <div
+            className={cn(
+              "mx-auto max-w-5xl h-full flex flex-col relative w-full px-2 md:px-4 bg-background",
+              appState === 'landing'
+                ? isVeryShortViewport
+                  ? "pt-14"
+                  : isShortViewport
+                    ? "pt-16"
+                    : "pt-20"
+                : "pt-20"
+            )}
+          >
             {children}
           </div>
         </main>

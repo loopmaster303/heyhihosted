@@ -2,12 +2,12 @@
  * AssetFallbackService
  *
  * Handles fallback logic for asset URL resolution with retry mechanisms.
- * Ensures assets are always accessible even when vault data is missing or URLs expire.
+ * Ensures assets are always accessible even when local output metadata is incomplete or URLs expire.
  */
 
 import { DatabaseService, type Asset } from '@/lib/services/database';
 import { BlobManager } from '@/lib/blob-manager';
-import { requestSignedRead } from '@/lib/upload/s3-upload';
+import { resolvePollinationsMediaUrl } from '@/lib/upload/pollinations-media';
 
 interface FallbackOptions {
   maxRetries?: number;
@@ -71,15 +71,15 @@ export async function resolveAssetUrl(
 
   // 3. Try media URL with retry
   if (asset.storageKey) {
-    const signedUrl = await fetchSignedUrlWithRetry(asset.storageKey, opts.maxRetries, opts.retryDelay);
-    if (signedUrl) {
+    const mediaUrl = await fetchMediaUrlWithRetry(asset.storageKey, opts.maxRetries, opts.retryDelay);
+    if (mediaUrl) {
       // Optionally download and cache for offline use
       if (opts.downloadMissingBlob) {
-        downloadAndCacheAsset(assetId, signedUrl, asset.contentType).catch(err => {
+        downloadAndCacheAsset(assetId, mediaUrl, asset.contentType).catch(err => {
           console.warn(`[AssetFallback] Background cache failed for ${assetId}:`, err);
         });
       }
-      return { url: signedUrl, source: 'media', needsCleanup: false };
+      return { url: mediaUrl, source: 'media', needsCleanup: false };
     }
   }
 
@@ -90,7 +90,7 @@ export async function resolveAssetUrl(
 /**
  * Resolve media URL from storage key/hash with exponential backoff retry.
  */
-async function fetchSignedUrlWithRetry(
+async function fetchMediaUrlWithRetry(
   storageKey: string,
   maxRetries: number,
   baseDelay: number
@@ -99,15 +99,15 @@ async function fetchSignedUrlWithRetry(
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const data = await requestSignedRead(storageKey);
-      if (data?.downloadUrl) {
+      const data = await resolvePollinationsMediaUrl(storageKey);
+      if (data?.mediaUrl) {
         if (attempt > 0) {
           console.log(`[AssetFallback] Media URL retrieved on retry ${attempt + 1}`);
         }
-        return data.downloadUrl;
+        return data.mediaUrl;
       }
 
-      throw new Error('No downloadUrl in response');
+      throw new Error('No mediaUrl in response');
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
@@ -119,7 +119,7 @@ async function fetchSignedUrlWithRetry(
     }
   }
 
-  console.error(`[AssetFallback] Failed to fetch signed URL after ${maxRetries} attempts:`, lastError);
+  console.error(`[AssetFallback] Failed to fetch media URL after ${maxRetries} attempts:`, lastError);
   return null;
 }
 
@@ -164,7 +164,7 @@ async function downloadAndCacheAsset(
 
 /**
  * Refresh an expired or invalid asset URL.
- * Useful when a displayed asset URL suddenly fails (e.g., S3 URL expired).
+ * Useful when a displayed asset URL suddenly fails.
  */
 export async function refreshAssetUrl(assetId: string): Promise<AssetUrlResult> {
   return resolveAssetUrl(assetId, {

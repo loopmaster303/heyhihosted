@@ -77,7 +77,7 @@ describe('chat send entry coordinator', () => {
       toast: () => {},
       extractMemories: async () => {},
       saveUploadedAsset: async () => {},
-      uploadFileToS3: async () => '',
+      uploadFileToPollinationsMediaUrl: async () => '',
       resolveReferenceUrls: async (refs: UploadedReference[]) => refs.map((ref) => ref.url),
       getUnifiedModel: () => undefined,
       generateImage: async () => '',

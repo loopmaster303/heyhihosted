@@ -1,9 +1,9 @@
-# Codex Gallery Page POV
+# Codex Output Page POV
 
-Scope: Dieses Dokument beschreibt die **Gallery Page** (`src/app/gallery/page.tsx`), nicht die Mini-/Sidebar-Gallery.
+Scope: Dieses Dokument beschreibt die sichtbare **Output Page** (`src/app/gallery/page.tsx`), nicht das Mini-/Sidebar-Output.
 
 ## Current state (aligned with Pollinations Media Storage)
-The gallery is backed by a canonical local-first assets table. Generated media is ingested into Pollinations Media Storage, and the asset record stores the media hash as `storageKey`. The UI resolves immutable media URLs on demand via `https://media.pollinations.ai/{hash}`.
+The Output page is backed by a canonical local-first assets table. Generated media is ingested into Pollinations Media Storage, and the asset record stores the media hash as `storageKey`. The UI resolves immutable media URLs on demand via `https://media.pollinations.ai/{hash}`.
 
 ## Chat image generation and saving
 - `src/components/ChatProvider.tsx`
@@ -21,14 +21,14 @@ The gallery is backed by a canonical local-first assets table. Generated media i
 - `src/hooks/useAssetUrl.ts`
   - Resolves assets with fallback chain: local blob -> remote URL -> media hash URL.
 
-## Gallery Page rendering
+## Output Page rendering
 - `src/hooks/useGalleryAssets.ts`
   - Live-query of IndexedDB `assets`, most recent first.
 - `src/app/gallery/page.tsx`
   - Rendert Assets via `useAssetUrl`, inkl. Image/Video support.
 
 ## Out of scope
-- `src/components/gallery/GallerySidebarSection.tsx` (Mini-/Sidebar-Gallery)
+- `src/components/gallery/GallerySidebarSection.tsx` (Mini-/Sidebar-Output)
 
 ## Storage model (Hybrid: Media Storage Primary + Local Blobs)
 - **Primary Strategy (Pollinations)**: Generated media is ingested into Pollinations Media Storage. The asset record in IndexedDB stores the `storageKey` hash.
@@ -40,7 +40,7 @@ The gallery is backed by a canonical local-first assets table. Generated media i
 
 ## Remaining risks
 - Blob-backed object URLs must not be revoked while still in use by mounted components.
-- Asset records should remain the canonical source of gallery media; avoid reintroducing parallel storage paths.
+- Asset records should remain the canonical source of output media; avoid reintroducing parallel storage paths.
 
 ## Bottom line
-The gallery is now driven by a single assets vault with Media-Storage-backed assets, stable fallback resolution, and local-first metadata. Future changes should keep this single source of truth intact.
+The Output page is now driven by a single local-first assets store with Media-Storage-backed assets, stable fallback resolution, and local-first metadata. Future changes should keep this single source of truth intact.

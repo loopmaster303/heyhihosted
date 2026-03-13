@@ -3,10 +3,10 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Switch } from '@/components/ui/switch';
 import { ChevronDown, ImageIcon, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { unifiedModelConfigs, type UnifiedModelConfig } from '@/config/unified-model-configs';
 import { getUnifiedModel, getVisualizeModelGroups } from '@/config/unified-image-models';
 import { imageModelIcons } from '@/config/ui-constants';
-import { gptImagePresets } from '@/hooks/useUnifiedImageToolState';
 import { useLanguage } from '@/components/LanguageProvider';
 
 interface VisualizeInlineHeaderProps {
@@ -71,6 +71,10 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
     const aspectRatio = formFields.aspect_ratio || '1:1';
     return aspectRatio !== 'custom';
   }, [formFields.aspect_ratio]);
+  const aspectRatioPresets = React.useMemo(
+    () => getAspectRatioPresetsForModel(selectedModelId),
+    [selectedModelId]
+  );
 
   const renderModelIcon = (modelId: string, dense = false) => {
     const icon = imageModelIcons[modelId];
@@ -258,7 +262,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
             <Select
               value={formFields.aspect_ratio || '1:1'}
               onValueChange={(value) => {
-                const preset = gptImagePresets[value] || gptImagePresets['1:1'];
+                const preset = aspectRatioPresets[value] || aspectRatioPresets['1:1'];
                 setFormFields(prev => ({
                   ...prev,
                   aspect_ratio: value,
@@ -272,7 +276,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.keys(gptImagePresets).map(r => (
+                {Object.keys(aspectRatioPresets).map(r => (
                   <SelectItem key={r} value={r}>{r}</SelectItem>
                 ))}
               </SelectContent>

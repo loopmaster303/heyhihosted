@@ -4,38 +4,23 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/components/LanguageProvider';
 import { getPollenHeaders } from '@/lib/pollen-key';
+import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { unifiedModelConfigs, getUnifiedModelConfig, type UnifiedModelConfig } from '@/config/unified-model-configs';
 import { getUnifiedModel } from '@/config/unified-image-models';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
-import { uploadFileToS3WithKey } from '@/lib/upload/s3-upload';
+import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
 import { getClientSessionId } from '@/lib/session';
 import type { UploadedReference } from '@/types';
 
 // Define which models need image upload
 export const pollinationUploadModels = [
     'gpt-image',
-    'gptimage-large',
-    'seedream',
-    'seedream5',
-    'nanobanana',
-    'nanobanana-pro',
-    'nanobanana-2',
+    'klein',
     'klein-large',
-    'kontext',
-    'wan',
-    'seedance',
     'flux-2-dev',
     'grok-video',
 ];
-
-export const gptImagePresets: Record<string, { width: number; height: number }> = {
-    '1:1': { width: 1024, height: 1024 },
-    '3:4': { width: 1024, height: 1536 },
-    '4:3': { width: 1536, height: 1024 },
-    '16:9': { width: 1536, height: 1024 },  // Closest valid option
-    '9:16': { width: 1024, height: 1536 },  // Closest valid option
-};
 
 function normalizeLegacyImageModelId(id: string): string {
     if (!id) return id;
@@ -43,8 +28,11 @@ function normalizeLegacyImageModelId(id: string): string {
     if (id === 'seedance-fast') return 'seedance';
     if (id === 'ltx-video') return 'ltx-2';
     if (id === 'z-image-turbo') return 'zimage';
+    if (id === 'gptimage' || id === 'gpt-image-1-mini') return 'gpt-image';
+    if (id === 'imagen') return 'imagen-4';
     if (id === 'flux-2-pro' || id === 'flux-kontext-pro') return 'kontext';
     if (id === 'flux-2-max' || id === 'flux-2-klein-9b') return 'klein-large';
+    if (id === 'flux-klein') return 'klein';
     if (id === 'wan-video' || id === 'wan-2.5-t2v') return 'wan';
     if (id === 'grok-imagine') return 'grok-image';
     if (id === 'grok-imagine-video') return 'grok-video';
@@ -157,7 +145,8 @@ export function useUnifiedImageToolState() {
         
         // Use standard preset for all Pollinations image models
         if (isPollenModel) {
-            const preset = gptImagePresets['1:1'];
+            const presets = getAspectRatioPresetsForModel(selectedModelId);
+            const preset = presets['1:1'];
             initialFields.aspect_ratio = '1:1';
             initialFields.width = preset.width;
             initialFields.height = preset.height;
@@ -248,14 +237,14 @@ export function useUnifiedImageToolState() {
                     const sessionId = getClientSessionId();
                     const fileName = file.name || `upload-${Date.now()}.bin`;
                     const contentType = file.type || 'application/octet-stream';
-                    const signed = await uploadFileToS3WithKey(file, fileName, contentType, {
+                    const media = await uploadFileToPollinationsMedia(file, fileName, contentType, {
                         sessionId,
                         folder: 'uploads',
                     });
                     currentImages.push({
-                        url: signed.downloadUrl,
-                        key: signed.key,
-                        expiresAt: Date.now() + signed.expiresIn * 1000,
+                        url: media.mediaUrl,
+                        key: media.key,
+                        expiresAt: Date.now() + media.expiresIn * 1000,
                     });
                 }
 

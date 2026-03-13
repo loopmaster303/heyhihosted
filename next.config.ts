@@ -12,12 +12,6 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'replicate.delivery',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
         hostname: 'image.pollinations.ai',
         port: '',
         pathname: '/**',
@@ -45,4 +39,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-

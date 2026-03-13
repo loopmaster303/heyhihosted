@@ -32,7 +32,7 @@ interface ChatImageCardProps {
   altText: string;
   isGenerated?: boolean;
   isUploaded?: boolean;
-  assetId?: string; // Neu: ID für lokalen Vault
+  assetId?: string; // Neu: ID für lokalen Output-Speicher
 }
 
 interface ChatImageCardViewProps extends ChatImageCardProps {
@@ -189,8 +189,8 @@ const ChatImageCard: React.FC<ChatImageCardProps> = ({
   isUploaded = false,
   assetId,
 }) => {
-  const { url: vaultUrl } = useAssetUrl(assetId, url);
-  const src = vaultUrl || url;
+  const { url: localAssetUrl } = useAssetUrl(assetId, url);
+  const src = localAssetUrl || url;
 
   return (
     <ChatImageCardView
@@ -270,8 +270,8 @@ const ChatVideoCard: React.FC<ChatVideoCardProps> = ({
   isGenerated = false,
   assetId,
 }) => {
-  const { url: vaultUrl } = useAssetUrl(assetId, url);
-  const src = vaultUrl || url;
+  const { url: localAssetUrl } = useAssetUrl(assetId, url);
+  const src = localAssetUrl || url;
 
   return (
     <ChatVideoCardView

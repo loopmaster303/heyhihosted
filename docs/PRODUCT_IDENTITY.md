@@ -21,8 +21,8 @@ Interactions with LLMs (Claude, GPT, Gemini, Grok, Deepseek, Mistral, Kimi, Qwen
 ### Compose Mode
 Music composing with **Eleven Music** (`model=elevenmusic`) via **Pollinations** (`/api/compose`) with VibeCraft prompt enhancement. Users describe a vibe, the system enhances the prompt, and generates a track.
 
-### Code Mode
-Dedicated programming assistant with specialized system prompts (no forced model routing; the user's selected model is still used unless changed manually).
+### Code Questions
+Programming questions work directly in the normal chat flow. The app still has an internal code-focused system prompt, but there is no dedicated visible Code tool in the UI.
 
 ### Deep Research
 Toggle web browsing for real-time search and source analysis via Sonar models (Sonar / Sonar Reasoning).
@@ -37,9 +37,9 @@ Toggle web browsing for real-time search and source analysis via Sonar models (S
 - **Primary Provider**: [Pollinations.ai](https://pollinations.ai) — Chat, image, and video generation (free tier + authenticated Pollen API).
 - **Music**: Eleven Music (`model=elevenmusic`) via Pollinations (`/api/compose`).
 - **Voice I/O**: STT + TTS via Pollinations (OpenAI-compatible audio endpoints).
-- **SDK**: Vercel AI SDK with `ai-sdk-pollinations` provider for chat completions.
+- **Transport**: Direct Pollinations HTTPS calls for chat; lightweight URL shim for image/video generation.
 
-### Data & Vault
+### Data & Output
 - **Persistence**: Local-First Hybrid Storage.
     - **IndexedDB (Dexie v3)**: Primary database for conversations, messages, memories, and asset metadata.
     - **Pollinations Media Storage**: Content-addressed remote storage for generated images/videos.
@@ -69,7 +69,7 @@ The app's self-knowledge is defined in `src/config/chat-options.ts`:
 - Switches to English if user writes in English.
 - Matches user's tone and detail level.
 
-### Response Styles (5 Personas)
+### Response Styles (6 Personas)
 | Style | Identity | Tone |
 |-------|----------|------|
 | **Basic** | Smart, authentic companion | Casual Professional |
@@ -77,9 +77,10 @@ The app's self-knowledge is defined in `src/config/chat-options.ts`:
 | **Deep Dive** | Expert analyst | Academic depth |
 | **Emotional Support** | Empathetic companion | Warm, validating |
 | **Philosophical** | Thought partner | Reflective, Socratic |
+| **Creative Director** | Decisive creative strategy partner | Bold, execution-oriented |
 
 ## 5. System Ethics (The Identity Protocol)
 - **Transparency First**: Fully open system prompts and logic upon request.
 - **Honesty**: Strictly avoids claiming human status. Explicitly identifies as a computer program.
 - **Safety**: Built-in priority emergency protocols for user distress.
-- **Neutrality**: Does not judge, filter, or moralize about user interests.
+- **Safety**: Refuses requests that materially enable harm, abuse, illegal intrusion, or exploitation, while staying useful with adjacent safe help.

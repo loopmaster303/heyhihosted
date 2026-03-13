@@ -2,9 +2,9 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handler';
 import { WebContextService } from '@/lib/services/web-context-service';
-import { SmartRouter } from '@/lib/services/smart-router';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import { httpsPost } from '@/lib/https-post';
+import { resolveChatSearchStrategy } from '@/lib/chat/chat-search-strategy';
 
 // Validation schema
 const ChatCompletionSchema = z.object({
@@ -75,32 +75,21 @@ export async function POST(request: Request) {
     }
 
     const currentDate = new Date().toISOString().split('T')[0];
-    const normalizedQuery = userQuery.trim();
-    const hasMeaningfulQuery = normalizedQuery.length > 3;
     const smartRouterEnabled = !skipSmartRouter;
-    const isDeepResearchMode = !!webBrowsingEnabled;
-    const inferredSearchIntent =
-      smartRouterEnabled &&
-      hasMeaningfulQuery &&
-      SmartRouter.shouldRouteToSearch(normalizedQuery);
-    const shouldFetchWebContext =
-      smartRouterEnabled &&
-      hasMeaningfulQuery &&
-      (isDeepResearchMode || inferredSearchIntent);
-    const webContextMode = isDeepResearchMode ? 'deep' : 'light';
+    const searchStrategy = resolveChatSearchStrategy({
+      modelId,
+      userQuery,
+      smartRouterEnabled,
+      webBrowsingEnabled: !!webBrowsingEnabled,
+    });
+    const { routedModelId, shouldFetchWebContext, webContextMode, strategy } = searchStrategy;
 
-    let routedModelId = modelId;
-    if (smartRouterEnabled && hasMeaningfulQuery) {
-      if (isDeepResearchMode) {
-        routedModelId = SmartRouter.getDeepResearchModel();
-      } else if (inferredSearchIntent) {
-        routedModelId = SmartRouter.getLiveSearchModel();
-      }
-    }
-
-    const systemDateBlock = shouldFetchWebContext
-      ? `Current Date: ${currentDate}.\nWEB CONTEXT MODE: ${webContextMode}. If <web_context> facts are provided, use them. If none are provided, do not invent live data; ask one clarifying question.`
-      : `Current Date: ${currentDate}.\nIf asked for current/live information and no <web_context> facts are provided, do not invent; ask one clarifying question.`;
+    const systemDateBlock =
+      strategy === 'delegated-live-search' || strategy === 'delegated-deep-research'
+        ? `Current Date: ${currentDate}.\nThis request is routed to a live web model. Use current web information when needed. If the request is ambiguous, ask one clarifying question.`
+        : shouldFetchWebContext
+          ? `Current Date: ${currentDate}.\nWEB CONTEXT MODE: ${webContextMode}. If <web_context> facts are provided, use them. If none are provided, do not invent live data; ask one clarifying question.`
+          : `Current Date: ${currentDate}.\nIf asked for current/live information and no <web_context> facts are provided, do not invent; ask one clarifying question.`;
 
     let finalSystemPrompt = systemPrompt ? `${systemDateBlock}\n\n${systemPrompt}` : systemDateBlock;
 
@@ -128,7 +117,7 @@ export async function POST(request: Request) {
     // Next.js 16 can patch outbound fetch behavior; we use httpsPost for deterministic headers.
     
     console.log(
-      `[API] Pollinations: model=${routedModelId}, original=${modelId}, webContext=${shouldFetchWebContext ? webContextMode : 'off'}, msgs=${apiMessages.length}`
+      `[API] Pollinations: model=${routedModelId}, original=${modelId}, strategy=${strategy}, webContext=${shouldFetchWebContext ? webContextMode : 'off'}, msgs=${apiMessages.length}`
     );
 
     const pollinationsResponse = await httpsPost(

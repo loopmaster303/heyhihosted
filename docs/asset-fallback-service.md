@@ -2,13 +2,13 @@
 
 ## Overview
 
-The `AssetFallbackService` provides a comprehensive fallback chain for asset URL resolution with automatic retry logic and background caching. It ensures assets are always accessible even when vault data is missing or URLs expire.
+The `AssetFallbackService` provides a comprehensive fallback chain for asset URL resolution with automatic retry logic and background caching. It ensures assets are always accessible even when local output metadata is incomplete or URLs expire.
 
 ## Problem It Solves
 
 In a local-first architecture with remote asset storage, several issues can occur:
 1. **Missing Blobs**: Asset metadata exists but blob is not in IndexedDB
-2. **Expired S3 URLs**: Signed URLs expire after a certain time
+2. **Missing media URLs**: A `storageKey` exists, but the resolved media URL is not yet available in the UI
 3. **Network Failures**: Temporary network issues prevent asset loading
 4. **Offline Access**: User needs assets when offline
 
@@ -21,7 +21,7 @@ AssetFallbackService addresses all these issues with intelligent fallback and re
    ↓ (if missing)
 2. Remote URL (direct, no signing)
    ↓ (if missing)
-3. S3 Signed URL via storageKey (with retry)
+3. Pollinations Media URL via storageKey (with retry)
    ↓ (if all fail)
 4. Download and cache in background
 ```
@@ -37,7 +37,7 @@ Resolves an asset ID to a usable URL with comprehensive fallback logic.
 **Parameters**:
 - `assetId`: The asset ID to resolve
 - `options`: Configuration options
-  - `maxRetries`: Max retry attempts for S3 signing (default: 3)
+  - `maxRetries`: Max retry attempts for storageKey resolution (default: 3)
   - `retryDelay`: Base delay between retries in ms (default: 1000)
   - `downloadMissingBlob`: Auto-download and cache if blob missing (default: true)
 
@@ -45,7 +45,7 @@ Resolves an asset ID to a usable URL with comprehensive fallback logic.
 ```typescript
 interface AssetUrlResult {
   url: string | null;
-  source: 'blob' | 'remote' | 's3-signed' | 'downloaded';
+  source: 'blob' | 'remote' | 'media' | 'downloaded';
   needsCleanup: boolean; // true if BlobManager cleanup required
 }
 ```
@@ -89,9 +89,9 @@ Pre-caches multiple assets in the background. Downloads and stores blobs for off
 ```typescript
 import { precacheAssets } from '@/lib/services/asset-fallback-service';
 
-// Precache gallery assets
+// Precache output assets
 await precacheAssets(['id1', 'id2', 'id3']);
-console.log('Gallery assets cached for offline use');
+console.log('Output assets cached for offline use');
 ```
 
 ## React Hooks
@@ -140,30 +140,30 @@ Hook to precache multiple assets in the background.
 ```typescript
 import { useAssetPrecache } from '@/hooks/useAssetPrecache';
 
-function Gallery({ assets }: { assets: Asset[] }) {
+function OutputGrid({ assets }: { assets: Asset[] }) {
   const assetIds = assets.map(a => a.id);
   const { isPrecaching, precachedCount } = useAssetPrecache(assetIds);
 
   return (
     <div>
       {isPrecaching && <div>Caching {precachedCount}/{assetIds.length}...</div>}
-      {/* Gallery content */}
+      {/* Output content */}
     </div>
   );
 }
 ```
 
-## GalleryService Integration
+## Output Persistence Integration (`OutputService`)
 
 ### `getResolvedAssetUrl(id: string): Promise<string | null>`
 
-Convenience method on GalleryService that wraps `resolveAssetUrl`.
+Convenience method on the internal `OutputService` that wraps `resolveAssetUrl`.
 
 **Example**:
 ```typescript
-import { GalleryService } from '@/lib/services/gallery-service';
+import { OutputService } from '@/lib/services/output-service';
 
-const url = await GalleryService.getResolvedAssetUrl('asset-id-123');
+const url = await OutputService.getResolvedAssetUrl('asset-id-123');
 ```
 
 ### `verifyAndRepairAssets(assetIds: string[]): Promise<number>`
@@ -172,10 +172,10 @@ Bulk repair operation for assets with missing blobs.
 
 **Example**:
 ```typescript
-import { GalleryService } from '@/lib/services/gallery-service';
+import { OutputService } from '@/lib/services/output-service';
 
-// Repair all gallery assets
-const repairedCount = await GalleryService.verifyAndRepairAssets(assetIds);
+// Repair all output assets
+const repairedCount = await OutputService.verifyAndRepairAssets(assetIds);
 console.log(`Repaired ${repairedCount} assets`);
 ```
 
@@ -201,7 +201,7 @@ Wait 4s → Retry 3 → Success!
 
 When `downloadMissingBlob: true` (default), the service automatically downloads and caches assets in the background:
 
-1. **First Access**: Returns remote/S3 URL immediately (fast)
+1. **First Access**: Returns remote/media URL immediately (fast)
 2. **Background**: Downloads blob and stores in IndexedDB
 3. **Next Access**: Returns local blob URL (faster, offline-capable)
 
@@ -221,11 +221,11 @@ The service handles various error scenarios gracefully:
 const result = await resolveAssetUrl('asset-id', { maxRetries: 3 });
 ```
 
-### Expired S3 URLs
+### Media URL Refresh
 ```typescript
-// Refreshes signed URL automatically
+// Resolves media URL again automatically
 const { refresh } = useAssetUrl('asset-id');
-await refresh(); // Get new signed URL
+await refresh(); // Get a fresh resolved media URL
 ```
 
 ### Missing Assets
@@ -253,7 +253,7 @@ await Promise.all(
 
 ### Precaching Strategy
 ```typescript
-// Precache gallery assets on mount
+// Precache output assets on mount
 useAssetPrecache(visibleAssetIds, true);
 
 // Defer non-visible assets
@@ -308,7 +308,7 @@ function AssetViewer({ assetId }: { assetId: string }) {
 
 ### 3. Precache for Better UX
 ```typescript
-function Gallery({ assets }: { assets: Asset[] }) {
+function OutputGrid({ assets }: { assets: Asset[] }) {
   // Precache visible assets
   const visibleIds = assets.slice(0, 10).map(a => a.id);
   useAssetPrecache(visibleIds, true);
@@ -347,7 +347,7 @@ function AssetImage({ assetId }: { assetId: string }) {
 1. Asset doesn't exist in database
 2. No valid source (no blob, remoteUrl, or storageKey)
 3. Network failure on all retry attempts
-4. S3 sign-read API failing
+4. Pollinations media URL resolution failing
 
 **Solution**:
 ```typescript
@@ -355,7 +355,7 @@ const { url, error } = useAssetUrl('asset-id');
 if (!url) {
   console.error('Asset failed to load:', error);
   // Check database for asset existence
-  // Verify S3 credentials
+  // Verify storageKey/media resolution
   // Check network connectivity
 }
 ```
@@ -366,7 +366,7 @@ if (!url) {
 
 **Possible Causes**:
 1. No local blob cached (network fetch required)
-2. S3 signing API is slow
+2. Media URL resolution is slow
 3. Large asset files
 
 **Solution**:
@@ -402,9 +402,9 @@ Complete example showing all features:
 ```typescript
 import { useAssetUrl } from '@/hooks/useAssetUrl';
 import { useAssetPrecache } from '@/hooks/useAssetPrecache';
-import { GalleryService } from '@/lib/services/gallery-service';
+import { OutputService } from '@/lib/services/output-service';
 
-function GalleryView({ assets }: { assets: Asset[] }) {
+function OutputView({ assets }: { assets: Asset[] }) {
   // Precache visible assets
   const visibleIds = assets.slice(0, 20).map(a => a.id);
   const { isPrecaching, precachedCount } = useAssetPrecache(visibleIds);
@@ -412,7 +412,7 @@ function GalleryView({ assets }: { assets: Asset[] }) {
   // Repair missing blobs on mount
   useEffect(() => {
     const allIds = assets.map(a => a.id);
-    GalleryService.verifyAndRepairAssets(allIds).then(count => {
+    OutputService.verifyAndRepairAssets(allIds).then(count => {
       console.log(`Repaired ${count} assets`);
     });
   }, [assets]);
@@ -449,7 +449,7 @@ function AssetCard({ assetId }: { assetId: string }) {
   return (
     <img
       src={url}
-      alt="Gallery asset"
+      alt="Output asset"
       onError={refresh} // Auto-refresh on image error
     />
   );

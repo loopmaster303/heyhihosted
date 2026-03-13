@@ -6,9 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { X } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
+import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { UnifiedModelConfig } from '@/config/unified-model-configs';
 import { getUnifiedModel } from '@/config/unified-image-models';
-import { gptImagePresets } from '@/hooks/useUnifiedImageToolState';
 
 interface VisualConfigPanelProps {
     isOpen: boolean;
@@ -51,6 +51,10 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
         const aspectRatio = formFields.aspect_ratio || '1:1';
         return aspectRatio !== 'custom';
     }, [formFields.aspect_ratio]);
+    const aspectRatioPresets = React.useMemo(
+        () => getAspectRatioPresetsForModel(selectedModelId),
+        [selectedModelId]
+    );
 
     if ((!isOpen && !embedded) || !currentModelConfig) return null;
 
@@ -67,7 +71,7 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                             <Select
                                 value={formFields.aspect_ratio || '1:1'}
                                 onValueChange={(value) => {
-                                    const preset = gptImagePresets[value] || gptImagePresets['1:1'];
+                                    const preset = aspectRatioPresets[value] || aspectRatioPresets['1:1'];
                                     setFormFields(prev => ({
                                         ...prev,
                                         aspect_ratio: value,
@@ -79,7 +83,7 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                             >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    {Object.keys(gptImagePresets).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                                    {Object.keys(aspectRatioPresets).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         ) : currentModelConfig.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations' ? (
@@ -264,7 +268,7 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                             <Select
                                 value={formFields.aspect_ratio || '1:1'}
                                 onValueChange={(value) => {
-                                    const preset = gptImagePresets[value] || gptImagePresets['1:1'];
+                                    const preset = aspectRatioPresets[value] || aspectRatioPresets['1:1'];
                                     setFormFields(prev => ({
                                         ...prev,
                                         aspect_ratio: value,
@@ -276,7 +280,7 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                             >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    {Object.keys(gptImagePresets).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                                    {Object.keys(aspectRatioPresets).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         ) : currentModelConfig.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations' ? (

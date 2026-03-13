@@ -1,5 +1,5 @@
 import React from 'react';
-import { Palette, Code2, Globe, MessageSquare, Music2 } from 'lucide-react';
+import { Palette, Globe, MessageSquare, Music2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/LanguageProvider';
 import { ModeButtonOverlay } from '@/components/ui/ModeButtonOverlay';
@@ -84,8 +84,8 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
                 <span className="text-xs font-bold relative z-10">{t('tools.compose')}</span>
             </button>
 
-             {/* Deep Research Mode */}
-             <button
+            {/* Deep Research Mode */}
+            <button
                 type="button"
                 onClick={() => onSelectMode('research')}
                 aria-pressed={webBrowsingEnabled}
@@ -101,27 +101,6 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
                 <Globe className="w-3.5 h-3.5" />
                 <span className="text-xs font-bold">{t('tools.deepResearch')}</span>
             </button>
-
-            {/* Coding Assist Mode */}
-            {canToggleCodeMode && (
-                <button
-                    type="button"
-                    onClick={() => onSelectMode('code')}
-                    aria-pressed={isCodeMode}
-                    aria-label={t('tools.code')}
-                    className={cn(
-                        "relative flex items-center gap-2 px-3 py-1.5 rounded-full border transition-[transform,box-shadow,background-color,opacity,color] duration-200 ease-out hover:-translate-y-0.5 shrink-0",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                        isCodeMode
-                            ? "bg-mode-code/10 text-mode-code font-bold border border-mode-code/60"
-                            : "bg-transparent border-border/30 text-muted-foreground"
-                    )}
-                >
-                    <ModeButtonOverlay mode="code" isActive={isCodeMode} />
-                    <Code2 className="w-3.5 h-3.5 relative z-10" />
-                    <span className="text-xs font-bold relative z-10">{t('tools.code')}</span>
-                </button>
-            )}
         </div>
     );
 };

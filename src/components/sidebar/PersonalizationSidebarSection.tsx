@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from '@/components/LanguageProvider';
-import { AVAILABLE_POLLINATIONS_MODELS, isKnownPollinationsTextModelId, DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
+import { getVisiblePollinationsModels, isKnownPollinationsTextModelId, DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
 import { getImageModels } from '@/config/unified-image-models';
 import { unifiedModelConfigs } from '@/config/unified-model-configs';
 import { useChatConversation, useChatModes } from '@/components/ChatProvider';
@@ -25,7 +25,7 @@ const PersonalizationSidebarSection: React.FC = () => {
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>('customSystemPrompt', '');
   const [defaultTextModelId, setDefaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
   const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
-  const allTextModels = useMemo(() => AVAILABLE_POLLINATIONS_MODELS, []);
+  const allTextModels = useMemo(() => getVisiblePollinationsModels(), []);
 
   const imageModels = useMemo(
     () => getImageModels().filter(model => model.id in unifiedModelConfigs),

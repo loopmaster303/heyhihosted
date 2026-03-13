@@ -61,7 +61,6 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
           </SelectTrigger>
           <SelectContent className="bg-background/95 backdrop-blur-md border-border/40">
             <SelectItem value="elevenmusic">ElevenMusic</SelectItem>
-            {/* Suno v5 temporarily hidden — model offline at Pollinations */}
           </SelectContent>
         </Select>
       </div>

@@ -6,14 +6,16 @@ import ChatInput from '@/components/chat/ChatInput';
 import FlowField from '@/components/ui/FlowField';
 import { useChatComposer, useChatConversation, useChatMedia, useChatModes } from '@/components/ChatProvider';
 import { useLanguage } from '@/components/LanguageProvider';
-import { useComposeMusicState } from '@/hooks/useComposeMusicState';
+import type { ComposeMusicActions, ComposeMusicState } from '@/hooks/useComposeMusicState';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
+import { cn } from '@/lib/utils';
 
 interface LandingViewProps {
     onNavigateToChat: (initialMessage: string) => void;
     selectedModelId: string;
     onModelChange: (modelId: string) => void;
     visualizeToolState: UnifiedImageToolState;
+    composeToolState: ComposeMusicState & ComposeMusicActions;
 }
 
 const LandingView: React.FC<LandingViewProps> = ({
@@ -21,6 +23,7 @@ const LandingView: React.FC<LandingViewProps> = ({
     selectedModelId,
     onModelChange,
     visualizeToolState,
+    composeToolState,
 }) => {
     const composer = useChatComposer();
     const conversation = useChatConversation();
@@ -29,7 +32,11 @@ const LandingView: React.FC<LandingViewProps> = ({
     const { language } = useLanguage();
     const isEn = language === 'en';
     const [showInputContainer, setShowInputContainer] = useState(false);
-    const composeToolState = useComposeMusicState();
+    const [viewportHeight, setViewportHeight] = useState(() =>
+        typeof window !== 'undefined' ? window.innerHeight : 900
+    );
+    const isShortViewport = viewportHeight < 820;
+    const isVeryShortViewport = viewportHeight < 700;
 
     // Show input container after a delay (synced with particle formation)
     useEffect(() => {
@@ -40,6 +47,15 @@ const LandingView: React.FC<LandingViewProps> = ({
         return () => {
             clearTimeout(timer);
         };
+    }, []);
+
+    useEffect(() => {
+        const syncViewportHeight = () => {
+            setViewportHeight(window.innerHeight);
+        };
+        syncViewportHeight();
+        window.addEventListener('resize', syncViewportHeight);
+        return () => window.removeEventListener('resize', syncViewportHeight);
     }, []);
 
     // Handle send - navigate to chat regardless, image mode state is preserved
@@ -62,9 +78,23 @@ const LandingView: React.FC<LandingViewProps> = ({
     }, [composer.chatInputValue, onNavigateToChat]);
 
     return (
-        <div className="relative h-full px-4 py-10 overflow-hidden">
+        <div
+            className={cn(
+                "relative h-full px-4 overflow-hidden",
+                isVeryShortViewport ? "py-4" : isShortViewport ? "py-6" : "py-10"
+            )}
+        >
             <FlowField isTyping={composer.chatInputValue.length > 0} isActive={true} />
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4">
+            <div
+                className={cn(
+                    "absolute inset-0 flex flex-col items-center pointer-events-none px-4",
+                    isVeryShortViewport
+                        ? "justify-end pb-4"
+                        : isShortViewport
+                            ? "justify-end pb-8 sm:pb-10"
+                            : "justify-center"
+                )}
+            >
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{
@@ -72,7 +102,14 @@ const LandingView: React.FC<LandingViewProps> = ({
                         y: showInputContainer ? 0 : 30
                     }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="w-full max-w-4xl pointer-events-auto flex flex-col items-center gap-3"
+                    className={cn(
+                        "w-full pointer-events-auto flex flex-col items-center",
+                        isVeryShortViewport
+                            ? "max-w-3xl gap-1.5"
+                            : isShortViewport
+                                ? "max-w-4xl gap-2"
+                                : "max-w-4xl gap-3"
+                    )}
                 >
                     {/* ChatInput Bar */}
                     <div className="w-full">

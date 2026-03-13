@@ -23,6 +23,7 @@ import StepAIIcon from '../assets/icons-models/Step AI logo.png';
 // Model Icon Mapping (LLM)
 export const modelIcons: Record<string, any> = {
     'claude': ClaudeIcon,
+    'claude-airforce': ClaudeIcon,
     'claude-fast': ClaudeIcon,
     'claude-large': ClaudeIcon,
     'deepseek': DeepSeekIcon,
@@ -31,8 +32,11 @@ export const modelIcons: Record<string, any> = {
     'gemini-fast': GeminiIcon,
     'gemini-search': GeminiIcon,
     'glm': ZAIFarbeIcon,
+    'openai': OpenAIIcon,
+    'openai-fast': OpenAIIcon,
     'mistral': MistralIcon,
     'kimi': KimiIcon,
+    'minimax': PollinationsIcon,
     'perplexity-reasoning': PerplexityIcon,
     'perplexity-fast': PerplexityIcon,
     'nomnom': PollinationsIcon,
@@ -45,6 +49,7 @@ export const modelIcons: Record<string, any> = {
 
 export const modelDisplayMap: Record<string, string> = {
     'claude': 'Claude Sonnet 4.6',
+    'claude-airforce': 'Claude Sonnet 4.6',
     'claude-fast': 'Claude Haiku',
     'claude-large': 'Claude Opus',
     'gemini-large': 'Gemini 3.1 Pro',
@@ -55,6 +60,9 @@ export const modelDisplayMap: Record<string, string> = {
     'mistral': 'Mistral',
     'deepseek': 'DeepSeek V3.2',
     'kimi': 'Kimi K2.5',
+    'minimax': 'MiniMax M2.5',
+    'openai': 'OpenAI GPT-5 Mini',
+    'openai-fast': 'OpenAI GPT-5 Nano',
     'perplexity-reasoning': 'Sonar Reasoning',
     'perplexity-fast': 'Sonar',
     'nomnom': 'NomNom (Alpha)',
@@ -65,16 +73,19 @@ export const modelDisplayMap: Record<string, string> = {
 
 // NEW FEATURED LIST - STANDARD MODELS
 export const featuredModels = [
+    { id: 'claude-airforce', emoji: '⚡', highlight: 'Sonnet 4.6' },
     { id: 'gemini-fast', emoji: '⚡', highlight: 'Lite' },
     { id: 'nova-fast', emoji: '🌟', highlight: 'Micro' },
-    { id: 'claude-fast', emoji: '⚡', highlight: 'Haiku' },
-    { id: 'deepseek', emoji: '🔍', highlight: 'V3' },
+    { id: 'step-3.5-flash', emoji: '⚡', highlight: 'Flash' },
+    { id: 'deepseek', emoji: '🔍', highlight: 'V3.2' },
 ];
 
 // Image Model Icon Mapping
 export const imageModelIcons: Record<string, any> = {
     'gpt-image': OpenAIIcon,
     'gptimage-large': OpenAIIcon,
+    'dirtberry': PollinationsIcon,
+    'imagen-4': GoogleIcon,
     'seedream': ByteDanceIcon,
     'seedream5': ByteDanceIcon,
     'seedance': ByteDanceIcon,
@@ -83,6 +94,7 @@ export const imageModelIcons: Record<string, any> = {
     'nanobanana-2': '🍌',
     'flux': FluxFarbeIcon,
     'flux-2-dev': FluxFarbeIcon,
+    'klein': FluxFarbeIcon,
     'klein-large': FluxFarbeIcon,
     'kontext': FluxFarbeIcon,
     'wan': WANIcon,

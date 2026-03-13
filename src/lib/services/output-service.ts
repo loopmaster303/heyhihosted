@@ -14,14 +14,13 @@ export interface SaveGeneratedAssetOptions {
 }
 
 /**
- * GalleryService
+ * OutputService
  *
- * Wrapper around DatabaseService for Asset management.
- * Kept for backward compatibility and potential future specialized gallery logic.
+ * Wrapper around DatabaseService for output asset management.
  */
-export const GalleryService = {
+export const OutputService = {
   /**
-   * Save an asset to the local Vault (Dexie DB).
+   * Save an asset to the local output store (Dexie DB).
    */
   async saveAsset(asset: Asset): Promise<string> {
     return DatabaseService.saveAsset(asset);
@@ -42,7 +41,7 @@ export const GalleryService = {
   },
 
   /**
-   * Delete an asset from the vault.
+   * Delete an asset from the local output store.
    */
   async deleteAsset(id: string): Promise<void> {
     return DatabaseService.deleteAsset(id);
@@ -80,7 +79,7 @@ export const GalleryService = {
 
         // Only repair if we have a way to fetch the asset
         if (!asset.storageKey && !asset.remoteUrl) {
-          console.warn(`[GalleryService] No source to repair asset: ${id}`);
+          console.warn(`[OutputService] No source to repair asset: ${id}`);
           continue;
         }
 
@@ -92,20 +91,20 @@ export const GalleryService = {
 
         repaired++;
       } catch (error) {
-        console.warn(`[GalleryService] Failed to repair asset ${id}:`, error);
+        console.warn(`[OutputService] Failed to repair asset ${id}:`, error);
       }
     }
 
     if (repaired > 0) {
-      console.log(`[GalleryService] Repaired ${repaired} assets`);
+      console.log(`[OutputService] Repaired ${repaired} assets`);
     }
 
     return repaired;
   },
 
   /**
-   * Save a generated asset (from Pollinations/Replicate) to the vault.
-   * Handles both Pollinations (Media Storage ingest) and Replicate (direct fetch) flows.
+   * Save a generated asset to the local output store.
+   * Handles Pollinations Media Storage ingest and local/direct fetch flows.
    *
    * @returns The asset ID if successfully saved, undefined otherwise
    */
@@ -113,7 +112,7 @@ export const GalleryService = {
     const { url, prompt, modelId, conversationId, sessionId, isVideo = false, isPollinations = true } = options;
 
     if (!url) {
-      console.warn('[GalleryService] No URL provided for asset save');
+      console.warn('[OutputService] No URL provided for asset save');
       return undefined;
     }
 
@@ -123,7 +122,7 @@ export const GalleryService = {
       if (isPollinations) {
         // Pollinations flow: ingest to Media Storage, store hash in storageKey
         if (!sessionId) {
-          console.warn('[GalleryService] sessionId required for Pollinations assets');
+          console.warn('[OutputService] sessionId required for Pollinations assets');
           return undefined;
         }
 
@@ -142,7 +141,7 @@ export const GalleryService = {
         console.log(`📸 Pollinations asset saved: ${assetId} (media hash: ${ingest.key})`);
         return assetId;
       } else {
-        // Replicate flow: fetch blob, store locally
+        // Direct/local flow: fetch blob or data URL and store locally
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -167,11 +166,11 @@ export const GalleryService = {
           timestamp: Date.now(),
         });
 
-        console.log(`📸 Replicate asset saved: ${assetId} (${blob.size} bytes)`);
+        console.log(`📸 Local asset saved: ${assetId} (${blob.size} bytes)`);
         return assetId;
       }
     } catch (error) {
-      console.error('[GalleryService] Failed to save generated asset:', error);
+      console.error('[OutputService] Failed to save generated asset:', error);
       return undefined;
     }
   }

@@ -14,14 +14,14 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 
 - **Multimodal Chat**: Discuss ideas with Claude, GPT, Gemini, Grok, Deepseek, Mistral, and more. Full vision support included.
 - **Generative Media**: Create images and videos instantly via Pollinations API.
-- **Compose Mode**: Music composing with **Eleven Music** (`model=elevenmusic`) via **Pollinations** (`/api/compose`).
-- **Code Mode**: Dedicated coding assistant with specialized system prompts and model routing.
+- **Compose Mode**: Music composing with **Eleven Music** via **Pollinations** (`/api/compose`).
+- **Code Questions**: Ask directly in chat; responses already use the normal code formatting you expect.
 - **Deep Research**: Toggle web browsing for real-time search and source analysis (Sonar / Sonar Reasoning).
 - **Smart Router**: Auto-detects search intent (German + English) and routes to the right model.
 - **Voice I/O**: Speech-to-text and text-to-speech via Pollinations (OpenAI-compatible endpoints).
 - **Prompt Enhancement**: AI-powered prompt optimization for image and music generation.
-- **Local Vault**: Chats, memories, and generated assets stored locally in your browser (IndexedDB). They never expire and stay private.
-- **Gallery**: Browse and manage all generated images and videos with Pollinations Media Storage + local fallback.
+- **Local-First Output**: Chats, memories, and generated assets stay in your browser (IndexedDB metadata plus Pollinations media storage for generated media).
+- **Output Panel**: Quick overlay and full view for browsing generated images, videos, and tracks.
 - **CRT Terminal Identity**: A specialized UI inspired by terminal aesthetics with real-time system feedback.
 - **No-Auth Architecture**: Instant utility. No sign-up, no logins.
 
@@ -29,21 +29,20 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 
 ### Chat (LLMs)
 
-| Category            | Models                                                                                                                                 |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Standard (Free)** | Gemini 2.5 Flash, Mistral, Amazon Nova Micro, GPT-5 Nano, Gemini 3 Flash Search, Grok 4 Fast, Claude Haiku 4.5                         |
-| **Advanced (Paid)** | _Requires Pollen Key_ <br> Claude Sonnet 4.5, Claude Opus 4.6, GPT-5.2, Gemini 3 Pro, Gemini 3 Flash, Deepseek V 3.2, Kimi K2.5, GLM-5 |
-| **Search**          | Sonar (fast), Sonar Reasoning                                                                                                          |
-| **Specialized**     | Qwen 3 Coder 30B, Qwen 3 Character                                                                                                     |
+| Category | Models |
+| -------- | ------ |
+| **Visible Free Models** | Claude Sonnet 4.6 (`claude-airforce`), Claude Haiku 4.5, Gemini 2.5 Flash Lite, Gemini Search, Amazon Nova Micro, Step 3.5 Flash, DeepSeek V3.2, Mistral, Sonar, Sonar Reasoning, Kimi K2.5, GLM-5, MiniMax M2.5, Qwen3 Coder 30B, Qwen Character, NomNom |
 
 ### Image & Video Generation
 
-| Group        | Models                                           |
-| ------------ | ------------------------------------------------ |
-| **Free**     | Z-Image, Flux.1                                  |
-| **Editing**  | Kontext, Klein Large, GPT-Image 1.5, Nano Banana |
-| **Advanced** | Nano Banana Pro                                  |
-| **Video**    | Seedance, Wan 2.6, LTX 2 Fast                    |
+| Group        | Models |
+| ------------ | ------ |
+| **Free**     | Flux.1 Fast, Z-Image Turbo |
+| **Editing**  | GPT Image 1 Mini |
+| **Advanced** | Imagen 4, Grok Imagine |
+| **Video**    | Grok Video |
+
+Model visibility follows current Pollinations availability. The app only exposes models that are enabled in the local registry.
 
 ## Tech Stack
 
@@ -52,8 +51,8 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 - **Styling**: Tailwind CSS (Glassmorphism & CRT effects)
 - **UI Components**: Radix UI / Shadcn
 - **Storage**: IndexedDB (via Dexie.js) + Pollinations Media Storage (content-addressed)
-- **AI SDK**: Vercel AI SDK with `ai-sdk-pollinations` provider
-- **AI Providers**: Pollinations.ai (chat, image, video, audio), Replicate (TTS only)
+- **AI Transport**: Direct Pollinations HTTPS calls + lightweight SDK shim for image/video URLs
+- **AI Providers**: Pollinations.ai (chat, image, video, audio)
 
 ## Project Structure
 
@@ -69,9 +68,9 @@ src/
 
 ## Privacy & Data
 
-- **Zero Server Storage**: Your chats are never saved on our servers.
-- **Local Ownership**: All data lives in your browser's IndexedDB.
-- **Generated Assets**: Stored on S3 for reliability, referenced by your local database.
+- **Zero Server Chat Storage**: Your chats are not persisted on our servers.
+- **Local Ownership**: Conversations, preferences, and output metadata live in your browser.
+- **Generated Media**: Stored in Pollinations Media Storage and referenced by your local database.
 - **Transparency**: Request the system prompt anytime. We hide nothing.
 
 ## Development

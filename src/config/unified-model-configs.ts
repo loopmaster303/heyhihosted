@@ -18,7 +18,7 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   // Pollinations first (priority in selector)
   'gpt-image': {
     id: 'gpt-image',
-    name: 'GPT-Image',
+    name: 'GPT Image 1 Mini',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'width', default: 1024 },
@@ -53,6 +53,30 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   'flux-2-dev': {
     id: 'flux-2-dev',
     name: 'Flux.2 Dev',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'dirtberry': {
+    id: 'dirtberry',
+    name: 'Dirtberry',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'imagen-4': {
+    id: 'imagen-4',
+    name: 'Imagen 4',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '1:1' },
@@ -185,6 +209,18 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   'klein-large': {
     id: 'klein-large',
     name: 'Flux.2 klein 9B',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '1:1' },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'klein': {
+    id: 'klein',
+    name: 'Flux.2 Klein 4B',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '1:1' },

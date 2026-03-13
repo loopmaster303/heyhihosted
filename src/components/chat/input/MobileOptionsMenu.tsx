@@ -14,7 +14,6 @@ import {
     FileText,
     Camera,
     Palette,
-    Code2,
     Globe,
     MessageSquare,
     Music2,
@@ -28,6 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/components/LanguageProvider';
+import { AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 
 interface MobileOptionsMenuProps {
     // Upload props
@@ -81,6 +81,15 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
     const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const [activeSection, setActiveSection] = useState<string | null>('mode');
+    const styleTranslationKeys: Record<string, string> = {
+        Basic: 'responseStyle.basic',
+        Precise: 'responseStyle.precise',
+        'Deep Dive': 'responseStyle.deepdive',
+        'Emotional Support': 'responseStyle.emotionalsupport',
+        Philosophical: 'responseStyle.philosophical',
+        Companion: 'responseStyle.companion',
+        'User Defined': 'responseStyle.usersdefault',
+    };
 
     const toggleSection = (section: string) => {
         setActiveSection(activeSection === section ? null : section);
@@ -98,6 +107,12 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
             title: t('menu.section.mode'),
             icon: Layers,
             visible: true,
+        },
+        {
+            id: 'settings',
+            title: t('menu.section.settings'),
+            icon: Settings2,
+            visible: !isImageMode,
         }
     ];
 
@@ -275,30 +290,51 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                                 <span className="text-sm font-medium">{t('tools.deepResearch')}</span>
                                                                 {webBrowsingEnabled && <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse ml-auto" />}
                                                             </DropdownMenuItem>
-
-                                                            {onToggleCodeMode && (
-                                                                <DropdownMenuItem
-                                                                    onClick={() => {
-                                                                        onToggleWebBrowsing(false);
-                                                                        onToggleComposeMode(false);
-                                                                        onToggleImageMode(false);
-                                                                        onToggleCodeMode(!isCodeMode);
-                                                                    }}
-                                                                    className={cn(
-                                                                        "flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10",
-                                                                        isCodeMode && "bg-primary/10"
-                                                                    )}
-                                                                >
-                                                                    <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
-                                                                        <Code2 className="w-4 h-4" />
-                                                                    </div>
-                                                                    <span className="text-sm font-medium">{t('tools.code')}</span>
-                                                                    {isCodeMode && <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse ml-auto" />}
-                                                                </DropdownMenuItem>
-                                                            )}
                                                         </>
                                                     )}
                                                 </>
+                                            )}
+
+                                            {section.id === 'settings' && (
+                                                <div className="p-2 space-y-3">
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
+                                                            <MessageSquare className="w-3.5 h-3.5" />
+                                                            <span>{t('settings.responseStyle')}</span>
+                                                        </div>
+                                                        <Select value={selectedResponseStyleName} onValueChange={onStyleChange}>
+                                                            <SelectTrigger className="h-10 rounded-lg border-border/40 bg-background/40 text-sm font-medium">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {AVAILABLE_RESPONSE_STYLES.map((style) => (
+                                                                    <SelectItem key={style.name} value={style.name}>
+                                                                        {t(styleTranslationKeys[style.name] || style.name)}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
+                                                            <Mic className="w-3.5 h-3.5" />
+                                                            <span>{t('settings.voice')}</span>
+                                                        </div>
+                                                        <Select value={selectedVoice} onValueChange={onVoiceChange}>
+                                                            <SelectTrigger className="h-10 rounded-lg border-border/40 bg-background/40 text-sm font-medium">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {AVAILABLE_TTS_VOICES.map((voice) => (
+                                                                    <SelectItem key={voice.id} value={voice.id}>
+                                                                        {voice.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     </motion.div>

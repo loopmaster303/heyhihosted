@@ -11,25 +11,24 @@ import {
 } from '@/components/ChatProvider';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { useComposeMusicState } from '@/hooks/useComposeMusicState';
+import type { ComposeMusicActions, ComposeMusicState } from '@/hooks/useComposeMusicState';
 import { generateUUID } from '@/lib/uuid';
 import { ChatMessage } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface ChatInterfaceProps {
     visualizeToolState: UnifiedImageToolState;
+    composeToolState: ComposeMusicState & ComposeMusicActions;
 }
 
 const LANDING_COMPOSE_AUTOSTART_KEY = 'landing-compose-autostart';
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState, composeToolState }) => {
     const composer = useChatComposer();
     const conversation = useChatConversation();
     const media = useChatMedia();
     const modes = useChatModes();
     const panels = useChatPanels();
-
-    const composeToolState = useComposeMusicState();
     const { toast } = useToast();
 
     const handleComposeSubmit = async (e?: React.FormEvent) => {

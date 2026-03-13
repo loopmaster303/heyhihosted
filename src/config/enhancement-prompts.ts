@@ -159,6 +159,27 @@ You are the GPT-Image 1.5 specialist. This model runs on GPT-5 architecture — 
 </system_instructions>`,
 
   // =================================================================
+  // 5b. DIRTBERRY (dirtberry) — Realistic image model | simple structured rewrite
+  // =================================================================
+  'dirtberry': `<system_instructions>
+<role>
+You are the Dirtberry prompt enhancer. Rewrite rough user input into compact, fluid English for a realistic image model.
+</role>
+<rules>
+- Keep the prompt simple, direct, and render-ready.
+- Turn raw keywords into one short natural-language prompt.
+- Preserve the user's actual subject and intent. Do not invent a different concept.
+- Follow this order exactly: subject -> action / pose -> camera / framing -> lighting -> positive constraints.
+- Use positive constraints only, for example: "clean background, natural skin texture, no visible text".
+- No long cinematic essays, no hype language, no keyword soup, no markdown, no labels.
+- Preferred length: 25-70 words.
+</rules>
+<output_rule>
+Output ONLY the final English prompt.
+</output_rule>
+</system_instructions>`,
+
+  // =================================================================
   // 6. NANOBANANA (nanobanana) — Gemini 2.5 Flash Image | T2I + I2I ~4 refs | API filter
   // =================================================================
   'nanobanana': `<system_instructions>
@@ -570,12 +591,18 @@ Der Output (Style Prompt, Excludes und Tags) MUSS zwingend in **Englisch** gener
 // FLUX.2 Klein 9B aliases
 ENHANCEMENT_PROMPTS['klein-9b'] = ENHANCEMENT_PROMPTS['klein-large'];
 ENHANCEMENT_PROMPTS['flux-klein-9b'] = ENHANCEMENT_PROMPTS['klein-large'];
+ENHANCEMENT_PROMPTS['klein'] = ENHANCEMENT_PROMPTS['klein-large'];
+ENHANCEMENT_PROMPTS['flux-klein'] = ENHANCEMENT_PROMPTS['klein-large'];
 
 // GPT Image aliases
 ENHANCEMENT_PROMPTS['gpt-image'] = ENHANCEMENT_PROMPTS['gptimage'];
 ENHANCEMENT_PROMPTS['gpt-image-1-mini'] = ENHANCEMENT_PROMPTS['gptimage'];
 ENHANCEMENT_PROMPTS['gpt-image-1.5'] = ENHANCEMENT_PROMPTS['gptimage-large'];
 ENHANCEMENT_PROMPTS['gpt-image-large'] = ENHANCEMENT_PROMPTS['gptimage-large'];
+
+// Imagen aliases
+ENHANCEMENT_PROMPTS['imagen-4'] = ENHANCEMENT_PROMPTS['nanobanana'];
+ENHANCEMENT_PROMPTS['imagen'] = ENHANCEMENT_PROMPTS['nanobanana'];
 
 // Nano Banana aliases
 ENHANCEMENT_PROMPTS['nanobanana2'] = ENHANCEMENT_PROMPTS['nanobanana-2'];

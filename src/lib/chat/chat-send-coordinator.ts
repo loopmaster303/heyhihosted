@@ -153,7 +153,7 @@ interface ExecuteChatSendCoordinatorInput {
     timestamp: number;
     conversationId: string;
   }) => Promise<unknown>;
-  uploadFileToS3: (file: File, fileName: string, contentType: string, options: { sessionId: string; folder: string }) => Promise<string>;
+  uploadFileToPollinationsMediaUrl: (file: File, fileName: string, contentType: string, options: { sessionId: string; folder: string }) => Promise<string>;
   resolveReferenceUrls: (references: UploadedReference[]) => Promise<string[]>;
   getUnifiedModel: (modelId: string) => { kind?: string } | undefined;
   generateImage: (options: GenerateImageOptions) => Promise<string>;
@@ -296,7 +296,7 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
       const sessionId = input.getSessionId();
       const fileName = activeConversation.uploadedFile.name || `upload-${Date.now()}.bin`;
       const contentType = activeConversation.uploadedFile.type || 'application/octet-stream';
-      publicImageUrl = await input.uploadFileToS3(activeConversation.uploadedFile, fileName, contentType, {
+      publicImageUrl = await input.uploadFileToPollinationsMediaUrl(activeConversation.uploadedFile, fileName, contentType, {
         sessionId,
         folder: 'uploads',
       });

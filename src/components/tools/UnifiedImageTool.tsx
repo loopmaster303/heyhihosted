@@ -10,8 +10,8 @@ import { generateUUID } from '@/lib/uuid';
 import type { ImageHistoryItem, UploadedReference } from '@/types';
 import { useLanguage } from '../LanguageProvider';
 import { useUnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
-import { GalleryService } from '@/lib/services/gallery-service';
-import { uploadFileToS3WithKey } from '@/lib/upload/s3-upload';
+import { OutputService } from '@/lib/services/output-service';
+import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
 import { getClientSessionId } from '@/lib/session';
 import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
 import VisualizeInputContainer from '@/components/tools/VisualizeInputContainer';
@@ -93,11 +93,11 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
             const extension = contentType.includes('/') ? contentType.split('/')[1] : 'bin';
             const fileName = `reference-${Date.now()}-${index}.${extension}`;
             const sessionId = getClientSessionId();
-            const signed = await uploadFileToS3WithKey(blob, fileName, contentType, {
+            const media = await uploadFileToPollinationsMedia(blob, fileName, contentType, {
               sessionId,
               folder: 'uploads',
             });
-            return signed.downloadUrl;
+            return media.mediaUrl;
           } catch (e) {
             console.error('Upload failed', e);
             return null;
@@ -168,7 +168,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
       let resultUrl: string;
 
       if (contentType && contentType.includes('image/')) {
-          // Binary Response -> Upload to S3 for permanent URL
+          // Binary response -> upload to Pollinations Media for a stable URL
           const blob = await response.blob();
           const fileName = `gen-${Date.now()}-${generateUUID()}.jpg`; // Assume JPG for now or infer
           // Infer extension
@@ -178,12 +178,12 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
           toast({ title: "Processing...", description: "Optimizing generated image..." });
           
           const sessionId = getClientSessionId();
-          const uploadResult = await uploadFileToS3WithKey(blob, finalFileName, contentType, {
+          const uploadResult = await uploadFileToPollinationsMedia(blob, finalFileName, contentType, {
               sessionId,
               folder: 'generations'
           });
           
-          resultUrl = uploadResult.downloadUrl;
+          resultUrl = uploadResult.mediaUrl;
       } else {
           // Standard JSON Response
           const data = await response.json();
@@ -194,12 +194,12 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
       const itemId = generateUUID();
       let localAssetId: string | undefined;
 
-      // 2. Persist to Vault using centralized logic
+      // 2. Persist to local output storage using centralized logic
       if (typeof resultUrl === 'string') {
         try {
-          toast({ title: "Saving...", description: "Syncing to gallery." });
+          toast({ title: "Saving...", description: "Syncing to output." });
 
-          localAssetId = await GalleryService.saveGeneratedAsset({
+          localAssetId = await OutputService.saveGeneratedAsset({
             url: resultUrl,
             prompt: prompt.trim(),
             modelId: currentModelId,
@@ -212,7 +212,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
             console.log(`📸 Tool asset saved: ${localAssetId}`);
           }
         } catch (e) {
-          console.error("Failed to persist tool asset to vault:", e);
+          console.error("Failed to persist tool asset to output storage:", e);
         }
       }
 

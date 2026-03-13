@@ -20,6 +20,8 @@ import { DEFAULT_POLLINATIONS_MODEL_ID } from '@/config/chat-options';
 import { useUnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import LandingView from '@/components/page/LandingView';
 import type { UploadedReference } from '@/types';
+import { useComposeMusicState } from '@/hooks/useComposeMusicState';
+import { resolveEffectiveTextModel } from '@/lib/chat/chat-capability-resolution';
 
 // App States - simplified: no more 'visualize' state
 type AppState = 'landing' | 'chat';
@@ -29,19 +31,21 @@ interface UnifiedAppContentProps {
     initialState?: AppState;
 }
 
-function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps) {
+export function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps) {
     const composer = useChatComposer();
     const conversation = useChatConversation();
     const media = useChatMedia();
     const modes = useChatModes();
     const panels = useChatPanels();
     const visualizeToolState = useUnifiedImageToolState();
+    const composeToolState = useComposeMusicState();
     const pathname = usePathname();
     const [defaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
+    const safeDefaultTextModelId = resolveEffectiveTextModel(defaultTextModelId);
 
     const [isClient, setIsClient] = useState(false);
     const [appState, setAppState] = useState<AppState>(initialState);
-    const [landingSelectedModelId, setLandingSelectedModelId] = useState<string>(defaultTextModelId);
+    const [landingSelectedModelId, setLandingSelectedModelId] = useState<string>(safeDefaultTextModelId);
     const [pendingMessage, setPendingMessage] = useState<{
         text: string;
         isImage: boolean;
@@ -79,8 +83,8 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
 
     useEffect(() => {
         if (!isClient) return;
-        setLandingSelectedModelId(defaultTextModelId);
-    }, [defaultTextModelId, isClient]);
+        setLandingSelectedModelId(safeDefaultTextModelId);
+    }, [safeDefaultTextModelId, isClient]);
 
     // URL-based state initialization
     useEffect(() => {
@@ -184,7 +188,9 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
             activeConversation={conversation.activeConversation}
             isAiResponding={composer.isAiResponding}
             // Chat Model Props
-            selectedModelId={appState === 'landing' ? landingSelectedModelId : (conversation.activeConversation?.selectedModelId || 'claude')}
+            selectedModelId={appState === 'landing'
+                ? landingSelectedModelId
+                : resolveEffectiveTextModel(conversation.activeConversation?.selectedModelId || safeDefaultTextModelId)}
             onModelChange={appState === 'landing' ? setLandingSelectedModelId : modes.handleModelChange}
             selectedResponseStyleName={conversation.activeConversation?.selectedResponseStyleName}
             selectedImageModelId={visualizeToolState.selectedModelId}
@@ -196,13 +202,14 @@ function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppContentProps)
                     selectedModelId={landingSelectedModelId}
                     onModelChange={setLandingSelectedModelId}
                     visualizeToolState={visualizeToolState}
+                    composeToolState={composeToolState}
                 />
             )}
 
             {/* Chat State */}
             {appState === 'chat' && (
                 <div className="flex flex-col h-full">
-                    <ChatInterface visualizeToolState={visualizeToolState} />
+                    <ChatInterface visualizeToolState={visualizeToolState} composeToolState={composeToolState} />
                 </div>
             )}
 
