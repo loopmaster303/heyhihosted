@@ -54,11 +54,44 @@ else
 fi
 
 # Pollinations-Zeile bauen
+POLL_LINE="🔌 <b>Pollinations</b> ${POLL_STATUS}${POLL_DETAIL}"
+if [ -n "${POLL_NEW_TEXT_MODELS:-}" ]; then
+  POLL_LINE="$POLL_LINE
+  Text neu: <code>${POLL_NEW_TEXT_MODELS}</code>"
+fi
+if [ -n "${POLL_STALE_TEXT_MODELS:-}" ]; then
+  POLL_LINE="$POLL_LINE
+  Text lokal-stale: <code>${POLL_STALE_TEXT_MODELS}</code>"
+fi
 if [ -n "${POLL_NEW_MODELS:-}" ]; then
-  POLL_LINE="🔌 <b>Pollinations</b> ${POLL_STATUS}${POLL_DETAIL}
-  Neue Modelle: <code>${POLL_NEW_MODELS}</code>
-  → In unified-image-models.ts noch nicht erfasst"
-else
+  POLL_LINE="$POLL_LINE
+  Bild/Video neu: <code>${POLL_NEW_MODELS}</code>"
+fi
+if [ -n "${POLL_STALE_IMAGE_MODELS:-}" ]; then
+  POLL_LINE="$POLL_LINE
+  Bild/Video lokal-stale: <code>${POLL_STALE_IMAGE_MODELS}</code>"
+fi
+if [ -n "${POLL_MISSING_ENHANCEMENT_MODELS:-}" ]; then
+  POLL_LINE="$POLL_LINE
+  Bild/Video prompt-fehlt: <code>${POLL_MISSING_ENHANCEMENT_MODELS}</code>"
+fi
+if [ -n "${POLL_COMMIT_READY_MODELS:-}" ]; then
+  POLL_LINE="$POLL_LINE
+  Bild/Video commit-ready: <code>${POLL_COMMIT_READY_MODELS}</code>"
+fi
+if [ -n "${POLL_HIDDEN_LOCAL_VISUAL_MODELS:-}" ]; then
+  POLL_LINE="$POLL_LINE
+  Lokal hidden, BYOP-sichtbar: <code>${POLL_HIDDEN_LOCAL_VISUAL_MODELS}</code>"
+fi
+if [ -n "${POLL_UPSTREAM_TEXT_MODELS:-}" ]; then
+  POLL_LINE="$POLL_LINE
+  Text upstream: <code>${POLL_UPSTREAM_TEXT_MODELS}</code>"
+fi
+if [ -n "${POLL_UPSTREAM_VISUAL_MODELS:-}" ]; then
+  POLL_LINE="$POLL_LINE
+  Bild/Video upstream: <code>${POLL_UPSTREAM_VISUAL_MODELS}</code>"
+fi
+if [ -z "${POLL_DETAIL:-}" ] && [ -z "${POLL_NEW_TEXT_MODELS:-}" ] && [ -z "${POLL_STALE_TEXT_MODELS:-}" ] && [ -z "${POLL_NEW_MODELS:-}" ] && [ -z "${POLL_STALE_IMAGE_MODELS:-}" ]; then
   POLL_LINE="🔌 <b>Pollinations API</b> ${POLL_API_STATUS} | Modelle: ${POLL_STATUS}"
 fi
 

@@ -8,6 +8,7 @@
 import { DatabaseService, type Asset } from '@/lib/services/database';
 import { BlobManager } from '@/lib/blob-manager';
 import { resolvePollinationsMediaUrl } from '@/lib/upload/pollinations-media';
+import { getPollenHeaders } from '@/lib/pollen-key';
 
 interface FallbackOptions {
   maxRetries?: number;
@@ -135,7 +136,7 @@ async function downloadAndCacheAsset(
   try {
     console.log(`[AssetFallback] Downloading asset for cache: ${assetId}`);
 
-    const response = await fetch(url);
+    const response = await fetch(url, { headers: getPollenHeaders() });
     if (!response.ok) {
       throw new Error(`Download failed: ${response.status}`);
     }

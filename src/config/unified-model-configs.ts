@@ -138,7 +138,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '1:1' },
-      { name: 'resolution', default: '2K' },
       { name: 'seed' },
       { name: 'output_format', default: 'jpg', hidden: true },
     ],
@@ -146,6 +145,50 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   'nanobanana-2': {
     id: 'nanobanana-2',
     name: 'Nano Banana 2',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'qwen-image': {
+    id: 'qwen-image',
+    name: 'Qwen Image',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'grok-imagine-pro': {
+    id: 'grok-imagine-pro',
+    name: 'Grok Imagine Pro',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'p-image': {
+    id: 'p-image',
+    name: 'P-Image',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'p-image-edit': {
+    id: 'p-image-edit',
+    name: 'P-Image Edit',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'width', default: 1024 },
@@ -206,6 +249,20 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
   },
+  'wan-fast': {
+    id: 'wan-fast',
+    name: 'Wan Fast',
+    outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 5 },
+      { name: 'audio', default: true },
+      { name: 'seed' },
+      { name: 'negative_prompt' },
+      { name: 'output_format', default: 'mp4', hidden: true },
+    ],
+  },
   'klein-large': {
     id: 'klein-large',
     name: 'Flux.2 klein 9B',
@@ -228,6 +285,20 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'height', default: 1024 },
       { name: 'seed' },
       { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'p-video': {
+    id: 'p-video',
+    name: 'P-Video',
+    outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 5 },
+      { name: 'audio', default: false },
+      { name: 'seed' },
+      { name: 'negative_prompt' },
+      { name: 'output_format', default: 'mp4', hidden: true },
     ],
   },
   'grok-image': {

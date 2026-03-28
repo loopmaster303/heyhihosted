@@ -23,7 +23,6 @@ import StepAIIcon from '../assets/icons-models/Step AI logo.png';
 // Model Icon Mapping (LLM)
 export const modelIcons: Record<string, any> = {
     'claude': ClaudeIcon,
-    'claude-airforce': ClaudeIcon,
     'claude-fast': ClaudeIcon,
     'claude-large': ClaudeIcon,
     'deepseek': DeepSeekIcon,
@@ -41,42 +40,36 @@ export const modelIcons: Record<string, any> = {
     'perplexity-fast': PerplexityIcon,
     'nomnom': PollinationsIcon,
     'qwen-coder': QwenIcon,
-    'qwen-character': QwenIcon,
     'nova-fast': AmazonNovaIcon,
     'nova-lite': AmazonNovaIcon,
-    'step-3.5-flash': StepAIIcon,
 };
 
 export const modelDisplayMap: Record<string, string> = {
     'claude': 'Claude Sonnet 4.6',
-    'claude-airforce': 'Claude Sonnet 4.6',
-    'claude-fast': 'Claude Haiku',
+    'claude-fast': 'Anthropic Claude Haiku 4.5',
     'claude-large': 'Claude Opus',
     'gemini-large': 'Gemini 3.1 Pro',
     'gemini': 'Gemini Flash',
     'gemini-fast': 'Google Gemini 2.5 Flash Lite',
-    'gemini-search': 'Gemini Search',
+    'gemini-search': 'Google Gemini 2.5 Flash Lite + Search',
     'glm': 'Z.ai GLM-5',
-    'mistral': 'Mistral',
+    'mistral': 'Mistral Small 3.2 24B',
     'deepseek': 'DeepSeek V3.2',
-    'kimi': 'Kimi K2.5',
+    'kimi': 'Moonshot Kimi K2.5',
     'minimax': 'MiniMax M2.5',
     'openai': 'OpenAI GPT-5 Mini',
     'openai-fast': 'OpenAI GPT-5 Nano',
-    'perplexity-reasoning': 'Sonar Reasoning',
-    'perplexity-fast': 'Sonar',
+    'perplexity-reasoning': 'Perplexity Sonar Reasoning',
+    'perplexity-fast': 'Perplexity Sonar',
     'nomnom': 'NomNom (Alpha)',
     'qwen-coder': 'Qwen3 Coder 30B',
-    'qwen-character': 'Qwen Character',
-    'step-3.5-flash': 'Step 3.5 Flash',
 };
 
 // NEW FEATURED LIST - STANDARD MODELS
 export const featuredModels = [
-    { id: 'claude-airforce', emoji: '⚡', highlight: 'Sonnet 4.6' },
+    { id: 'claude-fast', emoji: '⚡', highlight: 'Haiku 4.5' },
     { id: 'gemini-fast', emoji: '⚡', highlight: 'Lite' },
     { id: 'nova-fast', emoji: '🌟', highlight: 'Micro' },
-    { id: 'step-3.5-flash', emoji: '⚡', highlight: 'Flash' },
     { id: 'deepseek', emoji: '🔍', highlight: 'V3.2' },
 ];
 
@@ -92,14 +85,20 @@ export const imageModelIcons: Record<string, any> = {
     'nanobanana': '🍌',
     'nanobanana-pro': '🍌',
     'nanobanana-2': '🍌',
+    'qwen-image': QwenIcon,
+    'grok-imagine-pro': GrokIcon,
     'flux': FluxFarbeIcon,
     'flux-2-dev': FluxFarbeIcon,
     'klein': FluxFarbeIcon,
     'klein-large': FluxFarbeIcon,
     'kontext': FluxFarbeIcon,
     'wan': WANIcon,
+    'wan-fast': WANIcon,
     'zimage': WANIcon,
     'ltx-2': LTXLogo,
     'grok-image': GrokIcon,
     'grok-video': GrokIcon,
+    'p-image': PollinationsIcon,
+    'p-image-edit': PollinationsIcon,
+    'p-video': PollinationsIcon,
 };

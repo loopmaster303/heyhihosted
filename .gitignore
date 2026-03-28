@@ -1,3 +1,7 @@
+# Temporary / local scratch
+tmp/
+.codex-skill-build/
+
 # Audit secrets
 scripts/audit/.env
 

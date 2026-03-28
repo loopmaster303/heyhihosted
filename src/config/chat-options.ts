@@ -28,18 +28,9 @@ export interface VoiceOption {
 const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   // FEATURED - Standard Models
   {
-    id: "claude-airforce",
-    name: "Claude Sonnet 4.6",
-    description: "Starkes Allround-Modell via api.airforce.",
-    vision: true,
-    category: "Standard",
-    contextWindow: 200000,
-    maxTokens: 8192,
-  },
-  {
     id: "claude-fast",
-    name: "Claude Haiku 4.5",
-    description: "Schnell und intelligent für effiziente Aufgaben.",
+    name: "Anthropic Claude Haiku 4.5",
+    description: "Fast and intelligent for efficient tasks.",
     vision: true,
     category: "Standard",
     contextWindow: 200000,
@@ -48,7 +39,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   {
     id: "gemini-fast",
     name: "Google Gemini 2.5 Flash Lite",
-    description: "Leichte, schnelle Variante für Alltagstasks.",
+    description: "Ultra fast and cost-effective for everyday tasks.",
     vision: true,
     category: "Standard",
     contextWindow: 1000000,
@@ -56,8 +47,8 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "gemini-search",
-    name: "Gemini 2.5 Flash Lite + Search",
-    description: "Grounded Google Search, always current.",
+    name: "Google Gemini 2.5 Flash Lite + Search",
+    description: "Google Gemini 2.5 Flash Lite with grounded Google Search.",
     vision: true,
     webBrowsing: true,
     category: "Standard",
@@ -67,25 +58,16 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   {
     id: "deepseek",
     name: "DeepSeek V3.2",
-    description: "Starkes Reasoning und Coding, open-weight.",
+    description: "Efficient reasoning and agentic work.",
     vision: false,
     category: "Standard",
     contextWindow: 64000,
     maxTokens: 4096,
   },
   {
-    id: "step-3.5-flash",
-    name: "Step 3.5 Flash",
-    description: "Schnelles Reasoning via api.airforce.",
-    vision: false,
-    category: "Standard",
-    contextWindow: 128000,
-    maxTokens: 4096,
-  },
-  {
     id: "nova-fast",
     name: "Amazon Nova Micro",
-    description: "Extrem effizient für einfachste Aufgaben.",
+    description: "Ultra fast and ultra cheap.",
     vision: false,
     category: "Standard",
     contextWindow: 128000,
@@ -94,8 +76,8 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
 
   {
     id: "mistral",
-    name: "Mistral Small 3.2",
-    description: "Solider Allrounder mit gutem Preis-Leistungs-Verhaeltnis.",
+    name: "Mistral Small 3.2 24B",
+    description: "Efficient and cost-effective general-purpose model.",
     vision: false,
     category: "Advanced",
     contextWindow: 131072,
@@ -103,8 +85,8 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "perplexity-fast",
-    name: "Sonar",
-    description: "Schnelle Websuche zum guenstigen Preis.",
+    name: "Perplexity Sonar",
+    description: "Fast and affordable with web search.",
     vision: false,
     webBrowsing: true,
     category: "Advanced",
@@ -113,18 +95,8 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "perplexity-reasoning",
-    name: "Sonar Reasoning",
-    description: "Fortgeschrittenes Reasoning kombiniert mit Websuche.",
-    vision: false,
-    webBrowsing: true,
-    category: "Advanced",
-    contextWindow: 128000,
-    maxTokens: 4096,
-  },
-  {
-    id: "nomnom",
-    name: "NomNom (Deep Research Alpha)",
-    description: "Community-Modell fuer tiefe Web-Recherche mit Search, Scrape und Crawl.",
+    name: "Perplexity Sonar Reasoning",
+    description: "Advanced reasoning with web search.",
     vision: false,
     webBrowsing: true,
     category: "Advanced",
@@ -134,7 +106,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   {
     id: "kimi",
     name: "Moonshot Kimi K2.5",
-    description: "Tiefgehendes Reasoning und Tool-Orchestrierung.",
+    description: "Flagship agentic model with vision and multi-agent workflows.",
     vision: false,
     category: "Advanced",
     contextWindow: 200000,
@@ -143,7 +115,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   {
     id: "glm",
     name: "Z.ai GLM-5",
-    description: "Z.ai LLM mit starker Allround-Performance.",
+    description: "Long-context reasoning and agentic workflows.",
     vision: false,
     category: "Advanced",
     contextWindow: 198000,
@@ -152,7 +124,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   {
     id: "minimax",
     name: "MiniMax M2.5",
-    description: "Agentisches Modell fuer Coding und Mehrsprachigkeit.",
+    description: "Coding, agentic work, and multi-language support.",
     vision: false,
     category: "Advanced",
     contextWindow: 200000,
@@ -161,19 +133,10 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   {
     id: "qwen-coder",
     name: "Qwen3 Coder 30B",
-    description: "Spezialisiert auf die Generierung von Programmcode.",
+    description: "Specialized for code generation.",
     vision: false,
     category: "Specialized",
     contextWindow: 128000,
-    maxTokens: 4096,
-  },
-  {
-    id: "qwen-character",
-    name: "Qwen Character",
-    description: "Freies Character- und Roleplay-Modell via api.airforce.",
-    vision: false,
-    category: "Specialized",
-    contextWindow: 64000,
     maxTokens: 4096,
   },
 ];
@@ -181,22 +144,18 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
 // Manual availability governance for user-visible text models.
 // Keep this list conservative and update it intentionally when upstream availability changes.
 export const VISIBLE_POLLINATIONS_MODEL_IDS = [
-  'claude-airforce',
   'claude-fast',
   'gemini-fast',
   'gemini-search',
   'deepseek',
-  'step-3.5-flash',
   'nova-fast',
   'mistral',
   'perplexity-fast',
   'perplexity-reasoning',
-  'nomnom',
   'kimi',
   'glm',
   'minimax',
   'qwen-coder',
-  'qwen-character',
 ] as const;
 
 export function getVisiblePollinationsModels(): PollinationsModel[] {
@@ -214,6 +173,32 @@ export const AVAILABLE_POLLINATIONS_MODELS: PollinationsModel[] = getVisiblePoll
 
 export function isKnownPollinationsTextModelId(id: string): boolean {
   return !!findVisiblePollinationsModelById(id);
+}
+
+export const LIVE_SEARCH_MODEL_CANDIDATES = [
+  'perplexity-fast',
+  'perplexity-reasoning',
+  'gemini-search',
+] as const;
+
+export const DEEP_RESEARCH_MODEL_CANDIDATES = [
+  'perplexity-reasoning',
+  'gemini-search',
+  'perplexity-fast',
+] as const;
+
+export function getPreferredLiveSearchModel(fallbackModelId?: string): string | undefined {
+  const visibleIds = new Set<string>(VISIBLE_POLLINATIONS_MODEL_IDS);
+  const preferred = LIVE_SEARCH_MODEL_CANDIDATES.find((modelId) => visibleIds.has(modelId));
+  if (preferred) return preferred;
+  return fallbackModelId && visibleIds.has(fallbackModelId) ? fallbackModelId : undefined;
+}
+
+export function getPreferredDeepResearchModel(fallbackModelId?: string): string | undefined {
+  const visibleIds = new Set<string>(VISIBLE_POLLINATIONS_MODEL_IDS);
+  const preferred = DEEP_RESEARCH_MODEL_CANDIDATES.find((modelId) => visibleIds.has(modelId));
+  if (preferred) return preferred;
+  return fallbackModelId && visibleIds.has(fallbackModelId) ? fallbackModelId : undefined;
 }
 
 // Shared Safety Protocol - Reusable across all personas
@@ -463,17 +448,15 @@ ${OUTPUT_LANGUAGE_GUARD}
 
     IMAGE MODELS:
     - flux: FLUX.1 Schnell — fastest T2I, photorealism + all styles, no I2I, natural prose prompts (Best for uncensored/explicit)
-    - kontext: FLUX Kontext — surgical image editing, 1 reference image, instruction-style prompts
-    - flux-2-dev: FLUX.2 Dev — T2I only, exceptionally high prompt adherence, extreme photorealism, deep detail required
-    - klein-large: FLUX.2 Klein 9B — zero internal upsampling, needs novelist-style dense prose, I2I possible
-    - gptimage: GPT-Image 1 — broad styles, text rendering, I2I, inline constraints
-    - gptimage-large: GPT-Image 1.5 — superior editing preservation + text rendering, GPT-5 base
+    - klein: FLUX.2 Klein 4B — fast, dense prose prompts, I2I capable, no internal upsampling
+    - gpt-image: GPT-Image 1 Mini — broad styles, text rendering, I2I, inline constraints
     - zimage: Z-Image Turbo — comma-separated fragments, camera specs are the key lever, T2I only
-    - nanobanana: Nano Banana (Gemini 2.5 Flash) — broad styles, up to 4 refs, semantic positives (Strict safety filters)
-    - nanobanana-2: Nano Banana 2 (Gemini 3.1 Flash) — Thinking Mode, Web Grounding, up to 14 refs (Strict safety filters)
-    - nanobanana-pro: Nano Banana Pro (Gemini 3 Pro) — highest quality, slowest, up to 14 refs (Strict safety filters)
-    - seedream5: Seedream 5.0 — subject-first, reasoning + web search, up to 10 refs, neg prompt works
-    - grok-imagine: Grok Aurora — autoregressive architecture (setting MUST come first), up to 3 refs
+    - grok-image: Grok Imagine (Aurora) — autoregressive architecture (setting MUST come first)
+    - kontext: FLUX Kontext — surgical image editing, 1 reference image, instruction-style prompts (BYOP)
+    - gptimage-large: GPT-Image 1.5 — superior editing preservation + text rendering (BYOP)
+    - seedream5: Seedream 5.0 — subject-first, reasoning + web search, up to 10 refs (BYOP)
+    - qwen-image: Qwen Image — generation and edit model (BYOP)
+    - p-image: Pollinations Image — versatile generation (BYOP)
 
     VIDEO MODELS:
     - wan: Wan 2.6 — T2V + I2V, cinematic quality, timing brackets for multi-shot
@@ -486,15 +469,15 @@ ${OUTPUT_LANGUAGE_GUARD}
     - suno-v5: Suno v5 — full song generation, comma-separated tags ([Genre] → [Vibe] → [Instruments] → [Vocals]), no lyrics.
 
     PROMPT FORMATS PER MODEL:
-    - flux-2-dev:               Highly detailed English prose paragraph. [Subject] → [Spatial] → [Environment] → [Camera].
     - flux:                     A dense prose paragraph. Novelist style. No Markdown.
-    - klein-large:              A dense prose paragraph. Novelist style. No Markdown. No abbreviations — full expansion required.
+    - klein:                    A dense prose paragraph. Novelist style. No Markdown. No abbreviations — full expansion required.
+    - gpt-image, gptimage-large: Markdown Bullets. Constraints formulated positively inline in the last bullet.
     - zimage:                   Comma/period-separated sentence fragments. Camera specs are mandatory.
+    - grok-image:               Markdown Bullets. Setting/Global Context ALWAYS as the first bullet.
     - kontext:                  Instruction block. "Change X. Keep Y. Do not alter Z." No pronouns.
-    - gptimage, gptimage-large: Markdown Bullets. Constraints formulated positively inline in the last bullet.
-    - nanobanana, nanobanana-2, nanobanana-pro: Markdown Bullets. Exclusions must be formulated as semantic positives.
     - seedream5:                Continuous text, Subject first, 30-100 words. Negative prompt as a separate keyword list.
-    - grok-imagine:             Markdown Bullets. Setting/Global Context ALWAYS as the first bullet.
+    - qwen-image:               Structured blocks — Subject → Style → Technical. Bilingual supported.
+    - p-image:                  Balanced prose, medium detail.
     - wan:                      T2V: 80-120 words of flowing text. I2V: only movement and camera, under 40 words.
     - seedance:                 T2V: Shot Cut Syntax. I2V: under 20 words, pure verbs + camera specs.
     - ltx-2:                    A single paragraph of flowing text, Present Tense, active verbs, no line breaks.

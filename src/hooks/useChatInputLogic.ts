@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { DEFAULT_POLLINATIONS_MODEL_ID, isKnownPollinationsTextModelId } from '@/config/chat-options';
+import { DEFAULT_POLLINATIONS_MODEL_ID } from '@/config/chat-options';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
+import { useVisiblePollinationsTextModels } from './useVisiblePollinationsTextModels';
 
 export type ToolMode = 'standard' | 'visualize' | 'compose' | 'research' | 'code';
 
@@ -61,6 +62,7 @@ export function useChatInputLogic({
 
     const hasActiveTool = isImageMode || isComposeMode || webBrowsingEnabled || isCodeMode;
     const [defaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
+    const { isKnownModelId } = useVisiblePollinationsTextModels();
 
     // Mobile detection
     useEffect(() => {
@@ -82,13 +84,13 @@ export function useChatInputLogic({
     useEffect(() => {
         if (wasCodeMode.current && !isCodeMode) {
             const safeDefault =
-                (defaultTextModelId && isKnownPollinationsTextModelId(defaultTextModelId))
+                (defaultTextModelId && isKnownModelId(defaultTextModelId))
                     ? defaultTextModelId
                     : DEFAULT_POLLINATIONS_MODEL_ID;
             handleModelChange(safeDefault);
         }
         wasCodeMode.current = isCodeMode;
-    }, [isCodeMode, defaultTextModelId, handleModelChange]);
+    }, [isCodeMode, defaultTextModelId, handleModelChange, isKnownModelId]);
 
     useOnClickOutside([badgePanelRef, badgeActionsRef], () => {
         if (visibleBadgeRow) setActiveBadgeRow(null);

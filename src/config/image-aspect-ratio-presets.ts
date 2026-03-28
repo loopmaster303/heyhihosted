@@ -19,7 +19,7 @@ export const standardImageAspectRatioPresets: Record<string, AspectRatioPreset> 
   '9:16': { width: 768, height: 1344 },
 };
 
-const EXACT_STANDARD_RATIO_MODELS = new Set(['dirtberry']);
+const EXACT_STANDARD_RATIO_MODELS = new Set<string>();
 
 export function getAspectRatioPresetsForModel(modelId: string): Record<string, AspectRatioPreset> {
   return EXACT_STANDARD_RATIO_MODELS.has(modelId)

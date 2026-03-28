@@ -7,6 +7,7 @@ import { useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { TTSResponse, ApiErrorResponse } from '@/types/api';
 import { isApiErrorResponse } from '@/types/api';
+import { DEFAULT_TTS_SPEED } from '@/lib/chat/audio-settings';
 
 interface UseChatAudioProps {
     playingMessageId: string | null;
@@ -15,6 +16,7 @@ interface UseChatAudioProps {
     setIsTtsLoadingForId: (id: string | null) => void;
     audioRef: React.MutableRefObject<HTMLAudioElement | null>;
     selectedVoice: string;
+    selectedTtsSpeed?: number;
 }
 
 export function useChatAudio({
@@ -24,6 +26,7 @@ export function useChatAudio({
     setIsTtsLoadingForId,
     audioRef,
     selectedVoice,
+    selectedTtsSpeed = DEFAULT_TTS_SPEED,
 }: UseChatAudioProps) {
     const { toast } = useToast();
     // In-memory cache: lets the second click play without any async fetch (avoids autoplay restrictions).
@@ -95,7 +98,7 @@ export function useChatAudio({
             const response = await fetch('/api/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, voice: selectedVoice }),
+                body: JSON.stringify({ text, voice: selectedVoice, speed: selectedTtsSpeed }),
             });
             const result: TTSResponse | ApiErrorResponse = await response.json();
             if (!response.ok || isApiErrorResponse(result)) {
@@ -141,7 +144,7 @@ export function useChatAudio({
                 setPlayingMessageId(null);
             }
         }
-    }, [playingMessageId, toast, selectedVoice, setIsTtsLoadingForId, setPlayingMessageId, audioRef, cache, safePlay]);
+    }, [audioRef, cache, playingMessageId, safePlay, selectedTtsSpeed, selectedVoice, setIsTtsLoadingForId, setPlayingMessageId, toast]);
 
     return {
         handlePlayAudio,

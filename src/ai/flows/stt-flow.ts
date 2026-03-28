@@ -1,4 +1,4 @@
-export async function speechToText(audioFile: File): Promise<{ transcription: string }> {
+export async function speechToText(audioFile: File, language?: 'de' | 'en'): Promise<{ transcription: string }> {
   if (!audioFile || audioFile.size === 0) {
     throw new Error('Invalid audio file');
   }
@@ -15,7 +15,9 @@ export async function speechToText(audioFile: File): Promise<{ transcription: st
     const formData = new FormData();
     formData.append('file', audioFile);
     formData.append('model', model);
-    formData.append('language', 'de');
+    if (language) {
+      formData.append('language', language);
+    }
     formData.append('response_format', 'json');
 
     const response = await fetch(endpoint, {

@@ -13,17 +13,17 @@
     --popover: 262 50% 95%; /* Base popover color */
     --popover-foreground: 240 10% 3.9%;
 
-    --primary: 267 78% 65%; /* #B388FF style - Softer, Lighter Electric Purple */
+    --primary: 267 78% 55%; /* Deeper purple — WCAG AA compliant on light bg */
     --primary-foreground: 210 40% 98%;
 
-    --primary-hover: 267 78% 60%;
-    --primary-active: 267 78% 70%;
+    --primary-hover: 267 78% 50%;
+    --primary-active: 267 78% 60%;
 
     --secondary: 262 50% 88%;
     --secondary-foreground: 240 5.9% 10%;
 
     --muted: 262 30% 90%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted-foreground: 240 5% 35%; /* Darker — WCAG AA compliant for labels */
 
     --accent: 262 50% 85%;
     --accent-foreground: 240 5.9% 10%;
@@ -42,6 +42,7 @@
     --glass-border: 267 30% 50% / 0.08;
     --glass-shadow: 0 6px 24px 0 rgba(157, 92, 246, 0.04);
     --glass-glow: 0 0 10px rgba(157, 92, 246, 0.08);
+    --glass-bg-rgb: 220, 210, 240;
 
     /* Glass Surfaces (Light) */
     --surface-container-low: 262 60% 94%;
@@ -106,6 +107,7 @@
     --glass-border: 0 0% 100% / 0.08;
     --glass-shadow: 0 6px 24px 0 rgba(0, 0, 0, 0.35);
     --glass-glow: 0 0 12px rgba(157, 92, 246, 0.12);
+    --glass-bg-rgb: 18, 18, 22;
 
     /* Glass Surfaces (Dark) */
     --surface-container-low: 0 0% 0%;
@@ -144,6 +146,12 @@
     @apply bg-background text-foreground antialiased;
     font-weight: 400;
   }
+}
+
+/* Mode activation flash */
+@keyframes flash-fade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* Global type scale: keep mobile readable, avoid oversized desktop UI */

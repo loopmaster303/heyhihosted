@@ -8,16 +8,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from '@/components/LanguageProvider';
-import { getVisiblePollinationsModels, isKnownPollinationsTextModelId, DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
+import { DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
 import { getImageModels } from '@/config/unified-image-models';
 import { unifiedModelConfigs } from '@/config/unified-model-configs';
 import { useChatConversation, useChatModes } from '@/components/ChatProvider';
 import { Mic, MessageSquare } from 'lucide-react';
+import { useVisiblePollinationsTextModels } from '@/hooks/useVisiblePollinationsTextModels';
+import { useHasPollenKey } from '@/hooks/useHasPollenKey';
+import { TTS_SPEED_PRESETS } from '@/lib/chat/audio-settings';
 
 const PersonalizationSidebarSection: React.FC = () => {
   const { language } = useLanguage();
   const { activeConversation } = useChatConversation();
-  const { selectedVoice, handleVoiceChange, handleStyleChange } = useChatModes();
+  const { selectedVoice, selectedTtsSpeed, handleVoiceChange, handleTtsSpeedChange, handleStyleChange } = useChatModes();
+  const hasPollenKey = useHasPollenKey();
+  const { visibleModels: allTextModels, isKnownModelId } = useVisiblePollinationsTextModels();
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -25,18 +30,17 @@ const PersonalizationSidebarSection: React.FC = () => {
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>('customSystemPrompt', '');
   const [defaultTextModelId, setDefaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
   const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
-  const allTextModels = useMemo(() => getVisiblePollinationsModels(), []);
 
   const imageModels = useMemo(
-    () => getImageModels().filter(model => model.id in unifiedModelConfigs),
-    []
+    () => getImageModels({ includeByopHidden: hasPollenKey }).filter(model => model.id in unifiedModelConfigs),
+    [hasPollenKey]
   );
 
   useEffect(() => {
-    if (!defaultTextModelId || !isKnownPollinationsTextModelId(defaultTextModelId)) {
+    if (!defaultTextModelId || !isKnownModelId(defaultTextModelId)) {
       setDefaultTextModelId(DEFAULT_POLLINATIONS_MODEL_ID);
     }
-  }, [defaultTextModelId, setDefaultTextModelId]);
+  }, [defaultTextModelId, isKnownModelId, setDefaultTextModelId]);
 
   useEffect(() => {
     if (!imageModels.some(model => model.id === defaultImageModelId)) {
@@ -53,6 +57,7 @@ const PersonalizationSidebarSection: React.FC = () => {
         defaultText: 'Standard Text Model',
         defaultImage: 'Standard Image Model',
         voice: 'AI Voice',
+        voiceSpeed: 'Speech Speed',
         namePlaceholder: 'user',
         extraPlaceholder: 'Special wishes for your Assistance? - just add it for a more individual Experience',
       }
@@ -64,6 +69,7 @@ const PersonalizationSidebarSection: React.FC = () => {
         defaultText: 'Standard Text Modell',
         defaultImage: 'Standard Bild Modell',
         voice: 'KI-Stimme',
+        voiceSpeed: 'Sprechtempo',
         namePlaceholder: 'user',
         extraPlaceholder: 'Sonderwünsche für deinen Assistenten? - Schreibs einfach hier rein für eine individuellere Erfahrung.',
       };
@@ -177,6 +183,24 @@ const PersonalizationSidebarSection: React.FC = () => {
                 {AVAILABLE_TTS_VOICES.map((voice) => (
                   <SelectItem key={voice.id} value={voice.id}>
                     {voice.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+              {labels.voiceSpeed}
+            </label>
+            <Select value={String(selectedTtsSpeed)} onValueChange={(value) => handleTtsSpeedChange(Number(value))}>
+              <SelectTrigger className="h-8 text-xs rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TTS_SPEED_PRESETS.map((preset) => (
+                  <SelectItem key={preset.value} value={String(preset.value)}>
+                    {preset.label}
                   </SelectItem>
                 ))}
               </SelectContent>

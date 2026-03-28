@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/components/LanguageProvider';
 import { AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
+import { TTS_SPEED_PRESETS } from '@/lib/chat/audio-settings';
 
 interface MobileOptionsMenuProps {
     // Upload props
@@ -51,6 +52,8 @@ interface MobileOptionsMenuProps {
     // Quick Settings props
     selectedVoice: string;
     onVoiceChange: (voiceId: string) => void;
+    selectedTtsSpeed: number;
+    onTtsSpeedChange: (speed: number) => void;
     selectedResponseStyleName: string;
     onStyleChange: (styleName: string) => void;
 }
@@ -75,6 +78,8 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
     // Quick Settings
     selectedVoice,
     onVoiceChange,
+    selectedTtsSpeed,
+    onTtsSpeedChange,
     selectedResponseStyleName,
     onStyleChange
 }) => {
@@ -329,6 +334,25 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                                 {AVAILABLE_TTS_VOICES.map((voice) => (
                                                                     <SelectItem key={voice.id} value={voice.id}>
                                                                         {voice.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
+                                                            <Settings2 className="w-3.5 h-3.5" />
+                                                            <span>{t('settings.voiceSpeed')}</span>
+                                                        </div>
+                                                        <Select value={String(selectedTtsSpeed)} onValueChange={(value) => onTtsSpeedChange(Number(value))}>
+                                                            <SelectTrigger className="h-10 rounded-lg border-border/40 bg-background/40 text-sm font-medium">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {TTS_SPEED_PRESETS.map((preset) => (
+                                                                    <SelectItem key={preset.value} value={String(preset.value)}>
+                                                                        {preset.label}
                                                                     </SelectItem>
                                                                 ))}
                                                             </SelectContent>

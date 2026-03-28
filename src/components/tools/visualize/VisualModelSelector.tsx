@@ -8,6 +8,7 @@ import { getUnifiedModel, getVisualizeModelGroups, type UnifiedImageModel } from
 import { getUnifiedModelConfig } from '@/config/unified-model-configs';
 import { imageModelIcons } from '@/config/ui-constants';
 import { ModalPopup } from '@/components/ui/popup';
+import { useHasPollenKey } from '@/hooks/useHasPollenKey';
 
 interface VisualModelSelectorProps {
     isOpen: boolean;
@@ -25,8 +26,9 @@ export const VisualModelSelector: React.FC<VisualModelSelectorProps> = ({
     embedded = false
 }) => {
     const { t } = useLanguage();
+    const hasPollenKey = useHasPollenKey();
     const [expanded, setExpanded] = useState(true);
-    const modelGroups = getVisualizeModelGroups();
+    const modelGroups = getVisualizeModelGroups({ includeByopHidden: hasPollenKey });
     const standardGroups = modelGroups.filter(group => group.category === 'Standard');
     const advancedGroups = modelGroups.filter(group => group.category === 'Advanced');
 

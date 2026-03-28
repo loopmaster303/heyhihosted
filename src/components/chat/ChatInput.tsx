@@ -22,6 +22,8 @@ interface ChatInputProps extends UseChatInputLogicProps {
     handleStyleChange: (styleName: string) => void;
     selectedVoice: string;
     handleVoiceChange: (voiceId: string) => void;
+    selectedTtsSpeed: number;
+    handleTtsSpeedChange: (speed: number) => void;
     isTranscribing: boolean;
     startRecording: () => void;
     stopRecording: () => void;
@@ -52,6 +54,8 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
         handleStyleChange,
         selectedVoice,
         handleVoiceChange,
+        selectedTtsSpeed,
+        handleTtsSpeedChange,
         isRecording,
         isTranscribing,
         startRecording,
@@ -119,6 +123,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     isPollenModel={visualizeToolState.isPollenModel}
                     isPollinationsVideo={visualizeToolState.isPollinationsVideo}
                     inlineContent={referenceBadges}
+                    onDeactivate={() => setActiveMode('standard')}
                     variant="bare"
                     disabled={isLoading || isRecording || isTranscribing}
                 />
@@ -135,6 +140,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     onModelChange={composeToolState.setSelectedModel}
                     onDurationChange={composeToolState.setDuration}
                     onInstrumentalChange={composeToolState.setInstrumental}
+                    onDeactivate={() => setActiveMode('standard')}
                     disabled={isLoading}
                     variant="bare"
                 />
@@ -176,6 +182,8 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     key="quick-settings-badges"
                     selectedVoice={selectedVoice}
                     onVoiceChange={handleVoiceChange}
+                    selectedTtsSpeed={selectedTtsSpeed}
+                    onTtsSpeedChange={handleTtsSpeedChange}
                     selectedResponseStyleName={selectedResponseStyleName}
                     onStyleChange={handleStyleChange}
                 />
@@ -268,6 +276,12 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     disabled={isLoading || isRecording || isTranscribing}
                     topElements={renderTopBadges()}
                     topElementsVariant="bare"
+                    modeColor={
+                        isImageMode ? 'hsl(325 100% 62%)' :
+                        isComposeMode ? 'hsl(270 90% 65%)' :
+                        webBrowsingEnabled ? 'hsl(190 100% 50%)' :
+                        (isCodeMode ? 'hsl(150 100% 50%)' : undefined)
+                    }
                     leftActions={
                         isMobile ? (
                             <div ref={badgeActionsRef}>
@@ -291,22 +305,24 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                     onToggleWebBrowsing={onToggleWebBrowsing}
                                     selectedVoice={selectedVoice}
                                     onVoiceChange={handleVoiceChange}
+                                    selectedTtsSpeed={selectedTtsSpeed}
+                                    onTtsSpeedChange={handleTtsSpeedChange}
                                     selectedResponseStyleName={selectedResponseStyleName}
                                     onStyleChange={handleStyleChange}
                                 />
                             </div>
                         ) : (
                             <div ref={badgeActionsRef} className="flex items-center gap-2">
-                                {/* Quick Settings Toggle */}
-                                {!isImageMode && (
+                                {/* Quick Settings Toggle — hide when a mode is active */}
+                                {!hasActiveTool && !isImageMode && (
                                 <Button
                                     ref={quickSettingsButtonRef}
                                     type="button"
                                     variant="ghost"
                                     onClick={() => toggleBadgeRow('settings')}
                                     className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all ${
-                                        activeBadgeRow === 'settings' 
-                                            ? "text-foreground shadow-sm hover:shadow-md" 
+                                        activeBadgeRow === 'settings'
+                                            ? "text-foreground shadow-sm hover:shadow-md"
                                             : "bg-transparent text-foreground/80 hover:shadow-sm"
                                     }`}
                                     aria-label="Quick settings"
@@ -315,7 +331,8 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 </Button>
                                 )}
 
-                                {/* Upload Toggle */}
+                                {/* Upload Toggle — hide when a mode is active */}
+                                {!hasActiveTool && (
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -328,8 +345,9 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 >
                                     <Plus className="w-4 h-4" />
                                 </Button>
+                                )}
 
-                                {/* Tools Toggle */}
+                                {/* Tools Toggle — hide when a mode is active (config header has dismiss) */}
                                 {!hasActiveTool && (
                                     <Button
                                         type="button"
@@ -353,47 +371,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                         </svg>
                                     </Button>
                                 )}
-                                {/* Active Mode Badges - Restored for deselection control */}
-                                {isImageMode && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveMode('standard')}
-                                        className="flex items-center gap-1.5 rounded-full border border-mode-visualize/60 px-3 py-1.5 text-xs font-bold transition-all bg-mode-visualize/10 text-mode-visualize"
-                                    >
-                                        <span>{t('tools.visualize')}</span>
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                )}
-                                {webBrowsingEnabled && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveMode('standard')}
-                                        className="flex items-center gap-1.5 rounded-full border border-mode-research/60 px-3 py-1.5 text-xs font-bold transition-all bg-mode-research/10 text-mode-research"
-                                    >
-                                        <span>{t('tools.deepResearch')}</span>
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                )}
-                                {isCodeMode && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveMode('standard')}
-                                        className="flex items-center gap-1.5 rounded-full border border-mode-code/60 px-3 py-1.5 text-xs font-bold transition-all bg-mode-code/10 text-mode-code"
-                                    >
-                                        <span>{t('tools.code')}</span>
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                )}
-                                {isComposeMode && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveMode('standard')}
-                                        className="flex items-center gap-1.5 rounded-full border border-mode-compose/60 px-3 py-1.5 text-xs font-bold transition-all bg-mode-compose/10 text-mode-compose"
-                                    >
-                                        <span>{t('tools.compose')}</span>
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                )}
+                                {/* Mode name is now in the config header ("Visualize with", "Compose with") */}
                             </div>
                         )
                     }

@@ -12,7 +12,7 @@ process.stdin.on('data', (chunk) => {
 process.stdin.on('end', () => {
   try {
     const requestData = JSON.parse(inputData);
-    const { url: requestUrl, method = 'POST', headers = {}, body } = requestData;
+    const { url: requestUrl, method = 'POST', headers = {}, body, stream = false } = requestData;
 
     // We can trust headers passed from parent (which includes clean key)
     
@@ -32,6 +32,28 @@ process.stdin.on('end', () => {
     };
 
     const req = https.request(options, (res) => {
+      if (stream) {
+        process.stdout.write(JSON.stringify({
+          type: 'meta',
+          status: res.statusCode,
+          headers: res.headers,
+          contentType: res.headers['content-type'] || 'application/octet-stream'
+        }) + '\n');
+
+        res.on('data', (chunk) => {
+          process.stdout.write(JSON.stringify({
+            type: 'chunk',
+            dataBase64: chunk.toString('base64'),
+          }) + '\n');
+        });
+
+        res.on('end', () => {
+          process.stdout.write(JSON.stringify({ type: 'end' }) + '\n');
+        });
+
+        return;
+      }
+
       const chunks = [];
       res.on('data', (chunk) => chunks.push(chunk));
       res.on('end', () => {
@@ -48,8 +70,13 @@ process.stdin.on('end', () => {
     });
 
     req.on('error', (e) => {
-      console.error(JSON.stringify({ error: e.message }));
-      process.exit(1);
+      const payload = JSON.stringify({ type: stream ? 'error' : 'stderr', error: e.message });
+      if (stream) {
+        process.stdout.write(payload + '\n');
+      } else {
+        console.error(payload);
+        process.exit(1);
+      }
     });
 
     if (body) req.write(body);

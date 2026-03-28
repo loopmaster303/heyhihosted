@@ -15,6 +15,7 @@ import Link from 'next/link';
 import DecryptedText from '@/components/ui/DecryptedText';
 import GradualBlur from '@/components/ui/GradualBlur';
 import { usePollenKey } from '@/hooks/usePollenKey';
+import { useVisiblePollinationsTextModels } from '@/hooks/useVisiblePollinationsTextModels';
 
 // Dynamic import for ASCIIText (canvas-based, client-only)
 const ASCIIText = dynamic(() => import('@/components/ui/ASCIIText'), {
@@ -92,6 +93,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const [sidebarExpanded, setSidebarExpanded] = useLocalStorageState<boolean>('sidebarExpanded', false);
   const { language } = useLanguage();
   const { isConnected, connectOAuth } = usePollenKey();
+  const { findModelById } = useVisiblePollinationsTextModels();
 
   // Get username for header display
   const [userDisplayName] = useState(getInitialDisplayName);
@@ -117,9 +119,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 
   // Compute display names for the header
   const llmName = useMemo(() => {
-      const model = findVisiblePollinationsModelById(selectedModelId);
+      const model = findModelById(selectedModelId) || findVisiblePollinationsModelById(selectedModelId);
       return model ? model.name : (selectedModelId || "ai");
-  }, [selectedModelId]);
+  }, [findModelById, selectedModelId]);
 
   const imageName = useMemo(() => {
       const model = getUnifiedModel(selectedImageModelId);

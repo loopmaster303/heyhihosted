@@ -396,7 +396,6 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
         } else {
           imageParams.width = typeof formFields.width === 'number' ? formFields.width : 1024;
           imageParams.height = typeof formFields.height === 'number' ? formFields.height : 1024;
-          if (typeof formFields.resolution === 'string') imageParams.resolution = formFields.resolution;
         }
       }
 

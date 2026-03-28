@@ -43,6 +43,7 @@ jest.mock('@/components/LanguageProvider', () => ({
         'menu.section.settings': 'Settings',
         'settings.responseStyle': 'Assistant Role',
         'settings.voice': 'Voice',
+        'settings.voiceSpeed': 'Speech Speed',
         'tools.visualize': 'Visualize',
         'tools.standardChat': 'Standard Chat',
         'tools.compose': 'Compose',
@@ -89,6 +90,8 @@ describe('MobileOptionsMenu', () => {
         onToggleWebBrowsing={jest.fn()}
         selectedVoice="alloy"
         onVoiceChange={jest.fn()}
+        selectedTtsSpeed={1}
+        onTtsSpeedChange={jest.fn()}
         selectedResponseStyleName="Basic"
         onStyleChange={jest.fn()}
       />
@@ -99,5 +102,6 @@ describe('MobileOptionsMenu', () => {
 
     expect(screen.getByText('Assistant Role')).toBeInTheDocument();
     expect(screen.getByText('Voice')).toBeInTheDocument();
+    expect(screen.getByText('Speech Speed')).toBeInTheDocument();
   });
 });

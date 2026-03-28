@@ -5,6 +5,8 @@
  * - textToSpeech - Converts a string of text into playable audio data (data URI).
  */
 
+import { DEFAULT_TTS_SPEED } from '@/lib/chat/audio-settings';
+
 const POLLINATIONS_TTS_ENDPOINT = 'https://gen.pollinations.ai/v1/audio/speech';
 
 // Pollinations exposes both OpenAI voices and ElevenLabs voices behind the same endpoint.
@@ -31,7 +33,7 @@ function resolveTtsModelForVoice(voice: string) {
   return OPENAI_VOICES.has(voice) ? 'tts-1' : 'elevenlabs';
 }
 
-export async function textToSpeech(text: string, voice: string): Promise<{ audioDataUri: string }> {
+export async function textToSpeech(text: string, voice: string, speed: number = DEFAULT_TTS_SPEED): Promise<{ audioDataUri: string }> {
   if (!text || text.trim() === '') {
     throw new Error('Input text cannot be empty.');
   }
@@ -57,7 +59,7 @@ export async function textToSpeech(text: string, voice: string): Promise<{ audio
       input: text.trim(),
       voice,
       response_format: 'mp3',
-      speed: 1,
+      speed,
     }),
   });
 
@@ -73,4 +75,3 @@ export async function textToSpeech(text: string, voice: string): Promise<{ audio
 
   return { audioDataUri };
 }
-

@@ -22,30 +22,31 @@ Assistant guidance for Claude working in this repository.
 ## Current Runtime Truth
 
 ### Visible text models
-- `claude-airforce`
 - `claude-fast`
 - `gemini-fast`
 - `gemini-search`
 - `deepseek`
-- `step-3.5-flash`
 - `nova-fast`
 - `mistral`
 - `perplexity-fast`
 - `perplexity-reasoning`
-- `nomnom`
 - `kimi`
 - `glm`
 - `minimax`
 - `qwen-coder`
-- `qwen-character`
 
-### Visible image/video models
+### Visible image/video models (free tier)
 - `flux`
 - `zimage`
 - `gpt-image`
-- `imagen-4`
+- `klein`
 - `grok-image`
 - `grok-video`
+
+### Additional image/video models (BYOP key required)
+- `kontext`, `gptimage-large`, `seedream5`, `nanobanana`, `nanobanana-2`, `nanobanana-pro`
+- `qwen-image`, `grok-imagine-pro`, `p-image`, `p-image-edit`
+- `wan`, `wan-fast`, `seedance`, `ltx-2`, `p-video`
 
 ### Key implementation notes
 - Search/research routing is delegated through a single strategy path; `WebContextService` is optional helper logic, not the default delegated path.

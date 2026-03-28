@@ -3,10 +3,10 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { findVisiblePollinationsModelById, getVisiblePollinationsModels } from '@/config/chat-options';
 import { modelIcons, featuredModels, modelDisplayMap } from '@/config/ui-constants';
 import { ModalPopup } from '@/components/ui/popup';
 import { useLanguage } from '@/components/LanguageProvider';
+import { useVisiblePollinationsTextModels } from '@/hooks/useVisiblePollinationsTextModels';
 
 interface ModelSelectorProps {
     selectedModelId: string;
@@ -26,10 +26,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     modelFilterIds
 }) => {
     const { t } = useLanguage();
+    const { visibleModels: allModels, findModelById } = useVisiblePollinationsTextModels();
     const [isOpen, setIsOpen] = useState(false);
     const [expanded, setExpanded] = useState(false);
-
-    const allModels = getVisiblePollinationsModels();
 
     const filteredModels = modelFilterIds && modelFilterIds.length > 0
         ? modelFilterIds.map((id) => allModels.find((model) => model.id === id)).filter(Boolean)
@@ -130,7 +129,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         >
             <div className="flex items-center gap-1.5 min-w-0">
                 {(() => {
-                    const model = findVisiblePollinationsModelById(selectedModelId);
+                    const model = findModelById(selectedModelId);
                     const icon = modelIcons[selectedModelId];
                     const displayName = modelDisplayMap[selectedModelId] || model?.name || 'AI';
                     
@@ -138,7 +137,13 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                         <>
                             {icon && (
                                 <div className="w-4 h-4 shrink-0 relative">
-                                    <Image src={icon} alt="" fill className="object-contain grayscale-[0.5] group-hover:grayscale-0 transition-all" />
+                                    <Image
+                                        src={icon}
+                                        alt=""
+                                        fill
+                                        sizes="16px"
+                                        className="object-contain grayscale-[0.5] group-hover:grayscale-0 transition-all"
+                                    />
                                 </div>
                             )}
                             <span className="truncate max-w-[120px] md:max-w-[160px]">{displayName}</span>
@@ -164,7 +169,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         >
             <div className="flex items-center gap-1.5 truncate max-w-full">
                 {(() => {
-                    const modelName = findVisiblePollinationsModelById(selectedModelId)?.name || 'AI';
+                    const modelName = findModelById(selectedModelId)?.name || 'AI';
                     if (isMobile) {
                         return (
                             <div className="flex items-center gap-1">

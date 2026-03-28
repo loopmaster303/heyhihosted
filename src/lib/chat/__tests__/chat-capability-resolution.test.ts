@@ -61,7 +61,7 @@ describe('chat capability resolution', () => {
         isImageModeIntent: false,
       })
     ).toMatchObject({
-      selectedModelId: 'claude-airforce',
+      selectedModelId: 'claude-fast',
       requiresVisionModel: true,
       didFallbackToVisionModel: true,
     });

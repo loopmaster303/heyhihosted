@@ -24,6 +24,10 @@ export interface RequestCapabilityInput {
   isCodeMode?: boolean;
 }
 
+interface VisibleTextModelOptions {
+  visibleModels?: PollinationsModel[];
+}
+
 export interface RequestCapabilityResolution {
   selectedModelId: string;
   selectedModel: PollinationsModel;
@@ -34,7 +38,7 @@ export interface RequestCapabilityResolution {
   isCodeMode: boolean;
 }
 
-export function resolveEffectiveTextModel(modelId?: string): string {
+export function resolveEffectiveTextModel(modelId?: string, visibleModels?: PollinationsModel[]): string {
   return modelId && isKnownPollinationsTextModelId(modelId)
     ? modelId
     : DEFAULT_POLLINATIONS_MODEL_ID;
@@ -60,20 +64,27 @@ export function normalizeChatModeState(state: ChatModeState): Required<ChatModeS
 export function resolveStartNewChatState(
   options: StartNewChatOptions,
   fallbackModelId?: string,
+  visibleModels?: PollinationsModel[],
 ) {
   const normalizedModes = normalizeChatModeState(options);
 
   return {
-    selectedModelId: resolveEffectiveTextModel(options.initialModelId || fallbackModelId),
+    selectedModelId: resolveEffectiveTextModel(options.initialModelId || fallbackModelId, visibleModels),
     ...normalizedModes,
   };
 }
 
 export function resolveRequestCapabilities(
   input: RequestCapabilityInput,
+  options: VisibleTextModelOptions = {},
 ): RequestCapabilityResolution {
-  const requestedModelId = resolveEffectiveTextModel(input.selectedModelId);
-  const requestedModel = findVisiblePollinationsModelById(requestedModelId) || AVAILABLE_POLLINATIONS_MODELS[0];
+  const visibleModels = options.visibleModels && options.visibleModels.length > 0
+    ? options.visibleModels
+    : AVAILABLE_POLLINATIONS_MODELS;
+  const requestedModelId = resolveEffectiveTextModel(input.selectedModelId, visibleModels);
+  const requestedModel = visibleModels.find((model) => model.id === requestedModelId)
+    || findVisiblePollinationsModelById(requestedModelId)
+    || AVAILABLE_POLLINATIONS_MODELS[0];
 
   const isImageModeIntent = !!input.isImageModeIntent;
   const requiresVisionModel = input.hasUploadedFile && !isImageModeIntent;
@@ -83,7 +94,7 @@ export function resolveRequestCapabilities(
   let didFallbackToVisionModel = false;
 
   if (requiresVisionModel && !requestedModel.vision) {
-    fallbackModel = AVAILABLE_POLLINATIONS_MODELS.find((model) => model.vision);
+    fallbackModel = visibleModels.find((model) => model.vision) || AVAILABLE_POLLINATIONS_MODELS.find((model) => model.vision);
     if (fallbackModel) {
       selectedModel = fallbackModel;
       didFallbackToVisionModel = true;

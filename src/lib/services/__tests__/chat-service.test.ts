@@ -3,6 +3,7 @@
  * Tests for the chat service API abstraction layer
  */
 
+import { ReadableStream } from 'node:stream/web';
 import { ChatService, SendMessageOptions, GenerateImageOptions } from '../chat-service';
 
 // Mock fetch globally
@@ -90,6 +91,30 @@ describe('ChatService', () => {
 
             const result = await ChatService.sendChatCompletion(defaultOptions);
             expect(result).toBe('');
+        });
+
+        it('should process SSE responses incrementally and return the final text', async () => {
+            const encoder = new TextEncoder();
+            const streamedChunks: string[] = [];
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                headers: new Headers({ 'content-type': 'text/event-stream' }),
+                body: new ReadableStream<Uint8Array>({
+                    start(controller) {
+                        controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"Hel"}}]}\n\n'));
+                        controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"lo"}}]}\n\n'));
+                        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                        controller.close();
+                    },
+                }),
+            });
+
+            const result = await ChatService.sendChatCompletion(defaultOptions, (chunk) => {
+                streamedChunks.push(chunk);
+            });
+
+            expect(streamedChunks).toEqual(['Hel', 'Hello']);
+            expect(result).toBe('Hello');
         });
 
 

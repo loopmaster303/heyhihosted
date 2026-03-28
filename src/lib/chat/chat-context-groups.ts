@@ -26,6 +26,7 @@ const MODE_KEYS = [
   'isComposeMode',
   'webBrowsingEnabled',
   'selectedVoice',
+  'selectedTtsSpeed',
   'availableImageModels',
   'selectedImageModelId',
   'toggleImageMode',
@@ -33,6 +34,7 @@ const MODE_KEYS = [
   'handleModelChange',
   'handleStyleChange',
   'handleVoiceChange',
+  'handleTtsSpeedChange',
   'handleImageModelChange',
   'toggleWebBrowsing',
 ] as const;

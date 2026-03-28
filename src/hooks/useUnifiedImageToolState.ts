@@ -6,20 +6,19 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { getPollenHeaders } from '@/lib/pollen-key';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { unifiedModelConfigs, getUnifiedModelConfig, type UnifiedModelConfig } from '@/config/unified-model-configs';
-import { getUnifiedModel } from '@/config/unified-image-models';
+import { getUnifiedModel, UNIFIED_IMAGE_MODELS } from '@/config/unified-image-models';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
 import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
 import { getClientSessionId } from '@/lib/session';
 import type { UploadedReference } from '@/types';
+import { useHasPollenKey } from './useHasPollenKey';
 
 // Define which models need image upload
 export const pollinationUploadModels = [
-    'gpt-image',
-    'klein',
-    'klein-large',
-    'flux-2-dev',
-    'grok-video',
+    ...UNIFIED_IMAGE_MODELS
+        .filter(model => model.provider === 'pollinations' && model.supportsReference === true)
+        .map(model => model.id),
 ];
 
 function normalizeLegacyImageModelId(id: string): string {
@@ -29,20 +28,22 @@ function normalizeLegacyImageModelId(id: string): string {
     if (id === 'ltx-video') return 'ltx-2';
     if (id === 'z-image-turbo') return 'zimage';
     if (id === 'gptimage' || id === 'gpt-image-1-mini') return 'gpt-image';
-    if (id === 'imagen') return 'imagen-4';
+    if (id === 'imagen' || id === 'imagen-4') return 'zimage';
     if (id === 'flux-2-pro' || id === 'flux-kontext-pro') return 'kontext';
-    if (id === 'flux-2-max' || id === 'flux-2-klein-9b') return 'klein-large';
+    if (id === 'flux-2-max' || id === 'flux-2-klein-9b' || id === 'klein-large') return 'klein';
+    if (id === 'flux-2-dev' || id === 'dirtberry') return 'flux';
     if (id === 'flux-klein') return 'klein';
     if (id === 'wan-video' || id === 'wan-2.5-t2v') return 'wan';
     if (id === 'grok-imagine') return 'grok-image';
     if (id === 'grok-imagine-video') return 'grok-video';
-    if (id === 'seedream-pro') return 'seedream5';
+    if (id === 'seedream' || id === 'seedream-pro') return 'seedream5';
     return id;
 }
 
 export function useUnifiedImageToolState() {
     const { toast } = useToast();
     const { language } = useLanguage();
+    const hasPollenKey = useHasPollenKey();
 
     // Model selection
     const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
@@ -58,8 +59,12 @@ export function useUnifiedImageToolState() {
     }, [defaultImageModelId, normalizedDefaultImageModelId, setDefaultImageModelId]);
 
     const availableModels = useMemo(
-        () => Object.keys(unifiedModelConfigs).filter(id => getUnifiedModel(id)?.enabled ?? false),
-        []
+        () => Object.keys(unifiedModelConfigs).filter((id) => {
+            const model = getUnifiedModel(id);
+            if (!model) return false;
+            return hasPollenKey ? true : (model.enabled ?? false);
+        }),
+        [hasPollenKey]
     );
     const initialModelId = availableModels.includes(normalizedDefaultImageModelId)
         ? normalizedDefaultImageModelId
@@ -95,7 +100,7 @@ export function useUnifiedImageToolState() {
 
     // Derived states
     const isGptImage = selectedModelId === 'gpt-image' || selectedModelId === 'gptimage-large';
-    const isSeedream = selectedModelId === 'seedream' || selectedModelId === 'seedream-pro' || selectedModelId === 'seedream5';
+    const isSeedream = selectedModelId === 'seedream5';
     const isNanoPollen = selectedModelId === 'nanobanana' || selectedModelId === 'nanobanana-pro' || selectedModelId === 'nanobanana-2';
     
     // Dynamic check for any Pollinations image model

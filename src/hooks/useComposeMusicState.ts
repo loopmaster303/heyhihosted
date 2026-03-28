@@ -3,7 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import { OutputService } from '@/lib/services/output-service';
 import { getPollenHeaders } from '@/lib/pollen-key';
 
-export type ComposeMusicModel = 'elevenmusic' | 'suno';
+export type ComposeMusicModel = 'elevenmusic';
 
 export interface ComposeMusicState {
   selectedModel: ComposeMusicModel;

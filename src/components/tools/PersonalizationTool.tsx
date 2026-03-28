@@ -7,11 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Settings, HelpCircle, Info } from "lucide-react";
-import { AVAILABLE_TTS_VOICES, findVisiblePollinationsModelById, getVisiblePollinationsModels } from "@/config/chat-options";
+import { AVAILABLE_TTS_VOICES } from "@/config/chat-options";
 import { getImageModels } from "@/config/unified-image-models";
 import { useLanguage } from '@/components/LanguageProvider';
 import { useTheme } from 'next-themes';
 import { cn } from "@/lib/utils";
+import { useVisiblePollinationsTextModels } from "@/hooks/useVisiblePollinationsTextModels";
+import { useHasPollenKey } from "@/hooks/useHasPollenKey";
 
 interface PersonalizationToolProps {
   userDisplayName: string;
@@ -41,6 +43,11 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   const [selectedResponseStyle, setSelectedResponseStyle] = useState("Precise");
   const { t } = useLanguage();
   const { theme } = useTheme();
+  const hasPollenKey = useHasPollenKey();
+  const {
+    visibleModels: userVisibleTextModels,
+    findModelById,
+  } = useVisiblePollinationsTextModels();
   const hasCustomPrompt = customSystemPrompt.trim() !== "";
   const currentResponseStyle = hasCustomPrompt ? "User's Default" : selectedResponseStyle;
 
@@ -77,10 +84,9 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
   };
 
   // Find selected model details
-  const userVisibleTextModels = getVisiblePollinationsModels();
-  const currentLLM = findVisiblePollinationsModelById(selectedModelId);
+  const currentLLM = findModelById(selectedModelId);
   const currentVoice = AVAILABLE_TTS_VOICES.find(v => v.id === selectedVoice);
-  const currentImageModel = getImageModels().find(m => m.id === selectedImageModelId);
+  const currentImageModel = getImageModels({ includeByopHidden: hasPollenKey }).find(m => m.id === selectedImageModelId);
 
   const isDark = theme === 'dark';
 
@@ -360,7 +366,7 @@ const PersonalizationTool: React.FC<PersonalizationToolProps> = ({
                       <SelectValue placeholder={t('label.selectModel')} />
                     </SelectTrigger>
                     <SelectContent className={cn("max-h-[300px] rounded-lg border shadow-lg", isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-100")}>
-                      {getImageModels().map((model: { id: string; name: string }) => (
+                      {getImageModels({ includeByopHidden: hasPollenKey }).map((model: { id: string; name: string }) => (
                         <SelectItem key={model.id} value={model.id} className={cn("py-2.5", isDark ? "text-white focus:bg-gray-800" : "text-black focus:bg-gray-100")}>
                           {model.name}
                         </SelectItem>

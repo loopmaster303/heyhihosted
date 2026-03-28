@@ -3,8 +3,9 @@ import { NextResponse } from 'next/server';
 import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handler';
 import { WebContextService } from '@/lib/services/web-context-service';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
-import { httpsPost } from '@/lib/https-post';
+import { httpsPost, httpsPostStream } from '@/lib/https-post';
 import { resolveChatSearchStrategy } from '@/lib/chat/chat-search-strategy';
+import { isKnownPollinationsTextModelId } from '@/config/chat-options';
 
 // Validation schema
 const ChatCompletionSchema = z.object({
@@ -13,6 +14,7 @@ const ChatCompletionSchema = z.object({
   systemPrompt: z.string().optional(),
   webBrowsingEnabled: z.boolean().optional(),
   skipSmartRouter: z.boolean().optional(),
+  stream: z.boolean().optional(),
 });
 
 const POLLINATIONS_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
@@ -49,6 +51,26 @@ function sanitizeMessagesForApi(rawMessages: any[]): any[] {
   });
 }
 
+async function readStreamAsText(stream: ReadableStream<Uint8Array>): Promise<string> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let result = '';
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value) {
+        result += decoder.decode(value, { stream: true });
+      }
+    }
+    result += decoder.decode();
+    return result;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -60,7 +82,10 @@ export async function POST(request: Request) {
     }
 
     // Validate request
-    const { messages, modelId, systemPrompt, webBrowsingEnabled, skipSmartRouter } = validateRequest(ChatCompletionSchema, body);
+    const { messages, modelId, systemPrompt, webBrowsingEnabled, skipSmartRouter, stream } = validateRequest(ChatCompletionSchema, body);
+    if (!isKnownPollinationsTextModelId(modelId)) {
+      throw new ApiError(400, `Unknown or unavailable Pollinations text model: ${modelId}`);
+    }
 
     // === WEB CONTEXT (Light/Deep) ===
     const lastMessage = messages[messages.length - 1];
@@ -83,6 +108,9 @@ export async function POST(request: Request) {
       webBrowsingEnabled: !!webBrowsingEnabled,
     });
     const { routedModelId, shouldFetchWebContext, webContextMode, strategy } = searchStrategy;
+    if (!isKnownPollinationsTextModelId(routedModelId)) {
+      throw new ApiError(400, `Unknown or unavailable Pollinations text model: ${routedModelId}`);
+    }
 
     const systemDateBlock =
       strategy === 'delegated-live-search' || strategy === 'delegated-deep-research'
@@ -120,17 +148,85 @@ export async function POST(request: Request) {
       `[API] Pollinations: model=${routedModelId}, original=${modelId}, strategy=${strategy}, webContext=${shouldFetchWebContext ? webContextMode : 'off'}, msgs=${apiMessages.length}`
     );
 
+    const upstreamPayload = JSON.stringify({
+      model: routedModelId,
+      messages: apiMessages,
+      max_tokens: DEFAULT_CHAT_MAX_TOKENS,
+      ...(stream ? { stream: true } : {}),
+    });
+
+    const upstreamHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    };
+
+    if (stream) {
+      const streamRequest =
+        typeof httpsPostStream === 'function'
+          ? httpsPostStream(
+              POLLINATIONS_API_URL,
+              upstreamHeaders,
+              upstreamPayload,
+            )
+          : null;
+
+      if (!streamRequest) {
+        console.warn('[API] httpsPostStream unavailable in current runtime; falling back to buffered SSE proxy.');
+        const fallbackResponse = await httpsPost(
+          POLLINATIONS_API_URL,
+          upstreamHeaders,
+          upstreamPayload,
+        );
+
+        if (fallbackResponse.status !== 200) {
+          let detail = fallbackResponse.body;
+          try {
+            const errorJson = JSON.parse(fallbackResponse.body);
+            detail = errorJson.error?.message || errorJson.error || fallbackResponse.body;
+          } catch { }
+          console.error(`[API] Pollinations ${fallbackResponse.status}:`, detail);
+          throw new ApiError(fallbackResponse.status, `Pollinations API error: ${detail}`);
+        }
+
+        return new Response(fallbackResponse.body, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/event-stream; charset=utf-8',
+            'Cache-Control': 'no-cache, no-transform',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
+          },
+        });
+      }
+
+      const pollinationsResponse = await streamRequest;
+
+      if (pollinationsResponse.status !== 200) {
+        const detail = await readStreamAsText(pollinationsResponse.stream);
+        let normalizedDetail = detail;
+        try {
+          const errorJson = JSON.parse(detail);
+          normalizedDetail = errorJson.error?.message || errorJson.error || detail;
+        } catch { }
+        console.error(`[API] Pollinations ${pollinationsResponse.status}:`, normalizedDetail);
+        throw new ApiError(pollinationsResponse.status, `Pollinations API error: ${normalizedDetail}`);
+      }
+
+      return new Response(pollinationsResponse.stream, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
+          'Connection': 'keep-alive',
+          'X-Accel-Buffering': 'no',
+        },
+      });
+    }
+
     const pollinationsResponse = await httpsPost(
       POLLINATIONS_API_URL,
-      {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      JSON.stringify({
-        model: routedModelId,
-        messages: apiMessages,
-        max_tokens: DEFAULT_CHAT_MAX_TOKENS,
-      })
+      upstreamHeaders,
+      upstreamPayload,
     );
 
     if (pollinationsResponse.status !== 200) {

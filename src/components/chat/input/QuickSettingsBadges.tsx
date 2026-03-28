@@ -1,12 +1,15 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mic, MessageSquare } from 'lucide-react';
+import { Gauge, Mic, MessageSquare } from 'lucide-react';
 import { AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
 import { useLanguage } from '@/components/LanguageProvider';
+import { TTS_SPEED_PRESETS } from '@/lib/chat/audio-settings';
 
 interface QuickSettingsBadgesProps {
     selectedVoice: string;
     onVoiceChange: (voiceId: string) => void;
+    selectedTtsSpeed: number;
+    onTtsSpeedChange: (speed: number) => void;
     selectedResponseStyleName: string;
     onStyleChange: (styleName: string) => void;
 }
@@ -14,6 +17,8 @@ interface QuickSettingsBadgesProps {
 export const QuickSettingsBadges: React.FC<QuickSettingsBadgesProps> = ({
     selectedVoice,
     onVoiceChange,
+    selectedTtsSpeed,
+    onTtsSpeedChange,
     selectedResponseStyleName,
     onStyleChange,
 }) => {
@@ -66,6 +71,25 @@ export const QuickSettingsBadges: React.FC<QuickSettingsBadgesProps> = ({
                         {AVAILABLE_TTS_VOICES.map((voice) => (
                             <SelectItem key={voice.id} value={voice.id}>
                                 {voice.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="flex items-center bg-transparent border border-border/30 rounded-lg p-1 pr-2 shrink-0">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 border-r border-border/30 mr-2 text-xs text-muted-foreground font-medium">
+                    <Gauge className="w-3 h-3" />
+                    <span>{t('settings.voiceSpeed')}</span>
+                </div>
+                <Select value={String(selectedTtsSpeed)} onValueChange={(value) => onTtsSpeedChange(Number(value))}>
+                    <SelectTrigger className="h-5 text-xs border-0 bg-transparent p-0 focus:ring-0 gap-1 w-auto min-w-[62px] text-foreground font-medium">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {TTS_SPEED_PRESETS.map((preset) => (
+                            <SelectItem key={preset.value} value={String(preset.value)}>
+                                {preset.label}
                             </SelectItem>
                         ))}
                     </SelectContent>

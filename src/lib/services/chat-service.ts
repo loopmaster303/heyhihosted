@@ -79,6 +79,21 @@ export class ChatService {
             throw new Error(`API error: ${errorMsg}`);
         }
 
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('text/event-stream')) {
+            if (!response.body) {
+                throw new Error('Streaming response body is missing');
+            }
+
+            let accumulated = '';
+            await processSseStream(response.body, async (delta) => {
+                accumulated += delta;
+                onStream?.(accumulated);
+            });
+
+            return accumulated;
+        }
+
         // 2. Handle Standard JSON Response (generateText)
         const jsonResult = await response.json();
         

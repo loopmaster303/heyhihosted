@@ -18,6 +18,7 @@ export interface UnifiedImageModel {
   maxImages?: number;
   isFree?: boolean;
   enabled?: boolean;
+  byopVisible?: boolean;
   supportsAudio?: boolean;
   durationRange?: {
     min?: number;
@@ -27,27 +28,28 @@ export interface UnifiedImageModel {
   };
 }
 
+export interface VisualModelVisibilityOptions {
+  includeByopHidden?: boolean;
+}
+
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
   { id: 'flux', name: 'Flux.1 Fast', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
-  { id: 'dirtberry', name: 'Dirtberry', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: false, description: 'Quick realistic image generation via api.airforce' },
   { id: 'zimage', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast 6B Flux' },
   { id: 'gpt-image', name: 'GPT Image 1 Mini', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'OpenAI image generation with reference support' },
-  // Internal fallback for klein-large (9B) when it is unavailable. Not shown in UI.
-  { id: 'klein', name: 'Flux.2 Klein 4B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: false, description: 'FLUX.2 Klein 4B (internal fallback for 9B)' },
-  { id: 'klein-large', name: 'Flux.2 klein 9B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 2, isFree: true, enabled: false, description: 'FLUX.2 Klein 9B' },
+  { id: 'klein', name: 'Flux.2 Klein 4B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'FLUX.2 Klein — fast, dense prose prompts, I2I capable' },
   { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Context-aware frame editing' },
   { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: false, enabled: false, description: 'Advanced OpenAI Image' },
-  { id: 'seedream', name: 'Seedream', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: false, enabled: false, description: 'Deprecated - use seedream5' },
   { id: 'seedream5', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: false, enabled: false, description: 'Seedream 5.0 Lite - ByteDance' },
   { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 2.5 Flash Image' },
+  { id: 'qwen-image', name: 'Qwen Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Qwen image generation and edit model' },
+  { id: 'grok-imagine-pro', name: 'Grok Imagine Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: false, description: 'Grok premium image generation' },
+  { id: 'p-image', name: 'P-Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: false, description: 'Pollinations image generation' },
+  { id: 'p-image-edit', name: 'P-Image Edit', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Pollinations image editing' },
 
   // ADVANCED Image Models
-  { id: 'imagen-4', name: 'Imagen 4', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Google image generation via api.airforce' },
   { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 3 Pro Image (4K)' },
   { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 3.1 Flash Image' },
-  { id: 'flux-2-dev', name: 'Flux.2 Dev', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 4, isFree: true, enabled: false, description: 'FLUX.2 Dev (api.airforce)' },
-  { id: 'seedream-pro', name: 'Seedream Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 10, isFree: false, enabled: false, description: 'Deprecated - use seedream5' },
   { id: 'grok-image', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Grok Aurora — autoregressive architecture (API alias: grok-imagine)' },
 
   // STANDARD Video Models
@@ -82,6 +84,20 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     durationRange: { options: [5, 10, 15] },
   },
   {
+    id: 'wan-fast',
+    name: 'Wan Fast',
+    provider: 'pollinations',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    isFree: false,
+    enabled: false,
+    description: 'Fast Alibaba Wan video generation (T2V / optional I2V)',
+    maxImages: 1,
+    supportsAudio: true,
+    durationRange: { options: [5, 10, 15] },
+  },
+  {
     id: 'ltx-2',
     name: 'LTX 2 Fast',
     provider: 'pollinations',
@@ -109,11 +125,62 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     supportsAudio: true,
     durationRange: { options: [5, 10] },
   },
+  {
+    id: 'p-video',
+    name: 'P-Video',
+    provider: 'pollinations',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: false,
+    enabled: false,
+    description: 'Pollinations video generation',
+    supportsAudio: true,
+    durationRange: { options: [5, 10] },
+  },
 ];
 
 export const UNIFIED_IMAGE_MODELS: UnifiedImageModel[] = [
   ...POLLINATIONS_MODELS,
 ];
+
+const POLLINATIONS_IMAGE_MODEL_ALIASES: Record<string, string> = {
+  'z-image': 'zimage',
+  'z-image-turbo': 'zimage',
+  'grok-imagine': 'grok-image',
+  'grok-imagine-video': 'grok-video',
+  'wan2.6': 'wan',
+  'wan-i2v': 'wan',
+  'ltxvideo': 'ltx-2',
+  'ltx-video': 'ltx-2',
+};
+
+export function resolvePollinationsVisualModelId(modelId?: string): string | undefined {
+  if (!modelId) return undefined;
+
+  const canonicalModelId = POLLINATIONS_IMAGE_MODEL_ALIASES[modelId] || modelId;
+  const model = UNIFIED_IMAGE_MODELS.find((entry) => entry.provider === 'pollinations' && entry.id === canonicalModelId);
+
+  return model?.id;
+}
+
+export function isKnownPollinationsVisualModelId(modelId?: string): boolean {
+  return !!resolvePollinationsVisualModelId(modelId);
+}
+
+export function toPollinationsVisualApiModelId(modelId: string): string {
+  switch (modelId) {
+    case 'zimage':
+      return 'z-image-turbo';
+    case 'gpt-image':
+      return 'gptimage';
+    case 'grok-image':
+      return 'grok-imagine';
+    default:
+      return modelId;
+  }
+}
 
 export interface VisualizeModelGroup {
   key: string;
@@ -123,60 +190,86 @@ export interface VisualizeModelGroup {
   modelIds: string[];
 }
 
-const VISUALIZE_MODEL_GROUPS: VisualizeModelGroup[] = [
+const VISUALIZE_GROUP_DEFINITIONS: VisualizeModelGroup[] = [
   {
     key: 'image-free',
-    label: 'FREE',
+    label: 'IMAGE FREE',
     category: 'Standard',
     kind: 'image',
-    modelIds: ['flux', 'dirtberry', 'zimage'],
+    modelIds: [],
   },
   {
-    key: 'image-editing',
-    label: 'EDITING',
+    key: 'video-free',
+    label: 'VIDEO FREE',
     category: 'Standard',
-    kind: 'image',
-    modelIds: ['gpt-image', 'klein-large'],
+    kind: 'video',
+    modelIds: [],
   },
   {
     key: 'image-advanced',
-    label: 'ADVANCED',
+    label: 'IMAGE ADVANCED',
     category: 'Advanced',
     kind: 'image',
-    modelIds: ['flux-2-dev', 'imagen-4', 'grok-image'],
+    modelIds: [],
   },
   {
-    key: 'video',
-    label: 'VIDEO',
+    key: 'video-advanced',
+    label: 'VIDEO ADVANCED',
     category: 'Advanced',
     kind: 'video',
-    modelIds: ['grok-video'],
+    modelIds: [],
   },
 ];
 
-export function getVisualizeModelGroups(): Array<VisualizeModelGroup & { models: UnifiedImageModel[] }> {
-  return VISUALIZE_MODEL_GROUPS.map(group => ({
-    ...group,
-    models: group.modelIds
-      .map(id => UNIFIED_IMAGE_MODELS.find(model => model.id === id))
-      .filter((model): model is UnifiedImageModel => model !== undefined && (model.enabled ?? true)),
-  })).filter(group => group.models.length > 0);
+function isVisibleVisualModel(model: UnifiedImageModel, options: VisualModelVisibilityOptions = {}): boolean {
+  if (model.enabled ?? true) {
+    return true;
+  }
+
+  return !!options.includeByopHidden && model.byopVisible !== false;
+}
+
+export function getVisualizeModelGroups(
+  options: VisualModelVisibilityOptions = {},
+): Array<VisualizeModelGroup & { models: UnifiedImageModel[] }> {
+  const visibleModels = UNIFIED_IMAGE_MODELS.filter((model) => isVisibleVisualModel(model, options));
+
+  return VISUALIZE_GROUP_DEFINITIONS.map((group) => {
+    const models = visibleModels.filter((model) => {
+      if (model.kind !== group.kind) {
+        return false;
+      }
+
+      const isFree = model.isFree === true;
+      if (group.key.endsWith('-free')) {
+        return isFree;
+      }
+
+      return !isFree;
+    });
+
+    return {
+      ...group,
+      modelIds: models.map((model) => model.id),
+      models,
+    };
+  }).filter((group) => group.models.length > 0);
 }
 
 export function getUnifiedModel(modelId: string): UnifiedImageModel | undefined {
   return UNIFIED_IMAGE_MODELS.find(m => m.id === modelId);
 }
 
-export function getModelsByProvider(provider: ImageProvider): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m => m.provider === provider && (m.enabled ?? true));
+export function getModelsByProvider(provider: ImageProvider, options: VisualModelVisibilityOptions = {}): UnifiedImageModel[] {
+  return UNIFIED_IMAGE_MODELS.filter(m => m.provider === provider && isVisibleVisualModel(m, options));
 }
 
-export function getModelsByKind(kind: ImageKind): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m => m.kind === kind && (m.enabled ?? true));
+export function getModelsByKind(kind: ImageKind, options: VisualModelVisibilityOptions = {}): UnifiedImageModel[] {
+  return UNIFIED_IMAGE_MODELS.filter(m => m.kind === kind && isVisibleVisualModel(m, options));
 }
 
-export function getImageModels(): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m => m.kind === 'image' && (m.enabled ?? true));
+export function getImageModels(options: VisualModelVisibilityOptions = {}): UnifiedImageModel[] {
+  return UNIFIED_IMAGE_MODELS.filter(m => m.kind === 'image' && isVisibleVisualModel(m, options));
 }
 
 export function getFreeModels(): UnifiedImageModel[] {

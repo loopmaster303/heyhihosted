@@ -60,6 +60,7 @@ export interface ImageGenerationResponse {
 export interface TTSRequest {
   text: string;
   voice: string;
+  speed?: number;
 }
 
 export interface TTSResponse {

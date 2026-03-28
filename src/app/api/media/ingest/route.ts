@@ -43,9 +43,15 @@ export async function POST(request: Request) {
 
     let buffer: Buffer | null = null;
     let contentType: string | null = null;
+    const sourceFetchHeaders = {
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+    };
 
     while (Date.now() - startTime < pollTimeout) {
-      const response = await fetch(sourceUrl, { redirect: 'error' });
+      const response = await fetch(sourceUrl, {
+        redirect: 'follow',
+        headers: sourceFetchHeaders,
+      });
       if (response.ok) {
         const contentLength = Number(response.headers.get('content-length'));
         if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {

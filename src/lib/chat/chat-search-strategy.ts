@@ -40,7 +40,7 @@ export function resolveChatSearchStrategy({
   if (webBrowsingEnabled) {
     return {
       strategy: 'delegated-deep-research',
-      routedModelId: SmartRouter.getDeepResearchModel(),
+      routedModelId: SmartRouter.getDeepResearchModel(modelId) || modelId,
       shouldFetchWebContext: false,
       webContextMode: 'deep',
     };
@@ -49,7 +49,7 @@ export function resolveChatSearchStrategy({
   if (SmartRouter.shouldRouteToSearch(normalizedQuery)) {
     return {
       strategy: 'delegated-live-search',
-      routedModelId: SmartRouter.getLiveSearchModel(),
+      routedModelId: SmartRouter.getLiveSearchModel(modelId) || modelId,
       shouldFetchWebContext: false,
       webContextMode: 'light',
     };

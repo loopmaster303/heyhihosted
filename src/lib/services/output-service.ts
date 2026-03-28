@@ -117,28 +117,43 @@ export const OutputService = {
     }
 
     const assetId = generateUUID();
+    const fallbackContentType = isVideo ? 'video/mp4' : 'image/jpeg';
+    const baseAsset = {
+      id: assetId,
+      contentType: fallbackContentType,
+      prompt: prompt.trim(),
+      modelId,
+      conversationId,
+      timestamp: Date.now(),
+    };
 
     try {
       if (isPollinations) {
-        // Pollinations flow: ingest to Media Storage, store hash in storageKey
-        if (!sessionId) {
-          console.warn('[OutputService] sessionId required for Pollinations assets');
-          return undefined;
-        }
-
-        const ingest = await ingestGeneratedAsset(url, sessionId, isVideo ? 'video' : 'image');
-
+        // Save immediately with remoteUrl so the UI never waits on media ingest.
         await DatabaseService.saveAsset({
-          id: assetId,
-          contentType: ingest.contentType,
-          prompt: prompt.trim(),
-          modelId,
-          conversationId,
-          timestamp: Date.now(),
-          storageKey: ingest.key,
+          ...baseAsset,
+          remoteUrl: url,
         });
 
-        console.log(`📸 Pollinations asset saved: ${assetId} (media hash: ${ingest.key})`);
+        if (sessionId) {
+          ingestGeneratedAsset(url, sessionId, isVideo ? 'video' : 'image')
+            .then(async (ingest) => {
+              await DatabaseService.saveAsset({
+                ...baseAsset,
+                contentType: ingest.contentType,
+                storageKey: ingest.key,
+                remoteUrl: url,
+              });
+              console.log(`📸 Pollinations asset backfilled: ${assetId} (media hash: ${ingest.key})`);
+            })
+            .catch((error) => {
+              console.warn('[OutputService] Media ingest failed, keeping remoteUrl fallback:', error);
+            });
+        } else {
+          console.warn('[OutputService] sessionId missing, keeping remoteUrl fallback only');
+        }
+
+        console.log(`📸 Pollinations asset saved with immediate remoteUrl fallback: ${assetId}`);
         return assetId;
       } else {
         // Direct/local flow: fetch blob or data URL and store locally
@@ -157,13 +172,9 @@ export const OutputService = {
         }
 
         await DatabaseService.saveAsset({
-          id: assetId,
+          ...baseAsset,
           blob,
           contentType: blob.type,
-          prompt: prompt.trim(),
-          modelId,
-          conversationId,
-          timestamp: Date.now(),
         });
 
         console.log(`📸 Local asset saved: ${assetId} (${blob.size} bytes)`);

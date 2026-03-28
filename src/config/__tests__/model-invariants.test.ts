@@ -1,11 +1,15 @@
 import {
   AVAILABLE_POLLINATIONS_MODELS,
-  DEFAULT_IMAGE_MODEL,
+  DEEP_RESEARCH_MODEL_CANDIDATES,
+  LIVE_SEARCH_MODEL_CANDIDATES,
   VISIBLE_POLLINATIONS_MODEL_IDS,
   getVisiblePollinationsModels,
 } from '@/config/chat-options';
-import { UNIFIED_IMAGE_MODELS } from '@/config/unified-image-models';
-import { pollinationUploadModels } from '@/hooks/useUnifiedImageToolState';
+import {
+  getImageModels,
+  getVisualizeModelGroups,
+  resolvePollinationsVisualModelId,
+} from '@/config/unified-image-models';
 
 describe('model invariants', () => {
   test('manual visible text model policy matches the exported visible selector list', () => {
@@ -17,12 +21,10 @@ describe('model invariants', () => {
     const visibleTextModelIds = AVAILABLE_POLLINATIONS_MODELS.map(model => model.id);
 
     expect(visibleTextModelIds).toEqual(expect.arrayContaining([
-      'claude-airforce',
       'claude-fast',
       'gemini-fast',
       'gemini-search',
       'nova-fast',
-      'step-3.5-flash',
       'mistral',
       'deepseek',
       'perplexity-fast',
@@ -31,8 +33,6 @@ describe('model invariants', () => {
       'glm',
       'minimax',
       'qwen-coder',
-      'qwen-character',
-      'nomnom',
     ]));
 
     expect(visibleTextModelIds).not.toEqual(expect.arrayContaining([
@@ -42,62 +42,103 @@ describe('model invariants', () => {
       'gemini-large',
       'openai',
       'openai-fast',
+      'step-3.5-flash',
+      'nomnom',
+      'qwen-character',
       'qwen-safety',
       'nova-lite',
     ]));
   });
 
-  test('visualize registry exposes only current free image and video models', () => {
-    const enabledModelIds = UNIFIED_IMAGE_MODELS
-      .filter(model => model.enabled ?? true)
-      .map(model => model.id);
+  test('smart-router candidate lists only reference visible text models', () => {
+    const visibleTextModelIds = new Set(VISIBLE_POLLINATIONS_MODEL_IDS);
 
-    expect(enabledModelIds).toEqual(expect.arrayContaining([
-      'flux',
-      'zimage',
-      'imagen-4',
-      'gpt-image',
-      'grok-image',
-      'grok-video',
+    for (const modelId of [...LIVE_SEARCH_MODEL_CANDIDATES, ...DEEP_RESEARCH_MODEL_CANDIDATES]) {
+      expect(visibleTextModelIds.has(modelId)).toBe(true);
+    }
+  });
+
+  test('smart-router fallback chains include at least one visible web model', () => {
+    const visibleWebModelIds = new Set(
+      AVAILABLE_POLLINATIONS_MODELS
+        .filter((model) => model.webBrowsing)
+        .map((model) => model.id)
+    );
+
+    expect(LIVE_SEARCH_MODEL_CANDIDATES.some((modelId) => visibleWebModelIds.has(modelId))).toBe(true);
+    expect(DEEP_RESEARCH_MODEL_CANDIDATES.some((modelId) => visibleWebModelIds.has(modelId))).toBe(true);
+  });
+
+  test('visual registry exposes approved upstream models and hides stale drift ids', () => {
+    const visibleImageModelIds = getImageModels({ includeByopHidden: true }).map((model) => model.id);
+    const visibleGroupModelIds = getVisualizeModelGroups({ includeByopHidden: true })
+      .flatMap((group) => group.modelIds);
+
+    expect(visibleImageModelIds).toEqual(expect.arrayContaining([
+      'qwen-image',
+      'grok-imagine-pro',
+      'p-image',
+      'p-image-edit',
     ]));
 
-    expect(enabledModelIds).not.toEqual(expect.arrayContaining([
-      'flux-2-dev',
+    expect(visibleGroupModelIds).toEqual(expect.arrayContaining([
+      'wan-fast',
+      'qwen-image',
+      'grok-imagine-pro',
+      'p-image',
+      'p-image-edit',
+      'p-video',
+    ]));
+
+    expect(visibleImageModelIds).not.toEqual(expect.arrayContaining([
+      'klein',
       'dirtberry',
+      'flux-2-dev',
+      'imagen-4',
       'klein-large',
-      'kontext',
-      'nanobanana',
-      'nanobanana-2',
-      'nanobanana-pro',
-      'seedream5',
-      'gptimage-large',
-      'seedance',
-      'wan',
-      'ltx-2',
+      'seedream',
+      'seedream-pro',
+    ]));
+
+    expect(visibleGroupModelIds).not.toEqual(expect.arrayContaining([
+      'dirtberry',
+      'flux-2-dev',
+      'imagen-4',
+      'klein-large',
+      'seedream',
+      'seedream-pro',
     ]));
   });
 
-  test('all pollinations models with supportsReference=true are present in pollinationUploadModels', () => {
-    const expected = UNIFIED_IMAGE_MODELS
-      .filter(m => m.provider === 'pollinations' && m.supportsReference === true && (m.enabled ?? true))
-      .map(m => m.id)
-      .sort();
+  test('visual registry keeps video models separate from image models while still exposing them with Pollen key access', () => {
+    const visibleVideoModelIds = getVisualizeModelGroups({ includeByopHidden: true })
+      .filter((group) => group.kind === 'video')
+      .flatMap((group) => group.modelIds);
 
-    const actual = [...new Set(pollinationUploadModels)].sort();
+    expect(visibleVideoModelIds).toEqual(expect.arrayContaining([
+      'wan-fast',
+      'p-video',
+    ]));
 
-    // Every supportsReference model must be in the upload list.
-    const missing = expected.filter(id => !actual.includes(id));
-    expect(missing).toEqual([]);
+    expect(getImageModels({ includeByopHidden: true }).map((model) => model.id)).not.toEqual(expect.arrayContaining([
+      'wan-fast',
+      'p-video',
+    ]));
   });
 
-  test('seedance supports optional reference image (I2V)', () => {
-    const m = UNIFIED_IMAGE_MODELS.find(x => x.id === 'seedance');
-    expect(m).toBeTruthy();
-    expect(m?.supportsReference).toBe(true);
-    expect(m?.maxImages).toBe(1);
-  });
+  test('approved upstream visual models resolve directly and stale ids no longer resolve', () => {
+    expect(resolvePollinationsVisualModelId('wan-fast')).toBe('wan-fast');
+    expect(resolvePollinationsVisualModelId('qwen-image')).toBe('qwen-image');
+    expect(resolvePollinationsVisualModelId('grok-imagine-pro')).toBe('grok-imagine-pro');
+    expect(resolvePollinationsVisualModelId('p-image')).toBe('p-image');
+    expect(resolvePollinationsVisualModelId('p-image-edit')).toBe('p-image-edit');
+    expect(resolvePollinationsVisualModelId('p-video')).toBe('p-video');
 
-  test('default in-chat image model remains zimage after paid models are hidden', () => {
-    expect(DEFAULT_IMAGE_MODEL).toBe('zimage');
+    expect(resolvePollinationsVisualModelId('dirtberry')).toBeUndefined();
+    expect(resolvePollinationsVisualModelId('flux-2-dev')).toBeUndefined();
+    expect(resolvePollinationsVisualModelId('imagen-4')).toBeUndefined();
+    expect(resolvePollinationsVisualModelId('klein-large')).toBeUndefined();
+    expect(resolvePollinationsVisualModelId('seedream')).toBeUndefined();
+    expect(resolvePollinationsVisualModelId('seedream-pro')).toBeUndefined();
   });
 });

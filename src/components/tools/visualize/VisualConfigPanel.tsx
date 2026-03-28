@@ -132,7 +132,7 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                     <div className="space-y-2">
                         <Label>{t('field.resolution') || 'Resolution'}</Label>
                         <Select
-                            value={formFields.resolution || (selectedModelId === 'nanobanana-pro' ? '2K' : '1 MP')}
+                            value={formFields.resolution || '1 MP'}
                             onValueChange={(value) => handleFieldChange('resolution', value)}
                             disabled={loading}
                         >
@@ -145,13 +145,6 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                                         <SelectItem value="1 MP">1 MP</SelectItem>
                                         <SelectItem value="2 MP">2 MP</SelectItem>
                                         <SelectItem value="4 MP">4 MP</SelectItem>
-                                    </>
-                                )}
-                                {selectedModelId === 'nanobanana-pro' && (
-                                    <>
-                                        <SelectItem value="1K">1K</SelectItem>
-                                        <SelectItem value="2K">2K</SelectItem>
-                                        <SelectItem value="4K">4K</SelectItem>
                                     </>
                                 )}
                             </SelectContent>
@@ -329,7 +322,7 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                     <div className="space-y-2">
                         <Label>{t('field.resolution') || 'Resolution'}</Label>
                         <Select
-                            value={formFields.resolution || (selectedModelId === 'nanobanana-pro' ? '2K' : '1 MP')}
+                            value={formFields.resolution || '1 MP'}
                             onValueChange={(value) => handleFieldChange('resolution', value)}
                             disabled={loading}
                         >
@@ -342,13 +335,6 @@ export const VisualConfigPanel: React.FC<VisualConfigPanelProps> = ({
                                         <SelectItem value="1 MP">1 MP</SelectItem>
                                         <SelectItem value="2 MP">2 MP</SelectItem>
                                         <SelectItem value="4 MP">4 MP</SelectItem>
-                                    </>
-                                )}
-                                {selectedModelId === 'nanobanana-pro' && (
-                                    <>
-                                        <SelectItem value="1K">1K</SelectItem>
-                                        <SelectItem value="2K">2K</SelectItem>
-                                        <SelectItem value="4K">4K</SelectItem>
                                     </>
                                 )}
                             </SelectContent>

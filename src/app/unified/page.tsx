@@ -22,6 +22,7 @@ import LandingView from '@/components/page/LandingView';
 import type { UploadedReference } from '@/types';
 import { useComposeMusicState } from '@/hooks/useComposeMusicState';
 import { resolveEffectiveTextModel } from '@/lib/chat/chat-capability-resolution';
+import { useVisiblePollinationsTextModels } from '@/hooks/useVisiblePollinationsTextModels';
 
 // App States - simplified: no more 'visualize' state
 type AppState = 'landing' | 'chat';
@@ -41,7 +42,8 @@ export function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppConten
     const composeToolState = useComposeMusicState();
     const pathname = usePathname();
     const [defaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
-    const safeDefaultTextModelId = resolveEffectiveTextModel(defaultTextModelId);
+    const { visibleModels: visibleTextModels } = useVisiblePollinationsTextModels();
+    const safeDefaultTextModelId = resolveEffectiveTextModel(defaultTextModelId, visibleTextModels);
 
     const [isClient, setIsClient] = useState(false);
     const [appState, setAppState] = useState<AppState>(initialState);
@@ -190,7 +192,7 @@ export function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppConten
             // Chat Model Props
             selectedModelId={appState === 'landing'
                 ? landingSelectedModelId
-                : resolveEffectiveTextModel(conversation.activeConversation?.selectedModelId || safeDefaultTextModelId)}
+                : resolveEffectiveTextModel(conversation.activeConversation?.selectedModelId || safeDefaultTextModelId, visibleTextModels)}
             onModelChange={appState === 'landing' ? setLandingSelectedModelId : modes.handleModelChange}
             selectedResponseStyleName={conversation.activeConversation?.selectedResponseStyleName}
             selectedImageModelId={visualizeToolState.selectedModelId}

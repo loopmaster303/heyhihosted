@@ -7,6 +7,7 @@ import { useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { STTResponse, ApiErrorResponse } from '@/types/api';
 import { isApiErrorResponse } from '@/types/api';
+import { resolveSttLanguageHint } from '@/lib/chat/audio-settings';
 
 interface UseChatRecordingProps {
     isRecording: boolean;
@@ -16,6 +17,7 @@ interface UseChatRecordingProps {
     mediaRecorderRef: React.MutableRefObject<MediaRecorder | null>;
     audioChunksRef: React.MutableRefObject<Blob[]>;
     setChatInputValue: (value: string | ((prev: string) => string)) => void;
+    language?: string;
 }
 
 export function useChatRecording({
@@ -25,6 +27,7 @@ export function useChatRecording({
     mediaRecorderRef,
     audioChunksRef,
     setChatInputValue,
+    language,
 }: UseChatRecordingProps) {
     const { toast } = useToast();
 
@@ -54,6 +57,10 @@ export function useChatRecording({
                 try {
                     const formData = new FormData();
                     formData.append('audioFile', audioFile);
+                    const languageHint = resolveSttLanguageHint(language);
+                    if (languageHint) {
+                        formData.append('language', languageHint);
+                    }
 
                     const response = await fetch('/api/stt', {
                         method: 'POST',
@@ -88,7 +95,7 @@ export function useChatRecording({
                 variant: 'destructive' 
             });
         }
-    }, [isRecording, toast, setChatInputValue, setIsRecording, setIsTranscribing, mediaRecorderRef, audioChunksRef]);
+    }, [audioChunksRef, isRecording, language, mediaRecorderRef, setChatInputValue, setIsRecording, setIsTranscribing, toast]);
 
     const stopRecording = useCallback(() => {
         if (mediaRecorderRef.current && isRecording) {
@@ -101,4 +108,3 @@ export function useChatRecording({
         stopRecording,
     };
 }
-

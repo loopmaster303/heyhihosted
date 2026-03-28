@@ -42,6 +42,7 @@ import { useChatState } from '@/hooks/useChatState';
 import { useChatAudio } from '@/hooks/useChatAudio';
 import { useChatRecording } from '@/hooks/useChatRecording';
 import { useChatEffects } from '@/hooks/useChatEffects';
+import { useVisiblePollinationsTextModels } from '@/hooks/useVisiblePollinationsTextModels';
 import { ChatService } from '@/lib/services/chat-service';
 import { MemoryService } from '@/lib/services/memory-service';
 import { DatabaseService } from '@/lib/services/database';
@@ -60,6 +61,7 @@ export interface UseChatLogicProps {
 const MAX_STORED_CONVERSATIONS = 50;
 
 export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextModelId }: UseChatLogicProps) {
+  const { visibleModels: visibleTextModels } = useVisiblePollinationsTextModels();
   // --- State Management (extracted to hook) ---
   const state = useChatState();
   const {
@@ -87,6 +89,8 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     audioRef,
     selectedVoice,
     setSelectedVoice,
+    selectedTtsSpeed,
+    setSelectedTtsSpeed,
     isRecording,
     setIsRecording,
     isTranscribing,
@@ -123,11 +127,11 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
   useEffect(() => {
     if (!activeConversation) return;
     const currentId = activeConversation.selectedModelId;
-    const safeModelId = resolveEffectiveTextModel(currentId);
+    const safeModelId = resolveEffectiveTextModel(currentId, visibleTextModels);
     if (currentId && currentId !== safeModelId) {
       setActiveConversation((prev: Conversation | null) => prev ? { ...prev, selectedModelId: safeModelId } : prev);
     }
-  }, [activeConversation, setActiveConversation]);
+  }, [activeConversation, setActiveConversation, visibleTextModels]);
 
   // --- Audio Hook ---
   const { handlePlayAudio } = useChatAudio({
@@ -137,6 +141,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     setIsTtsLoadingForId,
     audioRef,
     selectedVoice,
+    selectedTtsSpeed,
   });
 
   // --- Recording Hook ---
@@ -148,6 +153,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     mediaRecorderRef,
     audioChunksRef,
     setChatInputValue,
+    language,
   });
 
   // --- Helper Functions / Callbacks (defined early for dependencies) ---
@@ -353,7 +359,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       newConversationTitle: t('nav.newConversation'),
       options,
       availableResponseStyles: AVAILABLE_RESPONSE_STYLES,
-      resolveRequestCapabilities,
+      resolveRequestCapabilities: (input) => resolveRequestCapabilities(input, { visibleModels: visibleTextModels }),
       buildChatSystemPrompt,
       splitMessagesForApiContext,
       buildOlderMessagesSummary,
@@ -394,7 +400,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       },
       sendChatCompletion: ChatService.sendChatCompletion,
     });
-  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, webBrowsingEnabled, language, retryLastRequestRef, setChatInputValue, setIsAiResponding, setLastFailedRequest, t]);
+  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, webBrowsingEnabled, language, retryLastRequestRef, setChatInputValue, setIsAiResponding, setLastFailedRequest, t, visibleTextModels]);
 
   const selectChat = useCallback(async (conversationId: string | null) => {
     if (conversationId === null) {
@@ -439,7 +445,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
               isComposeMode: initialComposeMode,
               isCodeMode: initialCodeMode || prev.isCodeMode,
               webBrowsingEnabled: initialWebBrowsing || prev.webBrowsingEnabled,
-            }, defaultTextModelId),
+            }, defaultTextModelId, visibleTextModels),
         } : null);
       }
       return;
@@ -452,7 +458,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       isComposeMode: initialComposeMode,
       isCodeMode: initialCodeMode,
       webBrowsingEnabled: initialWebBrowsing,
-    }, defaultTextModelId);
+    }, defaultTextModelId, visibleTextModels);
     const newConversationData: Conversation = {
       id: newConversationId,
       title: t('nav.newConversation'),
@@ -476,7 +482,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     setLastUserMessageId(null); 
 
     return newConversationData;
-  }, [allConversations, defaultTextModelId, deleteConversation, setActiveConversation, setLastUserMessageId, activeConversation, t]);
+  }, [allConversations, defaultTextModelId, deleteConversation, setActiveConversation, setLastUserMessageId, activeConversation, t, visibleTextModels]);
 
     const deleteChat = useCallback((conversationId: string) => {
 
@@ -516,10 +522,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
 
   const handleModelChange = useCallback((modelId: string) => {
     if (activeConversation) {
-      const safeModelId = resolveEffectiveTextModel(modelId);
+      const safeModelId = resolveEffectiveTextModel(modelId, visibleTextModels);
       setActiveConversation((prev: Conversation | null) => prev ? { ...prev, selectedModelId: safeModelId } : null);
     }
-  }, [activeConversation, setActiveConversation]);
+  }, [activeConversation, setActiveConversation, visibleTextModels]);
 
   const handleImageModelChange = useCallback((modelId: string) => {
     setSelectedImageModelId(modelId);
@@ -534,6 +540,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
   const handleVoiceChange = useCallback((voiceId: string) => {
     setSelectedVoice(voiceId);
   }, [setSelectedVoice]);
+
+  const handleTtsSpeedChange = useCallback((speed: number) => {
+    setSelectedTtsSpeed(speed);
+  }, [setSelectedTtsSpeed]);
 
   const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), [setIsHistoryPanelOpen]);
   const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), [setIsAdvancedPanelOpen]);
@@ -625,7 +635,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     isAiResponding, setIsAiResponding, isImageMode, isComposeMode,
     isHistoryPanelOpen, isAdvancedPanelOpen,
     playingMessageId, isTtsLoadingForId, chatInputValue,
-    selectedVoice,
+    selectedVoice, selectedTtsSpeed,
     isInitialLoadComplete,
     lastUserMessageId, 
     isRecording, isTranscribing,
@@ -635,7 +645,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     toggleImageMode,
     toggleComposeMode,
     handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
-    handleVoiceChange, handleImageModelChange,
+    handleVoiceChange, handleTtsSpeedChange, handleImageModelChange,
     toggleHistoryPanel, closeHistoryPanel,
     toggleAdvancedPanel, closeAdvancedPanel,
     toggleWebBrowsing, webBrowsingEnabled,

@@ -1,3 +1,7 @@
+import {
+  getPreferredDeepResearchModel,
+  getPreferredLiveSearchModel,
+} from '@/config/chat-options';
 
 /**
  * Smart Router for Pollinations.AI
@@ -73,17 +77,17 @@ export class SmartRouter {
 
   /**
    * Returns the best search model for "Live" requests.
-   * Currently defaults to 'perplexity-fast' (Sonar) for speed.
+   * Prefers the visible live-search capable models in the curated order.
    */
-  static getLiveSearchModel(): string {
-    return 'perplexity-fast';
+  static getLiveSearchModel(fallbackModelId?: string): string | undefined {
+    return getPreferredLiveSearchModel(fallbackModelId);
   }
 
   /**
    * Returns the best model for "Deep Research" (Explicit Toggle).
-   * Uses `nomnom` when available for deeper research-oriented responses.
+   * Prefers the visible deep-research capable models in the curated order.
    */
-  static getDeepResearchModel(): string {
-    return 'nomnom';
+  static getDeepResearchModel(fallbackModelId?: string): string | undefined {
+    return getPreferredDeepResearchModel(fallbackModelId);
   }
 }

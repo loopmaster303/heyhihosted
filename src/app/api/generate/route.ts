@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { handleApiError, validateRequest } from '@/lib/api-error-handler';
-import { imageUrl, videoUrl } from '@/lib/pollinations-sdk';
+import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handler';
+import { videoUrl } from '@/lib/pollinations-sdk';
+import { generatePollinationsImage } from '@/lib/pollinations-image-v1';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
+import {
+  getUnifiedModel,
+  resolvePollinationsVisualModelId,
+  toPollinationsVisualApiModelId,
+} from '@/config/unified-image-models';
 
 /**
  * Pollinations Generation Route (Safe Mode)
@@ -26,8 +32,6 @@ const ImageGenerationSchema = z.object({
   negative_prompt: z.string().optional(),
   image: z.union([z.string().url(), z.array(z.string().url())]).optional(),
 });
-
-const VIDEO_MODELS = new Set(['seedance', 'seedance-pro', 'wan', 'wan-2.5-t2v', 'wan-video', 'grok-video', 'ltx-2']);
 
 export async function POST(request: Request) {
   try {
@@ -56,11 +60,14 @@ export async function POST(request: Request) {
     const hasToken = !!apiKey && apiKey.trim() !== '';
 
     // Model Logic
-    let modelId: string = model || 'flux';
-    if (model === 'zimage') modelId = 'z-image-turbo';
-    if (model === 'grok-image') modelId = 'grok-imagine';
+    const canonicalModelId = resolvePollinationsVisualModelId(model || 'flux');
+    if (!canonicalModelId) {
+      throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`);
+    }
 
-    const isVideoModel = VIDEO_MODELS.has(modelId);
+    const modelInfo = getUnifiedModel(canonicalModelId);
+    const modelId = toPollinationsVisualApiModelId(canonicalModelId);
+    const isVideoModel = modelInfo?.kind === 'video';
 
     // Auto-enhance for z-image-turbo
     const effectiveEnhance = (modelId === 'z-image-turbo') ? true : enhance;
@@ -71,10 +78,8 @@ export async function POST(request: Request) {
          console.warn('[Pollinations] Private mode requested but no POLLEN_API_KEY found. Forcing private=false.');
     }
 
-    // 1. Generate URL first (optimistic)
     let resultUrl: string;
 
-    // Helper to build options
     const imageOptions = {
         model: modelId,
         width,
@@ -99,26 +104,23 @@ export async function POST(request: Request) {
             audio,
         });
     } else {
-        resultUrl = await imageUrl(prompt, imageOptions);
+        resultUrl = await generatePollinationsImage({
+          prompt,
+          model: modelId,
+          width,
+          height,
+          seed,
+          nologo,
+          enhance: effectiveEnhance,
+          safe,
+          transparent,
+          negative_prompt,
+          image,
+          apiKey: hasToken ? apiKey : undefined,
+        });
     }
 
     console.log('[Pollinations] SDK Dispatch:', hasToken ? 'Authenticated' : 'Public', { model: modelId, isVideo: isVideoModel, urlLength: resultUrl.length });
-
-    // Pollinations only supports GET — no POST endpoint exists.
-    // Even with shortened reference URLs, enhanced prompts can push over the limit.
-    // Server-side fetch avoids browser URL limits; Pollinations still needs <8K.
-    if (!isVideoModel && resultUrl.length > 2000) {
-        console.warn(`[Pollinations] URL long (${resultUrl.length} chars). Server-side fetch.`);
-
-        const imgResponse = await fetch(resultUrl);
-        if (!imgResponse.ok) {
-            throw new Error(`Pollinations API Error: ${imgResponse.status} ${imgResponse.statusText}`);
-        }
-        const buffer = await imgResponse.arrayBuffer();
-        const contentType = imgResponse.headers.get('content-type') || 'image/jpeg';
-        const base64 = Buffer.from(buffer).toString('base64');
-        return NextResponse.json({ imageUrl: `data:${contentType};base64,${base64}` });
-    }
 
     // Standard JSON response
     return NextResponse.json({ imageUrl: resultUrl, videoUrl: isVideoModel ? resultUrl : undefined });
