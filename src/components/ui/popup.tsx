@@ -3,28 +3,54 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { createPortal } from 'react-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+
+type Variant = 'contextual' | 'modal';
 
 interface BasePopupProps {
     children: React.ReactNode;
     className?: string;
-    variant?: 'contextual' | 'modal';
+    variant?: Variant;
 }
 
-const BasePopup: React.FC<BasePopupProps> = ({
-    children,
-    className,
-    variant = 'contextual'
-}) => {
-    const baseClasses = "bg-popover/80 text-popover-foreground border border-glass-border shadow-glass-heavy backdrop-blur-xl";
-    const roundedClasses = variant === 'modal' ? "rounded-2xl" : "rounded-xl";
-    const animationClasses = "animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-3 duration-300 ease-out";
+function useMotionPopupProps(variant: Variant) {
+    const prefersReducedMotion = useReducedMotion();
+    if (prefersReducedMotion) {
+        return {
+            initial: { opacity: 0 },
+            animate: { opacity: 1 },
+            exit: { opacity: 0 },
+            transition: { duration: 0.12 },
+        };
+    }
+    const fromY = variant === 'modal' ? 8 : 6;
+    return {
+        initial: { opacity: 0, scale: 0.96, y: fromY },
+        animate: { opacity: 1, scale: 1, y: 0 },
+        exit: { opacity: 0, scale: 0.97, y: fromY / 2 },
+        transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] as const },
+    };
+}
 
-    return (
-        <div className={cn(baseClasses, roundedClasses, animationClasses, className)}>
-            {children}
-        </div>
-    );
-};
+const BasePopupSurface = React.forwardRef<HTMLDivElement, BasePopupProps>(
+    ({ children, className, variant = 'contextual' }, ref) => {
+        const baseClasses =
+            "bg-popover/80 text-popover-foreground border border-glass-border shadow-glass-heavy backdrop-blur-xl";
+        const roundedClasses = variant === 'modal' ? "rounded-2xl" : "rounded-xl";
+        const motionProps = useMotionPopupProps(variant);
+
+        return (
+            <motion.div
+                ref={ref}
+                className={cn(baseClasses, roundedClasses, className)}
+                {...motionProps}
+            >
+                {children}
+            </motion.div>
+        );
+    }
+);
+BasePopupSurface.displayName = 'BasePopupSurface';
 
 interface ContextualPopupProps {
     children: React.ReactNode;
@@ -43,15 +69,13 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
     const [popupStyle, setPopupStyle] = React.useState<React.CSSProperties>({});
 
     React.useEffect(() => {
-        // Position popup relative to trigger (like other dropdowns)
         if (triggerRef?.current) {
             const updatePosition = () => {
                 const rect = triggerRef.current!.getBoundingClientRect();
-                const gap = 8; // spacing from trigger
+                const gap = 8;
                 const maxWidth = window.innerWidth - gap * 2;
                 const maxHeight = window.innerHeight - gap * 2;
 
-                // Use real measured size once available; fallback to safe estimates.
                 const measured = popupRef.current?.getBoundingClientRect();
                 const popupWidth = Math.min(measured?.width ?? 340, maxWidth);
                 const popupHeight = Math.min(measured?.height ?? 350, maxHeight);
@@ -64,7 +88,6 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
                     'bottom-center': 'center top'
                 }[position];
 
-                // Horizontal base
                 let left = rect.left;
                 if (position === 'top-right' || position === 'bottom-right') {
                     left = rect.right - popupWidth;
@@ -72,20 +95,17 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
                     left = rect.left + (rect.width / 2) - (popupWidth / 2);
                 }
 
-                // Vertical base
                 const shouldPreferTop = position.startsWith('top');
                 let top = shouldPreferTop
                     ? rect.top - popupHeight - gap
                     : rect.bottom + gap;
 
-                // If preferred side doesn't fit, flip.
                 if (top < gap) {
                     top = rect.bottom + gap;
                 } else if (top + popupHeight > window.innerHeight - gap) {
                     top = rect.top - popupHeight - gap;
                 }
 
-                // Clamp to viewport as last safety.
                 left = Math.max(gap, Math.min(left, window.innerWidth - popupWidth - gap));
                 top = Math.max(gap, Math.min(top, window.innerHeight - popupHeight - gap));
 
@@ -116,15 +136,14 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
     if (triggerRef) {
         return createPortal(
             <div ref={popupRef} style={popupStyle}>
-                <BasePopup variant="contextual" className={cn("p-4", className)}>
+                <BasePopupSurface variant="contextual" className={cn("p-4", className)}>
                     {children}
-                </BasePopup>
+                </BasePopupSurface>
             </div>,
             document.body
         );
     }
 
-    // Fallback für alte Implementierung ohne triggerRef
     const positionClasses = {
         'top-left': 'bottom-full left-0 mb-2',
         'top-right': 'bottom-full right-0 mb-2',
@@ -136,9 +155,9 @@ export const ContextualPopup: React.FC<ContextualPopupProps> = ({
 
     return (
         <div className={cn("absolute z-[99]", positionClasses[position])}>
-            <BasePopup variant="contextual" className={cn("p-4", className)}>
+            <BasePopupSurface variant="contextual" className={cn("p-4", className)}>
                 {children}
-            </BasePopup>
+            </BasePopupSurface>
         </div>
     );
 };
@@ -149,6 +168,12 @@ interface ModalPopupProps {
     maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl';
     onClose?: () => void;
     closeOnBackdrop?: boolean;
+    /**
+     * When provided, ModalPopup controls its own mount via AnimatePresence so the
+     * exit animation can play. Consumers pass `open={isOpen}` and always render
+     * the component. If omitted, the popup mounts immediately (legacy behavior).
+     */
+    open?: boolean;
 }
 
 export const ModalPopup: React.FC<ModalPopupProps> = ({
@@ -156,9 +181,11 @@ export const ModalPopup: React.FC<ModalPopupProps> = ({
     className,
     maxWidth = 'lg',
     onClose,
-    closeOnBackdrop = true
+    closeOnBackdrop = true,
+    open,
 }) => {
     const [mounted, setMounted] = React.useState(false);
+    const prefersReducedMotion = useReducedMotion();
 
     React.useEffect(() => {
         setMounted(true);
@@ -176,22 +203,39 @@ export const ModalPopup: React.FC<ModalPopupProps> = ({
 
     if (!mounted) return null;
 
-    return createPortal(
-        <div
+    const isVisible = open === undefined ? true : open;
+
+    const content = (
+        <motion.div
+            key="modal-popup"
             className="fixed inset-0 z-[100]"
             onClick={closeOnBackdrop ? onClose : undefined}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0.08 : 0.16, ease: 'easeOut' }}
         >
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" />
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
             <div className="fixed inset-0 flex items-center justify-center p-4">
-                <div onClick={(event) => event.stopPropagation()} className="relative w-full flex justify-center">
-                    <BasePopup variant="modal" className={cn("p-6 w-full shadow-2xl", maxWidthClasses[maxWidth], className)}>
+                <div
+                    onClick={(event) => event.stopPropagation()}
+                    className="relative w-full flex justify-center"
+                >
+                    <BasePopupSurface
+                        variant="modal"
+                        className={cn("p-6 w-full shadow-2xl", maxWidthClasses[maxWidth], className)}
+                    >
                         {children}
-                    </BasePopup>
+                    </BasePopupSurface>
                 </div>
             </div>
-        </div>,
+        </motion.div>
+    );
+
+    return createPortal(
+        <AnimatePresence>{isVisible ? content : null}</AnimatePresence>,
         document.body
     );
 };
 
-export default BasePopup;
+export default BasePopupSurface;

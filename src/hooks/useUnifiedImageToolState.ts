@@ -34,7 +34,7 @@ function normalizeLegacyImageModelId(id: string): string {
     if (id === 'flux-2-dev' || id === 'dirtberry') return 'flux';
     if (id === 'flux-klein') return 'klein';
     if (id === 'wan-video' || id === 'wan-2.5-t2v') return 'wan';
-    if (id === 'grok-imagine') return 'grok-image';
+    if (id === 'grok-image') return 'grok-imagine';
     if (id === 'grok-imagine-video') return 'grok-video';
     if (id === 'seedream' || id === 'seedream-pro') return 'seedream5';
     return id;

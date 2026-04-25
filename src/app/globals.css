@@ -154,6 +154,12 @@
   100% { opacity: 0; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  @keyframes flash-fade {
+    0%, 100% { opacity: 0; }
+  }
+}
+
 /* Global type scale: keep mobile readable, avoid oversized desktop UI */
 html {
   font-size: 16px;
@@ -256,6 +262,13 @@ html {
 
     100% {
       transform: translateY(100%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .matrix-rain,
+    .matrix-rain::before {
+      animation: none;
     }
   }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handler';
-import { videoUrl } from '@/lib/pollinations-sdk';
+import { imageUrl, videoUrl } from '@/lib/pollinations-sdk';
 import { generatePollinationsImage } from '@/lib/pollinations-image-v1';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import {
@@ -97,12 +97,19 @@ export async function POST(request: Request) {
         apiKey: hasToken ? apiKey : undefined
     };
 
+    const hasReferenceImage = !!image && (Array.isArray(image) ? image.length > 0 : true);
+
     if (isVideoModel) {
         resultUrl = await videoUrl(prompt, {
             ...imageOptions,
             duration,
             audio,
         });
+    } else if (hasReferenceImage) {
+        // Pollinations v1 POST endpoint does NOT accept reference images.
+        // Use legacy GET URL (gen.pollinations.ai/image/{prompt}?image=...) which is the
+        // documented path for I2I via the `image` query param.
+        resultUrl = await imageUrl(prompt, imageOptions);
     } else {
         resultUrl = await generatePollinationsImage({
           prompt,

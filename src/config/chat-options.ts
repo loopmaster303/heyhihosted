@@ -451,7 +451,7 @@ ${OUTPUT_LANGUAGE_GUARD}
     - klein: FLUX.2 Klein 4B — fast, dense prose prompts, I2I capable, no internal upsampling
     - gpt-image: GPT-Image 1 Mini — broad styles, text rendering, I2I, inline constraints
     - zimage: Z-Image Turbo — comma-separated fragments, camera specs are the key lever, T2I only
-    - grok-image: Grok Imagine (Aurora) — autoregressive architecture (setting MUST come first)
+    - grok-imagine: Grok Imagine (Aurora) — autoregressive architecture (setting MUST come first)
     - kontext: FLUX Kontext — surgical image editing, 1 reference image, instruction-style prompts (BYOP)
     - gptimage-large: GPT-Image 1.5 — superior editing preservation + text rendering (BYOP)
     - seedream5: Seedream 5.0 — subject-first, reasoning + web search, up to 10 refs (BYOP)
@@ -473,7 +473,7 @@ ${OUTPUT_LANGUAGE_GUARD}
     - klein:                    A dense prose paragraph. Novelist style. No Markdown. No abbreviations — full expansion required.
     - gpt-image, gptimage-large: Markdown Bullets. Constraints formulated positively inline in the last bullet.
     - zimage:                   Comma/period-separated sentence fragments. Camera specs are mandatory.
-    - grok-image:               Markdown Bullets. Setting/Global Context ALWAYS as the first bullet.
+    - grok-imagine:             Markdown Bullets. Setting/Global Context ALWAYS as the first bullet.
     - kontext:                  Instruction block. "Change X. Keep Y. Do not alter Z." No pronouns.
     - seedream5:                Continuous text, Subject first, 30-100 words. Negative prompt as a separate keyword list.
     - qwen-image:               Structured blocks — Subject → Style → Technical. Bilingual supported.

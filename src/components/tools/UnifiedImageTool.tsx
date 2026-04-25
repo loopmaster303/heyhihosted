@@ -1,8 +1,9 @@
 "use client";
 
-/* eslint-disable react-hooks/exhaustive-deps, @next/next/no-img-element */
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
 import { getUnifiedModel } from '@/config/unified-image-models';
@@ -310,10 +311,12 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
                   {selectedImage.videoUrl ? (
                     <video controls src={selectedImage.videoUrl} className="w-full h-full rounded-lg" style={{ objectFit: 'contain' }} />
                   ) : (
-                    <img
+                    <Image
                       src={`${selectedImage.imageUrl}${selectedImage.imageUrl?.includes('?') ? '&' : '?'}r=${imageReloadCount}`}
                       alt={selectedImage.prompt}
-                      className="w-full h-full object-contain rounded-lg"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 80vw, 896px"
+                      className="object-contain rounded-lg"
                       onError={() => setTimeout(() => setImageReloadCount(c => c + 1), 800)}
                     />
                   )}

@@ -76,6 +76,7 @@ describe('model invariants', () => {
 
     expect(visibleImageModelIds).toEqual(expect.arrayContaining([
       'qwen-image',
+      'grok-imagine',
       'grok-imagine-pro',
       'p-image',
       'p-image-edit',
@@ -84,6 +85,7 @@ describe('model invariants', () => {
     expect(visibleGroupModelIds).toEqual(expect.arrayContaining([
       'wan-fast',
       'qwen-image',
+      'grok-imagine',
       'grok-imagine-pro',
       'p-image',
       'p-image-edit',
@@ -129,6 +131,8 @@ describe('model invariants', () => {
   test('approved upstream visual models resolve directly and stale ids no longer resolve', () => {
     expect(resolvePollinationsVisualModelId('wan-fast')).toBe('wan-fast');
     expect(resolvePollinationsVisualModelId('qwen-image')).toBe('qwen-image');
+    expect(resolvePollinationsVisualModelId('grok-imagine')).toBe('grok-imagine');
+    expect(resolvePollinationsVisualModelId('grok-image')).toBe('grok-imagine');
     expect(resolvePollinationsVisualModelId('grok-imagine-pro')).toBe('grok-imagine-pro');
     expect(resolvePollinationsVisualModelId('p-image')).toBe('p-image');
     expect(resolvePollinationsVisualModelId('p-image-edit')).toBe('p-image-edit');

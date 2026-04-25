@@ -31,7 +31,34 @@ describe('/api/generate route', () => {
     });
   });
 
-  it('maps the internal grok-image id to the Pollinations grok-imagine id', async () => {
+  it('routes the canonical grok-imagine id directly to the Pollinations grok-imagine model', async () => {
+    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/generated.png');
+
+    const request = new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'cyberpunk skyline',
+        model: 'grok-imagine',
+        width: 1024,
+        height: 1024,
+      }),
+    });
+
+    await POST(request);
+
+    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'cyberpunk skyline',
+        model: 'grok-imagine',
+        width: 1024,
+        height: 1024,
+      }),
+    );
+    expect(imageUrlMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the legacy grok-image id routable via the backwards-compat alias to grok-imagine', async () => {
     generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/generated.png');
 
     const request = new Request('http://localhost/api/generate', {
@@ -199,6 +226,56 @@ describe('/api/generate route', () => {
       imageUrl: 'https://example.com/v1-image.png',
       videoUrl: undefined,
     });
+  });
+
+  it('routes image generation with reference images through the GET URL SDK (v1 POST ignores image param)', async () => {
+    imageUrlMock.mockResolvedValueOnce('https://gen.pollinations.ai/image/edit%20this?model=wan-image&image=ref1,ref2');
+
+    const request = new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'edit this',
+        model: 'wan-image',
+        width: 1024,
+        height: 1024,
+        image: ['https://media.pollinations.ai/ref1', 'https://media.pollinations.ai/ref2'],
+      }),
+    });
+
+    const response = await POST(request);
+    const body = responseJson.mock.calls.at(-1)?.[0] as { imageUrl: string };
+
+    expect(response.status).toBe(200);
+    expect(imageUrlMock).toHaveBeenCalledWith(
+      'edit this',
+      expect.objectContaining({
+        model: 'wan-image',
+        referenceImage: ['https://media.pollinations.ai/ref1', 'https://media.pollinations.ai/ref2'],
+      }),
+    );
+    expect(generatePollinationsImageMock).not.toHaveBeenCalled();
+    expect(body.imageUrl).toContain('image=ref1,ref2');
+  });
+
+  it('routes image generation without reference images through the v1 POST endpoint', async () => {
+    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/no-ref.png');
+
+    const request = new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'standalone',
+        model: 'flux',
+        width: 1024,
+        height: 1024,
+      }),
+    });
+
+    await POST(request);
+
+    expect(generatePollinationsImageMock).toHaveBeenCalled();
+    expect(imageUrlMock).not.toHaveBeenCalled();
   });
 
   it('rejects removed stale visual models', async () => {

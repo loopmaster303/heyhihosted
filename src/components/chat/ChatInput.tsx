@@ -203,9 +203,13 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                 <div key="attachment-preview" className="flex items-center gap-2 px-3 py-1.5">
                     <div className="relative flex-shrink-0">
                         {isImageFile ? (
+                            // data: URL preview for local file attachment — not supported by next/image
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img
                                 src={uploadedFilePreviewUrl}
                                 alt="Anhang"
+                                loading="lazy"
+                                decoding="async"
                                 className="h-12 w-12 rounded-lg object-cover border border-border/30"
                             />
                         ) : (
@@ -342,6 +346,8 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                             ? "text-foreground shadow-sm hover:shadow-md"
                                             : "bg-transparent text-foreground/80 hover:shadow-sm"
                                     }`}
+                                    aria-label={t('menu.section.upload')}
+                                    aria-expanded={activeBadgeRow === 'upload'}
                                 >
                                     <Plus className="w-4 h-4" />
                                 </Button>

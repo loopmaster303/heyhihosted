@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { ChevronDown, ImageIcon, Video } from 'lucide-react';
@@ -89,10 +90,11 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
       }
 
       return (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={icon.src || icon}
+        <Image
+          src={icon}
           alt={modelId}
+          width={dense ? 16 : 20}
+          height={dense ? 16 : 20}
           className={cn("rounded-sm", dense ? "w-4 h-4" : "w-5 h-5")}
         />
       );

@@ -110,6 +110,8 @@ const ChatImageCardView: React.FC<ChatImageCardViewProps> = ({
         <img
           src={imageUrl}
           alt={altText}
+          loading="lazy"
+          decoding="async"
           className={cn(
             "h-full w-full",
             isUploaded ? "object-cover" : "object-contain",
@@ -163,6 +165,8 @@ const ChatImageCardView: React.FC<ChatImageCardViewProps> = ({
             <img
               src={canReload && reloadToken > 0 ? imageUrl : url}
               alt={altText}
+              loading="lazy"
+              decoding="async"
               className="max-w-[95vw] max-h-[95vh] w-auto h-auto object-contain rounded-lg shadow-glass-heavy"
             />
             <button

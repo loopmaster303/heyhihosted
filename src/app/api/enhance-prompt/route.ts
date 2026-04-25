@@ -18,13 +18,22 @@ const MODEL_ALIASES: Record<string, string> = {
   'p-image-edit': 'p-image-edit',
   'pruna-edit': 'p-image-edit',
   'pruna-image-edit': 'p-image-edit',
-  'grok-imagine-pro': 'grok-image',
-  'grok-aurora': 'grok-image',
-  'aurora': 'grok-image',
+  'grok-image': 'grok-imagine',
+  'grok-imagine-pro': 'grok-imagine',
+  'grok-aurora': 'grok-imagine',
+  'aurora': 'grok-imagine',
+  'grok-video-pro': 'grok-video',
   'wan-video': 'wan',
   'wan-fast': 'wan',
   'wan2.2': 'wan',
   'wan-2.2': 'wan',
+  'wan-image': 'wan-image',
+  'wan-image-pro': 'wan-image-pro',
+  'wan2.7': 'wan-image',
+  'wan-2.7': 'wan-image',
+  'wan-2.7-image': 'wan-image',
+  'wan-2.7-image-pro': 'wan-image-pro',
+  'wan2.7-pro': 'wan-image-pro',
   'p-video': 'p-video',
   'pruna-video': 'p-video',
   'seedream-pro': 'seedream5',
@@ -59,12 +68,10 @@ const MODEL_ALIASES: Record<string, string> = {
   'flux-2-klein-9b': 'klein',
   'flux-dev': 'flux',
   // grok-imagine-video: handled via alias in enhancement-prompts.ts → grok-video
-  // Suno: route to suno-v5 Dual-Brain prompt (not VibeCraft)
-  'suno': 'suno-v5',
 };
 
 function selectGuidelines(modelId: string): string {
-  // Compose / Music models: elevenmusic + compose → VibeCraft; suno → alias to suno-v5 Dual-Brain (via MODEL_ALIASES)
+  // Compose / Music models: elevenmusic + compose → VibeCraft
   if (modelId === 'elevenmusic' || modelId === 'compose') {
     return COMPOSE_ENHANCEMENT_PROMPT;
   }
@@ -248,7 +255,7 @@ export async function POST(request: NextRequest) {
 
 
     // Get model-specific enhancement guidelines
-    const isComposeModel = modelId === 'elevenmusic' || modelId === 'compose' || modelId === 'suno' || modelId === 'suno-v5';
+    const isComposeModel = modelId === 'elevenmusic' || modelId === 'compose';
     const baseGuidelines = selectGuidelines(modelId);
     
     // Only enforce English output - let the enhancement prompts control the format

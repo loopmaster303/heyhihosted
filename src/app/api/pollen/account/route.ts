@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 
-const POLLEN_ACCOUNT_URL = 'https://enter.pollinations.ai/api/account/balance';
+const POLLEN_ACCOUNT_URL = 'https://gen.pollinations.ai/account/balance';
 
 export async function GET(request: Request) {
   try {

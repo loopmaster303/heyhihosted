@@ -58,7 +58,7 @@ describe('/api/pollen/account route', () => {
 
     expect(response.status).toBe(200);
     expect(fetchSpy).toHaveBeenCalledWith(
-      'https://enter.pollinations.ai/api/account/balance',
+      'https://gen.pollinations.ai/account/balance',
       expect.objectContaining({
         method: 'GET',
         headers: expect.objectContaining({

@@ -4,8 +4,8 @@ This directory keeps only active product and runtime documentation at the top le
 
 ## Current Truth
 
-- `PRODUCT_AUDIT_2026-03-13.md` — current product/runtime audit baseline
-- `PRODUCT_AUDIT_FOLLOWUP_2026-03-13.md` — current follow-up audit and remaining risks
+- `PRODUCT_AUDIT_2026-04-21.md` — current product/runtime audit baseline (covers product drift, tech debt, UX/a11y)
+- `PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md` — current follow-up with Now/Next/Later backlog
 - `PRODUCT_IDENTITY.md` — product language and identity
 - `architecture-view.md` — architecture and data-flow overview
 - `COMPONENT_STATE_BEHAVIOR.md` — current state and tool behavior

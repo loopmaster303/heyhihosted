@@ -7,6 +7,29 @@ import { httpsPost, httpsPostStream } from '@/lib/https-post';
 import { resolveChatSearchStrategy } from '@/lib/chat/chat-search-strategy';
 import { isKnownPollinationsTextModelId } from '@/config/chat-options';
 
+type ChatCompletionRole = 'system' | 'user' | 'assistant' | 'tool';
+
+type ChatCompletionContentPart =
+  | { type: 'text'; text: string }
+  | {
+      type: 'image_url';
+      image_url: {
+        url: string;
+        // Client-originated fields preserved on input; stripped on output.
+        remoteUrl?: string;
+        altText?: string;
+        isGenerated?: boolean;
+        isUploaded?: boolean;
+        metadata?: { assetId: string | null };
+      };
+    };
+
+interface ChatCompletionMessage {
+  role: ChatCompletionRole;
+  content: string | ChatCompletionContentPart[];
+  name?: string;
+}
+
 // Validation schema
 const ChatCompletionSchema = z.object({
   messages: z.array(z.any()).min(1, 'At least one message is required'),
@@ -23,8 +46,8 @@ const DEFAULT_CHAT_MAX_TOKENS = 1200;
 /**
  * Sanitize messages for the Pollinations OpenAI-compatible API.
  */
-function sanitizeMessagesForApi(rawMessages: any[]): any[] {
-  return rawMessages.map((msg: any) => {
+function sanitizeMessagesForApi(rawMessages: ChatCompletionMessage[]): ChatCompletionMessage[] {
+  return rawMessages.map((msg) => {
     const role = msg.role;
 
     if (typeof msg.content === 'string') {
@@ -32,7 +55,7 @@ function sanitizeMessagesForApi(rawMessages: any[]): any[] {
     }
 
     if (Array.isArray(msg.content)) {
-      const parts = msg.content.map((part: any) => {
+      const parts: ChatCompletionContentPart[] = msg.content.map((part) => {
         if (part.type === 'text') {
           return { type: 'text', text: part.text || '' };
         }
@@ -42,12 +65,12 @@ function sanitizeMessagesForApi(rawMessages: any[]): any[] {
             image_url: { url: part.image_url.remoteUrl || part.image_url.url }
           };
         }
-        return { type: 'text', text: part.text || '' };
+        return { type: 'text', text: (part as { text?: string }).text || '' };
       });
       return { role, content: parts };
     }
 
-    return { role, content: String(msg.content ?? '') };
+    return { role, content: String((msg as { content?: unknown }).content ?? '') };
   });
 }
 
@@ -136,7 +159,7 @@ export async function POST(request: Request) {
     const sanitizedMessages = sanitizeMessagesForApi(messages);
 
     // Build final messages array with system prompt
-    const apiMessages = [
+    const apiMessages: ChatCompletionMessage[] = [
       { role: 'system', content: finalSystemPrompt },
       ...sanitizedMessages,
     ];

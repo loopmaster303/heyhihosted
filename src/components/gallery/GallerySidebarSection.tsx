@@ -77,6 +77,7 @@ const TrackItem = ({
   onDelete: (id: string) => void;
   onToggleStar: (id: string) => void;
 }) => {
+  const { t } = useLanguage();
   const { url } = useAssetUrl(asset.id);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement>(null);
@@ -123,6 +124,8 @@ const TrackItem = ({
           variant="ghost" size="icon"
           onClick={() => onCopyPrompt(asset.prompt)}
           className="h-6 w-6 rounded text-muted-foreground hover:text-foreground"
+          title={t('action.copyPrompt')}
+          aria-label={t('action.copyPrompt')}
         >
           <Copy className="h-3 w-3" />
         </Button>
@@ -130,6 +133,9 @@ const TrackItem = ({
           variant="ghost" size="icon"
           onClick={() => onToggleStar(asset.id)}
           className={cn("h-6 w-6 rounded", asset.starred ? "text-red-400" : "text-muted-foreground hover:text-foreground")}
+          title="Like"
+          aria-label="Like"
+          aria-pressed={!!asset.starred}
         >
           <Heart className={cn("h-3 w-3", asset.starred && "fill-current")} />
         </Button>
@@ -137,6 +143,8 @@ const TrackItem = ({
           variant="ghost" size="icon"
           onClick={() => onDelete(asset.id)}
           className="h-6 w-6 rounded text-muted-foreground hover:text-red-400"
+          title={t('action.delete')}
+          aria-label={t('action.delete')}
         >
           <Trash2 className="h-3 w-3" />
         </Button>
@@ -201,6 +209,8 @@ const GalleryPanelItem = ({
           <img
             src={url}
             alt={asset.prompt || "Output item"}
+            loading="lazy"
+            decoding="async"
             className="w-full h-auto object-contain cursor-pointer"
             onClick={handleOpen}
           />
@@ -379,8 +389,13 @@ const GallerySidebarSection: React.FC = () => {
               </Button>
             </div>
 
-            <div className="flex gap-1 px-4 pt-3 pb-2">
+            <div role="tablist" aria-label={t('nav.gallery')} className="flex gap-1 px-4 pt-3 pb-2">
               <button
+                role="tab"
+                id="gallery-tab-images"
+                aria-selected={activeTab === 'images'}
+                aria-controls="gallery-panel-images"
+                tabIndex={activeTab === 'images' ? 0 : -1}
                 onClick={() => setActiveTab('images')}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium transition-colors",
@@ -396,6 +411,11 @@ const GallerySidebarSection: React.FC = () => {
                 )}
               </button>
               <button
+                role="tab"
+                id="gallery-tab-tracks"
+                aria-selected={activeTab === 'tracks'}
+                aria-controls="gallery-panel-tracks"
+                tabIndex={activeTab === 'tracks' ? 0 : -1}
                 onClick={() => setActiveTab('tracks')}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium transition-colors",
@@ -412,7 +432,12 @@ const GallerySidebarSection: React.FC = () => {
               </button>
             </div>
 
-            <div className="max-h-[55vh] overflow-y-auto px-4 pb-3 no-scrollbar">
+            <div
+              role="tabpanel"
+              id={activeTab === 'images' ? 'gallery-panel-images' : 'gallery-panel-tracks'}
+              aria-labelledby={activeTab === 'images' ? 'gallery-tab-images' : 'gallery-tab-tracks'}
+              className="max-h-[55vh] overflow-y-auto px-4 pb-3 no-scrollbar"
+            >
               {activeTab === 'images' ? (
                 panelImages.length === 0 ? (
                   <div className="py-8 text-center text-xs text-muted-foreground/70">
@@ -519,6 +544,8 @@ const GalleryLightboxContent = ({ assetId, type }: { assetId: string; type: 'ima
     <img
       src={url}
       alt={t('gallery.fullscreenAlt')}
+      loading="lazy"
+      decoding="async"
       className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-glass-heavy border border-white/10"
     />
   );

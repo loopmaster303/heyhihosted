@@ -44,13 +44,15 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 2.5 Flash Image' },
   { id: 'qwen-image', name: 'Qwen Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Qwen image generation and edit model' },
   { id: 'grok-imagine-pro', name: 'Grok Imagine Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: false, description: 'Grok premium image generation' },
+  { id: 'wan-image', name: 'Wan 2.7 Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Alibaba Wan 2.7 image generation' },
+  { id: 'wan-image-pro', name: 'Wan 2.7 Image Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Alibaba Wan 2.7 Pro image generation' },
   { id: 'p-image', name: 'P-Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: false, description: 'Pollinations image generation' },
   { id: 'p-image-edit', name: 'P-Image Edit', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Pollinations image editing' },
 
   // ADVANCED Image Models
   { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 3 Pro Image (4K)' },
   { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 3.1 Flash Image' },
-  { id: 'grok-image', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Grok Aurora — autoregressive architecture (API alias: grok-imagine)' },
+  { id: 'grok-imagine', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Grok Aurora — autoregressive architecture' },
 
   // STANDARD Video Models
   {
@@ -126,6 +128,20 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     durationRange: { options: [5, 10] },
   },
   {
+    id: 'grok-video-pro',
+    name: 'Grok Imagine Pro Video',
+    provider: 'pollinations',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: false,
+    enabled: false,
+    description: 'Grok premium video generation',
+    supportsAudio: true,
+    durationRange: { options: [5, 10] },
+  },
+  {
     id: 'p-video',
     name: 'P-Video',
     provider: 'pollinations',
@@ -148,7 +164,7 @@ export const UNIFIED_IMAGE_MODELS: UnifiedImageModel[] = [
 const POLLINATIONS_IMAGE_MODEL_ALIASES: Record<string, string> = {
   'z-image': 'zimage',
   'z-image-turbo': 'zimage',
-  'grok-imagine': 'grok-image',
+  'grok-image': 'grok-imagine',
   'grok-imagine-video': 'grok-video',
   'wan2.6': 'wan',
   'wan-i2v': 'wan',
@@ -176,6 +192,9 @@ export function toPollinationsVisualApiModelId(modelId: string): string {
     case 'gpt-image':
       return 'gptimage';
     case 'grok-image':
+      // Back-compat: legacy internal id resolves through alias, but keep the API mapping explicit.
+      return 'grok-imagine';
+    case 'grok-imagine':
       return 'grok-imagine';
     default:
       return modelId;

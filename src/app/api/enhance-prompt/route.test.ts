@@ -662,7 +662,7 @@ describe('/api/enhance-prompt route', () => {
     );
   });
 
-  it('uses a pure t2i grok-image prompt with no edit or reference instructions', async () => {
+  it('uses a pure t2i grok-imagine prompt with no edit or reference instructions (and keeps the legacy grok-image id mapped to it)', async () => {
     getPollinationsChatCompletionMock.mockResolvedValueOnce({
       responseText: 'A cybernetic fox sprinting through a neon-lit alley at midnight, rain-slicked pavement reflecting blue and magenta signs, low camera angle looking up, mist curling around its legs. "CITY RUN" glows on a sign overhead. No blur, no extra text.',
     });
@@ -672,7 +672,7 @@ describe('/api/enhance-prompt route', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         prompt: 'cybernetic fox running through a neon alley',
-        modelId: 'grok-image',
+        modelId: 'grok-imagine',
         language: 'en',
       }),
     });
@@ -942,7 +942,7 @@ describe('/api/enhance-prompt route', () => {
     );
   });
 
-  it('maps grok-imagine-pro to the maintained grok-image prompt family', async () => {
+  it('maps grok-imagine-pro to the maintained grok-imagine prompt family', async () => {
     getPollinationsChatCompletionMock.mockResolvedValueOnce({
       responseText: '* **Subject & Action:** A cinematic portrait with hard directional light\n* **Setting & Atmosphere:** Dark studio\n* **Style & Look:** Moody editorial realism\n* **Lighting & Camera:** 85mm portrait framing\n* **Constraints:** no blur, no watermark',
     });
