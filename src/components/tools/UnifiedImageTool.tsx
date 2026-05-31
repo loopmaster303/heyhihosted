@@ -110,8 +110,8 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
       }
 
       const modelInfo = getUnifiedModel(selectedModelId);
-      const isPollinations = modelInfo?.provider === 'pollinations';
-      const isPollinationsVideo = modelInfo?.kind === 'video';
+      const isPruna = modelInfo?.provider === 'pruna';
+      const isPollinationsVideo = !isPruna && modelInfo?.kind === 'video';
 
       // 2. Prepare Enriched Prompt
       // REMOVED: Legacy behavior. We now pass 'image' param explicitly.
@@ -127,37 +127,42 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
 
       const payload: any = {
         prompt: enrichedPrompt,
-        model: currentModelId, // ✅ Fresh value, not closure
-        private: true,
+        model: currentModelId,
       };
 
-      if (referenceUrls.length > 0) {
-          // Pollinations: Always use 'image' parameter
-          payload.image = referenceUrls;
-      }
-
-      if (!isPollinationsVideo) {
-        payload.width = formFields.width || 1024;
-        payload.height = formFields.height || 1024;
-        payload.quality = 'hd';
-        payload.nologo = true;
-      }
-
-      // Negative Prompt Logic: Use user input if available, otherwise apply default boost only for images
-      const defaultNegative = isPollinationsVideo ? "" : "blur, low quality, distorted, bad anatomy, pixelated, watermark, text, signature, ugly, bad hands, deformed, grainy";
-      payload.negative_prompt = formFields.negative_prompt || defaultNegative;
-
+      if (referenceUrls.length > 0) payload.image = referenceUrls;
       if (formFields.seed) payload.seed = Number(formFields.seed);
-      if (isPollinationsVideo) {
-        if (formFields.aspect_ratio) payload.aspectRatio = formFields.aspect_ratio;
-        if (formFields.duration) payload.duration = Number(formFields.duration);
-        if (formFields.audio !== undefined) payload.audio = formFields.audio;
+
+      if (isPruna) {
+        // Pruna-specific params — no width/height/nologo/private
+        if (formFields.aspect_ratio) payload.aspect_ratio = formFields.aspect_ratio;
+        if (currentModelConfig?.outputType === 'video') {
+          if (formFields.duration) payload.duration = Number(formFields.duration);
+        } else {
+          if (formFields.enhance_prompt !== undefined) payload.enhance_prompt = !!formFields.enhance_prompt;
+        }
       } else {
-        if (formFields.enhance) payload.enhance = true;
-        if (formFields.transparent) payload.transparent = true;
+        // Pollinations params
+        payload.private = true;
+        if (!isPollinationsVideo) {
+          payload.width = formFields.width || 1024;
+          payload.height = formFields.height || 1024;
+          payload.quality = 'hd';
+          payload.nologo = true;
+        }
+        const defaultNegative = isPollinationsVideo ? "" : "blur, low quality, distorted, bad anatomy, pixelated, watermark, text, signature, ugly, bad hands, deformed, grainy";
+        payload.negative_prompt = formFields.negative_prompt || defaultNegative;
+        if (isPollinationsVideo) {
+          if (formFields.aspect_ratio) payload.aspectRatio = formFields.aspect_ratio;
+          if (formFields.duration) payload.duration = Number(formFields.duration);
+          if (formFields.audio !== undefined) payload.audio = formFields.audio;
+        } else {
+          if (formFields.enhance) payload.enhance = true;
+          if (formFields.transparent) payload.transparent = true;
+        }
       }
 
-      const endpoint = '/api/generate';
+      const endpoint = isPruna ? '/api/pruna' : '/api/generate';
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -168,12 +173,10 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
       const contentType = response.headers.get('content-type');
       let resultUrl: string;
 
-      if (contentType && contentType.includes('image/')) {
-          // Binary response -> upload to Pollinations Media for a stable URL
+      if (contentType && (contentType.includes('image/') || contentType.includes('video/'))) {
+          // Binary response (Pruna or Pollinations POST proxy) → upload to Pollinations Media
           const blob = await response.blob();
-          const fileName = `gen-${Date.now()}-${generateUUID()}.jpg`; // Assume JPG for now or infer
-          // Infer extension
-          const ext = contentType.split('/')[1] || 'jpg';
+          const ext = contentType.split('/')[1]?.split(';')[0] || (contentType.includes('video') ? 'mp4' : 'jpg');
           const finalFileName = `gen-${Date.now()}-${generateUUID()}.${ext}`;
           
           toast({ title: "Processing...", description: "Optimizing generated image..." });
@@ -206,7 +209,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
             modelId: currentModelId,
             sessionId: getClientSessionId(),
             isVideo,
-            isPollinations
+            isPollinations: !isPruna,
           });
 
           if (localAssetId) {

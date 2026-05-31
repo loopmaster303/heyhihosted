@@ -292,7 +292,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                 ))}
               </SelectContent>
             </Select>
-          ) : currentModelConfig.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations' ? (
+          ) : currentModelConfig.outputType === 'video' && (getUnifiedModel(selectedModelId)?.provider === 'pollinations' || getUnifiedModel(selectedModelId)?.provider === 'pruna') ? (
             <Select
               value={formFields.aspect_ratio || '16:9'}
               onValueChange={(v) => handleFieldChange('aspect_ratio', v)}
@@ -422,6 +422,22 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
           }
           return null;
       })()}
+
+      {/* Enhance Prompt Toggle (Pruna Qwen Image only) */}
+      {getUnifiedModel(selectedModelId)?.supportsPromptEnhance && (
+        <div className={badgeClass}>
+          <span className={labelClass}>ENHANCE</span>
+          <div className="flex items-center gap-1.5 h-6">
+            <Switch
+              id="enhance-prompt-inline"
+              checked={!!formFields.enhance_prompt}
+              onCheckedChange={(checked) => handleFieldChange('enhance_prompt', checked)}
+              disabled={disabled}
+              className="scale-75 origin-left data-[state=checked]:bg-primary"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Output Format */}
       {(!isPollenModel && !isPollinationsVideo && currentModelConfig.inputs.find(i => i.name === 'output_format')) && (

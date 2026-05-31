@@ -314,8 +314,8 @@ export async function POST(request: NextRequest) {
       .join('\n\n');
 
     // Prompt enhancement: primary model + fallback if output is low-quality (suffix-only) or request fails.
-    const primaryEnhancerModelId = 'claude-fast';
-    const fallbackEnhancerModelId = 'gemini-fast';
+    const primaryEnhancerModelId = 'claude';
+    const fallbackEnhancerModelId = 'gemini';
     let enhancedText: string | null = null;
     let usedModel: string = primaryEnhancerModelId;
 

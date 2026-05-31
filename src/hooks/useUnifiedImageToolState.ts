@@ -14,10 +14,10 @@ import { getClientSessionId } from '@/lib/session';
 import type { UploadedReference } from '@/types';
 import { useHasPollenKey } from './useHasPollenKey';
 
-// Define which models need image upload
+// Define which models need image upload (Pollinations + Pruna reference models)
 export const pollinationUploadModels = [
     ...UNIFIED_IMAGE_MODELS
-        .filter(model => model.provider === 'pollinations' && model.supportsReference === true)
+        .filter(model => (model.provider === 'pollinations' || model.provider === 'pruna') && model.supportsReference === true)
         .map(model => model.id),
 ];
 
@@ -111,6 +111,14 @@ export function useUnifiedImageToolState() {
 
     const isPollinationsVideo = currentModelConfig?.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations';
 
+    const isPrunaModel = useMemo(() => {
+        const model = getUnifiedModel(selectedModelId);
+        return model?.provider === 'pruna';
+    }, [selectedModelId]);
+
+    const isPrunaVideo = isPrunaModel && currentModelConfig?.outputType === 'video';
+    const isPrunaQwen = selectedModelId === 'pruna-qwen-image';
+
     // Supports Reference Check
     const supportsReference = useMemo(() => {
         const modelInfo = getUnifiedModel(selectedModelId);
@@ -158,7 +166,7 @@ export function useUnifiedImageToolState() {
         } else if (isPollinationsVideo) {
             const modelInfo = getUnifiedModel(selectedModelId);
             initialFields.aspect_ratio = '16:9';
-            
+
             // Dynamic Duration Default
             if (modelInfo?.durationRange?.options && modelInfo.durationRange.options.length > 0) {
                  // Default to the first option (usually the lowest/fastest)
@@ -170,13 +178,25 @@ export function useUnifiedImageToolState() {
             // Dynamic Audio Default
             // Default to TRUE if supported
             if (modelInfo?.supportsAudio) {
-                initialFields.audio = true; 
+                initialFields.audio = true;
             } else {
                  initialFields.audio = false;
             }
+        } else if (isPrunaVideo) {
+            const modelInfo = getUnifiedModel(selectedModelId);
+            if (selectedModelId !== 'pruna-wan-i2v') {
+                initialFields.aspect_ratio = '16:9';
+            }
+            if (modelInfo?.durationRange?.options && modelInfo.durationRange.options.length > 0) {
+                initialFields.duration = modelInfo.durationRange.options[0];
+            } else {
+                initialFields.duration = 5;
+            }
+        } else if (isPrunaModel) {
+            initialFields.aspect_ratio = '1:1';
         }
         setFormFields(initialFields);
-    }, [currentModelConfig, isPollenModel, isPollinationsVideo, selectedModelId]);
+    }, [currentModelConfig, isPollenModel, isPollinationsVideo, isPrunaModel, isPrunaVideo, selectedModelId]);
 
     // Clear uploaded images if model doesn't support them
     useEffect(() => {
@@ -216,19 +236,19 @@ export function useUnifiedImageToolState() {
 
         const modelInfo = getUnifiedModel(selectedModelId);
         const allUploadModels = [...pollinationUploadModels];
-        const isPollinations = modelInfo?.provider === 'pollinations';
+        const isSingleSlot = maxImages === 1;
 
         if (allUploadModels.includes(selectedModelId)) {
             setIsUploading(true);
 
-            if (isPollinations && maxImages === 1 && imageFiles.length > 1) {
+            if (isSingleSlot && imageFiles.length > 1) {
                 toast({ title: "Limit Reached", description: "Only one reference image allowed for this model.", variant: "destructive" });
             }
 
             let currentImages = [...uploadedImages];
-            const targetFiles = isPollinations && maxImages === 1 ? imageFiles.slice(0, 1) : imageFiles;
+            const targetFiles = isSingleSlot ? imageFiles.slice(0, 1) : imageFiles;
 
-            if (isPollinations && maxImages === 1 && currentImages.length >= 1) {
+            if (isSingleSlot && currentImages.length >= 1) {
                 currentImages = [];
             }
 
@@ -364,6 +384,9 @@ export function useUnifiedImageToolState() {
         isNanoPollen,
         isPollenModel,
         isPollinationsVideo,
+        isPrunaModel,
+        isPrunaVideo,
+        isPrunaQwen,
 
         // Actions
         handleFileChange,

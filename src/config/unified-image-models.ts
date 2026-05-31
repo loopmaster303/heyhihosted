@@ -3,7 +3,7 @@
  * Pollinations-only model catalog for image/video generation.
  */
 
-export type ImageProvider = 'pollinations';
+export type ImageProvider = 'pollinations' | 'pruna';
 export type ImageKind = 'image' | 'video';
 export type ImageCategory = 'Standard' | 'Advanced';
 
@@ -20,6 +20,8 @@ export interface UnifiedImageModel {
   enabled?: boolean;
   byopVisible?: boolean;
   supportsAudio?: boolean;
+  supportsPromptEnhance?: boolean;
+  prunaModelId?: string;
   durationRange?: {
     min?: number;
     max?: number;
@@ -157,8 +159,107 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   },
 ];
 
+const PRUNA_MODELS: UnifiedImageModel[] = [
+  {
+    id: 'pruna-p-image',
+    name: 'P-Image',
+    provider: 'pruna',
+    kind: 'image',
+    category: 'Advanced',
+    supportsReference: false,
+    isFree: false,
+    enabled: true,
+    description: 'Ultra-fast text-to-image (Pruna)',
+    prunaModelId: 'p-image',
+  },
+  {
+    id: 'pruna-p-image-edit',
+    name: 'P-Image Edit',
+    provider: 'pruna',
+    kind: 'image',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 2,
+    isFree: false,
+    enabled: true,
+    description: 'Edit and compose images with text (Pruna)',
+    prunaModelId: 'p-image-edit',
+  },
+  {
+    id: 'pruna-wan-i2v',
+    name: 'Wan I2V',
+    provider: 'pruna',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: false,
+    enabled: true,
+    description: 'Image-to-video (Wan via Pruna)',
+    prunaModelId: 'wan-i2v',
+    supportsAudio: false,
+    durationRange: { options: [7] },
+  },
+  {
+    id: 'pruna-wan-t2v',
+    name: 'Wan T2V',
+    provider: 'pruna',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: false,
+    isFree: false,
+    enabled: true,
+    description: 'Text-to-video (Wan via Pruna)',
+    prunaModelId: 'wan-t2v',
+    supportsAudio: false,
+    durationRange: { options: [7] },
+  },
+  {
+    id: 'pruna-qwen-image',
+    name: 'Qwen Image',
+    provider: 'pruna',
+    kind: 'image',
+    category: 'Advanced',
+    supportsReference: false,
+    isFree: false,
+    enabled: true,
+    description: 'High-quality text-to-image (Qwen via Pruna)',
+    prunaModelId: 'qwen-image',
+    supportsPromptEnhance: true,
+  },
+  {
+    id: 'pruna-qwen-image-edit',
+    name: 'Qwen Edit',
+    provider: 'pruna',
+    kind: 'image',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 2,
+    isFree: false,
+    enabled: true,
+    description: 'Image editing with text (Qwen via Pruna)',
+    prunaModelId: 'qwen-image-edit-plus',
+  },
+  {
+    id: 'pruna-p-video',
+    name: 'P-Video',
+    provider: 'pruna',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: false,
+    enabled: true,
+    description: 'Text-to-video & image-to-video (P-Video via Pruna)',
+    prunaModelId: 'p-video',
+    supportsAudio: true,
+    durationRange: { options: [5, 10] },
+  },
+];
+
 export const UNIFIED_IMAGE_MODELS: UnifiedImageModel[] = [
   ...POLLINATIONS_MODELS,
+  ...PRUNA_MODELS,
 ];
 
 const POLLINATIONS_IMAGE_MODEL_ALIASES: Record<string, string> = {
