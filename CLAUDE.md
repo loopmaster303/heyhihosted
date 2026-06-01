@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+**Ecosystem:** democrabs — "The crab snaps with everyone but it's yours"
+
 Assistant guidance for Claude working in this repository.
 
 ## Start Here
@@ -84,3 +86,8 @@ CI=1 npm test -- --runInBand path/to/test.ts
 - Do not invent new truth docs when an existing active doc can be updated.
 - Avoid model-name marketing copy unless it is clearly tied to the current visible registry.
 - Treat `README.md`, `CLAUDE.md`, and `GEMINI.md` as synchronized adapters over the same runtime truth.
+
+## Reorg & GODSPACE (Master Plan 2026-06-01)
+Master Plan: `/Users/johnmeckel/heyhihosted/docs/plans/2026-06-01-heyhi-ecosystem-reorg-plan.md`
+New names: sayhi (ex-heyhiblogheyhiworld, L1 arts/roleplay), heyhiblog (ex-heyhi-ai-or-goodbye, content), democrabs (ex-buergerbuddy, "The crab snaps with everyone but it's yours"), heyhireset (main + GODSPACE OVERVIEW dashboard).
+Update XLinks in docs/project.html; handoffs reference new structure + central heyhi.html. Local folders not yet renamed; file links use current paths.
