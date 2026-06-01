@@ -57,7 +57,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "deepseek",
-    name: "DeepSeek V3.2",
+    name: "DeepSeek V4 Flash Lite",
     description: "Efficient reasoning and agentic work.",
     vision: false,
     category: "Standard",
