@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> Ecosystem (democrabs rebrand): "The crab snaps with everyone but it's yours"
+
 **Goal:** Rebaseline hey.hi on current product truth, then run a fresh audit across product, UI/UX, security, API behavior, and documentation without relying on outdated model or provider assumptions.
 
 **Architecture:** First align visible product behavior with the currently enabled Pollinations model set and update active documentation to the same truth. Then run a new audit in focused workstreams so findings are based on the live app and the real code paths, not historical assumptions or stale docs.
