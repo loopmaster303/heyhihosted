@@ -316,6 +316,8 @@ All local + remote now documented. Push through per YOLO. Coordinator: John Meck
 - Same in heyhireset: committed + pushed GODSPACE heyhi.html (full) + reorg handoffs/plans + bulk (now ahead clean except stray lib/?).
 - Prep commits in the rename-target clones (handoff updates) done.
 - Pushed rebrand handoff update as new branch to democrabs GH.
+- Tailored handoffs in sayhi/heyhiblog targets + meinbild now contain GH-create notes (content verified in files + tracked in their local git).
+- heyhihosted + heyhireset reorg commits (incl latest handoff) pushed. Typecheck on current tree (with uncommitted media/galley) clean.
 
 **Exact YOLO next for you (John — the interface): aufräumen + pushen**
 
