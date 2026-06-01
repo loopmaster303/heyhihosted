@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>heyhihosted — Projekt-Übersicht</title>
+<title>HEY HI = "USER" (heyhihosted) — Projekt-Übersicht</title>
 <style>
   :root {
     --bg: #0a0a0f;
@@ -131,9 +131,9 @@
 <body>
 
 <header>
-  <div class="brand">hey-hi.space // produktion</div>
-  <h1>heyhihosted</h1>
-  <div class="sub">Lokale AI-Workspace · Next.js 16 · Pollinations + Pruna · Stand 2026-05-31</div>
+  <div class="brand">hey-hi.space // produktion · everyone.hey-hi.space</div>
+  <h1>HEY HI = "USER"</h1>
+  <div class="sub">(heyhihosted) · Lokale AI-Workspace · Next.js 16 · Pollinations + Pruna · Stand 2026-05-31</div>
 </header>
 
 <nav>
@@ -284,59 +284,170 @@
 
 <!-- ══════════════════════════════════════════════ MODELLE -->
 <section class="tab" id="modelle">
-  <h2>Text-Modelle</h2>
-  <table>
-    <tr><th>ID</th><th>Modell</th><th>Routing</th></tr>
-    <tr><td><code>claude-fast</code></td><td>Claude (Anthropic)</td><td>Pollen API</td></tr>
-    <tr><td><code>gemini-fast</code></td><td>Gemini Flash</td><td>Pollen API</td></tr>
-    <tr><td><code>gemini-search</code></td><td>Gemini + Web</td><td>Legacy Fallback</td></tr>
-    <tr><td><code>deepseek</code></td><td>DeepSeek V3</td><td>Pollen API</td></tr>
-    <tr><td><code>nova-fast</code></td><td>Amazon Nova</td><td>Pollen API</td></tr>
-    <tr><td><code>mistral</code></td><td>Mistral</td><td>Pollen API</td></tr>
-    <tr><td><code>perplexity-fast</code></td><td>Perplexity</td><td>SmartRouter → Pollen</td></tr>
-    <tr><td><code>perplexity-reasoning</code></td><td>Perplexity R1</td><td>SmartRouter</td></tr>
-    <tr><td><code>kimi</code></td><td>Kimi (Moonshot)</td><td>Pollen API</td></tr>
-    <tr><td><code>glm</code></td><td>GLM-4 (Zhipu)</td><td>Pollen API</td></tr>
-    <tr><td><code>minimax</code></td><td>MiniMax</td><td>Pollen API</td></tr>
-    <tr><td><code>qwen-coder</code></td><td>Qwen Coder</td><td>Pollen API</td></tr>
-  </table>
+  <p style="color:var(--dim);font-size:13px;margin-bottom:14px">Endpoint: <code>gen.pollinations.ai/v1</code> · Quelle: Live-API 2026-06-01 · Währung: Pollen</p>
+  <div id="m-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+    <button class="mf active" data-f="all">Alle <span id="cnt-all"></span></button>
+    <button class="mf" data-f="text">💬 Text <span id="cnt-text"></span></button>
+    <button class="mf" data-f="image">🖼 Image <span id="cnt-image"></span></button>
+    <button class="mf" data-f="video">🎬 Video <span id="cnt-video"></span></button>
+    <button class="mf" data-f="audio">🔊 Audio <span id="cnt-audio"></span></button>
+    <button class="mf" data-f="free">✦ Free only <span id="cnt-free"></span></button>
+  </div>
+  <div id="m-grid" style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
+  <style>
+    .mf{background:var(--panel);border:1px solid var(--line);color:var(--dim);font-family:var(--mono);font-size:12px;padding:5px 12px;border-radius:20px;cursor:pointer}
+    .mf.active,.mf:hover{color:var(--accent);border-color:var(--accent)}
+    .mc{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+    .mc.paid{border-color:#2a1f1a}.mc.free{border-color:#1a2a1f}
+    .mc-name{font-family:var(--mono);font-size:12px;color:var(--txt);font-weight:600}
+    .mc-desc{font-size:11px;color:var(--dim);line-height:1.4}
+    .mc-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+    .mc-tag{font-family:var(--mono);font-size:10px;padding:1px 7px;border-radius:10px;border:1px solid var(--line)}
+    .mc-tag.type-text{color:#7c6fff;border-color:#2e2860}
+    .mc-tag.type-image{color:#e040b8;border-color:#3a1f3a}
+    .mc-tag.type-video{color:#e07030;border-color:#3a2010}
+    .mc-tag.type-audio{color:#20c9c0;border-color:#1a3a38}
+    .mc-tag.free-tag{color:var(--ok);border-color:#1a3a28}
+    .mc-tag.paid-tag{color:var(--warn);border-color:#3a1f1f}
+    .mc-price{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:2px}
+  </style>
+  <script>
+  (function(){
+    const MODELS=[
+      // ── TEXT ──────────────────────────────────────────────────
+      {name:"openai",        type:"text", desc:"GPT-OSS (OVH)", free:true},
+      {name:"openai-fast",   type:"text", desc:"GPT-OSS 20B Reasoning", free:true},
+      {name:"openai-large",  type:"text", desc:"GPT-OSS Large", free:true},
+      {name:"gpt-5.4-mini",  type:"text", desc:"GPT-5.4 Mini", free:true},
+      {name:"gpt-5.5",       type:"text", desc:"GPT-5.5", free:true},
+      {name:"claude-fast",   type:"text", desc:"Claude (Anthropic) Fast", free:true},
+      {name:"claude",        type:"text", desc:"Claude (Anthropic)", free:true},
+      {name:"claude-large",  type:"text", desc:"Claude Large", free:true},
+      {name:"claude-opus-4.7",type:"text",desc:"Claude Opus 4.7", free:true},
+      {name:"claude-opus-4.8",type:"text",desc:"Claude Opus 4.8", free:true},
+      {name:"gemini",        type:"text", desc:"Gemini", free:true},
+      {name:"gemini-fast",   type:"text", desc:"Gemini Flash", free:true},
+      {name:"gemini-3.5-flash",type:"text",desc:"Gemini 3.5 Flash", free:true},
+      {name:"gemini-flash-lite-3.1",type:"text",desc:"Gemini Flash Lite 3.1", free:true},
+      {name:"gemini-large",  type:"text", desc:"Gemini Large", free:true},
+      {name:"gemini-2",      type:"text", desc:"Gemini 2", free:true},
+      {name:"gemini-search", type:"text", desc:"Gemini + Web Search", free:true},
+      {name:"gemini-search-fast",type:"text",desc:"Gemini Search Fast", free:true},
+      {name:"gemini-search-large",type:"text",desc:"Gemini Search Large", free:true},
+      {name:"deepseek",      type:"text", desc:"DeepSeek V3", free:true},
+      {name:"deepseek-pro",  type:"text", desc:"DeepSeek Pro", free:true},
+      {name:"grok",          type:"text", desc:"Grok (xAI)", free:true},
+      {name:"grok-large",    type:"text", desc:"Grok Large", free:true},
+      {name:"grok-4.3",      type:"text", desc:"Grok 4.3", free:true},
+      {name:"mistral",       type:"text", desc:"Mistral", free:true},
+      {name:"mistral-4",     type:"text", desc:"Mistral 4", free:true},
+      {name:"mistral-large", type:"text", desc:"Mistral Large", free:true},
+      {name:"kimi",          type:"text", desc:"Kimi (Moonshot)", free:true},
+      {name:"kimi-k2.6",     type:"text", desc:"Kimi K2.6", free:true},
+      {name:"llama",         type:"text", desc:"Llama", free:true},
+      {name:"llama-maverick",type:"text", desc:"Llama Maverick", free:true},
+      {name:"llama-scout",   type:"text", desc:"Llama Scout", free:true},
+      {name:"perplexity",    type:"text", desc:"Perplexity", free:true},
+      {name:"perplexity-fast",type:"text",desc:"Perplexity Fast", free:true},
+      {name:"perplexity-deep",type:"text",desc:"Perplexity Deep", free:true},
+      {name:"perplexity-reasoning",type:"text",desc:"Perplexity Reasoning", free:true},
+      {name:"nova-fast",     type:"text", desc:"Amazon Nova Fast", free:true},
+      {name:"nova",          type:"text", desc:"Amazon Nova", free:true},
+      {name:"qwen-coder",    type:"text", desc:"Qwen Coder", free:true},
+      {name:"qwen-coder-large",type:"text",desc:"Qwen Coder Large", free:true},
+      {name:"qwen-large",    type:"text", desc:"Qwen Large", free:true},
+      {name:"qwen-vision",   type:"text", desc:"Qwen Vision", free:true},
+      {name:"qwen-vision-pro",type:"text",desc:"Qwen Vision Pro", free:true},
+      {name:"glm",           type:"text", desc:"GLM-4 (Zhipu)", free:true},
+      {name:"minimax",       type:"text", desc:"MiniMax", free:true},
+      {name:"gemma",         type:"text", desc:"Gemma (Google)", free:true},
+      {name:"polly",         type:"text", desc:"Polly", free:true},
+      {name:"midijourney",   type:"text", desc:"MidiJourney", free:true},
+      {name:"midijourney-large",type:"text",desc:"MidiJourney Large", free:true},
+      {name:"step-flash",    type:"text", desc:"Step Flash", free:true},
+      {name:"step-3.5-flash",type:"text", desc:"Step 3.5 Flash", free:true},
+      // ── IMAGE ──────────────────────────────────────────────────
+      {name:"flux",          type:"image",desc:"Flux Schnell — Fast high-quality", free:true,  price:"0.001 🌼/img"},
+      {name:"zimage",        type:"image",desc:"Z-Image Turbo — 6B Flux + 2× upscale", free:true,  price:"0.002 🌼/img"},
+      {name:"klein",         type:"image",desc:"FLUX.2 Klein 4B — Fast + editing", free:true,  price:"0.01 🌼/img"},
+      {name:"kontext",       type:"image",desc:"FLUX.1 Kontext — In-context editing", free:true,  price:"0.04 🌼/img"},
+      {name:"gptimage",      type:"image",desc:"GPT Image 1 Mini — Fast & affordable", free:true,  price:"0.000008 🌼/img"},
+      {name:"gptimage-large",type:"image",desc:"GPT Image 1.5 — High-fidelity + edit", free:true,  price:"0.000032 🌼/img"},
+      {name:"wan-image",     type:"image",desc:"Wan 2.7 Image — up to 2K", free:true,  price:"0.0525 🌼/img"},
+      {name:"qwen-image",    type:"image",desc:"Qwen Image Plus — edit + generate", free:true,  price:"0.045 🌼/img"},
+      {name:"nova-canvas",   type:"image",desc:"Nova Canvas — inpainting + edit", free:true,  price:"0.04 🌼/img"},
+      {name:"gpt-image-2",   type:"image",desc:"GPT Image 2 — Premium hi-res + edit", free:false, price:"0.00003 🌼/img"},
+      {name:"nanobanana",    type:"image",desc:"NanoBanana — Fast gen + edit", free:false, price:"0.00003 🌼/img"},
+      {name:"nanobanana-2",  type:"image",desc:"NanoBanana 2 — Sharper detail", free:false, price:"0.00006 🌼/img"},
+      {name:"nanobanana-pro",type:"image",desc:"NanoBanana Pro — Gemini 3 Pro (4K, Thinking)", free:false, price:"0.00012 🌼/img"},
+      {name:"seedream",      type:"image",desc:"Seedream 4.0 — Photorealistic", free:false, price:"0.045 🌼/img"},
+      {name:"seedream5",     type:"image",desc:"Seedream 5.0 Lite — Web search + reasoning", free:false, price:"0.0525 🌼/img"},
+      {name:"seedream-pro",  type:"image",desc:"Seedream 4.5 Pro — Premium photorealistic", free:false, price:"0.06 🌼/img"},
+      {name:"wan-image-pro", type:"image",desc:"Wan 2.7 Image Pro — 4K, thinking mode", free:false, price:"0.1125 🌼/img"},
+      {name:"grok-imagine",  type:"image",desc:"Grok Imagine — Photorealistic", free:false, price:"0.03 🌼/img"},
+      {name:"grok-imagine-pro",type:"image",desc:"Grok Imagine Pro (Aurora) — xAI official", free:false, price:"0.105 🌼/img"},
+      {name:"p-image",       type:"image",desc:"Pruna p-image — Fast T2I", free:false, price:"0.0075 🌼/img"},
+      {name:"p-image-edit",  type:"image",desc:"Pruna p-image-edit — I2I editing", free:false, price:"0.015 🌼/img"},
+      // ── VIDEO ──────────────────────────────────────────────────
+      {name:"ltx-2",         type:"video",desc:"LTX-2.3 — Fast T2V/I2V + upscaler", free:true,  price:"0.005 🌼/s"},
+      {name:"nova-reel",     type:"video",desc:"Nova Reel — 6–120 s, 720p", free:true,  price:"0.08 🌼/s"},
+      {name:"veo",           type:"video",desc:"Veo 3.1 Fast — T2V with audio (preview)", free:false, price:"0.15 🌼/s"},
+      {name:"seedance-pro",  type:"video",desc:"Seedance Pro-Fast — 720p, prompt adherence", free:false, price:"0.0375 🌼/s"},
+      {name:"seedance-2.0",  type:"video",desc:"Seedance 2.0 — 720p, native audio", free:false, price:"0.27 🌼/s"},
+      {name:"wan",           type:"video",desc:"Wan 2.6 — 2–15 s, up to 1080p", free:false, price:"0.075 🌼/s"},
+      {name:"wan-fast",      type:"video",desc:"Wan 2.2 — Fast 5 s, 480p", free:false, price:"0.015 🌼/s"},
+      {name:"wan-pro",       type:"video",desc:"Wan 2.7 — 720p/1080p + audio", free:false, price:"0.15 🌼/s"},
+      {name:"grok-video-pro",type:"video",desc:"Grok Video Pro — 720p, 1–15 s", free:false, price:"0.075 🌼/s"},
+      {name:"p-video",       type:"video",desc:"Pruna p-video — T2V+I2V, audio", free:false, price:"0.036 🌼/s"},
+      // ── AUDIO ──────────────────────────────────────────────────
+      {name:"elevenlabs",    type:"audio",desc:"ElevenLabs TTS", free:true},
+      {name:"elevenflash",   type:"audio",desc:"ElevenLabs Flash TTS", free:true},
+      {name:"elevenmusic",   type:"audio",desc:"ElevenLabs Music Generation", free:true},
+      {name:"whisper",       type:"audio",desc:"OpenAI Whisper STT", free:true},
+      {name:"scribe",        type:"audio",desc:"ElevenLabs Scribe STT", free:true},
+      {name:"universal-2",   type:"audio",desc:"Universal-2 STT", free:true},
+      {name:"universal-3-pro",type:"audio",desc:"Universal-3 Pro STT", free:true},
+      {name:"acestep",       type:"audio",desc:"ACE-Step Music Generation", free:true},
+      {name:"qwen-tts",      type:"audio",desc:"Qwen TTS", free:true},
+      {name:"qwen-tts-instruct",type:"audio",desc:"Qwen TTS Instruct", free:true},
+    ];
 
-  <h2>Bild/Video — Free Tier (Pollinations)</h2>
-  <table>
-    <tr><th>ID</th><th>Typ</th><th>Referenz</th></tr>
-    <tr><td><code>flux</code></td><td>image</td><td>—</td></tr>
-    <tr><td><code>zimage</code></td><td>image</td><td>—</td></tr>
-    <tr><td><code>gpt-image</code></td><td>image</td><td>ja</td></tr>
-    <tr><td><code>klein</code></td><td>image</td><td>—</td></tr>
-    <tr><td><code>grok-image</code></td><td>image</td><td>—</td></tr>
-    <tr><td><code>grok-video</code></td><td>video</td><td>—</td></tr>
-  </table>
+    let activeFilter='all';
+    const grid=document.getElementById('m-grid');
+    const fbtns=document.querySelectorAll('.mf');
 
-  <h2>Bild/Video — BYOP (Pollinations)</h2>
-  <table>
-    <tr><th>ID</th><th>Typ</th><th>Besonderheit</th></tr>
-    <tr><td><code>kontext</code></td><td>image</td><td>—</td></tr>
-    <tr><td><code>gptimage-large</code></td><td>image</td><td>—</td></tr>
-    <tr><td><code>seedream5</code></td><td>image</td><td>—</td></tr>
-    <tr><td><code>nanobanana / -2 / -pro</code></td><td>image</td><td>Pollen-only</td></tr>
-    <tr><td><code>qwen-image</code></td><td>image</td><td>—</td></tr>
-    <tr><td><code>p-image / p-image-edit</code></td><td>image</td><td>—</td></tr>
-    <tr><td><code>wan / wan-fast</code></td><td>video</td><td>—</td></tr>
-    <tr><td><code>seedance · ltx-2 · p-video</code></td><td>video</td><td>T2V+I2V</td></tr>
-  </table>
+    function render(f){
+      const filtered=f==='all'?MODELS:f==='free'?MODELS.filter(m=>m.free):MODELS.filter(m=>m.type===f);
+      grid.innerHTML=filtered.map(m=>`
+        <div class="mc ${m.free?'free':'paid'}">
+          <div class="mc-name">${m.name}</div>
+          <div class="mc-desc">${m.desc}</div>
+          <div class="mc-meta">
+            <span class="mc-tag type-${m.type}">${m.type}</span>
+            <span class="mc-tag ${m.free?'free-tag':'paid-tag'}">${m.free?'free':'paid'}</span>
+          </div>
+          ${m.price?`<div class="mc-price">${m.price}</div>`:''}
+        </div>`).join('');
+    }
 
-  <h2>Pruna-Modelle — BYOP ⚡ <span class="pill now" style="margin-top:0;vertical-align:middle">neu</span></h2>
-  <table>
-    <tr><th>hey.hi ID</th><th>Pruna ID</th><th>Typ</th><th>Referenz</th><th>Besonderheit</th></tr>
-    <tr><td><code>pruna-p-image</code></td><td><code>p-image</code></td><td>image</td><td>—</td><td>Ultra-fast T2I</td></tr>
-    <tr><td><code>pruna-p-image-edit</code></td><td><code>p-image-edit</code></td><td>image</td><td>max 2</td><td>—</td></tr>
-    <tr><td><code>pruna-wan-i2v</code></td><td><code>wan-i2v</code></td><td>video</td><td>1 (required)</td><td>7 s · 113 frames</td></tr>
-    <tr><td><code>pruna-wan-t2v</code></td><td><code>wan-t2v</code></td><td>video</td><td>—</td><td>7 s · 113 frames</td></tr>
-    <tr><td><code>pruna-qwen-image</code></td><td><code>qwen-image</code></td><td>image</td><td>—</td><td>supportsPromptEnhance</td></tr>
-    <tr><td><code>pruna-qwen-image-edit</code></td><td><code>qwen-image-edit-plus</code></td><td>image</td><td>max 2</td><td>—</td></tr>
-    <tr><td><code>pruna-p-video</code></td><td><code>p-video</code></td><td>video</td><td>max 1</td><td>T2V+I2V · 5 s/10 s · Audio</td></tr>
-  </table>
-  <p class="legend">Polling: 48 × 5 s = 240 s Budget · maxDuration = 300 s · Binary → Pollinations Media Upload</p>
+    function updateCounts(){
+      document.getElementById('cnt-all').textContent=`(${MODELS.length})`;
+      ['text','image','video','audio'].forEach(t=>{
+        document.getElementById(`cnt-${t}`).textContent=`(${MODELS.filter(m=>m.type===t).length})`;
+      });
+      document.getElementById('cnt-free').textContent=`(${MODELS.filter(m=>m.free).length})`;
+    }
+
+    fbtns.forEach(b=>b.addEventListener('click',()=>{
+      fbtns.forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      render(b.dataset.f);
+    }));
+
+    updateCounts();
+    render('all');
+  })();
+  </script>
 </section>
 
 <!-- ══════════════════════════════════════════════ CODE REVIEW -->
@@ -542,8 +653,8 @@
   <span class="hx-label">hey-hi.space // cross-project ↔ alle Repos</span>
   <div class="hx-item"><button class="hx-btn">heyhireset</button><div class="hx-drop"><a href="file:///Users/johnmeckel/heyhireset/docs/project.html" class="local" target="_blank">Lokal öffnen</a><a href="https://github.com/loopmaster303/heyhireset" class="github" target="_blank">GitHub</a></div></div>
     <div class="hx-item"><button class="hx-btn current">heyhihosted ●</button></div>
-    <div class="hx-item"><button class="hx-btn">heyhi-ai-or-goodbye</button><div class="hx-drop"><a href="https://github.com/loopmaster303/hey-hi-or-goodbye" class="github" target="_blank">GitHub</a></div></div>
-    <div class="hx-item"><button class="hx-btn">heyhiblogheyhiworld</button><div class="hx-drop"><a href="file:///Users/johnmeckel/heyhiblogheyhiworld/docs/project.html" class="local" target="_blank">Lokal öffnen</a><a href="https://github.com/loopmaster303/heyhiblogheyhiworld" class="github" target="_blank">GitHub</a></div></div>
+    <div class="hx-item"><button class="hx-btn">ai or goodbye</button><div class="hx-drop"><a href="file:///Users/johnmeckel/heyhi-ai-or-goodbye/docs/project.html" class="local" target="_blank">Lokal öffnen</a><a href="https://github.com/loopmaster303/hey-hi-or-goodbye" class="github" target="_blank">GitHub</a></div></div>
+    <div class="hx-item"><button class="hx-btn">just say hi to ai</button><div class="hx-drop"><a href="file:///Users/johnmeckel/heyhiblogheyhiworld/docs/project.html" class="local" target="_blank">Lokal öffnen</a><a href="https://github.com/loopmaster303/heyhiblogheyhiworld" class="github" target="_blank">GitHub</a></div></div>
     <div class="hx-item"><button class="hx-btn">meinbild</button><div class="hx-drop"><a href="file:///Users/johnmeckel/meinbild/docs/project.html" class="local" target="_blank">Lokal öffnen</a><a href="https://github.com/loopmaster303/meinbild" class="github" target="_blank">GitHub</a></div></div>
     <div class="hx-item"><button class="hx-btn">buergerbuddy</button><div class="hx-drop"><a href="https://github.com/loopmaster303/buergerbuddy" class="github" target="_blank">GitHub</a></div></div>
 </footer>

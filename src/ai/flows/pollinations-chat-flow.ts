@@ -52,7 +52,6 @@ export interface PollinationsChatOutput {
 }
 
 const POLLEN_CHAT_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
-const LEGACY_POLLINATIONS_API_URL = 'https://text.pollinations.ai/openai';
 const LEGACY_FALLBACK_MODELS = new Set(['openai-large', 'openai-reasoning', 'gemini-search']);
 const DEFAULT_CHAT_MAX_TOKENS = 1200;
 
@@ -103,7 +102,7 @@ export async function getPollinationsChatCompletion(
   type EndpointTarget = { name: 'pollen' | 'legacy'; url: string; apiKey?: string };
   const targets: EndpointTarget[] = [];
   if (pollenApiKey) targets.push({ name: 'pollen', url: POLLEN_CHAT_API_URL, apiKey: pollenApiKey });
-  if (allowLegacyFallback && legacyApiKey) targets.push({ name: 'legacy', url: LEGACY_POLLINATIONS_API_URL, apiKey: legacyApiKey });
+  if (allowLegacyFallback && legacyApiKey) targets.push({ name: 'legacy', url: POLLEN_CHAT_API_URL, apiKey: legacyApiKey });
 
   let lastError: Error | null = null;
 
