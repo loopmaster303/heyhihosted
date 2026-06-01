@@ -13,11 +13,7 @@ const MODEL_ALIASES: Record<string, string> = {
   'qwen-image-edit': 'qwen-image',
   'qwen-image-edit-plus': 'qwen-image',
   'p-image': 'p-image',
-  'pruna': 'p-image',
-  'pruna-image': 'p-image',
   'p-image-edit': 'p-image-edit',
-  'pruna-edit': 'p-image-edit',
-  'pruna-image-edit': 'p-image-edit',
   'grok-image': 'grok-imagine',
   'grok-imagine-pro': 'grok-imagine',
   'grok-aurora': 'grok-imagine',
@@ -35,7 +31,6 @@ const MODEL_ALIASES: Record<string, string> = {
   'wan-2.7-image-pro': 'wan-image-pro',
   'wan2.7-pro': 'wan-image-pro',
   'p-video': 'p-video',
-  'pruna-video': 'p-video',
   'seedream-pro': 'seedream5',
   'seedream5': 'seedream5',
   'wan-2.5-t2v': 'wan',
@@ -314,8 +309,8 @@ export async function POST(request: NextRequest) {
       .join('\n\n');
 
     // Prompt enhancement: primary model + fallback if output is low-quality (suffix-only) or request fails.
-    const primaryEnhancerModelId = 'claude';
-    const fallbackEnhancerModelId = 'gemini';
+    const primaryEnhancerModelId = 'claude-fast';
+    const fallbackEnhancerModelId = 'gemini-fast';
     let enhancedText: string | null = null;
     let usedModel: string = primaryEnhancerModelId;
 

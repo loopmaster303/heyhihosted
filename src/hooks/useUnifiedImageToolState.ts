@@ -14,10 +14,10 @@ import { getClientSessionId } from '@/lib/session';
 import type { UploadedReference } from '@/types';
 import { useHasPollenKey } from './useHasPollenKey';
 
-// Define which models need image upload (Pollinations + Pruna reference models)
+// Define which models need image upload (Pollinations reference models)
 export const pollinationUploadModels = [
     ...UNIFIED_IMAGE_MODELS
-        .filter(model => (model.provider === 'pollinations' || model.provider === 'pruna') && model.supportsReference === true)
+        .filter(model => model.provider === 'pollinations' && model.supportsReference === true)
         .map(model => model.id),
 ];
 
@@ -111,14 +111,6 @@ export function useUnifiedImageToolState() {
 
     const isPollinationsVideo = currentModelConfig?.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations';
 
-    const isPrunaModel = useMemo(() => {
-        const model = getUnifiedModel(selectedModelId);
-        return model?.provider === 'pruna';
-    }, [selectedModelId]);
-
-    const isPrunaVideo = isPrunaModel && currentModelConfig?.outputType === 'video';
-    const isPrunaQwen = selectedModelId === 'pruna-qwen-image';
-
     // Supports Reference Check
     const supportsReference = useMemo(() => {
         const modelInfo = getUnifiedModel(selectedModelId);
@@ -182,21 +174,9 @@ export function useUnifiedImageToolState() {
             } else {
                  initialFields.audio = false;
             }
-        } else if (isPrunaVideo) {
-            const modelInfo = getUnifiedModel(selectedModelId);
-            if (selectedModelId !== 'pruna-wan-i2v') {
-                initialFields.aspect_ratio = '16:9';
-            }
-            if (modelInfo?.durationRange?.options && modelInfo.durationRange.options.length > 0) {
-                initialFields.duration = modelInfo.durationRange.options[0];
-            } else {
-                initialFields.duration = 5;
-            }
-        } else if (isPrunaModel) {
-            initialFields.aspect_ratio = '1:1';
         }
         setFormFields(initialFields);
-    }, [currentModelConfig, isPollenModel, isPollinationsVideo, isPrunaModel, isPrunaVideo, selectedModelId]);
+    }, [currentModelConfig, isPollenModel, isPollinationsVideo, selectedModelId]);
 
     // Clear uploaded images if model doesn't support them
     useEffect(() => {
@@ -384,9 +364,6 @@ export function useUnifiedImageToolState() {
         isNanoPollen,
         isPollenModel,
         isPollinationsVideo,
-        isPrunaModel,
-        isPrunaVideo,
-        isPrunaQwen,
 
         // Actions
         handleFileChange,

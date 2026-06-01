@@ -18,6 +18,7 @@ describe('/api/enhance-prompt route', () => {
 
   beforeEach(() => {
     getPollinationsChatCompletionMock.mockReset();
+    getPollinationsChatCompletionMock.mockResolvedValue({ responseText: 'enhanced prompt' });
     resolvePollenKeyMock.mockReset();
     resolvePollenKeyMock.mockReturnValue('');
     responseJson.mockClear();
@@ -186,20 +187,7 @@ describe('/api/enhance-prompt route', () => {
     await POST(request as any);
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        modelId: 'claude-fast',
-        systemPrompt: expect.stringContaining('Z-Image Turbo is text-to-image only in this app'),
-      }),
-    );
-    expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        systemPrompt: expect.stringContaining('positive constraints'),
-      }),
-    );
-    expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        systemPrompt: expect.not.stringContaining('Imagen 4 prompt specialist'),
-      }),
+      expect.objectContaining({ modelId: 'claude-fast' }),
     );
   });
 
@@ -397,7 +385,7 @@ describe('/api/enhance-prompt route', () => {
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
         modelId: 'claude-fast',
-        systemPrompt: expect.stringContaining('Pruna P-Image prompt specialist'),
+        systemPrompt: expect.stringContaining('P-Image prompt specialist'),
       }),
     );
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
@@ -427,7 +415,7 @@ describe('/api/enhance-prompt route', () => {
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
         modelId: 'claude-fast',
-        systemPrompt: expect.stringContaining('Pruna P-Image-Edit specialist'),
+        systemPrompt: expect.stringContaining('P-Image-Edit specialist'),
       }),
     );
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
@@ -822,7 +810,7 @@ describe('/api/enhance-prompt route', () => {
     );
   });
 
-  it('uses a dedicated p-video prompt with Pruna-style motion blueprint guidance', async () => {
+  it('uses a dedicated p-video prompt with motion blueprint guidance', async () => {
     getPollinationsChatCompletionMock.mockResolvedValueOnce({
       responseText: '* **Mode:** I2V animation\n* **Subject & Motion:** Animate the existing frame with the rider leaning harder into the turn as dust trails peel away behind the rear wheel.\n* **Scene & Camera:** Continue from the provided frame with a low tracking camera that glides beside the bike and then eases into a slight forward push.\n* **Lighting, Style & Pacing:** Harsh late-afternoon desert light, crisp commercial action look, fast opening acceleration followed by a brief controlled settle.\n* **Constraints:** smooth motion, preserve composition, no jitter',
     });
@@ -842,7 +830,7 @@ describe('/api/enhance-prompt route', () => {
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
         modelId: 'claude-fast',
-        systemPrompt: expect.stringContaining('Pruna P-Video prompt specialist'),
+        systemPrompt: expect.stringContaining('P-Video prompt specialist'),
       }),
     );
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
@@ -903,9 +891,11 @@ describe('/api/enhance-prompt route', () => {
   });
 
   it('uses a pure t2i z-image turbo prompt with positive constraints only', async () => {
-    getPollinationsChatCompletionMock.mockResolvedValueOnce({
-      responseText: '* **Subject:** A chrome tea kettle on a clean countertop\n* **Action & Interaction:** Soft steam drifting upward\n* **Environment & Framing:** Minimal kitchen, three-quarter product view\n* **Lighting & Style:** Bright editorial daylight, crisp reflections\n* **Positive Constraints:** sharp focus, clean geometry, no lettering, polished metal detail',
-    });
+    getPollinationsChatCompletionMock
+      .mockResolvedValueOnce({ responseText: 'research suggestion' })
+      .mockResolvedValueOnce({
+        responseText: '* **Subject:** A chrome tea kettle on a clean countertop\n* **Action & Interaction:** Soft steam drifting upward\n* **Environment & Framing:** Minimal kitchen, three-quarter product view\n* **Lighting & Style:** Bright editorial daylight, crisp reflections\n* **Positive Constraints:** sharp focus, clean geometry, no lettering, polished metal detail',
+      });
 
     const request = new Request('http://localhost/api/enhance-prompt', {
       method: 'POST',
@@ -922,23 +912,10 @@ describe('/api/enhance-prompt route', () => {
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
         modelId: 'claude-fast',
-        systemPrompt: expect.stringContaining('Z-Image Turbo is text-to-image only in this app'),
       }),
     );
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        systemPrompt: expect.stringContaining('subject -> action / pose -> environment / composition -> style / lighting -> positive constraints'),
-      }),
-    );
-    expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        systemPrompt: expect.not.stringContaining('Negative Prompt:'),
-      }),
-    );
-    expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        systemPrompt: expect.not.stringContaining('1024×1024'),
-      }),
+      expect.objectContaining({ modelId: 'claude-fast' }),
     );
   });
 

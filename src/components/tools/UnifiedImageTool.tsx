@@ -16,6 +16,7 @@ import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
 import { getClientSessionId } from '@/lib/session';
 import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
 import VisualizeInputContainer from '@/components/tools/VisualizeInputContainer';
+import { getPollenHeaders } from '@/lib/pollen-key';
 // import { persistRemoteImage } from '@/lib/services/local-image-storage';
 import { ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -153,7 +154,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
 
       const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
         body: JSON.stringify(payload),
       });
 
@@ -179,7 +180,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
             modelId: currentModelId,
             sessionId: getClientSessionId(),
             isVideo,
-            isPollinations: true,
+            isPollinations: getUnifiedModel(currentModelId)?.provider === 'pollinations',
           });
 
           if (localAssetId) {

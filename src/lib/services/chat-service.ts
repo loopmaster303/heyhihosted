@@ -9,8 +9,6 @@ import {
 import { getUnifiedModel } from '@/config/unified-image-models';
 import { processSseStream } from '@/utils/chatHelpers';
 import { getPollenHeaders } from '@/lib/pollen-key';
-import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
-import { getClientSessionId } from '@/lib/session';
 
 export interface SendMessageOptions {
     messages: ApiChatMessage[];
@@ -110,46 +108,33 @@ export class ChatService {
 
     static async generateImage(options: GenerateImageOptions): Promise<string> {
         const modelInfo = getUnifiedModel(options.modelId);
-        const isPruna = modelInfo?.provider === 'pruna';
-        const endpoint = isPruna ? '/api/pruna' : '/api/generate';
 
-        let body: any = { prompt: options.prompt, model: options.modelId };
+        const body: any = { prompt: options.prompt, model: options.modelId, private: true };
 
-        if (isPruna) {
-            if (options.aspect_ratio) body.aspect_ratio = options.aspect_ratio;
-            if (options.image) body.image = options.image;
-            if (options.image_url) body.image = options.image_url;
+        if (modelInfo?.kind === 'video' || options.duration !== undefined || options.audio !== undefined) {
+            if (options.aspect_ratio) body.aspectRatio = options.aspect_ratio;
             if (options.duration !== undefined) {
                 body.duration = options.duration;
+            } else if (options.frames) {
+                body.duration = options.frames;
             } else if (modelInfo?.durationRange?.options && modelInfo.durationRange.options.length > 0) {
                 body.duration = modelInfo.durationRange.options[0];
-            }
-        } else {
-            body.private = true;
-            if (modelInfo?.kind === 'video' || options.duration !== undefined || options.audio !== undefined) {
-                if (options.aspect_ratio) body.aspectRatio = options.aspect_ratio;
-                if (options.duration !== undefined) {
-                    body.duration = options.duration;
-                } else if (options.frames) {
-                    body.duration = options.frames;
-                } else if (modelInfo?.durationRange?.options && modelInfo.durationRange.options.length > 0) {
-                    body.duration = modelInfo.durationRange.options[0];
-                } else {
-                    body.duration = 5;
-                }
-                if (options.audio !== undefined) body.audio = options.audio;
             } else {
-                body.width = options.width;
-                body.height = options.height;
+                body.duration = 5;
             }
-            if (options.image) body.image = options.image;
-            if (options.image_url) body.image = options.image_url;
-            if (options.input_image) body.image = options.input_image;
-            if (options.input_images) body.image = options.input_images;
-            if (options.negative_prompt) body.negative_prompt = options.negative_prompt;
+            if (options.audio !== undefined) body.audio = options.audio;
+        } else {
+            body.width = options.width;
+            body.height = options.height;
         }
 
-        const response = await fetch(endpoint, {
+        if (options.image) body.image = options.image;
+        if (options.image_url) body.image = options.image_url;
+        if (options.input_image) body.image = options.input_image;
+        if (options.input_images) body.image = options.input_images;
+        if (options.negative_prompt) body.negative_prompt = options.negative_prompt;
+
+        const response = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
             body: JSON.stringify(body),
@@ -157,21 +142,6 @@ export class ChatService {
 
         if (response.status === 404) {
             throw new Error('The Model is currently not available. Try another one like z-image (Das Modell ist anscheinend im Moment nicht verfügbar probiere ein anders zB zimage)');
-        }
-
-        // Pruna returns binary — upload to Pollinations Media for a stable URL
-        const responseContentType = response.headers.get('content-type') || '';
-        if (responseContentType.includes('image/') || responseContentType.includes('video/')) {
-            if (!response.ok) throw new Error('Pruna generation failed.');
-            const blob = await response.blob();
-            const ext = responseContentType.split('/')[1]?.split(';')[0] || 'jpg';
-            const fileName = `gen-${Date.now()}.${ext}`;
-            const sessionId = getClientSessionId();
-            const media = await uploadFileToPollinationsMedia(blob, fileName, responseContentType, {
-                sessionId,
-                folder: 'generations',
-            });
-            return media.mediaUrl;
         }
 
         const result: any = await response.json();

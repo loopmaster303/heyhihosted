@@ -105,11 +105,4 @@ export const imageModelIcons: Record<string, any> = {
     'p-image': PollinationsIcon,
     'p-image-edit': PollinationsIcon,
     'p-video': PollinationsIcon,
-    'pruna-p-image': '⚡',
-    'pruna-p-image-edit': '⚡',
-    'pruna-wan-i2v': WANIcon,
-    'pruna-wan-t2v': WANIcon,
-    'pruna-qwen-image': QwenIcon,
-    'pruna-qwen-image-edit': QwenIcon,
-    'pruna-p-video': PollinationsIcon,
 };

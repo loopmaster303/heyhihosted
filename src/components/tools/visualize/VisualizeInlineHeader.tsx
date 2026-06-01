@@ -292,7 +292,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                 ))}
               </SelectContent>
             </Select>
-          ) : currentModelConfig.outputType === 'video' && (getUnifiedModel(selectedModelId)?.provider === 'pollinations' || getUnifiedModel(selectedModelId)?.provider === 'pruna') ? (
+          ) : currentModelConfig.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations' ? (
             <Select
               value={formFields.aspect_ratio || '16:9'}
               onValueChange={(v) => handleFieldChange('aspect_ratio', v)}
@@ -423,7 +423,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
           return null;
       })()}
 
-      {/* Enhance Prompt Toggle (Pruna Qwen Image only) */}
+      {/* Enhance Prompt Toggle (for models that support it) */}
       {getUnifiedModel(selectedModelId)?.supportsPromptEnhance && (
         <div className={badgeClass}>
           <span className={labelClass}>ENHANCE</span>
