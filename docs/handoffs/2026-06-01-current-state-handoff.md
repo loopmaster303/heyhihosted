@@ -528,3 +528,36 @@ This + the GODSPACE subagent close the main Phase 4 creation/audit waves. Next i
 See the updated handoff in the clone + master for full Git cmds, verifs, recovery. This + sayhi/heyhiblog prep + GODSPACE close the big creation/rebrand waves. User-executed pushes + integration + deletes next. YOLO. Truth solid.
 
 Coordinator: John (du). Alles aneinander. Clean + verify before deletes. Reference master plan + this handoff.
+
+---
+
+## Subagent Completion: Bulk docs update + initial GODSPACE HTML (YOLO) — FAILED (runtime proxy)
+
+**Subagent:** 019e853f-7606-7693-9ca1-6ec115967565 (general-purpose, "Bulk update all docs + create initial GODSPACE OVERVIEW HTML - YOLO full speed")
+
+**Duration:** 1419.3s (~23.7min) | 98 tool calls | 1 turn | Exit 1 (failure)
+
+**Failure:** Same recurring transient runtime/proxy error: "Internal error: reqwest error stream: error sending request for url (https://cli-chat-proxy.grok.com/v1/responses)". Crashed before producing any report or substantial output (no ID traces in handoffs/plans). This matches the proxy failures in other long YOLO subagents (sayhi rename 019e8545-..., earlier democrabs attempt).
+
+**What actually happened (truth-check vs parallel/successful waves):**
+- No changes or partial files attributable to this specific subagent ID (grep for ID = 0 in all key docs; git log in heyhireset around 22:13-22:36 on 2026-06-01 shows no new commits from it; no stray *godspace* or partial heyhi.html files).
+- The real GODSPACE OVERVIEW + bulk docs delivery came from the successful parallel subagent 019e8546-1327-7422-b6d7-49d6ab7f5875 (YOLO in heyhireset): created /docs/heyhi.html (self-contained 209 lines initial, reused project.html styles/XLinks, levels L1 sayhi/L2 heyhihosted/L3, 6-project grid, arts/attitudes/manifestos, functional dropdowns, live-ready).
+- Our manual YOLO continuation + commits: 
+  - Surgical link fixes in heyhi.html (GH URLs updated to new sayhi/heyhiblog after we created the GH repos; local paths restored; "GH created 2026-06-01 — ready for local remote-swap + push" note added to footer).
+  - Commits in heyhireset: f8baf04 "feat: GODSPACE OVERVIEW heyhi.html (levels, projects, arts/attitudes, XLinks) + reorg handoffs + bulk doc links (sayhi/heyhiblog GH created)" (bundled successful subagent delivery + reorg handoffs + bulk name updates in README/CLAUDE/project.html), + 3f37dd1 with the GH note.
+  - Pushed to heyhireset main (clean except stray ?? lib/models.ts from pre-reorg).
+  - heyhi.html current: 12074 bytes, full content (verified previously: hero, levels grid, projects with correct current local paths + updated GH sayhi/heyhiblog/democrabs, attitudes with crab motto + local-first/anti-slop, XLinks footer).
+- Bulk docs + XLinks + reorg sections + handoff syncs across ecosystem were handled in the successful GODSPACE subagent wave + our follow-ups (and prior cross-repo subagents). All 6 repos have 2026-06-01-heyhi-reorg-handoff.md (updated with status, GH creates, push commands, subagent records). Master current-state-handoff and hosted reorg-handoff kept in sync with every wave (successes + failures + our manual backups/pushes).
+- Current verified state (post all waves + our pushes): GODSPACE solid and hosted in heyhireset as pyramid top; links correct for new GH names; no old names in active cross-links beyond intentional "ex-" labels and meta in handoffs; reorg docs committed/pushed in hubs.
+
+**Pattern note:** Long-running YOLO subagents (1000s+ seconds, 50-180+ calls) are hitting the same cli-chat-proxy/reqwest stream errors repeatedly. For Git-heavy or destructive-leaning tasks (renames, content moves, remote swaps), manual execution from the main agent (with truth-checks + handoff updates) has been more reliable and safe. We used subagent output + direct git/MCP/ls/grep for verification.
+
+**Status:** This subagent added no value (crashed early). GODSPACE + bulk foundation is real, committed, pushed, and enhanced (thanks to the successful sibling subagent + our continuation). Recurring proxy risk documented. Ecosystem handoffs are the single source of truth with all Task IDs, findings, Git states, and exact commands.
+
+**Implications / Next (unchanged from prior sections):** 
+- GODSPACE: ready to deploy/serve at www.hey-hi.space from heyhireset (copy heyhi.html or configure).
+- Renames (sayhi from heyhiblogheyhiworld, heyhiblog from heyhi-ai-or-goodbye): GH repos created by us (empty, verified), prep done in targets (package names updated, CLAUDE/handoffs with audits, safe backups for content moves in ~/heyhi-backups, commits on old remotes). Use the "Exact YOLO next" commands in this handoff: review/commit prep in clone, remote remove/add to new GH, push -u origin main --force, verify, then optional mv + import from backups, delete old GH after your sign-off.
+- democrabs: rebrand on feat/rebrand-democrabs-pilot (with handoff note), main restored to old snapshot. User: verify fresh clone of feat, integrate pilot into GH structure (apps/legacy...), pnpm, Hetzner plan, delete old buergerbuddy GH after sign-off. Umlaut clone (bürgerbuddy) tracks democrabs on codex branch (ahead 13, workspace/apps side) — handle its commits separately.
+- All locals truth-checked (dirty trees expected with active dev + reorg docs; reorg parts committed/pushed where possible). No data loss.
+
+Coordinator: John (du). Proxy issues make long subagents unreliable for this phase — manual + handoff sync has carried the reorg. The rename/push/verify/delete phase is now fully unblocked for you. Commands + full cross-repo state in this master handoff. YOLO. Truth maintained. Weiter.
