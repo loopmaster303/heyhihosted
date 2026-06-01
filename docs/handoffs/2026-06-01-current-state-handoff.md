@@ -279,8 +279,8 @@ All local + remote now documented. Push through per YOLO. Coordinator: John Meck
 **Date of this check:** 2026-06-01 (direct `git`, `ls`, MCP github search)
 
 **GH current state (via search_repositories user:loopmaster303):**
-- sayhi: **JUST CREATED** (loopmaster303/sayhi, private, empty — ready for push)
-- heyhiblog: **JUST CREATED** (loopmaster303/heyhiblog, private, empty — ready for push)
+- sayhi: **CREATED + VERIFIED EMPTY** (loopmaster303/sayhi, private, main empty — confirmed via list_commits 409 empty repo. Ready for the force push of local history.)
+- heyhiblog: **CREATED + VERIFIED EMPTY** (loopmaster303/heyhiblog, private, main empty. Ready.)
 - democrabs: exists (default: codex/buergerbuddy-intake-pilot)
 - buergerbuddy: still exists (old, do not delete yet)
 - heyhiblogheyhiworld: exists (old name)
@@ -309,10 +309,13 @@ All local + remote now documented. Push through per YOLO. Coordinator: John Meck
 
 **Actions this continuation (YOLO, no stops):**
 - Direct truth audit (git/MCP/ls/grep across clones) — overrides stale optimistic/pessimistic pasted sections.
-- Created sayhi + heyhiblog GH repos via MCP (empty, private, descriptions per vision).
-- Surgical fix in GODSPACE: GH urls for the two new repos + restored correct local folder paths in links (the broad "ex-" replace had side effect, fixed).
-- This handoff updated with fresh facts.
-- (Next immediate in this workspace:) Commit only the reorg coordination artifacts (3 new docs + small bulk changes in project/README/CLAUDE) to clean tree partially. Hosted src/ changes (gallery layout, media intent, config, upload cleanup) left for separate commit on dashboard/xlinks (review the new chat-media-intent + Inline + compose first).
+- Created sayhi + heyhiblog GH repos via MCP (empty, private, descriptions per vision). Verified empty (list_commits).
+- Surgical fix in GODSPACE: GH urls for the two new repos + restored correct local folder paths in links (the broad "ex-" replace had side effect, fixed). Added "GH created" note in footer.
+- This handoff updated with fresh facts + exact commands.
+- Reorg aufräumen in heyhihosted: committed + pushed the 3 reorg docs + bulk name updates in project/README/CLAUDE + legacy plan syncs (3 commits total on dashboard/xlinks for reorg part). Hosted active (gallery flex integration, media intent parser/handler/tests/Inline/compose, config, upload route deletes) remain uncommitted on the branch for your review/commit.
+- Same in heyhireset: committed + pushed GODSPACE heyhi.html (full) + reorg handoffs/plans + bulk (now ahead clean except stray lib/?).
+- Prep commits in the rename-target clones (handoff updates) done.
+- Pushed rebrand handoff update as new branch to democrabs GH.
 
 **Exact YOLO next for you (John — the interface): aufräumen + pushen**
 
@@ -366,7 +369,7 @@ All local + remote now documented. Push through per YOLO. Coordinator: John Meck
 - Gallery layout integration (AppLayout flex, GalleryPanel embedded, --sidebar-width, no portal) + config updates are on this branch — test `npm run dev`, `npm run typecheck`, `npm test -- --runInBand` before final push.
 - error.log can be gitignored or removed.
 
-**Status:** Reorg foundation solid (GODSPACE real + 2 GH created + rebrand verified + all handoffs exist + truth documented). Renames now unblockable by you. YOLO through. No more subagent proxy risk for this — manual push phase.
+**Status:** Reorg foundation solid (GODSPACE real + 2 GH created + verified empty + rebrand verified + all handoffs exist + truth documented + reorg docs committed/pushed in hubs). Renames now unblockable by you: run the exact commands in the clones after reviewing their local diffs. YOLO through. No more subagent proxy risk for this — manual push phase. Remaining dirty in heyhihosted = the real hosted work (test before you commit it).
 
 Coordinator: du. Alles aneinander. Clean trees before each push. Reference the master plan.
 
