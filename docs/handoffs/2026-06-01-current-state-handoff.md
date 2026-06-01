@@ -409,3 +409,48 @@ Coordinator: du. Alles aneinander. Clean trees before each push. Reference the m
 **Next (unchanged):** Deploy heyhi.html (to power www.hey-hi.space), execute the rename push commands in the clones (after their local commits), delete old GHs post-verify, optional folder mvs + link syncs. Master plan + this handoff are the single source.
 
 Coordinator: John (du verteilst). YOLO. Truth-checked. Fertig für deine Rename-Phase.
+
+---
+
+## Subagent Completion: sayhi Rename + Content Moves (YOLO) — FAILED (runtime proxy)
+
+**Subagent:** 019e8545-97b9-7d10-810c-ab3c047d9caf (general-purpose, "YOLO execution of sayhi rename + content moves - no approval stops")
+
+**Duration:** 1002.9s (~16.7min) | 53 tool calls | 1 turn | Exit 1 (failure)
+
+**Failure:** Same transient runtime error as prior democrabs rebrand subagent: "Internal error: reqwest error stream: error sending request for url (https://cli-chat-proxy.grok.com/v1/responses)". Not a logic/plan/GH error — proxy/CLI-chat issue during long YOLO execution. Subagent got partway then crashed.
+
+**Accomplished before crash (verified in tree + handoff text):**
+- In /Users/johnmeckel/heyhiblogheyhiworld (sayhi target): package.json name updated "heyhi-algorithmic-mirror" → "sayhi".
+- docs/CLAUDE-INSTRUCTION.md updated (context now "sayhi (ex "Algorithmic Mirror" / heyhiblogheyhiworld)", paths noted as post-rename /sayhi).
+- docs/handoffs/2026-06-01-heyhi-reorg-handoff.md: detailed "Phase 4 Execution: heyhiblogheyhiworld → sayhi" block + "Content Audit Results" (full audit via ls/grep/cat): 
+  - Core stays in sayhi: 5-act immersive (RAUSCHEN → ... → NACH UNSEREM GESPRÄCH), ascii art engine (art-engine/ascii-flow-field.tsx etc.), terminal-window, phase-controller, mirror-session, lib/video/llm-ascii-script. Roleplay + algorithmic mirror aesthetic (L1/2 artsy/roleplay layer).
+  - To move (to heyhiblog or GODSPACE content/arts layer): heyhitoaiart/ (full separate Next.js sub-app for AI-Art), remotion/ (video tooling: LlmAsciiInstastory, render scripts, LLM ASCII video), "blog routes".
+  - Decision: prepare extraction, backups (tar), NO DELETE. "Core engine + 5-acts + canvas art stays. Sub-projects + video tooling + any blog routes → heyhiblog/GODSPACE."
+- Other: docs/project.html, just-say-hi-concept.md, AGENT-AUDIT-PROMPT.md touched for name/role. Hand-off status: "Rename refs + audit + prep COMPLETE. Git + destructive: pending your action".
+- No source .ts/.tsx changes (per audit). package-lock untouched (npm i later).
+- GH "sayhi" was already created earlier (by main, verified empty); subagent focused on local prep + moves.
+
+**Not executed (crashed before):**
+- No git remote change (still https://.../heyhiblogheyhiworld.git).
+- No push / folder mv / history-carrying steps.
+- No tar backups or cp/extraction of heyhitoaiart/remotion (find confirmed no backup/move artifacts pre our follow-up; dirs still fully present on disk).
+- The "heyhiblog" target received no files from this.
+
+**Post-crash actions (main agent, YOLO, truth-checked, non-destructive):**
+- Executed the exact safe backup steps documented in this handoff + the hosted reorg-handoff (Phase 4 sayhi section): `mkdir -p ~/heyhi-backups; tar -czf ~/heyhi-backups/sayhi-heyhitoaiart-2026-06-02.tar.gz heyhitoaiart/; tar -czf ...sayhi-remotion... remotion/ scripts/render-llm-ascii-story.mjs lib/video/llm-ascii-script.ts` (2026-06-02, ~186MB + small, no deletes, 2>/dev/null tolerant).
+- Verified: tars exist in ~/heyhi-backups/, sayhi target tree unchanged for the subdirs, no data loss.
+- Committed in sayhi target: the subagent's changes (package, CLAUDE, project) + handoff append with full subagent record + "backups executed post-crash" (commit b50b811, now ahead 2 on old remote). Other bulk ?? (plans/audits) left for user's full prep add.
+- Minimal note added + committed in heyhiblog target handoff (incoming from sayhi via the backups; import after its rename).
+- Master (this) updated with record. All cross-checked vs git/MCP/ls in both targets + hosted.
+
+**Implications for rename phase:**
+- The "Exact YOLO next" commands below (remote swap + force push to sayhi after local commit of the prep changes) are still complete and sufficient. The subagent's prep (name, CLAUDE, audit) is already in the tree and will be included when user does `git add -A` in the clone.
+- Content moves: backups done. Actual import (mkdir in heyhiblog target, extract/cp from tars or source) can happen after both renames (or now manually if wanted — see hosted reorg-handoff for the tar + import sketch). No deletes ever.
+- Local folder mv (heyhiblogheyhiworld → sayhi) only after successful push + verify (per plan).
+- Old GH "heyhiblogheyhiworld" delete only after your explicit sign-off post-verify.
+- The subagent crash was infrastructure (proxy, recurring in long YOLO waves); prep intent achieved + extended safely here.
+
+**Status:** sayhi rename prep (audit + name + docs) real and committed in target. Content to-move safely backed up. GH ready. No destructive actions performed by subagent or us. Renames remain unblockable via the documented commands. heyhiblog side similarly prepped. Continue with the push steps in the clones. Proxy risk noted for any future long subagents (manual preferred for Git-sensitive steps).
+
+This + the GODSPACE subagent close the main Phase 4 creation/audit waves. Next is user-executed renames + final sync. YOLO through, truth maintained.
