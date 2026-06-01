@@ -226,15 +226,15 @@ Owner: loopmaster303 (confirmed via get_me). Total user repos ~15, relevant:
 - sayhi / heyhiblog: NO GitHub repos exist yet.
 - Progress: democrabs partial (rebrand on feat branch, main not updated, old GH not deleted, local dir names not changed per plan note, 2 clones). Others: 0% on sayhi/heyhiblog. No ssh remotes (https used). No force-pushes to main done.
 
-**3. Handoffs Status (ensured exist + updated where possible):**
-- heyhihosted: current-state-handoff.md (this), heyhi-reorg-handoff.md, gallery one. Updated this master.
-- heyhireset: session-handoff-2026-06-01.md + reorg-handoff.md in docs/handoffs/.
-- heyhiblogheyhiworld: reorg-handoff.md (→sayhi).
-- heyhi-ai-or-goodbye: reorg-handoff.md (→heyhiblog).
-- buergerbuddy (ASCII): reorg-handoff.md (detailed rebrand + Git log claims).
-- meinbild: reorg-handoff.md.
-- bürgerbuddy (umlaut): workspace/SESSION_HANDOFF.md + handoff-*.md + crabby-inbox (many, context for agents).
-All reorg-handoffs now reference latest via this update (edits applied to propagate sync note). No new files created; only edited existing where handoff dir present.
+**3. Handoffs Status (current, post all YOLO waves + manual follow-ups):**
+- heyhihosted: current-state-handoff.md (this master), heyhi-reorg-handoff.md (detailed per-repo + subagent records), gallery-layout-integration.md (legacy simplification). All updated with every subagent success/failure record, GH creates, rename commands, backup notes.
+- heyhireset: 2026-06-01-heyhi-reorg-handoff.md + session-handoff-2026-06-01.md (in docs/handoffs/). Updated with GODSPACE creation (heyhi.html), positioning as pyramid top, bulk links.
+- heyhiblogheyhiworld (→sayhi): 2026-06-01-heyhi-reorg-handoff.md (content audit, Phase 4 block, subagent 8545 fail record + backups, GH create note). Committed in prep (ahead on old remote).
+- heyhi-ai-or-goodbye (→heyhiblog): 2026-06-01-heyhi-reorg-handoff.md (incoming content note from sayhi backups, GH create note). Committed.
+- buergerbuddy (ASCII, rebrand clone): 2026-06-01-heyhi-reorg-handoff.md (full rebrand details from subagent 15db success, Git strategy, pilot integration, our handoff notes). On rebrand-local-pilot, pushed to feat/rebrand-democrabs-pilot.
+- meinbild: 2026-06-01-heyhi-reorg-handoff.md (on hold note, cross refs). Updated.
+- bürgerbuddy (umlaut/workspace clone): workspace/SESSION_HANDOFF.md + multiple handoff-*.md + crabby-inbox (context for agents, separate intake side). Tracks democrabs on codex branch (ahead, user to commit its M).
+All 2026-06-01 reorg handoffs now contain the full set of subagent records (successes 8546 GODSPACE, 15db democrabs; failures 8545 sayhi-moves, 853f bulk, 9795 early-democrabs, and cross-repo ones), GH create notes, exact YOLO rename commands, backup locations, truth-check findings. Master is single source; per-repo ones tailored + reference master plan. No new truth docs invented.
 
 **4. Truth-Check Failures (flagged immediately, no data loss):**
 - GODSPACE: claimed "created in heyhireset/docs/heyhi.html" in prior update — FILE DOES NOT EXIST. ls confirms. Failure.
