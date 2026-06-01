@@ -561,3 +561,23 @@ Coordinator: John (du). Alles aneinander. Clean + verify before deletes. Referen
 - All locals truth-checked (dirty trees expected with active dev + reorg docs; reorg parts committed/pushed where possible). No data loss.
 
 Coordinator: John (du). Proxy issues make long subagents unreliable for this phase — manual + handoff sync has carried the reorg. The rename/push/verify/delete phase is now fully unblocked for you. Commands + full cross-repo state in this master handoff. YOLO. Truth maintained. Weiter.
+
+---
+
+## Subagent Completion: Full buergerbuddy → democrabs Rebrand (YOLO) — FAILED (this early attempt)
+
+**Subagent:** 019e8538-9795-7f11-9e7f-6ca7e98b7d56 (general-purpose, "Full rebrand buergerbuddy → democrabs, YOLO execution")
+
+**Duration:** 1849.9s (~30.8min) | 197 tool calls | 1 turn | Exit 1 (failure)
+
+**Failure:** Recurring proxy/CLI runtime error: "Session error: Internal error: "reqwest error stream: error sending request for url (https://cli-chat-proxy.grok.com/v1/responses)"". Started ~22:05, ran long with 197 calls, produced no report/output before crashing (same as several other long YOLO attempts that night).
+
+**Context in sequence:** This was one of the early parallel YOLO rebrand attempts (visible as "running" at session start). It did not deliver the rebrand (no substantial edits, pushes, or handoff updates attributable to it; clone state at the time was pre-full rebrand or partial from other waves). No ID traces left in docs or code.
+
+**Successful delivery:** The full rebrand (packages @democrabs/*, imports, branding "Democrabs", slogan woven, scripts/Hetzner updates, Git dance with remote swap to democrabs, push to feat/rebrand-democrabs-pilot, main restore to avoid overwrite, handoff massively updated with strategy + verifs) was executed by the later successful subagent 019e8538-15db-7f20-971f-2d050870653e (1308s, 182 calls, success). Current verified state (package "democrabs", slogan, remote democrabs, old names only in historicals, GH branches: feat/rebrand with rebrand content + handoff note, main old snapshot) comes from that success + our follow-up pushes/consolidation (e.g. handoff note to feat, master records).
+
+**Our action:** Recorded here for completeness (all Task IDs tracked). The clone (/buergerbuddy) and GH are in the good post-success state; this failed run left no conflicting partial state.
+
+**Status:** Another data point on the proxy fragility for long-running subagents. Rebrand foundation solid from the successful execution. No data loss, truth maintained via direct checks + handoffs.
+
+**Next:** Unchanged — see the democrabs section above for verify, integration of pilot into GH democrabs, pnpm, Hetzner, old GH delete after sign-off. The umlaut clone (bürgerbuddy) still ahead on its codex branch (workspace side) — handle commits separately. Rename pushes for sayhi/heyhiblog remain the immediate actionable for the other repos.
