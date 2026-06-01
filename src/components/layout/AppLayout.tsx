@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppSidebar from './AppSidebar';
+import { GalleryPanel } from '@/components/gallery/GalleryPanel';
+import { useGalleryAssets } from '@/hooks/useGalleryAssets';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
 import { DEFAULT_IMAGE_MODEL, findVisiblePollinationsModelById } from '@/config/chat-options';
@@ -91,31 +94,34 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   onVisualModelSelectorToggle,
 }) => {
   const [sidebarExpanded, setSidebarExpanded] = useLocalStorageState<boolean>('sidebarExpanded', false);
+  const [galleryPanelOpen, setGalleryPanelOpen] = useState(false);
+
+  // Gallery data (lifted for layout-level rendering)
+  const galleryData = useGalleryAssets();
   const { language } = useLanguage();
   const { isConnected, connectOAuth } = usePollenKey();
   const { findModelById } = useVisiblePollinationsTextModels();
 
   // Get username for header display
   const [userDisplayName] = useState(getInitialDisplayName);
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 640 : false
-  );
-  const [viewportHeight, setViewportHeight] = useState(() =>
-    typeof window !== 'undefined' ? window.innerHeight : 900
-  );
+  const isMobile = useMediaQuery('(max-width: 639px)');
+  const [viewportHeight, setViewportHeight] = useState(900);
 
   useEffect(() => {
-    const syncViewportState = () => {
-      setIsMobile(window.innerWidth < 640);
-      setViewportHeight(window.innerHeight);
-    };
-    syncViewportState();
-    window.addEventListener('resize', syncViewportState);
-    return () => window.removeEventListener('resize', syncViewportState);
+    const syncViewport = () => setViewportHeight(window.innerHeight);
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+    return () => window.removeEventListener('resize', syncViewport);
   }, []);
 
   const isShortViewport = viewportHeight < 820;
   const isVeryShortViewport = viewportHeight < 700;
+
+  // Set sidebar width CSS variable for components like GalleryPanel
+  useEffect(() => {
+    const width = sidebarExpanded ? '20rem' : '4rem';
+    document.documentElement.style.setProperty('--sidebar-width', width);
+  }, [sidebarExpanded]);
 
   // Compute display names for the header
   const llmName = useMemo(() => {
@@ -166,6 +172,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           onDeleteChat={onDeleteChat}
           isExpanded={sidebarExpanded}
           onToggle={() => setSidebarExpanded(!sidebarExpanded)}
+          galleryOpen={galleryPanelOpen}
+          onGalleryToggle={setGalleryPanelOpen}
         />
         <main className="flex-1 overflow-y-auto transition-all duration-300 relative bg-background w-full">
           {/* ASCII Header - NUR in Landing View */}
@@ -290,6 +298,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           </div>
         </main>
       </div>
+
+      {/* Gallery Panel - Rendered at layout level for better integration */}
+      <GalleryPanel
+        isOpen={galleryPanelOpen}
+        onClose={() => setGalleryPanelOpen(false)}
+        assets={galleryData.assets}
+        totalAssetCount={galleryData.assets.length}
+        onDelete={galleryData.deleteAsset}
+        onClearAll={galleryData.clearAllAssets}
+        onToggleStar={galleryData.toggleStarred}
+      />
 
       {/* Mobile Menu Button - Moved to root for better stacking context */}
       {!sidebarExpanded && (

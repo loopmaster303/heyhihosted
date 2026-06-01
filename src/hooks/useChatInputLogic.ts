@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { DEFAULT_POLLINATIONS_MODEL_ID } from '@/config/chat-options';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
@@ -50,7 +51,7 @@ export function useChatInputLogic({
     onToggleComposeMode,
     visualizeToolState,
 }: UseChatInputLogicProps) {
-    const [isMobile, setIsMobile] = useState(false);
+    const isMobile = useMediaQuery('(max-width: 639px)');
     const [activeBadgeRow, setActiveBadgeRow] = useState<'tools' | 'upload' | 'settings' | null>(null);
     const badgePanelRef = useRef<HTMLDivElement>(null);
     const badgeActionsRef = useRef<HTMLDivElement>(null);
@@ -63,16 +64,6 @@ export function useChatInputLogic({
     const hasActiveTool = isImageMode || isComposeMode || webBrowsingEnabled || isCodeMode;
     const [defaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
     const { isKnownModelId } = useVisiblePollinationsTextModels();
-
-    // Mobile detection
-    useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 640);
-        };
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
 
     const visibleBadgeRow = (hasActiveTool && activeBadgeRow === 'tools')
         ? null

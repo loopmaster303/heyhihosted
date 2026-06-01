@@ -28,6 +28,8 @@ interface ConversationItem {
 interface AppSidebarProps {
   onNewChat?: () => void;
   currentPath?: string;
+  galleryOpen?: boolean;
+  onGalleryToggle?: (open: boolean) => void;
   allConversations?: ConversationItem[];
   activeConversation?: ConversationItem | null;
   onSelectChat?: (id: string) => void;
@@ -44,7 +46,9 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   onSelectChat,
   onDeleteChat,
   isExpanded = false,
-  onToggle
+  onToggle,
+  galleryOpen = false,
+  onGalleryToggle
 }) => {
   const [historyExpanded, setHistoryExpanded] = useState(true);
   const { t } = useLanguage();
@@ -138,7 +142,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
             )}
           </div>
 
-          <GallerySidebarSection />
+          <GallerySidebarSection
+            galleryOpen={galleryOpen}
+            onGalleryToggle={onGalleryToggle}
+          />
           <PersonalizationSidebarSection />
           <PollenAccountSidebarSection />
 
