@@ -236,6 +236,27 @@ Owner: loopmaster303 (confirmed via get_me). Total user repos ~15, relevant:
 - bürgerbuddy (umlaut/workspace clone): workspace/SESSION_HANDOFF.md + multiple handoff-*.md + crabby-inbox (context for agents, separate intake side). Tracks democrabs on codex branch (ahead, user to commit its M).
 All 2026-06-01 reorg handoffs now contain the full set of subagent records (successes 8546 GODSPACE, 15db democrabs; failures 8545 sayhi-moves, 853f bulk, 9795 early-democrabs, and cross-repo ones), GH create notes, exact YOLO rename commands, backup locations, truth-check findings. Master is single source; per-repo ones tailored + reference master plan. No new truth docs invented.
 
+**Current State Table (per project - verified 2026-06-02):**
+
+| Projekt (alt → neu) | Lokal State | Details lokal (reorg-relevant) | GitHub | Priv/Open | Default Branch | Last Activity (pushed/updated) | Notes / Reorg Status |
+|---------------------|-------------|--------------------------------|--------|-----------|----------------|--------------------------------|----------------------|
+| heyhireset (mainspace für heyhi GODSPACE) | Green (minor stray) | main...origin/main, ?? lib/ (pre-reorg), reorg clean+committed (588b0cf mainspace emphasis) | loopmaster303/heyhireset | private | main | 2026-06-02T12:09 (our push) | Hosts docs/heyhi.html (GODSPACE). Handoffs updated. Ready as central hub. |
+| heyhihosted (L2) | Red (active dev) | dashboard/xlinks, D old upload/* + M gallery/media/config/chat (feature work) | loopmaster303/heyhihosted | **public** | main | 2026-06-02 (handoff pushes) | Reorg docs clean/pushed. Feature dirty = your simplification phase (commit when ready). |
+| heyhiblogheyhiworld → **sayhi** (L1) | Green (reorg) | main...origin/main (new remote sayhi), ?? bulk/audit files (legacy), reorg prep committed (b50b811 + ee72d76) | loopmaster303/sayhi | private | main | 2026-06-01T23:55 (our force push) | Remote swapped + full history pushed. Package="sayhi". Old GH name still exists (delete after your sign-off). Backups ready in ~/heyhi-backups. |
+| heyhi-ai-or-goodbye → **heyhiblog** | Green (reorg) | main...origin/main (new remote heyhiblog), reorg prep committed (2e4e391 + 2eba9ad) | loopmaster303/heyhiblog | private | main | 2026-06-01T23:55 (our force push) | Remote swapped + history pushed. Old GH name still exists (delete after sign-off). Incoming content from sayhi backups documented. |
+| buergerbuddy (ASCII) → **democrabs** | Green (reorg) | rebrand-local-pilot...origin/feat/rebrand-democrabs-pilot, clean (rebrand + handoff b7d3e85) | loopmaster303/democrabs | private | codex/buergerbuddy-intake-pilot | 2026-06-01T23:55 (recent pushes) | Rebrand done (packages, slogan, etc.). Pilot on feat/rebrand. Main = old snapshot (restored). Handoff updated. Old buergerbuddy GH still exists. |
+| bürgerbuddy (umlaut/workspace) | Red (active) | codex/buergerbuddy-intake-pilot...origin/codex/..., M apps/web/test + overview + lock + ?? superpowers (workspace dev) | (same democrabs) | private | (codex branch) | 2026-06-01 (our codex push) | Separate intake/workspace clone. Pushed its codex branch. Has own SESSION_HANDOFFs. Review M files. |
+| meinbild (on hold) | Red (minor) | main...origin/main, M docs/project.html | loopmaster303/meinbild | private | main | 2026-06-01T22:47 | Handoff synced. On hold per plan. Later attitudes layer. |
+
+**Old GH names (still exist, pending your sign-off for delete):**
+- heyhiblogheyhiworld, hey-hi-or-goodbye, buergerbuddy (all private, old activity dates).
+
+**Local "green/red" rule applied:** Green = reorg prep/renames committed, clean for the task, ready for further push/mv. Red = uncommitted changes (active dev, stray, or workspace work) — needs your review/commit.
+
+All data from direct `git status/log/remote`, package checks, MCP GH search (private flags + updated_at), handoff ls. Last full verification: this run 2026-06-02. 
+
+Update this table after your mv/deletes or further commits.
+
 **4. Truth-Check Failures (flagged immediately, no data loss):**
 - GODSPACE: claimed "created in heyhireset/docs/heyhi.html" in prior update — FILE DOES NOT EXIST. ls confirms. Failure.
 - Democrabs split: 2 local dirs both tracking democrabs now (ASCII=rebrand content on local rebrand-local-pilot 720 ahead of GH main; umlaut=workspace on codex branch). Hand off in ASCII claims "remote swap + push" but current branches/divergence don't align perfectly with GH main/feat (content base mismatch between GH main snapshot vs full rebrand history). Old GH buergerbuddy still live. Handoffs in heyhireset session outdated (wrong which dir active). Desync high risk.
