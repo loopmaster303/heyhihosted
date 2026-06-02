@@ -186,8 +186,8 @@ All other key repos have handoffs. YOLO mode active across the board for this re
 All 6 local hey-hi repos (heyhihosted, heyhiblogheyhiworld→sayhi, buergerbuddy→democrabs, heyhi-ai-or-goodbye→heyhiblog, heyhireset, meinbild) updated:
 - Reorg sections in README.md + CLAUDE.md with new names + link to master plan.
 - Fixed XLinks + names in every docs/project.html (buergerbuddy→democrabs, ai or goodbye→heyhiblog, just say hi→sayhi; correct GH; added GODSPACE entry).
-- Handoffs reference new names + central GODSPACE (**heyhi GODSPACE mainspace = heyhireset** — the central hub).
-- Initial GODSPACE OVERVIEW **actually created** in heyhireset/docs/heyhi.html (self-contained functional beautiful HTML dashboard, style reuse from project.html; Levels L1-L3, projects grid, arts/attitudes/manifestos, XLinks, explicit "mainspace = heyhireset" header). README/CLAUDE/handoffs in heyhireset positioned as heyhi GODSPACE mainspace + links to master plan + heyhi.html.
+- Handoffs reference new names + central GODSPACE (**heyhi MainSpace** — the central GODSPACE hub hosted in heyhireset).
+- Initial GODSPACE OVERVIEW **actually created** in heyhireset/docs/heyhi.html (self-contained functional beautiful HTML dashboard, style reuse from project.html; Levels L1-L3, projects grid, arts/attitudes/manifestos, XLinks, explicit "heyhi MainSpace" branding + subtitle in header). README/CLAUDE/handoffs in heyhireset positioned as host of heyhi MainSpace + links to master plan + heyhi.html.
 Full truth-checks + greps post-edit. See master plan + heyhireset reorg-handoff for execution details. No Reality Check stops per YOLO task. Task IDs tracked in todos.
 
 ## Cross-Repo Coordination, Sync & Truth-Check (YOLO) — Full Audit 2026-06-01 (current invocation)
@@ -240,7 +240,7 @@ All 2026-06-01 reorg handoffs now contain the full set of subagent records (succ
 
 | Projekt (alt → neu) | Lokal State | Details lokal (reorg-relevant) | GitHub | Priv/Open | Default Branch | Last Activity (pushed/updated) | Notes / Reorg Status |
 |---------------------|-------------|--------------------------------|--------|-----------|----------------|--------------------------------|----------------------|
-| heyhireset (mainspace für heyhi GODSPACE) | Green (minor stray) | main...origin/main, ?? lib/ (pre-reorg), reorg clean+committed (588b0cf mainspace emphasis) | loopmaster303/heyhireset | private | main | 2026-06-02T12:09 (our push) | Hosts docs/heyhi.html (GODSPACE). Handoffs updated. Ready as central hub. |
+| heyhireset (host of heyhi MainSpace) | Green (minor stray) | main...origin/main, ?? lib/ (pre-reorg), reorg clean+committed (588b0cf MainSpace emphasis) | loopmaster303/heyhireset | private | main | 2026-06-02T12:09 (our push) | Hosts docs/heyhi.html (heyhi MainSpace — central GODSPACE hub). Handoffs + README/CLAUDE updated with "MainSpace" subtitle branding. Ready as central hub. |
 | heyhihosted (L2) | Red (active dev) | dashboard/xlinks, D old upload/* + M gallery/media/config/chat (feature work) | loopmaster303/heyhihosted | **public** | main | 2026-06-02 (handoff pushes) | Reorg docs clean/pushed. Feature dirty = your simplification phase (commit when ready). |
 | heyhiblogheyhiworld → **sayhi** (L1) | Green (reorg) | main...origin/main (new remote sayhi), ?? bulk/audit files (legacy), reorg prep committed (b50b811 + ee72d76) | loopmaster303/sayhi | private | main | 2026-06-01T23:55 (our force push) | Remote swapped + full history pushed. Package="sayhi". Old GH name still exists (delete after your sign-off). Backups ready in ~/heyhi-backups. |
 | heyhi-ai-or-goodbye → **heyhiblog** | Green (reorg) | main...origin/main (new remote heyhiblog), reorg prep committed (2e4e391 + 2eba9ad) | loopmaster303/heyhiblog | private | main | 2026-06-01T23:55 (our force push) | Remote swapped + history pushed. Old GH name still exists (delete after sign-off). Incoming content from sayhi backups documented. |
