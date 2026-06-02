@@ -186,8 +186,8 @@ All other key repos have handoffs. YOLO mode active across the board for this re
 All 6 local hey-hi repos (heyhihosted, heyhiblogheyhiworld→sayhi, buergerbuddy→democrabs, heyhi-ai-or-goodbye→heyhiblog, heyhireset, meinbild) updated:
 - Reorg sections in README.md + CLAUDE.md with new names + link to master plan.
 - Fixed XLinks + names in every docs/project.html (buergerbuddy→democrabs, ai or goodbye→heyhiblog, just say hi→sayhi; correct GH; added GODSPACE entry).
-- Handoffs reference new names + central GODSPACE (heyhi.html in heyhireset as beautiful dashboard for L1 sayhi / L2 heyhihosted / L3 advanced + arts/attitudes + heyhi branding + cross-links).
-- Initial GODSPACE OVERVIEW **actually created** in heyhireset/docs/heyhi.html this Phase 4 YOLO resume (self-contained functional beautiful HTML dashboard, style reuse from project.html; Levels L1-L3, projects grid, arts/attitudes/manifestos, XLinks). Prior claim fulfilled. README/CLAUDE/handoffs in heyhireset surgically positioned heyhireset as pyramid top/GODSPACE host + links to master plan.
+- Handoffs reference new names + central GODSPACE (**heyhi GODSPACE mainspace = heyhireset** — the central hub).
+- Initial GODSPACE OVERVIEW **actually created** in heyhireset/docs/heyhi.html (self-contained functional beautiful HTML dashboard, style reuse from project.html; Levels L1-L3, projects grid, arts/attitudes/manifestos, XLinks, explicit "mainspace = heyhireset" header). README/CLAUDE/handoffs in heyhireset positioned as heyhi GODSPACE mainspace + links to master plan + heyhi.html.
 Full truth-checks + greps post-edit. See master plan + heyhireset reorg-handoff for execution details. No Reality Check stops per YOLO task. Task IDs tracked in todos.
 
 ## Cross-Repo Coordination, Sync & Truth-Check (YOLO) — Full Audit 2026-06-01 (current invocation)
