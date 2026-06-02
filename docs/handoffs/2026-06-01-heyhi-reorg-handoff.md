@@ -100,9 +100,9 @@ Compared to existing: only touched files with actual old names + the 2 canonical
 No hooks broken. Simpler approach: pure string replace + append details. Done.
 
 ## GODSPACE & Further Reorg (2026-06-01 update)
-Master Plan referenced. New names active in all XLinks/README/CLAUDE/handoffs: sayhi (L1), heyhiblog (content), democrabs, heyhireset hosts initial docs/heyhi.html central dashboard (levels L1-L3 + arts/attitudes, cross-links, heyhi branding). 
+Master Plan referenced. New names active in all XLinks/README/CLAUDE/handoffs: sayhi (L1), heyhiblog (content), democrabs, heyhireset = heyhi GODSPACE mainspace (hosts docs/heyhi.html central dashboard: levels L1-L3 + arts/attitudes, cross-links, heyhi branding). 
 
-**Phase 4 heyhireset (YOLO resumed this session):** Initial functional GODSPACE OVERVIEW HTML actually created in heyhireset/docs/heyhi.html (beautiful self-contained dashboard reusing project.html style; Levels/Projects/Arts/Attitudes + XLinks; German; live-ready). README/CLAUDE in heyhireset surgically updated for top-of-pyramid positioning + links. Handoffs (this + heyhireset one + current-state) extended with real execution status + decisions + next cross-repo steps. Verification greps + status done. Prior "created" claim now fulfilled with real file. See heyhireset handoff for details. Local folders retain old names until Git renames executed.
+**Phase 4 heyhireset (YOLO):** heyhi GODSPACE mainspace established in heyhireset (docs/heyhi.html as central dashboard with explicit "mainspace = heyhireset" header; Levels/Projects/Arts/Attitudes + XLinks; German; live-ready). README/CLAUDE/handoff in heyhireset updated to position as heyhi GODSPACE mainspace. Master handoff + this one synced. All links cross to heyhireset as the central heyhi hub. See heyhireset handoff for details. Local folders retain old names until mv.
 
 ## Phase 4 Execution: heyhiblogheyhiworld → sayhi (YOLO MODE - 2026-06-01)
 
