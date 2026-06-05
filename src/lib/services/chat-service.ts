@@ -108,13 +108,8 @@ export class ChatService {
 
     static async generateImage(options: GenerateImageOptions): Promise<string> {
         const modelInfo = getUnifiedModel(options.modelId);
-        const endpoint = '/api/generate';
 
-        let body: any = {
-            prompt: options.prompt,
-            model: options.modelId,
-            private: true
-        };
+        const body: any = { prompt: options.prompt, model: options.modelId, private: true };
 
         if (modelInfo?.kind === 'video' || options.duration !== undefined || options.audio !== undefined) {
             if (options.aspect_ratio) body.aspectRatio = options.aspect_ratio;
@@ -139,7 +134,7 @@ export class ChatService {
         if (options.input_images) body.image = options.input_images;
         if (options.negative_prompt) body.negative_prompt = options.negative_prompt;
 
-        const response = await fetch(endpoint, {
+        const response = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
             body: JSON.stringify(body),

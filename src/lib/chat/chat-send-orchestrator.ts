@@ -1,5 +1,6 @@
-import type { ApiChatMessage, ChatMessage } from '@/types';
+import type { ApiChatMessage, ChatMessage, ChatMessageContentPart } from '@/types';
 import type { GenerateImageOptions } from '@/lib/services/chat-service';
+import { getUnifiedModel } from '@/config/unified-image-models';
 
 interface RunImageGenerationFlowInput {
   imageParams: GenerateImageOptions;
@@ -48,6 +49,15 @@ interface RunTextChatCompletionFlowInput {
   ) => Promise<string>;
   onConversationMessagesUpdate: (messages: ChatMessage[]) => void;
   historyForApiRecent?: ApiChatMessage[];
+  /**
+   * Optional hook called after the assistant stream completes. Receives the
+   * raw streamed text and returns a cleaned version plus any extra content
+   * parts (e.g. generated images / audio) that should be attached to the
+   * final assistant message.
+   */
+  postProcessMarkers?: (
+    rawText: string,
+  ) => Promise<{ cleanText: string; extraParts: ChatMessageContentPart[] }>;
 }
 
 interface RunTextChatCompletionFlowResult {
@@ -92,9 +102,23 @@ export async function runTextChatCompletionFlow(
     },
   );
 
+  const trimmed = streamedContent.trim() || "Sorry, I couldn't get a response.";
+  const markerResult = input.postProcessMarkers
+    ? await input.postProcessMarkers(trimmed).catch((err) => {
+        console.error('[runTextChatCompletionFlow] postProcessMarkers failed:', err);
+        return null;
+      })
+    : null;
+
+  const baseContent = markerResult ? markerResult.cleanText : trimmed;
   const assistantMessage: ChatMessage = {
     ...baseAssistantMessage,
-    content: streamedContent.trim() || "Sorry, I couldn't get a response.",
+    content: markerResult && markerResult.extraParts.length > 0
+      ? [
+          { type: 'text', text: baseContent },
+          ...markerResult.extraParts,
+        ]
+      : baseContent,
     isStreaming: false,
   };
 
@@ -121,7 +145,8 @@ export async function runImageGenerationFlow(
       conversationId: input.conversationId,
       sessionId: input.sessionId,
       isVideo: input.isVideo,
-      isPollinations: true,
+      isPollinations: !getUnifiedModel(input.selectedImageModelId)?.provider ||
+                     getUnifiedModel(input.selectedImageModelId)?.provider === 'pollinations',
     });
   }
 

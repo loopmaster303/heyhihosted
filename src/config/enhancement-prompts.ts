@@ -276,11 +276,11 @@ Output ONLY the markdown prompt.
 </system_instructions>`,
 
   // =================================================================
-  // 5c. P-IMAGE (p-image) — Pruna text-to-image | T2I-focused structured prose
+  // 5c. P-IMAGE (p-image) — text-to-image | T2I-focused structured prose
   // =================================================================
   'p-image': `<system_instructions>
 <role>
-You are the Pruna P-Image prompt specialist. P-Image responds best to direct, descriptive image-generation prompts with a clear subject, visible behavior, style, and environment.
+You are the P-Image prompt specialist. P-Image responds best to direct, descriptive image-generation prompts with a clear subject, visible behavior, style, and environment.
 </role>
 <rules>
 - Treat this as text-to-image generation from scratch.
@@ -306,11 +306,11 @@ Output ONLY the markdown prompt.
 </system_instructions>`,
 
   // =================================================================
-  // 5d. P-IMAGE-EDIT (p-image-edit) — Pruna image editing | explicit edit control
+  // 5d. P-IMAGE-EDIT (p-image-edit) — image editing | explicit edit control
   // =================================================================
   'p-image-edit': `<system_instructions>
 <role>
-You are the Pruna P-Image-Edit specialist. This model is optimized for fast, precise image editing with strong prompt adherence, text rendering, and preservation control.
+You are the P-Image-Edit specialist. This model is optimized for fast, precise image editing with strong prompt adherence, text rendering, and preservation control.
 </role>
 <edit_principle>
 Follow this exact internal structure:
@@ -631,11 +631,11 @@ Prioritize video stability and continuity:
 </system_instructions>`,
 
   // =================================================================
-  // 12. P-VIDEO (p-video) — Pruna video | motion-first T2V + I2V
+  // 12. P-VIDEO (p-video) — video | motion-first T2V + I2V
   // =================================================================
   'p-video': `<system_instructions>
 <role>
-You are the Pruna P-Video prompt specialist. P-Video performs best when the prompt reads like a compact motion blueprint with clear subject, action, scene, camera movement, lighting, style, and pacing.
+You are the P-Video prompt specialist. P-Video performs best when the prompt reads like a compact motion blueprint with clear subject, action, scene, camera movement, lighting, style, and pacing.
 </role>
 <mode_detection>
 Decide between T2V_MODE and I2V_MODE from the user's wording only.
@@ -651,7 +651,7 @@ If the wording is ambiguous, default to T2V_MODE.
 Treat this as fresh video generation.
 Use this internal order: Subject -> Action -> Scene -> Camera -> Lighting/Atmosphere -> Style -> Timing/Pacing.
 Be explicit about motion direction, speed, and continuity. Describe what the subject does, how the camera moves, and what secondary environmental motion supports the shot.
-Good Pruna-style motion language includes: accelerates forward, glides past camera, turns sharply, fabric ripples, hair lifts in wind, dust trails, water spray, sparks drift, ambient light pulses.
+Good motion language includes: accelerates forward, glides past camera, turns sharply, fabric ripples, hair lifts in wind, dust trails, water spray, sparks drift, ambient light pulses.
 When the scene implies multiple beats, use short temporal sequencing naturally, for example opening beat, mid-shot escalation, final hold.
 </t2v_mode>
 <i2v_mode>
@@ -1038,13 +1038,6 @@ ENHANCEMENT_PROMPTS['qwen-image-plus'] = ENHANCEMENT_PROMPTS['qwen-image'];
 ENHANCEMENT_PROMPTS['qwen-image-2512'] = ENHANCEMENT_PROMPTS['qwen-image'];
 ENHANCEMENT_PROMPTS['qwen-image-edit'] = ENHANCEMENT_PROMPTS['qwen-image'];
 ENHANCEMENT_PROMPTS['qwen-image-edit-plus'] = ENHANCEMENT_PROMPTS['qwen-image'];
-
-// Pruna aliases
-ENHANCEMENT_PROMPTS['pruna'] = ENHANCEMENT_PROMPTS['p-image'];
-ENHANCEMENT_PROMPTS['pruna-image'] = ENHANCEMENT_PROMPTS['p-image'];
-ENHANCEMENT_PROMPTS['pruna-edit'] = ENHANCEMENT_PROMPTS['p-image-edit'];
-ENHANCEMENT_PROMPTS['pruna-image-edit'] = ENHANCEMENT_PROMPTS['p-image-edit'];
-ENHANCEMENT_PROMPTS['pruna-video'] = ENHANCEMENT_PROMPTS['p-video'];
 
 // Legacy image aliases
 ENHANCEMENT_PROMPTS['imagen'] = ENHANCEMENT_PROMPTS['zimage'];

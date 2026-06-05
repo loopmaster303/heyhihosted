@@ -1,5 +1,7 @@
 # hey.hi – the assistant computer.
 
+**Ecosystem:** democrabs — "The crab snaps with everyone but it's yours"
+
 **hey.hi** is a lightweight, privacy-focused, and fully transparent AI interface. It provides direct, frictionless access to state-of-the-art Large Language Models and Generative Media tools without paywalls, accounts, or server-side tracking.
 
 > **Powered by [Pollinations.ai](https://pollinations.ai)**
@@ -86,3 +88,8 @@ npm test             # Jest tests
 ---
 
 _Created with energy by [Loopmaster](https://github.com/johnmeckel) (John Meckel)_
+
+## Reorg & GODSPACE (Master Plan 2026-06-01)
+Master Plan: `/Users/johnmeckel/heyhihosted/docs/plans/2026-06-01-heyhi-ecosystem-reorg-plan.md`
+New names: sayhi (ex-heyhiblogheyhiworld, L1 arts/roleplay), heyhiblog (ex-heyhi-ai-or-goodbye, content layer), democrabs (ex-buergerbuddy, "The crab snaps with everyone but it's yours"), heyhireset (GODSPACE central).
+Levels: L1 sayhi, L2 heyhihosted (this), L3 advanced (future). Cross-links via docs/project.html XLinks + central heyhi.html in heyhireset.

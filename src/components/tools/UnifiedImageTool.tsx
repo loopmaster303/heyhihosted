@@ -16,6 +16,7 @@ import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
 import { getClientSessionId } from '@/lib/session';
 import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
 import VisualizeInputContainer from '@/components/tools/VisualizeInputContainer';
+import { getPollenHeaders } from '@/lib/pollen-key';
 // import { persistRemoteImage } from '@/lib/services/local-image-storage';
 import { ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -110,7 +111,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
       }
 
       const modelInfo = getUnifiedModel(selectedModelId);
-      const isPollinations = modelInfo?.provider === 'pollinations';
       const isPollinationsVideo = modelInfo?.kind === 'video';
 
       // 2. Prepare Enriched Prompt
@@ -127,27 +127,22 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
 
       const payload: any = {
         prompt: enrichedPrompt,
-        model: currentModelId, // ✅ Fresh value, not closure
-        private: true,
+        model: currentModelId,
       };
 
-      if (referenceUrls.length > 0) {
-          // Pollinations: Always use 'image' parameter
-          payload.image = referenceUrls;
-      }
+      if (referenceUrls.length > 0) payload.image = referenceUrls;
+      if (formFields.seed != null && formFields.seed !== '') payload.seed = Number(formFields.seed);
 
+      // Pollinations params (single path)
+      payload.private = true;
       if (!isPollinationsVideo) {
         payload.width = formFields.width || 1024;
         payload.height = formFields.height || 1024;
         payload.quality = 'hd';
         payload.nologo = true;
       }
-
-      // Negative Prompt Logic: Use user input if available, otherwise apply default boost only for images
       const defaultNegative = isPollinationsVideo ? "" : "blur, low quality, distorted, bad anatomy, pixelated, watermark, text, signature, ugly, bad hands, deformed, grainy";
       payload.negative_prompt = formFields.negative_prompt || defaultNegative;
-
-      if (formFields.seed) payload.seed = Number(formFields.seed);
       if (isPollinationsVideo) {
         if (formFields.aspect_ratio) payload.aspectRatio = formFields.aspect_ratio;
         if (formFields.duration) payload.duration = Number(formFields.duration);
@@ -157,40 +152,19 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
         if (formFields.transparent) payload.transparent = true;
       }
 
-      const endpoint = '/api/generate';
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
         body: JSON.stringify(payload),
       });
 
-      // Handle potentially binary response (Pollinations POST Proxy)
-      const contentType = response.headers.get('content-type');
-      let resultUrl: string;
-
-      if (contentType && contentType.includes('image/')) {
-          // Binary response -> upload to Pollinations Media for a stable URL
-          const blob = await response.blob();
-          const fileName = `gen-${Date.now()}-${generateUUID()}.jpg`; // Assume JPG for now or infer
-          // Infer extension
-          const ext = contentType.split('/')[1] || 'jpg';
-          const finalFileName = `gen-${Date.now()}-${generateUUID()}.${ext}`;
-          
-          toast({ title: "Processing...", description: "Optimizing generated image..." });
-          
-          const sessionId = getClientSessionId();
-          const uploadResult = await uploadFileToPollinationsMedia(blob, finalFileName, contentType, {
-              sessionId,
-              folder: 'generations'
-          });
-          
-          resultUrl = uploadResult.mediaUrl;
-      } else {
-          // Standard JSON Response
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error || "Generation failed");
-          resultUrl = data.videoUrl || data.imageUrl || (Array.isArray(data.output) ? data.output[0] : data.output);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Generation failed');
       }
+
+      const data = await response.json();
+      const resultUrl = data.videoUrl || data.imageUrl || (Array.isArray(data.output) ? data.output[0] : data.output);
       const isVideo = currentModelConfig?.outputType === 'video';
       const itemId = generateUUID();
       let localAssetId: string | undefined;
@@ -206,7 +180,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
             modelId: currentModelId,
             sessionId: getClientSessionId(),
             isVideo,
-            isPollinations
+            isPollinations: getUnifiedModel(currentModelId)?.provider === 'pollinations',
           });
 
           if (localAssetId) {

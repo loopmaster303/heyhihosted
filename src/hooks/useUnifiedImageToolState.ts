@@ -14,7 +14,7 @@ import { getClientSessionId } from '@/lib/session';
 import type { UploadedReference } from '@/types';
 import { useHasPollenKey } from './useHasPollenKey';
 
-// Define which models need image upload
+// Define which models need image upload (Pollinations reference models)
 export const pollinationUploadModels = [
     ...UNIFIED_IMAGE_MODELS
         .filter(model => model.provider === 'pollinations' && model.supportsReference === true)
@@ -158,7 +158,7 @@ export function useUnifiedImageToolState() {
         } else if (isPollinationsVideo) {
             const modelInfo = getUnifiedModel(selectedModelId);
             initialFields.aspect_ratio = '16:9';
-            
+
             // Dynamic Duration Default
             if (modelInfo?.durationRange?.options && modelInfo.durationRange.options.length > 0) {
                  // Default to the first option (usually the lowest/fastest)
@@ -170,7 +170,7 @@ export function useUnifiedImageToolState() {
             // Dynamic Audio Default
             // Default to TRUE if supported
             if (modelInfo?.supportsAudio) {
-                initialFields.audio = true; 
+                initialFields.audio = true;
             } else {
                  initialFields.audio = false;
             }
@@ -216,19 +216,19 @@ export function useUnifiedImageToolState() {
 
         const modelInfo = getUnifiedModel(selectedModelId);
         const allUploadModels = [...pollinationUploadModels];
-        const isPollinations = modelInfo?.provider === 'pollinations';
+        const isSingleSlot = maxImages === 1;
 
         if (allUploadModels.includes(selectedModelId)) {
             setIsUploading(true);
 
-            if (isPollinations && maxImages === 1 && imageFiles.length > 1) {
+            if (isSingleSlot && imageFiles.length > 1) {
                 toast({ title: "Limit Reached", description: "Only one reference image allowed for this model.", variant: "destructive" });
             }
 
             let currentImages = [...uploadedImages];
-            const targetFiles = isPollinations && maxImages === 1 ? imageFiles.slice(0, 1) : imageFiles;
+            const targetFiles = isSingleSlot ? imageFiles.slice(0, 1) : imageFiles;
 
-            if (isPollinations && maxImages === 1 && currentImages.length >= 1) {
+            if (isSingleSlot && currentImages.length >= 1) {
                 currentImages = [];
             }
 

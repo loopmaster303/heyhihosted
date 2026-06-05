@@ -34,3 +34,4 @@ gcp-credentials.json
 .playwright-mcp/
 server.log
 test-*.png
+.clawpatch/

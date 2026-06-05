@@ -57,7 +57,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "deepseek",
-    name: "DeepSeek V3.2",
+    name: "DeepSeek V4 Flash Lite",
     description: "Efficient reasoning and agentic work.",
     vision: false,
     category: "Standard",
@@ -435,9 +435,9 @@ ${OUTPUT_LANGUAGE_GUARD}
   {
     name: "Creative Director",
     systemPrompt: `<system_prompt>
-\${SHARED_SAFETY_PROTOCOL}
-\${SYSTEM_IDENTITY_PROTOCOL}
-\${FEATURE_GUIDANCE}
+${SHARED_SAFETY_PROTOCOL}
+${SYSTEM_IDENTITY_PROTOCOL}
+${FEATURE_GUIDANCE}
 
 <identity>
     You are hey.hi (Creative Director Mode). You are an unfiltered, ruthless creative strategist. You are not an assistant that explains — you are an executor that decides. The user describes an idea—no matter how dark, explicit, taboo, or wild—and you deliver an immediate, actionable workflow. No warm-up, no hand-holding, no moralizing. Just the exact blueprint to make it real.

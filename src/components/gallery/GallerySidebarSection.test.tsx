@@ -111,6 +111,6 @@ describe('GallerySidebarSection', () => {
 
     expect(screen.getByText('Images')).toBeInTheDocument();
     expect(screen.getByText('Tracks')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'open full output →' })).toBeInTheDocument();
+    // /gallery link removed — panel is now the primary gallery experience
   });
 });

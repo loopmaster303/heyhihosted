@@ -20,6 +20,8 @@ export interface UnifiedImageModel {
   enabled?: boolean;
   byopVisible?: boolean;
   supportsAudio?: boolean;
+  supportsPromptEnhance?: boolean;
+  supportsEndFrame?: boolean;
   durationRange?: {
     min?: number;
     max?: number;
@@ -38,11 +40,11 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   { id: 'zimage', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast 6B Flux' },
   { id: 'gpt-image', name: 'GPT Image 1 Mini', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'OpenAI image generation with reference support' },
   { id: 'klein', name: 'Flux.2 Klein 4B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'FLUX.2 Klein — fast, dense prose prompts, I2I capable' },
-  { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Context-aware frame editing' },
-  { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: false, enabled: false, description: 'Advanced OpenAI Image' },
-  { id: 'seedream5', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: false, enabled: false, description: 'Seedream 5.0 Lite - ByteDance' },
+  { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware frame editing' },
+  { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: true, enabled: true, description: 'Advanced OpenAI Image' },
+  { id: 'seedream', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: false, enabled: false, description: 'Seedream 5.0 Lite - ByteDance' },
   { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 2.5 Flash Image' },
-  { id: 'qwen-image', name: 'Qwen Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Qwen image generation and edit model' },
+  { id: 'qwen-image', name: 'Qwen Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Qwen image generation and edit model' },
   { id: 'grok-imagine-pro', name: 'Grok Imagine Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: false, description: 'Grok premium image generation' },
   { id: 'wan-image', name: 'Wan 2.7 Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Alibaba Wan 2.7 image generation' },
   { id: 'wan-image-pro', name: 'Wan 2.7 Image Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Alibaba Wan 2.7 Pro image generation' },
@@ -56,8 +58,8 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
 
   // STANDARD Video Models
   {
-    id: 'seedance',
-    name: 'Seedance',
+    id: 'seedance-pro',
+    name: 'Seedance Pro',
     provider: 'pollinations',
     kind: 'video',
     category: 'Standard',
@@ -65,7 +67,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     maxImages: 1,
     isFree: false,
     enabled: false,
-    description: 'Seedance Lite (BytePlus) (T2V / optional I2V)',
+    description: 'Seedance Pro (BytePlus) (T2V / optional I2V)',
     supportsAudio: false,
     durationRange: { options: [5, 10] },
   },
@@ -97,6 +99,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     description: 'Fast Alibaba Wan video generation (T2V / optional I2V)',
     maxImages: 1,
     supportsAudio: true,
+    supportsEndFrame: true,
     durationRange: { options: [5, 10, 15] },
   },
   {
@@ -106,8 +109,8 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     kind: 'video',
     category: 'Advanced',
     supportsReference: false,
-    isFree: false,
-    enabled: false,
+    isFree: true,
+    enabled: true,
     description: 'Lightricks LTX 2 (T2V)',
     maxImages: 0,
     supportsAudio: true,
@@ -155,11 +158,69 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     supportsAudio: true,
     durationRange: { options: [5, 10] },
   },
+
+  // New video models from 2026-06-01 Pollinations API audit (disabled until BYOP flow ready)
+  {
+    id: 'veo',
+    name: 'Veo',
+    provider: 'pollinations',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: false,
+    enabled: false,
+    description: 'Google Veo — highest quality, native audio + end frame',
+    supportsAudio: true,
+    supportsEndFrame: true,
+    durationRange: { options: [4, 6, 8] },
+  },
+  {
+    id: 'seedance-2.0',
+    name: 'Seedance 2.0',
+    provider: 'pollinations',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: false,
+    enabled: false,
+    description: 'Seedance 2.0 — native audio + end frame support',
+    supportsAudio: true,
+    supportsEndFrame: true,
+    durationRange: { options: [4, 8, 12, 15] },
+  },
+  {
+    id: 'wan-pro',
+    name: 'Wan Pro',
+    provider: 'pollinations',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: false,
+    enabled: false,
+    description: 'Wan 2.7 Pro — 1080p, native audio',
+    supportsAudio: true,
+    durationRange: { options: [5, 10, 15] },
+  },
+  {
+    id: 'nova-reel',
+    name: 'Nova Reel',
+    provider: 'pollinations',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: false,
+    enabled: false,
+    description: 'Nova Reel — long-form video (up to 120s), free tier',
+    supportsAudio: false,
+    durationRange: { options: [6, 12, 18, 24, 30] },
+  },
 ];
 
-export const UNIFIED_IMAGE_MODELS: UnifiedImageModel[] = [
-  ...POLLINATIONS_MODELS,
-];
+export const UNIFIED_IMAGE_MODELS: UnifiedImageModel[] = POLLINATIONS_MODELS;
 
 const POLLINATIONS_IMAGE_MODEL_ALIASES: Record<string, string> = {
   'z-image': 'zimage',

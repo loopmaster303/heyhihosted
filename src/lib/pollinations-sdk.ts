@@ -46,7 +46,7 @@ export async function imageUrl(prompt: string, options: ImageOptions = {}): Prom
     
     // Core
     params.append('model', model);
-    if (options.seed) params.append('seed', String(options.seed));
+    if (options.seed != null) params.append('seed', String(options.seed));
     params.append('nologo', String(options.nologo ?? true));
     params.append('private', String(options.private ?? false));
     params.append('safe', String(options.safe ?? false));
@@ -87,7 +87,7 @@ export async function videoUrl(prompt: string, options: VideoOptions = {}): Prom
 
     // Core
     params.append('model', model);
-    if (options.seed) params.append('seed', String(options.seed));
+    if (options.seed != null) params.append('seed', String(options.seed));
     params.append('private', String(options.private ?? false));
     params.append('safe', String(options.safe ?? false));
     params.append('nologo', String(options.nologo ?? true)); // Check if video supports

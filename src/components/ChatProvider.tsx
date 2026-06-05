@@ -36,6 +36,8 @@ import {
 } from '@/lib/chat/chat-send-coordinator';
 import { buildChatContextGroups, buildChatContextGroupsWithOverrides, mergeChatContextGroups } from '@/lib/chat/chat-context-groups';
 import { runImageGenerationFlow, runTextChatCompletionFlow } from '@/lib/chat/chat-send-orchestrator';
+import { processAssistantMediaIntents } from '@/lib/chat/chat-media-intent-handler';
+import { composeMusic } from '@/lib/media/compose-music';
 
 // Import extracted hooks and helpers
 import { useChatState } from '@/hooks/useChatState';
@@ -399,6 +401,33 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
         console.error('Chat API Error:', error);
       },
       sendChatCompletion: ChatService.sendChatCompletion,
+      postProcessMarkers: async (rawText) => {
+        if (!activeConversation) return { cleanText: rawText, extraParts: [] };
+        return processAssistantMediaIntents({
+          rawText,
+          conversationId: activeConversation.id,
+          sessionId: getClientSessionId(),
+          selectedImageModelId,
+          generateImage: ChatService.generateImage,
+          saveGeneratedAsset: OutputService.saveGeneratedAsset,
+          composeMusic: async (prompt: string) => {
+            try {
+              return await composeMusic({ prompt });
+            } catch (err) {
+              console.error('[media-intent] composeMusic failed:', err);
+              return null;
+            }
+          },
+          onError: (kind, message) => {
+            console.error(`[media-intent] ${kind} generation failed:`, message);
+            toast({
+              title: kind === 'image' ? 'Bild-Generierung fehlgeschlagen' : 'Musik-Generierung fehlgeschlagen',
+              description: message,
+              variant: 'destructive',
+            });
+          },
+        });
+      },
     });
   }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, webBrowsingEnabled, language, retryLastRequestRef, setChatInputValue, setIsAiResponding, setLastFailedRequest, t, visibleTextModels]);
 

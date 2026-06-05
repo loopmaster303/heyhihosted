@@ -113,6 +113,9 @@ interface ExecuteChatSendCoordinatorInput {
     }, onStream?: (delta: string) => void) => Promise<string>;
     onConversationMessagesUpdate: (messages: ChatMessage[]) => void;
     historyForApiRecent?: ApiChatMessage[];
+    postProcessMarkers?: (
+      rawText: string,
+    ) => Promise<{ cleanText: string; extraParts: ChatMessageContentPart[] }>;
   }) => Promise<{ assistantMessage: ChatMessage; finalMessages: ChatMessage[] }>;
   runImageGenerationFlow: (input: {
     imageParams: GenerateImageOptions;
@@ -177,6 +180,9 @@ interface ExecuteChatSendCoordinatorInput {
     webBrowsingEnabled?: boolean;
     skipSmartRouter?: boolean;
   }, onStream?: (delta: string) => void) => Promise<string>;
+  postProcessMarkers?: (
+    rawText: string,
+  ) => Promise<{ cleanText: string; extraParts: ChatMessageContentPart[] }>;
 }
 
 export function shouldUpdateTitleAfterSend(
@@ -433,6 +439,7 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
           finalMessages = messagesForConversation;
           input.setActiveConversation((prev) => (prev ? { ...prev, messages: messagesForConversation } : null));
         },
+        postProcessMarkers: input.postProcessMarkers,
       });
       finalMessages = textFlowResult.finalMessages;
     }

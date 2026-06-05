@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Ecosystem note (rebrand context):** democrabs — "The crab snaps with everyone but it's yours"
+
 **Goal:** Expand text model visibility for BYOP users, unlock already known hidden image/video models for BYOP users, and upgrade the Pollinations auditor to report drift plus image/video commit-readiness for newly discovered upstream models.
 
 **Architecture:** Add a dedicated text catalog resolver that merges local curated metadata with a BYOP-only upstream text overlay, while keeping smart-router candidates explicitly local. Add an explicit local visibility policy for image/video models so BYOP users can see locally known hidden paid models without exposing deprecated or internal-only entries. Extend the Pollinations audit helper to classify newly discovered upstream image/video drift against local registry, model-config, and enhancement-prompt readiness instead of treating every upstream delta as equally actionable.

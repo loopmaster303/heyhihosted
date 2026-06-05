@@ -357,6 +357,7 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'jpg', hidden: true },
     ],
   },
+
 };
 
 export function getUnifiedModelConfig(modelId: string): UnifiedModelConfig | undefined {
