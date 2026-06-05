@@ -42,7 +42,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   { id: 'klein', name: 'Flux.2 Klein 4B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'FLUX.2 Klein — fast, dense prose prompts, I2I capable' },
   { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware frame editing' },
   { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: true, enabled: true, description: 'Advanced OpenAI Image' },
-  { id: 'seedream', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: false, enabled: false, description: 'Seedream 5.0 Lite - ByteDance' },
+  { id: 'seedream', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: false, enabled: false, byopVisible: false, description: 'Seedream 5.0 Lite - ByteDance (stale — use seedream5 via BYOP when re-enabled)' },
   { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 2.5 Flash Image' },
   { id: 'qwen-image', name: 'Qwen Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Qwen image generation and edit model' },
   { id: 'grok-imagine-pro', name: 'Grok Imagine Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: false, description: 'Grok premium image generation' },
@@ -239,7 +239,11 @@ export function resolvePollinationsVisualModelId(modelId?: string): string | und
   const canonicalModelId = POLLINATIONS_IMAGE_MODEL_ALIASES[modelId] || modelId;
   const model = UNIFIED_IMAGE_MODELS.find((entry) => entry.provider === 'pollinations' && entry.id === canonicalModelId);
 
-  return model?.id;
+  if (!model || !isVisibleVisualModel(model, { includeByopHidden: true })) {
+    return undefined;
+  }
+
+  return model.id;
 }
 
 export function isKnownPollinationsVisualModelId(modelId?: string): boolean {
@@ -253,7 +257,6 @@ export function toPollinationsVisualApiModelId(modelId: string): string {
     case 'gpt-image':
       return 'gptimage';
     case 'grok-image':
-      // Back-compat: legacy internal id resolves through alias, but keep the API mapping explicit.
       return 'grok-imagine';
     case 'grok-imagine':
       return 'grok-imagine';
@@ -271,34 +274,10 @@ export interface VisualizeModelGroup {
 }
 
 const VISUALIZE_GROUP_DEFINITIONS: VisualizeModelGroup[] = [
-  {
-    key: 'image-free',
-    label: 'IMAGE FREE',
-    category: 'Standard',
-    kind: 'image',
-    modelIds: [],
-  },
-  {
-    key: 'video-free',
-    label: 'VIDEO FREE',
-    category: 'Standard',
-    kind: 'video',
-    modelIds: [],
-  },
-  {
-    key: 'image-advanced',
-    label: 'IMAGE ADVANCED',
-    category: 'Advanced',
-    kind: 'image',
-    modelIds: [],
-  },
-  {
-    key: 'video-advanced',
-    label: 'VIDEO ADVANCED',
-    category: 'Advanced',
-    kind: 'video',
-    modelIds: [],
-  },
+  { key: 'image-free', label: 'IMAGE FREE', category: 'Standard', kind: 'image', modelIds: [] },
+  { key: 'video-free', label: 'VIDEO FREE', category: 'Standard', kind: 'video', modelIds: [] },
+  { key: 'image-advanced', label: 'IMAGE ADVANCED', category: 'Advanced', kind: 'image', modelIds: [] },
+  { key: 'video-advanced', label: 'VIDEO ADVANCED', category: 'Advanced', kind: 'video', modelIds: [] },
 ];
 
 function isVisibleVisualModel(model: UnifiedImageModel, options: VisualModelVisibilityOptions = {}): boolean {

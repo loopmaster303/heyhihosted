@@ -100,17 +100,17 @@ jest.mock('lucide-react', () => new Proxy({}, {
 }));
 
 describe('GallerySidebarSection', () => {
-  it('uses Output naming and keeps the overlay as the primary quick-access surface', async () => {
+  it('uses Output naming in the sidebar preview and toggles the gallery panel', async () => {
     const user = userEvent.setup();
+    const onGalleryToggle = jest.fn();
 
-    render(<GallerySidebarSection />);
+    render(<GallerySidebarSection galleryOpen={false} onGalleryToggle={onGalleryToggle} />);
 
     expect(screen.getByText('Output')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Toggle output' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Toggle output' }));
 
-    expect(screen.getByText('Images')).toBeInTheDocument();
-    expect(screen.getByText('Tracks')).toBeInTheDocument();
-    // /gallery link removed — panel is now the primary gallery experience
+    expect(onGalleryToggle).toHaveBeenCalledWith(true);
   });
 });
