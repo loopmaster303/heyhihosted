@@ -121,7 +121,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   useEffect(() => {
     const width = sidebarExpanded ? '20rem' : '4rem';
     document.documentElement.style.setProperty('--sidebar-width', width);
-  }, [sidebarExpanded]);
+
+    // Close gallery panel when sidebar collapses for better UX integration
+    if (!sidebarExpanded && galleryPanelOpen) {
+      setGalleryPanelOpen(false);
+    }
+  }, [sidebarExpanded, galleryPanelOpen]);
 
   // Compute display names for the header
   const llmName = useMemo(() => {
@@ -175,6 +180,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           galleryOpen={galleryPanelOpen}
           onGalleryToggle={setGalleryPanelOpen}
         />
+
         <main className="flex-1 overflow-y-auto transition-all duration-300 relative bg-background w-full">
           {/* ASCII Header - NUR in Landing View */}
           {appState === 'landing' && (
@@ -299,16 +305,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         </main>
       </div>
 
-      {/* Gallery Panel - Rendered at layout level for better integration */}
-      <GalleryPanel
-        isOpen={galleryPanelOpen}
-        onClose={() => setGalleryPanelOpen(false)}
-        assets={galleryData.assets}
-        totalAssetCount={galleryData.assets.length}
-        onDelete={galleryData.deleteAsset}
-        onClearAll={galleryData.clearAllAssets}
-        onToggleStar={galleryData.toggleStarred}
-      />
+      {/* Gallery as popover panel next to sidebar (fixed, to the right of --sidebar-width).
+          Rendered here (outside the flex) so fixed positioning is clean and doesn't create stray flex child. */}
+      {galleryPanelOpen && (
+        <GalleryPanel
+          isOpen={true}
+          onClose={() => setGalleryPanelOpen(false)}
+          assets={galleryData.assets}
+          totalAssetCount={galleryData.assets.length}
+          onDelete={galleryData.deleteAsset}
+          onClearAll={galleryData.clearAllAssets}
+          onToggleStar={galleryData.toggleStarred}
+          embedded={true}
+        />
+      )}
 
       {/* Mobile Menu Button - Moved to root for better stacking context */}
       {!sidebarExpanded && (

@@ -1,3 +1,13 @@
+/**
+ * DEPRECATED — standalone /gallery route.
+ *
+ * Die Gallery ist jetzt als GalleryPanel in der Hauptansicht integriert
+ * (Sidebar → Output → Panel). Diese Route bleibt technisch erreichbar,
+ * damit bestehende Bookmarks/Links nicht 404en, wird aber nicht mehr
+ * aktiv verlinkt.
+ *
+ * Nicht löschen — Legacy-Kompatibilität.
+ */
 "use client";
 
 import React, { useMemo, useState } from 'react';
@@ -12,7 +22,7 @@ import { useAssetUrl } from '@/hooks/useAssetUrl';
 import type { Asset } from '@/lib/services/database';
 
 import { motion } from 'framer-motion';
-import { Download, Maximize2, X, Image as ImageIcon, Trash2, MessageSquare, Heart, Music } from 'lucide-react';
+import { Download, Maximize2, X, Image as ImageIcon, Trash2, MessageSquare, Heart, Music, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
@@ -195,7 +205,23 @@ function GalleryPageContent() {
         isHistoryPanelOpen={panels.isHistoryPanelOpen}
     >
       <div className="flex flex-col h-full w-full bg-background text-foreground">
-        
+
+        {/* DEPRECATED BANNER */}
+        <div className="shrink-0 px-6 py-3 bg-amber-950/40 border-b border-amber-500/30 flex items-center gap-3 text-amber-200 text-sm">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+          <span>
+            This view has moved. Your output is now available directly in the chat sidebar.
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto shrink-0 border-amber-500/40 text-amber-200 hover:bg-amber-500/20 hover:text-amber-100"
+            onClick={() => router.push('/')}
+          >
+            Go to Chat
+          </Button>
+        </div>
+
         {/* HEADER */}
         <div className="shrink-0 p-6 border-b border-glass-border backdrop-blur-md bg-glass-background/70 z-10 sticky top-0">
             <div className="flex justify-between items-center mb-4">

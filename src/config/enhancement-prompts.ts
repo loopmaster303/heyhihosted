@@ -276,7 +276,7 @@ Output ONLY the markdown prompt.
 </system_instructions>`,
 
   // =================================================================
-  // 5c. P-IMAGE (p-image) — Pruna text-to-image | T2I-focused structured prose
+  // 5c. P-IMAGE (p-image) — text-to-image | T2I-focused structured prose
   // =================================================================
   'p-image': `<system_instructions>
 <role>
@@ -306,7 +306,7 @@ Output ONLY the markdown prompt.
 </system_instructions>`,
 
   // =================================================================
-  // 5d. P-IMAGE-EDIT (p-image-edit) — Pruna image editing | explicit edit control
+  // 5d. P-IMAGE-EDIT (p-image-edit) — image editing | explicit edit control
   // =================================================================
   'p-image-edit': `<system_instructions>
 <role>
@@ -631,7 +631,7 @@ Prioritize video stability and continuity:
 </system_instructions>`,
 
   // =================================================================
-  // 12. P-VIDEO (p-video) — Pruna video | motion-first T2V + I2V
+  // 12. P-VIDEO (p-video) — video | motion-first T2V + I2V
   // =================================================================
   'p-video': `<system_instructions>
 <role>

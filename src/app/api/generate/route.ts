@@ -58,6 +58,8 @@ export async function POST(request: Request) {
     // BYOP: Resolve API key (user key from header → env var fallback)
     const apiKey = resolvePollenKey(request);
     const hasToken = !!apiKey && apiKey.trim() !== '';
+    const userHeader = request.headers.get('X-Pollen-Key');
+    console.log('[Pollinations] Key source:', userHeader ? 'BYOP (X-Pollen-Key header)' : 'env fallback', '| key prefix:', apiKey?.slice(0, 6) ?? 'NONE');
 
     // Model Logic
     const canonicalModelId = resolvePollinationsVisualModelId(model || 'flux');

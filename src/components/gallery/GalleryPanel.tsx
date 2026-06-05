@@ -194,7 +194,6 @@ const GalleryDetailContent = ({
 }) => {
   const { t } = useLanguage();
   const { url, isLoading } = useAssetUrl(asset.id);
-  const [showPrompt, setShowPrompt] = useState(false);
   const isVideo = asset.contentType?.startsWith('video/');
 
   const handleDownload = () => {
@@ -237,46 +236,75 @@ const GalleryDetailContent = ({
         </div>
       </div>
 
-      {/* Asset */}
-      <div className="flex-1 flex items-center justify-center px-4 py-3 min-h-0 relative">
-        <Button variant="ghost" size="icon" onClick={onPrev} disabled={!hasPrev}
-          className="absolute left-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/30 text-white hover:bg-black/60 disabled:opacity-20">
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6 min-h-0">
+        {/* Cohesive unit: image + prompt directly attached, with slight glassmorphism, responsive */}
+        <div className="mx-auto w-full max-w-[520px] rounded-2xl overflow-hidden border border-white/10 bg-black/10 backdrop-blur-xl shadow-glass-heavy">
+          {/* Image / Video area */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onPrev}
+              disabled={!hasPrev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-black/40 text-white hover:bg-black/70 disabled:opacity-30"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
 
-        {isLoading || !url ? (
-          <div className="h-48 w-full rounded-lg bg-muted/20 animate-pulse" />
-        ) : isVideo ? (
-          <video src={url} className="max-w-full max-h-[45vh] object-contain rounded-lg" controls autoPlay />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt={asset.prompt || "Output item"} loading="lazy" decoding="async"
-            className="max-w-full max-h-[45vh] object-contain rounded-lg"
-          />
-        )}
+            {isLoading || !url ? (
+              <div className="w-full aspect-[4/3] rounded-t-2xl bg-muted/20 animate-pulse" />
+            ) : isVideo ? (
+              <video
+                src={url}
+                className="w-full h-auto max-h-[55vh] object-contain rounded-t-2xl"
+                controls
+                autoPlay
+                muted
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={url}
+                alt={asset.prompt || "Output item"}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-auto max-h-[55vh] object-contain rounded-t-2xl"
+              />
+            )}
 
-        <Button variant="ghost" size="icon" onClick={onNext} disabled={!hasNext}
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/30 text-white hover:bg-black/60 disabled:opacity-20">
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onNext}
+              disabled={!hasNext}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-black/40 text-white hover:bg-black/70 disabled:opacity-30"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
 
-      {/* Prompt */}
-      {asset.prompt && (
-        <div className="px-4 pb-3 shrink-0">
-          <button
-            onClick={() => setShowPrompt(v => !v)}
-            className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors font-mono"
-          >
-            {showPrompt ? '▲ prompt' : '▼ prompt'}
-          </button>
-          {showPrompt && (
-            <p className="mt-1 text-[11px] text-muted-foreground/80 font-mono leading-relaxed line-clamp-4">
-              {asset.prompt}
-            </p>
+          {/* Prompt bar directly under the image, slight glass */}
+          {asset.prompt && (
+            <div className="px-3 py-2.5 bg-white/5 backdrop-blur-md border-t border-white/10 text-[11px] text-muted-foreground/90 font-mono">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] text-muted-foreground/60 uppercase tracking-widest">prompt</span>
+                <div className="flex-1" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-muted-foreground/60 hover:text-foreground"
+                  onClick={() => onCopyPrompt(asset.prompt)}
+                  title={t('action.copyPrompt')}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <p className="leading-snug break-words">{asset.prompt}</p>
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
@@ -291,6 +319,8 @@ export interface GalleryPanelProps {
   onDelete: (id: string) => void;
   onClearAll: () => void;
   onToggleStar: (id: string) => void;
+  /** When true, renders as a fixed popover-style panel positioned to the right of the sidebar (using --sidebar-width var). */
+  embedded?: boolean;
 }
 
 export const GalleryPanel: React.FC<GalleryPanelProps> = ({
@@ -301,6 +331,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   onDelete,
   onClearAll,
   onToggleStar,
+  embedded = false,
 }) => {
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -382,9 +413,13 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
 
   const selectedAsset = view === 'detail' ? imageAssets[selectedIndex] : null;
 
+  const containerClass = embedded
+    ? "fixed z-[80] top-16 bottom-4 border border-border bg-popover/90 backdrop-blur-xl shadow-glass-heavy overflow-hidden flex flex-col left-[var(--sidebar-width)] w-[520px] max-w-[calc(100vw-var(--sidebar-width)-2rem)] rounded-2xl"
+    : "fixed left-4 sm:left-[calc(var(--sidebar-width,20rem)+8px)] top-16 w-[calc(100vw-var(--sidebar-width,20rem)-2rem)] sm:w-[520px] z-[100] max-h-[80vh] rounded-2xl";
+
   return (
-    <div className="fixed left-4 sm:left-[calc(var(--sidebar-width,20rem)+8px)] top-16 w-[calc(100vw-var(--sidebar-width,20rem)-2rem)] sm:w-[520px] z-[100] max-h-[80vh]">
-      <div className="relative bg-popover/80 text-popover-foreground shadow-glass-heavy backdrop-blur-xl rounded-2xl overflow-hidden flex flex-col max-h-[80vh]">
+    <div className={containerClass}>
+      <div className="relative flex flex-col h-full overflow-hidden">
 
         {view === 'grid' ? (
           <>
