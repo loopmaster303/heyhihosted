@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { validateRemoteMediaUrl } from '@/lib/media/remote-fetch-policy';
+import { handleApiError } from '@/lib/api-error-handler';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -25,10 +26,10 @@ export async function GET(request: Request) {
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000, immutable',
+        'X-Content-Type-Options': 'nosniff',
       },
     });
   } catch (error) {
-    console.error('Image proxy error:', error);
-    return NextResponse.json({ error: 'Failed to proxy image' }, { status: 500 });
+    return handleApiError(error);
   }
 }

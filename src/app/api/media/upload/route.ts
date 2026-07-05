@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
-
-const MEDIA_UPLOAD_URL = 'https://media.pollinations.ai/upload';
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // Pollinations OpenAPI currently documents 10MB.
+import { handleApiError } from '@/lib/api-error-handler';
+import { MEDIA_UPLOAD_URL, MAX_UPLOAD_BYTES } from '@/lib/upload/constants';
 
 export const runtime = 'nodejs';
 
@@ -56,10 +55,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(parsed);
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || 'Failed to upload media' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
