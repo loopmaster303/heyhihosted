@@ -3,6 +3,7 @@ import { ENHANCEMENT_PROMPTS, DEFAULT_ENHANCEMENT_PROMPT, COMPOSE_ENHANCEMENT_PR
 import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import { SmartRouter } from '@/lib/services/smart-router';
+import { handleApiError } from '@/lib/api-error-handler';
 
 // Map UI model keys to enhancement prompt keys if they differ
 const MODEL_ALIASES: Record<string, string> = {
@@ -10,8 +11,7 @@ const MODEL_ALIASES: Record<string, string> = {
   'qwen-image': 'qwen-image',
   'qwen-image-plus': 'qwen-image',
   'qwen-image-2512': 'qwen-image',
-  'qwen-image-edit': 'qwen-image',
-  'qwen-image-edit-plus': 'qwen-image',
+  'qwen-image-edit': 'qwen-image-edit-plus',
   'p-image': 'p-image',
   'p-image-edit': 'p-image-edit',
   'grok-image': 'grok-imagine',
@@ -63,6 +63,11 @@ const MODEL_ALIASES: Record<string, string> = {
   'flux-2-klein-9b': 'klein',
   'flux-dev': 'flux',
   // grok-imagine-video: handled via alias in enhancement-prompts.ts → grok-video
+  'ideogram': 'ideogram-v4-turbo',
+  'ideogram-v4': 'ideogram-v4-turbo',
+  'nanobanana-lite': 'nanobanana-2-lite',
+  'stable-audio': 'stable-audio-3-medium',
+  'stable-audio-3': 'stable-audio-3-medium',
 };
 
 function selectGuidelines(modelId: string): string {
@@ -192,10 +197,17 @@ function buildResearchContextBlock(suggestions: string[]): string {
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return await Promise.race([
-    promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timed out')), ms)),
-  ]);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Timed out')), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 async function fetchPromptResearchSuggestions(
@@ -238,7 +250,7 @@ async function fetchPromptResearchSuggestions(
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, modelId, language } = await request.json();
+    const { prompt, modelId } = await request.json();
 
     if (!prompt || !modelId) {
       return NextResponse.json(
@@ -387,10 +399,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Prompt enhancement error:', error);
-    return NextResponse.json(
-      { error: `Enhancement failed: ${error instanceof Error ? error.message : 'Unknown error'}` },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

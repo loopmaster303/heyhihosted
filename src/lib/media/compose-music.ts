@@ -30,9 +30,9 @@ export class ComposeMusicError extends Error {
 }
 
 const DEFAULTS = {
-  duration: 60,
+  duration: 30,
   instrumental: false,
-  model: 'elevenmusic',
+  model: 'acestep',
 } as const;
 
 export async function composeMusic(input: ComposeMusicInput): Promise<string> {

@@ -43,7 +43,7 @@ describe('/api/compose route', () => {
     expect(httpsFetchBinaryMock).not.toHaveBeenCalled();
   });
 
-  it('caps duration at 120s without a pollen key', async () => {
+  it('caps duration at 30s without a pollen key (free tier)', async () => {
     const { POST } = await import('./route');
     resolvePollenKeyMock.mockReturnValue('');
     httpsFetchBinaryMock.mockResolvedValueOnce({
@@ -55,14 +55,31 @@ describe('/api/compose route', () => {
     const request = new Request('http://localhost/api/compose', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: 'lofi sunset', model: 'elevenmusic', duration: 300 }),
+      body: JSON.stringify({ prompt: 'lofi sunset', model: 'acestep', duration: 300 }),
     });
 
     await POST(request as any);
     expect(httpsFetchBinaryMock).toHaveBeenCalledWith(
-      expect.stringContaining('duration=120'),
+      expect.stringContaining('duration=30'),
       expect.any(Object),
     );
+  });
+
+  it('rejects paid models without a pollen key with 403', async () => {
+    const { POST } = await import('./route');
+    resolvePollenKeyMock.mockReturnValue('');
+    const request = new Request('http://localhost/api/compose', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'lofi sunset', model: 'elevenmusic' }),
+    });
+
+    const response = await POST(request as any);
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+    expect(response.status).toBe(403);
+    expect(body.error).toMatch(/requires a pollinations api key/i);
+    expect(httpsFetchBinaryMock).not.toHaveBeenCalled();
   });
 
   it('allows full duration with a pollen key', async () => {

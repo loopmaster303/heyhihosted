@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import { httpsFetchBinary } from '@/lib/https-post';
+import { handleApiError } from '@/lib/api-error-handler';
 
 const POLLINATIONS_BASE = 'https://gen.pollinations.ai';
-type ComposeModel = 'elevenmusic';
-const VALID_COMPOSE_MODELS: readonly ComposeModel[] = ['elevenmusic'];
+type ComposeModel = 'elevenmusic' | 'acestep' | 'stable-audio-3-medium';
+const VALID_COMPOSE_MODELS: readonly ComposeModel[] = ['elevenmusic', 'acestep', 'stable-audio-3-medium'];
+const FREE_TIER_MODELS: readonly ComposeModel[] = ['acestep'];
 const MAX_COMPOSE_URL_LENGTH = 2000;
+const DEFAULT_DURATION = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, duration = 60, instrumental = false, model = 'elevenmusic' } = await request.json();
+    const { prompt, duration, instrumental = false, model = 'acestep' } = await request.json();
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -30,9 +33,21 @@ export async function POST(request: NextRequest) {
     // BYOP: Resolve API key (user key from header → env var fallback)
     const apiKey = resolvePollenKey(request);
 
-    // Free tier: max 120s (2 min). Own Pollen key: full 300s (5 min).
-    const maxDuration = apiKey ? 300 : 120;
-    const validDuration = Math.max(3, Math.min(maxDuration, Number(duration)));
+    // Free tier (no key): only acestep is allowed. Paid models require a Pollinations API key.
+    if (!apiKey && !FREE_TIER_MODELS.includes(selectedModel)) {
+      return NextResponse.json(
+        { error: 'This model requires a Pollinations API key' },
+        { status: 403 }
+      );
+    }
+
+    // Free tier: max 30s. Own Pollen key: full 300s (5 min).
+    const maxDuration = apiKey ? 300 : 30;
+    const numericDuration = Number(duration ?? DEFAULT_DURATION);
+    const safeDuration = Number.isFinite(numericDuration)
+      ? Math.max(3, Math.min(maxDuration, numericDuration))
+      : Math.min(maxDuration, DEFAULT_DURATION);
+    const isInstrumental = Boolean(instrumental);
 
     const headers: Record<string, string> = {};
     if (apiKey) {
@@ -44,7 +59,7 @@ export async function POST(request: NextRequest) {
     // The OpenAI-compatible POST /v1/audio/speech endpoint does not support
     // the music-specific `duration` and `instrumental` params.
     const encodedPrompt = encodeURIComponent(prompt);
-    const url = `${POLLINATIONS_BASE}/audio/${encodedPrompt}?model=elevenmusic&duration=${validDuration}&instrumental=${instrumental}`;
+    const url = `${POLLINATIONS_BASE}/audio/${encodedPrompt}?model=${encodeURIComponent(selectedModel)}&duration=${safeDuration}&instrumental=${isInstrumental}`;
     if (url.length > MAX_COMPOSE_URL_LENGTH) {
       return NextResponse.json(
         { error: 'Compose prompt too long for Pollinations audio GET endpoint. Shorten the prompt and try again.' },
@@ -70,16 +85,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       audioUrl: audioDataUrl,
       prompt,
-      duration: validDuration,
-      instrumental,
+      duration: safeDuration,
+      instrumental: isInstrumental,
       model: selectedModel,
     });
 
   } catch (error) {
-    console.error('Compose API error:', error);
-    return NextResponse.json(
-      { error: `Music generation failed: ${error instanceof Error ? error.message : 'Unknown error'}` },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

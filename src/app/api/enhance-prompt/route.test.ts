@@ -870,7 +870,7 @@ describe('/api/enhance-prompt route', () => {
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
         modelId: 'claude-fast',
-        systemPrompt: expect.stringContaining('LTX-2 is text-to-video only via Pollinations'),
+        systemPrompt: expect.stringContaining('LTX-2 via Pollinations now supports both text-to-video and image-to-video'),
       }),
     );
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
