@@ -31,6 +31,8 @@ interface VisibleTextModelOptions {
 export interface RequestCapabilityResolution {
   selectedModelId: string;
   selectedModel: PollinationsModel;
+  /** The originally requested model, before any vision fallback. */
+  requestedModel: PollinationsModel;
   requiresVisionModel: boolean;
   didFallbackToVisionModel: boolean;
   fallbackModel?: PollinationsModel;
@@ -104,6 +106,7 @@ export function resolveRequestCapabilities(
   return {
     selectedModelId: selectedModel.id,
     selectedModel,
+    requestedModel,
     requiresVisionModel,
     didFallbackToVisionModel,
     fallbackModel,

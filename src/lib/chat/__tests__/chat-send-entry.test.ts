@@ -34,6 +34,7 @@ describe('chat send entry coordinator', () => {
       resolveRequestCapabilities: () => ({
         selectedModelId: 'claude-fast',
         selectedModel: { id: 'claude-fast', name: 'Claude', vision: false } as any,
+        requestedModel: { id: 'claude-fast', name: 'Claude', vision: false } as any,
         requiresVisionModel: false,
         didFallbackToVisionModel: false,
         isImageModeIntent: false,

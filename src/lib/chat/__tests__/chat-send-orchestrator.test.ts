@@ -63,4 +63,42 @@ describe('chat send orchestrator', () => {
     expect(result.assistantMessage.content).toBe("Sorry, I couldn't get a response.");
     expect(result.assistantMessage.isStreaming).toBe(false);
   });
+
+  it('persists the returned completion even when onStream is never called', async () => {
+    const result = await runTextChatCompletionFlow({
+      updatedMessagesForState: [
+        { id: 'u1', role: 'user', content: 'hello', timestamp: '2026-01-01T00:00:00.000Z' },
+      ],
+      modelIdForRequest: 'claude-fast',
+      systemPromptForRequest: 'base prompt',
+      webBrowsingEnabled: false,
+      createMessageId: () => 'assistant-stream',
+      createTimestamp: () => '2026-01-01T00:00:01.000Z',
+      sendChatCompletion: (async () => 'Full response without streaming') as SendChatCompletionMock,
+      onConversationMessagesUpdate: () => {},
+    });
+
+    expect(result.assistantMessage.content).toBe('Full response without streaming');
+    expect(result.assistantMessage.isStreaming).toBe(false);
+  });
+
+  it('prefers the returned completion over a shorter last stream callback', async () => {
+    const result = await runTextChatCompletionFlow({
+      updatedMessagesForState: [
+        { id: 'u1', role: 'user', content: 'hello', timestamp: '2026-01-01T00:00:00.000Z' },
+      ],
+      modelIdForRequest: 'claude-fast',
+      systemPromptForRequest: 'base prompt',
+      webBrowsingEnabled: false,
+      createMessageId: () => 'assistant-stream',
+      createTimestamp: () => '2026-01-01T00:00:01.000Z',
+      sendChatCompletion: (async (_options, onStream) => {
+        onStream?.('Hello');
+        return 'Hello world, complete';
+      }) as SendChatCompletionMock,
+      onConversationMessagesUpdate: () => {},
+    });
+
+    expect(result.assistantMessage.content).toBe('Hello world, complete');
+  });
 });

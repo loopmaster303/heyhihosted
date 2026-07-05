@@ -40,6 +40,11 @@ interface RequestCapabilitiesLike {
     name: string;
     vision?: boolean;
   };
+  requestedModel: {
+    id: string;
+    name: string;
+    vision?: boolean;
+  };
   requiresVisionModel: boolean;
   didFallbackToVisionModel: boolean;
   fallbackModel?: {
@@ -54,6 +59,7 @@ interface RequestCapabilitiesLike {
 interface SendImageConfig {
   formFields: Record<string, unknown>;
   uploadedImages: UploadedReference[];
+  sourceVideo?: UploadedReference | null;
   selectedModelId: string;
 }
 
@@ -248,7 +254,7 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
   });
   const isImagePrompt = requestCapabilities.isImageModeIntent;
   const isFileUpload = requestCapabilities.requiresVisionModel;
-  let currentModel = requestCapabilities.selectedModel;
+  const currentModel = requestCapabilities.selectedModel;
 
   const basicStylePrompt = (input.availableResponseStyles.find((style) => style.name === 'Basic') || input.availableResponseStyles[0]).systemPrompt;
   const selectedStyle = input.availableResponseStyles.find((style) => style.name === selectedResponseStyleName);
@@ -269,12 +275,12 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
   if (requestCapabilities.didFallbackToVisionModel) {
     const fallbackModel = requestCapabilities.fallbackModel;
     if (fallbackModel) {
+      // currentModel already holds the fallback; name the originally requested model.
       input.toast({
         title: 'Model Switched',
-        description: `Model '${currentModel.name}' doesn't support images. Using '${fallbackModel.name}' for this request.`,
+        description: `Model '${requestCapabilities.requestedModel.name}' doesn't support images. Using '${fallbackModel.name}' for this request.`,
         variant: 'default',
       });
-      currentModel = fallbackModel;
     } else {
       input.toast({ title: 'Model Incompatibility', description: 'No available models support images.', variant: 'destructive' });
       input.setIsAiResponding(false);
@@ -393,9 +399,10 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
       };
 
       if (imageConfig) {
-        const { formFields } = imageConfig;
+        const { formFields, sourceVideo } = imageConfig;
         if (resolvedReferenceUrls.length > 0) imageParams.image = resolvedReferenceUrls;
-        if (modelInfo?.kind === 'video' || input.selectedImageModelId.includes('wan') || formFields.duration) {
+        if (sourceVideo?.url) imageParams.video = sourceVideo.url;
+        if (modelInfo?.kind === 'video' || formFields.duration) {
           if (typeof formFields.aspect_ratio === 'string') imageParams.aspect_ratio = formFields.aspect_ratio;
           if (formFields.duration !== undefined && formFields.duration !== null) imageParams.duration = Number(formFields.duration);
           if (typeof formFields.audio === 'boolean') imageParams.audio = formFields.audio;

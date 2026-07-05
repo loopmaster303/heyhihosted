@@ -82,7 +82,7 @@ export async function runTextChatCompletionFlow(
   input.onConversationMessagesUpdate(finalMessages);
 
   let streamedContent = '';
-  await input.sendChatCompletion(
+  const completion = await input.sendChatCompletion(
     {
       messages: input.historyForApiRecent || [],
       modelId: input.modelIdForRequest,
@@ -101,6 +101,12 @@ export async function runTextChatCompletionFlow(
       input.onConversationMessagesUpdate(finalMessages);
     },
   );
+
+  // The return value is the authoritative full completion; the stream callback
+  // only mirrors it for live UI updates and may lag or never fire (JSON path).
+  if (completion.trim()) {
+    streamedContent = completion;
+  }
 
   const trimmed = streamedContent.trim() || "Sorry, I couldn't get a response.";
   const markerResult = input.postProcessMarkers

@@ -67,6 +67,17 @@ describe('chat capability resolution', () => {
     });
   });
 
+  it('exposes the originally requested model when falling back to a vision model', () => {
+    const resolution = resolveRequestCapabilities({
+      selectedModelId: 'deepseek',
+      hasUploadedFile: true,
+      isImageModeIntent: false,
+    });
+
+    expect(resolution.requestedModel.id).toBe('deepseek');
+    expect(resolution.selectedModel.id).not.toBe('deepseek');
+  });
+
   it('never resolves request capabilities to a non-visible text model id', () => {
     const resolution = resolveRequestCapabilities({
       selectedModelId: 'openai',
