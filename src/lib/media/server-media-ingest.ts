@@ -12,6 +12,11 @@ export interface FetchAndStoreRemoteMediaOptions {
   sourceUrl: string;
   apiKey?: string;
   kind?: 'image' | 'video';
+  signal?: AbortSignal;
+}
+
+function abortError(): ApiError {
+  return new ApiError(499, 'Media ingest aborted by client');
 }
 
 export interface StoredRemoteMedia {
@@ -33,6 +38,7 @@ function fallbackContentType(kind?: 'image' | 'video') {
 async function fetchWithSafeRedirects(
   url: string,
   apiKey: string | undefined,
+  signal: AbortSignal | undefined,
   maxRedirects: number = MAX_REDIRECTS,
 ): Promise<Response> {
   let currentUrl = url;
@@ -41,6 +47,7 @@ async function fetchWithSafeRedirects(
     const allowAuth = validateRemoteMediaUrl(currentUrl).allowed;
     const response = await fetch(currentUrl, {
       redirect: 'manual',
+      signal,
       headers: {
         ...(allowAuth && apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       },
@@ -79,7 +86,11 @@ async function fetchWithSafeRedirects(
 export async function fetchAndStoreRemoteMedia(
   options: FetchAndStoreRemoteMediaOptions,
 ): Promise<StoredRemoteMedia> {
-  const { sourceUrl, apiKey, kind } = options;
+  const { sourceUrl, apiKey, kind, signal } = options;
+
+  if (signal?.aborted) {
+    throw abortError();
+  }
 
   const urlPolicy = validateRemoteMediaUrl(sourceUrl);
   if (!urlPolicy.allowed) {
@@ -96,21 +107,38 @@ export async function fetchAndStoreRemoteMedia(
   let buffer: Buffer | null = null;
   let contentType: string | null = null;
 
-  while (Date.now() - startTime < pollTimeout) {
-    const response = await fetchWithSafeRedirects(sourceUrl, apiKey);
-    if (response.ok) {
-      const contentLength = Number(response.headers.get('content-length'));
-      if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
-        throw new ApiError(413, 'Generated media exceeds Pollinations Media Storage limit (max 10MB)');
+  try {
+    while (Date.now() - startTime < pollTimeout) {
+      if (signal?.aborted) throw abortError();
+      const response = await fetchWithSafeRedirects(sourceUrl, apiKey, signal);
+      if (response.ok) {
+        const contentLength = Number(response.headers.get('content-length'));
+        if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
+          throw new ApiError(413, 'Generated media exceeds Pollinations Media Storage limit (max 10MB)');
+        }
+        contentType = response.headers.get('content-type');
+        const arrayBuffer = await response.arrayBuffer();
+        if (arrayBuffer.byteLength > MIN_BYTES) {
+          buffer = Buffer.from(arrayBuffer);
+          break;
+        }
       }
-      contentType = response.headers.get('content-type');
-      const arrayBuffer = await response.arrayBuffer();
-      if (arrayBuffer.byteLength > MIN_BYTES) {
-        buffer = Buffer.from(arrayBuffer);
-        break;
-      }
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, pollDelay);
+        signal?.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(abortError());
+        }, { once: true });
+      });
     }
-    await new Promise((resolve) => setTimeout(resolve, pollDelay));
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw abortError();
+    }
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw abortError();
+    }
+    throw error;
   }
 
   if (!buffer) {
@@ -121,15 +149,26 @@ export async function fetchAndStoreRemoteMedia(
     throw new ApiError(413, 'Generated media exceeds Pollinations Media Storage limit (max 10MB)');
   }
 
+  if (signal?.aborted) throw abortError();
+
   const normalizedContentType = contentType || fallbackContentType(kind);
-  const uploadResponse = await fetch(MEDIA_UPLOAD_URL, {
-    method: 'POST',
-    headers: {
-      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-      'Content-Type': normalizedContentType,
-    },
-    body: buffer,
-  });
+  let uploadResponse: Response;
+  try {
+    uploadResponse = await fetch(MEDIA_UPLOAD_URL, {
+      method: 'POST',
+      signal,
+      headers: {
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        'Content-Type': normalizedContentType,
+      },
+      body: buffer,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw abortError();
+    }
+    throw error;
+  }
 
   const rawBody = await uploadResponse.text();
   let uploadData: any = null;

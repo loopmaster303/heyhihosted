@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { sourceUrl, kind } = IngestSchema.parse(body);
 
-    const stored = await fetchAndStoreRemoteMedia({ sourceUrl, apiKey, kind });
+    const stored = await fetchAndStoreRemoteMedia({ sourceUrl, apiKey, kind, signal: request.signal });
 
     return NextResponse.json({
       key: stored.key,
