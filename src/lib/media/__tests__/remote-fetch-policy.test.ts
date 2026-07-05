@@ -101,6 +101,23 @@ describe('validateRemoteMediaFetchUrl', () => {
     });
   });
 
+  it('blocks the real cloud-metadata endpoints via IP and reserved-TLD rules', () => {
+    // AWS/GCP/Azure metadata IP (link-local)
+    expect(validateRemoteMediaFetchUrl('http://169.254.169.254/latest/meta-data').allowed).toBe(false);
+    // GCP metadata hostname ends in the reserved .internal TLD
+    expect(validateRemoteMediaFetchUrl('http://metadata.google.internal/computeMetadata').allowed).toBe(false);
+  });
+
+  it('deliberately allows public hosts with scary-looking subdomain labels', () => {
+    // Decision (Phase 3): we do NOT label-block public subdomains like
+    // "metadata"/"internal"/"localhost" — they must still resolve to a public
+    // IP to be reachable, DNS-rebinding is not caught by hostname checks anyway,
+    // and label-blocking causes false positives on legitimate CDNs. The real
+    // defense is the private-IP + reserved-TLD rules above.
+    expect(validateRemoteMediaFetchUrl('https://metadata.example.com/x.png').allowed).toBe(true);
+    expect(validateRemoteMediaFetchUrl('https://internal.example.com/x.png').allowed).toBe(true);
+  });
+
   it('rejects URLs containing username or password userinfo', () => {
     expect(validateRemoteMediaFetchUrl('https://user:pass@cdn.example.com/image.png')).toEqual({
       allowed: false,
