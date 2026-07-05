@@ -9,6 +9,8 @@ import { DatabaseService, type Asset } from '@/lib/services/database';
 import { BlobManager } from '@/lib/blob-manager';
 import { resolvePollinationsMediaUrl } from '@/lib/upload/pollinations-media';
 import { getPollenHeaders } from '@/lib/pollen-key';
+import { isAllowedRemoteMediaUrl } from '@/lib/media/remote-fetch-policy';
+import { SMALL_BLOB_SKIP_BYTES } from '@/lib/upload/constants';
 
 interface FallbackOptions {
   maxRetries?: number;
@@ -136,14 +138,17 @@ async function downloadAndCacheAsset(
   try {
     console.log(`[AssetFallback] Downloading asset for cache: ${assetId}`);
 
-    const response = await fetch(url, { headers: getPollenHeaders() });
+    // Only send Pollinations auth headers to Pollinations hosts to avoid
+    // leaking the user's key to third-party origins.
+    const headers = isAllowedRemoteMediaUrl(url) ? getPollenHeaders() : {};
+    const response = await fetch(url, { headers });
     if (!response.ok) {
       throw new Error(`Download failed: ${response.status}`);
     }
 
     const blob = await response.blob();
 
-    if (blob.size < 100) {
+    if (blob.size < SMALL_BLOB_SKIP_BYTES) {
       console.warn(`[AssetFallback] Downloaded blob too small (${blob.size} bytes), skipping cache`);
       return;
     }
@@ -209,14 +214,4 @@ function isValidUrl(url: string): boolean {
  */
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * Get fallback statistics for monitoring.
- */
-export async function getFallbackStats() {
-  // Could be extended to track success/failure rates
-  return {
-    // Placeholder for future metrics
-  };
 }

@@ -47,11 +47,13 @@ export function handleApiError(error: unknown): NextResponse {
     );
   }
   
-  // Handle standard Error instances
+  // Handle standard Error instances — mask internals to prevent leaking
+  // upstream/stack details to clients. Only ApiError/ZodError messages are
+  // considered safe to surface.
   if (error instanceof Error) {
     return NextResponse.json(
-      { 
-        error: error.message,
+      {
+        error: 'Internal server error',
         code: 'INTERNAL_ERROR',
         timestamp: new Date().toISOString()
       },

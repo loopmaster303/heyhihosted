@@ -1,4 +1,4 @@
-import { DatabaseService, db } from './database';
+import { DatabaseService } from './database';
 import type { Conversation as LegacyConversation } from '@/types';
 
 const STORAGE_KEY = 'fluxflow-chatHistory';
@@ -48,8 +48,6 @@ export const MigrationService = {
         // Jede Nachricht einzeln speichern
         if (messages && Array.isArray(messages)) {
           for (const msg of messages) {
-            // Cast to any for legacy data compatibility (old messages may have modelId)
-            const legacyMsg = msg as any;
             await DatabaseService.saveMessage({
               id: msg.id,
               role: msg.role,

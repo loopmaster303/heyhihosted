@@ -23,12 +23,6 @@ import type { GenerateImageOptions } from '@/lib/services/chat-service';
 import type { SaveGeneratedAssetOptions } from '@/lib/services/output-service';
 import { parseMediaIntents, type MediaIntent } from './chat-media-intent';
 
-export type ComposeMusicDefaults = {
-  duration?: number;
-  instrumental?: boolean;
-  model?: string;
-};
-
 export interface ProcessAssistantMediaIntentsInput {
   rawText: string;
   conversationId: string;
@@ -39,7 +33,6 @@ export interface ProcessAssistantMediaIntentsInput {
     options: SaveGeneratedAssetOptions,
   ) => Promise<string | undefined>;
   composeMusic?: (prompt: string) => Promise<string | null>;
-  composeDefaults?: ComposeMusicDefaults;
   onError?: (kind: 'image' | 'music' | 'audio-save', message: string) => void;
 }
 

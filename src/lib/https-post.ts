@@ -3,7 +3,7 @@ import path from 'path';
 
 /**
  * Make an HTTPS request by spawning a separate Node.js process.
- * 
+ *
  * Next.js 16 patches the `https` module in the main process, stripping headers.
  * `curl` child process proved unreliable (401 errors).
  * Solution: Spawn a vanilla Node.js child process running `src/lib/auth-proxy.js`
@@ -13,6 +13,9 @@ import path from 'path';
 // Point to the public script which is a static asset, avoiding bundling
 const scriptPath = ['public', 'scripts', 'auth-proxy.js'];
 const PROXY_SCRIPT = path.join(process.cwd(), ...scriptPath);
+
+// Hard cap to prevent fork/DoS amplification and runaway upstream hangs.
+const DEFAULT_PROXY_TIMEOUT_MS = 30_000;
 
 interface ProxyResponse {
   status: number;
@@ -49,7 +52,8 @@ function runNodeProxy(
   method: string,
   url: string,
   headers: Record<string, string>,
-  body?: string
+  body?: string,
+  timeoutMs: number = DEFAULT_PROXY_TIMEOUT_MS
 ): Promise<{ status: number; body: string; buffer: Buffer; contentType: string }> {
   return new Promise((resolve, reject) => {
     // Prepare input JSON
@@ -57,13 +61,25 @@ function runNodeProxy(
       url,
       method,
       headers,
-      body 
+      body
     });
 
     const child = spawn('node', [PROXY_SCRIPT]);
 
-    child.stdin.write(inputPayload);
-    child.stdin.end();
+    const timer = setTimeout(() => {
+      if (!child.killed) child.kill('SIGTERM');
+      reject(new Error(`Proxy process timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    // Respect backpressure: write() may return false when the pipe buffer
+    // (typically ~64KB) is full; awaiting 'drain' avoids deadlock on large
+    // request bodies.
+    const writeResult = child.stdin.write(inputPayload);
+    if (!writeResult) {
+      child.stdin.once('drain', () => child.stdin.end());
+    } else {
+      child.stdin.end();
+    }
 
     let stdoutData = '';
     let stderrData = '';
@@ -72,14 +88,15 @@ function runNodeProxy(
     child.stderr.on('data', c => stderrData += c);
 
     child.on('close', (code) => {
+      clearTimeout(timer);
       if (code !== 0) {
         console.error('[NodeProxy] Exited with code', code, stderrData);
-        return reject(new Error(`Proxy process exited with code ${code}: ${stderrData}`));
+        return reject(new Error(`Proxy process exited with code ${code}`));
       }
 
       try {
         const result: ProxyResponse = JSON.parse(stdoutData);
-        
+
         if (result.error) {
           return reject(new Error(`Proxy Internal Error: ${result.error}`));
         }
@@ -99,7 +116,10 @@ function runNodeProxy(
       }
     });
 
-    child.on('error', (err) => reject(err));
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
   });
 }
 
@@ -141,6 +161,7 @@ export async function httpsPostStream(
   url: string,
   headers: Record<string, string>,
   body: string,
+  timeoutMs: number = DEFAULT_PROXY_TIMEOUT_MS
 ): Promise<{ status: number; headers: Record<string, string>; stream: ReadableStream<Uint8Array> }> {
   const inputPayload = JSON.stringify({
     url,
@@ -151,8 +172,18 @@ export async function httpsPostStream(
   });
 
   const child = spawn('node', [PROXY_SCRIPT]);
-  child.stdin.write(inputPayload);
-  child.stdin.end();
+
+  // Abort if the proxy stalls before delivering the meta frame.
+  const timer = setTimeout(() => {
+    if (!child.killed) child.kill('SIGTERM');
+  }, timeoutMs);
+
+  const writeResult = child.stdin.write(inputPayload);
+  if (!writeResult) {
+    child.stdin.once('drain', () => child.stdin.end());
+  } else {
+    child.stdin.end();
+  }
 
   let stderrData = '';
   child.stderr.on('data', (chunk) => {
@@ -260,7 +291,7 @@ export async function httpsPostStream(
 
     child.on('close', (code) => {
       if (!metaResolved && code !== 0) {
-        reject(new Error(`Proxy process exited with code ${code}: ${stderrData}`));
+        reject(new Error(`Proxy process exited with code ${code}`));
       } else {
         closeStream();
       }
@@ -273,5 +304,6 @@ export async function httpsPostStream(
   });
 
   const resolvedMeta = await metaPromise;
+  clearTimeout(timer);
   return { status: resolvedMeta.status, headers: resolvedMeta.headers, stream };
 }

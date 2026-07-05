@@ -1,6 +1,5 @@
 import { DatabaseService } from './database';
 import { ChatService } from './chat-service';
-import type { ApiChatMessage } from '@/types';
 
 export const MemoryService = {
   /**
@@ -45,7 +44,6 @@ ${JSON.stringify(recentMessages)}
         for (const [key, value] of Object.entries(facts)) {
           if (typeof value === 'string' && value.length > 2) {
             await DatabaseService.updateMemory(key, value, 0.8, conversationId);
-            console.log(`🧠 Neues Wissen gespeichert: ${key} = ${value}`);
           }
         }
       }
@@ -53,53 +51,4 @@ ${JSON.stringify(recentMessages)}
       console.error("🧠 Memory Extraction failed:", err);
     }
   },
-
-  /**
-   * Baut einen String aus allen gespeicherten Erinnerungen für den System-Prompt.
-   */
-  async getMemoriesAsContext(): Promise<string> {
-    try {
-      const memories = await DatabaseService.getMemories();
-      if (memories.length === 0) return "";
-
-      const memoryLines = memories.map(m => `- ${m.value}`).join('\n');
-      return `
-<user_knowledge>
-Functional facts about the user:
-${memoryLines}
-
-INSTRUCTION: Use this knowledge only for technical assistance. Do not interpret or read into these facts. Do not create a behavioral profile.
-</user_knowledge>
-`;
-    } catch (err) {
-      return "";
-    }
-  },
-
-  /**
-   * Holt eine Übersicht über alle bisherigen Gesprächsthemen.
-   */
-  async getGlobalContextSummary(): Promise<string> {
-    try {
-      const conversations = await DatabaseService.getAllConversations();
-      // Effizienz: Wenn fast nichts da ist, lassen wir es.
-      if (conversations.length < 3) return "";
-
-      const titles = conversations
-        .slice(0, 15) 
-        .map(c => `- ${c.title}`)
-        .join('\n');
-
-      return `
-<global_context>
-Recent conversation topics:
-${titles}
-
-INSTRUCTION: Only mention these titles if the user asks about past conversations. Do NOT invent or fabricate any details about these topics. Stick strictly to the titles.
-</global_context>
-`;
-    } catch (err) {
-      return "";
-    }
-  }
 };

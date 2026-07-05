@@ -39,11 +39,11 @@ export interface GenerateImageOptions {
     output_format?: string;
     input_images?: string[];
     input_image?: string;
+    video?: string;
     password?: string;
 }
 
 export class ChatService {
-    // Service initialized
     static async sendChatCompletion(
         options: SendMessageOptions,
         onStream?: (chunk: string) => void
@@ -132,6 +132,7 @@ export class ChatService {
         if (options.image_url) body.image = options.image_url;
         if (options.input_image) body.image = options.input_image;
         if (options.input_images) body.image = options.input_images;
+        if (options.video) body.video = options.video;
         if (options.negative_prompt) body.negative_prompt = options.negative_prompt;
 
         const response = await fetch('/api/generate', {
@@ -141,7 +142,7 @@ export class ChatService {
         });
 
         if (response.status === 404) {
-            throw new Error('The Model is currently not available. Try another one like z-image (Das Modell ist anscheinend im Moment nicht verfügbar probiere ein anders zB zimage)');
+            throw new Error('The requested model is currently not available. Please try a different model.');
         }
 
         const result: any = await response.json();

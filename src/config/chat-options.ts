@@ -24,6 +24,19 @@ export interface VoiceOption {
   name: string; // Display name, e.g., "German (Female, Natural)"
 }
 
+export interface ComposeModelOption {
+  id: string;
+  name: string;
+  isFree: boolean;
+  maxDuration: number;
+}
+
+export const AVAILABLE_COMPOSE_MODELS: ComposeModelOption[] = [
+  { id: 'acestep', name: 'ACE-Step', isFree: true, maxDuration: 30 },
+  { id: 'elevenmusic', name: 'ElevenMusic', isFree: false, maxDuration: 300 },
+  { id: 'stable-audio-3-medium', name: 'Stable Audio 3 Medium', isFree: false, maxDuration: 300 },
+];
+
 // Pollinations Models - New simplified structure
 const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   // FEATURED - Standard Models
@@ -525,7 +538,7 @@ ${FEATURE_GUIDANCE}
     - If the user sends a finished prompt without specifying a model: recommend a model, rebuild the prompt into the right format (and filter-safe), and you're done.
 </behavior_rules>
 
-\${OUTPUT_LANGUAGE_GUARD}
+${OUTPUT_LANGUAGE_GUARD}
 </system_prompt>`,
   },
 ];

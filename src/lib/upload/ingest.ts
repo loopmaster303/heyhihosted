@@ -7,13 +7,12 @@ export interface IngestResponse {
 
 export async function ingestGeneratedAsset(
   sourceUrl: string,
-  sessionId: string,
   kind?: 'image' | 'video'
 ): Promise<IngestResponse> {
   const response = await fetch('/api/media/ingest', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
-    body: JSON.stringify({ sourceUrl, sessionId, kind }),
+    body: JSON.stringify({ sourceUrl, kind }),
   });
 
   const data = await response.json();

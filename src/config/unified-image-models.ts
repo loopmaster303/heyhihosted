@@ -3,7 +3,7 @@
  * Pollinations-only model catalog for image/video generation.
  */
 
-export type ImageProvider = 'pollinations';
+export type ImageProvider = 'pollinations' | 'pruna';
 export type ImageKind = 'image' | 'video';
 export type ImageCategory = 'Standard' | 'Advanced';
 
@@ -37,24 +37,30 @@ export interface VisualModelVisibilityOptions {
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
   { id: 'flux', name: 'Flux.1 Fast', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
-  { id: 'zimage', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast 6B Flux' },
+  { id: 'zimage', name: 'Z-Image Turbo', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'ByteDance Z-Image Turbo (Seedream-family)' },
   { id: 'gpt-image', name: 'GPT Image 1 Mini', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 4, isFree: true, enabled: true, description: 'OpenAI image generation with reference support' },
   { id: 'klein', name: 'Flux.2 Klein 4B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'FLUX.2 Klein — fast, dense prose prompts, I2I capable' },
   { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware frame editing' },
   { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 8, isFree: true, enabled: true, description: 'Advanced OpenAI Image' },
   { id: 'seedream', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: false, enabled: false, byopVisible: false, description: 'Seedream 5.0 Lite - ByteDance (stale — use seedream5 via BYOP when re-enabled)' },
   { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 2.5 Flash Image' },
-  { id: 'qwen-image', name: 'Qwen Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Qwen image generation and edit model' },
-  { id: 'grok-imagine-pro', name: 'Grok Imagine Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: false, description: 'Grok premium image generation' },
+  { id: 'qwen-image', name: 'Qwen Image', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Qwen image generation and edit model' },
+  { id: 'grok-imagine-pro', name: 'Grok Imagine Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Grok premium image generation' },
   { id: 'wan-image', name: 'Wan 2.7 Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Alibaba Wan 2.7 image generation' },
   { id: 'wan-image-pro', name: 'Wan 2.7 Image Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Alibaba Wan 2.7 Pro image generation' },
-  { id: 'p-image', name: 'P-Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: false, description: 'Pollinations image generation' },
-  { id: 'p-image-edit', name: 'P-Image Edit', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, description: 'Pollinations image editing' },
+   { id: 'p-image', name: 'P-Image', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: true, byopVisible: true, description: 'Pruna P-Image — performance text-to-image, <1s inference' },
+   { id: 'p-image-edit', name: 'P-Image Edit', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 5, isFree: false, enabled: true, byopVisible: true, description: 'Pruna P-Image-Edit — multi-image editing with text rendering' },
 
   // ADVANCED Image Models
   { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 3 Pro Image (4K)' },
   { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: false, enabled: false, description: 'Gemini 3.1 Flash Image' },
-  { id: 'grok-imagine', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Grok Aurora — autoregressive architecture' },
+  { id: 'grok-imagine', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Grok Aurora — autoregressive architecture' },
+  { id: 'qwen-image-edit-plus', name: 'Qwen Image Edit Plus', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 2, isFree: false, enabled: true, byopVisible: true, description: 'Qwen Image Edit Plus — multi-image editing with pose transfer' },
+  { id: 'ideogram-v4-turbo', name: 'Ideogram V4 Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Ideogram V4 Turbo — fast, high-quality text rendering' },
+   { id: 'nanobanana-2-lite', name: 'Nano Banana 2 Lite', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: false, enabled: false, byopVisible: true, description: 'Gemini Flash Lite Image' },
+   { id: 'wan-image-small', name: 'Wan Image Small', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast, efficient image generation via Pruna' },
+   { id: 'p-image-try-on', name: 'P-Image Try-On', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 6, isFree: false, enabled: true, byopVisible: true, description: 'Virtual garment try-on (person + up to 6 garments)' },
+   { id: 'p-image-upscale', name: 'P-Image Upscale', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: true, byopVisible: true, description: 'AI image upscaling 1-128 MP with detail enhancement' },
 
   // STANDARD Video Models
   {
@@ -89,14 +95,14 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   },
   {
     id: 'wan-fast',
-    name: 'Wan Fast',
-    provider: 'pollinations',
+    name: 'Wan Pruna',
+    provider: 'pruna',
     kind: 'video',
     category: 'Advanced',
     supportsReference: true,
     isFree: false,
     enabled: false,
-    description: 'Fast Alibaba Wan video generation (T2V / optional I2V)',
+    description: 'Wan video via Pruna (replaces wan-fast)',
     maxImages: 1,
     supportsAudio: true,
     supportsEndFrame: true,
@@ -104,15 +110,15 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   },
   {
     id: 'ltx-2',
-    name: 'LTX 2 Fast',
+    name: 'LTX 2.3 Fast',
     provider: 'pollinations',
     kind: 'video',
     category: 'Advanced',
-    supportsReference: false,
+    supportsReference: true,
     isFree: true,
     enabled: true,
-    description: 'Lightricks LTX 2 (T2V)',
-    maxImages: 0,
+    description: 'Lightricks LTX 2.3 (T2V)',
+    maxImages: 1,
     supportsAudio: true,
     durationRange: { options: [6, 8, 10] },
   },
@@ -124,9 +130,9 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     category: 'Advanced',
     supportsReference: true,
     maxImages: 1,
-    isFree: true,
-    enabled: true,
-    description: 'Grok Video — native audio, T2V + I2V',
+    isFree: false,
+    enabled: false,
+    description: 'Grok Video — native audio, T2V + I2V (only grok-video-pro exists upstream; free tier removed)',
     supportsAudio: true,
     durationRange: { options: [5, 10] },
   },
@@ -139,7 +145,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     supportsReference: true,
     maxImages: 1,
     isFree: false,
-    enabled: false,
+    enabled: true,
     description: 'Grok premium video generation',
     supportsAudio: true,
     durationRange: { options: [5, 10] },
@@ -147,14 +153,60 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   {
     id: 'p-video',
     name: 'P-Video',
-    provider: 'pollinations',
+    provider: 'pruna',
     kind: 'video',
     category: 'Advanced',
     supportsReference: true,
     maxImages: 1,
     isFree: false,
-    enabled: false,
-    description: 'Pollinations video generation',
+    enabled: true,
+    byopVisible: true,
+    description: 'Pruna P-Video — performance video generation with audio sync',
+    supportsAudio: true,
+    durationRange: { options: [5, 10] },
+  },
+  {
+    id: 'p-video-avatar',
+    name: 'P-Video Avatar',
+    provider: 'pruna',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: false,
+    enabled: true,
+    byopVisible: true,
+    description: 'Talking head avatar video from image + script/audio',
+    supportsAudio: true,
+    durationRange: { options: [5, 10] },
+  },
+  {
+    id: 'p-video-animate',
+    name: 'P-Video Animate',
+    provider: 'pruna',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: false,
+    enabled: true,
+    byopVisible: true,
+    description: 'Animate subject with motion from source video',
+    supportsAudio: true,
+    durationRange: { options: [5, 10] },
+  },
+  {
+    id: 'p-video-replace',
+    name: 'P-Video Replace',
+    provider: 'pruna',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 3,
+    isFree: false,
+    enabled: true,
+    byopVisible: true,
+    description: 'Replace characters in video while preserving motion',
     supportsAudio: true,
     durationRange: { options: [5, 10] },
   },
@@ -218,6 +270,48 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     supportsAudio: false,
     durationRange: { options: [6, 12, 18, 24, 30] },
   },
+  {
+    id: 'wan-t2v',
+    name: 'Wan T2V',
+    provider: 'pruna',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: false,
+    maxImages: 0,
+    isFree: false,
+    enabled: true,
+    description: 'Wan T2V — text-to-video via Pruna',
+    supportsAudio: true,
+    durationRange: { options: [5, 10] },
+  },
+  {
+    id: 'wan-i2v',
+    name: 'Wan I2V',
+    provider: 'pruna',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 1,
+    isFree: false,
+    enabled: true,
+    description: 'Wan I2V — image-to-video via Pruna',
+    supportsAudio: true,
+    durationRange: { options: [5, 10] },
+  },
+  {
+    id: 'vace',
+    name: 'VACE',
+    provider: 'pruna',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 3,
+    isFree: false,
+    enabled: true,
+    description: 'VACE — video with character consistency via Pruna',
+    supportsAudio: false,
+    durationRange: { options: [5, 10] },
+  },
 ];
 
 export const UNIFIED_IMAGE_MODELS: UnifiedImageModel[] = POLLINATIONS_MODELS;
@@ -226,18 +320,19 @@ const POLLINATIONS_IMAGE_MODEL_ALIASES: Record<string, string> = {
   'z-image': 'zimage',
   'z-image-turbo': 'zimage',
   'grok-image': 'grok-imagine',
-  'grok-imagine-video': 'grok-video',
+  'grok-imagine-video': 'grok-video-pro',
   'wan2.6': 'wan',
-  'wan-i2v': 'wan',
   'ltxvideo': 'ltx-2',
   'ltx-video': 'ltx-2',
+  'ideogram': 'ideogram-v4-turbo',
+  'nanobanana-lite': 'nanobanana-2-lite',
 };
 
 export function resolvePollinationsVisualModelId(modelId?: string): string | undefined {
   if (!modelId) return undefined;
 
   const canonicalModelId = POLLINATIONS_IMAGE_MODEL_ALIASES[modelId] || modelId;
-  const model = UNIFIED_IMAGE_MODELS.find((entry) => entry.provider === 'pollinations' && entry.id === canonicalModelId);
+  const model = UNIFIED_IMAGE_MODELS.find((entry) => (entry.provider === 'pollinations' || entry.provider === 'pruna') && entry.id === canonicalModelId);
 
   if (!model || !isVisibleVisualModel(model, { includeByopHidden: true })) {
     return undefined;
@@ -292,6 +387,36 @@ export function getVisualizeModelGroups(
   options: VisualModelVisibilityOptions = {},
 ): Array<VisualizeModelGroup & { models: UnifiedImageModel[] }> {
   const visibleModels = UNIFIED_IMAGE_MODELS.filter((model) => isVisibleVisualModel(model, options));
+
+  return VISUALIZE_GROUP_DEFINITIONS.map((group) => {
+    const models = visibleModels.filter((model) => {
+      if (model.kind !== group.kind) {
+        return false;
+      }
+
+      const isFree = model.isFree === true;
+      if (group.key.endsWith('-free')) {
+        return isFree;
+      }
+
+      return !isFree;
+    });
+
+    return {
+      ...group,
+      modelIds: models.map((model) => model.id),
+      models,
+    };
+  }).filter((group) => group.models.length > 0);
+}
+
+export function getVisualizeModelGroupsForProvider(
+  provider: ImageProvider,
+  options: VisualModelVisibilityOptions = {},
+): Array<VisualizeModelGroup & { models: UnifiedImageModel[] }> {
+  const visibleModels = UNIFIED_IMAGE_MODELS.filter(
+    (model) => model.provider === provider && isVisibleVisualModel(model, options)
+  );
 
   return VISUALIZE_GROUP_DEFINITIONS.map((group) => {
     const models = visibleModels.filter((model) => {

@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 /**
  * Pollinations SDK Shim
  * Imitates the official @pollinations/sdk interface while using the stable gen.pollinations.ai backend.
@@ -16,7 +14,6 @@ export interface PollinationsOptions {
     private?: boolean;
     safe?: boolean;
     enhance?: boolean;
-    apiKey?: string;
 }
 
 export interface ImageOptions extends PollinationsOptions {
@@ -67,14 +64,9 @@ export async function imageUrl(prompt: string, options: ImageOptions = {}): Prom
     }
 
     const safePrompt = encodeURIComponent(prompt.trim());
-    let url = `${BASE_URL}/${safePrompt}?${params.toString()}`;
-
-    // API Key (should be handled by caller or default env, but SDK allows passing)
-    if (options.apiKey) {
-        url += `&key=${options.apiKey}`;
-    }
-
-    return url;
+    // API key is intentionally NOT part of the URL — callers must authenticate
+    // via Authorization header when fetching (see server-media-ingest).
+    return `${BASE_URL}/${safePrompt}?${params.toString()}`;
 }
 
 
@@ -105,12 +97,7 @@ export async function videoUrl(prompt: string, options: VideoOptions = {}): Prom
     }
 
     const safePrompt = encodeURIComponent(prompt.trim());
-    let url = `${BASE_URL}/${safePrompt}?${params.toString()}`;
-
-    // API Key
-    if (options.apiKey) {
-        url += `&key=${options.apiKey}`;
-    }
-
-    return url;
+    // API key is intentionally NOT part of the URL — callers must authenticate
+    // via Authorization header when fetching (see server-media-ingest).
+    return `${BASE_URL}/${safePrompt}?${params.toString()}`;
 }

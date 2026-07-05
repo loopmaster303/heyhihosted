@@ -1,7 +1,8 @@
-import { DatabaseService, type Asset } from '@/lib/services/database';
+import { DatabaseService } from '@/lib/services/database';
 import { ingestGeneratedAsset } from '@/lib/upload/ingest';
 import { generateUUID } from '@/lib/uuid';
 import { resolveAssetUrl } from '@/lib/services/asset-fallback-service';
+import { SMALL_BLOB_SKIP_BYTES } from '@/lib/upload/constants';
 
 export interface SaveGeneratedAssetOptions {
   url: string;
@@ -16,37 +17,11 @@ export interface SaveGeneratedAssetOptions {
 /**
  * OutputService
  *
- * Wrapper around DatabaseService for output asset management.
+ * Asset facade for generation flows. Thin pass-through CRUD lives on
+ * DatabaseService directly; this module only owns generation-specific
+ * save (with Pollinations ingest backfill) and resolved-URL lookup.
  */
 export const OutputService = {
-  /**
-   * Save an asset to the local output store (Dexie DB).
-   */
-  async saveAsset(asset: Asset): Promise<string> {
-    return DatabaseService.saveAsset(asset);
-  },
-
-  /**
-   * Retrieve an asset by ID.
-   */
-  async getAsset(id: string): Promise<Asset | undefined> {
-    return DatabaseService.getAsset(id);
-  },
-
-  /**
-   * Get a blob URL or remote URL for an asset.
-   */
-  async getAssetUrl(id: string): Promise<string | null> {
-    return DatabaseService.getAssetUrl(id);
-  },
-
-  /**
-   * Delete an asset from the local output store.
-   */
-  async deleteAsset(id: string): Promise<void> {
-    return DatabaseService.deleteAsset(id);
-  },
-
   /**
    * Get a resolved asset URL with full fallback chain.
    * Uses AssetFallbackService for retry logic and auto-caching.
@@ -57,49 +32,6 @@ export const OutputService = {
       downloadMissingBlob: true,
     });
     return result.url;
-  },
-
-  /**
-   * Verify and repair assets with missing blobs.
-   * Downloads and caches assets that only have storageKey or remoteUrl.
-   *
-   * @param assetIds Array of asset IDs to verify
-   * @returns Number of assets repaired
-   */
-  async verifyAndRepairAssets(assetIds: string[]): Promise<number> {
-    let repaired = 0;
-
-    for (const id of assetIds) {
-      try {
-        const asset = await DatabaseService.getAsset(id);
-        if (!asset) continue;
-
-        // Skip if blob already exists
-        if (asset.blob) continue;
-
-        // Only repair if we have a way to fetch the asset
-        if (!asset.storageKey && !asset.remoteUrl) {
-          console.warn(`[OutputService] No source to repair asset: ${id}`);
-          continue;
-        }
-
-        // Use fallback service to download and cache
-        await resolveAssetUrl(id, {
-          maxRetries: 2,
-          downloadMissingBlob: true,
-        });
-
-        repaired++;
-      } catch (error) {
-        console.warn(`[OutputService] Failed to repair asset ${id}:`, error);
-      }
-    }
-
-    if (repaired > 0) {
-      console.log(`[OutputService] Repaired ${repaired} assets`);
-    }
-
-    return repaired;
   },
 
   /**
@@ -136,7 +68,7 @@ export const OutputService = {
         });
 
         if (sessionId) {
-          ingestGeneratedAsset(url, sessionId, isVideo ? 'video' : 'image')
+          ingestGeneratedAsset(url, isVideo ? 'video' : 'image')
             .then(async (ingest) => {
               await DatabaseService.saveAsset({
                 ...baseAsset,
@@ -166,7 +98,7 @@ export const OutputService = {
 
         const blob = await response.blob();
 
-        if (blob.size < 1000) {
+        if (blob.size < SMALL_BLOB_SKIP_BYTES) {
           console.warn(`⚠️ Asset too small (${blob.size} bytes), skipping`);
           return undefined;
         }

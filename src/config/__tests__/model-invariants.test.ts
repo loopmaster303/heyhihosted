@@ -6,6 +6,7 @@ import {
   getVisiblePollinationsModels,
 } from '@/config/chat-options';
 import {
+  getChatImageModels,
   getImageModels,
   getVisualizeModelGroups,
   resolvePollinationsVisualModelId,
@@ -126,6 +127,14 @@ describe('model invariants', () => {
       'wan-fast',
       'p-video',
     ]));
+  });
+
+  test('chat image model list stays curated and separate from the full Visualize registry', () => {
+    expect(getChatImageModels().map((model) => model.id).sort()).toEqual([
+      'flux',
+      'gpt-image',
+      'zimage',
+    ].sort());
   });
 
   test('approved upstream visual models resolve directly and stale ids no longer resolve', () => {

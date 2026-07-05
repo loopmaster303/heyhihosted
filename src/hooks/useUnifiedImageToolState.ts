@@ -6,7 +6,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { getPollenHeaders } from '@/lib/pollen-key';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { unifiedModelConfigs, getUnifiedModelConfig, type UnifiedModelConfig } from '@/config/unified-model-configs';
-import { getUnifiedModel, UNIFIED_IMAGE_MODELS } from '@/config/unified-image-models';
+import { getUnifiedModel, getVisualizeModelGroupsForProvider, UNIFIED_IMAGE_MODELS, type ImageProvider } from '@/config/unified-image-models';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
 import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
@@ -46,6 +46,31 @@ export function useUnifiedImageToolState() {
     const hasPollenKey = useHasPollenKey();
 
     // Model selection
+    // Provider mode switch (Pollinations vs Pruna)
+    const [providerMode, setProviderMode] = useLocalStorageState<'pollinations' | 'pruna'>('heyhi-provider-mode', 'pollinations');
+    const [prunaAvailable, setPrunaAvailable] = useState<boolean>(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        fetch('/api/capabilities')
+            .then(res => res.json())
+            .then(data => {
+                if (cancelled) return;
+                const available = !!data.prunaAvailable;
+                setPrunaAvailable(available);
+                if (!available && providerMode === 'pruna') {
+                    setProviderMode('pollinations');
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setPrunaAvailable(false);
+                    setProviderMode('pollinations');
+                }
+            });
+        return () => { cancelled = true; };
+    }, [providerMode, setProviderMode]);
+
     const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
     const normalizedDefaultImageModelId = useMemo(
         () => normalizeLegacyImageModelId(defaultImageModelId),
@@ -59,35 +84,38 @@ export function useUnifiedImageToolState() {
     }, [defaultImageModelId, normalizedDefaultImageModelId, setDefaultImageModelId]);
 
     const availableModels = useMemo(
-        () => Object.keys(unifiedModelConfigs).filter((id) => {
-            const model = getUnifiedModel(id);
-            if (!model) return false;
-            return hasPollenKey ? true : (model.enabled ?? false);
-        }),
-        [hasPollenKey]
+        () => {
+            const groups = getVisualizeModelGroupsForProvider(providerMode, { includeByopHidden: hasPollenKey });
+            return groups.flatMap(g => g.models.map(m => m.id));
+        },
+        [providerMode, hasPollenKey]
     );
-    const initialModelId = availableModels.includes(normalizedDefaultImageModelId)
-        ? normalizedDefaultImageModelId
-        : (availableModels[0] || DEFAULT_IMAGE_MODEL);
+    const initialModelId = useMemo(() => {
+        const model = getUnifiedModel(normalizedDefaultImageModelId);
+        if (model?.provider === providerMode && availableModels.includes(normalizedDefaultImageModelId)) {
+            return normalizedDefaultImageModelId;
+        }
+        if (providerMode === 'pollinations' && availableModels.includes('flux')) return 'flux';
+        return availableModels[0] || DEFAULT_IMAGE_MODEL;
+    }, [availableModels, normalizedDefaultImageModelId, providerMode]);
     const [selectedModelId, setSelectedModelId] = useState<string>(initialModelId);
     const currentModelConfig = getUnifiedModelConfig(selectedModelId);
 
+    // Reset selected model when provider mode changes (smart reset)
     useEffect(() => {
-        if (!availableModels.includes(selectedModelId) && availableModels.length > 0) {
-            setSelectedModelId(availableModels[0]);
-        }
-    }, [availableModels, selectedModelId]);
-
-    useEffect(() => {
-        if (availableModels.includes(normalizedDefaultImageModelId)) {
-            setSelectedModelId(normalizedDefaultImageModelId);
-        }
-    }, [availableModels, normalizedDefaultImageModelId, setSelectedModelId]);
+        setSelectedModelId(prev => {
+            if (availableModels.includes(prev) || availableModels.length === 0) return prev;
+            return providerMode === 'pollinations' && availableModels.includes('flux')
+                ? 'flux'
+                : availableModels[0];
+        });
+    }, [providerMode, availableModels]);
 
     // Form state
     const [prompt, setPrompt] = useState('');
     const [formFields, setFormFields] = useState<Record<string, any>>({});
     const [uploadedImages, setUploadedImages] = useState<UploadedReference[]>([]);
+    const [sourceVideo, setSourceVideo] = useState<UploadedReference | null>(null);
 
     // UI Panels
     const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
@@ -115,6 +143,11 @@ export function useUnifiedImageToolState() {
     const supportsReference = useMemo(() => {
         const modelInfo = getUnifiedModel(selectedModelId);
         return modelInfo?.supportsReference === true;
+    }, [selectedModelId]);
+
+    // Source video check (for motion-transfer / video-replacement models)
+    const requiresSourceVideo = useMemo(() => {
+        return selectedModelId === 'p-video-animate' || selectedModelId === 'p-video-replace';
     }, [selectedModelId]);
 
     // Max images per model
@@ -178,12 +211,15 @@ export function useUnifiedImageToolState() {
         setFormFields(initialFields);
     }, [currentModelConfig, isPollenModel, isPollinationsVideo, selectedModelId]);
 
-    // Clear uploaded images if model doesn't support them
+    // Clear uploaded images / source video if model doesn't support them
     useEffect(() => {
         if (!supportsReference) {
             setUploadedImages([]);
         }
-    }, [selectedModelId, supportsReference]);
+        if (!requiresSourceVideo) {
+            setSourceVideo(null);
+        }
+    }, [selectedModelId, supportsReference, requiresSourceVideo]);
 
     // Handle Model Switching - Truncate if necessary (Strict Pollinations Limit)
     useEffect(() => {
@@ -203,20 +239,19 @@ export function useUnifiedImageToolState() {
         }
     }, [selectedModelId, maxImages, uploadedImages, currentModelConfig]);
 
-    // Handle File Change
+    // Handle File Change (images only)
     const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(event.target.files || []);
         if (files.length === 0) return;
+
+        const allUploadModels = [...pollinationUploadModels];
+        const isSingleSlot = maxImages === 1;
 
         const imageFiles = files.filter(file => file.type.startsWith('image/'));
         if (imageFiles.length === 0) {
             toast({ title: "Invalid File", description: "Please upload an image file.", variant: "destructive" });
             return;
         }
-
-        const modelInfo = getUnifiedModel(selectedModelId);
-        const allUploadModels = [...pollinationUploadModels];
-        const isSingleSlot = maxImages === 1;
 
         if (allUploadModels.includes(selectedModelId)) {
             setIsUploading(true);
@@ -279,10 +314,52 @@ export function useUnifiedImageToolState() {
         }
     }, [selectedModelId, toast, maxImages, uploadedImages]);
 
+    // Handle Source Video Change (video only)
+    const handleSourceVideoFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(event.target.files || []);
+        if (files.length === 0) return;
+
+        const videoFiles = files.filter(file => file.type.startsWith('video/'));
+        if (videoFiles.length === 0) {
+            toast({ title: "Invalid File", description: "Please upload a video file for this model.", variant: "destructive" });
+            return;
+        }
+        if (videoFiles.length > 1) {
+            toast({ title: "Limit Reached", description: "Only one source video allowed.", variant: "destructive" });
+        }
+
+        setIsUploading(true);
+        try {
+            const file = videoFiles[0];
+            const sessionId = getClientSessionId();
+            const fileName = file.name || `upload-${Date.now()}.bin`;
+            const contentType = file.type || 'video/mp4';
+            const media = await uploadFileToPollinationsMedia(file, fileName, contentType, {
+                sessionId,
+                folder: 'uploads',
+            });
+            setSourceVideo({
+                url: media.mediaUrl,
+                key: media.key,
+                expiresAt: Date.now() + media.expiresIn * 1000,
+            });
+        } catch (err: any) {
+            console.error('Video upload error:', err);
+            toast({ title: 'Upload failed', description: err.message || 'Could not upload video.', variant: 'destructive' });
+        } finally {
+            setIsUploading(false);
+        }
+    }, [toast]);
+
     // Handle Remove Image
     const handleRemoveImage = useCallback((index: number) => {
         setUploadedImages(prev => prev.filter((_, i) => i !== index));
     }, [setUploadedImages]);
+
+    // Handle Remove Source Video
+    const handleRemoveSourceVideo = useCallback(() => {
+        setSourceVideo(null);
+    }, [setSourceVideo]);
 
     // Handle Field Change
     const handleFieldChange = useCallback((name: string, value: any) => {
@@ -311,15 +388,7 @@ export function useUnifiedImageToolState() {
             }
 
             const result = await response.json();
-            let enhanced = result.enhancedPrompt || prompt;
-
-            // FORCE QUALITY TAGS for z-image-turbo
-            if (selectedModelId === 'zimage' || selectedModelId === 'z-image-turbo') {
-                const tags = "masterpiece, best quality, 8k uhd, hyperrealistic, ultra detailed, cinematic lighting";
-                if (!enhanced.toLowerCase().includes('8k')) {
-                    enhanced = `${enhanced.trim()}, ${tags}`;
-                }
-            }
+            const enhanced = result.enhancedPrompt || prompt;
 
             setPrompt(enhanced);
             toast({ title: "Prompt Enhanced", description: "Your prompt has been improved using AI." });
@@ -346,6 +415,8 @@ export function useUnifiedImageToolState() {
         setFormFields,
         uploadedImages,
         setUploadedImages,
+        sourceVideo,
+        setSourceVideo,
         isModelSelectorOpen,
         setIsModelSelectorOpen,
         isConfigPanelOpen,
@@ -355,9 +426,15 @@ export function useUnifiedImageToolState() {
         isEnhancing,
         isUploading,
 
+        // Provider switch
+        providerMode,
+        setProviderMode,
+        prunaAvailable,
+
         // Computed
         availableModels,
         supportsReference,
+        requiresSourceVideo,
         maxImages,
         isGptImage,
         isSeedream,
@@ -367,7 +444,9 @@ export function useUnifiedImageToolState() {
 
         // Actions
         handleFileChange,
+        handleSourceVideoFileChange,
         handleRemoveImage,
+        handleRemoveSourceVideo,
         handleFieldChange,
         handleEnhancePrompt,
     };

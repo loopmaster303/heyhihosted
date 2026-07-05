@@ -209,6 +209,9 @@ export const translations = {
         'visualize.showMore': 'Mehr anzeigen',
         'visualize.showLess': 'Weniger anzeigen',
         'visualize.minimizeSettings': 'Einstellungen minimieren',
+        'provider.pollinations': 'Pollinations',
+        'provider.pruna': 'Pruna',
+        'provider.prunaKeyRequired': 'Pruna API-Key erforderlich',
         'chat.placeholder.standard': 'Worüber möchtest du sprechen?',
         'chat.placeholder.imageMode': 'In-Chat-Visualisierung aktiv.',
         'chat.placeholder.web': 'Web-Recherche aktiv.',
@@ -218,6 +221,11 @@ export const translations = {
         'media.uploadedImage': 'Hochgeladenes Bild',
         'media.image': 'Bild',
         'media.generatedVideo': 'Generiertes Video',
+        'toast.musicGenerationFailed': 'Musik-Generierung fehlgeschlagen',
+        'toast.promptEnhanced': 'Prompt optimiert',
+        'toast.promptEnhancedDesc': 'Dein Musik-Prompt wurde von VibeCraft optimiert.',
+        'toast.enhancementFailed': 'Enhancement fehlgeschlagen',
+        'toast.enhancementFailedDesc': 'Prompt konnte nicht optimiert werden.',
     },
 
     en: {
@@ -428,6 +436,9 @@ export const translations = {
         'visualize.showMore': 'Show more',
         'visualize.showLess': 'Show less',
         'visualize.minimizeSettings': 'Minimize settings',
+        'provider.pollinations': 'Pollinations',
+        'provider.pruna': 'Pruna',
+        'provider.prunaKeyRequired': 'Pruna API key required',
         'chat.placeholder.standard': 'What do you want to discuss?',
         'chat.placeholder.imageMode': 'In-chat visualization active.',
         'chat.placeholder.web': 'Web research active.',
@@ -437,6 +448,11 @@ export const translations = {
         'media.uploadedImage': 'Uploaded image',
         'media.image': 'Image',
         'media.generatedVideo': 'Generated video',
+        'toast.musicGenerationFailed': 'Music generation failed',
+        'toast.promptEnhanced': 'Prompt enhanced',
+        'toast.promptEnhancedDesc': 'Your music prompt was optimized by VibeCraft.',
+        'toast.enhancementFailed': 'Enhancement failed',
+        'toast.enhancementFailedDesc': 'Could not enhance the prompt.',
     }
 };
 

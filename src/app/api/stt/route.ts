@@ -6,11 +6,18 @@ import { resolveSttLanguageHint } from '@/lib/chat/audio-settings';
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const audioFile = formData.get('audioFile') as File | null;
+    const audioFileRaw = formData.get('audioFile');
     const language = resolveSttLanguageHint(formData.get('language')?.toString());
 
-    if (!audioFile) {
+    if (!audioFileRaw) {
       throw apiErrors.badRequest('Missing required field: audioFile');
+    }
+    if (!(audioFileRaw instanceof File)) {
+      throw apiErrors.badRequest('audioFile must be a file');
+    }
+    const audioFile = audioFileRaw;
+    if (!audioFile.type.startsWith('audio/')) {
+      throw apiErrors.badRequest('audioFile must be an audio MIME type');
     }
 
     const result = await speechToText(audioFile, language);
