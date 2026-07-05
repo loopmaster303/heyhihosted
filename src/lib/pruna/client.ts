@@ -11,6 +11,9 @@
 
 import { getPrunaModelMapping, getPrunaModelName, type PrunaFieldInput } from '@/config/pruna-models';
 import { ApiError } from '@/lib/api-error-handler';
+import { validateRemoteMediaFetchUrl } from '@/lib/media/remote-fetch-policy';
+
+const MAX_PRUNA_DOWNLOAD_REDIRECTS = 5;
 
 const PRUNA_BASE_URL = 'https://api.pruna.ai/v1';
 const PRUNA_SHARED_BASE_URL = 'https://api.sharedservices.pruna.ai/v1';
@@ -104,10 +107,53 @@ export async function downloadPrunaResult(
   apiKey?: string,
   signal?: AbortSignal,
 ): Promise<{ buffer: Buffer; contentType: string }> {
-  const headers: Record<string, string> = {};
-  if (apiKey) headers.apikey = apiKey;
+  // The generation URL comes from Pruna's API response; validate it and every
+  // redirect target so a poisoned/misconfigured URL cannot turn the apikey-bearing
+  // download into an SSRF against internal hosts.
+  const initialPolicy = validateRemoteMediaFetchUrl(generationUrl);
+  if (!initialPolicy.allowed) {
+    throw new ApiError(
+      400,
+      `Pruna generation URL is not allowed: ${initialPolicy.reason || 'unsafe-host'}`,
+      'PRUNA_UNSAFE_URL',
+    );
+  }
 
-  const response = await fetch(generationUrl, { headers, signal });
+  let currentUrl = generationUrl;
+  let response: Response | null = null;
+
+  for (let redirects = 0; redirects <= MAX_PRUNA_DOWNLOAD_REDIRECTS; redirects++) {
+    // apikey is only sent to the validated Pruna host, never to a redirect target.
+    const headers: Record<string, string> = {};
+    if (apiKey && redirects === 0) headers.apikey = apiKey;
+
+    const hop = await fetch(currentUrl, { headers, signal, redirect: 'manual' });
+
+    if (hop.status >= 300 && hop.status < 400) {
+      const location = hop.headers.get('location');
+      if (!location) {
+        throw new ApiError(502, 'Pruna download redirect missing Location header', 'PRUNA_DOWNLOAD_ERROR');
+      }
+      const resolvedUrl = new URL(location, currentUrl).href;
+      const policy = validateRemoteMediaFetchUrl(resolvedUrl);
+      if (!policy.allowed) {
+        throw new ApiError(
+          400,
+          `Blocked unsafe Pruna download redirect: ${policy.reason || 'unsafe-host'}`,
+          'PRUNA_UNSAFE_REDIRECT',
+        );
+      }
+      currentUrl = resolvedUrl;
+      continue;
+    }
+
+    response = hop;
+    break;
+  }
+
+  if (!response) {
+    throw new ApiError(502, 'Too many redirects while downloading Pruna result', 'PRUNA_DOWNLOAD_ERROR');
+  }
   if (!response.ok) {
     throw new ApiError(502, `Failed to download Pruna result (${response.status})`, 'PRUNA_DOWNLOAD_ERROR');
   }

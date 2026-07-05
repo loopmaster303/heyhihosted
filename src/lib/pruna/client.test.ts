@@ -1,4 +1,4 @@
-import { generateViaPruna, uploadPrunaFile } from './client';
+import { generateViaPruna, uploadPrunaFile, downloadPrunaResult } from './client';
 
 describe('Pruna client', () => {
   const originalFetch = global.fetch;
@@ -108,5 +108,43 @@ describe('Pruna client', () => {
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  describe('downloadPrunaResult redirect policy', () => {
+    it('rejects a generation URL pointing at a private/internal host', async () => {
+      global.fetch = jest.fn() as any;
+      await expect(
+        downloadPrunaResult('http://169.254.169.254/latest/meta-data', 'KEY'),
+      ).rejects.toMatchObject({ code: 'PRUNA_UNSAFE_URL' });
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('does not follow a redirect to a private host', async () => {
+      const fetchMock = jest.fn(async () => ({
+        status: 302,
+        ok: false,
+        headers: { get: (k: string) => (k === 'location' ? 'http://127.0.0.1/secret' : null) },
+      })) as any;
+      global.fetch = fetchMock;
+
+      await expect(
+        downloadPrunaResult('https://api.pruna.ai/gen/abc', 'SECRETKEY'),
+      ).rejects.toMatchObject({ code: 'PRUNA_UNSAFE_REDIRECT' });
+      // Only the initial fetch happened; the private redirect target was never fetched.
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('downloads from a valid public generation URL', async () => {
+      global.fetch = jest.fn(async () => ({
+        status: 200,
+        ok: true,
+        arrayBuffer: async () => new TextEncoder().encode('data').buffer,
+        headers: { get: (k: string) => (k === 'content-type' ? 'image/png' : null) },
+      })) as any;
+
+      const result = await downloadPrunaResult('https://api.pruna.ai/gen/abc', 'KEY');
+      expect(result.contentType).toBe('image/png');
+      expect(Buffer.isBuffer(result.buffer)).toBe(true);
+    });
   });
 });
