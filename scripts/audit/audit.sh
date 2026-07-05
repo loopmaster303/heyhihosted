@@ -21,13 +21,56 @@ run_check() {
   bash "$script" 2>&1 | tee -a "$LOG_FILE"
 }
 
-# Alle Checks ausführen und Ergebnisse einlesen
-eval $(bash "$SCRIPT_DIR/check-build.sh" 2>>"$LOG_FILE")
-eval $(bash "$SCRIPT_DIR/check-security.sh" 2>>"$LOG_FILE")
-eval $(bash "$SCRIPT_DIR/check-deps.sh" 2>>"$LOG_FILE")
-eval $(bash "$SCRIPT_DIR/check-pollinations.sh" 2>>"$LOG_FILE")
-eval $(bash "$SCRIPT_DIR/check-ux.sh" 2>>"$LOG_FILE")
-eval $(bash "$SCRIPT_DIR/check-doc-drift.sh" 2>>"$LOG_FILE")
+# Defaults für Report-Variablen, damit set -u bei fehlenden Feldern nicht abbricht
+BUILD_TYPECHECK_STATUS="✅"
+BUILD_TYPECHECK_DETAIL=""
+BUILD_LINT_STATUS="✅"
+BUILD_LINT_DETAIL=""
+SECURITY_STATUS="✅"
+SECURITY_DETAIL=""
+ENV_STATUS="✅"
+ENV_DETAIL=""
+DEPS_STATUS="✅"
+DEPS_DETAIL=""
+POLL_API_STATUS="✅"
+POLL_STATUS="✅"
+POLL_DETAIL=""
+POLL_NEW_MODELS=""
+POLL_NEW_TEXT_MODELS=""
+POLL_STALE_TEXT_MODELS=""
+POLL_STALE_IMAGE_MODELS=""
+POLL_MISSING_ENHANCEMENT_MODELS=""
+POLL_COMMIT_READY_MODELS=""
+POLL_HIDDEN_LOCAL_VISUAL_MODELS=""
+POLL_UPSTREAM_TEXT_MODELS=""
+POLL_UPSTREAM_VISUAL_MODELS=""
+UX_STATUS="⏭️"
+UX_DETAIL=" (Dev-Server nicht aktiv)"
+UX_PERF=""
+UX_A11Y=""
+UX_BEST=""
+DOC_DRIFT_STATUS="✅"
+DOC_DRIFT_DETAIL=""
+DOC_DRIFT_FINDINGS=""
+
+# Alle Checks ausführen und Ergebnisse über sicheren Parser einlesen
+_SAFE_ALLOWED_KEYS="BUILD_TYPECHECK_STATUS BUILD_TYPECHECK_DETAIL BUILD_LINT_STATUS BUILD_LINT_DETAIL"
+source "$SCRIPT_DIR/_safe_parse_audit_output.sh" < <(bash "$SCRIPT_DIR/check-build.sh" 2>>"$LOG_FILE")
+
+_SAFE_ALLOWED_KEYS="SECURITY_STATUS SECURITY_DETAIL ENV_STATUS ENV_DETAIL"
+source "$SCRIPT_DIR/_safe_parse_audit_output.sh" < <(bash "$SCRIPT_DIR/check-security.sh" 2>>"$LOG_FILE")
+
+_SAFE_ALLOWED_KEYS="DEPS_STATUS DEPS_DETAIL"
+source "$SCRIPT_DIR/_safe_parse_audit_output.sh" < <(bash "$SCRIPT_DIR/check-deps.sh" 2>>"$LOG_FILE")
+
+_SAFE_ALLOWED_KEYS="POLL_API_STATUS POLL_STATUS POLL_DETAIL POLL_NEW_MODELS POLL_NEW_TEXT_MODELS POLL_STALE_TEXT_MODELS POLL_STALE_IMAGE_MODELS POLL_MISSING_ENHANCEMENT_MODELS POLL_COMMIT_READY_MODELS POLL_HIDDEN_LOCAL_VISUAL_MODELS POLL_UPSTREAM_TEXT_MODELS POLL_UPSTREAM_VISUAL_MODELS"
+source "$SCRIPT_DIR/_safe_parse_audit_output.sh" < <(bash "$SCRIPT_DIR/check-pollinations.sh" 2>>"$LOG_FILE")
+
+_SAFE_ALLOWED_KEYS="UX_STATUS UX_DETAIL UX_PERF UX_A11Y UX_BEST"
+source "$SCRIPT_DIR/_safe_parse_audit_output.sh" < <(bash "$SCRIPT_DIR/check-ux.sh" 2>>"$LOG_FILE")
+
+_SAFE_ALLOWED_KEYS="DOC_DRIFT_STATUS DOC_DRIFT_DETAIL DOC_DRIFT_FINDINGS"
+source "$SCRIPT_DIR/_safe_parse_audit_output.sh" < <(bash "$SCRIPT_DIR/check-doc-drift.sh" 2>>"$LOG_FILE")
 
 echo "" | tee -a "$LOG_FILE"
 echo "Alle Checks abgeschlossen. Erstelle Report..." | tee -a "$LOG_FILE"

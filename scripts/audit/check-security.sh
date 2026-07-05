@@ -11,10 +11,9 @@ ENV_STATUS="✅"
 ENV_DETAIL=""
 
 echo "[security] Running npm audit..."
-if ! OUTPUT=$(npm audit --json 2>&1); then
-  AUDIT_JSON=$(echo "$OUTPUT" | tail -n 1)
-  CRITICAL=$(echo "$AUDIT_JSON" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.metadata?.vulnerabilities?.critical||0)" 2>/dev/null || echo "?")
-  HIGH=$(echo "$AUDIT_JSON" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.metadata?.vulnerabilities?.high||0)" 2>/dev/null || echo "?")
+if ! OUTPUT=$(npm audit --json); then
+  CRITICAL=$(printf '%s' "$OUTPUT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.metadata?.vulnerabilities?.critical||0)" 2>/dev/null || echo "?")
+  HIGH=$(printf '%s' "$OUTPUT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.metadata?.vulnerabilities?.high||0)" 2>/dev/null || echo "?")
   if [ "$CRITICAL" != "0" ] && [ "$CRITICAL" != "?" ]; then
     SECURITY_STATUS="🚨"
     SECURITY_DETAIL=" ($CRITICAL Critical, $HIGH High)"
@@ -28,13 +27,11 @@ fi
 
 echo "[security] Checking for exposed secrets in source..."
 # Check for hardcoded API keys / tokens in src/ (not node_modules, not .env)
-LEAKS=""
-if grep -rn "sk-\|AIza\|AKIA\|ghp_\|xoxb-" src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "node_modules" | grep -v "placeholder\|example\|your_" | head -5 > /tmp/leak_check.txt 2>/dev/null; then
-  LEAKS=$(wc -l < /tmp/leak_check.txt | tr -d ' ')
-  if [ "$LEAKS" -gt 0 ]; then
-    ENV_STATUS="🚨"
-    ENV_DETAIL=" ($LEAKS potenzielle Leaks in src/)"
-  fi
+LEAK_LINES=$(grep -rn "sk-\|AIza\|AKIA\|ghp_\|xoxb-" src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "node_modules" | grep -v "placeholder\|example\|your_" | head -5 || true)
+if [ -n "$LEAK_LINES" ]; then
+  LEAKS=$(printf '%s\n' "$LEAK_LINES" | wc -l | tr -d ' ')
+  ENV_STATUS="🚨"
+  ENV_DETAIL=" ($LEAKS potenzielle Leaks in src/)"
 fi
 
 # Check .env.local is in .gitignore
