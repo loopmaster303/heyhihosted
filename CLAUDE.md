@@ -87,7 +87,6 @@ CI=1 npm test -- --runInBand path/to/test.ts
 - Avoid model-name marketing copy unless it is clearly tied to the current visible registry.
 - Treat `README.md`, `CLAUDE.md`, and `GEMINI.md` as synchronized adapters over the same runtime truth.
 
-## Reorg & GODSPACE (Master Plan 2026-06-01)
-Master Plan: `/Users/johnmeckel/heyhihosted/docs/plans/2026-06-01-heyhi-ecosystem-reorg-plan.md`
-New names: sayhi (ex-heyhiblogheyhiworld, L1 arts/roleplay), heyhiblog (ex-heyhi-ai-or-goodbye, content), democrabs (ex-buergerbuddy, "The crab snaps with everyone but it's yours"), heyhireset (main + GODSPACE OVERVIEW dashboard).
-Update XLinks in docs/project.html; handoffs reference new structure + central heyhi.html. Local folders not yet renamed; file links use current paths.
+## Ökosystem (kanonisch: ~/heyhi/LEVELS.md, Stand 2026-07-05)
+Dieses Repo ist **Level 2 („Benutzen")**. Level 1 = JUSTSAY (justsaywow ⊕ justsayhi), Level 3 = democrabs (Hermes/NUC/WhatsApp). Querschichten: heyhiblog (Haltung), meinbild (Schutz). heyhicreator eingefroren.
+Der Reorg-Plan 2026-06-01 (`docs/plans/2026-06-01-heyhi-ecosystem-reorg-plan.md`) ist historisch — sein Level-Modell ist durch LEVELS.md abgelöst.

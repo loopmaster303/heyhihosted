@@ -14,7 +14,7 @@ GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (PR [#16](https://gith
 
 ## Was ist das Projekt
 
-Level B — Produktions-App (hey-hi.space). Next.js, Pollinations, Chat + Gallery.
+**Level 2 („Benutzen")** im hey-hi Ökosystem (kanonisch: `~/heyhi/LEVELS.md`) — Produktions-App (hey-hi.space). Next.js, Pollinations, Chat + Gallery.
 
 ## Nächste Schritte
 

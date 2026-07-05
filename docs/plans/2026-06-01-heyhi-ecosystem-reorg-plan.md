@@ -1,7 +1,7 @@
 # Hey-Hi Ecosystem Reorganization Plan
 **Date:** 2026-06-01  
 **Author:** Grok (in coordination with John Meckel)  
-**Status:** Draft for review & execution  
+**Status:** SUPERSEDED (2026-07-05) — das Level-Modell dieses Plans ist abgelöst durch `~/heyhi/LEVELS.md` (L1 = JUSTSAY wow⊕sayhi, L2 = heyhihosted, L3 = democrabs). Historisch wertvoll für Naming/Rename-Kontext.  
 **Goal:** Bring order, clarity, and beautiful structure to the entire "hey-hi" / John Meckel AI universe.
 
 ---
