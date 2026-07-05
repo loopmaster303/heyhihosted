@@ -44,6 +44,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
     setFormFields,
     uploadedImages,
     setUploadedImages,
+    sourceVideo,
     availableModels,
   } = toolState;
 
@@ -72,7 +73,6 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
     }
 
     if (!currentModelConfig) return;
-    const modelInfo = getUnifiedModel(selectedModelId);
 
     setLoading(true);
     setSelectedImage(null);
@@ -110,7 +110,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
         referenceUrls = results.filter(url => !!url) as string[];
       }
 
-      const modelInfo = getUnifiedModel(selectedModelId);
+      const modelInfo = getUnifiedModel(selectedModelIdRef.current);
       const isPollinationsVideo = modelInfo?.kind === 'video';
 
       // 2. Prepare Enriched Prompt
@@ -131,6 +131,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
       };
 
       if (referenceUrls.length > 0) payload.image = referenceUrls;
+      if (sourceVideo?.url) payload.video = sourceVideo.url;
       if (formFields.seed != null && formFields.seed !== '') payload.seed = Number(formFields.seed);
 
       // Pollinations params (single path)
@@ -220,7 +221,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
     } finally {
       setLoading(false);
     }
-  }, [prompt, uploadedImages, currentModelConfig, selectedModelId, formFields, toast]);
+  }, [prompt, uploadedImages, sourceVideo, currentModelConfig, selectedModelId, formFields, toast]);
 
   // Handle shared state hydration (if needed for prompts)
   useEffect(() => {
@@ -320,6 +321,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
             onConfigPanelToggle={() => toolState.setIsConfigPanelOpen(!toolState.isConfigPanelOpen)}
             onImageUploadToggle={() => toolState.setIsImageUploadOpen(!toolState.isImageUploadOpen)}
             onEnhancePrompt={toolState.handleEnhancePrompt}
+            onSourceVideoChange={toolState.setSourceVideo}
             onSubmit={handleSubmit}
             loading={loading}
           />

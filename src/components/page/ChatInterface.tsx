@@ -181,6 +181,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState, compo
                         imageConfig: {
                             formFields: visualizeToolState.formFields,
                             uploadedImages: visualizeToolState.uploadedImages,
+                            sourceVideo: visualizeToolState.sourceVideo,
                             selectedModelId: visualizeToolState.selectedModelId
                         }
                     })}

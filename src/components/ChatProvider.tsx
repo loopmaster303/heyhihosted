@@ -345,6 +345,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       imageConfig?: {
         formFields: Record<string, any>;
         uploadedImages: UploadedReference[];
+        sourceVideo?: UploadedReference | null;
         selectedModelId: string;
       };
     } = {}
@@ -412,7 +413,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
           saveGeneratedAsset: OutputService.saveGeneratedAsset,
           composeMusic: async (prompt: string) => {
             try {
-              return await composeMusic({ prompt });
+              return await composeMusic({ prompt, model: 'acestep' });
             } catch (err) {
               console.error('[media-intent] composeMusic failed:', err);
               return null;

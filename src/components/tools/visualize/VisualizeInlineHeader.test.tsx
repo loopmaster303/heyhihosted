@@ -20,7 +20,19 @@ jest.mock('@/components/ui/select', () => ({
 }));
 
 jest.mock('@/components/ui/switch', () => ({
-  Switch: () => <button type="button">switch</button>,
+  Switch: ({
+    disabled,
+    title,
+    checked,
+  }: {
+    disabled?: boolean;
+    title?: string;
+    checked?: boolean;
+  }) => (
+    <button type="button" disabled={disabled} title={title} aria-pressed={checked}>
+      switch
+    </button>
+  ),
 }));
 
 jest.mock('@/components/LanguageProvider', () => ({
@@ -45,7 +57,7 @@ jest.mock('@/config/unified-image-models', () => ({
     kind: 'image',
     supportsAudio: false,
   }),
-  getVisualizeModelGroups: () => [
+  getVisualizeModelGroupsForProvider: () => [
     {
       key: 'standard-image',
       label: 'Standard',
@@ -104,5 +116,33 @@ describe('VisualizeInlineHeader', () => {
     expect(triggerButtons.some((button) => button.className.includes('min-w-[80px]'))).toBe(true);
     expect(triggerButtons.some((button) => button.className.includes('[&>span]:gap-1'))).toBe(true);
     expect(triggerButtons.some((button) => button.className.includes('min-w-[52px]'))).toBe(true);
+  });
+
+  it('disables the Pruna switch when Pruna is unavailable', () => {
+    render(
+      <VisualizeInlineHeader
+        selectedModelId="nanobanana-pro"
+        onModelChange={jest.fn()}
+        currentModelConfig={{
+          id: 'nanobanana-pro',
+          name: 'Nano Banana Pro',
+          inputs: [],
+        }}
+        formFields={{}}
+        handleFieldChange={jest.fn()}
+        setFormFields={jest.fn()}
+        isGptImage={false}
+        isSeedream={false}
+        isNanoPollen={true}
+        isPollenModel={true}
+        isPollinationsVideo={false}
+        providerMode="pollinations"
+        prunaAvailable={false}
+      />
+    );
+
+    const providerSwitch = screen.getByRole('button', { name: 'switch' });
+    expect(providerSwitch).toBeDisabled();
+    expect(providerSwitch).toHaveAttribute('title', 'provider.prunaKeyRequired');
   });
 });

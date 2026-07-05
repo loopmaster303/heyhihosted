@@ -6,10 +6,12 @@ import { ChevronDown, ImageIcon, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { unifiedModelConfigs, type UnifiedModelConfig } from '@/config/unified-model-configs';
-import { getUnifiedModel, getVisualizeModelGroups } from '@/config/unified-image-models';
+import { getUnifiedModel, getVisualizeModelGroupsForProvider, type ImageProvider } from '@/config/unified-image-models';
 import { imageModelIcons } from '@/config/ui-constants';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useHasPollenKey } from '@/hooks/useHasPollenKey';
+import type { UploadedReference } from '@/types';
+import { VideoBadge } from './VideoBadge';
 
 interface VisualizeInlineHeaderProps {
   selectedModelId: string;
@@ -28,6 +30,12 @@ interface VisualizeInlineHeaderProps {
   disabled?: boolean;
   className?: string;
   variant?: 'framed' | 'bare';
+  providerMode?: ImageProvider;
+  onProviderModeChange?: (mode: ImageProvider) => void;
+  prunaAvailable?: boolean;
+  sourceVideo?: UploadedReference | null;
+  onSourceVideoChange?: (video: UploadedReference | null) => void;
+  requiresSourceVideo?: boolean;
 }
 
 const badgeClass =
@@ -54,6 +62,12 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   disabled = false,
   className,
   variant = 'framed',
+  providerMode = 'pollinations',
+  onProviderModeChange,
+  prunaAvailable = false,
+  sourceVideo,
+  onSourceVideoChange,
+  requiresSourceVideo = false,
 }) => {
   const { t } = useLanguage();
   const hasPollenKey = useHasPollenKey();
@@ -61,13 +75,13 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   const [isMinimized, setIsMinimized] = React.useState(false); // For toolbar visibility
 
   const modelGroups = React.useMemo(() => {
-    return getVisualizeModelGroups({ includeByopHidden: hasPollenKey })
+    return getVisualizeModelGroupsForProvider(providerMode, { includeByopHidden: hasPollenKey })
       .map(group => ({
         ...group,
         models: group.models.filter(model => unifiedModelConfigs[model.id]),
       }))
       .filter(group => group.models.length > 0);
-  }, [hasPollenKey]);
+  }, [providerMode, hasPollenKey]);
 
   const standardGroups = modelGroups.filter(group => group.category === 'Standard');
   const advancedGroups = modelGroups.filter(group => group.category === 'Advanced');
@@ -265,6 +279,27 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
           </SelectContent>
         </Select>
       </div>
+
+      {/* Provider Switch */}
+      <div className={cn(badgeClass, "gap-2")}>
+        <span className={labelClass}>{t('provider.pollinations') || 'Pollinations'}</span>
+        <Switch
+          id="provider-mode-switch"
+          checked={providerMode === 'pruna'}
+          onCheckedChange={(checked) => onProviderModeChange?.(checked ? 'pruna' : 'pollinations')}
+          disabled={disabled || !prunaAvailable}
+          title={prunaAvailable ? '' : (t('provider.prunaKeyRequired') || 'Pruna API key required')}
+          className="data-[state=checked]:bg-primary"
+        />
+        <span className={labelClass}>{t('provider.pruna') || 'Pruna'}</span>
+      </div>
+
+      {/* Source Video */}
+      {requiresSourceVideo && sourceVideo && (
+        <div className={cn(badgeClass, "gap-2")}>
+          <VideoBadge video={sourceVideo} onRemove={() => onSourceVideoChange?.(null)} />
+        </div>
+      )}
 
       {/* Aspect Ratio */}
       {(isPollenModel || currentModelConfig.inputs.find(i => i.name === 'aspect_ratio')) && (

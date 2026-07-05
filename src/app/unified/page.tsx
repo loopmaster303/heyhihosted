@@ -55,6 +55,7 @@ export function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppConten
         imageConfig?: {
             formFields: Record<string, any>;
             uploadedImages: UploadedReference[];
+            sourceVideo?: UploadedReference | null;
             selectedModelId: string;
         };
     } | null>(null);
@@ -115,6 +116,7 @@ export function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppConten
         const imageConfig = isImageModeActive ? {
             formFields: { ...visualizeToolState.formFields },
             uploadedImages: [...visualizeToolState.uploadedImages],
+            sourceVideo: visualizeToolState.sourceVideo,
             selectedModelId: visualizeToolState.selectedModelId
         } : undefined;
 
@@ -153,6 +155,7 @@ export function UnifiedAppContent({ initialState = 'landing' }: UnifiedAppConten
         landingSelectedModelId,
         visualizeToolState.formFields,
         visualizeToolState.uploadedImages,
+        visualizeToolState.sourceVideo,
         visualizeToolState.selectedModelId
     ]);
 

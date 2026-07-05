@@ -14,7 +14,6 @@ interface UnifiedInputProps {
   leftActions?: React.ReactNode;
   rightActions?: React.ReactNode;
   topElements?: React.ReactNode;
-  topElementsVariant?: 'framed' | 'bare';
   children?: React.ReactNode;
   drawer?: React.ReactNode;
   isDrawerOpen?: boolean;
@@ -35,7 +34,6 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
   leftActions,
   rightActions,
   topElements,
-  topElementsVariant = 'framed',
   children,
   drawer,
   isDrawerOpen,
@@ -73,6 +71,9 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (onKeyDown) onKeyDown(e);
+    if (e.defaultPrevented) return;
+    // Enter confirms the IME candidate, not the message (e.g. Japanese/Chinese input)
+    if (e.nativeEvent.isComposing) return;
     if (e.key === 'Enter' && !e.shiftKey && onSubmit) {
       e.preventDefault();
       onSubmit();

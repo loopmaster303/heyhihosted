@@ -64,6 +64,13 @@ const ComposeTool: React.FC<ComposeToolProps> = ({ onClose }) => {
     }
   }, [prompt, duration, instrumental, generateMusic, toast]);
 
+  const handlePromptKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent);
+    }
+  }, [handleSubmit]);
+
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
       <main className="flex-grow flex flex-col px-4 pt-6 pb-4 md:px-6 md:pt-8 md:pb-6 space-y-4 overflow-y-auto no-scrollbar">
@@ -128,20 +135,53 @@ const ComposeTool: React.FC<ComposeToolProps> = ({ onClose }) => {
         </Card>
       </main>
 
-      {/* <footer className="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-32 pt-2 pb-4 shrink-0">
-        <div className="max-w-6xl mx-auto relative">
-          <ComposeInputContainer
-            prompt={prompt}
-            onPromptChange={setPrompt}
-            onSubmit={handleSubmit}
-            duration={duration}
-            instrumental={instrumental}
-            onDurationChange={setDuration}
-            onInstrumentalChange={setInstrumental}
-            loading={isGenerating}
-          />
+      {/* Compose Input Footer */}
+      <footer className="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-32 pt-2 pb-4 shrink-0 border-t border-border bg-background">
+        <div className="max-w-6xl mx-auto">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={handlePromptKeyDown}
+                placeholder="Describe your music... (e.g., upbeat electronic with driving bass)"
+                className="flex-1 min-h-[44px] max-h-[120px] resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                rows={1}
+              />
+              <Button
+                type="submit"
+                disabled={!prompt.trim() || isGenerating}
+                className="shrink-0 h-[44px]"
+              >
+                {isGenerating ? 'Creating...' : 'Create Music'}
+              </Button>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="range"
+                  min={10}
+                  max={300}
+                  step={10}
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className="w-20"
+                />
+                {duration}s
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={instrumental}
+                  onChange={(e) => setInstrumental(e.target.checked)}
+                  className="rounded"
+                />
+                Instrumental only
+              </label>
+            </div>
+          </form>
         </div>
-      </footer> */}
+      </footer>
     </div>
   );
 };

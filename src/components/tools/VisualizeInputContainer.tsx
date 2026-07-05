@@ -8,7 +8,9 @@ import { SlidersHorizontal, Plus, Loader2, ArrowUp, Sparkles } from 'lucide-reac
 import { useLanguage } from '../LanguageProvider';
 import { type UnifiedModelConfig } from '@/config/unified-model-configs';
 import { VisualizeInlineHeader } from './visualize/VisualizeInlineHeader';
+import { VideoBadge } from './visualize/VideoBadge';
 import type { UploadedReference } from '@/types';
+import type { ImageProvider } from '@/config/unified-image-models';
 
 interface VisualizeInputContainerProps {
     prompt: string;
@@ -24,6 +26,7 @@ interface VisualizeInputContainerProps {
 
     uploadedImages: UploadedReference[];
     handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleSourceVideoFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     handleRemoveImage: (index: number) => void;
 
     // UI State
@@ -44,12 +47,22 @@ interface VisualizeInputContainerProps {
     // Computed
     currentModelConfig?: UnifiedModelConfig;
     supportsReference: boolean;
+    requiresSourceVideo: boolean;
     maxImages: number;
     isGptImage: boolean;
     isSeedream: boolean;
     isNanoPollen: boolean;
     isPollenModel: boolean;
     isPollinationsVideo: boolean;
+
+    // Provider switch
+    providerMode?: ImageProvider;
+    onProviderModeChange?: (mode: ImageProvider) => void;
+    prunaAvailable?: boolean;
+
+    // Source video
+    sourceVideo?: UploadedReference | null;
+    onSourceVideoChange?: (video: UploadedReference | null) => void;
 
     placeholder?: string;
     showInlineSettings?: boolean;
@@ -68,6 +81,7 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
 
     uploadedImages,
     handleFileChange,
+    handleSourceVideoFileChange,
     handleRemoveImage,
 
     loading = false,
@@ -78,6 +92,7 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
 
     currentModelConfig,
     supportsReference,
+    requiresSourceVideo,
     maxImages,
     isGptImage,
     isSeedream,
@@ -85,15 +100,23 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
     isPollenModel,
     isPollinationsVideo,
 
+    providerMode,
+    onProviderModeChange,
+    prunaAvailable,
+
+    sourceVideo,
+    onSourceVideoChange,
+
     placeholder,
     showInlineSettings = false,
 }) => {
     const { t } = useLanguage();
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const imageInputRef = useRef<HTMLInputElement>(null);
+    const sourceVideoInputRef = useRef<HTMLInputElement>(null);
 
     const placeholderText = placeholder || t('imageGen.placeholder.gptImage');
 
-    const canSubmit = !loading && !isUploading && (prompt.trim() || uploadedImages.length > 0) && !disabled;
+    const canSubmit = !loading && !isUploading && (prompt.trim() || uploadedImages.length > 0 || !!sourceVideo) && !disabled;
 
     // Drawer State for Shadcn Drawers
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -109,31 +132,61 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                     isLoading={loading}
                     disabled={loading || disabled}
                     topElements={showInlineSettings ? (
-                        <VisualizeInlineHeader
-                            selectedModelId={selectedModelId}
-                            onModelChange={onModelChange}
-                            currentModelConfig={currentModelConfig}
-                            formFields={formFields}
-                            handleFieldChange={handleFieldChange}
-                            setFormFields={setFormFields}
-                            isGptImage={isGptImage}
-                            isSeedream={isSeedream}
-                            isNanoPollen={isNanoPollen}
-                            isPollenModel={isPollenModel}
-                            isPollinationsVideo={isPollinationsVideo}
-                            variant="bare"
-                            disabled={loading || disabled}
-                        />
+                        <React.Fragment>
+                            <VisualizeInlineHeader
+                                selectedModelId={selectedModelId}
+                                onModelChange={onModelChange}
+                                currentModelConfig={currentModelConfig}
+                                formFields={formFields}
+                                handleFieldChange={handleFieldChange}
+                                setFormFields={setFormFields}
+                                isGptImage={isGptImage}
+                                isSeedream={isSeedream}
+                                isNanoPollen={isNanoPollen}
+                                isPollenModel={isPollenModel}
+                                isPollinationsVideo={isPollinationsVideo}
+                                variant="bare"
+                                disabled={loading || disabled}
+                                providerMode={providerMode}
+                                onProviderModeChange={onProviderModeChange}
+                                prunaAvailable={prunaAvailable}
+                                sourceVideo={sourceVideo}
+                                onSourceVideoChange={onSourceVideoChange}
+                                requiresSourceVideo={requiresSourceVideo}
+                            />
+                            {requiresSourceVideo && sourceVideo && (
+                                <VideoBadge
+                                    video={sourceVideo}
+                                    onRemove={() => onSourceVideoChange?.(null)}
+                                />
+                            )}
+                        </React.Fragment>
                     ) : undefined}
-                    topElementsVariant="bare"
                     leftActions={
                         <div className="flex items-center gap-0">
-                            {/* Upload Button */}
+                            {/* Source Video Upload Button */}
+                            {requiresSourceVideo && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => sourceVideoInputRef.current?.click()}
+                                    disabled={loading || isUploading || disabled || !!sourceVideo}
+                                    className={cn(
+                                        "group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300",
+                                        "text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
+                                    )}
+                                    aria-label="Upload source video"
+                                >
+                                    <Plus className="w-[20px] h-[20px]" />
+                                </Button>
+                            )}
+
+                            {/* Image Upload Button */}
                             <Button
                                 type="button"
                                 variant="ghost"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={loading || isUploading || disabled || (supportsReference && uploadedImages.length >= maxImages)}
+                                onClick={() => imageInputRef.current?.click()}
+                                disabled={loading || isUploading || disabled || !supportsReference || uploadedImages.length >= maxImages}
                                 className={cn(
                                     "group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300",
                                     "text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
@@ -212,10 +265,17 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                 
                 <input
                     type="file"
-                    ref={fileInputRef}
+                    ref={imageInputRef}
                     onChange={handleFileChange}
                     accept="image/*"
                     multiple
+                    className="hidden"
+                />
+                <input
+                    type="file"
+                    ref={sourceVideoInputRef}
+                    onChange={handleSourceVideoFileChange}
+                    accept="video/*"
                     className="hidden"
                 />
             </form>

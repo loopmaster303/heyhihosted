@@ -1,6 +1,7 @@
 'use client';
 
 import type React from 'react';
+import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { UnifiedInput } from '@/components/ui/unified-input';
 import { Settings2, AudioWaveform, Square, ArrowUp, Plus, X, Sparkles, Loader2, FileText } from 'lucide-react';
@@ -36,6 +37,7 @@ interface ChatInputProps extends UseChatInputLogicProps {
 
 const ChatInput: React.FC<ChatInputProps> = (props) => {
     const { t } = useLanguage();
+    const sourceVideoInputRef = useRef<HTMLInputElement>(null);
     
     // Destructure props used directly in render
     const {
@@ -95,7 +97,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
 
         // Show VisualizeInlineHeader when image mode is active
         if (isImageMode && visualizeToolState) {
-            const referenceBadges = visualizeToolState.supportsReference ? (
+            const referenceBadges = (visualizeToolState.supportsReference || visualizeToolState.requiresSourceVideo) ? (
                 <VisualizeReferenceBadges
                     uploadedImages={visualizeToolState.uploadedImages}
                     maxImages={visualizeToolState.maxImages}
@@ -103,8 +105,12 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     isUploading={visualizeToolState.isUploading}
                     onRemove={visualizeToolState.handleRemoveImage}
                     onUploadClick={() => imageInputRef.current?.click()}
+                    onSourceVideoUploadClick={() => sourceVideoInputRef.current?.click()}
                     disabled={isLoading || isRecording || isTranscribing}
                     selectedModelId={visualizeToolState.selectedModelId}
+                    sourceVideo={visualizeToolState.sourceVideo}
+                    requiresSourceVideo={visualizeToolState.requiresSourceVideo}
+                    onSourceVideoRemove={visualizeToolState.handleRemoveSourceVideo}
                 />
             ) : null;
 
@@ -126,6 +132,9 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     onDeactivate={() => setActiveMode('standard')}
                     variant="bare"
                     disabled={isLoading || isRecording || isTranscribing}
+                    providerMode={visualizeToolState.providerMode}
+                    onProviderModeChange={visualizeToolState.setProviderMode}
+                    prunaAvailable={visualizeToolState.prunaAvailable}
                 />
             );
         }
@@ -279,7 +288,6 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     isLoading={isLoading}
                     disabled={isLoading || isRecording || isTranscribing}
                     topElements={renderTopBadges()}
-                    topElementsVariant="bare"
                     modeColor={
                         isImageMode ? 'hsl(325 100% 62%)' :
                         isComposeMode ? 'hsl(270 90% 65%)' :
@@ -501,6 +509,13 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                 onChange={(e) => handleFileChange(e, 'image')}
                 accept="image/*"
                 multiple={!!(isImageMode && visualizeToolState?.supportsReference)}
+                className="hidden"
+            />
+            <input
+                type="file"
+                ref={sourceVideoInputRef}
+                onChange={(e) => visualizeToolState?.handleSourceVideoFileChange(e)}
+                accept="video/*"
                 className="hidden"
             />
             <input
