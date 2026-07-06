@@ -27,15 +27,28 @@ export interface VoiceOption {
 export interface ComposeModelOption {
   id: string;
   name: string;
-  isFree: boolean;
-  maxDuration: number;
+  isFree: boolean;               // usable without a Pollen key
+  freeDurations: number[];       // duration steps (seconds) available without a key
+  keyedDurations: number[];      // duration steps (seconds) available with a Pollen key
 }
 
+// ACE-Step 1.5 Turbo is the only key-free model (Pollinations `paid_only: null`).
+// Free tier is capped at 1 minute; a Pollen key unlocks the full stepped range.
+// ElevenMusic v2 and Stable Audio 3 Medium are `paid_only: true` → key required.
+const KEYED_DURATION_STEPS = [30, 60, 120, 180, 240, 300];
+
 export const AVAILABLE_COMPOSE_MODELS: ComposeModelOption[] = [
-  { id: 'acestep', name: 'ACE-Step', isFree: true, maxDuration: 30 },
-  { id: 'elevenmusic', name: 'ElevenMusic', isFree: false, maxDuration: 300 },
-  { id: 'stable-audio-3-medium', name: 'Stable Audio 3 Medium', isFree: false, maxDuration: 300 },
+  { id: 'acestep', name: 'ACE-Step 1.5', isFree: true, freeDurations: [30, 60], keyedDurations: KEYED_DURATION_STEPS },
+  { id: 'elevenmusic', name: 'ElevenMusic v2', isFree: false, freeDurations: [], keyedDurations: KEYED_DURATION_STEPS },
+  { id: 'stable-audio-3-medium', name: 'Stable Audio 3 Medium', isFree: false, freeDurations: [], keyedDurations: KEYED_DURATION_STEPS },
 ];
+
+/** Duration steps (seconds) available for a compose model given the current key state. */
+export function getComposeDurations(modelId: string, hasKey: boolean): number[] {
+  const model = AVAILABLE_COMPOSE_MODELS.find((m) => m.id === modelId);
+  if (!model) return hasKey ? KEYED_DURATION_STEPS : [30, 60];
+  return hasKey ? model.keyedDurations : model.freeDurations;
+}
 
 // Pollinations Models - New simplified structure
 const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
@@ -118,7 +131,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "kimi",
-    name: "Moonshot Kimi K2.5",
+    name: "Moonshot Kimi K2.6",
     description: "Flagship agentic model with vision and multi-agent workflows.",
     vision: false,
     category: "Advanced",
@@ -127,7 +140,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "glm",
-    name: "Z.ai GLM-5",
+    name: "z.ai GLM-5.2",
     description: "Long-context reasoning and agentic workflows.",
     vision: false,
     category: "Advanced",
@@ -136,7 +149,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "minimax",
-    name: "MiniMax M2.5",
+    name: "Minimax M3",
     description: "Coding, agentic work, and multi-language support.",
     vision: false,
     category: "Advanced",

@@ -133,8 +133,6 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     variant="bare"
                     disabled={isLoading || isRecording || isTranscribing}
                     providerMode={visualizeToolState.providerMode}
-                    onProviderModeChange={visualizeToolState.setProviderMode}
-                    prunaAvailable={visualizeToolState.prunaAvailable}
                 />
             );
         }
@@ -145,6 +143,8 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     key="compose-header"
                     selectedModel={composeToolState.selectedModel}
                     duration={composeToolState.duration}
+                    availableDurations={composeToolState.availableDurations}
+                    hasPollenKey={composeToolState.hasPollenKey}
                     instrumental={composeToolState.instrumental}
                     onModelChange={composeToolState.setSelectedModel}
                     onDurationChange={composeToolState.setDuration}

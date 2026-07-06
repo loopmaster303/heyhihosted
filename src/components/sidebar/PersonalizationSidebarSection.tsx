@@ -6,15 +6,17 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from '@/components/LanguageProvider';
 import { DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
-import { getImageModels } from '@/config/unified-image-models';
+import { getModelsByProvider } from '@/config/unified-image-models';
 import { unifiedModelConfigs } from '@/config/unified-model-configs';
 import { useChatConversation, useChatModes } from '@/components/ChatProvider';
-import { Mic, MessageSquare } from 'lucide-react';
+import { Mic, MessageSquare, Lock } from 'lucide-react';
 import { useVisiblePollinationsTextModels } from '@/hooks/useVisiblePollinationsTextModels';
 import { useHasPollenKey } from '@/hooks/useHasPollenKey';
+import { useProviderMode } from '@/hooks/useProviderMode';
 import { TTS_SPEED_PRESETS } from '@/lib/chat/audio-settings';
 
 const PersonalizationSidebarSection: React.FC = () => {
@@ -22,6 +24,7 @@ const PersonalizationSidebarSection: React.FC = () => {
   const { activeConversation } = useChatConversation();
   const { selectedVoice, selectedTtsSpeed, handleVoiceChange, handleTtsSpeedChange, handleStyleChange } = useChatModes();
   const hasPollenKey = useHasPollenKey();
+  const { providerMode, setProviderMode, prunaAvailable } = useProviderMode();
   const { visibleModels: allTextModels, isKnownModelId } = useVisiblePollinationsTextModels();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -32,8 +35,9 @@ const PersonalizationSidebarSection: React.FC = () => {
   const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
 
   const imageModels = useMemo(
-    () => getImageModels({ includeByopHidden: hasPollenKey }).filter(model => model.id in unifiedModelConfigs),
-    [hasPollenKey]
+    () => getModelsByProvider(providerMode, { includeByopHidden: hasPollenKey })
+      .filter(model => model.kind === 'image' && model.id in unifiedModelConfigs),
+    [providerMode, hasPollenKey]
   );
 
   useEffect(() => {
@@ -42,9 +46,14 @@ const PersonalizationSidebarSection: React.FC = () => {
     }
   }, [defaultTextModelId, isKnownModelId, setDefaultTextModelId]);
 
+  // Keep the default image model valid for the selected provider.
   useEffect(() => {
+    if (imageModels.length === 0) return;
     if (!imageModels.some(model => model.id === defaultImageModelId)) {
-      setDefaultImageModelId(DEFAULT_IMAGE_MODEL);
+      const fallback = imageModels.some(m => m.id === DEFAULT_IMAGE_MODEL)
+        ? DEFAULT_IMAGE_MODEL
+        : imageModels[0].id;
+      setDefaultImageModelId(fallback);
     }
   }, [defaultImageModelId, imageModels, setDefaultImageModelId]);
 
@@ -55,6 +64,8 @@ const PersonalizationSidebarSection: React.FC = () => {
         style: 'Assistant Role',
         extra: 'Individual AI Instruction',
         defaultText: 'Standard Text Model',
+        provider: 'Image Provider',
+        providerHint: 'Pruna API key required',
         defaultImage: 'Standard Image Model',
         voice: 'AI Voice',
         voiceSpeed: 'Speech Speed',
@@ -67,6 +78,8 @@ const PersonalizationSidebarSection: React.FC = () => {
         style: 'Assistenten Rolle',
         extra: 'Individuelle KI Anweisung',
         defaultText: 'Standard Text Modell',
+        provider: 'Bild-Provider',
+        providerHint: 'Pruna API-Key erforderlich',
         defaultImage: 'Standard Bild Modell',
         voice: 'KI-Stimme',
         voiceSpeed: 'Sprechtempo',
@@ -151,6 +164,48 @@ const PersonalizationSidebarSection: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+              {labels.provider}
+            </label>
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border/30 px-3 py-2">
+              <button
+                type="button"
+                onClick={() => setProviderMode('pollinations')}
+                className={cn(
+                  "text-xs font-semibold transition-opacity",
+                  providerMode === 'pollinations' ? "text-foreground" : "text-muted-foreground hover:opacity-70"
+                )}
+              >
+                Pollinations
+              </button>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="sidebar-provider-mode-switch"
+                  checked={providerMode === 'pruna'}
+                  onCheckedChange={(checked) => setProviderMode(checked ? 'pruna' : 'pollinations')}
+                  disabled={!prunaAvailable}
+                  title={prunaAvailable ? '' : labels.providerHint}
+                  className="data-[state=checked]:bg-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => prunaAvailable && setProviderMode('pruna')}
+                  disabled={!prunaAvailable}
+                  title={prunaAvailable ? '' : labels.providerHint}
+                  className={cn(
+                    "flex items-center gap-1 text-xs font-semibold transition-opacity",
+                    providerMode === 'pruna' ? "text-foreground" : "text-muted-foreground hover:opacity-70",
+                    !prunaAvailable && "opacity-40 cursor-not-allowed"
+                  )}
+                >
+                  Pruna
+                  {!prunaAvailable && <Lock className="h-3 w-3" />}
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-1">

@@ -10,6 +10,8 @@ import { getUnifiedModel, getVisualizeModelGroupsForProvider, type ImageProvider
 import { imageModelIcons } from '@/config/ui-constants';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useHasPollenKey } from '@/hooks/useHasPollenKey';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { InlineParamsContainer } from '../InlineParamsContainer';
 import type { UploadedReference } from '@/types';
 import { VideoBadge } from './VideoBadge';
 
@@ -31,8 +33,6 @@ interface VisualizeInlineHeaderProps {
   className?: string;
   variant?: 'framed' | 'bare';
   providerMode?: ImageProvider;
-  onProviderModeChange?: (mode: ImageProvider) => void;
-  prunaAvailable?: boolean;
   sourceVideo?: UploadedReference | null;
   onSourceVideoChange?: (video: UploadedReference | null) => void;
   requiresSourceVideo?: boolean;
@@ -43,7 +43,7 @@ const badgeClass =
 const labelClass =
   "text-[10px] text-muted-foreground font-semibold whitespace-nowrap uppercase tracking-wider";
 const triggerClass =
-  "h-6 text-[10px] border-0 bg-transparent p-0 focus:ring-0 gap-0.5 w-auto min-w-[52px] text-foreground font-semibold hover:text-primary transition-colors [&>span]:flex [&>span]:items-center [&>span]:gap-1";
+  "h-6 text-[11px] border-0 bg-transparent p-0 focus:ring-0 gap-0.5 w-auto min-w-[52px] text-foreground font-semibold hover:text-primary transition-colors [&>span]:flex [&>span]:items-center [&>span]:gap-1";
 
 export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   selectedModelId,
@@ -63,8 +63,6 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   className,
   variant = 'framed',
   providerMode = 'pollinations',
-  onProviderModeChange,
-  prunaAvailable = false,
   sourceVideo,
   onSourceVideoChange,
   requiresSourceVideo = false,
@@ -73,6 +71,8 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   const hasPollenKey = useHasPollenKey();
   const [expanded, setExpanded] = React.useState(true); // For dropdown groups
   const [isMinimized, setIsMinimized] = React.useState(false); // For toolbar visibility
+  const isMobile = useMediaQuery('(max-width: 639px)');
+  const [paramsOpen, setParamsOpen] = React.useState(false); // Mobile: params popover
 
   const modelGroups = React.useMemo(() => {
     return getVisualizeModelGroupsForProvider(providerMode, { includeByopHidden: hasPollenKey })
@@ -139,19 +139,21 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   }
 
   // Maximized View (Full Toolbar)
+  // Mobile: wrap so every control (incl. the provider switch) stays on-screen and tappable.
+  // Desktop (md+): single-row horizontal scroll strip.
   return (
     <div
       className={cn(
-        "relative flex flex-nowrap items-center overflow-x-auto no-scrollbar pr-8",
+        "relative flex items-center gap-x-1 sm:pr-8",
         className
       )}
     >
-      
-      {/* Minimize Button */}
+
+      {/* Minimize Button — desktop only */}
       <button
         type="button"
         onClick={() => setIsMinimized(true)}
-        className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+        className="hidden sm:block absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
         title={t('visualize.minimizeSettings')}
       >
         <ChevronDown className="w-3.5 h-3.5 rotate-180" />
@@ -171,9 +173,11 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
           <SelectTrigger className={cn(triggerClass, "min-w-[80px]")}>
             <span className="flex items-center gap-1.5">
               {renderModelIcon(selectedModelId, true)}
-              <span className="truncate max-w-[100px]">
-                {unifiedModelConfigs[selectedModelId]?.name || selectedModelId}
-              </span>
+              {!isMobile && (
+                <span className="truncate max-w-[140px]">
+                  {unifiedModelConfigs[selectedModelId]?.name || selectedModelId}
+                </span>
+              )}
             </span>
           </SelectTrigger>
           <SelectContent className="w-[min(520px,90vw)] bg-background/90 backdrop-blur-md border-border/40 p-1">
@@ -280,20 +284,9 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
         </Select>
       </div>
 
-      {/* Provider Switch */}
-      <div className={cn(badgeClass, "gap-2")}>
-        <span className={labelClass}>{t('provider.pollinations') || 'Pollinations'}</span>
-        <Switch
-          id="provider-mode-switch"
-          checked={providerMode === 'pruna'}
-          onCheckedChange={(checked) => onProviderModeChange?.(checked ? 'pruna' : 'pollinations')}
-          disabled={disabled || !prunaAvailable}
-          title={prunaAvailable ? '' : (t('provider.prunaKeyRequired') || 'Pruna API key required')}
-          className="data-[state=checked]:bg-primary"
-        />
-        <span className={labelClass}>{t('provider.pruna') || 'Pruna'}</span>
-      </div>
+      {/* Provider selection moved to the config sidebar (Personalization → Bild-Provider). */}
 
+      <InlineParamsContainer isMobile={isMobile} open={paramsOpen} onOpenChange={setParamsOpen}>
       {/* Source Video */}
       {requiresSourceVideo && sourceVideo && (
         <div className={cn(badgeClass, "gap-2")}>
@@ -514,6 +507,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
           {inlineContent}
         </div>
       )}
+      </InlineParamsContainer>
     </div>
   );
 };

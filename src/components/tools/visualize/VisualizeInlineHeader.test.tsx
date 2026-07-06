@@ -118,7 +118,7 @@ describe('VisualizeInlineHeader', () => {
     expect(triggerButtons.some((button) => button.className.includes('min-w-[52px]'))).toBe(true);
   });
 
-  it('disables the Pruna switch when Pruna is unavailable', () => {
+  it('no longer renders the provider switch (moved to the config sidebar)', () => {
     render(
       <VisualizeInlineHeader
         selectedModelId="nanobanana-pro"
@@ -137,12 +137,12 @@ describe('VisualizeInlineHeader', () => {
         isPollenModel={true}
         isPollinationsVideo={false}
         providerMode="pollinations"
-        prunaAvailable={false}
       />
     );
 
-    const providerSwitch = screen.getByRole('button', { name: 'switch' });
-    expect(providerSwitch).toBeDisabled();
-    expect(providerSwitch).toHaveAttribute('title', 'provider.prunaKeyRequired');
+    // Model without audio/enhance renders no Switch at all now that the provider
+    // toggle lives in the config sidebar.
+    expect(screen.queryByRole('button', { name: 'switch' })).toBeNull();
+    expect(screen.queryByText('provider.pruna')).toBeNull();
   });
 });

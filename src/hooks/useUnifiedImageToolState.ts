@@ -13,6 +13,7 @@ import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
 import { getClientSessionId } from '@/lib/session';
 import type { UploadedReference } from '@/types';
 import { useHasPollenKey } from './useHasPollenKey';
+import { useProviderMode } from './useProviderMode';
 
 // Define which models need image upload (Pollinations reference models)
 export const pollinationUploadModels = [
@@ -46,30 +47,9 @@ export function useUnifiedImageToolState() {
     const hasPollenKey = useHasPollenKey();
 
     // Model selection
-    // Provider mode switch (Pollinations vs Pruna)
-    const [providerMode, setProviderMode] = useLocalStorageState<'pollinations' | 'pruna'>('heyhi-provider-mode', 'pollinations');
-    const [prunaAvailable, setPrunaAvailable] = useState<boolean>(false);
-
-    useEffect(() => {
-        let cancelled = false;
-        fetch('/api/capabilities')
-            .then(res => res.json())
-            .then(data => {
-                if (cancelled) return;
-                const available = !!data.prunaAvailable;
-                setPrunaAvailable(available);
-                if (!available && providerMode === 'pruna') {
-                    setProviderMode('pollinations');
-                }
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setPrunaAvailable(false);
-                    setProviderMode('pollinations');
-                }
-            });
-        return () => { cancelled = true; };
-    }, [providerMode, setProviderMode]);
+    // Provider mode switch (Pollinations vs Pruna) — shared source of truth,
+    // also driven by the config sidebar via localStorage sync.
+    const { providerMode, setProviderMode, prunaAvailable } = useProviderMode();
 
     const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
     const normalizedDefaultImageModelId = useMemo(

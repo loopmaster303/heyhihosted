@@ -14,9 +14,9 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 
 ## Key Features
 
-- **Multimodal Chat**: Discuss ideas with Claude, GPT, Gemini, Grok, Deepseek, Mistral, and more. Full vision support included.
+- **Multimodal Chat**: Discuss ideas with Claude, GPT, Gemini, Deepseek, Mistral, and more. Vision support on compatible models.
 - **Generative Media**: Create images and videos instantly via Pollinations API.
-- **Compose Mode**: Music composing with **Eleven Music** via **Pollinations** (`/api/compose`).
+- **Compose Mode**: Music generation via **Pollinations** (`/api/compose`) — **ACE-Step 1.5** free up to 1 minute, plus **ElevenMusic v2** and **Stable Audio 3 Medium** with a Pollinations key.
 - **Code Questions**: Ask directly in chat; responses already use the normal code formatting you expect.
 - **Deep Research**: Toggle web browsing for real-time search and source analysis (Sonar / Sonar Reasoning).
 - **Smart Router**: Auto-detects search intent (German + English) and routes to the right model.
@@ -33,18 +33,33 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 
 | Category | Models |
 | -------- | ------ |
-| **Visible Free Models** | Claude Sonnet 4.6 (`claude-airforce`), Claude Haiku 4.5, Gemini 2.5 Flash Lite, Gemini Search, Amazon Nova Micro, Step 3.5 Flash, DeepSeek V3.2, Mistral, Sonar, Sonar Reasoning, Kimi K2.5, GLM-5, MiniMax M2.5, Qwen3 Coder 30B, Qwen Character, NomNom |
+| **Visible Models** | Claude Haiku 4.5 (`claude-fast`), Gemini 2.5 Flash Lite (`gemini-fast`), Gemini 2.5 Flash Lite + Search (`gemini-search`), DeepSeek V4 Flash Lite (`deepseek`), Amazon Nova Micro (`nova-fast`), Mistral Small 3.2 24B (`mistral`), Perplexity Sonar (`perplexity-fast`), Perplexity Sonar Reasoning (`perplexity-reasoning`), Moonshot Kimi K2.6 (`kimi`), z.ai GLM-5.2 (`glm`), Minimax M3 (`minimax`), Qwen3 Coder 30B (`qwen-coder`) |
+
+The list above is the canonical visible registry in [`src/config/chat-options.ts`](src/config/chat-options.ts). IDs in parentheses are the internal model IDs.
 
 ### Image & Video Generation
 
-| Group        | Models |
-| ------------ | ------ |
-| **Free**     | Flux.1 Fast, Z-Image Turbo |
-| **Editing**  | GPT Image 1 Mini |
-| **Advanced** | Imagen 4, Grok Imagine |
-| **Video**    | Grok Video |
+Visualize supports **two providers**, switchable in the config sidebar:
 
-Model visibility follows current Pollinations availability. The app only exposes models that are enabled in the local registry.
+- **Pollinations** — free tier (no key) plus additional models unlocked by a Pollinations key.
+- **Pruna** — the `p-image` / `p-video` / upscale family; requires a Pollinations key.
+
+| Group (enabled) | Models |
+| --------------- | ------ |
+| **Free (no key)** | Flux.1 Fast (`flux`), Z-Image Turbo (`zimage`), GPT Image 1 Mini (`gpt-image`), Flux.2 Klein 4B (`klein`), Flux.1 Kontext (`kontext`), GPT-Image 1.5 (`gptimage-large`), Qwen Image (`qwen-image`), Grok Imagine (`grok-imagine`), Ideogram V4 Turbo (`ideogram-v4-turbo`), Wan Image Small (`wan-image-small`) |
+| **Key required** | P-Image / P-Image Edit / P-Image Upscale / P-Image Try-On, Qwen Image Edit Plus, and Grok Video (`grok-video`) |
+| **Disabled (key only)** | Seedream, Nano Banana, Grok Imagine Pro, WAN 2.7 Image/Pro, Nano Banana 2/Pro/Lite, LTX-2, Seedance |
+
+Model visibility follows the local registry in [`src/config/unified-image-models.ts`](src/config/unified-image-models.ts); the app only exposes models enabled there.
+
+### Compose (Music)
+
+| Model | Access | Length |
+| ----- | ------ | ------ |
+| **ACE-Step 1.5** (`acestep`) | Free (no key) | up to 1 minute |
+| **ACE-Step 1.5** with key | Pollinations key | stepped up to 5 minutes |
+| **ElevenMusic v2** (`elevenmusic`) | Pollinations key | stepped up to 5 minutes |
+| **Stable Audio 3 Medium** (`stable-audio-3-medium`) | Pollinations key | stepped up to 5 minutes |
 
 ## Tech Stack
 

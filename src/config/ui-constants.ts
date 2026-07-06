@@ -15,7 +15,14 @@ import ByteDanceIcon from '../assets/icons-models/bytedance-color.png';
 import FluxFarbeIcon from '../assets/icons-models/fluxfarbe.png';
 import WANIcon from '../assets/icons-models/wan.png';
 import ZAIFarbeIcon from '../assets/icons-models/zaifarbe.png';
-import LTXLogo from '../assets/icons-models/ltxlogo.png';
+import LTXFarbeIcon from '../assets/icons-models/ltxfarbe.png';
+import PrunaIcon from '../assets/icons-models/prunafarbe.png';
+import IdeogramIcon from '../assets/icons-models/ideogramfarbe.png';
+import MiniMaxIcon from '../assets/icons-models/minimaxfarbe.png';
+
+import ElevenLabsIcon from '../assets/icons-models/elevenlabsfarbe.png';
+import AceStepIcon from '../assets/icons-models/acestepfarbe.png';
+import StabilityIcon from '../assets/icons-models/stabilityfarbe.png';
 
 import AmazonNovaIcon from '../assets/icons-models/Amazon Nova.png';
 import StepAIIcon from '../assets/icons-models/Step AI logo.png';
@@ -35,7 +42,7 @@ export const modelIcons: Record<string, any> = {
     'openai-fast': OpenAIIcon,
     'mistral': MistralIcon,
     'kimi': KimiIcon,
-    'minimax': PollinationsIcon,
+    'minimax': MiniMaxIcon,
     'perplexity-reasoning': PerplexityIcon,
     'perplexity-fast': PerplexityIcon,
     'nomnom': PollinationsIcon,
@@ -52,11 +59,11 @@ export const modelDisplayMap: Record<string, string> = {
     'gemini': 'Gemini Flash',
     'gemini-fast': 'Google Gemini 2.5 Flash Lite',
     'gemini-search': 'Google Gemini 2.5 Flash Lite + Search',
-    'glm': 'Z.ai GLM-5',
+    'glm': 'z.ai GLM-5.2',
     'mistral': 'Mistral Small 3.2 24B',
-    'deepseek': 'DeepSeek V3.2',
-    'kimi': 'Moonshot Kimi K2.5',
-    'minimax': 'MiniMax M2.5',
+    'deepseek': 'DeepSeek V4 Flash Lite',
+    'kimi': 'Moonshot Kimi K2.6',
+    'minimax': 'Minimax M3',
     'openai': 'OpenAI GPT-5 Mini',
     'openai-fast': 'OpenAI GPT-5 Nano',
     'perplexity-reasoning': 'Perplexity Sonar Reasoning',
@@ -101,25 +108,25 @@ export const imageModelIcons: Record<string, any> = {
     'wan-image-small': WANIcon,
     'wan-t2v': WANIcon,
     'wan-i2v': WANIcon,
-    'zimage': ByteDanceIcon,
-    'ltx-2': LTXLogo,
+    'zimage': WANIcon,
+    'ltx-2': LTXFarbeIcon,
     'grok-imagine': GrokIcon,
     'grok-image': GrokIcon,
     'grok-video': GrokIcon,
     'grok-video-pro': GrokIcon,
-    'p-image': PollinationsIcon,
-    'p-image-edit': PollinationsIcon,
-    'p-video': PollinationsIcon,
-    'p-image-try-on': PollinationsIcon,
-    'p-image-upscale': PollinationsIcon,
-    'p-video-avatar': PollinationsIcon,
-    'p-video-animate': PollinationsIcon,
-    'p-video-replace': PollinationsIcon,
-    'vace': PollinationsIcon,
-    'ideogram-v4-turbo': PollinationsIcon,
-    'ideogram': PollinationsIcon,
-    'acestep': PollinationsIcon,
-    'ace-step': PollinationsIcon,
-    'stable-audio-3-medium': PollinationsIcon,
-    'elevenmusic': PollinationsIcon,
+    'p-image': PrunaIcon,
+    'p-image-edit': PrunaIcon,
+    'p-video': PrunaIcon,
+    'p-image-try-on': PrunaIcon,
+    'p-image-upscale': PrunaIcon,
+    'p-video-avatar': PrunaIcon,
+    'p-video-animate': PrunaIcon,
+    'p-video-replace': PrunaIcon,
+    'vace': WANIcon,
+    'ideogram-v4-turbo': IdeogramIcon,
+    'ideogram': IdeogramIcon,
+    'acestep': AceStepIcon,
+    'ace-step': AceStepIcon,
+    'stable-audio-3-medium': StabilityIcon,
+    'elevenmusic': ElevenLabsIcon,
 };

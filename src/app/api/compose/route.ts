@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Free tier: max 30s. Own Pollen key: full 300s (5 min).
-    const maxDuration = apiKey ? 300 : 30;
+    // Free tier (ACE-Step, no key): max 1 min. Own Pollen key: full 300s (5 min).
+    const maxDuration = apiKey ? 300 : 60;
     const numericDuration = Number(duration ?? DEFAULT_DURATION);
     const safeDuration = Number.isFinite(numericDuration)
       ? Math.max(3, Math.min(maxDuration, numericDuration))

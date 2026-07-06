@@ -1,12 +1,20 @@
 import React from 'react';
+import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Music2, Clock } from 'lucide-react';
+import { Music2, Clock, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DURATION_OPTIONS, type ComposeMusicModel } from '@/hooks/useComposeMusicState';
+import { durationLabel, type ComposeMusicModel } from '@/hooks/useComposeMusicState';
+import { AVAILABLE_COMPOSE_MODELS } from '@/config/chat-options';
+import { imageModelIcons } from '@/config/ui-constants';
+import { useLanguage } from '@/components/LanguageProvider';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { InlineParamsContainer } from '../InlineParamsContainer';
 
 interface ComposeInlineHeaderProps {
   selectedModel: ComposeMusicModel;
   duration: number;
+  availableDurations: number[];
+  hasPollenKey: boolean;
   instrumental: boolean;
   onModelChange: (model: ComposeMusicModel) => void;
   onDurationChange: (duration: number) => void;
@@ -24,24 +32,40 @@ const labelClass =
 const triggerClass =
   "h-6 text-[10px] border-0 bg-transparent p-0 focus:ring-0 gap-1 w-auto min-w-[60px] text-foreground font-semibold hover:text-primary transition-colors [&>span]:flex [&>span]:items-center [&>span]:gap-1.5";
 
+const renderModelIcon = (modelId: string) => {
+  const icon = imageModelIcons[modelId];
+  if (icon && typeof icon !== 'string') {
+    return <Image src={icon} alt={modelId} width={20} height={20} className="w-5 h-5 rounded-sm" />;
+  }
+  return <Music2 className="w-4 h-4 text-purple-500" />;
+};
+
 export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
+  selectedModel,
   duration,
+  availableDurations,
+  hasPollenKey,
   instrumental,
+  onModelChange,
   onDurationChange,
   onInstrumentalChange,
   onDeactivate,
   disabled = false,
   className,
-  // selectedModel and onModelChange kept for API compatibility (single model for now)
 }) => {
+  const { t } = useLanguage();
+  const currentMeta = AVAILABLE_COMPOSE_MODELS.find((m) => m.id === selectedModel);
+  const isMobile = useMediaQuery('(max-width: 639px)');
+  const [paramsOpen, setParamsOpen] = React.useState(false);
+
   return (
     <div
       className={cn(
-        "relative flex flex-nowrap items-center overflow-x-auto no-scrollbar",
+        "relative flex items-center gap-x-1 flex-wrap sm:flex-nowrap",
         className
       )}
     >
-      {/* Mode label — clicking deactivates compose */}
+      {/* Mode label + Model selector */}
       <div className={badgeClass}>
         <button
           type="button"
@@ -49,20 +73,52 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
           className={cn(labelClass, "text-mode-compose hover:opacity-60 transition-opacity cursor-pointer")}
           title="Click to deactivate Compose mode"
         >
-          Compose with
+          {isMobile ? "Compose" : "Compose with"}
         </button>
-        <span className="flex items-center gap-1.5 text-[10px] font-semibold text-foreground">
-          <Music2 className="w-3.5 h-3.5 text-purple-500" />
-          ElevenMusic
-        </span>
+        <Select
+          value={selectedModel}
+          onValueChange={(val) => onModelChange(val as ComposeMusicModel)}
+          disabled={disabled}
+        >
+          <SelectTrigger className={cn(triggerClass, isMobile ? "min-w-0" : "min-w-[110px]")}>
+            <span className="flex items-center gap-1.5">
+              {renderModelIcon(selectedModel)}
+              {!isMobile && (
+                <span className="truncate max-w-[150px]">{currentMeta?.name || selectedModel}</span>
+              )}
+            </span>
+          </SelectTrigger>
+          <SelectContent className="bg-background/95 backdrop-blur-md border-border/40">
+            {AVAILABLE_COMPOSE_MODELS.map((model) => {
+              const locked = !model.isFree && !hasPollenKey;
+              return (
+                <SelectItem
+                  key={model.id}
+                  value={model.id}
+                  disabled={locked}
+                  className="cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center">
+                      {renderModelIcon(model.id)}
+                    </span>
+                    <span className="text-[11px] font-semibold">{model.name}</span>
+                    {locked && <Lock className="w-3 h-3 text-muted-foreground" />}
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
       </div>
 
+      <InlineParamsContainer isMobile={isMobile} open={paramsOpen} onOpenChange={setParamsOpen}>
       {/* Duration Selector */}
       <div className={badgeClass}>
         <Select
           value={String(duration)}
           onValueChange={(val) => onDurationChange(Number(val))}
-          disabled={disabled}
+          disabled={disabled || availableDurations.length === 0}
         >
           <SelectTrigger className={triggerClass}>
             <div className="flex items-center gap-1.5">
@@ -71,9 +127,9 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
             </div>
           </SelectTrigger>
           <SelectContent className="bg-background/95 backdrop-blur-md border-border/40">
-            {DURATION_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={String(option.value)}>
-                {option.label}
+            {availableDurations.map((seconds) => (
+              <SelectItem key={seconds} value={String(seconds)}>
+                {durationLabel(seconds)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -98,6 +154,16 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
           {instrumental ? "Instr." : "Vocals"}
         </button>
       </div>
+
+      {/* Free-tier hint when no key */}
+      {!hasPollenKey && (
+        <div className={cn(badgeClass, "border-r-0")}>
+          <span className={cn(labelClass, "normal-case text-muted-foreground/70")}>
+            {t('compose.freeHint') || 'Free bis 1 Min · Key für mehr'}
+          </span>
+        </div>
+      )}
+      </InlineParamsContainer>
     </div>
   );
 };

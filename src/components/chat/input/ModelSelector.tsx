@@ -146,7 +146,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                     />
                                 </div>
                             )}
-                            <span className="truncate max-w-[120px] md:max-w-[160px]">{displayName}</span>
+                            <span className={cn("truncate max-w-[160px] md:max-w-[220px]", icon && "hidden sm:inline")}>{displayName}</span>
                         </>
                     );
                 })()}

@@ -1,17 +1,27 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { OutputService } from '@/lib/services/output-service';
 import { getPollenHeaders } from '@/lib/pollen-key';
 import { useLanguage } from '@/components/LanguageProvider';
-import { AVAILABLE_COMPOSE_MODELS } from '@/config/chat-options';
+import { useHasPollenKey } from '@/hooks/useHasPollenKey';
+import { AVAILABLE_COMPOSE_MODELS, getComposeDurations } from '@/config/chat-options';
 
 export type ComposeMusicModel = 'elevenmusic' | 'acestep' | 'stable-audio-3-medium';
 
 export const COMPOSE_MODELS = AVAILABLE_COMPOSE_MODELS;
 
+const clampToSteps = (value: number, steps: number[]): number => {
+  if (steps.length === 0) return value;
+  // Snap to the largest step that does not exceed the requested value (min one step).
+  const allowed = steps.filter((s) => s <= value);
+  return allowed.length > 0 ? Math.max(...allowed) : Math.min(...steps);
+};
+
 export interface ComposeMusicState {
   selectedModel: ComposeMusicModel;
   duration: number;
+  availableDurations: number[];
+  hasPollenKey: boolean;
   instrumental: boolean;
   isGenerating: boolean;
   isEnhancing: boolean;
@@ -28,14 +38,9 @@ export interface ComposeMusicActions {
   reset: () => void;
 }
 
-export const DURATION_OPTIONS = [
-  { label: '30 Sekunden', value: 30 },
-  { label: '1 Minute', value: 60 },
-  { label: '2 Minuten', value: 120 },
-  { label: '3 Minuten', value: 180 },
-  { label: '4 Minuten', value: 240 },
-  { label: '5 Minuten', value: 300 },
-];
+/** Short label for a duration in seconds (e.g. 30 → "30s", 120 → "2m"). */
+export const durationLabel = (seconds: number): string =>
+  seconds < 60 ? `${seconds}s` : `${seconds / 60}m`;
 
 export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions {
   const [selectedModel, setSelectedModel] = useState<ComposeMusicModel>('acestep');
@@ -47,19 +52,28 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { t, language } = useLanguage();
+  const hasPollenKey = useHasPollenKey();
+
+  const availableDurations = useMemo(
+    () => getComposeDurations(selectedModel, hasPollenKey),
+    [selectedModel, hasPollenKey]
+  );
+
+  // Keep the selected duration within the steps allowed for the current model/key state.
+  useEffect(() => {
+    if (availableDurations.length === 0) return;
+    setDuration((prev) =>
+      availableDurations.includes(prev) ? prev : clampToSteps(prev, availableDurations)
+    );
+  }, [availableDurations]);
 
   const setModelAndClampDuration = useCallback((model: ComposeMusicModel) => {
-    const meta = COMPOSE_MODELS.find((m) => m.id === model);
-    const max = meta?.maxDuration ?? 300;
     setSelectedModel(model);
-    setDuration((prev) => Math.min(prev, max));
   }, []);
 
   const setDurationClamped = useCallback((value: number) => {
-    const meta = COMPOSE_MODELS.find((m) => m.id === selectedModel);
-    const max = meta?.maxDuration ?? 300;
-    setDuration(Math.max(3, Math.min(max, value)));
-  }, [selectedModel]);
+    setDuration(clampToSteps(value, availableDurations));
+  }, [availableDurations]);
 
   const generateMusic = useCallback(async (prompt: string): Promise<string | null> => {
     if (!prompt.trim()) {
@@ -156,6 +170,8 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
   return {
     selectedModel,
     duration,
+    availableDurations,
+    hasPollenKey,
     instrumental,
     isGenerating,
     isEnhancing,

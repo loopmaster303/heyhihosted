@@ -43,7 +43,7 @@ describe('/api/compose route', () => {
     expect(httpsFetchBinaryMock).not.toHaveBeenCalled();
   });
 
-  it('caps duration at 30s without a pollen key (free tier)', async () => {
+  it('caps duration at 60s (1 min) without a pollen key (free tier)', async () => {
     const { POST } = await import('./route');
     resolvePollenKeyMock.mockReturnValue('');
     httpsFetchBinaryMock.mockResolvedValueOnce({
@@ -60,7 +60,7 @@ describe('/api/compose route', () => {
 
     await POST(request as any);
     expect(httpsFetchBinaryMock).toHaveBeenCalledWith(
-      expect.stringContaining('duration=30'),
+      expect.stringContaining('duration=60'),
       expect.any(Object),
     );
   });

@@ -55,10 +55,8 @@ interface VisualizeInputContainerProps {
     isPollenModel: boolean;
     isPollinationsVideo: boolean;
 
-    // Provider switch
+    // Provider mode (drives model filtering; switch itself lives in the config sidebar)
     providerMode?: ImageProvider;
-    onProviderModeChange?: (mode: ImageProvider) => void;
-    prunaAvailable?: boolean;
 
     // Source video
     sourceVideo?: UploadedReference | null;
@@ -101,8 +99,6 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
     isPollinationsVideo,
 
     providerMode,
-    onProviderModeChange,
-    prunaAvailable,
 
     sourceVideo,
     onSourceVideoChange,
@@ -148,8 +144,6 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                                 variant="bare"
                                 disabled={loading || disabled}
                                 providerMode={providerMode}
-                                onProviderModeChange={onProviderModeChange}
-                                prunaAvailable={prunaAvailable}
                                 sourceVideo={sourceVideo}
                                 onSourceVideoChange={onSourceVideoChange}
                                 requiresSourceVideo={requiresSourceVideo}
