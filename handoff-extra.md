@@ -89,6 +89,7 @@ Iteration: erst horizontale Scrollleiste umbrochen → dann Logo-only + handgeba
 - **`ComposeInlineHeader`**: Parent-Container auf `flex-wrap sm:flex-nowrap`; Mobile-Text von „Compose with" auf „Compose" gekürzt. Stellt sicher, dass der 3-Punkte-Button auf Mobile in einer Zeile bleibt.
 - **`modelDisplayMap['deepseek']`**: von „DeepSeek V3.2" auf „DeepSeek V4 Flash Lite" (konsistent zur kanonischen Modelldefinition).
 - **`HANDOFF.md`**: „Working tree clean" korrigiert → „dirty" mit 26 Dateien. `handoff-extra.md` nachdokumentiert.
+- **Enhancement-Prompts (Compose)**: Einheits-VibeCraft → 3 modellspezifische Prompts: `ELEVENMUSIC` (VibeCraft + Composition Plan), `ACESTEP` (Text-Prompt-Output), `STABLE_AUDIO` (TrackType-Tags). `selectGuidelines()` + `isComposeModel` in route.ts auf alle drei Modelle erweitert.
 
 ## Verifikation reproduzieren
 

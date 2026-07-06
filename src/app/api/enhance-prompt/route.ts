@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ENHANCEMENT_PROMPTS, DEFAULT_ENHANCEMENT_PROMPT, COMPOSE_ENHANCEMENT_PROMPT } from '@/config/enhancement-prompts';
+import { ENHANCEMENT_PROMPTS, DEFAULT_ENHANCEMENT_PROMPT, ELEVENMUSIC_ENHANCEMENT_PROMPT, ACESTEP_ENHANCEMENT_PROMPT, STABLE_AUDIO_ENHANCEMENT_PROMPT } from '@/config/enhancement-prompts';
 import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import { SmartRouter } from '@/lib/services/smart-router';
@@ -71,9 +71,19 @@ const MODEL_ALIASES: Record<string, string> = {
 };
 
 function selectGuidelines(modelId: string): string {
-  // Compose / Music models: elevenmusic + compose → VibeCraft
-  if (modelId === 'elevenmusic' || modelId === 'compose') {
-    return COMPOSE_ENHANCEMENT_PROMPT;
+  // Compose / Music models — each has its own model-specific enhancement prompt
+  if (modelId === 'acestep' || modelId === 'ace-step') {
+    return ACESTEP_ENHANCEMENT_PROMPT;
+  }
+  if (modelId === 'elevenmusic') {
+    return ELEVENMUSIC_ENHANCEMENT_PROMPT;
+  }
+  if (modelId === 'stable-audio-3-medium') {
+    return STABLE_AUDIO_ENHANCEMENT_PROMPT;
+  }
+  // Legacy alias
+  if (modelId === 'compose') {
+    return ELEVENMUSIC_ENHANCEMENT_PROMPT;
   }
   const key = MODEL_ALIASES[modelId] || modelId;
   if (key === 'default') {
@@ -262,7 +272,8 @@ export async function POST(request: NextRequest) {
 
 
     // Get model-specific enhancement guidelines
-    const isComposeModel = modelId === 'elevenmusic' || modelId === 'compose';
+    const COMPOSE_MODEL_IDS = new Set(['acestep', 'ace-step', 'elevenmusic', 'stable-audio-3-medium', 'compose']);
+    const isComposeModel = COMPOSE_MODEL_IDS.has(modelId);
     const baseGuidelines = selectGuidelines(modelId);
     
     // Only enforce English output - let the enhancement prompts control the format
