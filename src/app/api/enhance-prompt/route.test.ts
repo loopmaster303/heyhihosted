@@ -1043,4 +1043,60 @@ describe('/api/enhance-prompt route', () => {
       }),
     );
   });
+
+  const composeRequest = (modelId: string, prompt = 'chill beat') =>
+    new Request('http://localhost/api/enhance-prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, modelId, language: 'de' }),
+    });
+
+  it('routes each compose model to its own enhancement prompt', async () => {
+    const markers: Record<string, string> = {
+      acestep: 'ACE-Step 1.5 prompt engineer',
+      elevenmusic: 'VibeCraft',
+      'stable-audio-3-medium': 'Stable Audio 3 Medium prompt engineer',
+    };
+
+    for (const [modelId, marker] of Object.entries(markers)) {
+      getPollinationsChatCompletionMock.mockClear();
+      await POST(composeRequest(modelId) as any);
+      expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          systemPrompt: expect.stringContaining(marker),
+        }),
+      );
+    }
+  });
+
+  it('accepts Stable Audio "BPM: 80" format without a redundant fallback rerun', async () => {
+    // The Stable Audio prompt prescribes "BPM: 80" (colon form); the quality gate must
+    // recognise it as containing a BPM so it does NOT trigger a second enhancer call.
+    getPollinationsChatCompletionMock.mockResolvedValue({
+      responseText:
+        'TrackType: Music, VocalType: Instrumental; Genre: lo-fi hip-hop, chillhop; ' +
+        'Instruments: warm rhodes piano, soft boom-bap drums, upright bass; Mood: relaxed, cozy; ' +
+        'BPM: 80; Production: tape saturation, warm analog texture; Length: 120s',
+    });
+
+    await POST(composeRequest('stable-audio-3-medium') as any);
+
+    expect(getPollinationsChatCompletionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('reruns with the fallback enhancer when a compose result has no BPM', async () => {
+    getPollinationsChatCompletionMock.mockResolvedValue({
+      responseText:
+        'upbeat indie pop, jangly guitars, bright synths, cheerful and sunny, ' +
+        'energetic mood, instrumental, verse-chorus structure, radio-ready production',
+    });
+
+    await POST(composeRequest('acestep', 'happy tune') as any);
+
+    expect(getPollinationsChatCompletionMock).toHaveBeenCalledTimes(2);
+    expect(getPollinationsChatCompletionMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ modelId: 'gemini-fast' }),
+    );
+  });
 });

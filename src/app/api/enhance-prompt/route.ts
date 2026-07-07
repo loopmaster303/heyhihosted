@@ -177,7 +177,8 @@ function isLikelySuffixOnlyEnhancement(original: string, enhanced: string): bool
 }
 
 function hasBpm(text: string): boolean {
-  return /\b\d{2,3}\s*bpm\b/i.test(text) || /\bbpm\s*\d{2,3}\b/i.test(text);
+  // Matches "80 BPM" (ACE-Step/ElevenMusic) and "BPM: 80" / "BPM 80" (Stable Audio).
+  return /\b\d{2,3}\s*bpm\b/i.test(text) || /\bbpm\b\s*[:=]?\s*\d{2,3}/i.test(text);
 }
 
 function parseResearchSuggestions(text: string): string[] {
