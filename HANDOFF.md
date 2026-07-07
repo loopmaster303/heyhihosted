@@ -4,18 +4,22 @@
 
 `~/heyhihosted` (unverändert nach Reorg)
 
-GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (origin synchron, Stand `3a6e7ff`)
+GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (Stand `68c1908`)
 
 ## Was ist das Projekt
 
 **Level 2 („Benutzen")** im hey-hi Ökosystem (kanonisch: `~/heyhi/LEVELS.md`) — Produktions-App (hey-hi.space). Next.js 16, Pollinations, minimalistisches Chat-Interface, Text/Bild/Video/Musik (Compose) + Voice (TTS/STT), lokale Persistenz (IndexedDB/localStorage), BYOP-Key.
 
-## Aktueller State (2026-07-06)
+## Aktueller State (2026-07-07)
 
-- **Working tree dirty** (26 Dateien: 16 modified, 10 untracked) — siehe Tabelle „Uncommittete Änderungen" unten. Commit `3a6e7ff` ist letzter committeter Stand.
-- **origin/main = main** (beide auf `3a6e7ff`).
-- **Verifikation grün:** `tsc --noEmit` 0 Fehler; volle Jest-Suite **307/307** (54 Suiten). Es gibt keinen bekannten roten Test mehr — „Suite grün" ist wieder ein vollwertiges Signal.
-- Der große Subagent-Umbau (Pruna-Integration, API-/Security-Härtung, Audit-Scripts, Chat/UI-Fixes) ist committet; die uncommitteten Änderungen sind alle aus dem aktuellen Session-Thread (Logos, Namen, Compose-Tiers, Provider-Switch-Verschiebung, Mobile-Layout).
+- **Working tree clean, HEAD = `68c1908`.** Alle Session-Arbeiten committet.
+- **Verifikation grün:** `tsc --noEmit` 0 Fehler; volle Jest-Suite **310/310** (54 Suiten).
+- Letzte Commits dieses Threads:
+  - `906f53c` feat(ui): Logos, Modellnamen, Compose-Tiers, Mobile-Layout, Provider-Switch → Sidebar
+  - `c097e75` feat(compose): modell-spezifische Enhancement-Prompts (ACE-Step/ElevenMusic/Stable Audio)
+  - `68c1908` fix(enhance-prompt): `hasBpm` erkennt „BPM: 80"-Format + Compose-Routing-Tests
+- **Details der UI/Compose/Doku-Arbeit:** siehe [handoff-extra.md](handoff-extra.md).
+- **Wichtige Lernung (2026-07-07):** Pollinations-Musikmodelle (`acestep`/`elevenmusic`/`stable-audio-3-medium`) sind **nicht anonym frei** — `paid_only: null` in der Modell-Liste heißt nicht „ohne Key nutzbar". Sie brauchen einen Key **mit Musik-Freigabe** (Server-`POLLEN_API_KEY` oder BYOP). Ein „internal server error" bei Compose = meist 403 „Model X is not allowed for this API key" vom Upstream, kein App-Bug.
 
 ## Was in diesem Thread passiert ist (2026-07-05/06)
 

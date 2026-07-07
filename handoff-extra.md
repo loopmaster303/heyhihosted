@@ -4,8 +4,8 @@ Ergänzung zu [HANDOFF.md](HANDOFF.md). Dokumentiert **alle** Änderungen dieses
 
 ## Status
 
-- **Alles uncommitted** (working tree dirty, nichts committet — User-Regel „no auto-commit").
-- **Verifikation grün:** `tsc --noEmit` 0 Fehler · `CI=1 npx jest --runInBand` **307/307** (54 Suiten) · ESLint sauber auf allen geänderten Kern-Dateien.
+- **Committet auf `main`** (Stand 2026-07-07): `906f53c` (UI) · `c097e75` (Compose-Enhancement-Prompts) · `68c1908` (BPM-Fix + Tests). Working tree clean.
+- **Verifikation grün:** `tsc --noEmit` 0 Fehler · `CI=1 npx jest --runInBand` **310/310** (54 Suiten) · ESLint sauber auf allen geänderten Kern-Dateien.
 - **Mobile Preview vom User bestätigt**: „sieht erstmal soweit gut aus". Desktop unverändert.
 - **`HANDOFF.md` wurde in diesem Thread aktualisiert** (vorher Stand 2026-06-05, jetzt Stand 2026-07-06 inkl. Subagent-Freeze + Tasks 6-7 + Phase-3-Härtung).
 - **`README.md`** ebenfalls aktualisiert (Modelltabellen gegen Registry, Compose-Realität, Provider-Infos).
@@ -90,6 +90,15 @@ Iteration: erst horizontale Scrollleiste umbrochen → dann Logo-only + handgeba
 - **`modelDisplayMap['deepseek']`**: von „DeepSeek V3.2" auf „DeepSeek V4 Flash Lite" (konsistent zur kanonischen Modelldefinition).
 - **`HANDOFF.md`**: „Working tree clean" korrigiert → „dirty" mit 26 Dateien. `handoff-extra.md` nachdokumentiert.
 - **Enhancement-Prompts (Compose)**: Einheits-VibeCraft → 3 modellspezifische Prompts: `ELEVENMUSIC` (VibeCraft + Composition Plan), `ACESTEP` (Text-Prompt-Output), `STABLE_AUDIO` (TrackType-Tags). `selectGuidelines()` + `isComposeModel` in route.ts auf alle drei Modelle erweitert.
+
+## Nachtrag Session 2026-07-07 (Code-Review + Commit + Doku)
+
+- **Code-Review von `c097e75`** (anderer Agent, Compose-Enhancement-Prompts): Routing korrekt, behebt echten Bug (acestep/stable fielen vorher auf DEFAULT). Zwei Findings gefixt:
+  - **Finding 1 (Commit `68c1908`)**: `hasBpm()` in [enhance-prompt/route.ts](src/app/api/enhance-prompt/route.ts) matchte nur „80 BPM"/"BPM 80", nicht das von Stable Audio vorgeschriebene **`BPM: 80`** (Doppelpunkt) → jede Stable-Audio-Anfrage löste einen überflüssigen Fallback-Rerun aus. Regex um optionalen `[:=]?`-Trenner erweitert.
+  - **Finding 2**: 3 neue Tests in [route.test.ts](src/app/api/enhance-prompt/route.test.ts) — Compose-Modell-Routing (jedes der 3 Modelle → eigener Prompt), Stable-Audio-`BPM: 80`-Regression (nur 1 Enhancer-Call), Gegenprobe (kein BPM → Fallback feuert).
+- **ACE-Step „internal server error" diagnostiziert** (am echten Endpoint): war **kein Code-Bug**. Upstream-Antwort mit gültigem Server-Key: `403 { "Model 'acestep' is not allowed for this API key" }` — für **alle drei** Musikmodelle. Ursache lag am **alten Pollen-Key des Users** (ohne Musik-Freigabe); mit frischen Keys läuft es. → Lernung: `paid_only: null` ≠ anonym frei; Musikmodelle brauchen Key mit Musik-Berechtigung. Kein Code-Change nötig (User-Entscheidung).
+- **README verifiziert & korrigiert**: die vom anderen Agent ergänzte Bildmodell-Tabelle war teils ungenau (`zimage`/`wan-image-small` sind Provider **Pruna**, nicht „free no key"). Ersetzt durch akkurate, registry-verweisende Beschreibung (Quelle der Wahrheit: `unified-image-models.ts`). Chat-Namen stimmen exakt mit `chat-options.ts` überein.
+- **HANDOFF.md** State-Block auf 2026-07-07 / `68c1908` / 310 Tests aktualisiert.
 
 ## Verifikation reproduzieren
 

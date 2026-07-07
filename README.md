@@ -39,18 +39,12 @@ The list above is the canonical visible registry in [`src/config/chat-options.ts
 
 ### Image & Video Generation
 
-Visualize supports **two providers**, switchable in the config sidebar:
+Visualize offers **two providers**, switchable in the config sidebar:
 
-- **Pollinations** — free tier (no key) plus additional models unlocked by a Pollinations key.
-- **Pruna** — the `p-image` / `p-video` / upscale family; requires a Pollinations key.
+- **Pollinations** — the default. A free tier (usable without a key) plus more models that unlock with a Pollinations key.
+- **Pruna** — the `p-*` image/video family plus a few ByteDance/Wan models (`zimage`, `qwen-image`, `wan-image-small`, …); requires a Pollinations key (server- or user-provided).
 
-| Group (enabled) | Models |
-| --------------- | ------ |
-| **Free (no key)** | Flux.1 Fast (`flux`), Z-Image Turbo (`zimage`), GPT Image 1 Mini (`gpt-image`), Flux.2 Klein 4B (`klein`), Flux.1 Kontext (`kontext`), GPT-Image 1.5 (`gptimage-large`), Qwen Image (`qwen-image`), Grok Imagine (`grok-imagine`), Ideogram V4 Turbo (`ideogram-v4-turbo`), Wan Image Small (`wan-image-small`) |
-| **Key required** | P-Image / P-Image Edit / P-Image Upscale / P-Image Try-On, Qwen Image Edit Plus, and Grok Video (`grok-video`) |
-| **Disabled (key only)** | Seedream, Nano Banana, Grok Imagine Pro, WAN 2.7 Image/Pro, Nano Banana 2/Pro/Lite, LTX-2, Seedance |
-
-Model visibility follows the local registry in [`src/config/unified-image-models.ts`](src/config/unified-image-models.ts); the app only exposes models enabled there.
+Per-model tiers (free · key-required · hidden) are governed by the `isFree` / `enabled` flags in [`src/config/unified-image-models.ts`](src/config/unified-image-models.ts) — **that file is the single source of truth**. Representative free-tier Pollinations image models: Flux.1 Fast (`flux`), GPT Image 1 Mini (`gpt-image`), Flux.2 Klein (`klein`), Flux.1 Kontext (`kontext`), GPT-Image Large (`gptimage-large`), Grok Imagine (`grok-imagine`), Ideogram V4 Turbo (`ideogram-v4-turbo`). Advanced image models (Seedream, Nano Banana family, Grok Imagine Pro, WAN 2.7) and video models (e.g. Grok Video `grok-video`) require a key.
 
 ### Compose (Music)
 
