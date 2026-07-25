@@ -11,8 +11,16 @@ const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
 describe('ChatService', () => {
+    let consoleLogSpy: jest.SpyInstance;
+
     beforeEach(() => {
         mockFetch.mockClear();
+        localStorage.clear();
+        consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        consoleLogSpy.mockRestore();
     });
 
     describe('sendChatCompletion', () => {
@@ -244,6 +252,28 @@ describe('ChatService', () => {
             expect(parsedBody.model).toBe('seedance');
             expect(parsedBody.image).toBe('https://example.com/reference.png');
             expect(parsedBody.aspectRatio).toBe('16:9');
+        });
+
+        it('sends the local Pruna key and converts a media response into a blob URL', async () => {
+            localStorage.setItem('prunaApiKey', 'pruna_test_1234567890');
+            const createObjectUrl = jest.fn(() => 'blob:http://localhost/pruna-result');
+            Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectUrl });
+            const mediaBlob = new Blob(['image-bytes'], { type: 'image/png' });
+            mockFetch.mockResolvedValueOnce(new Response(mediaBlob, {
+                status: 200,
+                headers: { 'Content-Type': 'image/png', 'X-HeyHi-Media-Kind': 'image' },
+            }));
+
+            const result = await ChatService.generateImage({
+                prompt: 'Pruna only',
+                modelId: 'p-image',
+            });
+
+            expect(result).toBe('blob:http://localhost/pruna-result');
+            expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
+            expect(mockFetch).toHaveBeenCalledWith('/api/generate', expect.objectContaining({
+                headers: expect.objectContaining({ 'X-Pruna-Key': 'pruna_test_1234567890' }),
+            }));
         });
     });
 });

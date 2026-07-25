@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { normalizePrunaKey } from '@/lib/pruna-key-validation';
 
 /**
  * Server capabilities endpoint.
@@ -7,6 +8,6 @@ import { NextResponse } from 'next/server';
  */
 export async function GET() {
   return NextResponse.json({
-    prunaAvailable: !!process.env.PRUNA_API_KEY && process.env.PRUNA_API_KEY.trim() !== '',
+    prunaAvailable: !!normalizePrunaKey(process.env.PRUNA_API_KEY),
   });
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import type { ImageProvider } from '@/config/unified-image-models';
+import { useHasPrunaKey } from '@/hooks/useHasPrunaKey';
 
 export interface UseProviderModeResult {
   providerMode: ImageProvider;
@@ -23,7 +24,9 @@ export function useProviderMode(): UseProviderModeResult {
     'heyhi-provider-mode',
     'pollinations'
   );
-  const [prunaAvailable, setPrunaAvailable] = useState<boolean>(false);
+  const hasPrunaKey = useHasPrunaKey();
+  const [serverPrunaAvailable, setServerPrunaAvailable] = useState<boolean | null>(null);
+  const prunaAvailable = hasPrunaKey || serverPrunaAvailable === true;
 
   useEffect(() => {
     let cancelled = false;
@@ -31,22 +34,23 @@ export function useProviderMode(): UseProviderModeResult {
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return;
-        const available = !!data.prunaAvailable;
-        setPrunaAvailable(available);
-        if (!available && providerMode === 'pruna') {
-          setProviderMode('pollinations');
-        }
+        setServerPrunaAvailable(!!data.prunaAvailable);
       })
       .catch(() => {
         if (!cancelled) {
-          setPrunaAvailable(false);
-          setProviderMode('pollinations');
+          setServerPrunaAvailable(false);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [providerMode, setProviderMode]);
+  }, []);
+
+  useEffect(() => {
+    if (!hasPrunaKey && serverPrunaAvailable === false && providerMode === 'pruna') {
+      setProviderMode('pollinations');
+    }
+  }, [hasPrunaKey, providerMode, serverPrunaAvailable, setProviderMode]);
 
   return { providerMode, setProviderMode, prunaAvailable };
 }

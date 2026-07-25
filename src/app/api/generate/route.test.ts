@@ -4,6 +4,7 @@ const imageUrlMock = jest.fn();
 const videoUrlMock = jest.fn();
 const generatePollinationsImageMock = jest.fn();
 const fetchAndStoreRemoteMediaMock = jest.fn();
+const resolvePollenKeyMock = jest.fn();
 
 jest.mock('@/lib/pollinations-sdk', () => ({
   imageUrl: (...args: unknown[]) => imageUrlMock(...args),
@@ -19,7 +20,11 @@ jest.mock('@/lib/pollinations-image-v1', () => ({
 }));
 
 jest.mock('@/lib/resolve-pollen-key', () => ({
-  resolvePollenKey: jest.fn(() => ''),
+  resolvePollenKey: (...args: unknown[]) => resolvePollenKeyMock(...args),
+}));
+
+jest.mock('@/lib/resolve-pruna-key', () => ({
+  resolvePrunaKey: (request: Request) => request.headers.get('X-Pruna-Key') || process.env.PRUNA_API_KEY,
 }));
 
 const generateViaPrunaMock = jest.fn();
@@ -35,16 +40,23 @@ describe('/api/generate route', () => {
   const originalFetch = global.fetch;
   const originalPrunaApiKey = process.env.PRUNA_API_KEY;
   const originalResponseJson = Response.json;
+  let consoleLogSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     process.env.PRUNA_API_KEY = 'test-pruna-key';
     global.fetch = originalFetch;
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     imageUrlMock.mockReset();
     videoUrlMock.mockReset();
     generatePollinationsImageMock.mockReset();
     fetchAndStoreRemoteMediaMock.mockReset();
     generateViaPrunaMock.mockReset();
     downloadPrunaResultMock.mockReset();
+    resolvePollenKeyMock.mockReset().mockReturnValue('test-pollen-key');
     fetchAndStoreRemoteMediaMock.mockResolvedValue({
       key: 'stored-key',
       url: 'https://media.pollinations.ai/stored-key',
@@ -58,6 +70,9 @@ describe('/api/generate route', () => {
   });
 
   afterEach(() => {
+    consoleLogSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
     global.fetch = originalFetch;
     if (originalPrunaApiKey === undefined) {
       delete (process.env as any).PRUNA_API_KEY;
@@ -306,6 +321,48 @@ describe('/api/generate route', () => {
     expect(imageUrlMock).not.toHaveBeenCalled();
   });
 
+  it('rejects multiple references for Grok Imagine Pro image', async () => {
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'edit', model: 'grok-imagine-pro',
+        image: ['https://example.com/a.jpg', 'https://example.com/b.jpg'],
+      }),
+    }));
+    expect(response.status).toBe(400);
+    expect(responseJson.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({
+      error: expect.stringMatching(/maximum 1 reference image/i),
+    }));
+  });
+
+  it('rejects an end frame for start-only Grok Pro video', async () => {
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'animate', model: 'grok-video-pro',
+        image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+      }),
+    }));
+    expect(response.status).toBe(400);
+    expect(responseJson.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({
+      error: expect.stringMatching(/does not support an end frame/i),
+    }));
+  });
+
+  it('preserves start/end order for end-frame video models', async () => {
+    videoUrlMock.mockResolvedValueOnce('https://example.com/veo.mp4');
+    await POST(new Request('http://localhost/api/generate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'transition', model: 'veo',
+        image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+      }),
+    }));
+    expect(videoUrlMock).toHaveBeenCalledWith('transition', expect.objectContaining({
+      referenceImage: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+    }));
+  });
+
   it('rejects removed stale visual models', async () => {
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
@@ -360,8 +417,31 @@ describe('/api/generate route', () => {
       'zimage',
       expect.objectContaining({ prompt: 'cyberpunk skyline' }),
       expect.any(AbortSignal),
+      'test-pruna-key',
     );
     expect(generatePollinationsImageMock).not.toHaveBeenCalled();
+  });
+
+  it('returns Pruna media bytes when no Pollen key is connected', async () => {
+    resolvePollenKeyMock.mockReturnValueOnce(undefined);
+    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/local-only' });
+    downloadPrunaResultMock.mockResolvedValueOnce({
+      buffer: Buffer.from('local-image'),
+      contentType: 'image/png',
+    });
+    global.fetch = jest.fn();
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pruna-Key': 'user_pruna_1234567890' },
+      body: JSON.stringify({ prompt: 'local result', model: 'p-image' }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/png');
+    expect(response.headers.get('x-heyhi-media-kind')).toBe('image');
+    expect(Buffer.from(await response.arrayBuffer()).toString()).toBe('local-image');
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('returns specific Pruna error message (not "Internal server error") on Pruna failure', async () => {
@@ -444,6 +524,7 @@ describe('/api/generate route', () => {
         image: 'https://example.com/photo.jpg',
       }),
       expect.any(AbortSignal),
+      'test-pruna-key',
     );
   });
 
@@ -663,6 +744,7 @@ describe('/api/generate route', () => {
       'p-image',
       expect.objectContaining({ prompt: 'a majestic lion' }),
       expect.any(AbortSignal),
+      'test-pruna-key',
     );
     expect(generatePollinationsImageMock).not.toHaveBeenCalled();
   });
@@ -703,6 +785,7 @@ describe('/api/generate route', () => {
         image: ['https://example.com/photo.jpg'],
       }),
       expect.any(AbortSignal),
+      'test-pruna-key',
     );
   });
 
@@ -737,6 +820,7 @@ describe('/api/generate route', () => {
       'p-video',
       expect.objectContaining({ prompt: 'a cat walking', duration: 5 }),
       expect.any(AbortSignal),
+      'test-pruna-key',
     );
     expect(videoUrlMock).not.toHaveBeenCalled();
   });
@@ -773,6 +857,7 @@ describe('/api/generate route', () => {
         srcRefImages: undefined,
       }),
       expect.any(AbortSignal),
+      'test-pruna-key',
     );
   });
 
@@ -806,6 +891,7 @@ describe('/api/generate route', () => {
         srcRefImages: ['https://example.com/char-a.jpg', 'https://example.com/char-b.jpg'],
       }),
       expect.any(AbortSignal),
+      'test-pruna-key',
     );
   });
 
@@ -867,6 +953,7 @@ describe('/api/generate route', () => {
         ...extraBody,
       }),
       expect.any(AbortSignal),
+      'test-pruna-key',
     );
   });
 
@@ -911,6 +998,7 @@ describe('/api/generate route', () => {
         ...extraBody,
       }),
       expect.any(AbortSignal),
+      'test-pruna-key',
     );
   });
 });

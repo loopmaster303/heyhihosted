@@ -26,7 +26,7 @@ describe('/api/capabilities route', () => {
   });
 
   it('reports Pruna availability when PRUNA_API_KEY is configured', async () => {
-    process.env.PRUNA_API_KEY = 'test-key';
+    process.env.PRUNA_API_KEY = 'test-pruna-key-1234';
 
     await GET();
     const body = responseJson.mock.calls.at(-1)?.[0];

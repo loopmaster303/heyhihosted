@@ -9,6 +9,7 @@ import {
 import { getUnifiedModel } from '@/config/unified-image-models';
 import { processSseStream } from '@/utils/chatHelpers';
 import { getPollenHeaders } from '@/lib/pollen-key';
+import { getPrunaHeaders } from '@/lib/pruna-key';
 
 export interface SendMessageOptions {
     messages: ApiChatMessage[];
@@ -137,12 +138,18 @@ export class ChatService {
 
         const response = await fetch('/api/generate', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
+            headers: { 'Content-Type': 'application/json', ...getPollenHeaders(), ...getPrunaHeaders() },
             body: JSON.stringify(body),
         });
 
         if (response.status === 404) {
             throw new Error('The requested model is currently not available. Please try a different model.');
+        }
+
+        const contentType = response.headers?.get('content-type') || '';
+        if (response.ok && contentType !== '' && !contentType.includes('application/json')) {
+            const mediaBlob = await response.blob();
+            return URL.createObjectURL(mediaBlob);
         }
 
         const result: any = await response.json();

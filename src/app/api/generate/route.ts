@@ -4,9 +4,11 @@ import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handl
 import { imageUrl, videoUrl } from '@/lib/pollinations-sdk';
 import { generatePollinationsImage } from '@/lib/pollinations-image-v1';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
+import { resolvePrunaKey } from '@/lib/resolve-pruna-key';
 import { fetchAndStoreRemoteMedia } from '@/lib/media/server-media-ingest';
 import {
   getUnifiedModel,
+  getReferenceMode,
   resolvePollinationsVisualModelId,
   toPollinationsVisualApiModelId,
 } from '@/config/unified-image-models';
@@ -78,6 +80,18 @@ export async function POST(request: Request) {
     const modelInfo = getUnifiedModel(canonicalModelId);
     const modelId = toPollinationsVisualApiModelId(canonicalModelId);
     const isVideoModel = modelInfo?.kind === 'video';
+    const referenceMode = modelInfo ? getReferenceMode(modelInfo) : 'multi-image';
+    const referenceImages = image ? (Array.isArray(image) ? image : [image]) : [];
+
+    if (referenceImages.length > 0 && modelInfo?.supportsReference !== true) {
+      throw new ApiError(400, `Model ${canonicalModelId} does not support reference images`);
+    }
+    if (referenceMode === 'start-frame' && referenceImages.length > 1) {
+      throw new ApiError(400, `Model ${canonicalModelId} does not support an end frame`);
+    }
+    if (modelInfo?.maxImages !== undefined && referenceImages.length > modelInfo.maxImages) {
+      throw new ApiError(400, `Model ${canonicalModelId} accepts a maximum ${modelInfo.maxImages} reference image${modelInfo.maxImages === 1 ? '' : 's'}`);
+    }
 
     // Auto-enhance for z-image-turbo (restored regression fix)
     const effectiveEnhance = modelId === 'z-image-turbo' ? true : enhance;
@@ -95,7 +109,8 @@ export async function POST(request: Request) {
     }
 
     // ── Pruna AI dispatch ─────────────────────────────────────────────
-    const hasPrunaKey = !!process.env.PRUNA_API_KEY;
+    const prunaApiKey = resolvePrunaKey(request);
+    const hasPrunaKey = !!prunaApiKey;
     const prunaEligible = isPrunaModel(canonicalModelId);
     const PRUNA_FALLBACK_MODELS = new Set(['zimage']);
 
@@ -115,24 +130,39 @@ export async function POST(request: Request) {
           audio,
         };
 
-        const result = await generateViaPruna(canonicalModelId, prunaFields, request.signal);
+        const result = await generateViaPruna(canonicalModelId, prunaFields, request.signal, prunaApiKey);
         const downloaded = await downloadPrunaResult(
           result.generationUrl,
-          process.env.PRUNA_API_KEY,
+          prunaApiKey,
           request.signal,
         );
 
-        const uploadHeaders: Record<string, string> = {
-          'Content-Type': downloaded.contentType,
-        };
+        if (!hasToken) {
+          return new Response(new Uint8Array(downloaded.buffer), {
+            status: 200,
+            headers: {
+              'Content-Type': downloaded.contentType,
+              'Cache-Control': 'no-store',
+              'X-HeyHi-Media-Kind': isVideoModel ? 'video' : 'image',
+            },
+          });
+        }
+
+        // Pollinations Media Storage requires multipart/form-data (field `file`);
+        // a raw binary body is rejected with "Unsupported content type".
+        const uploadHeaders: Record<string, string> = {};
         if (hasToken) {
           uploadHeaders['Authorization'] = `Bearer ${apiKey}`;
         }
 
+        const uploadForm = new FormData();
+        const prunaFileName = isVideoModel ? `pruna-${Date.now()}.mp4` : `pruna-${Date.now()}.png`;
+        uploadForm.append('file', new Blob([downloaded.buffer], { type: downloaded.contentType }), prunaFileName);
+
         const uploadResponse = await fetch(MEDIA_UPLOAD_URL, {
           method: 'POST',
           headers: uploadHeaders,
-          body: downloaded.buffer,
+          body: uploadForm,
           signal: request.signal,
         });
 

@@ -30,8 +30,9 @@ export async function generateViaPruna(
   modelId: string,
   fields: PrunaFieldInput,
   signal?: AbortSignal,
+  requestApiKey?: string,
 ): Promise<PrunaPredictionResult> {
-  const apiKey = process.env.PRUNA_API_KEY;
+  const apiKey = requestApiKey ?? process.env.PRUNA_API_KEY;
   if (!apiKey) {
     throw new ApiError(503, 'PRUNA_API_KEY is not set', 'MISSING_PRUNA_KEY');
   }
@@ -170,8 +171,9 @@ export async function downloadPrunaResult(
 export async function uploadPrunaFile(
   file: Blob | Buffer,
   filename: string,
+  requestApiKey?: string,
 ): Promise<string> {
-  const apiKey = process.env.PRUNA_API_KEY;
+  const apiKey = requestApiKey ?? process.env.PRUNA_API_KEY;
   if (!apiKey) {
     throw new ApiError(503, 'PRUNA_API_KEY is not set', 'MISSING_PRUNA_KEY');
   }
