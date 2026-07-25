@@ -6,6 +6,7 @@ import ChatInput from '@/components/chat/ChatInput';
 import FlowField from '@/components/ui/FlowField';
 import { useChatComposer, useChatConversation, useChatMedia, useChatModes } from '@/components/ChatProvider';
 import { useLanguage } from '@/components/LanguageProvider';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { ComposeMusicActions, ComposeMusicState } from '@/hooks/useComposeMusicState';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import { cn } from '@/lib/utils';
@@ -32,11 +33,8 @@ const LandingView: React.FC<LandingViewProps> = ({
     const { language } = useLanguage();
     const isEn = language === 'en';
     const [showInputContainer, setShowInputContainer] = useState(false);
-    const [viewportHeight, setViewportHeight] = useState(() =>
-        typeof window !== 'undefined' ? window.innerHeight : 900
-    );
-    const isShortViewport = viewportHeight < 820;
-    const isVeryShortViewport = viewportHeight < 700;
+    const isShortViewport = useMediaQuery('(max-height: 819px)');
+    const isVeryShortViewport = useMediaQuery('(max-height: 699px)');
 
     // Show input container after a delay (synced with particle formation)
     useEffect(() => {
@@ -47,15 +45,6 @@ const LandingView: React.FC<LandingViewProps> = ({
         return () => {
             clearTimeout(timer);
         };
-    }, []);
-
-    useEffect(() => {
-        const syncViewportHeight = () => {
-            setViewportHeight(window.innerHeight);
-        };
-        syncViewportHeight();
-        window.addEventListener('resize', syncViewportHeight);
-        return () => window.removeEventListener('resize', syncViewportHeight);
     }, []);
 
     // Handle send - navigate to chat regardless, image mode state is preserved
@@ -111,6 +100,9 @@ const LandingView: React.FC<LandingViewProps> = ({
                                 : "max-w-4xl gap-3"
                     )}
                 >
+                    {/* sr-only h1 carries the SEO copy — the visible wordmark is the particle header above */}
+                    <h1 className="sr-only">hey.hi · local-first AI workspace</h1>
+
                     {/* ChatInput Bar */}
                     <div className="w-full">
                         {showInputContainer && (

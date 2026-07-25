@@ -70,7 +70,6 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   const { t } = useLanguage();
   const hasPollenKey = useHasPollenKey();
   const [expanded, setExpanded] = React.useState(true); // For dropdown groups
-  const [isMinimized, setIsMinimized] = React.useState(false); // For toolbar visibility
   const isMobile = useMediaQuery('(max-width: 639px)');
   const [paramsOpen, setParamsOpen] = React.useState(false); // Mobile: params popover
 
@@ -119,46 +118,14 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
 
   if (!currentModelConfig) return null;
 
-  // Minimized View
-  if (isMinimized) {
-    return (
-      <div className={cn("flex items-center gap-2 mb-2", className)}>
-        <button
-          type="button"
-          onClick={() => setIsMinimized(false)}
-          className="flex items-center gap-2 bg-muted/30 hover:bg-muted/50 border border-border/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors group"
-        >
-          <span className="flex items-center gap-1.5 opacity-70 group-hover:opacity-100">
-            {renderModelIcon(selectedModelId, true)}
-            <span>{unifiedModelConfigs[selectedModelId]?.name || selectedModelId}</span>
-          </span>
-          <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-foreground transition-transform" />
-        </button>
-      </div>
-    );
-  }
-
-  // Maximized View (Full Toolbar)
-  // Mobile: wrap so every control (incl. the provider switch) stays on-screen and tappable.
-  // Desktop (md+): single-row horizontal scroll strip.
+  // Full Toolbar — mobile: params live behind the drawer trigger; desktop: single-row scroll strip.
   return (
     <div
       className={cn(
-        "relative flex items-center gap-x-1 sm:pr-8",
+        "relative flex items-center gap-x-1",
         className
       )}
     >
-
-      {/* Minimize Button — desktop only */}
-      <button
-        type="button"
-        onClick={() => setIsMinimized(true)}
-        className="hidden sm:block absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-        title={t('visualize.minimizeSettings')}
-      >
-        <ChevronDown className="w-3.5 h-3.5 rotate-180" />
-      </button>
-
       {/* Mode + Model */}
       <div className={badgeClass}>
         <button
@@ -173,11 +140,9 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
           <SelectTrigger className={cn(triggerClass, "min-w-[80px]")}>
             <span className="flex items-center gap-1.5">
               {renderModelIcon(selectedModelId, true)}
-              {!isMobile && (
-                <span className="truncate max-w-[140px]">
-                  {unifiedModelConfigs[selectedModelId]?.name || selectedModelId}
-                </span>
-              )}
+              <span className={cn("truncate", isMobile ? "max-w-[88px]" : "max-w-[140px]")}>
+                {unifiedModelConfigs[selectedModelId]?.name || selectedModelId}
+              </span>
             </span>
           </SelectTrigger>
           <SelectContent className="w-[min(520px,90vw)] bg-background/90 backdrop-blur-md border-border/40 p-1">

@@ -350,11 +350,6 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     [assets]
   );
 
-  // Reset to grid when panel closes
-  useEffect(() => {
-    if (!isOpen) setView('grid');
-  }, [isOpen]);
-
   // Keyboard navigation in detail view
   useEffect(() => {
     if (!isOpen || view !== 'detail') return;
@@ -413,9 +408,13 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
 
   const selectedAsset = view === 'detail' ? imageAssets[selectedIndex] : null;
 
+  // On mobile (<640px) the sidebar is a 90vw overlay, so the sidebar-relative
+  // positioning below would collapse the panel to a ~22px sliver. Below `sm` we
+  // pin the panel to the viewport edges instead; from `sm` up it sits next to
+  // the real (fixed-width) sidebar.
   const containerClass = embedded
-    ? "fixed z-[80] top-16 bottom-4 border border-border bg-popover/90 backdrop-blur-xl shadow-glass-heavy overflow-hidden flex flex-col left-[var(--sidebar-width)] w-[520px] max-w-[calc(100vw-var(--sidebar-width)-2rem)] rounded-2xl"
-    : "fixed left-4 sm:left-[calc(var(--sidebar-width,20rem)+8px)] top-16 w-[calc(100vw-var(--sidebar-width,20rem)-2rem)] sm:w-[520px] z-[100] max-h-[80vh] rounded-2xl";
+    ? "fixed z-[80] top-16 bottom-4 border border-border bg-popover/90 backdrop-blur-xl shadow-glass-heavy overflow-hidden flex flex-col rounded-2xl left-4 right-4 w-auto max-w-none sm:left-[var(--sidebar-width)] sm:right-auto sm:w-[520px] sm:max-w-[calc(100vw-var(--sidebar-width)-2rem)]"
+    : "fixed z-[100] top-16 max-h-[80vh] rounded-2xl left-4 right-4 w-auto sm:left-[calc(var(--sidebar-width,20rem)+8px)] sm:right-auto sm:w-[520px]";
 
   return (
     <div className={containerClass}>

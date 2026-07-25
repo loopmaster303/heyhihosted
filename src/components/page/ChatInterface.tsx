@@ -30,6 +30,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState, compo
     const modes = useChatModes();
     const panels = useChatPanels();
     const { toast } = useToast();
+    const {
+        handleImageModelChange,
+        isImageMode,
+        selectedImageModelId,
+    } = modes;
 
     const handleComposeSubmit = async (e?: React.FormEvent) => {
         if (e && typeof e.preventDefault === 'function') {
@@ -136,11 +141,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState, compo
 
     // Sync image model when in image mode
     useEffect(() => {
-        if (!modes.isImageMode) return;
-        if (visualizeToolState.selectedModelId !== modes.selectedImageModelId) {
-            modes.handleImageModelChange(visualizeToolState.selectedModelId);
+        if (!isImageMode) return;
+        if (visualizeToolState.selectedModelId !== selectedImageModelId) {
+            handleImageModelChange(visualizeToolState.selectedModelId);
         }
-    }, [modes.isImageMode, visualizeToolState.selectedModelId, modes.selectedImageModelId, modes.handleImageModelChange]);
+    }, [handleImageModelChange, isImageMode, selectedImageModelId, visualizeToolState.selectedModelId]);
 
     if (!conversation.activeConversation) {
         return null; // Don't show anything while loading to prevent flicker

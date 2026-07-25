@@ -213,7 +213,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                         <div className="px-4 py-3 border-b border-border/50 sticky top-0 bg-popover/90 backdrop-blur-md z-10 flex items-center justify-between">
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
+                                    <div className="w-3 h-3 rounded-full bg-primary" />
                                     <span className="text-sm font-bold uppercase tracking-wider">{t('modelSelector.title')}</span>
                                 </div>
                                 <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-tight opacity-60">{t('modelSelector.subtitle')}</p>

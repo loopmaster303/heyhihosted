@@ -122,14 +122,13 @@ function ModeBadge({
             )}
             style={isActive ? {
                 color: `hsl(${cssVar})`,
-                textShadow: `0 0 14px hsl(${cssVar} / 0.7), 0 0 30px hsl(${cssVar} / 0.3)`,
-                filter: `drop-shadow(0 0 8px hsl(${cssVar} / 0.4))`,
+                textShadow: `0 0 10px hsl(${cssVar} / 0.35)`,
             } : undefined}
         >
-            {/* Glow backdrop */}
+            {/* Static tinted backdrop — no perpetual pulse */}
             {isActive && (
                 <span
-                    className="absolute inset-0 rounded-full pointer-events-none animate-pulse"
+                    className="absolute inset-0 rounded-full pointer-events-none"
                     style={{
                         background: `radial-gradient(ellipse at center, hsl(${cssVar} / 0.15) 0%, transparent 70%)`,
                     }}

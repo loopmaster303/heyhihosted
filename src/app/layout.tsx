@@ -8,8 +8,9 @@ import { LanguageProvider } from '@/components/LanguageProvider';
 
 
 export const metadata: Metadata = {
-  title: 'HeyHi',
-  description: 'Just say</hey.hi> to run multiple AI.',
+  title: 'HeyHi · local-first AI workspace',
+  description: 'Just say</hey.hi> to run multiple AI. Privacy-first multi-model chat, image and music generation. Your data stays in your browser.',
+  keywords: ['local-first AI workspace', 'privacy-first multi-model chat', 'terminal-grade AI interface'],
   icons: {
     icon: '/favicon.ico?v=3',
     shortcut: '/favicon.ico?v=3',
@@ -23,11 +24,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="de" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Code&display=swap" rel="stylesheet" />
         <link rel="icon" href="/favicon.ico?v=3" />
         <link rel="shortcut icon" href="/favicon.ico?v=3" />

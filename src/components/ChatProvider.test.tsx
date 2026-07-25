@@ -72,30 +72,21 @@ jest.mock('@/hooks/useChatPersistence', () => ({
         persistenceListeners.delete(force);
       };
     }, []);
-    const [active, setActive] = React.useState<Conversation | null>(
-      persistenceState.activeConversation,
-    );
-    // Keep the local React state in sync with the shared fake store so
-    // that `setActiveConversation(updater)` calls flow through normally.
-    React.useEffect(() => {
-      setActive(persistenceState.activeConversation);
-    }, [persistenceState.activeConversation]);
     const setActiveConversation = React.useCallback(
       (updater: React.SetStateAction<Conversation | null>) => {
-        setActive((prev) => {
-          const next =
-            typeof updater === 'function'
-              ? (updater as (p: Conversation | null) => Conversation | null)(prev)
-              : updater;
-          persistenceState.activeConversation = next;
-          return next;
-        });
+        const prev = persistenceState.activeConversation;
+        const next =
+          typeof updater === 'function'
+            ? (updater as (p: Conversation | null) => Conversation | null)(prev)
+            : updater;
+        persistenceState.activeConversation = next;
+        force();
       },
-      [],
+      [force],
     );
     return {
       allConversations: persistenceState.allConversations,
-      activeConversation: active,
+      activeConversation: persistenceState.activeConversation,
       setActiveConversation,
       loadConversation: loadConversationMock,
       saveConversation: saveConversationMock,

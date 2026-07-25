@@ -1,23 +1,34 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/LanguageProvider';
 
+const subscribeOnlineStatus = (onStoreChange: () => void) => {
+    window.addEventListener('online', onStoreChange);
+    window.addEventListener('offline', onStoreChange);
+    return () => {
+        window.removeEventListener('online', onStoreChange);
+        window.removeEventListener('offline', onStoreChange);
+    };
+};
+
+const getOnlineStatus = () => navigator.onLine;
+const getServerOnlineStatus = () => true;
+
 export function OfflineIndicator() {
     const { t } = useLanguage();
-    const [isMounted, setIsMounted] = useState(false);
-    const [isOnline, setIsOnline] = useState(true);
+    const isOnline = useSyncExternalStore(
+        subscribeOnlineStatus,
+        getOnlineStatus,
+        getServerOnlineStatus,
+    );
     const [showIndicator, setShowIndicator] = useState(false);
     const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        setIsMounted(true);
-        setIsOnline(navigator.onLine);
-
         const handleOnline = () => {
-            setIsOnline(true);
             // Show "back online" briefly
             setShowIndicator(true);
             if (hideTimeoutRef.current) {
@@ -29,7 +40,6 @@ export function OfflineIndicator() {
         };
 
         const handleOffline = () => {
-            setIsOnline(false);
             setShowIndicator(true);
         };
 
@@ -44,8 +54,6 @@ export function OfflineIndicator() {
             }
         };
     }, []);
-
-    if (!isMounted) return null;
 
     // Don't render if online and indicator not showing
     if (isOnline && !showIndicator) return null;

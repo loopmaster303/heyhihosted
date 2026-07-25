@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '../LanguageProvider';
@@ -19,7 +19,7 @@ interface UnifiedInputProps {
   isDrawerOpen?: boolean;
   className?: string;
   autoFocus?: boolean;
-  /** CSS color for active mode glow (e.g. "hsl(325 100% 62%)") */
+  /** HSL triple (or var() resolving to one) for the active mode tint, e.g. "var(--mode-visualize)" */
   modeColor?: string;
 }
 
@@ -43,8 +43,6 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { t } = useLanguage();
-  const [flashActive, setFlashActive] = useState(false);
-  const prevModeColor = useRef(modeColor);
 
   // Auto-resize
   useEffect(() => {
@@ -57,17 +55,6 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
       textareaRef.current.style.height = `${newHeight}px`;
     }
   }, [value]);
-
-  // Flash on mode change
-  useEffect(() => {
-    if (modeColor && modeColor !== prevModeColor.current) {
-      setFlashActive(true);
-      const timer = setTimeout(() => setFlashActive(false), 500);
-      prevModeColor.current = modeColor;
-      return () => clearTimeout(timer);
-    }
-    prevModeColor.current = modeColor;
-  }, [modeColor]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (onKeyDown) onKeyDown(e);
@@ -87,7 +74,7 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
       {/* Container — real glass */}
       <div
         className={cn(
-          "relative rounded-[28px] p-5 transition-all duration-500 ease-out overflow-hidden",
+          "relative rounded-[28px] p-4 sm:p-5 transition-all duration-500 ease-out overflow-hidden",
           "backdrop-blur-3xl",
           !modeColor && "border border-primary/30 hover:border-primary/50 hover:shadow-glow-primary focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/40 focus-within:shadow-glow-primary",
           modeColor && "border",
@@ -109,24 +96,24 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
               0 -1px 0 0 rgba(0,0,0,0.1) inset,
               0 8px 32px -8px rgba(0,0,0,0.4),
               0 2px 8px -2px rgba(0,0,0,0.2),
-              0 0 ${flashActive ? '20px' : '10px'} ${modeColor}33
+              0 0 10px hsl(${modeColor} / 0.2)
             `
             : `
               0 1px 0 0 rgba(179,136,255,0.06) inset,
               0 -1px 0 0 rgba(0,0,0,0.1) inset,
               0 8px 32px -8px rgba(0,0,0,0.4),
               0 2px 8px -2px rgba(0,0,0,0.2)
-            `,
-          borderColor: modeColor ? `${modeColor}44` : undefined,
-          transform: flashActive ? 'scale(1.008)' : 'scale(1)',
+          `,
+          borderColor: modeColor ? `hsl(${modeColor} / 0.27)` : undefined,
         }}
       >
         {/* Flash overlay on mode activation */}
-        {flashActive && modeColor && (
+        {modeColor && (
           <div
+            key={modeColor}
             className="absolute inset-0 rounded-[28px] pointer-events-none z-10"
             style={{
-              background: `radial-gradient(ellipse at center, ${modeColor}18 0%, transparent 70%)`,
+              background: `radial-gradient(ellipse at center, hsl(${modeColor} / 0.09) 0%, transparent 70%)`,
               animation: 'flash-fade 500ms ease-out forwards',
             }}
           />

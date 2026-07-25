@@ -1,14 +1,21 @@
 import React from 'react';
 import { SlidersHorizontal } from 'lucide-react';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer';
 
 /**
- * Renders parameter controls inline on desktop, or behind a 3-dot popover on mobile.
- * The mobile popover uses Radix DropdownMenu (side="top", collision-aware) so it opens
- * upward and never gets clipped by the bottom screen edge; params sit in a 2-column grid
- * to avoid scrolling. Defined at module scope so children never remount while typing.
+ * Renders parameter controls inline on desktop, or behind a bottom drawer on mobile.
+ * The mobile drawer (vaul) slides up from the bottom edge with the glass treatment;
+ * params stack as full-width rows so every control stays tappable without scroll
+ * gymnastics. Defined at module scope so children never remount while typing.
  *
- * Direct `<div>` children get grid-cell styling on mobile via the `[&>div]` utilities.
+ * Direct `<div>` children get row styling on mobile via the `[&>div]` utilities.
  */
 export const InlineParamsContainer: React.FC<{
   isMobile: boolean;
@@ -20,8 +27,8 @@ export const InlineParamsContainer: React.FC<{
     return <div className="flex items-center min-w-0 md:overflow-x-auto no-scrollbar">{children}</div>;
   }
   return (
-    <DropdownMenu open={open} onOpenChange={onOpenChange}>
-      <DropdownMenuTrigger asChild>
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerTrigger asChild>
         <button
           type="button"
           aria-label="Parameter"
@@ -29,15 +36,20 @@ export const InlineParamsContainer: React.FC<{
         >
           <SlidersHorizontal className="w-3.5 h-3.5" />
         </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        side="top"
-        align="end"
-        sideOffset={8}
-        className="grid grid-cols-2 gap-1.5 w-[min(340px,92vw)] p-2 bg-popover/95 backdrop-blur-xl border-border/40 shadow-glass-heavy [&>div]:w-full [&>div]:border-r-0 [&>div]:rounded-lg [&>div]:bg-muted/20 [&>div]:px-2.5 [&>div]:py-2 [&>div]:justify-between"
-      >
-        {children}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </DrawerTrigger>
+      <DrawerContent className="max-h-[78dvh]">
+        <DrawerHeader className="pb-1 pt-2 text-left">
+          <DrawerTitle className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Parameter
+          </DrawerTitle>
+          <DrawerDescription className="sr-only">
+            Modell-Parameter anpassen
+          </DrawerDescription>
+        </DrawerHeader>
+        <div className="grid grid-cols-1 gap-1.5 px-4 pb-8 overflow-y-auto [&>div]:w-full [&>div]:border-r-0 [&>div]:rounded-lg [&>div]:bg-muted/20 [&>div]:px-3 [&>div]:py-2.5 [&>div]:justify-between">
+          {children}
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 };

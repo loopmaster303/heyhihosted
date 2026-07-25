@@ -138,7 +138,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                     <div className="relative">
                         <MoreVertical className="w-5 h-5" />
                         {(isImageMode || isCodeMode || webBrowsingEnabled || isComposeMode) && (
-                            <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full animate-pulse bg-primary/60" />
+                            <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary/60" />
                         )}
                     </div>
                 </Button>
@@ -236,7 +236,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                             <Palette className="w-4 h-4" />
                                                         </div>
                                                         <span className="text-sm font-medium">{t('tools.visualize')}</span>
-                                                        {isImageMode && <div className="w-2 h-2 rounded-full animate-pulse ml-auto bg-primary/60" />}
+                                                        {isImageMode && <div className="w-2 h-2 rounded-full ml-auto bg-primary/60" />}
                                                     </DropdownMenuItem>
 
                                                     {!isImageMode && (
@@ -274,7 +274,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                                     <Music2 className="w-4 h-4" />
                                                                 </div>
                                                                 <span className="text-sm font-medium">{t('tools.compose')}</span>
-                                                                {isComposeMode && <div className="w-2 h-2 rounded-full bg-mode-compose/60 animate-pulse ml-auto" />}
+                                                                {isComposeMode && <div className="w-2 h-2 rounded-full bg-mode-compose/60 ml-auto" />}
                                                             </DropdownMenuItem>
 
                                                             <DropdownMenuItem
@@ -293,7 +293,7 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                                     <Globe className="w-4 h-4" />
                                                                 </div>
                                                                 <span className="text-sm font-medium">{t('tools.deepResearch')}</span>
-                                                                {webBrowsingEnabled && <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse ml-auto" />}
+                                                                {webBrowsingEnabled && <div className="w-2 h-2 rounded-full bg-primary/60 ml-auto" />}
                                                             </DropdownMenuItem>
                                                         </>
                                                     )}

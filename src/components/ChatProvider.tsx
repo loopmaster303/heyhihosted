@@ -430,7 +430,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
         });
       },
     });
-  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, webBrowsingEnabled, language, retryLastRequestRef, setChatInputValue, setIsAiResponding, setLastFailedRequest, t, visibleTextModels]);
+  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, language, retryLastRequestRef, setChatInputValue, setIsAiResponding, setLastFailedRequest, t, visibleTextModels]);
 
   const selectChat = useCallback(async (conversationId: string | null) => {
     if (conversationId === null) {

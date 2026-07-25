@@ -26,6 +26,7 @@ interface VisualizeInputContainerProps {
 
     uploadedImages: UploadedReference[];
     handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleFrameFileChange: (e: React.ChangeEvent<HTMLInputElement>, slot: 'start' | 'end') => void;
     handleSourceVideoFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     handleRemoveImage: (index: number) => void;
 
@@ -54,6 +55,8 @@ interface VisualizeInputContainerProps {
     isNanoPollen: boolean;
     isPollenModel: boolean;
     isPollinationsVideo: boolean;
+    isVideoModel: boolean;
+    supportsEndFrame: boolean;
 
     // Provider mode (drives model filtering; switch itself lives in the config sidebar)
     providerMode?: ImageProvider;
@@ -79,6 +82,7 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
 
     uploadedImages,
     handleFileChange,
+    handleFrameFileChange,
     handleSourceVideoFileChange,
     handleRemoveImage,
 
@@ -97,6 +101,8 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
     isNanoPollen,
     isPollenModel,
     isPollinationsVideo,
+    isVideoModel,
+    supportsEndFrame,
 
     providerMode,
 
@@ -109,6 +115,8 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
     const { t } = useLanguage();
     const imageInputRef = useRef<HTMLInputElement>(null);
     const sourceVideoInputRef = useRef<HTMLInputElement>(null);
+    const startFrameInputRef = useRef<HTMLInputElement>(null);
+    const endFrameInputRef = useRef<HTMLInputElement>(null);
 
     const placeholderText = placeholder || t('imageGen.placeholder.gptImage');
 
@@ -166,7 +174,7 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                                     onClick={() => sourceVideoInputRef.current?.click()}
                                     disabled={loading || isUploading || disabled || !!sourceVideo}
                                     className={cn(
-                                        "group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300",
+                                        "group rounded-lg h-11 w-11 md:h-12 md:w-12 transition-colors duration-300",
                                         "text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
                                     )}
                                     aria-label="Upload source video"
@@ -175,20 +183,31 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                                 </Button>
                             )}
 
-                            {/* Image Upload Button */}
-                            <Button
+                            {/* Semantic video frames or generic image references */}
+                            {isVideoModel ? (
+                              <div className="flex items-center gap-1">
+                                <Button type="button" variant="ghost" onClick={() => startFrameInputRef.current?.click()} disabled={loading || isUploading || disabled || !supportsReference} className="h-12 px-2 text-[10px]" aria-label="Startbild hinzufügen">
+                                  <Plus className="mr-1 h-4 w-4" />Startbild
+                                </Button>
+                                {supportsEndFrame && (
+                                  <Button type="button" variant="ghost" onClick={() => endFrameInputRef.current?.click()} disabled={loading || isUploading || disabled || !uploadedImages[0]} className="h-12 px-2 text-[10px]" aria-label="Endbild hinzufügen">
+                                    <Plus className="mr-1 h-4 w-4" />Endbild
+                                  </Button>
+                                )}
+                              </div>
+                            ) : <Button
                                 type="button"
                                 variant="ghost"
                                 onClick={() => imageInputRef.current?.click()}
                                 disabled={loading || isUploading || disabled || !supportsReference || uploadedImages.length >= maxImages}
                                 className={cn(
-                                    "group rounded-lg h-14 w-14 md:h-12 md:w-12 transition-colors duration-300",
+                                    "group rounded-lg h-11 w-11 md:h-12 md:w-12 transition-colors duration-300",
                                     "text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white disabled:opacity-40"
                                 )}
                                 aria-label="Upload image"
                             >
                                 <Plus className="w-[20px] h-[20px]" />
-                            </Button>
+                            </Button>}
                         </div>
                     }
 
@@ -265,6 +284,8 @@ const VisualizeInputContainer: React.FC<VisualizeInputContainerProps> = ({
                     multiple
                     className="hidden"
                 />
+                <input type="file" ref={startFrameInputRef} onChange={(event) => { handleFrameFileChange(event, 'start'); event.currentTarget.value = ''; }} accept="image/*" className="hidden" />
+                <input type="file" ref={endFrameInputRef} onChange={(event) => { handleFrameFileChange(event, 'end'); event.currentTarget.value = ''; }} accept="image/*" className="hidden" />
                 <input
                     type="file"
                     ref={sourceVideoInputRef}

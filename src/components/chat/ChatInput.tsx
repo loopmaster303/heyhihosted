@@ -38,6 +38,8 @@ interface ChatInputProps extends UseChatInputLogicProps {
 const ChatInput: React.FC<ChatInputProps> = (props) => {
     const { t } = useLanguage();
     const sourceVideoInputRef = useRef<HTMLInputElement>(null);
+    const startFrameInputRef = useRef<HTMLInputElement>(null);
+    const endFrameInputRef = useRef<HTMLInputElement>(null);
     
     // Destructure props used directly in render
     const {
@@ -105,12 +107,16 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     isUploading={visualizeToolState.isUploading}
                     onRemove={visualizeToolState.handleRemoveImage}
                     onUploadClick={() => imageInputRef.current?.click()}
+                    onStartFrameUploadClick={() => startFrameInputRef.current?.click()}
+                    onEndFrameUploadClick={() => endFrameInputRef.current?.click()}
                     onSourceVideoUploadClick={() => sourceVideoInputRef.current?.click()}
                     disabled={isLoading || isRecording || isTranscribing}
                     selectedModelId={visualizeToolState.selectedModelId}
                     sourceVideo={visualizeToolState.sourceVideo}
                     requiresSourceVideo={visualizeToolState.requiresSourceVideo}
                     onSourceVideoRemove={visualizeToolState.handleRemoveSourceVideo}
+                    isVideoModel={visualizeToolState.isVideoModel}
+                    supportsEndFrame={visualizeToolState.supportsEndFrame}
                 />
             ) : null;
 
@@ -174,7 +180,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                 <UploadBadges
                     key="upload-badges"
                     isLoading={isLoading}
-                    onImageUploadClick={() => imageInputRef.current?.click()}
+                    onImageUploadClick={() => visualizeToolState?.isVideoModel ? startFrameInputRef.current?.click() : imageInputRef.current?.click()}
                     onDocUploadClick={() => docInputRef.current?.click()}
                     onCameraClick={openCamera}
                     disableImageUpload={!!(
@@ -289,10 +295,10 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     disabled={isLoading || isRecording || isTranscribing}
                     topElements={renderTopBadges()}
                     modeColor={
-                        isImageMode ? 'hsl(325 100% 62%)' :
-                        isComposeMode ? 'hsl(270 90% 65%)' :
-                        webBrowsingEnabled ? 'hsl(190 100% 50%)' :
-                        (isCodeMode ? 'hsl(150 100% 50%)' : undefined)
+                        isImageMode ? 'var(--mode-visualize)' :
+                        isComposeMode ? 'var(--mode-compose)' :
+                        webBrowsingEnabled ? 'var(--mode-research)' :
+                        (isCodeMode ? 'var(--mode-code)' : undefined)
                     }
                     leftActions={
                         isMobile ? (
@@ -516,6 +522,20 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                 ref={sourceVideoInputRef}
                 onChange={(e) => visualizeToolState?.handleSourceVideoFileChange(e)}
                 accept="video/*"
+                className="hidden"
+            />
+            <input
+                type="file"
+                ref={startFrameInputRef}
+                onChange={(event) => { visualizeToolState?.handleFrameFileChange(event, 'start'); event.currentTarget.value = ''; }}
+                accept="image/*"
+                className="hidden"
+            />
+            <input
+                type="file"
+                ref={endFrameInputRef}
+                onChange={(event) => { visualizeToolState?.handleFrameFileChange(event, 'end'); event.currentTarget.value = ''; }}
+                accept="image/*"
                 className="hidden"
             />
             <input

@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false); // SSR-safe: false until hydration
+  const store = useMemo(() => {
+    const getSnapshot = () => window.matchMedia(query).matches;
+    const subscribe = (onStoreChange: () => void) => {
+      const mql = window.matchMedia(query);
+      const handler = () => onStoreChange();
 
-  useEffect(() => {
-    const mql = window.matchMedia(query);
-    setMatches(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
-    mql.addEventListener('change', handler);
-    return () => mql.removeEventListener('change', handler);
+      mql.addEventListener('change', handler);
+      return () => mql.removeEventListener('change', handler);
+    };
+
+    return { getSnapshot, subscribe };
   }, [query]);
 
-  return matches;
+  return useSyncExternalStore(store.subscribe, store.getSnapshot, () => false);
 }

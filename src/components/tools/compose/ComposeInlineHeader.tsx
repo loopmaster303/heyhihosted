@@ -61,7 +61,7 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
   return (
     <div
       className={cn(
-        "relative flex items-center gap-x-1 flex-wrap sm:flex-nowrap",
+        "relative flex items-center gap-x-1 flex-nowrap min-w-0 overflow-x-auto no-scrollbar",
         className
       )}
     >

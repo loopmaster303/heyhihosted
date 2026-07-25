@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
@@ -117,16 +117,19 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const isShortViewport = viewportHeight < 820;
   const isVeryShortViewport = viewportHeight < 700;
 
+  const handleSidebarToggle = useCallback(() => {
+    setSidebarExpanded((currentExpanded) => {
+      const nextExpanded = !currentExpanded;
+      if (!nextExpanded) setGalleryPanelOpen(false);
+      return nextExpanded;
+    });
+  }, [setSidebarExpanded]);
+
   // Set sidebar width CSS variable for components like GalleryPanel
   useEffect(() => {
     const width = sidebarExpanded ? '20rem' : '4rem';
     document.documentElement.style.setProperty('--sidebar-width', width);
-
-    // Close gallery panel when sidebar collapses for better UX integration
-    if (!sidebarExpanded && galleryPanelOpen) {
-      setGalleryPanelOpen(false);
-    }
-  }, [sidebarExpanded, galleryPanelOpen]);
+  }, [sidebarExpanded]);
 
   // Compute display names for the header
   const llmName = useMemo(() => {
@@ -176,7 +179,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           onSelectChat={onSelectChat}
           onDeleteChat={onDeleteChat}
           isExpanded={sidebarExpanded}
-          onToggle={() => setSidebarExpanded(!sidebarExpanded)}
+          onToggle={handleSidebarToggle}
           galleryOpen={galleryPanelOpen}
           onGalleryToggle={setGalleryPanelOpen}
         />

@@ -13,9 +13,9 @@ export default {
         'radial-gradient-fog': 'radial-gradient(circle, rgba(0,0,0,0.85) 50%, rgba(0,0,0,0))',
       },
       fontFamily: {
-        body: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
-        code: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
-        mono: ['Code', 'monospace', 'Menlo', 'Consolas', '"Courier New"', 'serif'],
+        body: ['Code', 'ui-monospace', 'Menlo', 'Consolas', '"Courier New"', 'monospace'],
+        code: ['Code', 'ui-monospace', 'Menlo', 'Consolas', '"Courier New"', 'monospace'],
+        mono: ['Code', 'ui-monospace', 'Menlo', 'Consolas', '"Courier New"', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
