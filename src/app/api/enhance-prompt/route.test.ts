@@ -15,17 +15,23 @@ describe('/api/enhance-prompt route', () => {
   const responseJson = jest.fn((body: unknown) => ({
     json: async () => body,
   }));
+  let consoleWarnSpy: jest.SpyInstance;
 
   beforeEach(() => {
     getPollinationsChatCompletionMock.mockReset();
     getPollinationsChatCompletionMock.mockResolvedValue({ responseText: 'enhanced prompt' });
     resolvePollenKeyMock.mockReset();
     resolvePollenKeyMock.mockReturnValue('');
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     responseJson.mockClear();
     Object.defineProperty(Response, 'json', {
       configurable: true,
       value: responseJson,
     });
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
   });
 
   it('uses claude-fast as the primary enhancer and gemini-fast as fallback', async () => {

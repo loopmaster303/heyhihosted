@@ -6,15 +6,21 @@ jest.mock('@/ai/flows/tts-flow', () => ({
 
 describe('/api/tts route', () => {
   const responseJson = jest.fn((body: unknown, init?: ResponseInit) => new Response(JSON.stringify(body), init));
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     textToSpeechMock.mockReset();
     textToSpeechMock.mockResolvedValue({ audioDataUri: 'data:audio/mpeg;base64,AAA' });
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     responseJson.mockClear();
     Object.defineProperty(Response, 'json', {
       configurable: true,
       value: responseJson,
     });
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it('forwards a valid speed preset to textToSpeech', async () => {
@@ -44,6 +50,25 @@ describe('/api/tts route', () => {
         text: 'Hello world',
         voice: 'alloy',
         speed: 0.7,
+      }),
+    });
+
+    const response = await POST(request);
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatch(/invalid request data/i);
+    expect(textToSpeechMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects text beyond the server-side TTS limit', async () => {
+    const { POST, MAX_TTS_TEXT_LENGTH } = await import('./route');
+    const request = new Request('http://localhost/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: 'x'.repeat(MAX_TTS_TEXT_LENGTH + 1),
+        voice: 'alloy',
       }),
     });
 

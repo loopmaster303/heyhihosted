@@ -31,6 +31,8 @@ jest.mock('@/lib/chat/chat-search-strategy', () => ({
 
 describe('/api/chat/completion route', () => {
   const responseJson = jest.fn((body: unknown, init?: ResponseInit) => new Response(JSON.stringify(body), init));
+  let consoleLogSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     getContextMock.mockReset();
@@ -38,6 +40,8 @@ describe('/api/chat/completion route', () => {
     httpsPostMock.mockReset();
     httpsPostStreamMock.mockReset();
     resolveChatSearchStrategyMock.mockReset();
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     httpsPostMock.mockResolvedValue({
       status: 200,
       body: JSON.stringify({
@@ -55,6 +59,11 @@ describe('/api/chat/completion route', () => {
       configurable: true,
       value: responseJson,
     });
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
   it('does not prefetch web context when the request is delegated to live search', async () => {

@@ -4,8 +4,15 @@ const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
 describe('speechToText', () => {
+  let consoleWarnSpy: jest.SpyInstance;
+
   beforeEach(() => {
     mockFetch.mockReset();
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
   });
 
   it('forwards an explicit language hint to the transcription request', async () => {

@@ -16,15 +16,25 @@ jest.mock('@/lib/uuid', () => ({
 }));
 
 describe('OutputService.saveGeneratedAsset', () => {
+  let consoleLogSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
+
   const flushAsyncWork = async () => {
     await Promise.resolve();
     await Promise.resolve();
   };
 
   beforeEach(() => {
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     saveAssetMock.mockReset();
     ingestGeneratedAssetMock.mockReset();
     saveAssetMock.mockResolvedValue('asset-123');
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   it('stores a Pollinations asset with storageKey when ingest succeeds', async () => {

@@ -11,17 +11,23 @@ jest.mock('@/lib/https-post', () => ({
 
 describe('/api/compose route', () => {
   const responseJson = jest.fn((body: unknown, init?: ResponseInit) => new Response(JSON.stringify(body), init));
+  let consoleLogSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.resetModules();
     httpsFetchBinaryMock.mockReset();
     resolvePollenKeyMock.mockReset();
     resolvePollenKeyMock.mockReturnValue('');
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     responseJson.mockClear();
     Object.defineProperty(Response, 'json', {
       configurable: true,
       value: responseJson,
     });
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
   });
 
   it('rejects unknown compose models with a 400 response', async () => {
@@ -114,6 +120,22 @@ describe('/api/compose route', () => {
 
     const response = await POST(request as any);
     expect(response.status).toBe(400);
+    expect(httpsFetchBinaryMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects string boolean instrumental values instead of coercing them', async () => {
+    const { POST } = await import('./route');
+    const request = new Request('http://localhost/api/compose', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'lofi sunset', model: 'acestep', instrumental: 'false' }),
+    });
+
+    const response = await POST(request as any);
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatch(/instrumental must be a boolean/i);
     expect(httpsFetchBinaryMock).not.toHaveBeenCalled();
   });
 

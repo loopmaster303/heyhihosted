@@ -28,6 +28,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (typeof instrumental !== 'boolean') {
+      return NextResponse.json(
+        { error: 'instrumental must be a boolean' },
+        { status: 400 }
+      );
+    }
+
     const selectedModel = model as ComposeModel;
 
     // BYOP: Resolve API key (user key from header → env var fallback)
@@ -47,7 +54,7 @@ export async function POST(request: NextRequest) {
     const safeDuration = Number.isFinite(numericDuration)
       ? Math.max(3, Math.min(maxDuration, numericDuration))
       : Math.min(maxDuration, DEFAULT_DURATION);
-    const isInstrumental = Boolean(instrumental);
+    const isInstrumental = instrumental;
 
     const headers: Record<string, string> = {};
     if (apiKey) {
