@@ -46,11 +46,12 @@ This document defines the strict workflow and principles for all AI Agents worki
 - **Plan Validation (Always Stated):** Explicitly validate the Blueprint in the response (Phase 3) even if the user did not ask.
 - **Explain Twice + Why:** Provide a normal explanation and then a simpler explanation; always state the rationale ("why") for the chosen plan/changes and the key context used.
 
-## 3. Project Status (Feb 2026)
+## 3. Project Status (July 2026)
 
-- **Phase 1 (Asset & Gallery Deep-Sync):** Complete. Centralized `GalleryService.saveGeneratedAsset()`, global `BlobManager`, `AssetFallbackService` with retry.
+- **Phase 1 (Asset & Gallery Deep-Sync):** Complete. Centralized `OutputService.saveGeneratedAsset()`, global `BlobManager`, `AssetFallbackService` with retry.
 - **Phase 2 (Code-Hygiene & Legacy):** Complete. Legacy model refs removed, streaming deferred (JSON responses via `/api/chat/completion`), ChatView evaluated.
-- **Phase 3 (Security & Performance):** Long-term. Web Crypto API encryption planned.
-- **Upload Pipeline:** Unified via Pollinations Media Storage (`/api/media/upload`, `/api/media/ingest`). Reference images use `resolveReferenceUrls()`.
-- **Smart Router:** Auto-detects search intent (German + English) → routes to `perplexity-fast`. Deep Research routes to `nomnom`.
-- **Compose Mode:** Music composing with Eleven Music (`model=elevenmusic`) via Pollinations (`/api/compose`) (`useComposeMusicState`) with VibeCraft prompt enhancement.
+- **Phase 3 (Security & Performance):** Long-term. Web Crypto API encryption planned. Upload size limits and content-type policy landed (`src/lib/upload/`).
+- **Upload Pipeline:** Unified via Pollinations Media Storage (`/api/media/upload`, `/api/media/ingest`). Raw bodies only — multipart is rejected. Reference images use `resolveReferenceUrls()`; Pruna models upload via `/api/pruna/upload`.
+- **Smart Router:** Auto-detects search intent (German + English) → routes to `perplexity-fast`. Deep Research picks from the visible capable models via `getPreferredDeepResearchModel()`.
+- **Compose Mode:** Music via `/api/compose` (`useComposeMusicState`) with model-specific prompt enhancement — ACE-Step 1.5 (free tier), ElevenMusic v2 and Stable Audio 3 Medium (key required).
+- **Providers:** Pollinations plus Pruna. See `CLAUDE.md` for the provider-switch rules before touching Visualize.

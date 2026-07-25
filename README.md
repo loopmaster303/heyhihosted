@@ -42,9 +42,11 @@ The list above is the canonical visible registry in [`src/config/chat-options.ts
 Visualize offers **two providers**, switchable in the config sidebar:
 
 - **Pollinations** — the default. A free tier (usable without a key) plus more models that unlock with a Pollinations key.
-- **Pruna** — the `p-*` image/video family plus a few ByteDance/Wan models (`zimage`, `qwen-image`, `wan-image-small`, …); requires a Pollinations key (server- or user-provided).
+- **Pruna** — the `p-*` image/video family plus a few ByteDance/Wan models (`zimage`, `qwen-image`, `wan-image-small`, …). The key-gated ones need a **Pruna** key, which you can add in the sidebar; the server env var is only a fallback.
 
-Per-model tiers (free · key-required · hidden) are governed by the `isFree` / `enabled` flags in [`src/config/unified-image-models.ts`](src/config/unified-image-models.ts) — **that file is the single source of truth**. Representative free-tier Pollinations image models: Flux.1 Fast (`flux`), GPT Image 1 Mini (`gpt-image`), Flux.2 Klein (`klein`), Flux.1 Kontext (`kontext`), GPT-Image Large (`gptimage-large`), Grok Imagine (`grok-imagine`), Ideogram V4 Turbo (`ideogram-v4-turbo`). Advanced image models (Seedream, Nano Banana family, Grok Imagine Pro, WAN 2.7) and video models (e.g. Grok Video `grok-video`) require a key.
+The switch scopes the visualize model list only. Everything else — chat, compose, voice, prompt enhancement — always runs through Pollinations.
+
+Per-model tiers (free · key-required · hidden) are governed by the `isFree` / `enabled` / `byopVisible` flags in [`src/config/unified-image-models.ts`](src/config/unified-image-models.ts) — **that file is the single source of truth**. Representative free-tier models: Flux.1 Fast (`flux`), GPT Image 1 Mini (`gpt-image`), Flux.2 Klein (`klein`), Flux.1 Kontext (`kontext`), GPT-Image Large (`gptimage-large`), Grok Imagine (`grok-imagine`), Ideogram V4 Turbo (`ideogram-v4-turbo`), Z-Image Turbo (`zimage`), plus LTX-2 (`ltx-2`) for video. Advanced image models (Seedream, Nano Banana family, Grok Imagine Pro, WAN 2.7) and the remaining video models require a key.
 
 ### Compose (Music)
 
@@ -63,7 +65,7 @@ Per-model tiers (free · key-required · hidden) are governed by the `isFree` / 
 - **UI Components**: Radix UI / Shadcn
 - **Storage**: IndexedDB (via Dexie.js) + Pollinations Media Storage (content-addressed)
 - **AI Transport**: Direct Pollinations HTTPS calls + lightweight SDK shim for image/video URLs
-- **AI Providers**: Pollinations.ai (chat, image, video, audio)
+- **AI Providers**: Pollinations.ai (chat, image, video, audio) + Pruna AI (image/video, bring your own key)
 
 ## Project Structure
 

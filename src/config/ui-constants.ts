@@ -10,7 +10,6 @@ import OpenAIIcon from '../assets/icons-models/openfarbe.png';
 import PerplexityIcon from '../assets/icons-models/perplexity-color.png';
 import QwenIcon from '../assets/icons-models/qwen-color.png';
 // Image Model specific icons
-import GoogleIcon from '../assets/icons-models/google-color.png';
 import ByteDanceIcon from '../assets/icons-models/bytedance-color.png';
 import FluxFarbeIcon from '../assets/icons-models/fluxfarbe.png';
 import WANIcon from '../assets/icons-models/wan.png';
@@ -45,7 +44,6 @@ export const modelIcons: Record<string, any> = {
     'minimax': MiniMaxIcon,
     'perplexity-reasoning': PerplexityIcon,
     'perplexity-fast': PerplexityIcon,
-    'nomnom': PollinationsIcon,
     'qwen-coder': QwenIcon,
     'nova-fast': AmazonNovaIcon,
     'nova-lite': AmazonNovaIcon,
@@ -68,7 +66,6 @@ export const modelDisplayMap: Record<string, string> = {
     'openai-fast': 'OpenAI GPT-5 Nano',
     'perplexity-reasoning': 'Perplexity Sonar Reasoning',
     'perplexity-fast': 'Perplexity Sonar',
-    'nomnom': 'NomNom (Alpha)',
     'qwen-coder': 'Qwen3 Coder 30B',
 };
 
@@ -85,7 +82,6 @@ export const imageModelIcons: Record<string, any> = {
     'gpt-image': OpenAIIcon,
     'gptimage-large': OpenAIIcon,
     'dirtberry': PollinationsIcon,
-    'imagen-4': GoogleIcon,
     'seedream': ByteDanceIcon,
     'seedream5': ByteDanceIcon,
     'seedance': ByteDanceIcon,
@@ -111,7 +107,6 @@ export const imageModelIcons: Record<string, any> = {
     'zimage': WANIcon,
     'ltx-2': LTXFarbeIcon,
     'grok-imagine': GrokIcon,
-    'grok-image': GrokIcon,
     'grok-video': GrokIcon,
     'grok-video-pro': GrokIcon,
     'p-image': PrunaIcon,

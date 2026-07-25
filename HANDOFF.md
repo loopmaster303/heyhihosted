@@ -4,21 +4,25 @@
 
 `~/heyhihosted` (unverändert nach Reorg)
 
-GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (Stand `68c1908`)
+GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (Stand `c11aa86`)
 
 ## Was ist das Projekt
 
 **Level 2 („Benutzen")** im hey-hi Ökosystem (kanonisch: `~/heyhi/LEVELS.md`) — Produktions-App (hey-hi.space). Next.js 16, Pollinations, minimalistisches Chat-Interface, Text/Bild/Video/Musik (Compose) + Voice (TTS/STT), lokale Persistenz (IndexedDB/localStorage), BYOP-Key.
 
-## Aktueller State (2026-07-07)
+## Aktueller State (2026-07-25)
 
-- **Working tree clean, HEAD = `68c1908`.** Alle Session-Arbeiten committet.
-- **Verifikation grün:** `tsc --noEmit` 0 Fehler; volle Jest-Suite **310/310** (54 Suiten).
-- Letzte Commits dieses Threads:
+- **HEAD = `c11aa86`**, synchron mit `origin/main`. Details zur letzten Session unter „Audit-Session 2026-07-25".
+- **Verifikation grün:** `tsc --noEmit` 0 Fehler; volle Jest-Suite **366/366** (64 Suiten); ESLint sauber; `next build` grün.
+
+## Frühere Session (2026-07-07, `68c1908`)
+
+- Verifikation damals: **310/310** (54 Suiten).
+- Letzte Commits jenes Threads:
   - `906f53c` feat(ui): Logos, Modellnamen, Compose-Tiers, Mobile-Layout, Provider-Switch → Sidebar
   - `c097e75` feat(compose): modell-spezifische Enhancement-Prompts (ACE-Step/ElevenMusic/Stable Audio)
   - `68c1908` fix(enhance-prompt): `hasBpm` erkennt „BPM: 80"-Format + Compose-Routing-Tests
-- **Details der UI/Compose/Doku-Arbeit:** siehe [handoff-extra.md](handoff-extra.md).
+- **Details der UI/Compose/Doku-Arbeit:** siehe [handoff-extra.md](docs/archive/history/handoff-extra.md).
 - **Wichtige Lernung (2026-07-07):** Pollinations-Musikmodelle (`acestep`/`elevenmusic`/`stable-audio-3-medium`) sind **nicht anonym frei** — `paid_only: null` in der Modell-Liste heißt nicht „ohne Key nutzbar". Sie brauchen einen Key **mit Musik-Freigabe** (Server-`POLLEN_API_KEY` oder BYOP). Ein „internal server error" bei Compose = meist 403 „Model X is not allowed for this API key" vom Upstream, kein App-Bug.
 
 ## Was in diesem Thread passiert ist (2026-07-05/06)
@@ -54,7 +58,7 @@ Vorher lagen ~65 uncommittete Dateien direkt auf main (Datenverlust-Risiko). Rev
 
 ## UI/Compose-Arbeit Session 2026-07-06/07 (committet: `906f53c`, `c097e75`, `68c1908`)
 
-Details in [handoff-extra.md](handoff-extra.md).
+Details in [handoff-extra.md](docs/archive/history/handoff-extra.md).
 
 | Bereich | Was |
 |---------|-----|
@@ -65,8 +69,32 @@ Details in [handoff-extra.md](handoff-extra.md).
 | **Mobile** | Logo-only + 3-Punkte-Popover (Radix) bei ≤639px, Kurzlabels |
 | **Doku** | README/HANDOFF/MEMORY auf Registry-Realität + Compose-Tiers |
 
+## Audit-Session 2026-07-25 (committet: `f1bbbd4` … `c11aa86`)
+
+Ausgangslage: 75 uncommittete Dateien auf `main`, alles grün, aber ungesichert. Erst in sechs thematischen Commits gesichert und gepusht, dann die Audit-Befunde abgearbeitet.
+
+| Commit | Was |
+|---|---|
+| `f1bbbd4` | Pruna-BYOP-Key end-to-end (Validation, Storage, Hook, Sidebar, `X-Pruna-Key`, `/api/pruna/upload`) |
+| `2364569` | Multipart-Upload zu Pollinations Media, Proxy-Limits, `generateUUID` statt `crypto.randomUUID` (nicht-sicherer Kontext) |
+| `e0bb102` | `referenceMode`, `maxImages`-Korrekturen gegen die Pollinations-API |
+| `8aa7dc8` | globals.css-Cleanup, `useMediaQuery` auf `useSyncExternalStore`, Metadata |
+| `2a74679` | Compose/TTS-Input-Validierung |
+| `f970e39` | **P1**: `isPollinationsHostedModel()` — Blob-URLs wurden als `remoteUrl` persistiert (nach Reload totes Bild) und nie über den `BlobManager` freigegeben |
+| `e0a9d18` | **P2**: `readBodyWithLimit()` (Streaming statt Puffern-dann-Prüfen), Multipart in `/api/media/upload` abgeschafft, `isActiveContentType()` gegen html/svg/js |
+| `c11aa86` | CLAUDE.md gegen den Code neu geschrieben |
+
+**Verifikation:** `tsc` 0 Fehler · ESLint sauber · **366/366** Tests (64 Suiten) · `next build` grün.
+
+**Zwei Audit-Befunde waren falsch und wurden verworfen:** `<html lang="de">` ist kein Bug (`LanguageProvider.tsx:40-44` setzt `documentElement.lang` dynamisch), und `enhance` lässt sich nicht an Pruna durchreichen (`PrunaFieldInput` hat kein solches Feld).
+
+**Nebenbefund behoben:** Der `vercel.json`-Cron zeigte auf `/api/blob-cleanup` — Route existiert nicht, lief also seit jeher täglich in einen 404. Entfernt.
+
 ## Nächste Schritte
 
-1. **Produktions-Deploy** von `main` prüfen (Deploy-Wahrheit klären: `apphosting.yaml` deutet auf Firebase — was serviert hey-hi.space aktuell wirklich?).
+1. **Produktions-Deploy** von `main` prüfen (Deploy-Wahrheit klären: `apphosting.yaml` deutet auf Firebase mit `maxInstances: 1`, `vercel.json` ist jetzt leer — was serviert hey-hi.space aktuell wirklich?).
 2. Systemprompt-Redaktion + BYOP-XSS — nur nach ausdrücklicher Freigabe.
+3. **Ungenutzte Dependencies** (knip meldet 13 Runtime- + 3 devDeps). Einzeln prüfen, knip hat nachweislich False Positives.
+4. Restliche ungenutzte UI-Bausteine (`badge.tsx`, `slider.tsx`, `useBlobUrl.ts`, `useAssetPrecache.ts`, …) — Shadcn-Standardteile ggf. behalten.
+5. Weitere Ghost-Einträge in `ui-constants.ts`: `dirtberry`, `seedream5` (beide in keiner Registry).
 3. Ökosystem-Roadmap: Level-2 ist damit weitgehend gehärtet; nächster Ökosystem-Schritt ist Phase 2a (Doppeltür justsaywow ⊕ justsayhi), nicht in diesem Repo.
