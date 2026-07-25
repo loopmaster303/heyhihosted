@@ -49,8 +49,8 @@ describe('Pruna model mappings', () => {
     expect(input).toEqual(expect.objectContaining({
       instruction_prompt: 'replace the lead performer',
       video: 'https://media.pollinations.ai/source.mp4',
-      image: 'https://media.pollinations.ai/frame.jpg',
-      reference_images: [
+      images: [
+        'https://media.pollinations.ai/frame.jpg',
         'https://media.pollinations.ai/ref-a.jpg',
         'https://media.pollinations.ai/ref-b.jpg',
       ],
@@ -148,10 +148,32 @@ describe('Pruna model mappings', () => {
       prompt: 'make it cinematic',
       aspect_ratio: '1:1',
       images: ['https://example.com/input.jpg'],
-      reference_image: '1',
     }));
+    expect(input).not.toHaveProperty('reference_image');
     expect(input).not.toHaveProperty('output_format');
     expect(input).not.toHaveProperty('output_quality');
+  });
+
+  it('maps P-Video start and end frames to distinct documented fields', () => {
+    const input = getPrunaModelMapping('p-video')?.buildInput({
+      prompt: 'transition between frames',
+      image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+    });
+
+    expect(input).toEqual(expect.objectContaining({
+      image: 'https://example.com/start.jpg',
+      last_frame_image: 'https://example.com/end.jpg',
+    }));
+  });
+
+  it('accepts normal reference image plumbing for VACE', () => {
+    const input = getPrunaModelMapping('vace')?.buildInput({
+      prompt: 'consistent cast',
+      image: ['https://example.com/a.jpg', 'https://example.com/b.jpg'],
+    });
+    expect(input).toEqual(expect.objectContaining({
+      src_ref_images: ['https://example.com/a.jpg', 'https://example.com/b.jpg'],
+    }));
   });
 
   it('normalizes wan video aspect ratios to the schema-supported landscape or portrait values', () => {

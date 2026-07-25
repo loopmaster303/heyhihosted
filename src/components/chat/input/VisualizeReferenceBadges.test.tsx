@@ -91,4 +91,43 @@ describe('VisualizeReferenceBadges', () => {
     expect(screen.getByRole('button', { name: 'Add reference image' })).toBeInTheDocument();
     expect(screen.getByText('1/3')).toBeInTheDocument();
   });
+
+  it('shows separate semantic start and end frame slots for supported video models', () => {
+    render(
+      <VisualizeReferenceBadges
+        uploadedImages={[]}
+        maxImages={2}
+        supportsReference
+        isVideoModel
+        supportsEndFrame
+        onRemove={jest.fn()}
+        onUploadClick={jest.fn()}
+        onStartFrameUploadClick={jest.fn()}
+        onEndFrameUploadClick={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText('Startbild')).toBeInTheDocument();
+    expect(screen.getByText('Endbild')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Startbild hinzufügen' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Endbild hinzufügen' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Add reference image' })).toBeNull();
+  });
+
+  it('does not show an end frame slot for Grok Pro video', () => {
+    render(
+      <VisualizeReferenceBadges
+        uploadedImages={[]}
+        maxImages={1}
+        supportsReference
+        isVideoModel
+        supportsEndFrame={false}
+        onRemove={jest.fn()}
+        onUploadClick={jest.fn()}
+        onStartFrameUploadClick={jest.fn()}
+      />
+    );
+    expect(screen.getByText('Startbild')).toBeInTheDocument();
+    expect(screen.queryByText('Endbild')).toBeNull();
+  });
 });

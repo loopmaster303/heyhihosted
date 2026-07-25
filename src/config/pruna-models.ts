@@ -339,6 +339,8 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       };
       if (f.srcRefImages && f.srcRefImages.length > 0) {
         input.src_ref_images = f.srcRefImages;
+      } else if (f.image) {
+        input.src_ref_images = Array.isArray(f.image) ? f.image : [f.image];
       }
       if (f.seed !== undefined) input.seed = f.seed;
       return input;
@@ -411,7 +413,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         const imgs = Array.isArray(f.image) ? f.image : [f.image];
         if (imgs.length > 0) {
           input.images = imgs;
-          input.reference_image = '1';
         }
       }
       return input;
@@ -437,7 +438,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       if (f.seed !== undefined) input.seed = f.seed;
       input.save_audio = f.audio ?? true;
       if (f.image) {
-        input.image = Array.isArray(f.image) ? f.image[0] : f.image;
+        const images = Array.isArray(f.image) ? f.image : [f.image];
+        input.image = images[0];
+        if (images[1]) input.last_frame_image = images[1];
       }
       return input;
     },
@@ -588,10 +591,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       if (f.image) {
         const imgs = Array.isArray(f.image) ? f.image : [f.image];
         if (imgs.length > 0) {
-          input.image = imgs[0]; // source video frame reference
-          if (imgs.length > 1) {
-            input.reference_images = imgs.slice(1);
-          }
+          input.images = imgs.slice(0, 3);
         }
       }
       return input;

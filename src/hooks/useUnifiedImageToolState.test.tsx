@@ -45,6 +45,19 @@ describe('useUnifiedImageToolState provider persistence', () => {
     });
   });
 
+  it('enables Pruna from a local key even without a server key', async () => {
+    localStorage.setItem('prunaApiKey', 'pruna_test_1234567890');
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: false }),
+    } as Response);
+
+    const { result } = renderHook(() => useUnifiedImageToolState());
+
+    await waitFor(() => expect(result.current.prunaAvailable).toBe(true));
+    act(() => result.current.setProviderMode('pruna'));
+    await waitFor(() => expect(result.current.providerMode).toBe('pruna'));
+  });
+
   it('resets a persisted Pruna provider mode when Pruna is unavailable', async () => {
     localStorage.setItem('heyhi-provider-mode', JSON.stringify('pruna'));
     global.fetch = jest.fn().mockResolvedValue({

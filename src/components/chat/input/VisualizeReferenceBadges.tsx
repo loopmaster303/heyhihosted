@@ -11,12 +11,16 @@ interface VisualizeReferenceBadgesProps {
   isUploading?: boolean;
   onRemove: (index: number) => void;
   onUploadClick: () => void;
+  onStartFrameUploadClick?: () => void;
+  onEndFrameUploadClick?: () => void;
   onSourceVideoUploadClick?: () => void;
   disabled?: boolean;
   selectedModelId?: string;
   sourceVideo?: UploadedReference | null;
   requiresSourceVideo?: boolean;
   onSourceVideoRemove?: () => void;
+  isVideoModel?: boolean;
+  supportsEndFrame?: boolean;
 }
 
 export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> = ({
@@ -26,12 +30,16 @@ export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> =
   isUploading = false,
   onRemove,
   onUploadClick,
+  onStartFrameUploadClick,
+  onEndFrameUploadClick,
   onSourceVideoUploadClick,
   disabled = false,
   selectedModelId,
   sourceVideo,
   requiresSourceVideo = false,
   onSourceVideoRemove,
+  isVideoModel = false,
+  supportsEndFrame = false,
 }) => {
   if (!supportsReference && !requiresSourceVideo) return null;
 
@@ -58,7 +66,41 @@ export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> =
         </button>
       )}
 
-      {supportsReference && uploadedImages.length < maxImages && (
+      {supportsReference && isVideoModel && (
+        <>
+          {[{ label: 'Startbild', index: 0, click: onStartFrameUploadClick }, ...(supportsEndFrame
+            ? [{ label: 'Endbild', index: 1, click: onEndFrameUploadClick }]
+            : [])].map((slot) => {
+              const image = uploadedImages[slot.index];
+              return (
+                <div key={slot.label} className="inline-flex items-center gap-1 rounded-md border border-border/40 px-1.5 py-1">
+                  <span className="text-[10px] font-semibold text-foreground/70">{slot.label}</span>
+                  {image ? (
+                    <div className="relative h-6 w-6 overflow-hidden rounded-md bg-muted/20">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={image.url} alt={slot.label} className="h-full w-full object-cover" />
+                      <button type="button" onClick={() => onRemove(slot.index)} className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-white" aria-label={`${slot.label} entfernen`}>
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={slot.click}
+                      disabled={disabled || isUploading || !slot.click || (slot.index === 1 && !uploadedImages[0])}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-dashed border-border/50 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={`${slot.label} hinzufügen`}
+                    >
+                      <ImagePlus className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+        </>
+      )}
+
+      {supportsReference && !isVideoModel && uploadedImages.length < maxImages && (
         <button
           type="button"
           onClick={onUploadClick}
@@ -75,13 +117,13 @@ export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> =
         </button>
       )}
 
-      {supportsReference && (
+      {supportsReference && !isVideoModel && (
         <span className="text-[10px] leading-none text-foreground/70 font-semibold tracking-[0.16em]">
           {uploadedImages.length}/{maxImages}
         </span>
       )}
 
-      {uploadedImages.map((img, index) => (
+      {!isVideoModel && uploadedImages.map((img, index) => (
         <div
           key={`${img.key || img.url}-${index}`}
           className="relative h-6 w-6 rounded-md border border-border/40 overflow-hidden bg-muted/20"

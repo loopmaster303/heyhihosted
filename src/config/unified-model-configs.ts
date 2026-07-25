@@ -259,6 +259,54 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
   },
+  'pollinations-wan-fast': {
+    id: 'pollinations-wan-fast', name: 'Wan Fast', outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 5 }, { name: 'audio', default: true }, { name: 'seed' },
+      { name: 'output_format', default: 'mp4', hidden: true },
+    ],
+  },
+  'veo': {
+    id: 'veo', name: 'Veo', outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 4 }, { name: 'audio', default: true }, { name: 'seed' },
+      { name: 'output_format', default: 'mp4', hidden: true },
+    ],
+  },
+  'veo-1080p': {
+    id: 'veo-1080p', name: 'Veo 1080p', outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 4 }, { name: 'audio', default: true }, { name: 'seed' },
+      { name: 'output_format', default: 'mp4', hidden: true },
+    ],
+  },
+  'seedance-2.0': {
+    id: 'seedance-2.0', name: 'Seedance 2.0', outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 4 }, { name: 'audio', default: true }, { name: 'seed' },
+      { name: 'output_format', default: 'mp4', hidden: true },
+    ],
+  },
+  'wan-pro': {
+    id: 'wan-pro', name: 'Wan Pro', outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 5 }, { name: 'audio', default: true }, { name: 'seed' },
+      { name: 'output_format', default: 'mp4', hidden: true },
+    ],
+  },
+  'wan-pro-1080p': {
+    id: 'wan-pro-1080p', name: 'Wan Pro 1080p', outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 5 }, { name: 'audio', default: true }, { name: 'seed' },
+      { name: 'output_format', default: 'mp4', hidden: true },
+    ],
+  },
   'klein-large': {
     id: 'klein-large',
     name: 'Flux.2 klein 9B',
@@ -372,6 +420,17 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
   'ideogram-v4-turbo': {
     id: 'ideogram-v4-turbo',
     name: 'Ideogram V4 Turbo',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'ideogram-v4-quality': {
+    id: 'ideogram-v4-quality',
+    name: 'Ideogram V4 Quality',
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'width', default: 1024 },

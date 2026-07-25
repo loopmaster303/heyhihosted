@@ -8,9 +8,38 @@ import {
 import {
   getChatImageModels,
   getImageModels,
+  getUnifiedModel,
   getVisualizeModelGroups,
   resolvePollinationsVisualModelId,
 } from '@/config/unified-image-models';
+
+  test('visual reference limits match enabled upstream model capabilities', () => {
+    expect(getUnifiedModel('gpt-image')).toEqual(expect.objectContaining({ maxImages: 16 }));
+    expect(getUnifiedModel('gptimage-large')).toEqual(expect.objectContaining({ maxImages: 16 }));
+    expect(getUnifiedModel('klein')).toEqual(expect.objectContaining({ maxImages: 10 }));
+    expect(getUnifiedModel('wan-image')).toEqual(expect.objectContaining({ maxImages: 9 }));
+    expect(getUnifiedModel('nanobanana')).toEqual(expect.objectContaining({ maxImages: 3 }));
+    expect(getUnifiedModel('grok-imagine-pro')).toEqual(expect.objectContaining({ maxImages: 1 }));
+    expect(getUnifiedModel('ideogram-v4-turbo')).toEqual(expect.objectContaining({ supportsReference: false, maxImages: 0 }));
+  });
+
+  test.each(['veo', 'veo-1080p', 'seedance-2.0', 'pollinations-wan-fast', 'wan-pro', 'wan-pro-1080p'])(
+    '%s exposes distinct start and end frames',
+    (modelId) => {
+      expect(getUnifiedModel(modelId)).toEqual(expect.objectContaining({
+        kind: 'video',
+        maxImages: 2,
+        supportsEndFrame: true,
+      }));
+    },
+  );
+
+  test('Grok Imagine Pro Video stays start-frame-only', () => {
+    expect(getUnifiedModel('grok-video-pro')).toEqual(expect.objectContaining({
+      maxImages: 1,
+      supportsEndFrame: false,
+    }));
+  });
 
 describe('model invariants', () => {
   test('manual visible text model policy matches the exported visible selector list', () => {
@@ -127,6 +156,13 @@ describe('model invariants', () => {
       'wan-fast',
       'p-video',
     ]));
+  });
+
+  test('paid Pollinations models require Pollen key visibility', () => {
+    const withoutKey = getVisualizeModelGroups().flatMap((group) => group.modelIds);
+    const withKey = getVisualizeModelGroups({ includeByopHidden: true }).flatMap((group) => group.modelIds);
+    expect(withoutKey).not.toContain('grok-video-pro');
+    expect(withKey).toContain('grok-video-pro');
   });
 
   test('chat image model list stays curated and separate from the full Visualize registry', () => {

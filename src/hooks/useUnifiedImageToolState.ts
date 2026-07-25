@@ -6,10 +6,11 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { getPollenHeaders } from '@/lib/pollen-key';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { unifiedModelConfigs, getUnifiedModelConfig, type UnifiedModelConfig } from '@/config/unified-model-configs';
-import { getUnifiedModel, getVisualizeModelGroupsForProvider, UNIFIED_IMAGE_MODELS, type ImageProvider } from '@/config/unified-image-models';
+import { getReferenceMode, getUnifiedModel, getVisualizeModelGroupsForProvider, UNIFIED_IMAGE_MODELS, type ImageProvider } from '@/config/unified-image-models';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
 import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
+import { uploadFileToPruna } from '@/lib/upload/pruna';
 import { getClientSessionId } from '@/lib/session';
 import type { UploadedReference } from '@/types';
 import { useHasPollenKey } from './useHasPollenKey';
@@ -125,6 +126,11 @@ export function useUnifiedImageToolState() {
         return modelInfo?.supportsReference === true;
     }, [selectedModelId]);
 
+    const selectedModelInfo = getUnifiedModel(selectedModelId);
+    const referenceMode = selectedModelInfo ? getReferenceMode(selectedModelInfo) : 'multi-image';
+    const isVideoModel = selectedModelInfo?.kind === 'video' && referenceMode !== 'multi-image';
+    const supportsEndFrame = referenceMode === 'start-end-frame';
+
     // Source video check (for motion-transfer / video-replacement models)
     const requiresSourceVideo = useMemo(() => {
         return selectedModelId === 'p-video-animate' || selectedModelId === 'p-video-replace';
@@ -220,16 +226,44 @@ export function useUnifiedImageToolState() {
     }, [selectedModelId, maxImages, uploadedImages, currentModelConfig]);
 
     // Handle File Change (images only)
-    const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = useCallback(async (
+        event: React.ChangeEvent<HTMLInputElement>,
+        frameSlot?: 'start' | 'end',
+    ) => {
         const files = Array.from(event.target.files || []);
         if (files.length === 0) return;
 
         const allUploadModels = [...pollinationUploadModels];
-        const isSingleSlot = maxImages === 1;
+        const isSingleSlot = maxImages === 1 || frameSlot !== undefined;
+        const frameIndex = frameSlot === 'end' ? 1 : 0;
 
         const imageFiles = files.filter(file => file.type.startsWith('image/'));
         if (imageFiles.length === 0) {
             toast({ title: "Invalid File", description: "Please upload an image file.", variant: "destructive" });
+            return;
+        }
+        if (frameSlot === 'end' && !uploadedImages[0]) {
+            toast({ title: 'Start frame required', description: 'Upload the start image before the end image.', variant: 'destructive' });
+            return;
+        }
+
+        if (selectedModelInfo?.provider === 'pruna') {
+            setIsUploading(true);
+            try {
+                const targetFiles = frameSlot || maxImages === 1 ? imageFiles.slice(0, 1) : imageFiles;
+                const next = [...uploadedImages];
+                for (const file of targetFiles) {
+                    const url = await uploadFileToPruna(file);
+                    if (frameSlot) next[frameIndex] = { url };
+                    else if (maxImages === 1) next[0] = { url };
+                    else if (next.length < maxImages) next.push({ url });
+                }
+                setUploadedImages(next.filter(Boolean).slice(0, maxImages));
+            } catch (err) {
+                toast({ title: 'Upload failed', description: err instanceof Error ? err.message : 'Could not upload image.', variant: 'destructive' });
+            } finally {
+                setIsUploading(false);
+            }
             return;
         }
 
@@ -243,13 +277,13 @@ export function useUnifiedImageToolState() {
             let currentImages = [...uploadedImages];
             const targetFiles = isSingleSlot ? imageFiles.slice(0, 1) : imageFiles;
 
-            if (isSingleSlot && currentImages.length >= 1) {
+            if (isSingleSlot && !frameSlot && currentImages.length >= 1) {
                 currentImages = [];
             }
 
             try {
                 for (const file of targetFiles) {
-                    if (currentImages.length >= maxImages) {
+                    if (!frameSlot && currentImages.length >= maxImages) {
                         toast({ title: "Limit Reached", description: `Maximum ${maxImages} images allowed.`, variant: "destructive" });
                         break;
                     }
@@ -261,11 +295,13 @@ export function useUnifiedImageToolState() {
                         sessionId,
                         folder: 'uploads',
                     });
-                    currentImages.push({
+                    const uploadedReference = {
                         url: media.mediaUrl,
                         key: media.key,
                         expiresAt: Date.now() + media.expiresIn * 1000,
-                    });
+                    };
+                    if (frameSlot) currentImages[frameIndex] = uploadedReference;
+                    else currentImages.push(uploadedReference);
                 }
 
                 setUploadedImages(currentImages);
@@ -290,9 +326,14 @@ export function useUnifiedImageToolState() {
             localImages.push({ url: dataUri });
         }
         if (localImages.length > 0) {
-            setUploadedImages(prev => [...prev, ...localImages].slice(0, maxImages));
+            setUploadedImages(prev => {
+                if (!frameSlot) return [...prev, ...localImages].slice(0, maxImages);
+                const next = [...prev];
+                next[frameIndex] = localImages[0];
+                return next.filter(Boolean).slice(0, maxImages);
+            });
         }
-    }, [selectedModelId, toast, maxImages, uploadedImages]);
+    }, [selectedModelId, selectedModelInfo, toast, maxImages, uploadedImages]);
 
     // Handle Source Video Change (video only)
     const handleSourceVideoFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,6 +352,11 @@ export function useUnifiedImageToolState() {
         setIsUploading(true);
         try {
             const file = videoFiles[0];
+            if (selectedModelInfo?.provider === 'pruna') {
+                const url = await uploadFileToPruna(file);
+                setSourceVideo({ url });
+                return;
+            }
             const sessionId = getClientSessionId();
             const fileName = file.name || `upload-${Date.now()}.bin`;
             const contentType = file.type || 'video/mp4';
@@ -329,7 +375,7 @@ export function useUnifiedImageToolState() {
         } finally {
             setIsUploading(false);
         }
-    }, [toast]);
+    }, [selectedModelInfo, toast]);
 
     // Handle Remove Image
     const handleRemoveImage = useCallback((index: number) => {
@@ -421,9 +467,12 @@ export function useUnifiedImageToolState() {
         isNanoPollen,
         isPollenModel,
         isPollinationsVideo,
+        isVideoModel,
+        supportsEndFrame,
 
         // Actions
         handleFileChange,
+        handleFrameFileChange: handleFileChange,
         handleSourceVideoFileChange,
         handleRemoveImage,
         handleRemoveSourceVideo,
