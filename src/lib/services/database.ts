@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type { Conversation, ChatMessage, ToolType } from '@/types';
 import { BlobManager } from '@/lib/blob-manager';
+import { sortMessagesByOrder } from '@/lib/services/message-order';
 
 // --- Interfaces für unsere DB-Ebene (leicht angepasst für IndexedDB Indizes) ---
 
@@ -12,6 +13,12 @@ export interface DBConversation extends Omit<Conversation, 'messages' | 'created
 export interface DBMessage extends Omit<ChatMessage, 'timestamp'> {
   conversationId: string;
   timestamp: number;
+  /**
+   * Position within the conversation. Timestamps tie (a user message and its
+   * reply are built in the same millisecond), and IndexedDB then falls back to
+   * primary-key order — a random UUID. See message-order.ts.
+   */
+  order?: number;
   modelId?: string;
   metadata?: Record<string, any>;
 }
@@ -109,17 +116,18 @@ export const DatabaseService = {
     });
   },
 
-  async saveMessage(msg: ChatMessage, conversationId: string) {
+  async saveMessage(msg: ChatMessage, conversationId: string, order?: number) {
     return await db.messages.put({
       ...msg,
       conversationId,
       timestamp: new Date(msg.timestamp).getTime(),
+      ...(order !== undefined ? { order } : {}),
     } as DBMessage);
   },
 
   async getMessagesForConversation(convId: string): Promise<ChatMessage[]> {
-    const msgs = await db.messages.where('conversationId').equals(convId).sortBy('timestamp');
-    return msgs.map(m => ({
+    const msgs = await db.messages.where('conversationId').equals(convId).toArray();
+    return sortMessagesByOrder(msgs).map(m => ({
       ...m,
       timestamp: new Date(m.timestamp).toISOString(),
     } as ChatMessage));
@@ -190,11 +198,14 @@ export const DatabaseService = {
 
       if (messages && Array.isArray(messages)) {
         await db.messages.where('conversationId').equals(conv.id).delete();
-        for (const msg of messages) {
+        // The in-memory array is the source of truth for ordering, so persist
+        // the position rather than re-deriving it from tied timestamps later.
+        for (const [index, msg] of messages.entries()) {
           await db.messages.put({
             ...msg,
             conversationId: conv.id,
             timestamp: new Date(msg.timestamp).getTime(),
+            order: index,
           } as DBMessage);
         }
       }

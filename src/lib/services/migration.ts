@@ -47,13 +47,13 @@ export const MigrationService = {
 
         // Jede Nachricht einzeln speichern
         if (messages && Array.isArray(messages)) {
-          for (const msg of messages) {
+          for (const [index, msg] of messages.entries()) {
             await DatabaseService.saveMessage({
               id: msg.id,
               role: msg.role,
               content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
               timestamp: new Date(msg.timestamp).toISOString(),
-            }, chat.id);
+            }, chat.id, index);
           }
         }
       }

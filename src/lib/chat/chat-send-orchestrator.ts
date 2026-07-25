@@ -125,6 +125,9 @@ export async function runTextChatCompletionFlow(
           ...markerResult.extraParts,
         ]
       : baseContent,
+    // The placeholder was stamped before the request went out; the finished
+    // reply should carry the time it actually arrived.
+    timestamp: input.createTimestamp(),
     isStreaming: false,
   };
 
