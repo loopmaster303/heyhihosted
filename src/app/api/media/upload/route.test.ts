@@ -34,32 +34,28 @@ describe('/api/media/upload route', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('rejects oversized uploads from Content-Length before parsing form data', async () => {
+  it('rejects oversized uploads from Content-Length before reading the body', async () => {
     const { POST } = await import('./route');
     const request = new Request('http://localhost/api/media/upload', {
       method: 'POST',
       headers: {
+        'Content-Type': 'image/png',
         'content-length': String(10 * 1024 * 1024 + 1),
       },
     });
-    const formDataSpy = jest.spyOn(request, 'formData');
 
     const response = await POST(request);
 
     expect(response.status).toBe(413);
-    expect(formDataSpy).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('rejects empty files', async () => {
     const { POST } = await import('./route');
-    const formData = new FormData();
-    formData.append('file', new File([], 'empty.png', { type: 'image/png' }));
     const request = new Request('http://localhost/api/media/upload', {
       method: 'POST',
-      headers: { 'Content-Type': 'multipart/form-data; boundary=test-boundary' },
+      headers: { 'Content-Type': 'image/png' },
     });
-    jest.spyOn(request, 'formData').mockResolvedValueOnce(formData);
 
     const response = await POST(request);
 
@@ -99,33 +95,56 @@ describe('/api/media/upload route', () => {
     expect((upstreamFile as File).size).toBe(11);
   });
 
-  it('keeps accepting multipart uploads', async () => {
+  it('rejects multipart uploads, which cannot be size-limited while parsing', async () => {
+    const { POST } = await import('./route');
+    const request = new Request('http://localhost/api/media/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'multipart/form-data; boundary=test-boundary' },
+      body: 'ignored',
+    });
+    const formDataSpy = jest.spyOn(request, 'formData');
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(415);
+    expect(formDataSpy).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it.each(['text/html', 'image/svg+xml', 'application/javascript'])(
+    'rejects %s, which would execute when served back from media storage',
+    async (contentType) => {
+      const { POST } = await import('./route');
+      const request = new Request('http://localhost/api/media/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': contentType },
+        body: '<script>alert(1)</script>',
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(415);
+      expect(global.fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it('still accepts the document types the composer allows', async () => {
     const { POST } = await import('./route');
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       status: 200,
-      text: async () => JSON.stringify({
-        id: 'legacy-id',
-        url: 'https://media.pollinations.ai/legacy-id',
-        contentType: 'image/jpeg',
-        size: 6,
-      }),
+      text: async () => JSON.stringify({ id: 'doc-id', url: 'https://media.pollinations.ai/doc-id' }),
     });
-    const formData = new FormData();
-    formData.append('file', new File(['legacy'], 'legacy.jpg', { type: 'image/jpeg' }));
     const request = new Request('http://localhost/api/media/upload', {
       method: 'POST',
-      headers: { 'Content-Type': 'multipart/form-data; boundary=test-boundary' },
+      headers: { 'Content-Type': 'application/pdf' },
+      body: 'pdf-bytes',
     });
-    jest.spyOn(request, 'formData').mockResolvedValueOnce(formData);
 
     const response = await POST(request);
-    const upstreamInit = (global.fetch as jest.Mock).mock.calls[0]?.[1] as RequestInit;
-    const upstreamFile = (upstreamInit.body as FormData).get('file');
 
     expect(response.status).toBe(200);
-    expect(upstreamFile).toBeInstanceOf(File);
-    expect((upstreamFile as File).name).toBe('legacy.jpg');
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it('forwards upstream upload failures', async () => {
@@ -135,13 +154,11 @@ describe('/api/media/upload route', () => {
       status: 502,
       text: async () => JSON.stringify({ error: 'upstream down' }),
     });
-    const formData = new FormData();
-    formData.append('file', new File(['hello'], 'hello.txt', { type: 'text/plain' }));
     const request = new Request('http://localhost/api/media/upload', {
       method: 'POST',
-      headers: { 'Content-Type': 'multipart/form-data; boundary=test-boundary' },
+      headers: { 'Content-Type': 'text/plain' },
+      body: 'hello',
     });
-    jest.spyOn(request, 'formData').mockResolvedValueOnce(formData);
 
     const response = await POST(request);
     const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };

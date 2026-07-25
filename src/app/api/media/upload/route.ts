@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import { handleApiError } from '@/lib/api-error-handler';
 import { MEDIA_UPLOAD_URL, MAX_UPLOAD_BYTES } from '@/lib/upload/constants';
+import { readBodyWithLimit } from '@/lib/upload/read-body-with-limit';
+import { isActiveContentType } from '@/lib/upload/content-type-policy';
 
 export const runtime = 'nodejs';
 
@@ -14,43 +16,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing Pollinations API key' }, { status: 401 });
     }
 
-    const contentLengthHeader = request.headers.get('content-length');
-    const contentLength = contentLengthHeader ? Number(contentLengthHeader) : null;
-    if (contentLength !== null && Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
+    const requestContentType = request.headers.get('content-type')?.trim() || 'application/octet-stream';
+
+    // The only client sends the file as a raw body; multipart is no longer
+    // accepted because request.formData() buffers without an enforceable limit.
+    if (requestContentType.toLowerCase().startsWith('multipart/form-data')) {
       return NextResponse.json(
-        { error: UPLOAD_TOO_LARGE_ERROR },
-        { status: 413 }
+        { error: 'Send the file as a raw request body, not multipart/form-data' },
+        { status: 415 }
       );
     }
 
-    const requestContentType = request.headers.get('content-type')?.trim() || 'application/octet-stream';
-    let file: FormDataEntryValue | null;
-
-    if (requestContentType.toLowerCase().startsWith('multipart/form-data')) {
-      const formData = await request.formData();
-      file = formData.get('file');
-    } else {
-      const body = await request.arrayBuffer();
-      file = new File([body], `upload-${Date.now()}.bin`, { type: requestContentType });
+    if (isActiveContentType(requestContentType)) {
+      return NextResponse.json(
+        { error: 'This content type is not allowed for media uploads' },
+        { status: 415 }
+      );
     }
 
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: 'Missing file field in multipart form-data' }, { status: 400 });
-    }
+    const body = await readBodyWithLimit(request, MAX_UPLOAD_BYTES, UPLOAD_TOO_LARGE_ERROR);
 
-    if (!file.size || file.size <= 0) {
+    if (body.length === 0) {
       return NextResponse.json({ error: 'Empty file is not allowed' }, { status: 400 });
     }
 
-    if (file.size > MAX_UPLOAD_BYTES) {
-      return NextResponse.json(
-        { error: UPLOAD_TOO_LARGE_ERROR },
-        { status: 413 }
-      );
-    }
+    const file = new File([body], `upload-${Date.now()}.bin`, { type: requestContentType });
 
     const upstreamForm = new FormData();
-    upstreamForm.append('file', file, file.name || `upload-${Date.now()}.bin`);
+    upstreamForm.append('file', file, file.name);
 
     const upstreamResponse = await fetch(MEDIA_UPLOAD_URL, {
       method: 'POST',
