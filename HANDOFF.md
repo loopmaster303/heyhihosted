@@ -52,29 +52,21 @@ Vorher lagen ~65 uncommittete Dateien direkt auf main (Datenverlust-Risiko). Rev
 - **Systemprompt** (`src/config/chat-options.ts`) bleibt unverändert (User-Entscheidung). Enthält weiterhin „Burn the Corpos" + „Filter Evasion"-Passagen. Vor einem öffentlichen „privacy first, user friendly"-Claim wäre eine redaktionelle Härtung nötig (Haltung behalten, operative Exploit-/Evasion-Anleitungen entschärfen) — aber nur auf ausdrückliche Ansage.
 - **BYOP-Key XSS**: Key liegt weiter in Web-Storage (in CLAUDE.md als „partially hardened but still XSS-sensitive" dokumentiert). Offen.
 
-## Uncommittete Änderungen (Session 2026-07-06)
+## UI/Compose-Arbeit Session 2026-07-06/07 (committet: `906f53c`, `c097e75`, `68c1908`)
 
-**Alle untenstehenden Änderungen sind im Working Tree, nicht committet** (User-Regel „no auto-commit"). Details in [handoff-extra.md](handoff-extra.md).
+Details in [handoff-extra.md](handoff-extra.md).
 
-| Bereich | Dateien | Was |
-|---------|---------|-----|
-| **Logos** | `ui-constants.ts`, 7 neue PNGs | prunafarbe, ideogramfarbe, ltxfarbe, minimaxfarbe, acestepfarbe, elevenlabsfarbe, stabilityfarbe gemappt |
-| **Namen** | `ui-constants.ts`, `chat-options.ts` | kimi→Moonshot Kimi K2.6, glm→z.ai GLM-5.2, minimax→Minimax M3 |
-| **Compose** | `chat-options.ts`, `useComposeMusicState.ts`, `ComposeInlineHeader.tsx`, `compose/route.ts`, `translations.ts` | ACE-Step free 30/60s, gestufte Key-Tiers, Modell-Umschalter mit Logos, ElevenMusic v2 |
-| **Provider-Switch** | `useProviderMode.ts` (neu), `PersonalizationSidebarSection.tsx`, `VisualizeInlineHeader.tsx`, `VisualizeInputContainer.tsx`, `ChatInput.tsx` | Switch Bubble→Sidebar, Hook-Extraktion |
-| **Mobile** | `InlineParamsContainer.tsx` (neu), `ModelSelector.tsx`, `ComposeInlineHeader.tsx`, `VisualizeInlineHeader.tsx` | Logo-only + 3-Punkte-Popover (Radix) bei ≤639px |
-| **Doku** | `README.md`, `HANDOFF.md`, `MEMORY.md` (Auto) | Registry-Realität, Pruna zurück, Compose-Tiers |
-
-### Verifikation (Commit-frei reproduzierbar)
-```bash
-npx tsc --noEmit                     # 0 Fehler
-CI=1 npx jest --runInBand            # 307/307 (54 Suiten)
-```
+| Bereich | Was |
+|---------|-----|
+| **Logos** | prunafarbe, ideogramfarbe, ltxfarbe, minimaxfarbe, acestepfarbe, elevenlabsfarbe, stabilityfarbe gemappt (7 PNGs) |
+| **Namen** | kimi→Moonshot Kimi K2.6, glm→z.ai GLM-5.2, minimax→Minimax M3 |
+| **Compose** | ACE-Step free 30/60s, gestufte Key-Tiers, Modell-Umschalter mit Logos, ElevenMusic v2, modell-spezifische Enhancement-Prompts, `hasBpm`-Fix |
+| **Provider-Switch** | Switch Bubble→Sidebar, `useProviderMode.ts`-Hook extrahiert |
+| **Mobile** | Logo-only + 3-Punkte-Popover (Radix) bei ≤639px, Kurzlabels |
+| **Doku** | README/HANDOFF/MEMORY auf Registry-Realität + Compose-Tiers |
 
 ## Nächste Schritte
 
-1. **Mobile-Verifikation**: Layout vom User bei 375px bestätigt („sieht erstmal soweit gut aus"). Letzte Fixes: Kurzlabels (30s/1m), „Compose" statt „Compose with" auf Mobile.
-2. **Commit-Entscheidung**: 26 Dateien uncommittet (16 modified, 10 untracked). Review → commit.
-3. **Produktions-Deploy** von `main` prüfen (Deploy-Wahrheit klären: `apphosting.yaml` deutet auf Firebase — was serviert hey-hi.space aktuell wirklich?).
-4. Systemprompt-Redaktion + BYOP-XSS — nur nach ausdrücklicher Freigabe.
-5. Ökosystem-Roadmap: Level-2 ist damit weitgehend gehärtet; nächster Ökosystem-Schritt ist Phase 2a (Doppeltür justsaywow ⊕ justsayhi), nicht in diesem Repo.
+1. **Produktions-Deploy** von `main` prüfen (Deploy-Wahrheit klären: `apphosting.yaml` deutet auf Firebase — was serviert hey-hi.space aktuell wirklich?).
+2. Systemprompt-Redaktion + BYOP-XSS — nur nach ausdrücklicher Freigabe.
+3. Ökosystem-Roadmap: Level-2 ist damit weitgehend gehärtet; nächster Ökosystem-Schritt ist Phase 2a (Doppeltür justsaywow ⊕ justsayhi), nicht in diesem Repo.
