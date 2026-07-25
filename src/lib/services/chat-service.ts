@@ -10,6 +10,7 @@ import { getUnifiedModel } from '@/config/unified-image-models';
 import { processSseStream } from '@/utils/chatHelpers';
 import { getPollenHeaders } from '@/lib/pollen-key';
 import { getPrunaHeaders } from '@/lib/pruna-key';
+import { BlobManager } from '@/lib/blob-manager';
 
 export interface SendMessageOptions {
     messages: ApiChatMessage[];
@@ -148,8 +149,11 @@ export class ChatService {
 
         const contentType = response.headers?.get('content-type') || '';
         if (response.ok && contentType !== '' && !contentType.includes('application/json')) {
+            // Raw media comes back when Pruna generated the result and no Pollen
+            // token was available to store it. Register the URL so it is revoked
+            // on unload instead of leaking for the lifetime of the document.
             const mediaBlob = await response.blob();
-            return URL.createObjectURL(mediaBlob);
+            return BlobManager.createURL(mediaBlob, 'generate');
         }
 
         const result: any = await response.json();

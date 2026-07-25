@@ -5,6 +5,7 @@
 
 import { ReadableStream } from 'node:stream/web';
 import { ChatService, SendMessageOptions, GenerateImageOptions } from '../chat-service';
+import { BlobManager } from '@/lib/blob-manager';
 
 // Mock fetch globally
 const mockFetch = jest.fn();
@@ -274,6 +275,24 @@ describe('ChatService', () => {
             expect(mockFetch).toHaveBeenCalledWith('/api/generate', expect.objectContaining({
                 headers: expect.objectContaining({ 'X-Pruna-Key': 'pruna_test_1234567890' }),
             }));
+        });
+
+        it('registers the media blob URL with BlobManager so it can be revoked', async () => {
+            Object.defineProperty(URL, 'createObjectURL', {
+                configurable: true,
+                value: jest.fn(() => 'blob:http://localhost/managed-result'),
+            });
+            Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: jest.fn() });
+            const before = BlobManager.getStats().byContext['generate'] ?? 0;
+            mockFetch.mockResolvedValueOnce(new Response(new Blob(['bytes'], { type: 'image/png' }), {
+                status: 200,
+                headers: { 'Content-Type': 'image/png' },
+            }));
+
+            const result = await ChatService.generateImage({ prompt: 'managed', modelId: 'p-image' });
+
+            expect(BlobManager.getStats().byContext['generate']).toBe(before + 1);
+            BlobManager.releaseURL(result);
         });
     });
 });

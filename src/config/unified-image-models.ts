@@ -477,6 +477,17 @@ export function getUnifiedModel(modelId: string): UnifiedImageModel | undefined 
   return UNIFIED_IMAGE_MODELS.find(m => m.id === modelId);
 }
 
+/**
+ * Whether a generated asset for this model ends up in Pollinations Media Storage.
+ * Pruna results are returned as raw media when no Pollen token is present, so
+ * they have to be stored as a local blob instead of a remote URL.
+ * Unknown models are treated as Pollinations-hosted (the historical default).
+ */
+export function isPollinationsHostedModel(modelId: string): boolean {
+  const provider = getUnifiedModel(modelId)?.provider;
+  return !provider || provider === 'pollinations';
+}
+
 export function getReferenceMode(model: UnifiedImageModel): ReferenceMode {
   if (model.referenceMode) return model.referenceMode;
   if (model.kind === 'image') return 'multi-image';

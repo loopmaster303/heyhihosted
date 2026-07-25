@@ -21,6 +21,7 @@
 import type { ChatMessageContentPart } from '@/types';
 import type { GenerateImageOptions } from '@/lib/services/chat-service';
 import type { SaveGeneratedAssetOptions } from '@/lib/services/output-service';
+import { isPollinationsHostedModel } from '@/config/unified-image-models';
 import { parseMediaIntents, type MediaIntent } from './chat-media-intent';
 
 export interface ProcessAssistantMediaIntentsInput {
@@ -99,7 +100,7 @@ async function generateImagePart(
       conversationId: input.conversationId,
       sessionId: input.sessionId,
       isVideo: false,
-      isPollinations: true,
+      isPollinations: isPollinationsHostedModel(input.selectedImageModelId),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

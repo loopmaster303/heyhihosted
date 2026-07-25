@@ -6,7 +6,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { getUnifiedModel } from '@/config/unified-image-models';
+import { getUnifiedModel, isPollinationsHostedModel } from '@/config/unified-image-models';
 import { generateUUID } from '@/lib/uuid';
 import type { ImageHistoryItem, UploadedReference } from '@/types';
 import { useLanguage } from '../LanguageProvider';
@@ -181,7 +181,7 @@ const UnifiedImageTool: React.FC<UnifiedImageToolProps> = ({ sharedToolState }) 
             modelId: currentModelId,
             sessionId: getClientSessionId(),
             isVideo,
-            isPollinations: getUnifiedModel(currentModelId)?.provider === 'pollinations',
+            isPollinations: isPollinationsHostedModel(currentModelId),
           });
 
           if (localAssetId) {

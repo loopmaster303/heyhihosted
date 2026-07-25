@@ -93,7 +93,11 @@ export async function POST(request: Request) {
       throw new ApiError(400, `Model ${canonicalModelId} accepts a maximum ${modelInfo.maxImages} reference image${modelInfo.maxImages === 1 ? '' : 's'}`);
     }
 
-    // Auto-enhance for z-image-turbo (restored regression fix)
+    // Auto-enhance for z-image-turbo (restored regression fix).
+    // `enhance` is a Pollinations image-API parameter and only applies to the
+    // Pollinations dispatch below; the Pruna API has no prompt-enhance field.
+    // User-facing prompt enhancement is a separate step that always runs
+    // through /api/enhance-prompt, independent of the visualize provider.
     const effectiveEnhance = modelId === 'z-image-turbo' ? true : enhance;
 
     // Validate I2V models require an image
@@ -148,12 +152,12 @@ export async function POST(request: Request) {
           });
         }
 
+        // Past the early return above, a token is guaranteed to exist.
         // Pollinations Media Storage requires multipart/form-data (field `file`);
         // a raw binary body is rejected with "Unsupported content type".
-        const uploadHeaders: Record<string, string> = {};
-        if (hasToken) {
-          uploadHeaders['Authorization'] = `Bearer ${apiKey}`;
-        }
+        const uploadHeaders: Record<string, string> = {
+          Authorization: `Bearer ${apiKey}`,
+        };
 
         const uploadForm = new FormData();
         const prunaFileName = isVideoModel ? `pruna-${Date.now()}.mp4` : `pruna-${Date.now()}.png`;

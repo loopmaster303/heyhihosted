@@ -131,6 +131,27 @@ describe('processAssistantMediaIntents', () => {
     expect(result.extraParts.filter((p) => p.type === 'audio_url')).toHaveLength(0);
   });
 
+  it('marks assets from a Pollinations model as Pollinations-hosted', async () => {
+    const input = baseInput();
+    input.rawText = '[IMAGE_GEN: a cat]';
+    await processAssistantMediaIntents(input);
+    expect(input.saveGeneratedAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ isPollinations: true }),
+    );
+  });
+
+  it('does not mark assets from a Pruna model as Pollinations-hosted', async () => {
+    const input = baseInput();
+    input.rawText = '[IMAGE_GEN: a cat]';
+    // zimage is provider 'pruna'; without a Pollen token /api/generate returns
+    // raw media, so the URL is a local blob that must be stored as a blob.
+    const result = await processAssistantMediaIntents({ ...input, selectedImageModelId: 'zimage' });
+    expect(result.extraParts).toHaveLength(1);
+    expect(input.saveGeneratedAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ isPollinations: false }),
+    );
+  });
+
   it('still attaches the image part when saveGeneratedAsset throws', async () => {
     const input = baseInput();
     input.saveGeneratedAsset = jest.fn(async () => {

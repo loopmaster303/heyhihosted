@@ -1,6 +1,6 @@
 import type { ApiChatMessage, ChatMessage, ChatMessageContentPart } from '@/types';
 import type { GenerateImageOptions } from '@/lib/services/chat-service';
-import { getUnifiedModel } from '@/config/unified-image-models';
+import { isPollinationsHostedModel } from '@/config/unified-image-models';
 
 interface RunImageGenerationFlowInput {
   imageParams: GenerateImageOptions;
@@ -151,8 +151,7 @@ export async function runImageGenerationFlow(
       conversationId: input.conversationId,
       sessionId: input.sessionId,
       isVideo: input.isVideo,
-      isPollinations: !getUnifiedModel(input.selectedImageModelId)?.provider ||
-                     getUnifiedModel(input.selectedImageModelId)?.provider === 'pollinations',
+      isPollinations: isPollinationsHostedModel(input.selectedImageModelId),
     });
   }
 
