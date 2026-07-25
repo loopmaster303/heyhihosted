@@ -152,16 +152,22 @@ export async function fetchAndStoreRemoteMedia(
   if (signal?.aborted) throw abortError();
 
   const normalizedContentType = contentType || fallbackContentType(kind);
+  // Pollinations Media Storage only accepts multipart/form-data (field `file`) or
+  // JSON base64 — a raw binary body is rejected with "Unsupported content type",
+  // which breaks reference-image editing and video result storage.
+  const uploadForm = new FormData();
+  const uploadFileName = kind === 'video' ? `media-${Date.now()}.mp4` : `media-${Date.now()}.jpg`;
+  uploadForm.append('file', new Blob([buffer], { type: normalizedContentType }), uploadFileName);
   let uploadResponse: Response;
   try {
     uploadResponse = await fetch(MEDIA_UPLOAD_URL, {
       method: 'POST',
       signal,
+      // Content-Type is intentionally omitted: fetch sets the multipart boundary.
       headers: {
         ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-        'Content-Type': normalizedContentType,
       },
-      body: buffer,
+      body: uploadForm,
     });
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

@@ -5,6 +5,8 @@ import { MEDIA_UPLOAD_URL, MAX_UPLOAD_BYTES } from '@/lib/upload/constants';
 
 export const runtime = 'nodejs';
 
+const UPLOAD_TOO_LARGE_ERROR = 'File too large for Pollinations Media Storage (max 10MB)';
+
 export async function POST(request: Request) {
   try {
     const apiKey = resolvePollenKey(request);
@@ -12,8 +14,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing Pollinations API key' }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file');
+    const contentLengthHeader = request.headers.get('content-length');
+    const contentLength = contentLengthHeader ? Number(contentLengthHeader) : null;
+    if (contentLength !== null && Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
+      return NextResponse.json(
+        { error: UPLOAD_TOO_LARGE_ERROR },
+        { status: 413 }
+      );
+    }
+
+    const requestContentType = request.headers.get('content-type')?.trim() || 'application/octet-stream';
+    let file: FormDataEntryValue | null;
+
+    if (requestContentType.toLowerCase().startsWith('multipart/form-data')) {
+      const formData = await request.formData();
+      file = formData.get('file');
+    } else {
+      const body = await request.arrayBuffer();
+      file = new File([body], `upload-${Date.now()}.bin`, { type: requestContentType });
+    }
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: 'Missing file field in multipart form-data' }, { status: 400 });
@@ -25,7 +44,7 @@ export async function POST(request: Request) {
 
     if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json(
-        { error: 'File too large for Pollinations Media Storage (max 10MB)' },
+        { error: UPLOAD_TOO_LARGE_ERROR },
         { status: 413 }
       );
     }

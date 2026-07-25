@@ -41,13 +41,13 @@ export async function uploadFileToPollinationsMedia(
     ? file
     : new File([file], filename || `upload-${Date.now()}.bin`, { type: normalizedContentType });
 
-  const formData = new FormData();
-  formData.append('file', uploadFile, uploadFile.name || filename);
-
   const response = await fetch('/api/media/upload', {
     method: 'POST',
-    headers: { ...getPollenHeaders() },
-    body: formData,
+    headers: {
+      'Content-Type': normalizedContentType,
+      ...getPollenHeaders(),
+    },
+    body: uploadFile,
   });
 
   const data = await response.json();

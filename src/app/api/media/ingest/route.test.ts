@@ -6,8 +6,10 @@ jest.mock('@/lib/resolve-pollen-key', () => ({
 
 describe('/api/media/ingest route', () => {
   const responseJson = jest.fn((body: unknown, init?: ResponseInit) => new Response(JSON.stringify(body), init));
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     responseJson.mockClear();
     Object.defineProperty(Response, 'json', {
       configurable: true,
@@ -16,6 +18,7 @@ describe('/api/media/ingest route', () => {
   });
 
   afterEach(() => {
+    consoleErrorSpy.mockRestore();
     jest.restoreAllMocks();
   });
 
