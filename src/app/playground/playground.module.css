@@ -146,6 +146,51 @@
   min-height: 0;
 }
 
+/* Segmented control: ported from playground-v2.html:245-287 (.modes/.mode-indicator/.mode). */
+.segmented {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 3px;
+  background: hsl(var(--surface-container));
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  isolation: isolate;
+}
+
+.segmentIndicator {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  height: calc(100% - 6px);
+  width: calc((100% - 6px) / 2);
+  background: hsl(var(--glass-background) / 0.72);
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  border-radius: 7px;
+  border: 1px solid hsl(var(--border));
+  transition: transform 380ms ease;
+  z-index: 0;
+}
+
+.segment {
+  position: relative;
+  z-index: 1;
+  padding: 9px 6px 8px;
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: color 180ms ease;
+}
+.segment:hover {
+  color: hsl(var(--foreground));
+}
+.segment.active {
+  color: hsl(var(--foreground));
+}
+
 @media (max-width: 960px) {
   .app {
     --params-width: 300px;
