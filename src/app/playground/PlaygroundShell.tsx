@@ -89,7 +89,11 @@ export function PlaygroundShell() {
       let kind: 'image' | 'video';
       if (ct.startsWith('application/json')) {
         const data = await res.json();
-        mediaUrl = data.videoUrl ?? data.imageUrl;
+        const candidate = data.videoUrl ?? data.imageUrl;
+        if (typeof candidate !== 'string' || !candidate) {
+          throw new Error('generate response missing videoUrl/imageUrl');
+        }
+        mediaUrl = candidate;
         kind = data.videoUrl ? 'video' : 'image';
       } else {
         const blob = await res.blob();
