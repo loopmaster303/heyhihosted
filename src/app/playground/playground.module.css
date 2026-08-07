@@ -346,8 +346,8 @@
 }
 
 .keyStatus[data-status="ok"] {
-  background: hsl(142 71% 45%);
-  box-shadow: 0 0 6px hsl(142 71% 45% / 0.5);
+  background: hsl(var(--mode-code));
+  box-shadow: 0 0 6px hsl(var(--mode-code) / 0.5);
 }
 
 .keyStatus[data-status="error"] {
