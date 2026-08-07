@@ -569,7 +569,7 @@
   left: 0;
   right: 0;
   padding: 6px 9px 8px;
-  color: #f5f0ff;
+  color: hsl(var(--primary-foreground));
   font-size: 10px;
   display: flex;
   justify-content: space-between;
