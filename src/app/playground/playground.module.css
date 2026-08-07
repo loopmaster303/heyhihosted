@@ -784,6 +784,11 @@
   background: hsl(var(--surface-container-high));
 }
 
+.select.open .selectBtn {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
+}
+
 .selectBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -845,7 +850,7 @@
 }
 
 .selectItem.active {
-  background: hsl(var(--surface-container-highest, var(--surface-container)));
+  background: hsl(var(--surface-container-high));
   color: hsl(var(--foreground));
   font-weight: 500;
 }
