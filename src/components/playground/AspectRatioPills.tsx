@@ -16,7 +16,7 @@ export function AspectRatioPills({
   if (Object.keys(presets).length === 0) return null;
 
   return (
-    <div className={styles.pillRow || styles['pill-row']}>
+    <div className={styles.pillRow}>
       {Object.entries(presets).map(([ratio]) => (
         <button
           key={ratio}
