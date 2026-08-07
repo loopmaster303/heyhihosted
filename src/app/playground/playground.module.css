@@ -360,3 +360,273 @@
   animation: pulse 1.2s infinite ease-in-out;
 }
 
+/* ModelSelect styles */
+.select {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.warn {
+  font-size: 11px;
+  color: hsl(var(--warning, 38 92% 50%));
+  background: hsl(var(--warning, 38 92% 50%) / 0.1);
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  margin: 0;
+}
+
+.selectBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: hsl(var(--surface-container));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  color: hsl(var(--foreground));
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.selectBtn:hover:not(:disabled) {
+  border-color: hsl(var(--ring));
+  background: hsl(var(--surface-container-high));
+}
+
+.selectBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: hsl(var(--accent));
+  flex-shrink: 0;
+}
+
+.modelName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: hsl(var(--glass-background) / 0.9);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.selectItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.selectItem:hover {
+  background: hsl(var(--surface-container-high));
+  color: hsl(var(--foreground));
+}
+
+.selectItem.active {
+  background: hsl(var(--surface-container-highest, var(--surface-container)));
+  color: hsl(var(--foreground));
+  font-weight: 500;
+}
+
+.chip {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Aspect ratio pills styles */
+.pillRow,
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pill {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--surface-container));
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.pill:hover {
+  background: hsl(var(--surface-container-high));
+  color: hsl(var(--foreground));
+}
+
+.pill.active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+/* PromptPanel styles */
+.promptBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.promptHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hint {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground) / 0.7);
+}
+
+.promptInput {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--surface-container));
+  color: hsl(var(--foreground));
+  font-size: 13px;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 150ms ease;
+}
+
+.promptInput:focus {
+  border-color: hsl(var(--ring));
+}
+
+.promptActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.promptAction {
+  padding: 6px 12px;
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: opacity 150ms ease, background-color 150ms ease;
+}
+
+.promptAction:hover:not(:disabled) {
+  background: hsl(var(--surface-container-high));
+}
+
+.promptAction:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ReferenceUploads styles */
+.uploadSlots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.uploadSlot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  border: 1px dashed hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--surface-container));
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.uploadSlot:hover {
+  border-color: hsl(var(--ring));
+  background: hsl(var(--surface-container-high));
+}
+
+.uploadSlot.filled {
+  border-style: solid;
+  border-color: hsl(var(--border));
+}
+
+.slotLabel {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--background) / 0.7);
+  padding: 2px 4px;
+  border-radius: 4px;
+  z-index: 2;
+}
+
+.uploadSlot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.uploadSlot input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
