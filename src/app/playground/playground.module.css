@@ -300,6 +300,70 @@
   font-weight: 500;
 }
 
+/* Advanced panel: ported from playground-v2.html:544-580 (.advanced/.advanced-toggle/.advanced-body/.mini-field). */
+.advanced {
+  border-top: 1px solid hsl(var(--border));
+  padding-top: 16px;
+}
+.advancedToggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: hsl(var(--muted-foreground));
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: color 180ms ease;
+}
+.advancedToggle:hover {
+  color: hsl(var(--foreground));
+}
+.chev {
+  display: inline-block;
+  transition: transform 220ms ease;
+}
+.advanced.open .chev {
+  transform: rotate(90deg);
+}
+.advancedBody {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.miniField {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.miniField label {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+}
+.miniField input {
+  width: 96px;
+  padding: 6px 10px;
+  background: hsl(var(--glass-background) / 0.55);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  color: hsl(var(--foreground));
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  transition: border-color 180ms ease;
+}
+.miniField input:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+.miniField input::placeholder {
+  color: hsl(var(--muted-foreground) / 0.6);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .logoDot::after {
     display: none;
