@@ -46,7 +46,7 @@ export function useGalleryAssets() {
   };
 
   const clearAllAssets = async () => {
-    await db.assets.clear();
+    await db.assets.filter(isGalleryAsset).delete();
   };
 
   const toggleStarred = async (id: string) => {

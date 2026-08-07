@@ -23,4 +23,11 @@ describe('isGalleryAsset (sentinel filter)', () => {
   it('keeps assets with no conversationId', () => {
     expect(isGalleryAsset(asset({ conversationId: undefined }))).toBe(true);
   });
+
+  it('isGalleryAsset also gates clearAllAssets — playground assets survive bulk clear', () => {
+    const playground = asset({ id: 'p', conversationId: '__playground__' });
+    const chat = asset({ id: 'c', conversationId: 'chat-1' });
+    const survives = [playground, chat].filter(a => !isGalleryAsset(a));
+    expect(survives).toEqual([playground]);
+  });
 });
