@@ -193,6 +193,7 @@ git commit -m "feat(playground): scaffold /playground route with sidebar shell"
   };
   ```
 - LocalStorage key: `playgroundState` (single JSON blob, schema version tagged inside).
+- **`resetForModel` contract:** merges `defaults` into the current state, so any field the caller does NOT pass is left untouched. In practice this means `prompt` and `uploads` are preserved on model-switch calls that only pass `aspectRatio`/`durationSeconds`, and truncation of `uploads` on model-switch (Task 20) is performed by passing `uploads: state.uploads.slice(0, maxImages)` explicitly. It is a merge, not a hard-preserve.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -220,7 +221,7 @@ describe('usePlaygroundState', () => {
     expect(raw.mode).toBe('t2v');
   });
 
-  it('resetForModel merges defaults but preserves prompt and uploads', () => {
+  it('resetForModel merges defaults and preserves fields the caller does not pass', () => {
     const { result } = renderHook(() => usePlaygroundState());
     act(() => result.current.setPrompt('hello'));
     act(() => result.current.setUploads(['https://example.com/a.png']));
