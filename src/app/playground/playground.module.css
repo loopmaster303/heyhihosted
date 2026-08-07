@@ -293,6 +293,10 @@
 .keyInput:focus {
   border-color: hsl(var(--ring));
 }
+.keyInput:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
 
 .iconButton {
   display: inline-flex;
@@ -541,6 +545,10 @@
 
 .promptInput:focus {
   border-color: hsl(var(--ring));
+}
+.promptInput:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
 }
 
 .promptActions {
