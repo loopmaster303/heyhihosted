@@ -42,13 +42,13 @@ export function Hero({ state, media, error }: Props) {
             <strong>{media.modelName}</strong>
             {media.ratio && (
               <>
-                <span className={styles.sep} />
+                <span className={styles.sep} aria-hidden="true" />
                 <span>{media.ratio}</span>
               </>
             )}
             {media.durationSeconds != null && (
               <>
-                <span className={styles.sep} />
+                <span className={styles.sep} aria-hidden="true" />
                 <span>{media.durationSeconds}s</span>
               </>
             )}
