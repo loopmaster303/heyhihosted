@@ -63,6 +63,7 @@ src/lib/playground/model-source.ts
 src/lib/playground/model-source.test.ts
 src/lib/playground/generate-request.ts
 src/lib/playground/generate-request.test.ts
+src/lib/playground/constants.ts
 ```
 
 **Modify:**
@@ -1757,58 +1758,111 @@ git commit -m "feat(playground): hero component with empty/working/ready/error s
 **Files:**
 - Create: `src/components/playground/Gallery.tsx`
 - Create: `src/components/playground/Gallery.test.tsx`
+- Create: `src/lib/playground/constants.ts` (exports the sentinel used to tag playground assets)
 
 **Interfaces:**
-- Consumes: `OutputService` from `@/lib/services/output-service`.
-- Produces: `<Gallery onPick(asset) />` — renders latest 50 assets with tag `source: 'playground'`, click loads asset back into the shell.
+- Consumes: `db` from `@/lib/services/database` (the exported Dexie instance with the `assets` table).
+- Produces:
+  - `PLAYGROUND_CONVERSATION_ID = '__playground__'` (sentinel value used in the `conversationId` column to tag every playground asset).
+  - `<Gallery onPick(item) />` — queries `db.assets.where('conversationId').equals(PLAYGROUND_CONVERSATION_ID)`, sorts by `timestamp` desc, limit 50; click loads asset back into the shell.
 
-- [ ] **Step 1: Failing test**
+The `assets` table already indexes `conversationId` (Dexie schema v4), so no migration is needed — we co-opt the `conversationId` column as a source-tag namespace.
+
+- [ ] **Step 1: Add the sentinel constant**
+
+`src/lib/playground/constants.ts`:
+
+```ts
+/**
+ * Sentinel value used in the Dexie `assets.conversationId` column
+ * to tag every playground-generated asset. Lets us list them without
+ * a schema migration.
+ */
+export const PLAYGROUND_CONVERSATION_ID = '__playground__';
+```
+
+- [ ] **Step 2: Failing test**
+
+`src/components/playground/Gallery.test.tsx`:
 
 ```tsx
 import { render, screen } from '@testing-library/react';
 import { Gallery } from './Gallery';
 
-jest.mock('@/lib/services/output-service', () => ({
-  OutputService: { listBySource: jest.fn(async () => [
-    { id: '1', url: 'https://x/1.png', kind: 'image', prompt: 'a', modelId: 'flux', createdAt: 1 },
-  ])}
-}));
+jest.mock('@/lib/services/database', () => {
+  const rows = [
+    { id: '1', remoteUrl: 'https://x/1.png', prompt: 'a', modelId: 'flux', conversationId: '__playground__', timestamp: 1, contentType: 'image/png' },
+  ];
+  return {
+    db: {
+      assets: {
+        where: (col: string) => ({
+          equals: (val: string) => ({
+            reverse: () => ({
+              sortBy: async (_field: string) => (col === 'conversationId' && val === '__playground__') ? rows : [],
+            }),
+          }),
+        }),
+      },
+    },
+  };
+});
 
 describe('Gallery', () => {
-  it('renders items with model name and prompt', async () => {
+  it('renders items tagged with the playground sentinel', async () => {
     render(<Gallery onPick={() => {}} />);
     expect(await screen.findByText(/flux/i)).toBeInTheDocument();
   });
 });
 ```
 
-- [ ] **Step 2: Run — expect FAIL**
+- [ ] **Step 3: Run — expect FAIL**
 
-- [ ] **Step 3: Implement — plus add `listBySource(source: string, limit = 50)` to `OutputService` in the same task (small addition)**
-
-Extend `src/lib/services/output-service.ts` with:
-
-```ts
-async listBySource(source: string, limit = 50) {
-  return this.db.assets.where('source').equals(source).reverse().sortBy('createdAt').then((rows) => rows.slice(0, limit));
-}
-```
-
-Only add the method — do not change existing behavior. The `assets` table already has an indexed `source` field (verify in `src/lib/db.ts`; if it doesn't, use a `filter` fallback rather than adding an index in this milestone).
+- [ ] **Step 4: Implement**
 
 `src/components/playground/Gallery.tsx`:
 
 ```tsx
 "use client";
 import { useEffect, useState } from 'react';
-import { OutputService } from '@/lib/services/output-service';
+import { db, type Asset } from '@/lib/services/database';
+import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
 
-interface Item { id: string; url: string; kind: 'image' | 'video'; prompt: string; modelId: string; createdAt: number; }
-export function Gallery({ onPick }: { onPick: (item: Item) => void }) {
-  const [items, setItems] = useState<Item[]>([]);
+export interface GalleryItem {
+  id: string;
+  url: string;
+  kind: 'image' | 'video';
+  prompt: string;
+  modelId: string;
+  timestamp: number;
+}
+
+function toItem(a: Asset): GalleryItem | null {
+  const url = a.remoteUrl;
+  if (!url) return null;
+  return {
+    id: a.id,
+    url,
+    kind: a.contentType?.startsWith('video/') ? 'video' : 'image',
+    prompt: a.prompt ?? '',
+    modelId: a.modelId ?? '',
+    timestamp: a.timestamp,
+  };
+}
+
+export function Gallery({ onPick }: { onPick: (item: GalleryItem) => void }) {
+  const [items, setItems] = useState<GalleryItem[]>([]);
   useEffect(() => {
     let cancelled = false;
-    OutputService.listBySource('playground').then((rows) => { if (!cancelled) setItems(rows as Item[]); });
+    (async () => {
+      const rows = await db.assets
+        .where('conversationId')
+        .equals(PLAYGROUND_CONVERSATION_ID)
+        .reverse()
+        .sortBy('timestamp');
+      if (cancelled) return;
+      setItems(rows.slice(0, 50).map(toItem).filter((x): x is GalleryItem => x !== null));
+    })();
     return () => { cancelled = true; };
   }, []);
   return (
@@ -1826,13 +1880,13 @@ export function Gallery({ onPick }: { onPick: (item: Item) => void }) {
 }
 ```
 
-- [ ] **Step 4: Run — expect PASS**
+- [ ] **Step 5: Run — expect PASS**
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add src/components/playground/Gallery.tsx src/components/playground/Gallery.test.tsx src/lib/services/output-service.ts
-git commit -m "feat(playground): gallery from OutputService with source tag"
+git add src/components/playground/Gallery.tsx src/components/playground/Gallery.test.tsx src/lib/playground/constants.ts
+git commit -m "feat(playground): gallery via conversationId sentinel tag"
 ```
 
 ---
@@ -1875,6 +1929,8 @@ import { getDefaultDurationSeconds, getUnifiedModel } from '@/config/unified-ima
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { BlobManager } from '@/lib/blob-manager';
 import { OutputService } from '@/lib/services/output-service';
+import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
+import type { GalleryItem } from '@/components/playground/Gallery';
 
 export function PlaygroundShell() {
   const { state, setMode, setModelId, setPrompt, setAspectRatio, setDurationSeconds, setAdvanced, setUploads, resetForModel } = usePlaygroundState();
@@ -1938,10 +1994,17 @@ export function PlaygroundShell() {
         kind = data.videoUrl ? 'video' : 'image';
       } else {
         const blob = await res.blob();
-        mediaUrl = BlobManager.register(blob, 'playground');
+        mediaUrl = BlobManager.createURL(blob, 'playground');
         kind = ct.startsWith('video/') ? 'video' : 'image';
       }
-      await OutputService.save({ url: mediaUrl, kind, prompt: state.prompt, modelId: currentModel.id, source: 'playground', createdAt: Date.now() });
+      await OutputService.saveGeneratedAsset({
+        url: mediaUrl,
+        prompt: state.prompt,
+        modelId: currentModel.id,
+        conversationId: PLAYGROUND_CONVERSATION_ID,
+        isVideo: kind === 'video',
+        isPollinations: currentModel.provider === 'pollinations',
+      });
       setHeroMedia({ url: mediaUrl, kind, prompt: state.prompt, modelName: currentModel.name, ratio: state.aspectRatio, durationSeconds: state.durationSeconds });
       setHeroState('ready');
     } catch (e) {
@@ -1980,7 +2043,7 @@ export function PlaygroundShell() {
         </aside>
         <section className={styles.output}>
           <Hero state={heroState} media={heroMedia} error={heroError} />
-          <Gallery onPick={(item) => {
+          <Gallery onPick={(item: GalleryItem) => {
             setModelId(item.modelId);
             setPrompt(item.prompt);
             setHeroMedia({ url: item.url, kind: item.kind, prompt: item.prompt, modelName: item.modelId });
