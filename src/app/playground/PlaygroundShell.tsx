@@ -11,6 +11,7 @@ import { AspectRatioPills } from '@/components/playground/AspectRatioPills';
 import { DurationSlider } from '@/components/playground/DurationSlider';
 import { AdvancedPanel } from '@/components/playground/AdvancedPanel';
 import { GenerateButton } from '@/components/playground/GenerateButton';
+import { MobileBar } from '@/components/playground/MobileBar';
 import { Hero, type HeroMedia } from '@/components/playground/Hero';
 import { Gallery } from '@/components/playground/Gallery';
 import { usePlaygroundState } from '@/hooks/usePlaygroundState';
@@ -30,6 +31,7 @@ export function PlaygroundShell() {
   const { entries, loading, fallbackActive } = usePlaygroundModels();
   const { pollenKey } = usePollenKey();
   const [enhancing, setEnhancing] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [heroState, setHeroState] = useState<'empty'|'working'|'ready'|'error'>('empty');
   const [heroMedia, setHeroMedia] = useState<HeroMedia | undefined>();
   const [heroError, setHeroError] = useState<string | undefined>();
@@ -118,7 +120,8 @@ export function PlaygroundShell() {
         <div className={styles.logo}><span className={styles.logoDot} aria-hidden /><span>heyhi</span><span className={styles.slash}>/</span><span className={styles.sub}>playground</span></div>
       </header>
       <main className={styles.workspace}>
-        <aside className={styles.params}>
+        <aside className={styles.params + (mobileOpen ? ' ' + styles.paramsMobileOpen : '')}>
+          <button className={styles.paramsClose} onClick={() => setMobileOpen(false)} aria-label="Close settings">✕</button>
           <div className={styles.paramsScroll}>
             <ProviderSwitch />
             <ApiKeyField />
@@ -144,6 +147,7 @@ export function PlaygroundShell() {
           }} />
         </section>
       </main>
+      <MobileBar prompt={state.prompt} onPrompt={setPrompt} onGenerate={onGenerate} onOpenParams={() => setMobileOpen(true)} />
     </div>
   );
 }
