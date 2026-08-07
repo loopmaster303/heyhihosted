@@ -42,6 +42,15 @@ export const translations = {
         'nav.language': 'Sprache',
         'nav.theme': 'App Design',
 
+        // Playground
+        'playground.sidebarLink': 'Playground →',
+        'playground.title': 'Playground',
+        'playground.prunaEmpty': 'Add a Pruna key to unlock 14 Pruna models',
+        'playground.fallbackNotice': 'Offline list — live registry unavailable',
+        'playground.generate': 'Generate',
+        'playground.cancel': 'Cancel',
+        'playground.enhance': 'Enhance',
+
         // Settings & Configuration
         'settings.language': 'Sprache',
         'settings.aiModelText': 'KI Modell (Text)',
@@ -270,6 +279,15 @@ export const translations = {
         'nav.personalization': 'Personalization',
         'nav.language': 'Language',
         'nav.theme': 'App Design',
+
+        // Playground
+        'playground.sidebarLink': 'Playground →',
+        'playground.title': 'Playground',
+        'playground.prunaEmpty': 'Add a Pruna key to unlock 14 Pruna models',
+        'playground.fallbackNotice': 'Offline list — live registry unavailable',
+        'playground.generate': 'Generate',
+        'playground.cancel': 'Cancel',
+        'playground.enhance': 'Enhance',
 
         // Settings & Configuration
         'settings.language': 'Language',

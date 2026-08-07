@@ -1,6 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PromptPanel } from './PromptPanel';
 
+jest.mock('@/components/LanguageProvider', () => ({
+  useLanguage: () => ({ t: (k: string) => k, language: 'en', setLanguage: jest.fn() }),
+}));
+
 describe('PromptPanel', () => {
   it('emits onChange when typing', () => {
     const onChange = jest.fn();

@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from '@/components/LanguageProvider';
 import styles from '../../app/playground/playground.module.css';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function PromptPanel({ value, onChange, onEnhance, enhancing }: Props) {
+  const { t } = useLanguage();
   const disabled = enhancing || value.trim().length === 0;
   return (
     <div className={styles.promptBox}>
@@ -30,7 +32,7 @@ export function PromptPanel({ value, onChange, onEnhance, enhancing }: Props) {
           onClick={onEnhance}
           disabled={disabled}
         >
-          {enhancing ? 'Enhancing…' : 'Enhance'}
+          {enhancing ? 'Enhancing…' : t('playground.enhance')}
         </button>
       </div>
     </div>

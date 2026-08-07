@@ -1,6 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ModelSelect } from './ModelSelect';
 
+jest.mock('@/components/LanguageProvider', () => ({
+  useLanguage: () => ({ t: (k: string) => k, language: 'en', setLanguage: jest.fn() }),
+}));
+
 const entries = [
   { id: 'flux', name: 'Flux', provider: 'pollinations', kind: 'image', supportsReference: false, requiresReference: false, maxImages: 0, unmapped: false } as any,
   { id: 'wan-t2v', name: 'Wan T2V', provider: 'pollinations', kind: 'video', supportsReference: false, requiresReference: false, maxImages: 0, unmapped: false } as any,
@@ -15,6 +19,6 @@ describe('ModelSelect', () => {
   });
   it('shows a fallback warning when fallbackActive', () => {
     render(<ModelSelect entries={entries} mode="t2i" value={null} onChange={() => {}} loading={false} fallbackActive={true} />);
-    expect(screen.getByText(/offline list/i)).toBeInTheDocument();
+    expect(screen.getByText('playground.fallbackNotice')).toBeInTheDocument();
   });
 });
