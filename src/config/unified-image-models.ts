@@ -7,6 +7,19 @@ export type ImageProvider = 'pollinations' | 'pruna';
 export type ImageKind = 'image' | 'video';
 export type ImageCategory = 'Standard' | 'Advanced';
 export type ReferenceMode = 'multi-image' | 'start-frame' | 'start-end-frame';
+export type TemporalControl =
+  | { mode: 'seconds'; min: number; max: number; step: number; options?: number[]; defaultSeconds: number }
+  | {
+      mode: 'frame-backed-seconds';
+      fps: number;
+      minFrames: number;
+      maxFrames: number;
+      secondOptions: number[];
+      defaultSeconds: number;
+    }
+  | { mode: 'speech-driven' }
+  | { mode: 'source-video-driven' }
+  | { mode: 'fixed-frames'; frames: number };
 
 export interface UnifiedImageModel {
   id: string;
@@ -24,6 +37,7 @@ export interface UnifiedImageModel {
   supportsPromptEnhance?: boolean;
   supportsEndFrame?: boolean;
   referenceMode?: ReferenceMode;
+  temporalControl?: TemporalControl;
   durationRange?: {
     min?: number;
     max?: number;
@@ -34,6 +48,34 @@ export interface UnifiedImageModel {
 
 export interface VisualModelVisibilityOptions {
   includeByopHidden?: boolean;
+}
+
+export function getDurationOptionsSeconds(model?: UnifiedImageModel): number[] {
+  const temporalControl = model?.temporalControl;
+  if (temporalControl?.mode === 'seconds') {
+    if (temporalControl.options) return temporalControl.options;
+    const count = Math.floor((temporalControl.max - temporalControl.min) / temporalControl.step) + 1;
+    return Array.from({ length: count }, (_, index) =>
+      temporalControl.min + index * temporalControl.step
+    );
+  }
+  if (temporalControl?.mode === 'frame-backed-seconds') {
+    return temporalControl.secondOptions;
+  }
+  if (temporalControl) return [];
+  return model?.durationRange?.options ?? [];
+}
+
+export function getDefaultDurationSeconds(
+  model?: UnifiedImageModel,
+  legacyConfigDefault?: number,
+): number | undefined {
+  const temporalControl = model?.temporalControl;
+  if (temporalControl?.mode === 'seconds' || temporalControl?.mode === 'frame-backed-seconds') {
+    return temporalControl.defaultSeconds;
+  }
+  if (temporalControl) return undefined;
+  return legacyConfigDefault ?? model?.durationRange?.options?.[0];
 }
 
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
