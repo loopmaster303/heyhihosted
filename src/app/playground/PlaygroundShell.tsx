@@ -44,6 +44,7 @@ export function PlaygroundShell() {
 
   useEffect(() => {
     if (currentModel && state.modelId !== currentModel.id) setModelId(currentModel.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentModel?.id]);
 
   useEffect(() => {
