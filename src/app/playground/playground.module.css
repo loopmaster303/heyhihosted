@@ -364,6 +364,47 @@
   color: hsl(var(--muted-foreground) / 0.6);
 }
 
+/* Generate button: ported from playground/playground-v2.html:590-620 (.generate/.working). */
+.generate {
+  width: 100%;
+  padding: 13px;
+  background: hsl(var(--primary));
+  border: 1px solid hsl(var(--primary));
+  border-radius: var(--radius);
+  color: hsl(var(--primary-foreground));
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 200ms ease, transform 120ms ease, box-shadow 200ms ease;
+  box-shadow: 0 6px 24px hsl(var(--primary) / 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.generate:hover:not(:disabled):not(.working) {
+  box-shadow: 0 8px 32px hsl(var(--primary) / 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.generate:active:not(:disabled):not(.working) {
+  transform: translateY(1px);
+}
+.generate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.generate:focus-visible {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+.generate.working {
+  background: hsl(var(--glass-background) / 0.72);
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  cursor: wait;
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.22);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .logoDot::after {
     display: none;
