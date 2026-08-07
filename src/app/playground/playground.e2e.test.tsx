@@ -100,4 +100,29 @@ describe('playground e2e: generate flow', () => {
     // Hero shows the generated image
     expect(await screen.findByAltText('a red fox')).toBeInTheDocument();
   });
+
+  it('shows a visible error when the generate response is missing videoUrl/imageUrl', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    mockFetchModels();
+    // /api/generate returns JSON without any media URL
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({}),
+    });
+
+    render(<PlaygroundShell />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /choose model/i })).toBeEnabled();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /choose model/i }));
+    fireEvent.click(screen.getAllByRole('button', { name: /flux/i }).slice(-1)[0]);
+    fireEvent.change(screen.getByPlaceholderText(/describe what you want to see/i), { target: { value: 'a red fox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'playground.generate' }));
+
+    // Hero surfaces the guard error instead of saving an undefined URL
+    expect(await screen.findByRole('alert')).toHaveTextContent('generate response missing videoUrl/imageUrl');
+    expect(OutputService.saveGeneratedAsset).not.toHaveBeenCalled();
+  });
 });

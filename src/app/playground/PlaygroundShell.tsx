@@ -36,6 +36,8 @@ export function PlaygroundShell() {
   const [heroMedia, setHeroMedia] = useState<HeroMedia | undefined>();
   const [heroError, setHeroError] = useState<string | undefined>();
   const abortRef = useRef<AbortController | null>(null);
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
 
   const modeEntries = entries.filter((e) => isModelInMode(e, state.mode));
   const currentModel = modeEntries.find((e) => e.id === state.modelId) ?? modeEntries[0];
@@ -49,11 +51,13 @@ export function PlaygroundShell() {
     const presetKeys = Object.keys(getAspectRatioPresetsForModel(currentModel.id));
     const defaultRatio = presetKeys[0] ?? null;
     const defaultDuration = getDefaultDurationSeconds(getUnifiedModel(currentModel.id)) ?? null;
+    const prev = stateRef.current;
     resetForModel({
-      aspectRatio: state.aspectRatio && presetKeys.includes(state.aspectRatio) ? state.aspectRatio : defaultRatio,
-      durationSeconds: state.durationSeconds ?? defaultDuration,
-      uploads: state.uploads.slice(0, currentModel.maxImages),
+      aspectRatio: prev.aspectRatio && presetKeys.includes(prev.aspectRatio) ? prev.aspectRatio : defaultRatio,
+      durationSeconds: prev.durationSeconds ?? defaultDuration,
+      uploads: prev.uploads.slice(0, currentModel.maxImages),
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentModel?.id]);
 
   const onEnhance = async () => {
@@ -85,7 +89,11 @@ export function PlaygroundShell() {
       let kind: 'image' | 'video';
       if (ct.startsWith('application/json')) {
         const data = await res.json();
-        mediaUrl = data.videoUrl ?? data.imageUrl;
+        const candidate = data.videoUrl ?? data.imageUrl;
+        if (typeof candidate !== 'string' || !candidate) {
+          throw new Error('generate response missing videoUrl/imageUrl');
+        }
+        mediaUrl = candidate;
         kind = data.videoUrl ? 'video' : 'image';
       } else {
         const blob = await res.blob();
