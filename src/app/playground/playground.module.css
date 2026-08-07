@@ -257,3 +257,106 @@
     background: hsl(var(--surface-container));
   }
 }
+
+/* ApiKeyField styles */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.keyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.keyInput {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--surface-container));
+  color: hsl(var(--foreground));
+  font-size: 13px;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.keyInput:focus {
+  border-color: hsl(var(--ring));
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  background: transparent;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  color: hsl(var(--foreground));
+  transition: background 150ms ease;
+}
+
+.iconButton:hover {
+  background: hsl(var(--surface-container));
+}
+
+.testButton {
+  padding: 6px 12px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: opacity 150ms ease;
+}
+
+.testButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.testButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.keyStatus {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.keyStatus[data-status="idle"] {
+  display: none;
+}
+
+.keyStatus[data-status="ok"] {
+  background: hsl(142 71% 45%);
+  box-shadow: 0 0 6px hsl(142 71% 45% / 0.5);
+}
+
+.keyStatus[data-status="error"] {
+  background: hsl(var(--destructive));
+  box-shadow: 0 0 6px hsl(var(--destructive) / 0.5);
+}
+
+.keyStatus[data-status="checking"] {
+  background: hsl(var(--primary));
+  animation: pulse 1.2s infinite ease-in-out;
+}
+
