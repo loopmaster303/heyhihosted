@@ -135,6 +135,94 @@
   min-height: 0;
 }
 
+/* Hero content states: ported from playground-v2.html:658-791 (Hero.tsx task).
+   The source drives visibility via [data-state] selectors + opacity/transform
+   transitions; this repo renders states conditionally in React instead, so
+   only the positional/visual rules are ported. */
+.heroEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  color: hsl(var(--muted-foreground));
+}
+
+.heroWorking {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 18px;
+  color: hsl(var(--muted-foreground));
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 2px solid hsl(var(--border));
+  border-top-color: hsl(var(--primary));
+  border-right-color: hsl(var(--primary));
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  box-shadow: 0 0 24px hsl(var(--primary) / 0.22);
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.heroMedia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.frame {
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: hsl(var(--surface-container));
+  border: 1px solid hsl(var(--border));
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 320px;
+  position: relative;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35), 0 0 0 1px hsl(var(--primary) / 0.1);
+}
+.frame img,
+.frame video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: calc(100vh - var(--topbar-height) - var(--gallery-height) - 180px);
+}
+
+.heroMeta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+  padding: 0 6px;
+  max-width: 100%;
+}
+.heroMeta strong {
+  color: hsl(var(--foreground));
+  font-weight: 500;
+}
+.sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: hsl(var(--muted-foreground));
+  flex-shrink: 0;
+}
+
 .gallery {
   border-top: 1px solid hsl(var(--border) / 0.5);
   background: hsl(var(--glass-background) / 0.55);
@@ -240,6 +328,169 @@
     height: auto;
     max-height: none;
   }
+}
+
+/* Slider: ported from playground-v2.html:504-541 (.slider-row/.slider/.slider-value). */
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--accent)) 0%,
+    hsl(var(--accent)) var(--slider-pct, 40%),
+    hsl(var(--border)) var(--slider-pct, 40%),
+    hsl(var(--border)) 100%
+  );
+  border-radius: 2px;
+  outline: none;
+  padding: 0;
+}
+.slider:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: hsl(var(--foreground));
+  cursor: grab;
+  box-shadow: 0 0 0 3px hsl(var(--background)), 0 0 12px hsl(var(--primary) / 0.22);
+  transition: transform 120ms ease;
+}
+.slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.15);
+}
+.slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: hsl(var(--foreground));
+  border: none;
+  cursor: grab;
+  box-shadow: 0 0 0 3px hsl(var(--background)), 0 0 12px hsl(var(--primary) / 0.22);
+}
+.sliderValue {
+  min-width: 42px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--foreground));
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Advanced panel: ported from playground-v2.html:544-580 (.advanced/.advanced-toggle/.advanced-body/.mini-field). */
+.advanced {
+  border-top: 1px solid hsl(var(--border));
+  padding-top: 16px;
+}
+.advancedToggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: hsl(var(--muted-foreground));
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: color 180ms ease;
+}
+.advancedToggle:hover {
+  color: hsl(var(--foreground));
+}
+.chev {
+  display: inline-block;
+  transition: transform 220ms ease;
+}
+.advanced.open .chev {
+  transform: rotate(90deg);
+}
+.advancedBody {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.miniField {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.miniField label {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+}
+.miniField input {
+  width: 96px;
+  padding: 6px 10px;
+  background: hsl(var(--glass-background) / 0.55);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  color: hsl(var(--foreground));
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  transition: border-color 180ms ease;
+}
+.miniField input:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+.miniField input::placeholder {
+  color: hsl(var(--muted-foreground) / 0.6);
+}
+
+/* Generate button: ported from playground/playground-v2.html:590-620 (.generate/.working). */
+.generate {
+  width: 100%;
+  padding: 13px;
+  background: hsl(var(--primary));
+  border: 1px solid hsl(var(--primary));
+  border-radius: var(--radius);
+  color: hsl(var(--primary-foreground));
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 200ms ease, transform 120ms ease, box-shadow 200ms ease;
+  box-shadow: 0 6px 24px hsl(var(--primary) / 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.generate:hover:not(:disabled):not(.working) {
+  box-shadow: 0 8px 32px hsl(var(--primary) / 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.generate:active:not(:disabled):not(.working) {
+  transform: translateY(1px);
+}
+.generate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.generate:focus-visible {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+.generate.working {
+  background: hsl(var(--glass-background) / 0.72);
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  cursor: wait;
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.22);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -637,4 +888,78 @@
   cursor: pointer;
   width: 100%;
   height: 100%;
+}
+
+/* Gallery grid: ported from playground-v2.html:818-891 (.gallery-grid/.gallery-item/
+   .item-scrim/.item-meta/.item-model). item-mode-badge and item-ratio are dropped —
+   this task only renders model name. item-scrim is kept (as .itemScrim) because meta
+   text needs to stay legible over arbitrary thumbnail content. */
+.galleryGrid {
+  padding: 0 16px 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  flex: 1;
+}
+.galleryGrid::-webkit-scrollbar {
+  width: 6px;
+}
+.galleryGrid::-webkit-scrollbar-thumb {
+  background: hsl(var(--surface-container-high));
+  border-radius: 3px;
+}
+
+.galleryItem {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--surface-container));
+  transition: border-color 220ms ease, transform 220ms ease, box-shadow 220ms ease;
+}
+.galleryItem:hover {
+  border-color: hsl(var(--primary) / 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px hsl(var(--primary) / 0.22);
+}
+.galleryItem:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+.galleryItem img,
+.galleryItem video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.itemScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 60%);
+  pointer-events: none;
+}
+
+.itemMeta {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 6px 9px 8px;
+  color: hsl(var(--primary-foreground));
+  font-size: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.itemModel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
 }
