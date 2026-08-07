@@ -742,7 +742,19 @@
 
 .keyStatus[data-status="checking"] {
   background: hsl(var(--primary));
-  animation: pulse 1.2s infinite ease-in-out;
+  animation: keyStatusPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes keyStatusPulse {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.4;
+  }
 }
 
 /* ModelSelect styles */
@@ -823,7 +835,7 @@
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px hsl(var(--foreground) / 0.15);
   max-height: 240px;
   overflow-y: auto;
 }

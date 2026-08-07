@@ -9,6 +9,8 @@ export interface GenerateBody {
   audio?: boolean;
   seed?: number;
   negative_prompt?: string;
+  guidance?: number;
+  steps?: number;
   image?: string | string[];
   srcRefImages?: string[];
   video?: string;
@@ -21,6 +23,10 @@ export function buildGenerateBody(state: PlaygroundState, model: PlaygroundModel
   const seedNum = state.seed.trim() ? parseInt(state.seed.trim(), 10) : NaN;
   if (!Number.isNaN(seedNum)) body.seed = seedNum;
   if (state.negativePrompt.trim()) body.negative_prompt = state.negativePrompt.trim();
+  const guidanceNum = state.guidance.trim() ? Number(state.guidance.trim()) : NaN;
+  if (Number.isFinite(guidanceNum)) body.guidance = guidanceNum;
+  const stepsNum = state.steps.trim() ? parseInt(state.steps.trim(), 10) : NaN;
+  if (Number.isInteger(stepsNum) && stepsNum > 0) body.steps = stepsNum;
   if (state.uploads.length > 0) {
     body.image = state.uploads.length === 1 ? state.uploads[0] : [...state.uploads];
   }

@@ -21,6 +21,14 @@ describe('buildGenerateBody', () => {
     const noSeed = buildGenerateBody(baseState, modelPollen);
     expect(noSeed.seed).toBeUndefined();
   });
+  it('parses guidance and steps as numbers and drops when empty', () => {
+    const withVals = buildGenerateBody({ ...baseState, guidance: '7.5', steps: '30' }, modelPollen);
+    expect(withVals.guidance).toBe(7.5);
+    expect(withVals.steps).toBe(30);
+    const empty = buildGenerateBody(baseState, modelPollen);
+    expect(empty.guidance).toBeUndefined();
+    expect(empty.steps).toBeUndefined();
+  });
 });
 
 describe('buildGenerateHeaders', () => {
