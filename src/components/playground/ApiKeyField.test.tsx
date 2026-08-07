@@ -37,7 +37,7 @@ describe('ApiKeyField', () => {
 
   it('calls connectManual or disconnect for pollinations provider', () => {
     (useProviderMode as jest.Mock).mockReturnValue({ providerMode: 'pollinations', setProviderMode: jest.fn(), prunaAvailable: false });
-    (usePollenKey as jest.Mock).mockReturnValue({ pollenKey: '', connectManual: mockConnectManual, disconnect: mockDisconnect, accountInfo: null, refreshAccount: jest.fn(), isLoadingAccount: false, isConnected: false });
+    (usePollenKey as jest.Mock).mockReturnValue({ pollenKey: 'existing_key', connectManual: mockConnectManual, disconnect: mockDisconnect, accountInfo: null, refreshAccount: jest.fn(), isLoadingAccount: false, isConnected: true });
     render(<ApiKeyField />);
     const input = screen.getByLabelText(/pollinations key/i);
     fireEvent.change(input, { target: { value: 'pk_123' } });
