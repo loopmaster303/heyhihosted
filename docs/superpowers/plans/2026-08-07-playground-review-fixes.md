@@ -2,13 +2,34 @@
 
 **Scope:** 2 Kritisch + 3 Wichtig aus dem Broad-Review vom 2026-08-07. Minor bleiben deferred.
 
-**Worktree:** `/Users/johnmeckel/heyhihosted-playground` — Branch `playground/multimedia`.
+**Worktree:** `/Users/johnmeckel/heyhihosted-playground`
+**Arbeits-Branch:** `playground/multimedia-review-fixes` (Sub-Branch, siehe Prolog).
+**Ziel-Branch für Merge-Back:** `playground/multimedia`.
+
+## Prolog — Isolations-Branch anlegen
+
+**Warum:** Ein externer Claude-Agent committet parallel auf `playground/multimedia`. Fix-Commits müssen isoliert bleiben, damit sie am Ende als atomarer Merge-Commit erkennbar sind und keine fremden Änderungen mit-committed werden.
+
+**Vor dem ersten Worker-Dispatch (Orchestrator führt selbst aus):**
+
+```bash
+cd /Users/johnmeckel/heyhihosted-playground
+git status   # muss clean sein — sonst STOPP, User escalieren
+git fetch    # nur zur Sicherheit, kein Pull
+git checkout -b playground/multimedia-review-fixes
+```
+
+Wenn `git status` nicht clean ist (externer Agent hat unfertige Änderungen liegen): **STOPP**, User escalieren, nicht stashen, nicht wegwerfen.
+
+Alle Fix-Worker arbeiten auf `playground/multimedia-review-fixes`. `git rev-parse HEAD` merken als `SUBBRANCH_BASE` für das spätere Ledger.
 
 ## Orchestrator-Regeln
 
 - Ein Worker pro Fix, Sonnet-5 (`model: "sonnet"` explizit).
 - Nur der einzelne Fix-Abschnitt an den Worker — kein Broad-Review-Report, kein Plan, kein Spec.
-- Fix 1 (K1) fasst 3 Dateien an. Fix 2 (K2) 1 Datei. Fix 3–5 je 1 Datei. Reihenfolge egal, keine Cross-Dependencies.
+- Worker MUSS auf `playground/multimedia-review-fixes` committen (Prolog-Branch). Falls Worker aus Versehen auf `playground/multimedia` committet: sofort `git cherry-pick` auf den Sub-Branch, dann auf `playground/multimedia` per `git reset --hard HEAD~1` zurückrollen — und **nur** wenn dazwischen kein Fremd-Commit reingekommen ist. Sonst User escalieren.
+- **Fix 1 (K1) ist bereits erledigt** (Commit `46aba0c` auf `playground/multimedia`). Section 1 überspringen — Worker startet mit Fix 2.
+- Fix 2 (K2) 1 Datei + 1 neuer Test. Fix 3–5 je 1 Datei. Reihenfolge egal, keine Cross-Dependencies.
 - Task-Reviewer nach jedem Fix: Sonnet-5, prüft NUR das eine Finding + `npm run lint` + betroffene Tests.
 - Max 5 Fix-Rounds pro Task, dann adjudicate.
 
@@ -254,25 +275,50 @@ Alle 4 Test-Cases grün.
 
 ---
 
-## Nach allen 5 Fixes
+## Nach allen 4 offenen Fixes (K1 überspringen)
 
-Vollverifikation:
+Vollverifikation auf `playground/multimedia-review-fixes`:
 
 ```bash
 cd /Users/johnmeckel/heyhihosted-playground
+git branch --show-current   # muss playground/multimedia-review-fixes sein
 npm run lint
 CI=1 npm test -- --runInBand src/app/playground/ src/components/playground/ src/hooks/useGalleryAssets src/hooks/usePlaygroundState.test.ts src/hooks/usePlaygroundModels.test.ts src/lib/playground/ src/app/api/generate/
 ```
 
-Beides grün → Ledger-Eintrag in `.superpowers/sdd/2026-08-07-multimedia-playground/progress.md`:
+Beides grün → **Epilog: Merge-Back auf `playground/multimedia`.**
+
+## Epilog — Merge-Back
+
+**Voraussetzung:** externer Claude-Agent hat pausiert (User bestätigt explizit). Ohne diese Bestätigung: STOPP, warten.
+
+```bash
+cd /Users/johnmeckel/heyhihosted-playground
+git log --oneline playground/multimedia..playground/multimedia-review-fixes   # muss die neuen Fix-Commits zeigen
+git checkout playground/multimedia
+git pull   # nur falls externer Agent Commits gepusht hat (rebase-frei, merge nur wenn nötig)
+git merge --no-ff playground/multimedia-review-fixes -m "merge(playground): broad-review fixes K2/W1/W2/W5"
+npm run lint && CI=1 npm test -- --runInBand src/
+```
+
+Konflikt wahrscheinlich? Nein — Fix 2 touchesnur `src/hooks/useGalleryAssets.ts` (kaum aktiv), Fix 3/4 nur `src/app/playground/PlaygroundShell.tsx` (Wire-Datei — der externe Agent arbeitet vermutlich woanders). Fix 5 ist eine neue Datei (`PlaygroundShell.test.tsx`). Wenn Konflikt: **auflösen**, nicht `--abort`.
+
+Merge grün → Sub-Branch löschen:
+
+```bash
+git branch -d playground/multimedia-review-fixes
+```
+
+Dann Ledger-Eintrag in `.superpowers/sdd/2026-08-07-multimedia-playground/progress.md`:
 
 ```
-Broad-review fixes (Tasks 1-21 review, 2026-08-07): complete (commits BASE7..HEAD7)
-- K1: guidance/steps end-to-end (builder + Zod + tests)
-- K2: useGalleryAssets excludes __playground__ sentinel
-- W1: reset-effect reads state via ref (no stale-read)
-- W2: onGenerate guards against missing videoUrl/imageUrl
-- W5: PlaygroundShell smoke-test
+Broad-review fixes (Tasks 1-21 review, 2026-08-07): complete
+- K1: guidance/steps end-to-end — pre-existing in 46aba0c on playground/multimedia
+- K2 + W1 + W2 + W5: sub-branch playground/multimedia-review-fixes, merged --no-ff as MERGE_SHA7
+  - K2: useGalleryAssets excludes __playground__ sentinel
+  - W1: reset-effect reads state via ref (no stale-read)
+  - W2: onGenerate guards against missing videoUrl/imageUrl
+  - W5: PlaygroundShell smoke-test
 Deferred minors: M1 --surface-container-highest, M2 dead sourceVideo, M3 silent onEnhance error, M4 stale heroError on gallery pick, M5 dead srcRefImages type field
 ```
 
