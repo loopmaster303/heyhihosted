@@ -8,13 +8,14 @@ import styles from '../../app/playground/playground.module.css';
 export function ApiKeyField() {
   const { providerMode } = useProviderMode();
   const { pollenKey, connectManual, disconnect } = usePollenKey();
-  const [prunaKey, setPrunaKeyLocal] = useState<string>('');
+  const [prunaKey, setPrunaKeyLocal] = useState<string>(() =>
+    typeof window === 'undefined' ? '' : (localStorage.getItem('prunaApiKey') ?? '')
+  );
   const [status, setStatus] = useState<'idle' | 'ok' | 'error' | 'checking'>('idle');
   const [reveal, setReveal] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    setPrunaKeyLocal(localStorage.getItem('prunaApiKey') ?? '');
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'prunaApiKey') setPrunaKeyLocal(e.newValue ?? '');
     };
