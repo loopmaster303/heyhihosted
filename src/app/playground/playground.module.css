@@ -1,0 +1,214 @@
+/*
+ * Structural layout ported from playground/playground-v2.html:159-1078.
+ * Colors/fonts/radii map to hey.hi tokens in src/app/globals.css (HSL triplets,
+ * consumed via hsl(var(--x))) instead of the iris palette — see task-1 mapping.
+ * Only selectors actually used by PlaygroundShell.tsx are included; the source's
+ * resize divider, hero/gallery content states, and mobile input bar are not
+ * rendered yet, so their CSS is left for the tasks that add those elements.
+ */
+
+.app {
+  --topbar-height: 44px;
+  --params-width: 340px;
+  --gallery-height: 220px;
+
+  display: grid;
+  grid-template-rows: var(--topbar-height) 1fr;
+  height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  background: hsl(var(--glass-background) / 0.55);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  position: relative;
+  z-index: 10;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+}
+
+.logoDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: hsl(var(--accent));
+  box-shadow: 0 0 12px hsl(var(--primary) / 0.22);
+  position: relative;
+}
+.logoDot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid hsl(var(--accent));
+  opacity: 0.4;
+  animation: pulse 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+@keyframes pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.5;
+  }
+  70% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.slash {
+  color: hsl(var(--muted-foreground) / 0.6);
+  font-weight: 300;
+}
+.sub {
+  color: hsl(var(--muted-foreground));
+  font-weight: 400;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: var(--params-width) 1fr;
+  min-height: 0;
+}
+
+.params {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: hsl(var(--glass-background) / 0.55);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border-right: 1px solid hsl(var(--border) / 0.5);
+  box-shadow: inset -1px 0 0 hsl(var(--border));
+  position: relative;
+}
+
+.paramsScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.paramsScroll::-webkit-scrollbar {
+  width: 8px;
+}
+.paramsScroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--surface-container-high));
+  border-radius: 4px;
+}
+.paramsScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.output {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.hero {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.gallery {
+  border-top: 1px solid hsl(var(--border) / 0.5);
+  background: hsl(var(--glass-background) / 0.55);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  display: flex;
+  flex-direction: column;
+  height: var(--gallery-height);
+  min-height: 0;
+}
+
+@media (max-width: 960px) {
+  .app {
+    --params-width: 300px;
+    --gallery-height: 190px;
+  }
+}
+
+/* Mobile bottom-sheet: params becomes a full-screen overlay hidden by default.
+   A later task wires the toggle that applies .paramsMobileOpen. */
+@media (max-width: 720px) {
+  .app {
+    --gallery-height: auto;
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .params {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: hsl(var(--glass-background) / 0.72);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+  }
+  .paramsMobileOpen {
+    display: flex;
+  }
+
+  .output {
+    grid-template-rows: auto auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  .hero {
+    min-height: 55vh;
+    padding: 18px;
+  }
+
+  .gallery {
+    height: auto;
+    max-height: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logoDot::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .params,
+  .topbar,
+  .gallery {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: hsl(var(--surface-container));
+  }
+}
