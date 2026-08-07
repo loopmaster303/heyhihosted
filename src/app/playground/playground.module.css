@@ -374,8 +374,8 @@
 
 .warn {
   font-size: 11px;
-  color: hsl(var(--warning, 38 92% 50%));
-  background: hsl(var(--warning, 38 92% 50%) / 0.1);
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
   padding: 4px 8px;
   border-radius: var(--radius);
   margin: 0;
