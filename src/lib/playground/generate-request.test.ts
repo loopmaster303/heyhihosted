@@ -15,6 +15,10 @@ describe('buildGenerateBody', () => {
     const body = buildGenerateBody(baseState, modelPollen);
     expect(body.image).toBeUndefined();
   });
+  it('omits image for models without reference support even when uploads exist', () => {
+    const body = buildGenerateBody({ ...baseState, uploads: ['a'] }, modelPollen);
+    expect(body.image).toBeUndefined();
+  });
   it('parses seed as number and drops it when empty', () => {
     const withSeed = buildGenerateBody({ ...baseState, seed: '42' }, modelPollen);
     expect(withSeed.seed).toBe(42);
