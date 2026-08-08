@@ -27,7 +27,7 @@ export function buildGenerateBody(state: PlaygroundState, model: PlaygroundModel
   if (Number.isFinite(guidanceNum)) body.guidance = guidanceNum;
   const stepsNum = state.steps.trim() ? parseInt(state.steps.trim(), 10) : NaN;
   if (Number.isInteger(stepsNum) && stepsNum > 0) body.steps = stepsNum;
-  if (state.uploads.length > 0) {
+  if (model.supportsReference && state.uploads.length > 0) {
     body.image = state.uploads.length === 1 ? state.uploads[0] : [...state.uploads];
   }
   if (state.sourceVideo) body.video = state.sourceVideo;
