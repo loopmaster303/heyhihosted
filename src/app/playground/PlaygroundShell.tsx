@@ -138,7 +138,6 @@ export function PlaygroundShell() {
 
   const sidebarProps = {
     state, entries, currentModel, loading, fallbackActive,
-    onOpenSettings: () => { setSettingsOpen(true); setDrawerOpen(false); },
     onMode: setMode,
     onModel: setModelId,
     onAspectRatio: setAspectRatio,

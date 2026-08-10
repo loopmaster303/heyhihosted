@@ -28,7 +28,6 @@ export interface PlaygroundSidebarProps {
   currentModel?: PlaygroundModelEntry;
   loading: boolean;
   fallbackActive: boolean;
-  onOpenSettings: () => void;
   onMode: (m: PlaygroundMode) => void;
   onModel: (id: string) => void;
   onAspectRatio: (r: string) => void;
@@ -44,7 +43,6 @@ export function PlaygroundSidebarContent({
   currentModel,
   loading,
   fallbackActive,
-  onOpenSettings,
   onMode,
   onModel,
   onAspectRatio,
@@ -58,7 +56,7 @@ export function PlaygroundSidebarContent({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3.5">
       <Group label="Provider">
-        <ProviderSelect onOpenSettings={onOpenSettings} />
+        <ProviderSelect />
       </Group>
 
       <Group label="Modus">

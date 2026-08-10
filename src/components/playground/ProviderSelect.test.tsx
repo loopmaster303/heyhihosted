@@ -1,28 +1,5 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ProviderSelect } from './ProviderSelect';
-
-jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button {...props}>{children}</button>
-  ),
-}));
-
-jest.mock('@/components/ui/dropdown-menu', () => ({
-  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuItem: ({
-    children,
-    onClick,
-    ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button onClick={onClick} {...props}>
-      {children}
-    </button>
-  ),
-  DropdownMenuSeparator: () => <div />,
-}));
 
 jest.mock('lucide-react', () => new Proxy({}, {
   get: (_target, prop) => {
@@ -32,64 +9,93 @@ jest.mock('lucide-react', () => new Proxy({}, {
   },
 }));
 
-jest.mock('@/hooks/useProviderMode', () => ({ useProviderMode: jest.fn() }));
-jest.mock('@/hooks/useHasPollenKey', () => ({ useHasPollenKey: jest.fn() }));
-jest.mock('@/hooks/useHasPrunaKey', () => ({ useHasPrunaKey: jest.fn() }));
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button {...props}>{children}</button>
+  ),
+}));
 
+jest.mock('@/components/ui/input', () => ({
+  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+}));
+
+jest.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuItem: ({ children, onSelect, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { onSelect?: () => void }) => (
+    <button onClick={onSelect} {...props}>{children}</button>
+  ),
+}));
+
+jest.mock('@/hooks/useProviderMode', () => ({ useProviderMode: jest.fn() }));
+jest.mock('@/hooks/usePollenKey', () => ({ usePollenKey: jest.fn() }));
+jest.mock('@/hooks/usePrunaKey', () => ({ usePrunaKey: jest.fn() }));
+
+import { ProviderSelect } from './ProviderSelect';
 import { useProviderMode } from '@/hooks/useProviderMode';
-import { useHasPollenKey } from '@/hooks/useHasPollenKey';
-import { useHasPrunaKey } from '@/hooks/useHasPrunaKey';
+import { usePollenKey } from '@/hooks/usePollenKey';
+import { usePrunaKey } from '@/hooks/usePrunaKey';
+
+const connectManual = jest.fn();
+const prunaConnect = jest.fn();
+
+function setup({
+  providerMode = 'pollinations',
+  pollenConnected = false,
+  prunaConnected = false,
+}: { providerMode?: string; pollenConnected?: boolean; prunaConnected?: boolean } = {}) {
+  (useProviderMode as jest.Mock).mockReturnValue({
+    providerMode,
+    setProviderMode: jest.fn(),
+    prunaAvailable: true,
+  });
+  (usePollenKey as jest.Mock).mockReturnValue({
+    pollenKey: pollenConnected ? 'pk-live' : '',
+    isConnected: pollenConnected,
+    connectManual,
+    disconnect: jest.fn(),
+  });
+  (usePrunaKey as jest.Mock).mockReturnValue({
+    prunaKey: prunaConnected ? 'pr-live' : '',
+    isConnected: prunaConnected,
+    connect: prunaConnect,
+    disconnect: jest.fn(),
+  });
+  render(<ProviderSelect />);
+}
 
 describe('ProviderSelect', () => {
-  const mockSetProviderMode = jest.fn();
-  const mockOnOpenSettings = jest.fn();
+  beforeEach(() => jest.clearAllMocks());
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+  it('shows only the status lamp when the provider is connected', () => {
+    setup({ pollenConnected: true });
+    expect(screen.queryByLabelText('Pollen-Key')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Verbinden' })).not.toBeInTheDocument();
   });
 
-  it('does not show settings link when selected provider has a key', () => {
-    (useProviderMode as jest.Mock).mockReturnValue({
-      providerMode: 'pollinations',
-      setProviderMode: mockSetProviderMode,
-      prunaAvailable: false,
-    });
-    (useHasPollenKey as jest.Mock).mockReturnValue(true);
-    (useHasPrunaKey as jest.Mock).mockReturnValue(false);
-
-    render(<ProviderSelect onOpenSettings={mockOnOpenSettings} />);
-
-    expect(screen.queryByText('Einstellungen')).not.toBeInTheDocument();
+  it('explains what to do and offers a key field when the provider has no key', () => {
+    setup();
+    expect(screen.getByLabelText('Pollen-Key')).toBeInTheDocument();
+    expect(screen.getByText(/nur die freien Modelle/i)).toBeInTheDocument();
   });
 
-  it('calls onOpenSettings when settings link is clicked for missing key', () => {
-    (useProviderMode as jest.Mock).mockReturnValue({
-      providerMode: 'pruna',
-      setProviderMode: mockSetProviderMode,
-      prunaAvailable: false,
-    });
-    (useHasPollenKey as jest.Mock).mockReturnValue(false);
-    (useHasPrunaKey as jest.Mock).mockReturnValue(false);
-
-    render(<ProviderSelect onOpenSettings={mockOnOpenSettings} />);
-
-    const settingsButton = screen.getByText('Einstellungen');
-    fireEvent.click(settingsButton);
-
-    expect(mockOnOpenSettings).toHaveBeenCalledTimes(1);
+  it('connects the pollen key that was typed inline', () => {
+    setup();
+    fireEvent.change(screen.getByLabelText('Pollen-Key'), { target: { value: 'pk-typed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Verbinden' }));
+    expect(connectManual).toHaveBeenCalledWith('pk-typed');
   });
 
-  it('shows the selected provider name in the trigger', () => {
-    (useProviderMode as jest.Mock).mockReturnValue({
-      providerMode: 'pollinations',
-      setProviderMode: mockSetProviderMode,
-      prunaAvailable: false,
-    });
-    (useHasPollenKey as jest.Mock).mockReturnValue(true);
-    (useHasPrunaKey as jest.Mock).mockReturnValue(false);
+  it('routes the inline key to Pruna when Pruna is the active provider', () => {
+    setup({ providerMode: 'pruna' });
+    fireEvent.change(screen.getByLabelText('Pruna-Key'), { target: { value: 'pr-typed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Verbinden' }));
+    expect(prunaConnect).toHaveBeenCalledWith('pr-typed');
+  });
 
-    render(<ProviderSelect onOpenSettings={mockOnOpenSettings} />);
-
-    expect(screen.getAllByText('Pollinations')).toHaveLength(2);
+  it('marks a keyless provider in the dropdown as needing a key', () => {
+    setup({ pollenConnected: true });
+    expect(screen.getByText('Benötigt Key in Settings')).toBeInTheDocument();
   });
 });

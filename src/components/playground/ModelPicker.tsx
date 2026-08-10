@@ -47,6 +47,12 @@ export function ModelPicker({ entries, mode, value, onChange, loading, fallbackA
 
   const currentIsFree = current ? entryIsFree(current) : false;
 
+  // An empty list means different things per provider: Pruna is key-gated as a
+  // whole, while Pollinations just has nothing matching this mode. Never show
+  // the Pruna wording while Pollinations is the active provider.
+  const emptyLabel =
+    entries.length === 0 ? 'Keine Modelle verfügbar' : 'Kein Modell für diesen Modus';
+
   return (
     <div className="flex flex-col gap-2">
       {fallbackActive && (
@@ -62,7 +68,7 @@ export function ModelPicker({ entries, mode, value, onChange, loading, fallbackA
             className="w-full justify-start gap-2 h-auto py-2.5 text-[12.5px]"
             disabled={loading || filtered.length === 0}
           >
-            <span>{current?.name ?? (loading ? 'Lädt…' : t('playground.prunaEmpty'))}</span>
+            <span>{current?.name ?? (loading ? 'Lädt…' : emptyLabel)}</span>
             <span className="flex-1" />
             {current && <Badge variant="secondary">{currentIsFree ? 'frei' : 'Key'}</Badge>}
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />

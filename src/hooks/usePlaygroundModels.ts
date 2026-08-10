@@ -40,6 +40,13 @@ export function usePlaygroundModels(): UsePlaygroundModelsResult {
       return () => {};
     }
 
+    const freeFallback = () =>
+      buildPollinationsEntries(
+        UNIFIED_IMAGE_MODELS
+          .filter((m) => m.provider === 'pollinations' && m.enabled && m.isFree)
+          .map((m) => ({ id: m.id, outputModalities: [m.kind], inputModalities: m.supportsReference ? ['text', 'image'] : ['text'], name: m.name }))
+      );
+
     (async () => {
       try {
         const headers: Record<string, string> = {};
@@ -49,18 +56,21 @@ export function usePlaygroundModels(): UsePlaygroundModelsResult {
         const raw = (await res.json()) as PollinationsLiveModel[] | { data: PollinationsLiveModel[] };
         const live = Array.isArray(raw) ? raw : raw.data ?? [];
         if (cancelled) return;
-        setEntries(buildPollinationsEntries(live));
+        const built = buildPollinationsEntries(live);
+        // Upstream can answer 200 with nothing usable — typically when no key is
+        // present. Fall back to the free registry so the playground always has a
+        // default model instead of an empty picker.
+        if (built.length === 0) {
+          setFallbackActive(true);
+          setEntries(freeFallback());
+          return;
+        }
+        setEntries(built);
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : 'Failed to load models');
         setFallbackActive(true);
-        setEntries(
-          buildPollinationsEntries(
-            UNIFIED_IMAGE_MODELS
-              .filter((m) => m.provider === 'pollinations' && m.enabled && m.isFree)
-              .map((m) => ({ id: m.id, outputModalities: [m.kind], inputModalities: m.supportsReference ? ['text', 'image'] : ['text'], name: m.name }))
-          ),
-        );
+        setEntries(freeFallback());
       } finally {
         if (!cancelled) setLoading(false);
       }
