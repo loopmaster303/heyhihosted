@@ -1,26 +1,67 @@
 /**
  * Integration smoke test for PlaygroundShell — the only wiring layer of the
- * Playground. Covers: loading state, presence of every core component, and
- * the generate gating (disabled without prompt, enabled after typing).
- * No DOM snapshots; no generate-flow assertions (that's playground.e2e.test.tsx).
+ * Playground. Covers the loading state, the presence of every core control,
+ * and the send gating. The generate flow itself lives in playground.e2e.test.tsx.
  *
- * Mocking follows the repo's established conventions (see
- * ProviderSwitch.test.tsx / playground.e2e.test.tsx): the model/key/provider
- * hooks are stubbed with the documented shapes, the database module is
- * bypassed for Gallery, and usePlaygroundState runs REAL so the shell's
- * actual wiring is exercised.
+ * usePlaygroundState runs for real so the shell's actual wiring is exercised.
+ * Everything that reaches for ESM-only packages (lucide, the Radix/vaul/framer
+ * based ui components) is stubbed — jest does not transform node_modules.
  */
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { PlaygroundShell } from './PlaygroundShell';
+
+jest.mock('lucide-react', () => new Proxy({}, {
+  get: (_target, prop) => {
+    const Icon = (iconProps: React.SVGProps<SVGSVGElement>) => <svg data-icon={String(prop)} {...iconProps} />;
+    Icon.displayName = String(prop);
+    return Icon;
+  },
+}));
+
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button {...props}>{children}</button>
+  ),
+}));
+
+jest.mock('@/components/ui/badge', () => ({
+  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+}));
+
+jest.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  DropdownMenuItem: ({ children, onSelect, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { onSelect?: () => void }) => (
+    <button onClick={onSelect} {...props}>{children}</button>
+  ),
+}));
+
+jest.mock('@/components/ui/drawer', () => ({
+  Drawer: ({ children, open }: { children: React.ReactNode; open?: boolean }) => (open ? <div>{children}</div> : null),
+  DrawerContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DrawerTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+}));
+
+jest.mock('@/components/ui/popup', () => ({
+  ModalPopup: ({ children, open }: { children: React.ReactNode; open?: boolean }) => (open ? <div>{children}</div> : null),
+}));
+
+jest.mock('@/components/ui/slider', () => ({
+  Slider: (props: Record<string, unknown>) => <input type="range" {...props} />,
+}));
 
 jest.mock('@/components/LanguageProvider', () => ({
-  useLanguage: () => ({ t: (k: string) => k, language: 'en', setLanguage: jest.fn() }),
+  useLanguage: () => ({ t: (k: string) => k, language: 'de', setLanguage: jest.fn() }),
 }));
 
 jest.mock('@/hooks/usePlaygroundModels', () => ({ usePlaygroundModels: jest.fn() }));
 jest.mock('@/hooks/usePollenKey', () => ({ usePollenKey: jest.fn() }));
 jest.mock('@/hooks/useProviderMode', () => ({ useProviderMode: jest.fn() }));
+jest.mock('@/hooks/useHasPollenKey', () => ({ useHasPollenKey: () => true }));
+jest.mock('@/hooks/useHasPrunaKey', () => ({ useHasPrunaKey: () => false }));
 
 jest.mock('@/lib/services/database', () => {
   const rows = [
@@ -32,7 +73,7 @@ jest.mock('@/lib/services/database', () => {
         where: (col: string) => ({
           equals: (val: string) => ({
             reverse: () => ({
-              sortBy: async (_field: string) => (col === 'conversationId' && val === '__playground__') ? rows : [],
+              sortBy: async () => (col === 'conversationId' && val === '__playground__' ? rows : []),
             }),
           }),
         }),
@@ -41,6 +82,7 @@ jest.mock('@/lib/services/database', () => {
   };
 });
 
+import { PlaygroundShell } from './PlaygroundShell';
 import { usePlaygroundModels } from '@/hooks/usePlaygroundModels';
 import { usePollenKey } from '@/hooks/usePollenKey';
 import { useProviderMode } from '@/hooks/useProviderMode';
@@ -56,7 +98,7 @@ const DUMMY_MODEL = {
   unmapped: false,
 };
 
-function mockHooks(overrides: Partial<ReturnType<typeof usePlaygroundModels>> = {}) {
+function mockHooks(overrides: Record<string, unknown> = {}) {
   (usePlaygroundModels as jest.Mock).mockReturnValue({
     entries: [DUMMY_MODEL],
     loading: false,
@@ -67,6 +109,7 @@ function mockHooks(overrides: Partial<ReturnType<typeof usePlaygroundModels>> = 
   });
   (usePollenKey as jest.Mock).mockReturnValue({
     pollenKey: null,
+    isConnected: false,
     connectManual: jest.fn(),
     disconnect: jest.fn(),
   });
@@ -86,60 +129,53 @@ describe('PlaygroundShell smoke', () => {
 
   it('renders without crashing while the model list is loading', () => {
     mockHooks({ entries: [], loading: true });
-
     render(<PlaygroundShell />);
 
-    expect(screen.getByRole('tab', { name: /pollinations/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /choose model/i })).toBeDisabled();
-    expect(screen.getByText('Loading…')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'playground.generate' })).toBeDisabled();
+    expect(screen.getByText('Lädt…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Senden' })).toBeDisabled();
   });
 
-  it('renders all core components with a loaded model', async () => {
+  it('renders every core control once a model is loaded', async () => {
     render(<PlaygroundShell />);
 
-    // ProviderSwitch
-    expect(screen.getByRole('tablist', { name: /provider/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /pollinations/i })).toHaveAttribute('aria-selected', 'true');
-    // ApiKeyField
-    expect(screen.getByLabelText(/pollinations key/i)).toBeInTheDocument();
-    // ModeSwitch
-    expect(screen.getByRole('tablist', { name: /mode/i })).toBeInTheDocument();
+    // Provider picker
+    expect(screen.getAllByText('Pollinations').length).toBeGreaterThan(0);
+    // Mode tabs
     expect(screen.getByRole('tab', { name: 't2i' })).toHaveAttribute('aria-selected', 'true');
-    // ModelSelect with the dummy model
-    expect(screen.getByRole('button', { name: /choose model/i })).toBeEnabled();
-    expect(screen.getByText('Dummy Flux')).toBeInTheDocument();
-    // PromptPanel
-    expect(screen.getByPlaceholderText(/describe what you want to see/i)).toBeInTheDocument();
-    // Hero (empty state)
-    expect(screen.getByText(/ready to generate/i)).toBeInTheDocument();
-    // Gallery renders its live query result
-    expect(await screen.findByRole('button', { name: /gflux/i })).toBeInTheDocument();
-    // MobileBar
-    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/quick prompt/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    // Model picker resolved the dummy entry
+    expect(screen.getAllByText('Dummy Flux').length).toBeGreaterThan(0);
+    // Prompt bar
+    expect(screen.getByLabelText('Prompt')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Senden' })).toBeInTheDocument();
+    // Topbar actions
+    expect(screen.getByRole('button', { name: 'Einstellungen' })).toBeInTheDocument();
+    // Gallery renders the stored row
+    expect(await screen.findByText('gflux')).toBeInTheDocument();
   });
 
-  it('keeps Generate disabled while the prompt is empty', async () => {
+  it('keeps Senden disabled while the prompt is empty', async () => {
     render(<PlaygroundShell />);
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /choose model/i })).toBeEnabled();
-    });
-    expect(screen.getByRole('button', { name: 'playground.generate' })).toBeDisabled();
+    await waitFor(() => expect(screen.getAllByText('Dummy Flux').length).toBeGreaterThan(0));
+    expect(screen.getByRole('button', { name: 'Senden' })).toBeDisabled();
   });
 
-  it('enables Generate after typing a prompt', async () => {
+  it('enables Senden after typing a prompt', async () => {
+    const user = userEvent.setup();
+    render(<PlaygroundShell />);
+    await waitFor(() => expect(screen.getAllByText('Dummy Flux').length).toBeGreaterThan(0));
+
+    await user.type(screen.getByLabelText('Prompt'), 'ein roter Fuchs');
+
+    expect(screen.getByRole('button', { name: 'Senden' })).toBeEnabled();
+  });
+
+  it('opens the settings dialog from the topbar', async () => {
     const user = userEvent.setup();
     render(<PlaygroundShell />);
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /choose model/i })).toBeEnabled();
-    });
-    expect(screen.getByRole('button', { name: 'playground.generate' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Einstellungen' }));
 
-    await user.type(screen.getByPlaceholderText(/describe what you want to see/i), 'a red fox');
-
-    expect(screen.getByRole('button', { name: 'playground.generate' })).toBeEnabled();
+    expect(screen.getByRole('heading', { name: 'Einstellungen' })).toBeInTheDocument();
   });
 });

@@ -1,22 +1,17 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
-import styles from './playground.module.css';
-import { ProviderSwitch } from '@/components/playground/ProviderSwitch';
-import { ApiKeyField } from '@/components/playground/ApiKeyField';
-import { ModeSwitch } from '@/components/playground/ModeSwitch';
-import { ModelSelect } from '@/components/playground/ModelSelect';
-import { PromptPanel } from '@/components/playground/PromptPanel';
-import { ReferenceUploads } from '@/components/playground/ReferenceUploads';
-import { AspectRatioPills } from '@/components/playground/AspectRatioPills';
-import { DurationSlider } from '@/components/playground/DurationSlider';
-import { AdvancedPanel } from '@/components/playground/AdvancedPanel';
-import { GenerateButton } from '@/components/playground/GenerateButton';
-import { MobileBar } from '@/components/playground/MobileBar';
-import { Hero, type HeroMedia } from '@/components/playground/Hero';
-import { Gallery } from '@/components/playground/Gallery';
+import { Menu, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
+import { PlaygroundSidebar, PlaygroundSidebarContent } from '@/components/playground/PlaygroundSidebar';
+import { SettingsDialog } from '@/components/playground/SettingsDialog';
+import { PromptBar } from '@/components/playground/PromptBar';
+import { Gallery, type GalleryItem } from '@/components/playground/Gallery';
+import { MetaRail } from '@/components/playground/MetaRail';
 import { usePlaygroundState } from '@/hooks/usePlaygroundState';
 import { usePlaygroundModels } from '@/hooks/usePlaygroundModels';
 import { usePollenKey } from '@/hooks/usePollenKey';
+import { useProviderMode } from '@/hooks/useProviderMode';
 import { buildGenerateBody, buildGenerateHeaders } from '@/lib/playground/generate-request';
 import { isModelInMode } from '@/lib/playground/mode-mapping';
 import { getDefaultDurationSeconds, getUnifiedModel } from '@/config/unified-image-models';
@@ -24,17 +19,24 @@ import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-prese
 import { BlobManager } from '@/lib/blob-manager';
 import { OutputService } from '@/lib/services/output-service';
 import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
-import type { GalleryItem } from '@/components/playground/Gallery';
 
 export function PlaygroundShell() {
-  const { state, setMode, setModelId, setPrompt, setAspectRatio, setDurationSeconds, setAdvanced, setUploads, resetForModel } = usePlaygroundState();
+  const {
+    state, setMode, setModelId, setPrompt, setAspectRatio,
+    setDurationSeconds, setAdvanced, setUploads, resetForModel,
+  } = usePlaygroundState();
   const { entries, loading, fallbackActive } = usePlaygroundModels();
   const { pollenKey } = usePollenKey();
+  const { providerMode } = useProviderMode();
+
   const [enhancing, setEnhancing] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [heroState, setHeroState] = useState<'empty'|'working'|'ready'|'error'>('empty');
-  const [heroMedia, setHeroMedia] = useState<HeroMedia | undefined>();
-  const [heroError, setHeroError] = useState<string | undefined>();
+  const [sending, setSending] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selected, setSelected] = useState<GalleryItem | null>(null);
+  const [galleryKey, setGalleryKey] = useState(0);
+  const [error, setError] = useState<string | undefined>();
+
   const abortRef = useRef<AbortController | null>(null);
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
@@ -65,25 +67,37 @@ export function PlaygroundShell() {
     if (!state.prompt.trim()) return;
     setEnhancing(true);
     try {
-      const res = await fetch('/api/enhance-prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: state.prompt }) });
+      const res = await fetch('/api/enhance-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: state.prompt }),
+      });
+      if (!res.ok) throw new Error(`enhance ${res.status}`);
       const data = await res.json();
       if (data?.enhanced) setPrompt(data.enhanced);
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setEnhancing(false);
     }
   };
 
-  const onGenerate = async () => {
+  const onSend = async () => {
     if (!currentModel || !state.prompt.trim()) return;
-    setHeroState('working');
-    setHeroError(undefined);
+    setSending(true);
+    setError(undefined);
     const body = buildGenerateBody(state, currentModel);
     const prunaKey = typeof window !== 'undefined' ? (localStorage.getItem('prunaApiKey') ?? undefined) : undefined;
-    const headers = { 'Content-Type': 'application/json', ...buildGenerateHeaders(pollenKey || undefined, prunaKey || undefined) };
+    const headers = {
+      'Content-Type': 'application/json',
+      ...buildGenerateHeaders(pollenKey || undefined, prunaKey || undefined),
+    };
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     try {
-      const res = await fetch('/api/generate', { method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal });
+      const res = await fetch('/api/generate', {
+        method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal,
+      });
       if (!res.ok) throw new Error(`generate ${res.status}: ${await res.text()}`);
       const ct = res.headers.get('content-type') ?? '';
       let mediaUrl: string;
@@ -109,54 +123,101 @@ export function PlaygroundShell() {
         isVideo: kind === 'video',
         isPollinations: currentModel.provider === 'pollinations',
       });
-      setHeroMedia({ url: mediaUrl, kind, prompt: state.prompt, modelName: currentModel.name, ratio: state.aspectRatio, durationSeconds: state.durationSeconds });
-      setHeroState('ready');
+      setSelected({
+        id: `${Date.now()}`, url: mediaUrl, kind,
+        prompt: state.prompt, modelId: currentModel.id, timestamp: Date.now(),
+      });
+      setGalleryKey((k) => k + 1);
     } catch (e) {
-      if ((e as Error).name === 'AbortError') { setHeroState('empty'); return; }
-      setHeroError((e as Error).message);
-      setHeroState('error');
+      if ((e as Error).name !== 'AbortError') setError((e as Error).message);
     } finally {
       abortRef.current = null;
+      setSending(false);
     }
   };
 
-  const genDisabled = loading || !currentModel || !state.prompt.trim();
-  const genState = heroState === 'working' ? 'working' : (genDisabled ? 'disabled' : 'idle');
+  const sidebarProps = {
+    state, entries, currentModel, loading, fallbackActive,
+    onOpenSettings: () => { setSettingsOpen(true); setDrawerOpen(false); },
+    onMode: setMode,
+    onModel: setModelId,
+    onAspectRatio: setAspectRatio,
+    onUploads: setUploads,
+    onDuration: setDurationSeconds,
+    onAdvanced: setAdvanced,
+  };
 
   return (
-    <div className={styles.app}>
-      <header className={styles.topbar}>
-        <div className={styles.logo}><span className={styles.logoDot} aria-hidden /><span>heyhi</span><span className={styles.slash}>/</span><span className={styles.sub}>playground</span></div>
+    <div className="relative isolate grid h-dvh grid-rows-[46px_1fr] bg-background bg-[radial-gradient(78%_52%_at_10%_-6%,hsl(var(--primary)/0.16),transparent_64%),radial-gradient(62%_48%_at_92%_104%,hsl(325_72%_60%/0.10),transparent_62%)] text-foreground">
+      <header className="flex items-center justify-between bg-glass-background/55 px-3.5 backdrop-blur-2xl">
+        <div className="flex items-center gap-2.5 font-mono text-[13px]">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.6)]" />
+          <span>heyhi</span>
+          <span className="font-light text-muted-foreground/50">/</span>
+          <span className="text-muted-foreground">playground</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost" size="icon" aria-label="Einstellungen"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost" size="icon" aria-label="Menü"
+            className="md:hidden" onClick={() => setDrawerOpen(true)}
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
+        </div>
       </header>
-      <main className={styles.workspace}>
-        <aside className={styles.params + (mobileOpen ? ' ' + styles.paramsMobileOpen : '')}>
-          <button className={styles.paramsClose} onClick={() => setMobileOpen(false)} aria-label="Close settings">✕</button>
-          <div className={styles.paramsScroll}>
-            <ProviderSwitch />
-            <ApiKeyField />
-            <ModeSwitch value={state.mode} onChange={setMode} />
-            <ModelSelect entries={entries} mode={state.mode} value={state.modelId} onChange={setModelId} loading={loading} fallbackActive={fallbackActive} />
-            <PromptPanel value={state.prompt} onChange={setPrompt} onEnhance={onEnhance} enhancing={enhancing} />
-            {currentModel && <ReferenceUploads model={currentModel} uploads={state.uploads} onChange={setUploads} />}
-            {currentModel && <AspectRatioPills modelId={currentModel.id} value={state.aspectRatio} onChange={setAspectRatio} />}
-            {currentModel && <DurationSlider modelId={currentModel.id} value={state.durationSeconds} onChange={setDurationSeconds} />}
-            {currentModel && <AdvancedPanel modelId={currentModel.id} values={{ seed: state.seed, negativePrompt: state.negativePrompt, guidance: state.guidance, steps: state.steps }} onChange={setAdvanced} />}
+
+      <div className="grid min-h-0 grid-cols-1 md:grid-cols-[300px_1fr]">
+        <PlaygroundSidebar {...sidebarProps} />
+
+        <main className="grid min-h-0 min-w-0 grid-rows-[1fr_auto]">
+          <div className="grid min-h-0 grid-cols-1 xl:grid-cols-[1fr_296px]">
+            <Gallery
+              selectedId={selected?.id ?? null}
+              onSelect={setSelected}
+              refreshKey={galleryKey}
+            />
+            <div className="hidden min-h-0 xl:block">
+              <MetaRail
+                item={selected}
+                onUseAsReference={(item) => setUploads([...state.uploads, item.url])}
+                onRerun={() => onSend()}
+              />
+            </div>
           </div>
-          <div className={styles.paramsFooter}>
-            <GenerateButton state={genState} onClick={onGenerate} onCancel={() => abortRef.current?.abort()} />
-          </div>
-        </aside>
-        <section className={styles.output}>
-          <Hero state={heroState} media={heroMedia} error={heroError} />
-          <Gallery onPick={(item: GalleryItem) => {
-            setModelId(item.modelId);
-            setPrompt(item.prompt);
-            setHeroMedia({ url: item.url, kind: item.kind, prompt: item.prompt, modelName: item.modelId });
-            setHeroState('ready');
-          }} />
-        </section>
-      </main>
-      <MobileBar prompt={state.prompt} onPrompt={setPrompt} onGenerate={onGenerate} onOpenParams={() => setMobileOpen(true)} />
+
+          {error && (
+            <p role="alert" className="px-4 text-xs text-destructive">{error}</p>
+          )}
+
+          <PromptBar
+            value={state.prompt}
+            onChange={setPrompt}
+            onEnhance={onEnhance}
+            enhancing={enhancing}
+            onSend={onSend}
+            onCancel={() => abortRef.current?.abort()}
+            sending={sending}
+            modelName={currentModel?.name}
+            ratio={state.aspectRatio}
+            providerName={providerMode === 'pruna' ? 'Pruna' : 'Pollinations'}
+          />
+        </main>
+      </div>
+
+      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} direction="left">
+        <DrawerContent className="h-dvh w-[84%] max-w-[310px]">
+          <DrawerTitle className="sr-only">Einstellungen und Parameter</DrawerTitle>
+          <PlaygroundSidebarContent {...sidebarProps} />
+        </DrawerContent>
+      </Drawer>
+
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
