@@ -93,6 +93,33 @@ Fokus sichtbar lassen — kein outline:none ohne Ersatz.
 Schreib die Datei(en) und sonst nichts. Keine Erklärung.
 ```
 
+### Test-Regeln (Pflicht in JEDEM Test, der eine Komponente rendert)
+
+Jest transformiert `node_modules` nicht. `lucide-react` und die Radix-basierten
+shadcn-Komponenten sind ESM und lassen die ganze Suite mit
+`SyntaxError: Cannot use import statement outside a module` platzen.
+Die Fehlermeldung zeigt dabei auf die falsche Zeile — meist auf einen
+shadcn-Import, obwohl `lucide-react` schuld ist.
+
+Deshalb ganz oben in jeden Test, **vor** den Imports der Komponente:
+
+```tsx
+jest.mock('lucide-react', () => new Proxy({}, {
+  get: (_target, prop) => {
+    const Icon = (iconProps: React.SVGProps<SVGSVGElement>) => <svg data-icon={String(prop)} {...iconProps} />;
+    Icon.displayName = String(prop);
+    return Icon;
+  },
+}));
+```
+
+Zusätzlich jede benutzte shadcn-Komponente per `jest.mock` durch schlichte
+DOM-Stellvertreter ersetzen. Vorbild:
+`src/components/chat/input/MobileOptionsMenu.test.tsx`.
+Ein gestubbtes `DropdownMenuContent` muss seine Kinder **immer** rendern,
+sonst sind Menüeinträge nicht abfragbar. `DropdownMenuItem` verdrahtet
+`onSelect` auf `onClick`.
+
 ---
 
 # Tasks
