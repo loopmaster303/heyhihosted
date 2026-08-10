@@ -152,4 +152,19 @@ Der Playground bekommt eine **eigene** Liste. Sie ergibt sich daraus, welche Mod
 
 **Fällt aus dem Playground:** `wan-fast`, `p-image-try-on`, `p-video-avatar`, `p-video-animate`, `p-video-replace`. Die letzten beiden waren die einzigen Abnehmer von `sourceVideo` neben `vace` — das Feld bleibt also allein für `vace` nötig.
 
-**Pollinations** bleibt live geladen. Modelle mit Schema-Eintrag bekommen ihre echten Regler, alle übrigen den konservativen Standard aus Prompt, Seitenverhältnis und — sofern das Modell ihn beachtet — Seed.
+**Pollinations** braucht **kein** handgepflegtes Schema. Die Live-Registry unter `gen.pollinations.ai/image/models` liefert pro Modell bereits alles Nötige — nachgeprüft an der echten Antwort, 54 Modelle, 27 KB, ohne Key abrufbar:
+
+| Feld | Inhalt |
+|---|---|
+| `input_modalities` / `output_modalities` | Modus-Zuordnung |
+| `video_capabilities` | `start_frame`, `end_frame`, `audio_output` |
+| `max_reference_images` | echte Obergrenze — `gptimage` 16, `nanobanana-pro` 14, `klein` 10, `wan-image` 9, `kontext` 1 |
+| `resolutions` | nur bei `veo`, `wan-pro`, `p-video`, `seedance-pro`, `grok-imagine-video-1.5` |
+| `paid_only` | 24 frei, 30 kostenpflichtig |
+| `title`, `aliases`, `brand`, `pricing` | Anzeige |
+
+**Die Endframe-Liste aus der Spezifikation deckt sich exakt mit `video_capabilities`** — `veo`, `seedance-2.0`, `wan-fast`, `wan-pro`. Live gelesen statt in eine Tabelle geschrieben, die veraltet.
+
+**Ein Fehler dabei:** die Registry liefert snake_case, `PollinationsLiveModel` liest camelCase. `input_modalities` und `output_modalities` sind dadurch bei jedem Modell `undefined`, `isVideo` immer falsch. Nur weil die lokale Config als Rückfall dient, fällt das nicht überall auf — für Modelle, die dort fehlen, ist die Einordnung schlicht falsch. Ausserdem verwirft der Typ `max_reference_images`, `video_capabilities`, `resolutions` und `paid_only` komplett.
+
+Handgepflegt bleibt für Pollinations nur, was die Registry **nicht** sagt: die Dauer-Stufen pro Videomodell und die Pixeltabelle fürs Seitenverhältnis.
