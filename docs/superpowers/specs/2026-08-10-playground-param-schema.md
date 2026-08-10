@@ -116,10 +116,40 @@ interface ModelParamSchema {
 
 ---
 
-## 4. Offene Punkte vor der Umsetzung
+## 4. Entscheidungen
 
-1. **Pollinations-Bildseitenverhältnis.** Für Bildmodelle muss aus dem gewählten Verhältnis ein Pixelpaar werden. Braucht eine Tabelle Verhältnis → Breite/Höhe, sinnvollerweise um 1 Megapixel herum.
-2. **Sicherheitsflags.** `safe` und `disable_safety_checker` sind heikel. Vorschlag: vorerst nicht anbieten, Standardverhalten beibehalten.
-3. **LoRA.** `p-image`, `qwen-image`, `wan-t2v` und `wan-i2v` nehmen LoRA-Gewichte per URL. Echtes Profi-Feature, aber eigener Themenblock — Vorschlag: nicht in dieser Runde.
-4. **`num_outputs` bei `wan-image-small`** (bis 4 Bilder pro Lauf) bricht die Annahme „ein Ergebnis pro Generierung" in Galerie und Persistenz.
-5. **Drei nicht abgerufene Pruna-Seiten:** `p-video-animate`, `p-video-replace`, `wan-fast`. Deren Felder sind bisher nur aus `buildInput` erschlossen, nicht aus der Doku belegt.
+1. **Pollinations-Bildseitenverhältnis wird in Pixel übersetzt.** Tabelle Verhältnis → Breite/Höhe, ausgelegt auf rund ein Megapixel: `1:1` 1024×1024, `4:3` 1152×896, `3:4` 896×1152, `16:9` 1344×768, `9:16` 768×1344, `3:2` 1216×832, `2:3` 832×1216, `21:9` 1536×640. Für Videomodelle bleibt `aspectRatio` der Weg, dort aber nur `16:9` und `9:16`.
+
+2. **Sicherheitsfilter werden proaktiv abgeschaltet.** Wo die API es kennt, geht `disable_safety_checker: true` beziehungsweise `disable_safety_filter: true` mit. Pollinations' `safe` bleibt aus. Kein Schalter in der Oberfläche — das ist Standardverhalten, keine Einstellung.
+
+3. **Kein LoRA.** Die Felder bleiben ungenutzt.
+
+4. **Ein Ergebnis pro Lauf.** `num_outputs` bleibt auf 1 und bekommt keine Oberfläche.
+
+5. **Die Modell-Liste des Playgrounds sind genau die dreizehn dokumentierten Modelle.**
+
+## 5. Modell-Liste
+
+Der Playground bekommt eine **eigene** Liste. Sie ergibt sich daraus, welche Modelle einen Schema-Eintrag haben — das Schema ist zugleich die Liste. `PRUNA_MODEL_IDS` bleibt unverändert, weil Chat und Visualize daran hängen.
+
+**Pruna, dreizehn Modelle:**
+
+| Doku | ID bei uns | Status |
+|---|---|---|
+| `z-image-turbo` | `zimage` | vorhanden |
+| `qwen-image` | `qwen-image` | vorhanden |
+| `qwen-image-edit-plus` | `qwen-image-edit-plus` | vorhanden |
+| `wan-image-small` | `wan-image-small` | vorhanden |
+| `wan-t2v` | `wan-t2v` | vorhanden |
+| `wan-i2v` | `wan-i2v` | vorhanden |
+| `vace` | `vace` | vorhanden |
+| `p-image` | `p-image` | vorhanden |
+| `p-image-edit` | `p-image-edit` | vorhanden |
+| `p-image-upscale` | `p-image-upscale` | vorhanden |
+| `p-video` | `p-video` | vorhanden |
+| `p-image-ideogram` | — | **neu anzulegen** |
+| `flux-2-klein-4b` | — | **neu anzulegen** (nicht zu verwechseln mit dem Pollinations-`klein`) |
+
+**Fällt aus dem Playground:** `wan-fast`, `p-image-try-on`, `p-video-avatar`, `p-video-animate`, `p-video-replace`. Die letzten beiden waren die einzigen Abnehmer von `sourceVideo` neben `vace` — das Feld bleibt also allein für `vace` nötig.
+
+**Pollinations** bleibt live geladen. Modelle mit Schema-Eintrag bekommen ihre echten Regler, alle übrigen den konservativen Standard aus Prompt, Seitenverhältnis und — sofern das Modell ihn beachtet — Seed.
