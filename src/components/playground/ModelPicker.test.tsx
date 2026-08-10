@@ -62,6 +62,9 @@ const entries = [
     requiresReference: false,
     maxImages: 0,
     unmapped: false,
+    supportsEndFrame: false,
+    supportsAudio: false,
+    paidOnly: true,
   },
   {
     id: 'grok-imagine-pro',
@@ -72,6 +75,9 @@ const entries = [
     requiresReference: false,
     maxImages: 1,
     unmapped: false,
+    supportsEndFrame: false,
+    supportsAudio: false,
+    paidOnly: false,
   },
 ];
 

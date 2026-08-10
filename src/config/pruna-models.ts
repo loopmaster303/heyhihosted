@@ -54,6 +54,7 @@ export interface PrunaFieldInput {
   frameNum?: number;
   speedMode?: string;
   sampleSteps?: number;
+  params?: Record<string, string | number | boolean>;
 }
 
 /** HeyHi IDs routed through Pruna. */
@@ -74,6 +75,8 @@ export const PRUNA_MODEL_IDS = [
   'p-video-animate',
   'p-video-replace',
   'wan-image-small',
+  'p-image-ideogram',
+  'p-flux-klein',
 ] as const;
 
 const IMAGE_ASPECT_RATIOS = new Set(['1:1', '3:4', '4:3', '16:9', '9:16', '3:2', '2:3']);
@@ -232,6 +235,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       output_quality: 95,
     },
     buildInput: (f) => {
+
       const input: Record<string, unknown> = {
         prompt: f.prompt,
         go_fast: true,
@@ -243,7 +247,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       if (f.image) {
         input.image = Array.isArray(f.image) ? f.image : [f.image];
       }
-      return input;
+      return { ...input, ...(f.params ?? {}) };
     },
   },
 
@@ -265,7 +269,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       const fps = 16;
       const rawFrames = f.duration ? Math.round(f.duration * fps) : 81;
       const numFrames = Math.max(81, Math.min(121, rawFrames));
-      return {
+      const input: Record<string, unknown> = {
         prompt: f.prompt,
         num_frames: numFrames,
         resolution: '480p',
@@ -273,8 +277,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         frames_per_second: fps,
         interpolate_output: true,
         go_fast: true,
-        ...(f.seed !== undefined ? { seed: f.seed } : {}),
       };
+      if (f.seed !== undefined) input.seed = f.seed;
+      return { ...input, ...(f.params ?? {}) };
     },
   },
 
@@ -293,12 +298,14 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       go_fast: true,
     },
     buildInput: (f) => {
+
       const fps = 16;
       const rawFrames = f.duration ? Math.round(f.duration * fps) : 81;
       const numFrames = Math.max(81, Math.min(121, rawFrames));
       const input: Record<string, unknown> = {
         prompt: f.prompt,
         image: Array.isArray(f.image) ? f.image[0] : f.image,
+        last_image: (Array.isArray(f.image) && f.image.length > 1) ? f.image[1] : undefined,
         num_frames: numFrames,
         resolution: '480p',
         aspect_ratio: resolveSupportedAspectRatio(f, WAN_VIDEO_ASPECT_RATIOS, '16:9'),
@@ -307,7 +314,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         go_fast: true,
       };
       if (f.seed !== undefined) input.seed = f.seed;
-      return input;
+      return { ...input, ...(f.params ?? {}) };
     },
   },
 
@@ -327,8 +334,10 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       sample_shift: 16,
     },
     buildInput: (f) => {
+
       const input: Record<string, unknown> = {
         prompt: f.prompt,
+        src_video: f.video,
         size: f.size ?? '832*480',
         frame_num: f.frameNum ?? 81,
         speed_mode: f.speedMode ?? 'Lightly Juiced 🍊 (more consistent)',
@@ -343,7 +352,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         input.src_ref_images = Array.isArray(f.image) ? f.image : [f.image];
       }
       if (f.seed !== undefined) input.seed = f.seed;
-      return input;
+      return { ...input, ...(f.params ?? {}) };
     },
   },
 
@@ -366,6 +375,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       return hasRef ? 'wan-i2v' : 'wan-t2v';
     },
     buildInput: (f) => {
+
       const hasRef = !!f.image && (Array.isArray(f.image) ? f.image.length > 0 : true);
       const model = hasRef ? PRUNA_MODEL_MAP['wan-i2v'] : PRUNA_MODEL_MAP['wan-t2v'];
       return model.buildInput(f);
@@ -382,6 +392,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       aspect_ratio: '1:1',
     },
     buildInput: (f) => {
+
       const input: Record<string, unknown> = {
         prompt: f.prompt,
         aspect_ratio: allowedAspectRatio(f.aspectRatio, P_IMAGE_ASPECT_RATIOS, '1:1'),
@@ -390,7 +401,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         Object.assign(input, normalizePImageCustomSize(f.width, f.height));
       }
       if (f.seed !== undefined) input.seed = f.seed;
-      return input;
+      return { ...input, ...(f.params ?? {}) };
     },
   },
 
@@ -430,6 +441,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       duration: 5,
     },
     buildInput: (f) => {
+
       const input: Record<string, unknown> = {
         prompt: f.prompt,
         aspect_ratio: resolveSupportedAspectRatio(f, WAN_VIDEO_ASPECT_RATIOS, '16:9'),
@@ -442,7 +454,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         input.image = images[0];
         if (images[1]) input.last_frame_image = images[1];
       }
-      return input;
+      return { ...input, ...(f.params ?? {}) };
     },
   },
 
@@ -459,7 +471,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     },
     buildInput: (f) => {
       const input: Record<string, unknown> = {
-        prompt: f.prompt || '',
+        ...(f.prompt ? { prompt: f.prompt } : {}),
         output_format: f.outputFormat ?? 'jpg',
         output_quality: 95,
         preserve_input_size: true,
@@ -492,6 +504,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       enhance_realism: false,
     },
     buildInput: (f) => {
+
       const target = Math.max(1, Math.min(128, f.width ? Math.round((f.width * (f.height || 1024)) / 1_000_000) : 4));
       const input: Record<string, unknown> = {
         target,
@@ -504,7 +517,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       if (f.image) {
         input.image = Array.isArray(f.image) ? f.image[0] : f.image;
       }
-      return input;
+      return { ...input, ...(f.params ?? {}) };
     },
   },
 
@@ -523,6 +536,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       disable_safety_filter: true,
     },
     buildInput: (f) => {
+
       const input: Record<string, unknown> = {
         voice: 'Zephyr (Female)',
         voice_language: 'English (US)',
@@ -535,7 +549,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       if (f.image) {
         input.image = Array.isArray(f.image) ? f.image[0] : f.image;
       }
-      return input;
+      return { ...input, ...(f.params ?? {}) };
     },
   },
 
@@ -551,6 +565,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       target_fps: 'original',
     },
     buildInput: (f) => {
+
       const input: Record<string, unknown> = {
         resolution: '720p',
         save_audio: f.audio ?? true,
@@ -564,7 +579,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       if (f.image) {
         input.image = Array.isArray(f.image) ? f.image[0] : f.image; // subject reference
       }
-      return input;
+      return { ...input, ...(f.params ?? {}) };
     },
   },
 
@@ -621,7 +636,63 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         Object.assign(input, normalizeWanImageSmallCustomSize(f.width, f.height));
       }
       if (f.seed !== undefined) input.seed = f.seed;
-      return input;
+      return { ...input, ...(f.params ?? {}) };
+    },
+  },
+
+  // ── P-Image-Ideogram ───────────────────────────────────────────────
+  'p-image-ideogram': {
+    prunaModel: 'p-image-ideogram',
+    endpoint: 'default',
+    mode: 'sync',
+    isVideo: false,
+    defaultParams: {
+      aspect_ratio: '1:1',
+      image_size: '2K',
+      thinking: 'medium',
+      prompt_upsampling: true,
+    },
+    buildInput: (f) => {
+      const input: Record<string, unknown> = {
+        prompt: f.prompt,
+        aspect_ratio: f.aspectRatio ?? '1:1',
+        image_size: f.params?.image_size ?? '2K',
+        thinking: f.params?.thinking ?? 'medium',
+        prompt_upsampling: f.params?.prompt_upsampling ?? true,
+      };
+      if (f.aspectRatio === 'custom') {
+        input.width = f.width ?? 1024;
+        input.height = f.height ?? 1024;
+      }
+      if (f.seed !== undefined) input.seed = f.seed;
+      return { ...input, ...(f.params ?? {}) };
+    },
+  },
+
+  // ── P-Flux-Klein ───────────────────────────────────────────────────
+  'p-flux-klein': {
+    prunaModel: 'flux-2-klein-4b',
+    endpoint: 'default',
+    mode: 'sync',
+    isVideo: false,
+    defaultParams: {
+      aspect_ratio: '1:1',
+      output_megapixels: '1',
+    },
+    buildInput: (f) => {
+      const input: Record<string, unknown> = {
+        prompt: f.prompt,
+        aspect_ratio: f.aspectRatio ?? '1:1',
+        output_megapixels: f.params?.output_megapixels ?? '1',
+      };
+      if (f.image) {
+        const imgs = Array.isArray(f.image) ? f.image : [f.image];
+        if (imgs.length > 0) {
+          input.images = imgs.slice(0, 5);
+        }
+      }
+      if (f.seed !== undefined) input.seed = f.seed;
+      return { ...input, ...(f.params ?? {}) };
     },
   },
 };

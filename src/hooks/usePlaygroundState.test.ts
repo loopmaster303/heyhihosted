@@ -9,6 +9,7 @@ describe('usePlaygroundState', () => {
     expect(result.current.state.mode).toBe('t2i');
     expect(result.current.state.modelId).toBeNull();
     expect(result.current.state.prompt).toBe('');
+    expect(result.current.state.params).toEqual({});
     expect(result.current.state.uploads).toEqual([]);
   });
 
@@ -23,10 +24,15 @@ describe('usePlaygroundState', () => {
     const { result } = renderHook(() => usePlaygroundState());
     act(() => result.current.setPrompt('hello'));
     act(() => result.current.setUploads(['https://example.com/a.png']));
-    act(() => result.current.resetForModel({ aspectRatio: '16:9', durationSeconds: 5 }));
+    act(() => result.current.resetForModel({ params: { width: 1024 } }));
     expect(result.current.state.prompt).toBe('hello');
     expect(result.current.state.uploads).toEqual(['https://example.com/a.png']);
-    expect(result.current.state.aspectRatio).toBe('16:9');
-    expect(result.current.state.durationSeconds).toBe(5);
+    expect(result.current.state.params).toEqual({ width: 1024 });
+  });
+
+  it('sets params', () => {
+    const { result } = renderHook(() => usePlaygroundState());
+    act(() => result.current.setParams({ seed: 42, aspect_ratio: '16:9' }));
+    expect(result.current.state.params).toEqual({ seed: 42, aspect_ratio: '16:9' });
   });
 });

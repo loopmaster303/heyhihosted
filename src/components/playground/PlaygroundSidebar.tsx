@@ -3,13 +3,13 @@
 import type { PlaygroundMode } from '@/lib/playground/mode-mapping';
 import type { PlaygroundModelEntry } from '@/lib/playground/model-source';
 import type { PlaygroundState } from '@/hooks/usePlaygroundState';
+import type { ParamValues } from '@/lib/playground/param-schema';
 import { ProviderSelect } from './ProviderSelect';
 import { ModeTabs } from './ModeTabs';
 import { ModelPicker } from './ModelPicker';
-import { AspectRatioPills } from './AspectRatioPills';
 import { ReferenceSlots } from './ReferenceSlots';
-import { DurationSlider } from './DurationSlider';
-import { AdvancedPanel } from './AdvancedPanel';
+import { ParamControls } from './ParamControls';
+import { schemaFor, defaultsFor } from '@/lib/playground/param-schema';
 
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -30,13 +30,11 @@ export interface PlaygroundSidebarProps {
   fallbackActive: boolean;
   onMode: (m: PlaygroundMode) => void;
   onModel: (id: string) => void;
-  onAspectRatio: (r: string) => void;
+  onParams: (patch: ParamValues) => void;
   onUploads: (u: string[]) => void;
-  onDuration: (v: number) => void;
-  onAdvanced: (patch: Partial<Pick<PlaygroundState, 'seed' | 'negativePrompt' | 'guidance' | 'steps'>>) => void;
+  onSourceVideo: (v: string | null) => void;
 }
 
-/** The panel body, shared by the desktop rail and the mobile drawer. */
 export function PlaygroundSidebarContent({
   state,
   entries,
@@ -45,13 +43,12 @@ export function PlaygroundSidebarContent({
   fallbackActive,
   onMode,
   onModel,
-  onAspectRatio,
+  onParams,
   onUploads,
-  onDuration,
-  onAdvanced,
+  onSourceVideo,
 }: PlaygroundSidebarProps) {
+  const schema = currentModel ? schemaFor(currentModel.id) : undefined;
   const showRefs = state.mode === 'i2i' || state.mode === 'i2v';
-  const showDuration = state.mode === 't2v' || state.mode === 'i2v';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3.5">
@@ -74,49 +71,72 @@ export function PlaygroundSidebarContent({
         />
       </Group>
 
-      {currentModel && (
-        <Group label="Seitenverhältnis">
-          <AspectRatioPills
-            modelId={currentModel.id}
-            value={state.aspectRatio}
-            onChange={onAspectRatio}
-          />
-        </Group>
+      {schema && (
+        <ParamControls
+          schema={schema}
+          values={state.params}
+          onChange={onParams}
+          uploadCount={state.uploads.length}
+        />
       )}
 
       {currentModel && showRefs && (
         <Group label="Referenzen">
-          <ReferenceSlots model={currentModel} uploads={state.uploads} onChange={onUploads} />
-        </Group>
-      )}
-
-      {currentModel && showDuration && (
-        <Group label="Dauer">
-          <DurationSlider
-            modelId={currentModel.id}
-            value={state.durationSeconds}
-            onChange={onDuration}
+          <ReferenceSlots
+            model={currentModel}
+            uploads={state.uploads}
+            onChange={onUploads}
           />
         </Group>
       )}
 
-      {currentModel && (
-        <AdvancedPanel
-          modelId={currentModel.id}
-          values={{
-            seed: state.seed,
-            negativePrompt: state.negativePrompt,
-            guidance: state.guidance,
-            steps: state.steps,
-          }}
-          onChange={onAdvanced}
-        />
+      {schema?.sourceVideo && (
+        <Group label="Quellvideo">
+          <VideoUpload value={state.sourceVideo} onChange={onSourceVideo} />
+        </Group>
       )}
     </div>
   );
 }
 
-/** Desktop rail. The mobile drawer renders PlaygroundSidebarContent directly. */
+function VideoUpload({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  return (
+    <div className="flex flex-col gap-2">
+      {value ? (
+        <div className="flex items-center gap-2">
+          <span className="text-xs truncate flex-1">{value}</span>
+          <button type="button" onClick={() => onChange(null)} className="text-xs text-destructive">
+            Entfernen
+          </button>
+        </div>
+      ) : (
+        <label className="flex h-8 cursor-pointer items-center justify-center rounded-md border border-dashed border-border text-xs text-muted-foreground hover:border-primary/60 hover:text-foreground">
+          Video hochladen
+          <input
+            type="file"
+            accept="video/*"
+            className="sr-only"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const form = new FormData();
+              form.append('file', file);
+              try {
+                const res = await fetch('/api/media/upload', { method: 'POST', body: form });
+                if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+                const data = await res.json();
+                onChange(data.url);
+              } catch (err) {
+                console.error('Video upload failed:', err);
+              }
+            }}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
 export function PlaygroundSidebar(props: PlaygroundSidebarProps) {
   return (
     <aside className="glass-panel hidden min-h-0 flex-col border-r border-border/45 md:flex">

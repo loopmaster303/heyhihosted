@@ -24,7 +24,12 @@ describe('usePlaygroundModels', () => {
 
   it('fetches live models when provider is pollinations', async () => {
     (useProviderMode as jest.Mock).mockReturnValue({ providerMode: 'pollinations', setProviderMode: jest.fn(), prunaAvailable: false });
-    global.fetch = jest.fn(async () => new Response(JSON.stringify([{ id: 'flux', outputModalities: ['image'], inputModalities: ['text'] }]), { status: 200 })) as any;
+    global.fetch = jest.fn(async () =>
+      new Response(
+        JSON.stringify([{ name: 'flux', title: 'Flux', output_modalities: ['image'], input_modalities: ['text'], paid_only: false }]),
+        { status: 200 }
+      )
+    ) as any;
     const { result } = renderHook(() => usePlaygroundModels());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.entries.some((e) => e.id === 'flux' && e.provider === 'pollinations')).toBe(true);

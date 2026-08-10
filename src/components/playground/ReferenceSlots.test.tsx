@@ -23,6 +23,9 @@ function model(overrides: Partial<PlaygroundModelEntry> = {}): PlaygroundModelEn
     maxImages: 2,
     referenceMode: 'start-end-frame',
     unmapped: false,
+    supportsEndFrame: false,
+    supportsAudio: false,
+    paidOnly: true,
     ...overrides,
   };
 }

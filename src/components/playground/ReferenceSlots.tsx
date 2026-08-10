@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import type { PlaygroundModelEntry } from '@/lib/playground/model-source';
+import type { ModelParamSchema } from '@/lib/playground/param-schema';
 import { cn } from '@/lib/utils';
 
 export async function uploadPlaygroundReference(
@@ -19,7 +20,10 @@ export async function uploadPlaygroundReference(
   return data.url;
 }
 
-function labelFor(model: PlaygroundModelEntry, i: number): string {
+function labelFor(model: PlaygroundModelEntry, schema: ModelParamSchema | undefined, i: number): string {
+  if (schema?.images.roles && schema.images.roles[i]) {
+    return schema.images.roles[i];
+  }
   if (model.referenceMode === 'start-end-frame') return i === 0 ? 'Start' : 'Ende';
   if (model.maxImages === 1) return 'Quelle';
   return `#${i + 1}`;
@@ -27,17 +31,17 @@ function labelFor(model: PlaygroundModelEntry, i: number): string {
 
 interface Props {
   model: PlaygroundModelEntry;
+  schema?: ModelParamSchema;
   uploads: string[];
   onChange: (u: string[]) => void;
 }
 
-export function ReferenceSlots({ model, uploads, onChange }: Props) {
+export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
   if (!model.supportsReference || model.maxImages === 0) return null;
-  const slots = Array.from({ length: model.maxImages }, (_, i) => i);
+  const maxImages = schema?.images.max ?? model.maxImages;
+  const slots = Array.from({ length: maxImages }, (_, i) => i);
 
   const removeAt = (index: number) => {
-    // Drop the entry rather than blanking it, so the remaining images move up
-    // and no empty slot is left stranded in the middle.
     onChange(uploads.filter((_, i) => i !== index));
   };
 
@@ -51,7 +55,7 @@ export function ReferenceSlots({ model, uploads, onChange }: Props) {
     <div role="group" aria-label="Referenzbilder" className="grid grid-cols-2 gap-2">
       {slots.map((i) => {
         const url = uploads[i];
-        const label = labelFor(model, i);
+        const label = labelFor(model, schema, i);
 
         return (
           <div

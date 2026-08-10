@@ -105,6 +105,8 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
    { id: 'nanobanana-2-lite', name: 'Nano Banana 2 Lite', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: false, enabled: false, byopVisible: true, description: 'Gemini Flash Lite Image' },
    { id: 'wan-image-small', name: 'Wan Image Small', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast, efficient image generation via Pruna' },
    { id: 'p-image-try-on', name: 'P-Image Try-On', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 7, isFree: false, enabled: true, byopVisible: true, description: 'Virtual garment try-on (person + up to 6 garments)' },
+   { id: 'p-image-ideogram', name: 'P-Image Ideogram', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: true, byopVisible: true, description: 'Pruna Ideogram — advanced text rendering and illustration' },
+   { id: 'p-flux-klein', name: 'Flux 2 Klein 4B (Pruna)', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 5, isFree: false, enabled: true, byopVisible: true, description: 'Pruna FLUX.2 Klein 4B — fast, dense prose prompts, up to 5 reference images' },
    { id: 'p-image-upscale', name: 'P-Image Upscale', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: true, byopVisible: true, description: 'AI image upscaling 1-128 MP with detail enhancement' },
 
   // STANDARD Video Models

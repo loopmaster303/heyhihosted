@@ -15,6 +15,7 @@ import {
 import { isPrunaModel } from '@/config/pruna-models';
 import { generateViaPruna, downloadPrunaResult } from '@/lib/pruna/client';
 import { MEDIA_UPLOAD_URL } from '@/lib/upload/constants';
+import { pixelsForAspect, QUALITY_MODELS } from '@/lib/playground/pollinations-caps';
 
 /**
  * Pollinations Generation Route (Safe Mode)
@@ -41,6 +42,8 @@ const ImageGenerationSchema = z.object({
   image: z.union([z.string().url(), z.array(z.string().url())]).optional(),
   srcRefImages: z.array(z.string().url()).optional(),
   video: z.string().url().optional(),
+  resolution: z.enum(['480p', '720p', '1080p']).optional(),
+  params: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
 });
 
 export async function POST(request: Request) {
@@ -66,6 +69,8 @@ export async function POST(request: Request) {
       image,
       srcRefImages,
       video,
+      resolution,
+      params,
     } = validateRequest(ImageGenerationSchema, body);
 
     // --- SDK Migration ---
@@ -138,6 +143,7 @@ export async function POST(request: Request) {
           video,
           duration,
           audio,
+          params,
         };
 
         const result = await generateViaPruna(canonicalModelId, prunaFields, request.signal, prunaApiKey);
@@ -220,11 +226,24 @@ export async function POST(request: Request) {
 
     let resultUrl: string;
 
+    // Translate aspectRatio to pixels for image models
+    let effectiveWidth = width;
+    let effectiveHeight = height;
+    let effectiveAspectRatio = aspectRatio;
+    if (!isVideoModel && aspectRatio) {
+      const pixels = pixelsForAspect(aspectRatio);
+      if (pixels) {
+        effectiveWidth = pixels.width;
+        effectiveHeight = pixels.height;
+        effectiveAspectRatio = undefined;
+      }
+    }
+
     const imageOptions = {
         model: modelId,
-        width,
-        height,
-        aspectRatio,
+        width: effectiveWidth,
+        height: effectiveHeight,
+        aspectRatio: isVideoModel ? effectiveAspectRatio : undefined,
         seed,
         nologo,
         enhance: effectiveEnhance,
@@ -235,7 +254,7 @@ export async function POST(request: Request) {
         guidance,
         steps,
         referenceImage: image,
-        quality: 'hd' as const,
+        ...(QUALITY_MODELS.has(modelId) ? { quality: 'hd' as const } : {}),
     };
 
     const hasReferenceImage = !!image && (Array.isArray(image) ? image.length > 0 : true);
@@ -246,7 +265,7 @@ export async function POST(request: Request) {
         // a URL that reaches the client, so we resolve the generation server-side
         // (Authorization header) and return the permanent media URL instead.
         const generationUrl = isVideoModel
-            ? await videoUrl(prompt, { ...imageOptions, duration, audio })
+            ? await videoUrl(prompt, { ...imageOptions, duration, audio, resolution })
             : await imageUrl(prompt, imageOptions);
 
         const stored = await fetchAndStoreRemoteMedia({

@@ -13,8 +13,8 @@ interface Props {
   onCancel: () => void;
   sending: boolean;
   modelName?: string;
-  ratio?: string | null;
   providerName?: string;
+  promptRequired?: boolean;
 }
 
 const MAX_CHARS = 1000;
@@ -28,14 +28,12 @@ export function PromptBar({
   onCancel,
   sending,
   modelName,
-  ratio,
   providerName,
+  promptRequired = true,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const empty = value.trim().length === 0;
 
-  // Grow with the content instead of scrolling inside a fixed box. Only past
-  // 45% of the viewport does it stop growing and start scrolling.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -45,7 +43,8 @@ export function PromptBar({
     el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
   }, [value]);
 
-  const status = [modelName, ratio, providerName].filter(Boolean) as string[];
+  const status = [modelName, providerName].filter(Boolean) as string[];
+  const canSend = !sending && (!empty || !promptRequired);
 
   return (
     <div className="px-4 pb-3.5 pt-3">
@@ -77,7 +76,7 @@ export function PromptBar({
               Abbrechen
             </Button>
           ) : (
-            <Button onClick={onSend} disabled={empty} className="rounded-full font-semibold">
+            <Button onClick={onSend} disabled={!canSend} className="rounded-full font-semibold">
               Senden
             </Button>
           )}

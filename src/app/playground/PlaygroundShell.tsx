@@ -15,6 +15,8 @@ import { useProviderMode } from '@/hooks/useProviderMode';
 import { buildGenerateBody, buildGenerateHeaders } from '@/lib/playground/generate-request';
 import { isModelInMode } from '@/lib/playground/mode-mapping';
 import { getDefaultDurationSeconds, getUnifiedModel } from '@/config/unified-image-models';
+import { schemaFor, defaultsFor } from '@/lib/playground/param-schema';
+import { PLAYGROUND_PRUNA_IDS } from '@/lib/playground/param-schema';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { BlobManager } from '@/lib/blob-manager';
 import { OutputService } from '@/lib/services/output-service';
@@ -22,8 +24,7 @@ import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
 
 export function PlaygroundShell() {
   const {
-    state, setMode, setModelId, setPrompt, setAspectRatio,
-    setDurationSeconds, setAdvanced, setUploads, resetForModel,
+    state, setMode, setModelId, setPrompt, setParams, setUploads, setSourceVideo, resetForModel,
   } = usePlaygroundState();
   const { entries, loading, fallbackActive } = usePlaygroundModels();
   const { pollenKey } = usePollenKey();
@@ -41,7 +42,10 @@ export function PlaygroundShell() {
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
 
-  const modeEntries = entries.filter((e) => isModelInMode(e, state.mode));
+  const filteredEntries = providerMode === 'pruna'
+    ? entries.filter((e) => PLAYGROUND_PRUNA_IDS.includes(e.id as any))
+    : entries;
+  const modeEntries = filteredEntries.filter((e) => isModelInMode(e, state.mode));
   const currentModel = modeEntries.find((e) => e.id === state.modelId) ?? modeEntries[0];
 
   useEffect(() => {
@@ -49,15 +53,15 @@ export function PlaygroundShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentModel?.id]);
 
+  const currentSchema = currentModel ? schemaFor(currentModel.id) : undefined;
+
   useEffect(() => {
     if (!currentModel) return;
-    const presetKeys = Object.keys(getAspectRatioPresetsForModel(currentModel.id));
-    const defaultRatio = presetKeys[0] ?? null;
-    const defaultDuration = getDefaultDurationSeconds(getUnifiedModel(currentModel.id)) ?? null;
+    const schema = schemaFor(currentModel.id);
+    const defaultParams = schema ? defaultsFor(schema) : {};
     const prev = stateRef.current;
     resetForModel({
-      aspectRatio: prev.aspectRatio && presetKeys.includes(prev.aspectRatio) ? prev.aspectRatio : defaultRatio,
-      durationSeconds: prev.durationSeconds ?? defaultDuration,
+      params: defaultParams,
       uploads: prev.uploads.slice(0, currentModel.maxImages),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,7 +90,7 @@ export function PlaygroundShell() {
     if (!currentModel || !state.prompt.trim()) return;
     setSending(true);
     setError(undefined);
-    const body = buildGenerateBody(state, currentModel);
+    const body = buildGenerateBody(state, currentModel, currentSchema);
     const prunaKey = typeof window !== 'undefined' ? (localStorage.getItem('prunaApiKey') ?? undefined) : undefined;
     const headers = {
       'Content-Type': 'application/json',
@@ -137,13 +141,12 @@ export function PlaygroundShell() {
   };
 
   const sidebarProps = {
-    state, entries, currentModel, loading, fallbackActive,
+    state, entries: filteredEntries, currentModel, loading, fallbackActive,
     onMode: setMode,
     onModel: setModelId,
-    onAspectRatio: setAspectRatio,
+    onParams: setParams,
     onUploads: setUploads,
-    onDuration: setDurationSeconds,
-    onAdvanced: setAdvanced,
+    onSourceVideo: setSourceVideo,
   };
 
   return (
@@ -203,8 +206,8 @@ export function PlaygroundShell() {
             onCancel={() => abortRef.current?.abort()}
             sending={sending}
             modelName={currentModel?.name}
-            ratio={state.aspectRatio}
             providerName={providerMode === 'pruna' ? 'Pruna' : 'Pollinations'}
+            promptRequired={currentSchema?.promptRequired ?? true}
           />
         </main>
       </div>

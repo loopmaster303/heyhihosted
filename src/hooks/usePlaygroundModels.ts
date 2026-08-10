@@ -44,7 +44,15 @@ export function usePlaygroundModels(): UsePlaygroundModelsResult {
       buildPollinationsEntries(
         UNIFIED_IMAGE_MODELS
           .filter((m) => m.provider === 'pollinations' && m.enabled && m.isFree)
-          .map((m) => ({ id: m.id, outputModalities: [m.kind], inputModalities: m.supportsReference ? ['text', 'image'] : ['text'], name: m.name }))
+          .map((m) => ({
+            name: m.id,
+            title: m.name,
+            output_modalities: [m.kind],
+            input_modalities: m.supportsReference ? ['text', 'image'] : ['text'],
+            video_capabilities: m.supportsEndFrame ? ['end_frame'] : [],
+            max_reference_images: m.maxImages ?? 0,
+            paid_only: !m.isFree,
+          }))
       );
 
     (async () => {
@@ -57,9 +65,6 @@ export function usePlaygroundModels(): UsePlaygroundModelsResult {
         const live = Array.isArray(raw) ? raw : raw.data ?? [];
         if (cancelled) return;
         const built = buildPollinationsEntries(live);
-        // Upstream can answer 200 with nothing usable — typically when no key is
-        // present. Fall back to the free registry so the playground always has a
-        // default model instead of an empty picker.
         if (built.length === 0) {
           setFallbackActive(true);
           setEntries(freeFallback());

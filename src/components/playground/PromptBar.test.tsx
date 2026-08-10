@@ -60,10 +60,9 @@ describe('PromptBar', () => {
     expect(screen.getByText('5 / 1000')).toBeInTheDocument();
   });
 
-  it('shows model, ratio and provider in the status line', () => {
-    render(<PromptBar {...base} modelName="Flux" ratio="1:1" providerName="Pollinations" />);
+  it('shows model and provider in the status line', () => {
+    render(<PromptBar {...base} modelName="Flux" providerName="Pollinations" />);
     expect(screen.getByText('Flux')).toBeInTheDocument();
-    expect(screen.getByText('1:1')).toBeInTheDocument();
     expect(screen.getByText('Pollinations')).toBeInTheDocument();
   });
 });

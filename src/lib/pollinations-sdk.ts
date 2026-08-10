@@ -21,7 +21,7 @@ export interface ImageOptions extends PollinationsOptions {
     height?: number;
     aspectRatio?: string;
     negativePrompt?: string;
-    referenceImage?: string | string[]; // URL(s)
+    referenceImage?: string | string[];
     transparent?: boolean;
     quality?: 'medium' | 'high' | 'hd';
 }
@@ -31,7 +31,8 @@ export interface VideoOptions extends PollinationsOptions {
     duration?: number;
     audio?: boolean;
     negativePrompt?: string;
-    referenceImage?: string | string[]; // URL(s)
+    referenceImage?: string | string[];
+    resolution?: string;
 }
 
 /**
@@ -51,11 +52,10 @@ export async function imageUrl(prompt: string, options: ImageOptions = {}): Prom
     // Image Specific
     if (options.width) params.append('width', String(options.width));
     if (options.height) params.append('height', String(options.height));
-    if (options.aspectRatio) params.append('aspectRatio', options.aspectRatio);
     if (options.negativePrompt) params.append('negative_prompt', options.negativePrompt);
     if (options.enhance !== undefined) params.append('enhance', String(options.enhance));
     if (options.transparent) params.append('transparent', 'true');
-    params.append('quality', options.quality || 'hd');
+    if (options.quality) params.append('quality', options.quality);
 
     // Reference Images
     if (options.referenceImage) {
@@ -64,8 +64,6 @@ export async function imageUrl(prompt: string, options: ImageOptions = {}): Prom
     }
 
     const safePrompt = encodeURIComponent(prompt.trim());
-    // API key is intentionally NOT part of the URL — callers must authenticate
-    // via Authorization header when fetching (see server-media-ingest).
     return `${BASE_URL}/${safePrompt}?${params.toString()}`;
 }
 
@@ -82,12 +80,14 @@ export async function videoUrl(prompt: string, options: VideoOptions = {}): Prom
     if (options.seed != null) params.append('seed', String(options.seed));
     params.append('private', String(options.private ?? false));
     params.append('safe', String(options.safe ?? false));
-    params.append('nologo', String(options.nologo ?? true)); // Check if video supports
+    params.append('nologo', String(options.nologo ?? true));
     
     // Video Specific
-    if (options.aspectRatio) params.append('aspectRatio', options.aspectRatio);
+    const validVideoRatio = options.aspectRatio === '16:9' || options.aspectRatio === '9:16';
+    if (options.aspectRatio && validVideoRatio) params.append('aspectRatio', options.aspectRatio);
     if (options.duration) params.append('duration', String(options.duration));
     if (options.audio !== undefined) params.append('audio', String(options.audio));
+    if (options.resolution) params.append('resolution', options.resolution);
     if (options.negativePrompt) params.append('negative_prompt', options.negativePrompt);
     
     // Reference Images
@@ -97,7 +97,5 @@ export async function videoUrl(prompt: string, options: VideoOptions = {}): Prom
     }
 
     const safePrompt = encodeURIComponent(prompt.trim());
-    // API key is intentionally NOT part of the URL — callers must authenticate
-    // via Authorization header when fetching (see server-media-ingest).
     return `${BASE_URL}/${safePrompt}?${params.toString()}`;
 }
