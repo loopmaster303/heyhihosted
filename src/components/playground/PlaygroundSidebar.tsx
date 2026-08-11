@@ -84,6 +84,7 @@ export function PlaygroundSidebarContent({
         <Group label="Referenzen">
           <ReferenceSlots
             model={currentModel}
+            schema={schema}
             uploads={state.uploads}
             onChange={onUploads}
           />

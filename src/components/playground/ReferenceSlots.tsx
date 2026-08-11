@@ -39,20 +39,48 @@ interface Props {
 export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
   if (!model.supportsReference || model.maxImages === 0) return null;
   const maxImages = schema?.images.max ?? model.maxImages;
-  const slots = Array.from({ length: maxImages }, (_, i) => i);
+
+  // Nur ein freier Platz auf einmal. Zehn leere Kaesten sagen nichts; das
+  // Limit steht als Hinweis darueber. Beim Start-Ende-Paar heisst das
+  // ausserdem, dass das Endframe erst nach dem Startframe erscheint.
+  const filled = uploads.filter(Boolean).length;
+  const visible = Math.min(filled + 1, maxImages);
+  const slots = Array.from({ length: visible }, (_, i) => i);
 
   const removeAt = (index: number) => {
     onChange(uploads.filter((_, i) => i !== index));
   };
 
-  const setAt = (index: number, url: string) => {
-    const next = [...uploads];
-    next[index] = url;
-    onChange(next);
+  const addUrls = (urls: string[]) => {
+    if (urls.length === 0) return;
+    onChange([...uploads, ...urls].slice(0, maxImages));
+  };
+
+  /** Mehrere Dateien auf einmal, in der Reihenfolge der Auswahl. */
+  const uploadFiles = async (files: File[]) => {
+    const room = maxImages - filled;
+    const taken = files.slice(0, room);
+    const results = await Promise.all(
+      taken.map(async (file) => {
+        try {
+          return await uploadPlaygroundReference(file, model.provider);
+        } catch (err) {
+          console.error('Failed to upload reference:', err);
+          return null;
+        }
+      })
+    );
+    addUrls(results.filter((u): u is string => u !== null));
   };
 
   return (
-    <div role="group" aria-label="Referenzbilder" className="grid grid-cols-2 gap-2">
+    <div className="flex flex-col gap-1.5">
+      {maxImages > 1 && (
+        <p className="text-[10px] text-muted-foreground/75">
+          {filled} von bis zu {maxImages} Bildern
+        </p>
+      )}
+      <div role="group" aria-label="Referenzbilder" className="grid grid-cols-2 gap-2">
       {slots.map((i) => {
         const url = uploads[i];
         const label = labelFor(model, schema, i);
@@ -87,15 +115,13 @@ export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
                 <input
                   type="file"
                   accept="image/*"
+                  multiple={maxImages - filled > 1}
                   className="sr-only"
                   onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    try {
-                      setAt(i, await uploadPlaygroundReference(file, model.provider));
-                    } catch (err) {
-                      console.error('Failed to upload reference:', err);
-                    }
+                    const files = Array.from(e.target.files ?? []);
+                    // Zuruecksetzen, sonst feuert dieselbe Datei kein zweites Mal.
+                    e.target.value = '';
+                    await uploadFiles(files);
                   }}
                 />
               </label>
@@ -103,6 +129,7 @@ export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
