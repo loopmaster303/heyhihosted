@@ -86,8 +86,13 @@ export function PlaygroundShell() {
     }
   };
 
+  const promptRequired = currentSchema?.promptRequired ?? true;
+
   const onSend = async () => {
-    if (!currentModel || !state.prompt.trim()) return;
+    // p-image-upscale works from the image alone, so an empty prompt is valid
+    // there. Anywhere else it still blocks.
+    if (!currentModel) return;
+    if (promptRequired && !state.prompt.trim()) return;
     setSending(true);
     setError(undefined);
     const body = buildGenerateBody(state, currentModel, currentSchema);
@@ -207,7 +212,7 @@ export function PlaygroundShell() {
             sending={sending}
             modelName={currentModel?.name}
             providerName={providerMode === 'pruna' ? 'Pruna' : 'Pollinations'}
-            promptRequired={currentSchema?.promptRequired ?? true}
+            promptRequired={promptRequired}
           />
         </main>
       </div>

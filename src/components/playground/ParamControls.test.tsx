@@ -47,7 +47,7 @@ describe('ParamControls', () => {
     const vals = defaultsFor(schema);
     render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
     expect(screen.getByLabelText(/Breite/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Hoehe/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Höhe/i)).toBeInTheDocument();
   });
 
   it('toggles advanced group', () => {
@@ -55,7 +55,7 @@ describe('ParamControls', () => {
     const vals = defaultsFor(schema);
     render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
     expect(screen.queryByLabelText(/Schritte/i)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText(/Qualitaet/i));
+    fireEvent.click(screen.getByText(/Qualität/i));
     expect(screen.getByLabelText(/Schritte/i)).toBeInTheDocument();
   });
 
@@ -66,12 +66,13 @@ describe('ParamControls', () => {
     expect(screen.queryByLabelText(/Breite/i)).not.toBeInTheDocument();
   });
 
-  it('shows custom size fields when aspect_ratio is custom', () => {
+  // Freie Pixelmaße gibt es in der Oberfläche nicht mehr: der Nutzer wählt
+  // ein Seitenverhältnis, die Route übersetzt es pro Modell.
+  it('offers no free pixel fields for p-image', () => {
     const schema = schemaFor('p-image')!;
-    const vals: ParamValues = { ...defaultsFor(schema), aspect_ratio: 'custom' };
-    render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
-    expect(screen.getByLabelText(/Breite/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Hoehe/i)).toBeInTheDocument();
+    render(<ParamControls schema={schema} values={defaultsFor(schema)} onChange={() => {}} uploadCount={0} />);
+    expect(screen.queryByLabelText(/Breite/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Höhe/i)).not.toBeInTheDocument();
   });
 
   it('emits number changes', () => {
@@ -95,7 +96,7 @@ describe('ParamControls', () => {
     const vals = defaultsFor(schema);
     const onChange = jest.fn();
     render(<ParamControls schema={schema} values={vals} onChange={onChange} uploadCount={0} />);
-    fireEvent.click(screen.getByText(/Qualitaet/i));
+    fireEvent.click(screen.getByText(/Qualität/i));
     fireEvent.click(screen.getByRole("checkbox"));
     expect(onChange).toHaveBeenCalled();
   });

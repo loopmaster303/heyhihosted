@@ -95,6 +95,21 @@ function clampToMultipleOf16(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, rounded));
 }
 
+/**
+ * Die wan-Modelle kennen keine Dauer, nur num_frames bei fester Bildrate.
+ * Die Oberfläche stellt Sekunden ein, hier wird umgerechnet und auf den
+ * erlaubten Bereich geklemmt.
+ */
+export const WAN_FPS = 16;
+const WAN_MIN_FRAMES = 81;
+const WAN_MAX_FRAMES = 121;
+
+export function wanFramesFor(seconds: unknown): number {
+  const secs = typeof seconds === 'number' ? seconds : Number(seconds);
+  if (!Number.isFinite(secs) || secs <= 0) return WAN_MIN_FRAMES;
+  return Math.max(WAN_MIN_FRAMES, Math.min(WAN_MAX_FRAMES, Math.round(secs * WAN_FPS)));
+}
+
 function normalizeWanImageSmallCustomSize(width?: number, height?: number): { width: number; height: number } {
   const rawWidth = width ?? WAN_IMAGE_SMALL_MAX_DIMENSION;
   const rawHeight = height ?? WAN_IMAGE_SMALL_MAX_DIMENSION;
@@ -266,20 +281,18 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       go_fast: true,
     },
     buildInput: (f) => {
-      const fps = 16;
-      const rawFrames = f.duration ? Math.round(f.duration * fps) : 81;
-      const numFrames = Math.max(81, Math.min(121, rawFrames));
+      const { duration, ...rest } = f.params ?? {};
       const input: Record<string, unknown> = {
         prompt: f.prompt,
-        num_frames: numFrames,
+        num_frames: wanFramesFor(duration ?? f.duration),
         resolution: '480p',
         aspect_ratio: resolveSupportedAspectRatio(f, WAN_VIDEO_ASPECT_RATIOS, '16:9'),
-        frames_per_second: fps,
+        frames_per_second: WAN_FPS,
         interpolate_output: true,
         go_fast: true,
       };
       if (f.seed !== undefined) input.seed = f.seed;
-      return { ...input, ...(f.params ?? {}) };
+      return { ...input, ...rest };
     },
   },
 
@@ -298,23 +311,20 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       go_fast: true,
     },
     buildInput: (f) => {
-
-      const fps = 16;
-      const rawFrames = f.duration ? Math.round(f.duration * fps) : 81;
-      const numFrames = Math.max(81, Math.min(121, rawFrames));
+      const { duration, ...rest } = f.params ?? {};
       const input: Record<string, unknown> = {
         prompt: f.prompt,
         image: Array.isArray(f.image) ? f.image[0] : f.image,
         last_image: (Array.isArray(f.image) && f.image.length > 1) ? f.image[1] : undefined,
-        num_frames: numFrames,
+        num_frames: wanFramesFor(duration ?? f.duration),
         resolution: '480p',
         aspect_ratio: resolveSupportedAspectRatio(f, WAN_VIDEO_ASPECT_RATIOS, '16:9'),
-        frames_per_second: fps,
+        frames_per_second: WAN_FPS,
         interpolate_output: false,
         go_fast: true,
       };
       if (f.seed !== undefined) input.seed = f.seed;
-      return { ...input, ...(f.params ?? {}) };
+      return { ...input, ...rest };
     },
   },
 
@@ -441,10 +451,11 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       duration: 5,
     },
     buildInput: (f) => {
-
       const input: Record<string, unknown> = {
         prompt: f.prompt,
         aspect_ratio: resolveSupportedAspectRatio(f, WAN_VIDEO_ASPECT_RATIOS, '16:9'),
+        // Feste Bildrate — kein Bedienelement, siehe param-schema.
+        fps: 24,
       };
       if (f.duration !== undefined) input.duration = f.duration;
       if (f.seed !== undefined) input.seed = f.seed;

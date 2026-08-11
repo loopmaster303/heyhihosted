@@ -17,12 +17,6 @@ export interface ModelParamSchema {
   sourceVideo?: boolean;
   groups: { label: string; advanced?: boolean; fields: ParamField[] }[];
 }
-export interface ModelParamSchema {
-  promptRequired: boolean;
-  images: { min: number; max: number; roles?: string[] };
-  sourceVideo?: boolean;
-  groups: { label: string; advanced?: boolean; fields: ParamField[] }[];
-}
 
 const showIfHasImage: ShowIfFn = (v) => {
   const img = v.image;
@@ -30,7 +24,6 @@ const showIfHasImage: ShowIfFn = (v) => {
   return typeof img === 'string' && img.length > 0;
 };
 
-const showIfAspectCustom: ShowIfFn = (v) => v.aspect_ratio === 'custom';
 const showIfNoImage: ShowIfFn = (v) => !showIfHasImage(v);
 
 function hasUpload(v: ParamValues): boolean {
@@ -61,14 +54,14 @@ const QUALITY_GROUP = (opts: { seedDefault?: boolean; formatDefault?: string; qu
     fields.push({
       kind: 'number',
       name: 'output_quality',
-      label: 'Qualitaet',
+      label: 'Qualität',
       min: 0,
       max: 100,
       step: 1,
       default: opts.qualityDefault,
     });
   }
-  return { label: 'Qualitaet', advanced: true, fields };
+  return { label: 'Qualität', advanced: true, fields };
 };
 
 // ── zimage ─────────────────────────────────────────────────────────
@@ -80,11 +73,11 @@ const zimageSchema: ModelParamSchema = {
       label: 'Bild',
       fields: [
         { kind: 'number', name: 'width', label: 'Breite', min: 64, max: 2048, step: 1, default: 1024 },
-        { kind: 'number', name: 'height', label: 'Hoehe', min: 64, max: 2048, step: 1, default: 1024 },
+        { kind: 'number', name: 'height', label: 'Höhe', min: 64, max: 2048, step: 1, default: 1024 },
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         { kind: 'number', name: 'num_inference_steps', label: 'Schritte', min: 1, max: 50, step: 1, default: 8 },
@@ -102,7 +95,7 @@ const zimageSchema: ModelParamSchema = {
           ],
           default: 'jpg',
         },
-        { kind: 'number', name: 'output_quality', label: 'Qualitaet', min: 0, max: 100, step: 1, default: 80 },
+        { kind: 'number', name: 'output_quality', label: 'Qualität', min: 0, max: 100, step: 1, default: 80 },
       ],
     },
   ],
@@ -119,7 +112,7 @@ const qwenImageSchema: ModelParamSchema = {
         {
           kind: 'enum',
           name: 'aspect_ratio',
-          label: 'Seitenverhaeltnis',
+          label: 'Seitenverhältnis',
           options: [
             { value: '1:1', label: '1:1' },
             { value: '16:9', label: '16:9' },
@@ -134,21 +127,21 @@ const qwenImageSchema: ModelParamSchema = {
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         { kind: 'number', name: 'guidance', label: 'Guidance', min: 0, max: 10, step: 0.5, default: 3 },
         { kind: 'number', name: 'num_inference_steps', label: 'Schritte', min: 1, max: 50, step: 1, default: 30 },
         { kind: 'text', name: 'negative_prompt', label: 'Negativ-Prompt', multiline: true, placeholder: 'was nicht im Bild sein soll' },
-        { kind: 'number', name: 'strength', label: 'Staerke', min: 0, max: 1, step: 0.05, default: 0.9, showIf: showIfHasImage },
+        { kind: 'number', name: 'strength', label: 'Stärke', min: 0, max: 1, step: 0.05, default: 0.9, showIf: showIfHasImage },
         { kind: 'boolean', name: 'enhance_prompt', label: 'Prompt verbessern', default: false },
         { kind: 'boolean', name: 'go_fast', label: 'Schnellmodus', default: true },
         {
           kind: 'enum',
           name: 'image_size',
-          label: 'Bildgroesse',
+          label: 'Bildgröße',
           options: [
-            { value: 'optimize_for_quality', label: 'Qualitaet' },
+            { value: 'optimize_for_quality', label: 'Qualität' },
             { value: 'optimize_for_speed', label: 'Geschwindigkeit' },
           ],
           default: 'optimize_for_quality',
@@ -165,7 +158,7 @@ const qwenImageSchema: ModelParamSchema = {
           ],
           default: 'webp',
         },
-        { kind: 'number', name: 'output_quality', label: 'Qualitaet', min: 0, max: 100, step: 1, default: 80 },
+        { kind: 'number', name: 'output_quality', label: 'Qualität', min: 0, max: 100, step: 1, default: 80 },
       ],
     },
   ],
@@ -182,21 +175,20 @@ const qwenImageEditPlusSchema: ModelParamSchema = {
         {
           kind: 'enum',
           name: 'aspect_ratio',
-          label: 'Seitenverhaeltnis',
+          label: 'Seitenverhältnis',
           options: [
-            { value: 'match_input_image', label: 'Wie Eingabe' },
             { value: '16:9', label: '16:9' },
             { value: '9:16', label: '9:16' },
             { value: '1:1', label: '1:1' },
             { value: '4:3', label: '4:3' },
             { value: '3:4', label: '3:4' },
           ],
-          default: 'match_input_image',
+          default: '1:1',
         },
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         { kind: 'boolean', name: 'go_fast', label: 'Schnellmodus', default: true },
@@ -212,7 +204,7 @@ const qwenImageEditPlusSchema: ModelParamSchema = {
           ],
           default: 'webp',
         },
-        { kind: 'number', name: 'output_quality', label: 'Qualitaet', min: 0, max: 100, step: 1, default: 95 },
+        { kind: 'number', name: 'output_quality', label: 'Qualität', min: 0, max: 100, step: 1, default: 95 },
       ],
     },
   ],
@@ -229,7 +221,7 @@ const wanImageSmallSchema: ModelParamSchema = {
         {
           kind: 'enum',
           name: 'aspect_ratio',
-          label: 'Seitenverhaeltnis',
+          label: 'Seitenverhältnis',
           options: [
             { value: '1:1', label: '1:1' },
             { value: '16:9', label: '16:9' },
@@ -237,16 +229,13 @@ const wanImageSmallSchema: ModelParamSchema = {
             { value: '4:3', label: '4:3' },
             { value: '3:4', label: '3:4' },
             { value: '21:9', label: '21:9' },
-            { value: 'custom', label: 'Benutzerdefiniert' },
           ],
           default: '16:9',
         },
-        { kind: 'number', name: 'width', label: 'Breite', min: 256, max: 896, step: 16, default: 1024, showIf: showIfAspectCustom },
-        { kind: 'number', name: 'height', label: 'Hoehe', min: 256, max: 896, step: 16, default: 1024, showIf: showIfAspectCustom },
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         { kind: 'boolean', name: 'juiced', label: 'Juiced', default: false },
@@ -262,7 +251,7 @@ const wanImageSmallSchema: ModelParamSchema = {
           ],
           default: 'jpg',
         },
-        { kind: 'number', name: 'output_quality', label: 'Qualitaet', min: 1, max: 100, step: 1, default: 80 },
+        { kind: 'number', name: 'output_quality', label: 'Qualität', min: 1, max: 100, step: 1, default: 80 },
       ],
     },
   ],
@@ -279,7 +268,7 @@ const pFluxKleinSchema: ModelParamSchema = {
         {
           kind: 'enum',
           name: 'aspect_ratio',
-          label: 'Seitenverhaeltnis',
+          label: 'Seitenverhältnis',
           options: [
             { value: '1:1', label: '1:1' },
             { value: '16:9', label: '16:9' },
@@ -292,7 +281,6 @@ const pFluxKleinSchema: ModelParamSchema = {
             { value: '4:3', label: '4:3' },
             { value: '9:16', label: '9:16' },
             { value: '9:21', label: '9:21' },
-            { value: 'match_input_image', label: 'Wie Eingabe' },
           ],
           default: '1:1',
         },
@@ -326,7 +314,7 @@ const pImageSchema: ModelParamSchema = {
         {
           kind: 'enum',
           name: 'aspect_ratio',
-          label: 'Seitenverhaeltnis',
+          label: 'Seitenverhältnis',
           options: [
             { value: '1:1', label: '1:1' },
             { value: '16:9', label: '16:9' },
@@ -335,16 +323,13 @@ const pImageSchema: ModelParamSchema = {
             { value: '3:4', label: '3:4' },
             { value: '3:2', label: '3:2' },
             { value: '2:3', label: '2:3' },
-            { value: 'custom', label: 'Benutzerdefiniert' },
           ],
           default: '16:9',
         },
-        { kind: 'number', name: 'width', label: 'Breite', min: 256, max: 1440, step: 16, default: 1024, showIf: showIfAspectCustom },
-        { kind: 'number', name: 'height', label: 'Hoehe', min: 256, max: 1440, step: 16, default: 1024, showIf: showIfAspectCustom },
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         { kind: 'boolean', name: 'prompt_upsampling', label: 'Prompt-Upsampling', default: false },
@@ -365,9 +350,8 @@ const pImageEditSchema: ModelParamSchema = {
         {
           kind: 'enum',
           name: 'aspect_ratio',
-          label: 'Seitenverhaeltnis',
+          label: 'Seitenverhältnis',
           options: [
-            { value: 'match_input_image', label: 'Wie Eingabe' },
             { value: '1:1', label: '1:1' },
             { value: '16:9', label: '16:9' },
             { value: '9:16', label: '9:16' },
@@ -376,12 +360,12 @@ const pImageEditSchema: ModelParamSchema = {
             { value: '3:2', label: '3:2' },
             { value: '2:3', label: '2:3' },
           ],
-          default: 'match_input_image',
+          default: '1:1',
         },
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         { kind: 'boolean', name: 'turbo', label: 'Turbo', default: true },
@@ -399,13 +383,13 @@ const pImageUpscaleSchema: ModelParamSchema = {
     {
       label: 'Hochskalieren',
       fields: [
-        { kind: 'number', name: 'target', label: 'Zielgroesse', min: 1, max: 128, step: 1, default: 4, unit: 'MP' },
+        { kind: 'number', name: 'target', label: 'Zielgröße', min: 1, max: 128, step: 1, default: 4, unit: 'MP' },
         { kind: 'boolean', name: 'enhance_details', label: 'Details verbessern', default: false },
         { kind: 'boolean', name: 'enhance_realism', label: 'Realismus verbessern', default: false },
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         {
@@ -419,7 +403,7 @@ const pImageUpscaleSchema: ModelParamSchema = {
           ],
           default: 'jpg',
         },
-        { kind: 'number', name: 'output_quality', label: 'Qualitaet', min: 0, max: 100, step: 1, default: 80 },
+        { kind: 'number', name: 'output_quality', label: 'Qualität', min: 0, max: 100, step: 1, default: 80 },
       ],
     },
   ],
@@ -436,7 +420,7 @@ const pImageIdeogramSchema: ModelParamSchema = {
         {
           kind: 'enum',
           name: 'aspect_ratio',
-          label: 'Seitenverhaeltnis',
+          label: 'Seitenverhältnis',
           options: [
             { value: '1:1', label: '1:1' },
             { value: '16:9', label: '16:9' },
@@ -445,16 +429,13 @@ const pImageIdeogramSchema: ModelParamSchema = {
             { value: '3:4', label: '3:4' },
             { value: '3:2', label: '3:2' },
             { value: '2:3', label: '2:3' },
-            { value: 'custom', label: 'Benutzerdefiniert' },
           ],
           default: '1:1',
         },
-        { kind: 'number', name: 'width', label: 'Breite', min: 256, max: 2560, step: 16, default: 1024, showIf: showIfAspectCustom },
-        { kind: 'number', name: 'height', label: 'Hoehe', min: 256, max: 2560, step: 16, default: 1024, showIf: showIfAspectCustom },
         {
           kind: 'enum',
           name: 'image_size',
-          label: 'Bildaufloesung',
+          label: 'Bildauflösung',
           options: [
             { value: '1K', label: '1K' },
             { value: '2K', label: '2K' },
@@ -464,7 +445,7 @@ const pImageIdeogramSchema: ModelParamSchema = {
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         {
@@ -492,7 +473,7 @@ const pImageIdeogramSchema: ModelParamSchema = {
           ],
           default: 'jpg',
         },
-        { kind: 'number', name: 'output_quality', label: 'Qualitaet', min: 0, max: 100, step: 1, default: 80 },
+        { kind: 'number', name: 'output_quality', label: 'Qualität', min: 0, max: 100, step: 1, default: 80 },
       ],
     },
   ],
@@ -506,12 +487,14 @@ const wanT2VSchema: ModelParamSchema = {
     {
       label: 'Video',
       fields: [
-        { kind: 'number', name: 'num_frames', label: 'Frames', min: 81, max: 121, step: 1, default: 81 },
-        { kind: 'number', name: 'frames_per_second', label: 'Bildrate', min: 5, max: 30, step: 1, default: 16 },
+        // Die API kennt nur num_frames bei fester Bildrate. Der Nutzer stellt
+        // Sekunden ein, buildInput rechnet um. 81–121 Frames bei 16 fps sind
+        // genau diese drei Werte — mehr ist nicht erreichbar.
+        { kind: 'seconds', name: 'duration', label: 'Dauer', options: [5, 6, 7], default: 5 },
         {
           kind: 'enum',
           name: 'resolution',
-          label: 'Aufloesung',
+          label: 'Auflösung',
           options: [
             { value: '480p', label: '480p' },
             { value: '720p', label: '720p' },
@@ -521,7 +504,7 @@ const wanT2VSchema: ModelParamSchema = {
         {
           kind: 'enum',
           name: 'aspect_ratio',
-          label: 'Seitenverhaeltnis',
+          label: 'Seitenverhältnis',
           options: [
             { value: '16:9', label: '16:9' },
             { value: '9:16', label: '9:16' },
@@ -531,7 +514,7 @@ const wanT2VSchema: ModelParamSchema = {
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         { kind: 'boolean', name: 'interpolate_output', label: 'Interpolieren', default: true },
@@ -552,12 +535,14 @@ const wanI2VSchema: ModelParamSchema = {
     {
       label: 'Video',
       fields: [
-        { kind: 'number', name: 'num_frames', label: 'Frames', min: 81, max: 121, step: 1, default: 81 },
-        { kind: 'number', name: 'frames_per_second', label: 'Bildrate', min: 5, max: 30, step: 1, default: 16 },
+        // Die API kennt nur num_frames bei fester Bildrate. Der Nutzer stellt
+        // Sekunden ein, buildInput rechnet um. 81–121 Frames bei 16 fps sind
+        // genau diese drei Werte — mehr ist nicht erreichbar.
+        { kind: 'seconds', name: 'duration', label: 'Dauer', options: [5, 6, 7], default: 5 },
         {
           kind: 'enum',
           name: 'resolution',
-          label: 'Aufloesung',
+          label: 'Auflösung',
           options: [
             { value: '480p', label: '480p' },
             { value: '720p', label: '720p' },
@@ -567,7 +552,7 @@ const wanI2VSchema: ModelParamSchema = {
         {
           kind: 'enum',
           name: 'aspect_ratio',
-          label: 'Seitenverhaeltnis',
+          label: 'Seitenverhältnis',
           options: [
             { value: '16:9', label: '16:9' },
             { value: '9:16', label: '9:16' },
@@ -577,7 +562,7 @@ const wanI2VSchema: ModelParamSchema = {
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         { kind: 'boolean', name: 'interpolate_output', label: 'Interpolieren', default: false },
@@ -602,7 +587,7 @@ const vaceSchema: ModelParamSchema = {
         {
           kind: 'enum',
           name: 'size',
-          label: 'Groesse',
+          label: 'Größe',
           options: [
             { value: '832*480', label: '832 x 480 (Landscape)' },
             { value: '480*832', label: '480 x 832 (Portrait)' },
@@ -615,7 +600,7 @@ const vaceSchema: ModelParamSchema = {
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         {
@@ -666,27 +651,19 @@ const pVideoSchema: ModelParamSchema = {
         {
           kind: 'enum',
           name: 'resolution',
-          label: 'Aufloesung',
+          label: 'Auflösung',
           options: [
             { value: '720p', label: '720p' },
             { value: '1080p', label: '1080p' },
           ],
           default: '720p',
         },
-        {
-          kind: 'enum',
-          name: 'fps',
-          label: 'Bildrate',
-          options: [
-            { value: '24', label: '24 FPS' },
-            { value: '48', label: '48 FPS' },
-          ],
-          default: '24',
-        },
+        // Bildrate bleibt bei 24 und ist kein Bedienelement: eine verstellbare
+        // Rate verschiebt die Sekunden-Skala unter der Hand.
         {
           kind: 'enum',
           name: 'aspect_ratio',
-          label: 'Seitenverhaeltnis',
+          label: 'Seitenverhältnis',
           options: [
             { value: '16:9', label: '16:9' },
             { value: '9:16', label: '9:16' },
@@ -702,7 +679,7 @@ const pVideoSchema: ModelParamSchema = {
       ],
     },
     {
-      label: 'Qualitaet',
+      label: 'Qualität',
       advanced: true,
       fields: [
         { kind: 'boolean', name: 'draft', label: 'Entwurf', default: false },

@@ -64,6 +64,8 @@ export async function imageUrl(prompt: string, options: ImageOptions = {}): Prom
     }
 
     const safePrompt = encodeURIComponent(prompt.trim());
+    // API key is intentionally NOT part of the URL — callers must authenticate
+    // via Authorization header when fetching (see server-media-ingest).
     return `${BASE_URL}/${safePrompt}?${params.toString()}`;
 }
 
@@ -97,5 +99,7 @@ export async function videoUrl(prompt: string, options: VideoOptions = {}): Prom
     }
 
     const safePrompt = encodeURIComponent(prompt.trim());
+    // API key is intentionally NOT part of the URL — callers must authenticate
+    // via Authorization header when fetching (see server-media-ingest).
     return `${BASE_URL}/${safePrompt}?${params.toString()}`;
 }

@@ -52,6 +52,24 @@ describe('param-schema', () => {
     expect(true).toBe(true);
   });
 
+  // The visibility-scoped check above skips fields behind a showIf, which is how
+  // p-image shipped width/height with a default of 1024 against a max of 896.
+  // A default outside its own range is wrong whether or not it is on screen.
+  it('every numeric default sits inside its own range, visible or not', () => {
+    const offenders: string[] = [];
+    for (const id of PLAYGROUND_PRUNA_IDS) {
+      for (const group of schemaFor(id)!.groups) {
+        for (const field of group.fields) {
+          if (field.kind !== 'number' || field.default === undefined) continue;
+          if (field.default < field.min || field.default > field.max) {
+            offenders.push(`${id}.${field.name}: default ${field.default} outside ${field.min}–${field.max}`);
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('p-image-upscale has promptRequired false', () => {
     expect(schemaFor('p-image-upscale')?.promptRequired).toBe(false);
   });
@@ -63,22 +81,45 @@ describe('param-schema', () => {
     expect(schema?.images.max).toBe(2);
   });
 
-  it('custom size fields are hidden when aspect_ratio is not custom', () => {
-    const schema = schemaFor('p-image');
-    const d1 = defaultsFor(schema!);
-    expect(d1.aspect_ratio).toBe('16:9');
-    const visible1 = visibleFields(schema!, d1);
-    expect(visible1.some((f) => f.name === 'width')).toBe(false);
-
-    const d2: ParamValues = { ...d1, aspect_ratio: 'custom' };
-    const visible2 = visibleFields(schema!, d2);
-    expect(visible2.some((f) => f.name === 'width')).toBe(true);
-    expect(visible2.some((f) => f.name === 'height')).toBe(true);
+  // Die Oberfläche bietet kein 'custom' und keine freien Pixelmaße an. Der
+  // Nutzer wählt ein Seitenverhältnis, übersetzt wird im Backend.
+  it('p-image exposes an aspect ratio but no raw pixel fields', () => {
+    const schema = schemaFor('p-image')!;
+    const d = defaultsFor(schema);
+    expect(d.aspect_ratio).toBe('16:9');
+    const names = schema.groups.flatMap((g) => g.fields.map((f) => f.name));
+    expect(names).not.toContain('width');
+    expect(names).not.toContain('height');
+    const ratios = schema.groups
+      .flatMap((g) => g.fields)
+      .find((f) => f.name === 'aspect_ratio');
+    expect(ratios?.kind).toBe('enum');
+    if (ratios?.kind === 'enum') {
+      expect(ratios.options.map((o) => o.value)).not.toContain('custom');
+    }
   });
 
-  it('wan-t2v has frames field default 81', () => {
-    const d = defaultsFor(schemaFor('wan-t2v')!);
-    expect(d.num_frames).toBe(81);
-    expect(d.frames_per_second).toBe(16);
+  // Die wan-Modelle kennen nur num_frames bei fester Bildrate. Der Nutzer sieht
+  // Sekunden; 81-121 Frames bei 16 fps ergeben genau 5, 6 und 7.
+  it('wan models offer seconds, not frames', () => {
+    for (const id of ['wan-t2v', 'wan-i2v']) {
+      const schema = schemaFor(id)!;
+      const names = schema.groups.flatMap((g) => g.fields.map((f) => f.name));
+      expect(names).not.toContain('num_frames');
+      expect(names).not.toContain('frames_per_second');
+
+      const duration = schema.groups.flatMap((g) => g.fields).find((f) => f.name === 'duration');
+      expect(duration?.kind).toBe('seconds');
+      if (duration?.kind === 'seconds') {
+        expect(duration.options).toEqual([5, 6, 7]);
+      }
+      expect(defaultsFor(schema).duration).toBe(5);
+    }
+  });
+
+  it('p-video hides the frame rate', () => {
+    const names = schemaFor('p-video')!.groups.flatMap((g) => g.fields.map((f) => f.name));
+    expect(names).not.toContain('fps');
+    expect(names).toContain('duration');
   });
 });
