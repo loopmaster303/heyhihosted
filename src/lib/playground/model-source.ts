@@ -15,6 +15,8 @@ export interface PlaygroundModelEntry {
   supportsAudio: boolean;
   resolutions?: Array<string>;
   paidOnly: boolean;
+  /** Von der Community beigesteuert und als experimentell markiert. */
+  community: boolean;
 }
 
 export interface PollinationsLiveModel {
@@ -67,6 +69,7 @@ export function buildPrunaEntries(): PlaygroundModelEntry[] {
         supportsEndFrame: PRUNA_SUPPORTS_END_FRAME.has(id),
         supportsAudio: PRUNA_SUPPORTS_AUDIO.has(id),
         paidOnly: true,
+        community: false,
       };
     });
 }
@@ -95,6 +98,7 @@ export function buildPollinationsEntries(live: PollinationsLiveModel[]): Playgro
         supportsAudio: caps.includes('audio_output'),
         resolutions: m.resolutions,
         paidOnly: m.paid_only ?? false,
+        community: m.community ?? false,
       };
     });
 }

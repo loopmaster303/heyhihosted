@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useProviderMode } from '@/hooks/useProviderMode';
 import { usePollenKey } from '@/hooks/usePollenKey';
+import { useShowCommunityModels } from '@/hooks/useShowCommunityModels';
 import {
   buildPollinationsEntries,
   buildPrunaEntries,
@@ -21,6 +22,7 @@ export interface UsePlaygroundModelsResult {
 export function usePlaygroundModels(): UsePlaygroundModelsResult {
   const { providerMode } = useProviderMode();
   const { pollenKey } = usePollenKey();
+  const { showCommunity } = useShowCommunityModels();
   const [entries, setEntries] = useState<PlaygroundModelEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +66,8 @@ export function usePlaygroundModels(): UsePlaygroundModelsResult {
         const raw = (await res.json()) as PollinationsLiveModel[] | { data: PollinationsLiveModel[] };
         const live = Array.isArray(raw) ? raw : raw.data ?? [];
         if (cancelled) return;
-        const built = buildPollinationsEntries(live);
+        const built = buildPollinationsEntries(live)
+          .filter((e) => showCommunity || !e.community);
         if (built.length === 0) {
           setFallbackActive(true);
           setEntries(freeFallback());
@@ -84,7 +87,7 @@ export function usePlaygroundModels(): UsePlaygroundModelsResult {
     return () => {
       cancelled = true;
     };
-  }, [providerMode, pollenKey, nonce]);
+  }, [providerMode, pollenKey, nonce, showCommunity]);
 
   return { entries, loading, error, fallbackActive, reload };
 }

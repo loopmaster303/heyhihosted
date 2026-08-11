@@ -26,6 +26,7 @@ function model(overrides: Partial<PlaygroundModelEntry> = {}): PlaygroundModelEn
     supportsEndFrame: false,
     supportsAudio: false,
     paidOnly: true,
+    community: false,
     ...overrides,
   };
 }

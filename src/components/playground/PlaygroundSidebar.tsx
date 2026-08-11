@@ -9,7 +9,7 @@ import { ModeTabs } from './ModeTabs';
 import { ModelPicker } from './ModelPicker';
 import { ReferenceSlots } from './ReferenceSlots';
 import { ParamControls } from './ParamControls';
-import { schemaFor, defaultsFor } from '@/lib/playground/param-schema';
+import { schemaForEntry } from '@/lib/playground/param-schema';
 
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -47,7 +47,7 @@ export function PlaygroundSidebarContent({
   onUploads,
   onSourceVideo,
 }: PlaygroundSidebarProps) {
-  const schema = currentModel ? schemaFor(currentModel.id) : undefined;
+  const schema = currentModel ? schemaForEntry(currentModel) : undefined;
   const showRefs = state.mode === 'i2i' || state.mode === 'i2v';
 
   return (

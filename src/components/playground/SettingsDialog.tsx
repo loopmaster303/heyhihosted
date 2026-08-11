@@ -6,11 +6,14 @@ import { ModalPopup } from '@/components/ui/popup'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { usePollenKey } from '@/hooks/usePollenKey'
+import { useShowCommunityModels } from '@/hooks/useShowCommunityModels'
 import { cn } from '@/lib/utils'
 
 export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { pollenKey, isConnected: isPollenConnected, connectManual, disconnect } = usePollenKey()
+  const { showCommunity, setShowCommunity } = useShowCommunityModels()
   const [pollenInput, setPollenInput] = useState(() => pollenKey ?? '')
 
   const [prunaInput, setPrunaInput] = useState(() =>
@@ -130,6 +133,24 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
           </div>
           <p className="text-[10px] text-muted-foreground">
             Schaltet die p-* Modellfamilie frei — Upscale, Video, Edit.
+          </p>
+        </div>
+        <div className="h-px bg-border" />
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-semibold">Community-Modelle</span>
+              <Badge variant="secondary">experimentell</Badge>
+            </div>
+            <Switch
+              checked={showCommunity}
+              onCheckedChange={setShowCommunity}
+              aria-label="Community-Modelle anzeigen"
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Von der Community bei Pollinations beigesteuerte Modelle. Qualität und
+            Verfügbarkeit schwanken — deshalb standardmäßig ausgeblendet.
           </p>
         </div>
         <div className="h-px bg-border" />

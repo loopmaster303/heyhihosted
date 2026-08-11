@@ -15,7 +15,7 @@ import { useProviderMode } from '@/hooks/useProviderMode';
 import { buildGenerateBody, buildGenerateHeaders } from '@/lib/playground/generate-request';
 import { isModelInMode } from '@/lib/playground/mode-mapping';
 import { getDefaultDurationSeconds, getUnifiedModel } from '@/config/unified-image-models';
-import { schemaFor, defaultsFor } from '@/lib/playground/param-schema';
+import { schemaForEntry, defaultsFor } from '@/lib/playground/param-schema';
 import { PLAYGROUND_PRUNA_IDS } from '@/lib/playground/param-schema';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { BlobManager } from '@/lib/blob-manager';
@@ -53,12 +53,11 @@ export function PlaygroundShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentModel?.id]);
 
-  const currentSchema = currentModel ? schemaFor(currentModel.id) : undefined;
+  const currentSchema = currentModel ? schemaForEntry(currentModel) : undefined;
 
   useEffect(() => {
     if (!currentModel) return;
-    const schema = schemaFor(currentModel.id);
-    const defaultParams = schema ? defaultsFor(schema) : {};
+    const defaultParams = defaultsFor(schemaForEntry(currentModel));
     const prev = stateRef.current;
     resetForModel({
       params: defaultParams,

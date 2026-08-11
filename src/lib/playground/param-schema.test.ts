@@ -1,4 +1,5 @@
-import { schemaFor, defaultsFor, visibleFields, PLAYGROUND_PRUNA_IDS, type ParamValues } from './param-schema';
+import { schemaFor, schemaForPollinations, defaultsFor, visibleFields, PLAYGROUND_PRUNA_IDS, type ParamValues } from './param-schema';
+import type { PlaygroundModelEntry } from './model-source';
 
 describe('param-schema', () => {
   it('every playground pruna id has a schema', () => {
@@ -121,5 +122,51 @@ describe('param-schema', () => {
     const names = schemaFor('p-video')!.groups.flatMap((g) => g.fields.map((f) => f.name));
     expect(names).not.toContain('fps');
     expect(names).toContain('duration');
+  });
+});
+
+describe('schemaForPollinations', () => {
+  function entry(over: Partial<PlaygroundModelEntry> = {}): PlaygroundModelEntry {
+    return {
+      id: 'flux', name: 'Flux', provider: 'pollinations', kind: 'image',
+      supportsReference: false, requiresReference: false, maxImages: 0,
+      unmapped: false, supportsEndFrame: false, supportsAudio: false,
+      paidOnly: false, community: false, ...over,
+    };
+  }
+  const names = (s: ReturnType<typeof schemaForPollinations>) =>
+    s.groups.flatMap((g) => g.fields.map((f) => f.name));
+
+  // Ohne diese Ableitung bekaemen Pollinations-Modelle gar keine Regler:
+  // SCHEMA_MAP kennt nur die dreizehn Pruna-Modelle.
+  it('gives every image model an aspect ratio', () => {
+    const s = schemaForPollinations(entry());
+    expect(names(s)).toContain('aspect_ratio');
+  });
+
+  it('offers seed only where the API honours it', () => {
+    expect(names(schemaForPollinations(entry({ id: 'flux' })))).toContain('seed');
+    expect(names(schemaForPollinations(entry({ id: 'kontext' })))).not.toContain('seed');
+  });
+
+  it('offers quality and transparency only to the gptimage family', () => {
+    const gpt = names(schemaForPollinations(entry({ id: 'gptimage' })));
+    expect(gpt).toContain('quality');
+    expect(gpt).toContain('transparent');
+    expect(names(schemaForPollinations(entry({ id: 'flux' })))).not.toContain('quality');
+  });
+
+  it('builds a video model from its registry capabilities', () => {
+    const s = schemaForPollinations(entry({
+      id: 'veo', kind: 'video', supportsAudio: true, supportsEndFrame: true,
+      supportsReference: true, maxImages: 2, resolutions: ['720p', '1080p'],
+    }));
+    expect(names(s)).toEqual(expect.arrayContaining(['duration', 'resolution', 'aspect_ratio', 'audio']));
+    expect(s.images).toEqual({ min: 0, max: 2, roles: ['Start', 'Ende'] });
+  });
+
+  it('leaves out the duration when no values are documented', () => {
+    const s = schemaForPollinations(entry({ id: 'grok-video-pro', kind: 'video' }));
+    expect(names(s)).not.toContain('duration');
   });
 });

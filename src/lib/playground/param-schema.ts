@@ -1,3 +1,11 @@
+import type { PlaygroundModelEntry } from './model-source';
+import {
+  SEED_MODELS,
+  QUALITY_MODELS,
+  TRANSPARENT_MODELS,
+  durationOptionsFor,
+} from './pollinations-caps';
+
 export type ParamValues = Record<string, string | number | boolean>;
 
 export interface ShowIfFn {
@@ -725,6 +733,104 @@ const SCHEMA_MAP: Record<string, ModelParamSchema> = {
 
 export function schemaFor(modelId: string): ModelParamSchema | undefined {
   return SCHEMA_MAP[modelId];
+}
+
+/**
+ * Das einheitliche Seitenverhältnis. Bildmodelle bekommen daraus in der Route
+ * Pixel, Videomodelle nur die beiden Werte, die Pollinations überhaupt kennt.
+ */
+const IMAGE_RATIOS = ['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3', '21:9'];
+const VIDEO_RATIOS = ['16:9', '9:16'];
+
+function ratioField(values: string[], fallback: string): ParamField {
+  return {
+    kind: 'enum',
+    name: 'aspect_ratio',
+    label: 'Seitenverhältnis',
+    options: values.map((v) => ({ value: v, label: v })),
+    default: fallback,
+  };
+}
+
+/**
+ * Pollinations braucht kein handgepflegtes Schema: die Registry sagt pro Modell,
+ * was es kann. Was sie nicht sagt — welche Sekunden, wer den Seed beachtet, wer
+ * quality und transparent versteht — steht in pollinations-caps.
+ *
+ * Ohne das hier bekämen Pollinations-Modelle überhaupt keine Regler, weil
+ * SCHEMA_MAP nur die dreizehn Pruna-Modelle kennt.
+ */
+export function schemaForPollinations(entry: PlaygroundModelEntry): ModelParamSchema {
+  const isVideo = entry.kind === 'video';
+  const advanced: ParamField[] = [];
+
+  if (SEED_MODELS.has(entry.id)) {
+    advanced.push({ kind: 'number', name: 'seed', label: 'Seed', min: 0, max: 2147483647, step: 1, default: 0 });
+  }
+  if (QUALITY_MODELS.has(entry.id)) {
+    advanced.push({
+      kind: 'enum',
+      name: 'quality',
+      label: 'Qualität',
+      options: [
+        { value: 'low', label: 'Niedrig' },
+        { value: 'medium', label: 'Mittel' },
+        { value: 'high', label: 'Hoch' },
+        { value: 'hd', label: 'HD' },
+      ],
+      default: 'high',
+    });
+  }
+  if (TRANSPARENT_MODELS.has(entry.id)) {
+    advanced.push({ kind: 'boolean', name: 'transparent', label: 'Transparenter Hintergrund', default: false });
+  }
+
+  const main: ParamField[] = [];
+
+  if (isVideo) {
+    const seconds = durationOptionsFor(entry.id);
+    // Kein Regler, wo die Werte nicht belegt sind — lieber nichts als geraten.
+    if (seconds.length > 0) {
+      main.push({ kind: 'seconds', name: 'duration', label: 'Dauer', options: seconds, default: seconds[0] });
+    }
+    if (entry.resolutions && entry.resolutions.length > 1) {
+      main.push({
+        kind: 'enum',
+        name: 'resolution',
+        label: 'Auflösung',
+        options: entry.resolutions.map((r) => ({ value: r, label: r })),
+        default: entry.resolutions.includes('720p') ? '720p' : entry.resolutions[0],
+      });
+    }
+    main.push(ratioField(VIDEO_RATIOS, '16:9'));
+    if (entry.supportsAudio) {
+      main.push({ kind: 'boolean', name: 'audio', label: 'Ton erzeugen', default: false });
+    }
+  } else {
+    main.push(ratioField(IMAGE_RATIOS, '1:1'));
+  }
+
+  const groups: ModelParamSchema['groups'] = [
+    { label: isVideo ? 'Video' : 'Bild', fields: main },
+  ];
+  if (advanced.length > 0) {
+    groups.push({ label: 'Qualität', advanced: true, fields: advanced });
+  }
+
+  return {
+    promptRequired: true,
+    images: {
+      min: entry.requiresReference ? 1 : 0,
+      max: entry.maxImages,
+      roles: entry.supportsEndFrame ? ['Start', 'Ende'] : undefined,
+    },
+    groups,
+  };
+}
+
+/** Ein Schema für jedes Modell — Pruna handgepflegt, Pollinations aus der Registry. */
+export function schemaForEntry(entry: PlaygroundModelEntry): ModelParamSchema {
+  return SCHEMA_MAP[entry.id] ?? schemaForPollinations(entry);
 }
 
 export function defaultsFor(schema: ModelParamSchema): ParamValues {
