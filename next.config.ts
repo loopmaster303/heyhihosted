@@ -45,11 +45,17 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  // Next vergleicht nur den HOSTNAMEN der anfragenden Herkunft — Schema und Port
+  // sieht der Abgleich nie. Eintraege wie 'http://host:3000' matchen deshalb
+  // nichts. Und sobald diese Liste ueberhaupt gesetzt ist, blockiert Next
+  // fremde Herkuenfte, statt nur zu warnen: jede /_next/*-Anfrage bekommt 403,
+  // die Seite laedt ihr HTML und stirbt dann beim Hydrieren mit
+  // "Application error: a client-side exception has occurred".
   allowedDevOrigins: [
-    'https://9000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
-    'https://6000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
-    'http://172.20.10.14:3000',
-    'http://localhost:3000',
+    '9000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
+    '6000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
+    '172.20.10.14',   // LAN
+    '100.86.170.47',  // Tailscale, dieser Mac
   ],
 };
 
