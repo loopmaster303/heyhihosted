@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { usePollenKey } from '@/hooks/usePollenKey'
 import { useShowCommunityModels } from '@/hooks/useShowCommunityModels'
+import { readLocal, writeLocal, removeLocal } from '@/lib/safe-storage'
 import { cn } from '@/lib/utils'
 
 export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -16,12 +17,8 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   const { showCommunity, setShowCommunity } = useShowCommunityModels()
   const [pollenInput, setPollenInput] = useState(() => pollenKey ?? '')
 
-  const [prunaInput, setPrunaInput] = useState(() =>
-    typeof window === 'undefined' ? '' : localStorage.getItem('prunaApiKey') ?? ''
-  )
-  const [savedPrunaKey, setSavedPrunaKey] = useState(() =>
-    typeof window === 'undefined' ? '' : localStorage.getItem('prunaApiKey') ?? ''
-  )
+  const [prunaInput, setPrunaInput] = useState(() => readLocal('prunaApiKey') ?? '')
+  const [savedPrunaKey, setSavedPrunaKey] = useState(() => readLocal('prunaApiKey') ?? '')
   const isPrunaConnected = !!savedPrunaKey
 
   useEffect(() => {
@@ -36,12 +33,12 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   }, [open, onClose])
 
   const handlePrunaConnect = () => {
-    localStorage.setItem('prunaApiKey', prunaInput)
+    writeLocal('prunaApiKey', prunaInput)
     setSavedPrunaKey(prunaInput)
   }
 
   const handlePrunaDisconnect = () => {
-    localStorage.removeItem('prunaApiKey')
+    removeLocal('prunaApiKey')
     setSavedPrunaKey('')
   }
 

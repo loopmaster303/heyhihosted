@@ -28,12 +28,11 @@ interface Props {
 }
 
 function entryIsFree(entry: PlaygroundModelEntry): boolean {
-  const cfg = getUnifiedModel(entry.id);
-  if (cfg) return cfg.isFree === true;
-  // Not in the config. Pruna always needs a key; a live Pollinations model came
-  // back from an endpoint that already filters by the caller's permissions, so
-  // treat it as usable rather than hiding it behind a key warning.
-  return entry.provider === 'pollinations';
+  // The registry states paid_only per model, so it decides for Pollinations —
+  // the local config drifts and mislabelled paid models as free. Pruna has no
+  // registry and always needs a key.
+  if (entry.provider === 'pollinations') return !entry.paidOnly;
+  return getUnifiedModel(entry.id)?.isFree === true;
 }
 
 export function ModelPicker({ entries, mode, value, onChange, loading, fallbackActive }: Props) {

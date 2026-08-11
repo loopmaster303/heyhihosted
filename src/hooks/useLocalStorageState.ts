@@ -13,16 +13,18 @@ function useLocalStorageState<T>(
   // Load from localStorage after mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    let storedRaw: string | null = null;
     try {
-      const storedValue = localStorage.getItem(key);
-      if (storedValue) {
-        setValueState(JSON.parse(storedValue));
+      storedRaw = localStorage.getItem(key);
+      if (storedRaw) {
+        setValueState(JSON.parse(storedRaw));
       }
     } catch (error) {
+      // The read itself can throw on Safari with restricted storage, so the
+      // recovery must not reach for localStorage again — it would throw too.
       console.warn(`Error reading localStorage key “${key}”:`, error);
-      const storedValue = localStorage.getItem(key);
-      if (storedValue && typeof defaultValue === 'string') {
-        setValueState(storedValue as T);
+      if (typeof storedRaw === 'string' && typeof defaultValue === 'string') {
+        setValueState(storedRaw as T);
       }
       // If parsing fails for non-string defaults, we keep the default value.
     }

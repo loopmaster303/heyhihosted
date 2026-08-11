@@ -21,6 +21,7 @@ import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-prese
 import { BlobManager } from '@/lib/blob-manager';
 import { OutputService } from '@/lib/services/output-service';
 import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
+import { readLocal } from '@/lib/safe-storage';
 
 export function PlaygroundShell() {
   const {
@@ -95,7 +96,7 @@ export function PlaygroundShell() {
     setSending(true);
     setError(undefined);
     const body = buildGenerateBody(state, currentModel, currentSchema);
-    const prunaKey = typeof window !== 'undefined' ? (localStorage.getItem('prunaApiKey') ?? undefined) : undefined;
+    const prunaKey = readLocal('prunaApiKey') ?? undefined;
     const headers = {
       'Content-Type': 'application/json',
       ...buildGenerateHeaders(pollenKey || undefined, prunaKey || undefined),
