@@ -1,16 +1,17 @@
 'use client';
 
 import type React from 'react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { UnifiedInput } from '@/components/ui/unified-input';
-import { Settings2, AudioWaveform, Square, ArrowUp, Plus, X, Sparkles, Loader2, FileText } from 'lucide-react';
+import { Settings2, AudioWaveform, Square, ArrowUp, Plus, Sparkles, Loader2, Layers, ImageIcon, Music2, MessageSquare, ChevronDown, Globe } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
-import { MobileOptionsMenu } from './input/MobileOptionsMenu';
 import { QuickSettingsBadges } from './input/QuickSettingsBadges';
 import { ToolsBadges } from './input/ToolsBadges';
-import { UploadBadges } from './input/UploadBadges';
-import { VisualizeReferenceBadges } from './input/VisualizeReferenceBadges';
+import { CapabilityUploadBadges, type AttachmentAction } from './input/UploadBadges';
+import { VisualCorner, VisualCornerMode } from './input/VisualCorner';
+import { AttachmentPreviewRow, AttachmentItem } from './input/AttachmentPreviewRow';
+import { UnifiedMobileDrawer, DrawerSection } from './input/UnifiedMobileDrawer';
 import { VisualizeInlineHeader } from '@/components/tools/visualize/VisualizeInlineHeader';
 import { ComposeInlineHeader } from '@/components/tools/compose/ComposeInlineHeader';
 import { ModelSelector } from './input/ModelSelector';
@@ -35,12 +36,52 @@ interface ChatInputProps extends UseChatInputLogicProps {
     onComposeSubmit?: (e: React.FormEvent) => void;
 }
 
+export interface AttachmentActionHandlers {
+    image: () => void;
+    document: () => void;
+    camera: () => void;
+    sourceVideo: () => void;
+    startFrame: () => void;
+    endFrame: () => void;
+}
+
+export const dispatchAttachmentAction = (kind: AttachmentAction['kind'], handlers: AttachmentActionHandlers) => {
+    switch (kind) {
+        case 'image':
+        case 'reference':
+            return handlers.image();
+        case 'document':
+            return handlers.document();
+        case 'camera':
+            return handlers.camera();
+        case 'source-video':
+            return handlers.sourceVideo();
+        case 'start-frame':
+            return handlers.startFrame();
+        case 'end-frame':
+            return handlers.endFrame();
+        default: {
+            const unreachable: never = kind;
+            return unreachable;
+        }
+    }
+};
+
 const ChatInput: React.FC<ChatInputProps> = (props) => {
     const { t } = useLanguage();
     const sourceVideoInputRef = useRef<HTMLInputElement>(null);
     const startFrameInputRef = useRef<HTMLInputElement>(null);
     const endFrameInputRef = useRef<HTMLInputElement>(null);
-    
+
+    // Mobile drawer state
+    const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+    const [mobileDrawerSection, setMobileDrawerSection] = useState<DrawerSection>('attachments');
+
+    const openMobileDrawer = (section: DrawerSection) => {
+        setMobileDrawerSection(section);
+        setMobileDrawerOpen(true);
+    };
+
     // Destructure props used directly in render
     const {
         isLoading,
@@ -93,33 +134,116 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
         handleFileChange,
     } = logic;
 
+    // Build attachment items for preview row
+    const attachmentItems: AttachmentItem[] = [];
+
+    // Standard mode: single uploaded file
+    if (!isImageMode && !isComposeMode && uploadedFilePreviewUrl) {
+        attachmentItems.push({
+            id: 'standard-upload',
+            type: uploadedFilePreviewUrl.startsWith('data:image/') ? 'image' : 'document',
+            previewUrl: uploadedFilePreviewUrl,
+            fileName: t('menu.section.upload'),
+        });
+    }
+
+    // Visualize mode: multiple reference images
+    if (isImageMode && visualizeToolState) {
+        visualizeToolState.uploadedImages.forEach((img, idx) => {
+            attachmentItems.push({
+                id: `visualize-ref-${idx}`,
+                type: 'image',
+                previewUrl: img.url,
+                fileName: `${t('chat.attachment.referenceImage')} ${idx + 1}`,
+                isUploading: visualizeToolState.isUploading,
+            });
+        });
+        if (visualizeToolState.sourceVideo) {
+            attachmentItems.push({
+                id: 'source-video',
+                type: 'video',
+                fileName: t('chat.attachment.sourceVideo'),
+                isUploading: visualizeToolState.isUploading,
+            });
+        }
+    }
+
+    const handleRemoveAttachment = (id: string) => {
+        if (id === 'standard-upload') {
+            onFileSelect(null, null);
+        } else if (id.startsWith('visualize-ref-')) {
+            const idx = parseInt(id.replace('visualize-ref-', ''), 10);
+            visualizeToolState?.handleRemoveImage(idx);
+        } else if (id === 'source-video') {
+            visualizeToolState?.handleRemoveSourceVideo();
+        }
+    };
+
+    const getVisualCornerMode = (): VisualCornerMode => {
+        if (isImageMode) return 'visualize';
+        if (isComposeMode) return 'compose';
+        if (webBrowsingEnabled) return 'research';
+        if (isCodeMode) return 'code';
+        return 'standard';
+    };
+
+    const hasActiveMode = isImageMode || isComposeMode || webBrowsingEnabled || isCodeMode;
+
+    const handleAttachmentAction = (kind: AttachmentAction['kind']) => dispatchAttachmentAction(kind, {
+        image: () => imageInputRef.current?.click(),
+        document: () => docInputRef.current?.click(),
+        camera: openCamera,
+        sourceVideo: () => sourceVideoInputRef.current?.click(),
+        startFrame: () => startFrameInputRef.current?.click(),
+        endFrame: () => endFrameInputRef.current?.click(),
+    });
+
+    // One presentation model; the standard pending upload and provider-hosted
+    // Visualize references deliberately remain separate state pipelines.
+    const attachmentActions: AttachmentAction[] = (() => {
+        const disabled = isLoading || isRecording || isTranscribing;
+        if (isComposeMode) return [];
+        if (!isImageMode) {
+            return [
+                { kind: 'image', disabled },
+                { kind: 'document', disabled },
+                { kind: 'camera', disabled },
+            ];
+        }
+        if (!visualizeToolState) return [];
+
+        const visualizeDisabled = disabled || visualizeToolState.isUploading;
+        const actions: AttachmentAction[] = [];
+        if (visualizeToolState.requiresSourceVideo) {
+            actions.push({ kind: 'source-video', disabled: visualizeDisabled });
+        }
+        if (visualizeToolState.supportsReference) {
+            if (visualizeToolState.isVideoModel) {
+                actions.push({ kind: 'start-frame', disabled: visualizeDisabled });
+                if (visualizeToolState.supportsEndFrame) {
+                    actions.push({
+                        kind: 'end-frame',
+                        disabled: visualizeDisabled || visualizeToolState.uploadedImages.length === 0,
+                    });
+                }
+            } else {
+                actions.push({
+                    kind: 'reference',
+                    disabled: visualizeDisabled || visualizeToolState.uploadedImages.length >= visualizeToolState.maxImages,
+                    count: visualizeToolState.uploadedImages.length,
+                    maxCount: visualizeToolState.maxImages,
+                });
+            }
+        }
+        return actions;
+    })();
+
     const renderTopBadges = () => {
         const rows: React.ReactNode[] = [];
         const panelRows: React.ReactNode[] = [];
 
-        // Show VisualizeInlineHeader when image mode is active
-        if (isImageMode && visualizeToolState) {
-            const referenceBadges = (visualizeToolState.supportsReference || visualizeToolState.requiresSourceVideo) ? (
-                <VisualizeReferenceBadges
-                    uploadedImages={visualizeToolState.uploadedImages}
-                    maxImages={visualizeToolState.maxImages}
-                    supportsReference={visualizeToolState.supportsReference}
-                    isUploading={visualizeToolState.isUploading}
-                    onRemove={visualizeToolState.handleRemoveImage}
-                    onUploadClick={() => imageInputRef.current?.click()}
-                    onStartFrameUploadClick={() => startFrameInputRef.current?.click()}
-                    onEndFrameUploadClick={() => endFrameInputRef.current?.click()}
-                    onSourceVideoUploadClick={() => sourceVideoInputRef.current?.click()}
-                    disabled={isLoading || isRecording || isTranscribing}
-                    selectedModelId={visualizeToolState.selectedModelId}
-                    sourceVideo={visualizeToolState.sourceVideo}
-                    requiresSourceVideo={visualizeToolState.requiresSourceVideo}
-                    onSourceVideoRemove={visualizeToolState.handleRemoveSourceVideo}
-                    isVideoModel={visualizeToolState.isVideoModel}
-                    supportsEndFrame={visualizeToolState.supportsEndFrame}
-                />
-            ) : null;
-
+        // Show VisualizeInlineHeader when image mode is active — desktop only
+        if (isImageMode && visualizeToolState && !isMobile) {
             rows.push(
                 <VisualizeInlineHeader
                     key="visualize-header"
@@ -134,16 +258,17 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     isNanoPollen={visualizeToolState.isNanoPollen}
                     isPollenModel={visualizeToolState.isPollenModel}
                     isPollinationsVideo={visualizeToolState.isPollinationsVideo}
-                    inlineContent={referenceBadges}
+                    inlineContent={null}
                     onDeactivate={() => setActiveMode('standard')}
                     variant="bare"
                     disabled={isLoading || isRecording || isTranscribing}
                     providerMode={visualizeToolState.providerMode}
+                    prunaAvailable={visualizeToolState.prunaAvailable}
                 />
             );
         }
 
-        if (isComposeMode && composeToolState) {
+        if (isComposeMode && composeToolState && !isMobile) {
             rows.push(
                 <ComposeInlineHeader
                     key="compose-header"
@@ -175,19 +300,12 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                 />
             );
         }
-        if (activeBadgeRow === 'upload') {
+        if (activeBadgeRow === 'upload' && !isComposeMode) {
             panelRows.push(
-                <UploadBadges
+                <CapabilityUploadBadges
                     key="upload-badges"
-                    isLoading={isLoading}
-                    onImageUploadClick={() => visualizeToolState?.isVideoModel ? startFrameInputRef.current?.click() : imageInputRef.current?.click()}
-                    onDocUploadClick={() => docInputRef.current?.click()}
-                    onCameraClick={openCamera}
-                    disableImageUpload={!!(
-                        isImageMode &&
-                        visualizeToolState?.supportsReference &&
-                        (visualizeToolState.isUploading || visualizeToolState.uploadedImages.length >= visualizeToolState.maxImages)
-                    )}
+                    actions={attachmentActions}
+                    onActionSelect={handleAttachmentAction}
                 />
             );
         }
@@ -208,39 +326,6 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
             rows.push(
                 <div key="badge-panel" ref={badgePanelRef} className="flex flex-col gap-2">
                     {panelRows}
-                </div>
-            );
-        }
-        // Attachment thumbnail — standard mode only (not image/compose)
-        if (!isImageMode && !isComposeMode && uploadedFilePreviewUrl) {
-            const isImageFile = uploadedFilePreviewUrl.startsWith('data:image/');
-            rows.push(
-                <div key="attachment-preview" className="flex items-center gap-2 px-3 py-1.5">
-                    <div className="relative flex-shrink-0">
-                        {isImageFile ? (
-                            // data: URL preview for local file attachment — not supported by next/image
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                                src={uploadedFilePreviewUrl}
-                                alt="Anhang"
-                                loading="lazy"
-                                decoding="async"
-                                className="h-12 w-12 rounded-lg object-cover border border-border/30"
-                            />
-                        ) : (
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/30 bg-muted">
-                                <FileText className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                        )}
-                        <button
-                            type="button"
-                            onClick={() => onFileSelect(null, null)}
-                            className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-background hover:opacity-80"
-                            aria-label="Anhang entfernen"
-                        >
-                            <X className="h-2.5 w-2.5" />
-                        </button>
-                    </div>
                 </div>
             );
         }
@@ -274,7 +359,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                         : t('chat.placeholder.standard'));
 
     return (
-        <div className="relative w-full"> 
+        <div className="relative w-full">
              <form onSubmit={handleFormSubmit} className="w-full">
                 <UnifiedInput
                     value={inputValue}
@@ -293,65 +378,147 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     placeholder={placeholderText}
                     isLoading={isLoading}
                     disabled={isLoading || isRecording || isTranscribing}
-                    topElements={renderTopBadges()}
+                    topElements={isMobile ? null : renderTopBadges()}
                     modeColor={
                         isImageMode ? 'var(--mode-visualize)' :
                         isComposeMode ? 'var(--mode-compose)' :
                         webBrowsingEnabled ? 'var(--mode-research)' :
                         (isCodeMode ? 'var(--mode-code)' : undefined)
                     }
+                    visualCorner={<VisualCorner mode={getVisualCornerMode()} />}
+                    attachmentRow={
+                        attachmentItems.length > 0 ? (
+                            <AttachmentPreviewRow
+                                items={attachmentItems}
+                                onRemove={handleRemoveAttachment}
+                            />
+                        ) : undefined
+                    }
                     leftActions={
                         isMobile ? (
-                            <div ref={badgeActionsRef}>
-                                <MobileOptionsMenu
-                                    isLoading={isLoading}
-                                    isImageMode={isImageMode}
-                                    onImageUploadClick={() => imageInputRef.current?.click()}
-                                    onDocUploadClick={() => docInputRef.current?.click()}
-                                    onCameraClick={openCamera}
-                                    disableImageUpload={!!(
-                                        isImageMode &&
-                                        visualizeToolState?.supportsReference &&
-                                        (visualizeToolState.isUploading || visualizeToolState.uploadedImages.length >= visualizeToolState.maxImages)
+                            <div className="flex items-center gap-1.5">
+                                {/* Mode toggle — opens unified drawer at mode section */}
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => openMobileDrawer('mode')}
+                                    className={`flex items-center gap-1.5 rounded-full border border-border/30 px-3 py-1.5 text-xs font-medium transition-all bg-transparent text-foreground/80 hover:shadow-sm`}
+                                >
+                                    {isImageMode ? (
+                                        <>
+                                            <ImageIcon className="w-3.5 h-3.5" />
+                                            <span className="max-w-[60px] truncate">{t('tools.visualize')}</span>
+                                        </>
+                                    ) : isComposeMode ? (
+                                        <>
+                                            <Music2 className="w-3.5 h-3.5" />
+                                            <span className="max-w-[60px] truncate">{t('tools.compose')}</span>
+                                        </>
+                                    ) : webBrowsingEnabled ? (
+                                        <>
+                                            <Globe className="w-3.5 h-3.5" />
+                                            <span className="max-w-[60px] truncate">{t('tools.deepResearch')}</span>
+                                        </>
+                                    ) : isCodeMode ? (
+                                        <>
+                                            <MessageSquare className="w-3.5 h-3.5" />
+                                            <span className="max-w-[60px] truncate">{t('tools.code')}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <MessageSquare className="w-3.5 h-3.5" />
+                                            <span className="max-w-[60px] truncate">{t('tools.standard')}</span>
+                                        </>
                                     )}
-                                    onToggleImageMode={onToggleImageMode}
-                                    isComposeMode={isComposeMode || false}
-                                    onToggleComposeMode={onToggleComposeMode || (() => {})}
-                                    isCodeMode={isCodeMode || false}
-                                    onToggleCodeMode={onToggleCodeMode}
-                                    webBrowsingEnabled={webBrowsingEnabled}
-                                    onToggleWebBrowsing={onToggleWebBrowsing}
-                                    selectedVoice={selectedVoice}
-                                    onVoiceChange={handleVoiceChange}
-                                    selectedTtsSpeed={selectedTtsSpeed}
-                                    onTtsSpeedChange={handleTtsSpeedChange}
-                                    selectedResponseStyleName={selectedResponseStyleName}
-                                    onStyleChange={handleStyleChange}
-                                />
+                                    <ChevronDown className="h-3 w-3" />
+                                </Button>
+
+                                {/* Plus button — opens unified drawer */}
+                                {!isComposeMode && <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => openMobileDrawer('attachments')}
+                                    className="flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all bg-transparent text-foreground/80 hover:shadow-sm"
+                                    aria-label={t('menu.section.upload')}
+                                >
+                                    <Plus className="w-4 h-4" />
+                                </Button>}
+
+                                {/* Model chip — opens model section */}
+                                {(isImageMode || isComposeMode) && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => openMobileDrawer('model')}
+                                        className="flex items-center gap-1.5 rounded-full border border-border/30 px-3 py-1.5 text-xs font-medium transition-all bg-transparent text-foreground/80 hover:shadow-sm"
+                                    >
+                                        <Layers className="w-3.5 h-3.5" />
+                                        <span className="max-w-[80px] truncate">
+                                            {isImageMode
+                                                ? (visualizeToolState?.currentModelConfig?.name || t('modelSelector.select'))
+                                                : (composeToolState?.selectedModel || t('modelSelector.select'))
+                                            }
+                                        </span>
+                                    </Button>
+                                )}
+
+                                {/* Parameters button — opens parameters section */}
+                                {(isImageMode || isComposeMode) && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => openMobileDrawer('parameters')}
+                                        className="flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all bg-transparent text-foreground/80 hover:shadow-sm"
+                                        aria-label={t('menu.section.parameters')}
+                                    >
+                                        <Settings2 className="w-4 h-4" />
+                                    </Button>
+                                )}
                             </div>
                         ) : (
                             <div ref={badgeActionsRef} className="flex items-center gap-2">
-                                {/* Quick Settings Toggle — hide when a mode is active */}
-                                {!hasActiveTool && !isImageMode && (
+                                {/* Mode toggle — always visible */}
                                 <Button
-                                    ref={quickSettingsButtonRef}
                                     type="button"
                                     variant="ghost"
-                                    onClick={() => toggleBadgeRow('settings')}
-                                    className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all ${
-                                        activeBadgeRow === 'settings'
+                                    onClick={() => toggleBadgeRow('tools')}
+                                    className={`flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-sm font-medium transition-all ${
+                                        activeBadgeRow === 'tools'
                                             ? "text-foreground shadow-sm hover:shadow-md"
                                             : "bg-transparent text-foreground/80 hover:shadow-sm"
                                     }`}
-                                    aria-label="Quick settings"
                                 >
-                                    <Settings2 className="w-4 h-4" />
+                                    {isImageMode ? (
+                                        <>
+                                            <ImageIcon className="w-4 h-4" />
+                                            <span>{t('tools.visualize')}</span>
+                                        </>
+                                    ) : isComposeMode ? (
+                                        <>
+                                            <Music2 className="w-4 h-4" />
+                                            <span>{t('tools.compose')}</span>
+                                        </>
+                                    ) : webBrowsingEnabled ? (
+                                        <>
+                                            <Globe className="w-4 h-4" />
+                                            <span>{t('tools.deepResearch')}</span>
+                                        </>
+                                    ) : isCodeMode ? (
+                                        <>
+                                            <MessageSquare className="w-4 h-4" />
+                                            <span>{t('tools.code')}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <MessageSquare className="w-4 h-4" />
+                                            <span>{t('tools.standard')}</span>
+                                        </>
+                                    )}
+                                    <ChevronDown className={`h-4 w-4 transition-transform ${activeBadgeRow === 'tools' ? 'rotate-180' : ''}`} />
                                 </Button>
-                                )}
 
-                                {/* Upload Toggle — hide when a mode is active */}
-                                {!hasActiveTool && (
-                                <Button
+                                {/* Upload Plus — ALWAYS visible (even in active modes) */}
+                                {!isComposeMode && <Button
                                     type="button"
                                     variant="ghost"
                                     onClick={() => toggleBadgeRow('upload')}
@@ -364,34 +531,25 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                     aria-expanded={activeBadgeRow === 'upload'}
                                 >
                                     <Plus className="w-4 h-4" />
+                                </Button>}
+
+                                {/* Quick Settings — only in standard mode */}
+                                {!hasActiveTool && (
+                                <Button
+                                    ref={quickSettingsButtonRef}
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => toggleBadgeRow('settings')}
+                                    className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all ${
+                                        activeBadgeRow === 'settings'
+                                            ? "text-foreground shadow-sm hover:shadow-md"
+                                            : "bg-transparent text-foreground/80 hover:shadow-sm"
+                                    }`}
+                                    aria-label={t('chat.quickSettings')}
+                                >
+                                    <Settings2 className="w-4 h-4" />
                                 </Button>
                                 )}
-
-                                {/* Tools Toggle — hide when a mode is active (config header has dismiss) */}
-                                {!hasActiveTool && (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={() => toggleBadgeRow('tools')}
-                                        className={`flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-sm font-medium transition-all ${
-                                            activeBadgeRow === 'tools'
-                                                ? "text-foreground shadow-sm hover:shadow-md"
-                                                : "bg-transparent text-foreground/80 hover:shadow-sm"
-                                        }`}
-                                    >
-                                        <span>{t('menu.section.mode')}</span>
-                                        <svg
-                                            className={`h-4 w-4 transition-transform ${activeBadgeRow === 'tools' ? 'rotate-180' : ''}`}
-                                            fill="none"
-                                            strokeWidth="2"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path d="m19 9-7 7-7-7" />
-                                        </svg>
-                                    </Button>
-                                )}
-                                {/* Mode name is now in the config header ("Visualize with", "Compose with") */}
                             </div>
                         )
                     }
@@ -414,8 +572,8 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 variant="ghost"
                                 onClick={isRecording ? stopRecording : startRecording}
                                 className={`flex h-9 w-9 items-center justify-center rounded-full border border-border/30 transition-all duration-300 ${
-                                    isRecording 
-                                        ? 'text-red-500 shadow-sm hover:shadow-md' 
+                                    isRecording
+                                        ? 'text-red-500 shadow-sm hover:shadow-md'
                                         : 'bg-transparent text-foreground/80 hover:shadow-sm'
                                 }`}
                                 aria-label={isRecording ? "Stop recording" : "Start recording"}
@@ -436,7 +594,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                         onClick={visualizeToolState.handleEnhancePrompt}
                                         disabled={!inputValue.trim() || isLoading || visualizeToolState.isEnhancing || visualizeToolState.isUploading || isRecording || isTranscribing}
                                         className="group rounded-lg h-9 w-9 md:w-auto px-0 md:px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
-                                        aria-label="Enhance prompt"
+                                        aria-label={t('action.enhancePrompt')}
                                     >
                                         {visualizeToolState.isEnhancing ? (
                                             <>
@@ -471,7 +629,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                         }}
                                         disabled={!inputValue.trim() || isLoading || composeToolState.isEnhancing || isRecording || isTranscribing}
                                         className="group rounded-lg h-9 w-9 md:w-auto px-0 md:px-3 transition-colors duration-300 text-foreground/80 hover:text-foreground disabled:opacity-40"
-                                        aria-label="Enhance prompt"
+                                        aria-label={t('action.enhancePrompt')}
                                     >
                                         {composeToolState.isEnhancing ? (
                                             <>
@@ -498,7 +656,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                     type="submit"
                                     disabled={isLoading || isRecording || (isComposeMode && !inputValue.trim())}
                                     className="ml-1 rounded-full px-6 font-medium h-9 text-sm transition-all duration-300 bg-primary text-primary-foreground hover:opacity-90 shadow-md"
-                                    aria-label="Send message"
+                                    aria-label={t('chat.send')}
                                 >
                                     {isMobile ? <ArrowUp className="w-5 h-5" /> : (isComposeMode ? t('action.create') : t('chat.send'))}
                                 </Button>
@@ -507,7 +665,137 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     }
                 />
              </form>
-            
+
+            {/* Unified Mobile Drawer */}
+            <UnifiedMobileDrawer
+                key={`${mobileDrawerOpen}-${mobileDrawerSection}`}
+                isOpen={mobileDrawerOpen}
+                onClose={() => setMobileDrawerOpen(false)}
+                initialSection={mobileDrawerSection}
+                currentMode={isImageMode ? 'visualize' : isComposeMode ? 'compose' : webBrowsingEnabled ? 'research' : isCodeMode ? 'code' : 'standard'}
+                modeContent={
+                    <ToolsBadges
+                        isImageMode={isImageMode}
+                        isComposeMode={isComposeMode || false}
+                        isCodeMode={isCodeMode || false}
+                        webBrowsingEnabled={webBrowsingEnabled}
+                        onSelectMode={(mode) => {
+                            handleSelectMode(mode);
+                            setMobileDrawerOpen(false);
+                        }}
+                        canToggleCodeMode={!!onToggleCodeMode}
+                    />
+                }
+                currentModelName={
+                    isImageMode
+                        ? visualizeToolState?.currentModelConfig?.name
+                        : isComposeMode
+                            ? composeToolState?.selectedModel
+                            : undefined
+                }
+                attachmentContent={attachmentActions.length > 0 ? (
+                    <CapabilityUploadBadges
+                        actions={attachmentActions}
+                        onActionSelect={handleAttachmentAction}
+                        onAfterActionSelect={() => setMobileDrawerOpen(false)}
+                    />
+                ) : undefined}
+                modelContent={
+                    <div className="space-y-4">
+                        {isImageMode && visualizeToolState && (
+                            <VisualizeInlineHeader
+                                selectedModelId={visualizeToolState.selectedModelId}
+                                onModelChange={visualizeToolState.setSelectedModelId}
+                                currentModelConfig={visualizeToolState.currentModelConfig}
+                                formFields={visualizeToolState.formFields}
+                                handleFieldChange={visualizeToolState.handleFieldChange}
+                                setFormFields={visualizeToolState.setFormFields}
+                                isGptImage={visualizeToolState.isGptImage}
+                                isSeedream={visualizeToolState.isSeedream}
+                                isNanoPollen={visualizeToolState.isNanoPollen}
+                                isPollenModel={visualizeToolState.isPollenModel}
+                                isPollinationsVideo={visualizeToolState.isPollinationsVideo}
+                                inlineContent={null}
+                                onDeactivate={() => setActiveMode('standard')}
+                                variant="bare"
+                                section="model"
+                                disabled={isLoading || isRecording || isTranscribing}
+                                providerMode={visualizeToolState.providerMode}
+                                prunaAvailable={visualizeToolState.prunaAvailable}
+                            />
+                        )}
+                        {isComposeMode && composeToolState && (
+                            <ComposeInlineHeader
+                                selectedModel={composeToolState.selectedModel}
+                                duration={composeToolState.duration}
+                                availableDurations={composeToolState.availableDurations}
+                                hasPollenKey={composeToolState.hasPollenKey}
+                                instrumental={composeToolState.instrumental}
+                                onModelChange={composeToolState.setSelectedModel}
+                                onDurationChange={composeToolState.setDuration}
+                                onInstrumentalChange={composeToolState.setInstrumental}
+                                onDeactivate={() => setActiveMode('standard')}
+                                disabled={isLoading}
+                                variant="bare"
+                                section="model"
+                            />
+                        )}
+                    </div>
+                }
+                parametersContent={
+                    <div className="space-y-4">
+                        {isImageMode && visualizeToolState && (
+                            <VisualizeInlineHeader
+                                selectedModelId={visualizeToolState.selectedModelId}
+                                onModelChange={visualizeToolState.setSelectedModelId}
+                                currentModelConfig={visualizeToolState.currentModelConfig}
+                                formFields={visualizeToolState.formFields}
+                                handleFieldChange={visualizeToolState.handleFieldChange}
+                                setFormFields={visualizeToolState.setFormFields}
+                                isGptImage={visualizeToolState.isGptImage}
+                                isSeedream={visualizeToolState.isSeedream}
+                                isNanoPollen={visualizeToolState.isNanoPollen}
+                                isPollenModel={visualizeToolState.isPollenModel}
+                                isPollinationsVideo={visualizeToolState.isPollinationsVideo}
+                                inlineContent={null}
+                                onDeactivate={() => setActiveMode('standard')}
+                                variant="bare"
+                                section="parameters"
+                                disabled={isLoading || isRecording || isTranscribing}
+                                providerMode={visualizeToolState.providerMode}
+                                prunaAvailable={visualizeToolState.prunaAvailable}
+                            />
+                        )}
+                        {isComposeMode && composeToolState && (
+                            <ComposeInlineHeader
+                                selectedModel={composeToolState.selectedModel}
+                                duration={composeToolState.duration}
+                                availableDurations={composeToolState.availableDurations}
+                                hasPollenKey={composeToolState.hasPollenKey}
+                                instrumental={composeToolState.instrumental}
+                                onModelChange={composeToolState.setSelectedModel}
+                                onDurationChange={composeToolState.setDuration}
+                                onInstrumentalChange={composeToolState.setInstrumental}
+                                onDeactivate={() => setActiveMode('standard')}
+                                disabled={isLoading}
+                                variant="bare"
+                                section="parameters"
+                            />
+                        )}
+                        {!isImageMode && !isComposeMode && (
+                            <QuickSettingsBadges
+                                selectedVoice={selectedVoice}
+                                onVoiceChange={handleVoiceChange}
+                                selectedTtsSpeed={selectedTtsSpeed}
+                                onTtsSpeedChange={handleTtsSpeedChange}
+                                selectedResponseStyleName={selectedResponseStyleName}
+                                onStyleChange={handleStyleChange}
+                            />
+                        )}
+                    </div>
+                }
+            />
+
             {/* Hidden Inputs */}
             <input
                 type="file"

@@ -19,6 +19,13 @@ describe('Pruna model mappings', () => {
     }));
   });
 
+  it('maps VACE to the standard Pruna predictions endpoint contract', () => {
+    expect(getPrunaModelMapping('vace')).toEqual(expect.objectContaining({
+      prunaModel: 'vace',
+    }));
+    expect(getPrunaModelMapping('vace')).not.toHaveProperty('endpoint');
+  });
+
   it('maps p-video-animate source video and subject reference separately', () => {
     const input = getPrunaModelMapping('p-video-animate')?.buildInput({
       prompt: 'follow this motion',
@@ -189,6 +196,135 @@ describe('Pruna model mappings', () => {
     }));
   });
 
+  it.each([
+    [5, 81],
+    [6, 96],
+    [7, 112],
+    [7.5, 120],
+  ])('converts %s seconds to %s frames for Wan T2V and I2V', (duration, numFrames) => {
+    const fields = { prompt: 'camera move', duration };
+
+    expect(getPrunaModelMapping('wan-t2v')?.buildInput(fields)).toEqual(
+      expect.objectContaining({ num_frames: numFrames, frames_per_second: 16 }),
+    );
+    expect(getPrunaModelMapping('wan-i2v')?.buildInput({
+      ...fields,
+      image: 'https://example.com/start.jpg',
+    })).toEqual(
+      expect.objectContaining({ num_frames: numFrames, frames_per_second: 16 }),
+    );
+  });
+
+  it('builds the exact allowed Wan T2V payload including aspect_ratio', () => {
+    const input = getPrunaModelMapping('wan-t2v')?.buildInput({
+      prompt: 'portrait camera move',
+      aspectRatio: '9:16',
+      duration: 7.5,
+      seed: 42,
+    });
+
+    expect(input).toEqual({
+      prompt: 'portrait camera move',
+      disable_safety_checker: true,
+      num_frames: 120,
+      resolution: '480p',
+      aspect_ratio: '9:16',
+      frames_per_second: 16,
+      interpolate_output: true,
+      go_fast: true,
+      seed: 42,
+    });
+  });
+
+  it('builds the exact allowed Wan I2V payload with ordered start and end images', () => {
+    const input = getPrunaModelMapping('wan-i2v')?.buildInput({
+      prompt: 'transition between frames',
+      aspectRatio: '9:16',
+      duration: 7.5,
+      seed: 42,
+      image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+    });
+
+    expect(input).toEqual({
+      prompt: 'transition between frames',
+      disable_safety_checker: true,
+      image: 'https://example.com/start.jpg',
+      num_frames: 120,
+      resolution: '480p',
+      frames_per_second: 16,
+      interpolate_output: false,
+      go_fast: true,
+      last_image: 'https://example.com/end.jpg',
+      seed: 42,
+    });
+  });
+
+  it('uses the exact Wan I2V payload for wan-fast references without aspect_ratio loss or leakage', () => {
+    const input = getPrunaModelMapping('wan-fast')?.buildInput({
+      prompt: 'fast transition',
+      aspectRatio: '9:16',
+      duration: 6,
+      image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+    });
+
+    expect(input).toEqual({
+      prompt: 'fast transition',
+      disable_safety_checker: true,
+      image: 'https://example.com/start.jpg',
+      num_frames: 96,
+      resolution: '480p',
+      frames_per_second: 16,
+      interpolate_output: false,
+      go_fast: true,
+      last_image: 'https://example.com/end.jpg',
+    });
+  });
+
+  it('uses VACE frame_num and never forwards generic duration', () => {
+    const input = getPrunaModelMapping('vace')?.buildInput({
+      prompt: 'consistent character',
+      duration: 7,
+      frameNum: 65,
+    });
+
+    expect(input).toEqual(expect.objectContaining({ frame_num: 65 }));
+    expect(input).not.toHaveProperty('duration');
+  });
+
+  it('forwards P-Video duration unchanged for route-level validation', () => {
+    const input = getPrunaModelMapping('p-video')?.buildInput({
+      prompt: 'long establishing shot',
+      duration: 20,
+    });
+
+    expect(input).toEqual(expect.objectContaining({ duration: 20 }));
+  });
+
+  it('maps the Avatar prompt to voice_script and omits duration', () => {
+    const input = getPrunaModelMapping('p-video-avatar')?.buildInput({
+      prompt: 'Welcome to HeyHi.',
+      duration: 10,
+      image: 'https://example.com/speaker.jpg',
+    });
+
+    expect(input).toEqual(expect.objectContaining({
+      voice_script: 'Welcome to HeyHi.',
+      video_prompt: 'The person is talking.',
+    }));
+    expect(input).not.toHaveProperty('duration');
+  });
+
+  it.each(['p-video-animate', 'p-video-replace'])('%s omits duration because source video controls length', (modelId) => {
+    const input = getPrunaModelMapping(modelId)?.buildInput({
+      prompt: 'preserve source timing',
+      duration: 10,
+      video: 'https://example.com/source.mp4',
+      image: 'https://example.com/reference.jpg',
+    });
+
+    expect(input).not.toHaveProperty('duration');
+  });
+
   it('normalizes p-video custom UI dimensions to schema-supported aspect ratios', () => {
     const portraitInput = getPrunaModelMapping('p-video')?.buildInput({
       prompt: 'portrait product reveal',
@@ -205,5 +341,14 @@ describe('Pruna model mappings', () => {
 
     expect(portraitInput).toEqual(expect.objectContaining({ aspect_ratio: '9:16' }));
     expect(landscapeInput).toEqual(expect.objectContaining({ aspect_ratio: '16:9' }));
+  });
+
+  it('disables the provider safety filter for every registered Pruna model', () => {
+    for (const modelId of PRUNA_MODEL_IDS) {
+      const input = getPrunaModelMapping(modelId)?.buildInput({ prompt: 'test' });
+      const safetyDisabled = input?.disable_safety_checker === true || input?.disable_safety_filter === true;
+
+      expect(safetyDisabled).toBe(true);
+    }
   });
 });

@@ -5,6 +5,18 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  // Dev-only: reaching the dev server over a Tailscale or LAN address instead of
+  // localhost makes Next block /_next/* requests as cross-origin. The page still
+  // loads, but lazily fetched chunks fail, which surfaces as a ChunkLoadError
+  // and a full page reload. Has no effect on production builds.
+  allowedDevOrigins: [
+    '100.86.170.47',
+    '172.20.10.8',
+    'https://9000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
+    'https://6000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
+    'http://172.20.10.14:3000',
+    'http://localhost:3000',
+  ],
   images: {
     remotePatterns: [
       {
@@ -45,12 +57,6 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  allowedDevOrigins: [
-    'https://9000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
-    'https://6000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
-    'http://172.20.10.14:3000',
-    'http://localhost:3000',
-  ],
 };
 
 export default nextConfig;

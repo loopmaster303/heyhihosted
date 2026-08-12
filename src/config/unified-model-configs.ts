@@ -252,9 +252,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     outputType: 'video',
     inputs: [
       { name: 'prompt', isPrompt: true },
-      { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 5 },
-      { name: 'audio', default: true },
       { name: 'seed' },
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
@@ -338,7 +335,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 5 },
       { name: 'audio', default: false },
       { name: 'seed' },
       { name: 'output_format', default: 'mp4', hidden: true },
@@ -457,7 +453,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 5 },
       { name: 'seed' },
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
@@ -469,8 +464,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'image' },
-      { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 5 },
       { name: 'seed' },
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
@@ -482,8 +475,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'image' },
-      { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 5 },
       { name: 'seed' },
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
@@ -518,8 +509,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'image' },
-      { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 5 },
       { name: 'seed' },
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
@@ -531,8 +520,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'image' },
-      { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 5 },
       { name: 'seed' },
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
@@ -544,8 +531,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'image' },
-      { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 5 },
       { name: 'seed' },
       { name: 'output_format', default: 'mp4', hidden: true },
     ],

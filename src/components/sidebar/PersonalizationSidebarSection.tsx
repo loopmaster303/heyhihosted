@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from '@/components/LanguageProvider';
 import { DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
-import { getModelsByProvider } from '@/config/unified-image-models';
+import { getModelsByProvider, shouldIncludeByopHidden } from '@/config/unified-image-models';
 import { unifiedModelConfigs } from '@/config/unified-model-configs';
 import { useChatConversation, useChatModes } from '@/components/ChatProvider';
 import { Mic, MessageSquare, Lock } from 'lucide-react';
@@ -35,9 +35,12 @@ const PersonalizationSidebarSection: React.FC = () => {
   const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
 
   const imageModels = useMemo(
-    () => getModelsByProvider(providerMode, { includeByopHidden: hasPollenKey })
+    () => getModelsByProvider(
+      providerMode,
+      { includeByopHidden: shouldIncludeByopHidden(providerMode, { prunaAvailable, hasPollenKey }) },
+    )
       .filter(model => model.kind === 'image' && model.id in unifiedModelConfigs),
-    [providerMode, hasPollenKey]
+    [providerMode, hasPollenKey, prunaAvailable]
   );
 
   useEffect(() => {

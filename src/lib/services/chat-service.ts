@@ -110,19 +110,17 @@ export class ChatService {
 
     static async generateImage(options: GenerateImageOptions): Promise<string> {
         const modelInfo = getUnifiedModel(options.modelId);
+        const temporalMode = modelInfo?.temporalControl?.mode;
+        const acceptsDuration = temporalMode === 'seconds'
+            || temporalMode === 'frame-backed-seconds'
+            || (!modelInfo?.temporalControl && modelInfo?.durationRange !== undefined);
 
         const body: any = { prompt: options.prompt, model: options.modelId, private: true };
 
         if (modelInfo?.kind === 'video' || options.duration !== undefined || options.audio !== undefined) {
             if (options.aspect_ratio) body.aspectRatio = options.aspect_ratio;
-            if (options.duration !== undefined) {
+            if (acceptsDuration && options.duration !== undefined) {
                 body.duration = options.duration;
-            } else if (options.frames) {
-                body.duration = options.frames;
-            } else if (modelInfo?.durationRange?.options && modelInfo.durationRange.options.length > 0) {
-                body.duration = modelInfo.durationRange.options[0];
-            } else {
-                body.duration = 5;
             }
             if (options.audio !== undefined) body.audio = options.audio;
         } else {

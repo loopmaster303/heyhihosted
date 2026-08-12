@@ -1,4 +1,9 @@
 import { POST } from './route';
+import { UNIFIED_IMAGE_MODELS } from '@/config/unified-image-models';
+
+const enabledPrunaImageModelIds = UNIFIED_IMAGE_MODELS
+  .filter((model) => model.provider === 'pruna' && model.kind === 'image' && model.enabled !== false)
+  .map((model) => model.id);
 
 const imageUrlMock = jest.fn();
 const videoUrlMock = jest.fn();
@@ -422,6 +427,32 @@ describe('/api/generate route', () => {
     expect(generatePollinationsImageMock).not.toHaveBeenCalled();
   });
 
+  it.each(enabledPrunaImageModelIds)('never sends enabled Pruna image model %s to Pollinations generation', async (model) => {
+    resolvePollenKeyMock.mockReturnValueOnce(undefined);
+    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: `https://pruna.ai/gen/${model}` });
+    downloadPrunaResultMock.mockResolvedValueOnce({
+      buffer: Buffer.from(`fake-${model}`),
+      contentType: 'image/png',
+    });
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: `generate ${model}`, model }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(generateViaPrunaMock).toHaveBeenCalledWith(
+      model,
+      expect.objectContaining({ prompt: `generate ${model}` }),
+      expect.any(AbortSignal),
+      'test-pruna-key',
+    );
+    expect(generatePollinationsImageMock).not.toHaveBeenCalled();
+    expect(imageUrlMock).not.toHaveBeenCalled();
+    expect(videoUrlMock).not.toHaveBeenCalled();
+  });
+
   it('returns Pruna media bytes when no Pollen key is connected', async () => {
     resolvePollenKeyMock.mockReturnValueOnce(undefined);
     generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/local-only' });
@@ -528,12 +559,11 @@ describe('/api/generate route', () => {
     );
   });
 
-  it('falls back to Pollinations for zimage when Pruna fails', async () => {
+  it('returns the Pruna error for zimage instead of falling back to Pollinations', async () => {
     const { ApiError } = require('@/lib/api-error-handler');
     generateViaPrunaMock.mockRejectedValueOnce(
       new ApiError(502, 'Pruna API error (500): Internal error', 'PRUNA_API_ERROR')
     );
-    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/fallback.png');
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
@@ -547,23 +577,45 @@ describe('/api/generate route', () => {
     });
 
     const response = await POST(request);
-    const body = responseJson.mock.calls.at(-1)?.[0] as { imageUrl: string };
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
 
-    expect(response.status).toBe(200);
-    expect(body.imageUrl).toBe('https://example.com/fallback.png');
+    expect(response.status).toBe(502);
+    expect(body.error).toBe('Pruna API error (500): Internal error');
     expect(generateViaPrunaMock).toHaveBeenCalled();
-    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
-      expect.objectContaining({ enhance: true }),
-    );
+    expect(generatePollinationsImageMock).not.toHaveBeenCalled();
+    expect(imageUrlMock).not.toHaveBeenCalled();
   });
 
-  it('falls back to Pollinations for zimage when media upload returns no URL', async () => {
+  it('returns the Pruna download error for zimage instead of falling back to Pollinations', async () => {
+    const { ApiError } = require('@/lib/api-error-handler');
+    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/download-failure' });
+    downloadPrunaResultMock.mockRejectedValueOnce(
+      new ApiError(502, 'Failed to download Pruna result (404)', 'PRUNA_DOWNLOAD_ERROR'),
+    );
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'download failure', model: 'zimage' }),
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string; code?: string };
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe('Failed to download Pruna result (404)');
+    expect(body.code).toBe('PRUNA_DOWNLOAD_ERROR');
+    expect(generateViaPrunaMock).toHaveBeenCalled();
+    expect(downloadPrunaResultMock).toHaveBeenCalled();
+    expect(generatePollinationsImageMock).not.toHaveBeenCalled();
+    expect(imageUrlMock).not.toHaveBeenCalled();
+    expect(videoUrlMock).not.toHaveBeenCalled();
+  });
+
+  it('returns the upload error for zimage instead of falling back to Pollinations', async () => {
     generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/123' });
     downloadPrunaResultMock.mockResolvedValueOnce({
       buffer: Buffer.from('fake-image'),
       contentType: 'image/jpeg',
     });
-    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/fallback.png');
 
     global.fetch = jest.fn().mockResolvedValueOnce({
       ok: true,
@@ -582,23 +634,22 @@ describe('/api/generate route', () => {
     });
 
     const response = await POST(request);
-    const body = responseJson.mock.calls.at(-1)?.[0] as { imageUrl: string };
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string; code?: string };
 
-    expect(response.status).toBe(200);
-    expect(body.imageUrl).toBe('https://example.com/fallback.png');
+    expect(response.status).toBe(502);
+    expect(body.error).toBe('Media upload succeeded but returned no URL');
+    expect(body.code).toBe('MEDIA_UPLOAD_MISSING_URL');
     expect(generateViaPrunaMock).toHaveBeenCalled();
-    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
-      expect.objectContaining({ enhance: true }),
-    );
+    expect(generatePollinationsImageMock).not.toHaveBeenCalled();
+    expect(imageUrlMock).not.toHaveBeenCalled();
   });
 
-  it('falls back to Pollinations for zimage when media upload returns ok:false', async () => {
+  it('returns the media upload failure for zimage instead of falling back to Pollinations', async () => {
     generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/123' });
     downloadPrunaResultMock.mockResolvedValueOnce({
       buffer: Buffer.from('fake-image'),
       contentType: 'image/jpeg',
     });
-    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/fallback.png');
 
     global.fetch = jest.fn().mockResolvedValueOnce({
       ok: false,
@@ -618,14 +669,14 @@ describe('/api/generate route', () => {
     });
 
     const response = await POST(request);
-    const body = responseJson.mock.calls.at(-1)?.[0] as { imageUrl: string };
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string; code?: string };
 
-    expect(response.status).toBe(200);
-    expect(body.imageUrl).toBe('https://example.com/fallback.png');
+    expect(response.status).toBe(502);
+    expect(body.error).toBe('Media upload failed (500): Storage unavailable');
+    expect(body.code).toBe('MEDIA_UPLOAD_ERROR');
     expect(generateViaPrunaMock).toHaveBeenCalled();
-    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
-      expect.objectContaining({ enhance: true }),
-    );
+    expect(generatePollinationsImageMock).not.toHaveBeenCalled();
+    expect(imageUrlMock).not.toHaveBeenCalled();
   });
 
   it('does NOT fall back to Pollinations for exclusive Pruna models (wan-t2v)', async () => {
@@ -708,6 +759,159 @@ describe('/api/generate route', () => {
     expect(body.error).toMatch(/wan-t2v requires PRUNA_API_KEY/i);
 
     if (originalKey) process.env.PRUNA_API_KEY = originalKey;
+  });
+
+  it('returns 503 for zimage without a Pruna key instead of using Pollinations', async () => {
+    delete (process.env as any).PRUNA_API_KEY;
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'strict provider routing', model: 'zimage' }),
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+    expect(response.status).toBe(503);
+    expect(body.error).toMatch(/zimage requires PRUNA_API_KEY/i);
+    expect(generateViaPrunaMock).not.toHaveBeenCalled();
+    expect(generatePollinationsImageMock).not.toHaveBeenCalled();
+    expect(imageUrlMock).not.toHaveBeenCalled();
+  });
+
+  it.each([1, 20])('accepts p-video duration boundary %s seconds', async (duration) => {
+    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: `https://pruna.ai/gen/p-video-${duration}` });
+    downloadPrunaResultMock.mockResolvedValueOnce({
+      buffer: Buffer.from('fake-video'),
+      contentType: 'video/mp4',
+    });
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: `https://media.pollinations.ai/p-video-${duration}` }),
+    });
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'duration boundary', model: 'p-video', duration }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(generateViaPrunaMock).toHaveBeenCalledWith(
+      'p-video',
+      expect.objectContaining({ duration }),
+      expect.any(AbortSignal),
+      'test-pruna-key',
+    );
+  });
+
+  it.each([0, 20.5, 21])('rejects invalid p-video duration %s before Pruna dispatch', async (duration) => {
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'invalid duration', model: 'p-video', duration }),
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatch(/invalid duration.*p-video/i);
+    expect(generateViaPrunaMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['wan-t2v', 5],
+    ['wan-t2v', 6],
+    ['wan-t2v', 7],
+    ['wan-t2v', 7.5],
+    ['wan-i2v', 5],
+    ['wan-i2v', 6],
+    ['wan-i2v', 7],
+    ['wan-i2v', 7.5],
+  ] as const)('accepts %s duration option %s seconds', async (model, duration) => {
+    resolvePollenKeyMock.mockReturnValueOnce(undefined);
+    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: `https://pruna.ai/gen/${model}-${duration}` });
+    downloadPrunaResultMock.mockResolvedValueOnce({
+      buffer: Buffer.from('fake-video'),
+      contentType: 'video/mp4',
+    });
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'valid wan duration',
+        model,
+        duration,
+        ...(model === 'wan-i2v' ? { image: 'https://example.com/start.jpg' } : {}),
+      }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(generateViaPrunaMock).toHaveBeenCalledWith(
+      model,
+      expect.objectContaining({ duration }),
+      expect.any(AbortSignal),
+      'test-pruna-key',
+    );
+  });
+
+  it.each(['wan-t2v', 'wan-i2v'] as const)('rejects unsupported 10-second duration for %s before Pruna dispatch', async (model) => {
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'invalid wan duration',
+        model,
+        duration: 10,
+        ...(model === 'wan-i2v' ? { image: 'https://example.com/start.jpg' } : {}),
+      }),
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatch(/invalid duration.*5, 6, 7, 7.5/i);
+    expect(generateViaPrunaMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['p-video-avatar', {}],
+    ['p-video-animate', { video: 'https://example.com/source.mp4' }],
+    ['p-video-replace', { video: 'https://example.com/source.mp4' }],
+    ['vace', {}],
+  ] as const)('rejects supplied duration for %s rather than ignoring it', async (model, extraBody) => {
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'provider-controlled duration', model, duration: 5, ...extraBody }),
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatch(/does not accept a duration/i);
+    expect(generateViaPrunaMock).not.toHaveBeenCalled();
+  });
+
+  it('passes ordered Wan I2V start/end images unchanged to the Pruna adapter', async () => {
+    const images = ['https://example.com/start.jpg', 'https://example.com/end.jpg'];
+    resolvePollenKeyMock.mockReturnValueOnce(undefined);
+    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/wan-i2v-frames' });
+    downloadPrunaResultMock.mockResolvedValueOnce({
+      buffer: Buffer.from('fake-video'),
+      contentType: 'video/mp4',
+    });
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'transition', model: 'wan-i2v', duration: 6, image: images }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(generateViaPrunaMock).toHaveBeenCalledWith(
+      'wan-i2v',
+      expect.objectContaining({ image: images, duration: 6 }),
+      expect.any(AbortSignal),
+      'test-pruna-key',
+    );
   });
 
   // ── Pruna P-Model tests ─────────────────────────────────────────────

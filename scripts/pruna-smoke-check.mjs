@@ -56,9 +56,6 @@ const scenarios = {
     body: () => ({
       model: 'vace',
       prompt: commonPrompt,
-      aspectRatio: '16:9',
-      duration: 1,
-      audio: false,
     }),
   },
   'wan-t2v': {
@@ -66,8 +63,16 @@ const scenarios = {
       model: 'wan-t2v',
       prompt: commonPrompt,
       aspectRatio: '16:9',
-      duration: 1,
-      audio: false,
+      duration: 5,
+    }),
+  },
+  'wan-i2v': {
+    needs: ['PRUNA_SMOKE_IMAGE_URL'],
+    body: () => ({
+      model: 'wan-i2v',
+      prompt: 'animate the start frame with a gentle camera move',
+      image: SECOND_IMAGE_URL ? [IMAGE_URL, SECOND_IMAGE_URL] : IMAGE_URL,
+      duration: 5,
     }),
   },
   'wan-fast': {
@@ -75,8 +80,7 @@ const scenarios = {
       model: 'wan-fast',
       prompt: commonPrompt,
       aspectRatio: '16:9',
-      duration: 1,
-      audio: false,
+      duration: 5,
     }),
   },
   'p-video-animate': {
@@ -120,6 +124,14 @@ async function runScenario(modelId, scenario) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(scenario.body()),
   });
+  const contentType = response.headers.get('content-type') || '';
+  const mediaKind = response.headers.get('x-heyhi-media-kind');
+  const hasRawMedia = response.ok && (
+    mediaKind === 'image'
+    || mediaKind === 'video'
+    || contentType.startsWith('image/')
+    || contentType.startsWith('video/')
+  );
   const text = await response.text();
   let body;
   try {
@@ -134,6 +146,7 @@ async function runScenario(modelId, scenario) {
     ok: response.ok,
     hasImageUrl: !!body.imageUrl,
     hasVideoUrl: !!body.videoUrl,
+    hasRawMedia,
     error: body.error,
   };
 }
@@ -158,7 +171,9 @@ async function main() {
     console.log(JSON.stringify(result));
   }
 
-  const failed = results.filter((result) => !result.skipped && (!result.ok || (!result.hasImageUrl && !result.hasVideoUrl)));
+  const failed = results.filter((result) => !result.skipped && (
+    !result.ok || (!result.hasImageUrl && !result.hasVideoUrl && !result.hasRawMedia)
+  ));
   const skippedExplicit = requested.length > 0 && requested[0] !== 'all' && results.some((result) => result.skipped);
 
   if (failed.length > 0 || skippedExplicit) {

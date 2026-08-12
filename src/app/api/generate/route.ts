@@ -12,7 +12,7 @@ import {
   resolvePollinationsVisualModelId,
   toPollinationsVisualApiModelId,
 } from '@/config/unified-image-models';
-import { isPrunaModel } from '@/config/pruna-models';
+import { getPrunaModelMapping } from '@/config/pruna-models';
 import { generateViaPruna, downloadPrunaResult } from '@/lib/pruna/client';
 import { MEDIA_UPLOAD_URL } from '@/lib/upload/constants';
 
@@ -115,11 +115,54 @@ export async function POST(request: Request) {
     // ── Pruna AI dispatch ─────────────────────────────────────────────
     const prunaApiKey = resolvePrunaKey(request);
     const hasPrunaKey = !!prunaApiKey;
-    const prunaEligible = isPrunaModel(canonicalModelId);
-    const PRUNA_FALLBACK_MODELS = new Set(['zimage']);
+    const prunaEligible = modelInfo?.provider === 'pruna';
+
+    if (prunaEligible && !getPrunaModelMapping(canonicalModelId)) {
+      throw new ApiError(
+        500,
+        `Pruna model ${canonicalModelId} is missing its adapter mapping`,
+        'PRUNA_MODEL_CONFIG_ERROR',
+      );
+    }
+
+    if (prunaEligible && duration !== undefined) {
+      const temporalControl = modelInfo?.temporalControl;
+
+      if (temporalControl?.mode === 'seconds') {
+        const stepsFromMinimum = (duration - temporalControl.min) / temporalControl.step;
+        const isStepAligned = Math.abs(stepsFromMinimum - Math.round(stepsFromMinimum)) < 1e-9;
+        const isAllowedOption = !temporalControl.options || temporalControl.options.includes(duration);
+
+        if (
+          duration < temporalControl.min
+          || duration > temporalControl.max
+          || !isStepAligned
+          || !isAllowedOption
+        ) {
+          throw new ApiError(
+            400,
+            `Invalid duration for ${canonicalModelId}: expected ${temporalControl.min}-${temporalControl.max} seconds in steps of ${temporalControl.step}`,
+            'INVALID_DURATION',
+          );
+        }
+      } else if (temporalControl?.mode === 'frame-backed-seconds') {
+        if (!temporalControl.secondOptions.includes(duration)) {
+          throw new ApiError(
+            400,
+            `Invalid duration for ${canonicalModelId}: expected one of ${temporalControl.secondOptions.join(', ')} seconds`,
+            'INVALID_DURATION',
+          );
+        }
+      } else if (temporalControl) {
+        throw new ApiError(
+          400,
+          `Model ${canonicalModelId} does not accept a duration; its length is controlled by the source input or provider`,
+          'INVALID_DURATION',
+        );
+      }
+    }
 
     if (prunaEligible && hasPrunaKey) {
-      try {
         const prunaFields = {
           prompt,
           width,
@@ -193,18 +236,11 @@ export async function POST(request: Request) {
           imageUrl: isVideoModel ? undefined : uploadData.url,
           videoUrl: isVideoModel ? uploadData.url : undefined,
         });
-      } catch (prunaError) {
-        if (PRUNA_FALLBACK_MODELS.has(canonicalModelId)) {
-          console.warn('[Pruna] Failed for', canonicalModelId, '— falling back to Pollinations:', prunaError);
-        } else {
-          throw prunaError;
-        }
-      }
-    } else if (prunaEligible && !hasPrunaKey && !PRUNA_FALLBACK_MODELS.has(canonicalModelId)) {
+    } else if (prunaEligible && !hasPrunaKey) {
       throw new ApiError(503, `Model ${canonicalModelId} requires PRUNA_API_KEY which is not set`);
     }
 
-    // ── Pollinations dispatch (fallback or non-Pruna models) ────────
+    // ── Pollinations dispatch (non-Pruna models only) ───────────────
 
     // Safety Force: Private requires Token
     const safePrivate = isPrivate && hasToken ? true : false;

@@ -6,12 +6,18 @@ import {
   getVisiblePollinationsModels,
 } from '@/config/chat-options';
 import {
+  UNIFIED_IMAGE_MODELS,
+  getDefaultDurationSeconds,
+  getDurationOptionsSeconds,
   getChatImageModels,
   getImageModels,
   getUnifiedModel,
   getVisualizeModelGroups,
   resolvePollinationsVisualModelId,
+  shouldIncludeByopHidden,
 } from '@/config/unified-image-models';
+import { unifiedModelConfigs } from '@/config/unified-model-configs';
+import { getPrunaModelMapping } from '@/config/pruna-models';
 
   test('visual reference limits match enabled upstream model capabilities', () => {
     expect(getUnifiedModel('gpt-image')).toEqual(expect.objectContaining({ maxImages: 16 }));
@@ -156,6 +162,101 @@ describe('model invariants', () => {
       'wan-fast',
       'p-video',
     ]));
+  });
+
+  test('Pruna video models expose their individual duration semantics in seconds', () => {
+    expect(getUnifiedModel('p-video')).toEqual(expect.objectContaining({
+      temporalControl: { mode: 'seconds', min: 1, max: 20, step: 1, defaultSeconds: 5 },
+    }));
+
+    for (const modelId of ['wan-fast', 'wan-t2v', 'wan-i2v']) {
+      expect(getUnifiedModel(modelId)).toEqual(expect.objectContaining({
+        temporalControl: {
+          mode: 'frame-backed-seconds',
+          fps: 16,
+          minFrames: 81,
+          maxFrames: 121,
+          secondOptions: [5, 6, 7, 7.5],
+          defaultSeconds: 5,
+        },
+      }));
+    }
+
+    expect(getUnifiedModel('p-video-avatar')).toEqual(expect.objectContaining({
+      temporalControl: { mode: 'speech-driven' },
+    }));
+    expect(getUnifiedModel('p-video-animate')).toEqual(expect.objectContaining({
+      temporalControl: { mode: 'source-video-driven' },
+    }));
+    expect(getUnifiedModel('p-video-replace')).toEqual(expect.objectContaining({
+      temporalControl: { mode: 'source-video-driven' },
+    }));
+    expect(getUnifiedModel('vace')).toEqual(expect.objectContaining({
+      temporalControl: { mode: 'fixed-frames', frames: 81 },
+    }));
+  });
+
+  test('Pruna model capabilities do not advertise unsupported duration or audio controls', () => {
+    for (const modelId of ['p-video', 'p-video-avatar', 'p-video-animate', 'p-video-replace', 'wan-fast', 'wan-t2v', 'wan-i2v', 'vace']) {
+      expect(getUnifiedModel(modelId)?.durationRange).toBeUndefined();
+    }
+
+    expect(getUnifiedModel('wan-fast')?.supportsAudio).toBe(false);
+    expect(getUnifiedModel('wan-t2v')?.supportsAudio).toBe(false);
+    expect(getUnifiedModel('wan-i2v')?.supportsAudio).toBe(false);
+    expect(getUnifiedModel('p-video-avatar')?.supportsAudio).toBe(false);
+  });
+
+  test('shared provider visibility uses only the selected provider entitlement', () => {
+    expect(shouldIncludeByopHidden('pruna', { prunaAvailable: true, hasPollenKey: false })).toBe(true);
+    expect(shouldIncludeByopHidden('pruna', { prunaAvailable: false, hasPollenKey: true })).toBe(false);
+    expect(shouldIncludeByopHidden('pollinations', { prunaAvailable: true, hasPollenKey: false })).toBe(false);
+    expect(shouldIncludeByopHidden('pollinations', { prunaAvailable: false, hasPollenKey: true })).toBe(true);
+  });
+
+  test('shared duration helpers derive Pruna seconds and preserve legacy Pollinations defaults', () => {
+    const pVideo = getUnifiedModel('p-video');
+    const wan = getUnifiedModel('wan-t2v');
+    const legacyPollinations = getUnifiedModel('ltx-2');
+
+    expect(getDurationOptionsSeconds(pVideo)).toEqual(Array.from({ length: 20 }, (_, index) => index + 1));
+    expect(getDefaultDurationSeconds(pVideo)).toBe(5);
+    expect(getDurationOptionsSeconds(wan)).toEqual([5, 6, 7, 7.5]);
+    expect(getDefaultDurationSeconds(wan)).toBe(5);
+    expect(getDurationOptionsSeconds(legacyPollinations)).toEqual([6, 8, 10]);
+    expect(getDefaultDurationSeconds(legacyPollinations, 8)).toBe(8);
+    expect(getDefaultDurationSeconds(legacyPollinations)).toBe(6);
+    expect(getDefaultDurationSeconds(getUnifiedModel('vace'))).toBeUndefined();
+  });
+
+  test('migrated Pruna video configs contain no generic duration input', () => {
+    for (const modelId of ['p-video', 'p-video-avatar', 'p-video-animate', 'p-video-replace', 'wan-fast', 'wan-t2v', 'wan-i2v', 'vace']) {
+      expect(unifiedModelConfigs[modelId].inputs.map(input => input.name)).not.toContain('duration');
+    }
+  });
+
+  test('Pruna video configs expose aspect ratio only when the adapter accepts it', () => {
+    for (const modelId of ['wan-fast', 'wan-i2v', 'vace', 'p-video-avatar', 'p-video-animate', 'p-video-replace']) {
+      expect(unifiedModelConfigs[modelId].inputs.map(input => input.name)).not.toContain('aspect_ratio');
+    }
+
+    for (const modelId of ['p-video', 'wan-t2v']) {
+      expect(unifiedModelConfigs[modelId].inputs.map(input => input.name)).toContain('aspect_ratio');
+    }
+  });
+
+  test('every unified Pruna model has an explicit Pruna adapter mapping', () => {
+    for (const model of UNIFIED_IMAGE_MODELS.filter(({ provider }) => provider === 'pruna')) {
+      expect(getPrunaModelMapping(model.id)).toBeDefined();
+    }
+  });
+
+  test('Wan I2V accepts distinct start and end frames', () => {
+    expect(getUnifiedModel('wan-i2v')).toEqual(expect.objectContaining({
+      supportsReference: true,
+      maxImages: 2,
+      supportsEndFrame: true,
+    }));
   });
 
   test('paid Pollinations models require Pollen key visibility', () => {

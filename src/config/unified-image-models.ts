@@ -7,6 +7,19 @@ export type ImageProvider = 'pollinations' | 'pruna';
 export type ImageKind = 'image' | 'video';
 export type ImageCategory = 'Standard' | 'Advanced';
 export type ReferenceMode = 'multi-image' | 'start-frame' | 'start-end-frame';
+export type TemporalControl =
+  | { mode: 'seconds'; min: number; max: number; step: number; options?: number[]; defaultSeconds: number }
+  | {
+      mode: 'frame-backed-seconds';
+      fps: number;
+      minFrames: number;
+      maxFrames: number;
+      secondOptions: number[];
+      defaultSeconds: number;
+    }
+  | { mode: 'speech-driven' }
+  | { mode: 'source-video-driven' }
+  | { mode: 'fixed-frames'; frames: number };
 
 export interface UnifiedImageModel {
   id: string;
@@ -24,6 +37,7 @@ export interface UnifiedImageModel {
   supportsPromptEnhance?: boolean;
   supportsEndFrame?: boolean;
   referenceMode?: ReferenceMode;
+  temporalControl?: TemporalControl;
   durationRange?: {
     min?: number;
     max?: number;
@@ -34,6 +48,46 @@ export interface UnifiedImageModel {
 
 export interface VisualModelVisibilityOptions {
   includeByopHidden?: boolean;
+}
+
+export interface ProviderEntitlements {
+  hasPollenKey: boolean;
+  prunaAvailable: boolean;
+}
+
+export function shouldIncludeByopHidden(
+  provider: ImageProvider,
+  entitlements: ProviderEntitlements,
+): boolean {
+  return provider === 'pruna' ? entitlements.prunaAvailable : entitlements.hasPollenKey;
+}
+
+export function getDurationOptionsSeconds(model?: UnifiedImageModel): number[] {
+  const temporalControl = model?.temporalControl;
+  if (temporalControl?.mode === 'seconds') {
+    if (temporalControl.options) return temporalControl.options;
+    const count = Math.floor((temporalControl.max - temporalControl.min) / temporalControl.step) + 1;
+    return Array.from({ length: count }, (_, index) =>
+      temporalControl.min + index * temporalControl.step
+    );
+  }
+  if (temporalControl?.mode === 'frame-backed-seconds') {
+    return temporalControl.secondOptions;
+  }
+  if (temporalControl) return [];
+  return model?.durationRange?.options ?? [];
+}
+
+export function getDefaultDurationSeconds(
+  model?: UnifiedImageModel,
+  legacyConfigDefault?: number,
+): number | undefined {
+  const temporalControl = model?.temporalControl;
+  if (temporalControl?.mode === 'seconds' || temporalControl?.mode === 'frame-backed-seconds') {
+    return temporalControl.defaultSeconds;
+  }
+  if (temporalControl) return undefined;
+  return legacyConfigDefault ?? model?.durationRange?.options?.[0];
 }
 
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
@@ -106,11 +160,18 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     supportsReference: true,
     isFree: false,
     enabled: false,
-    description: 'Wan video via Pruna (replaces wan-fast)',
-    maxImages: 1,
-    supportsAudio: true,
-    supportsEndFrame: false,
-    durationRange: { options: [5, 10, 15] },
+    description: 'Wan video via Pruna — seconds are translated to provider frames',
+    maxImages: 2,
+    supportsAudio: false,
+    supportsEndFrame: true,
+    temporalControl: {
+      mode: 'frame-backed-seconds',
+      fps: 16,
+      minFrames: 81,
+      maxFrames: 121,
+      secondOptions: [5, 6, 7, 7.5],
+      defaultSeconds: 5,
+    },
   },
   {
     id: 'ltx-2',
@@ -170,7 +231,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     description: 'Pruna P-Video — performance video generation with audio sync',
     supportsAudio: true,
     supportsEndFrame: true,
-    durationRange: { options: [5, 10] },
+    temporalControl: { mode: 'seconds', min: 1, max: 20, step: 1, defaultSeconds: 5 },
   },
   {
     id: 'p-video-avatar',
@@ -184,8 +245,8 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     enabled: true,
     byopVisible: true,
     description: 'Talking head avatar video from image + script/audio',
-    supportsAudio: true,
-    durationRange: { options: [5, 10] },
+    supportsAudio: false,
+    temporalControl: { mode: 'speech-driven' },
   },
   {
     id: 'p-video-animate',
@@ -200,7 +261,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     byopVisible: true,
     description: 'Animate subject with motion from source video',
     supportsAudio: true,
-    durationRange: { options: [5, 10] },
+    temporalControl: { mode: 'source-video-driven' },
   },
   {
     id: 'p-video-replace',
@@ -216,7 +277,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     description: 'Replace characters in video while preserving motion',
     supportsAudio: true,
     referenceMode: 'multi-image',
-    durationRange: { options: [5, 10] },
+    temporalControl: { mode: 'source-video-driven' },
   },
 
   // New video models from 2026-06-01 Pollinations API audit (disabled until BYOP flow ready)
@@ -311,8 +372,15 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     isFree: false,
     enabled: true,
     description: 'Wan T2V — text-to-video via Pruna',
-    supportsAudio: true,
-    durationRange: { options: [5, 10] },
+    supportsAudio: false,
+    temporalControl: {
+      mode: 'frame-backed-seconds',
+      fps: 16,
+      minFrames: 81,
+      maxFrames: 121,
+      secondOptions: [5, 6, 7, 7.5],
+      defaultSeconds: 5,
+    },
   },
   {
     id: 'wan-i2v',
@@ -321,12 +389,20 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     kind: 'video',
     category: 'Advanced',
     supportsReference: true,
-    maxImages: 1,
+    maxImages: 2,
     isFree: false,
     enabled: true,
     description: 'Wan I2V — image-to-video via Pruna',
-    supportsAudio: true,
-    durationRange: { options: [5, 10] },
+    supportsAudio: false,
+    supportsEndFrame: true,
+    temporalControl: {
+      mode: 'frame-backed-seconds',
+      fps: 16,
+      minFrames: 81,
+      maxFrames: 121,
+      secondOptions: [5, 6, 7, 7.5],
+      defaultSeconds: 5,
+    },
   },
   {
     id: 'vace',
@@ -341,7 +417,7 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     description: 'VACE — video with character consistency via Pruna',
     supportsAudio: false,
     referenceMode: 'multi-image',
-    durationRange: { options: [5, 10] },
+    temporalControl: { mode: 'fixed-frames', frames: 81 },
   },
 ];
 
