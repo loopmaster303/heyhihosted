@@ -110,6 +110,70 @@ describe('Pruna client', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('submits VACE to the standard Pruna host and never the retired shared host', async () => {
+    process.env.PRUNA_API_KEY = 'test-pruna-key';
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: 'starting', id: 'vace-prediction' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'succeeded',
+          generation_url: 'https://api.pruna.ai/v1/predictions/delivery/vace.mp4',
+        }),
+      } as Response);
+
+    await generateViaPruna('vace', { prompt: 'consistent character' });
+
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      1,
+      'https://api.pruna.ai/v1/predictions',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Model: 'vace' }),
+      }),
+    );
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('api.sharedservices.pruna.ai'),
+      expect.anything(),
+    );
+  });
+
+  it('wraps an initial VACE submit fetch rejection as a safe Pruna network error', async () => {
+    process.env.PRUNA_API_KEY = 'test-pruna-key';
+    global.fetch = jest.fn().mockRejectedValue(
+      new TypeError('fetch failed: getaddrinfo ENOTFOUND api.sharedservices.pruna.ai'),
+    );
+
+    await expect(
+      generateViaPruna('vace', { prompt: 'consistent character' }),
+    ).rejects.toMatchObject({
+      statusCode: 502,
+      message: 'Unable to reach Pruna API while submitting vace',
+      code: 'PRUNA_NETWORK_ERROR',
+    });
+  });
+
+  it('preserves an aborted initial submit as a Pruna cancellation error', async () => {
+    process.env.PRUNA_API_KEY = 'test-pruna-key';
+    const controller = new AbortController();
+    controller.abort();
+    global.fetch = jest.fn().mockRejectedValue(
+      new DOMException('This operation was aborted', 'AbortError'),
+    );
+
+    await expect(
+      generateViaPruna('vace', { prompt: 'consistent character' }, controller.signal),
+    ).rejects.toMatchObject({
+      statusCode: 499,
+      message: 'Pruna prediction aborted',
+      code: 'PRUNA_ABORTED',
+    });
+  });
+
   describe('downloadPrunaResult redirect policy', () => {
     it('rejects a generation URL pointing at a private/internal host', async () => {
       global.fetch = jest.fn() as any;

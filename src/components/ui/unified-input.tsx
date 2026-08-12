@@ -21,6 +21,10 @@ interface UnifiedInputProps {
   autoFocus?: boolean;
   /** HSL triple (or var() resolving to one) for the active mode tint, e.g. "var(--mode-visualize)" */
   modeColor?: string;
+  /** Visual corner overlay for mode indication */
+  visualCorner?: React.ReactNode;
+  /** Attachment preview row above the input */
+  attachmentRow?: React.ReactNode;
 }
 
 export const UnifiedInput: React.FC<UnifiedInputProps> = ({
@@ -40,6 +44,8 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
   className,
   autoFocus,
   modeColor,
+  visualCorner,
+  attachmentRow,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { t } = useLanguage();
@@ -121,6 +127,12 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
 
         {children}
 
+        {/* Visual Corner — decorative mode indicator */}
+        {visualCorner}
+
+        {/* Attachment Preview Row */}
+        {attachmentRow}
+
         {/* Textarea */}
         <div className="relative">
           <Textarea
@@ -157,7 +169,8 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
         {/* Actions — config + controls on one line */}
         <div className="mt-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 md:gap-2 overflow-x-auto no-scrollbar min-w-0">
-            {hasTopElements ? topElements : leftActions}
+            {topElements}
+            {leftActions}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {rightActions}

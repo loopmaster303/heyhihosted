@@ -5,6 +5,19 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  // Dev-only: reaching the dev server over a Tailscale or LAN address instead of
+  // localhost makes Next block /_next/* requests as cross-origin. The page still
+  // loads, but lazily fetched chunks fail, which surfaces as a ChunkLoadError
+  // and a full page reload. Has no effect on production builds.
+  allowedDevOrigins: [
+    '100.86.170.47',
+    '172.20.10.8',
+    '9000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
+    '6000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
+    '172.20.10.14',
+    '10.90.74.88',
+    'localhost',
+  ],
   images: {
     remotePatterns: [
       {
@@ -45,19 +58,7 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  // Next vergleicht nur den HOSTNAMEN der anfragenden Herkunft — Schema und Port
-  // sieht der Abgleich nie. Eintraege wie 'http://host:3000' matchen deshalb
-  // nichts. Und sobald diese Liste ueberhaupt gesetzt ist, blockiert Next
-  // fremde Herkuenfte, statt nur zu warnen: jede /_next/*-Anfrage bekommt 403,
-  // die Seite laedt ihr HTML und stirbt dann beim Hydrieren mit
-  // "Application error: a client-side exception has occurred".
-  allowedDevOrigins: [
-    '9000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
-    '6000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
-    '172.20.10.14',   // LAN
-    '10.90.74.88',    // LAN (aktuelles Netz)
-    '100.86.170.47',  // Tailscale, dieser Mac
-  ],
+
 };
 
 export default nextConfig;

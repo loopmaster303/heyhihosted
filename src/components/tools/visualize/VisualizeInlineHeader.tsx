@@ -6,7 +6,14 @@ import { ChevronDown, ImageIcon, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { unifiedModelConfigs, type UnifiedModelConfig } from '@/config/unified-model-configs';
-import { getUnifiedModel, getVisualizeModelGroupsForProvider, type ImageProvider } from '@/config/unified-image-models';
+import {
+  getDefaultDurationSeconds,
+  getDurationOptionsSeconds,
+  getUnifiedModel,
+  getVisualizeModelGroupsForProvider,
+  shouldIncludeByopHidden,
+  type ImageProvider,
+} from '@/config/unified-image-models';
 import { imageModelIcons } from '@/config/ui-constants';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useHasPollenKey } from '@/hooks/useHasPollenKey';
@@ -32,7 +39,9 @@ interface VisualizeInlineHeaderProps {
   disabled?: boolean;
   className?: string;
   variant?: 'framed' | 'bare';
+  section?: 'all' | 'model' | 'parameters';
   providerMode?: ImageProvider;
+  prunaAvailable?: boolean;
   sourceVideo?: UploadedReference | null;
   onSourceVideoChange?: (video: UploadedReference | null) => void;
   requiresSourceVideo?: boolean;
@@ -62,7 +71,9 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   disabled = false,
   className,
   variant = 'framed',
+  section = 'all',
   providerMode = 'pollinations',
+  prunaAvailable = false,
   sourceVideo,
   onSourceVideoChange,
   requiresSourceVideo = false,
@@ -71,16 +82,27 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   const hasPollenKey = useHasPollenKey();
   const [expanded, setExpanded] = React.useState(true); // For dropdown groups
   const isMobile = useMediaQuery('(max-width: 639px)');
-  const [paramsOpen, setParamsOpen] = React.useState(false); // Mobile: params popover
+  const showModel = section !== 'parameters';
+  const showParameters = section !== 'model';
 
   const modelGroups = React.useMemo(() => {
-    return getVisualizeModelGroupsForProvider(providerMode, { includeByopHidden: hasPollenKey })
+    const includeByopHidden = shouldIncludeByopHidden(providerMode, { prunaAvailable, hasPollenKey });
+    return getVisualizeModelGroupsForProvider(providerMode, { includeByopHidden })
       .map(group => ({
         ...group,
         models: group.models.filter(model => unifiedModelConfigs[model.id]),
       }))
       .filter(group => group.models.length > 0);
-  }, [providerMode, hasPollenKey]);
+  }, [providerMode, hasPollenKey, prunaAvailable]);
+
+  const durationOptions = React.useMemo(() => {
+    return getDurationOptionsSeconds(getUnifiedModel(selectedModelId));
+  }, [selectedModelId]);
+  const legacyDurationDefault = currentModelConfig?.inputs.find(input => input.name === 'duration')?.default;
+  const durationDefault = getDefaultDurationSeconds(
+    getUnifiedModel(selectedModelId),
+    typeof legacyDurationDefault === 'number' ? legacyDurationDefault : undefined,
+  );
 
   const standardGroups = modelGroups.filter(group => group.category === 'Standard');
   const advancedGroups = modelGroups.filter(group => group.category === 'Advanced');
@@ -126,16 +148,8 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
         className
       )}
     >
-      {/* Mode + Model */}
-      <div className={badgeClass}>
-        <button
-          type="button"
-          onClick={onDeactivate}
-          className={cn(labelClass, "text-mode-visualize hover:opacity-60 transition-opacity cursor-pointer")}
-          title="Click to deactivate Visualize mode"
-        >
-          Visualize with
-        </button>
+      {/* Model selector only — mode identity is handled by VisualCorner */}
+      {showModel && <div className={badgeClass}>
         <Select value={selectedModelId} onValueChange={onModelChange} disabled={disabled}>
           <SelectTrigger className={cn(triggerClass, "min-w-[80px]")}>
             <span className="flex items-center gap-1.5">
@@ -247,11 +261,11 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
             })}
           </SelectContent>
         </Select>
-      </div>
+      </div>}
 
       {/* Provider selection moved to the config sidebar (Personalization → Bild-Provider). */}
 
-      <InlineParamsContainer isMobile={isMobile} open={paramsOpen} onOpenChange={setParamsOpen}>
+      {showParameters && <InlineParamsContainer>
       {/* Source Video */}
       {requiresSourceVideo && sourceVideo && (
         <div className={cn(badgeClass, "gap-2")}>
@@ -285,7 +299,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
                 ))}
               </SelectContent>
             </Select>
-          ) : currentModelConfig.outputType === 'video' && getUnifiedModel(selectedModelId)?.provider === 'pollinations' ? (
+          ) : currentModelConfig.outputType === 'video' ? (
             <Select
               value={formFields.aspect_ratio || '16:9'}
               onValueChange={(v) => handleFieldChange('aspect_ratio', v)}
@@ -365,10 +379,10 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
       )}
 
       {/* Duration */}
-      {((currentModelConfig.outputType === 'video' || isPollinationsVideo) && currentModelConfig.inputs.find(i => i.name === 'duration')) && (
+      {((currentModelConfig.outputType === 'video' || isPollinationsVideo) && durationOptions.length > 0) && (
         <div className={badgeClass}>
           <Select
-            value={String(formFields.duration || (selectedModelId.includes('wan') ? '5' : '6'))}
+            value={String(formFields.duration ?? durationDefault)}
             onValueChange={(value) => handleFieldChange('duration', Number(value))}
             disabled={disabled}
           >
@@ -376,20 +390,9 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-                {(() => {
-                    const model = getUnifiedModel(selectedModelId);
-                    if (model?.durationRange?.options) {
-                        return model.durationRange.options.map(opt => (
-                            <SelectItem key={opt} value={String(opt)}>{opt}s</SelectItem>
-                        ));
-                    }
-                    return (
-                        <>
-                            <SelectItem value="5">5s</SelectItem>
-                            <SelectItem value="10">10s</SelectItem>
-                        </>
-                    );
-                })()}
+                {durationOptions.map(option => (
+                  <SelectItem key={option} value={String(option)}>{option}s</SelectItem>
+                ))}
 </SelectContent>
           </Select>
         </div>
@@ -472,7 +475,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
           {inlineContent}
         </div>
       )}
-      </InlineParamsContainer>
+      </InlineParamsContainer>}
     </div>
   );
 };

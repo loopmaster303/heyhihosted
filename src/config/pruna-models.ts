@@ -7,17 +7,13 @@
  * Pruna API: POST https://api.pruna.ai/v1/predictions
  * Auth: `apikey` header (server-side ENV PRUNA_API_KEY)
  * Sync (Try-Sync: true) for fast image models, async polling for video.
- * VACE uses a separate subdomain: api.sharedservices.pruna.ai
  */
 
-export type PrunaEndpoint = 'default' | 'shared';
 export type PrunaMode = 'sync' | 'async';
 
 export interface PrunaModelMapping {
   /** Pruna API model name (sent as `Model` header). For smart-dispatch models, override via resolveModel. */
   prunaModel: string;
-  /** API endpoint — 'shared' uses api.sharedservices.pruna.ai */
-  endpoint: PrunaEndpoint;
   /** 'sync' = Try-Sync for fast models, 'async' = submit + poll */
   mode: PrunaMode;
   /** Whether this model is a video model (affects result key) */
@@ -89,6 +85,9 @@ const WAN_IMAGE_SMALL_MAX_DIMENSION = 896;
 const P_IMAGE_MIN_DIMENSION = 256;
 const P_IMAGE_MAX_DIMENSION = 1440;
 const DIMENSION_STEP = 16;
+
+const DISABLE_SAFETY_CHECKER = { disable_safety_checker: true };
+const DISABLE_SAFETY_FILTER = { disable_safety_filter: true };
 
 function clampToMultipleOf16(value: number, min: number, max: number): number {
   const rounded = Math.round(value / DIMENSION_STEP) * DIMENSION_STEP;
@@ -190,7 +189,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── Z-Image Turbo ──────────────────────────────────────────────────
   zimage: {
     prunaModel: 'z-image-turbo',
-    endpoint: 'default',
     mode: 'sync',
     isVideo: false,
     defaultParams: {
@@ -210,6 +208,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       const size = ZIMAGE_ASPECT_SIZES[String(rawAspect)] ?? ZIMAGE_ASPECT_SIZES["1:1"];
       return {
         prompt: f.prompt,
+        ...DISABLE_SAFETY_CHECKER,
         width: f.width ?? size.width,
         height: f.height ?? size.height,
         seed: f.seed,
@@ -222,7 +221,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── Qwen-Image ─────────────────────────────────────────────────────
   'qwen-image': {
     prunaModel: 'qwen-image',
-    endpoint: 'default',
     mode: 'sync',
     isVideo: false,
     defaultParams: {
@@ -235,6 +233,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     buildInput: (f) => {
       const input: Record<string, unknown> = {
         prompt: f.prompt,
+        ...DISABLE_SAFETY_CHECKER,
         go_fast: true,
         guidance: 3,
         num_inference_steps: 30,
@@ -259,7 +258,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── Qwen-Image-Edit-Plus ───────────────────────────────────────────
   'qwen-image-edit-plus': {
     prunaModel: 'qwen-image-edit-plus',
-    endpoint: 'default',
     mode: 'sync',
     isVideo: false,
     defaultParams: {
@@ -272,6 +270,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
       const input: Record<string, unknown> = {
         prompt: f.prompt,
+        ...DISABLE_SAFETY_CHECKER,
         go_fast: true,
         aspect_ratio: allowedAspectRatio(f.aspectRatio, QWEN_EDIT_ASPECT_RATIOS, 'match_input_image'),
         output_format: f.outputFormat ?? 'webp',
@@ -289,7 +288,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── Wan T2V (Text-to-Video) ───────────────────────────────────────
   'wan-t2v': {
     prunaModel: 'wan-t2v',
-    endpoint: 'default',
     mode: 'async',
     isVideo: true,
     defaultParams: {
@@ -304,7 +302,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       const { duration, ...rest } = f.params ?? {};
       const input: Record<string, unknown> = {
         prompt: f.prompt,
-        num_frames: wanFramesFor(duration ?? f.duration),
         resolution: '480p',
         aspect_ratio: resolveSupportedAspectRatio(f, WAN_VIDEO_ASPECT_RATIOS, '16:9'),
         frames_per_second: WAN_FPS,
@@ -320,13 +317,11 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── Wan I2V (Image-to-Video) ──────────────────────────────────────
   'wan-i2v': {
     prunaModel: 'wan-i2v',
-    endpoint: 'default',
     mode: 'async',
     isVideo: true,
     defaultParams: {
       num_frames: 81,
       resolution: '480p',
-      aspect_ratio: '16:9',
       frames_per_second: 16,
       interpolate_output: false,
       go_fast: true,
@@ -335,6 +330,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       const { duration, ...rest } = f.params ?? {};
       const input: Record<string, unknown> = {
         prompt: f.prompt,
+        ...DISABLE_SAFETY_CHECKER,
         image: Array.isArray(f.image) ? f.image[0] : f.image,
         last_image: (Array.isArray(f.image) && f.image.length > 1) ? f.image[1] : undefined,
         num_frames: wanFramesFor(duration ?? f.duration),
@@ -343,8 +339,8 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         frames_per_second: WAN_FPS,
         interpolate_output: false,
         go_fast: true,
-        disable_safety_checker: true,
       };
+      if (Array.isArray(f.image) && f.image[1]) input.last_image = f.image[1];
       if (f.seed !== undefined) input.seed = f.seed;
       return { ...input, ...rest };
     },
@@ -353,7 +349,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── VACE (Video with character consistency) ───────────────────────
   vace: {
     prunaModel: 'vace',
-    endpoint: 'shared',
     mode: 'async',
     isVideo: true,
     defaultParams: {
@@ -369,6 +364,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
 
       const input: Record<string, unknown> = {
         prompt: f.prompt,
+        ...DISABLE_SAFETY_CHECKER,
         src_video: f.video,
         size: f.size ?? '832*480',
         frame_num: f.frameNum ?? 81,
@@ -392,7 +388,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── Wan Fast (smart dispatch: T2V or I2V) ────────────────────────
   'wan-fast': {
     prunaModel: 'wan-t2v',
-    endpoint: 'default',
     mode: 'async',
     isVideo: true,
     defaultParams: {
@@ -418,7 +413,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── P-Image (Pruna performance T2I) ───────────────────────────────
   'p-image': {
     prunaModel: 'p-image',
-    endpoint: 'default',
     mode: 'sync',
     isVideo: false,
     defaultParams: {
@@ -428,6 +422,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
 
       const input: Record<string, unknown> = {
         prompt: f.prompt,
+        ...DISABLE_SAFETY_CHECKER,
         aspect_ratio: allowedAspectRatio(f.aspectRatio, P_IMAGE_ASPECT_RATIOS, '1:1'),
       };
       if (input.aspect_ratio === 'custom') {
@@ -443,7 +438,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── P-Image-Edit (Pruna performance I2I) ──────────────────────────
   'p-image-edit': {
     prunaModel: 'p-image-edit',
-    endpoint: 'default',
     mode: 'sync',
     isVideo: false,
     defaultParams: {
@@ -452,6 +446,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     buildInput: (f) => {
       const input: Record<string, unknown> = {
         prompt: f.prompt,
+        ...DISABLE_SAFETY_CHECKER,
         aspect_ratio: resolveSupportedAspectRatio(f, QWEN_EDIT_ASPECT_RATIOS, '1:1'),
       };
       if (f.seed !== undefined) input.seed = f.seed;
@@ -470,7 +465,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── P-Video (Pruna performance T2V/I2V) ───────────────────────────
   'p-video': {
     prunaModel: 'p-video',
-    endpoint: 'default',
     mode: 'async',
     isVideo: true,
     defaultParams: {
@@ -480,6 +474,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     buildInput: (f) => {
       const input: Record<string, unknown> = {
         prompt: f.prompt,
+        ...DISABLE_SAFETY_FILTER,
         aspect_ratio: resolveSupportedAspectRatio(f, WAN_VIDEO_ASPECT_RATIOS, '16:9'),
         // Feste Bildrate — kein Bedienelement, siehe param-schema.
         fps: 24,
@@ -501,7 +496,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── P-Image-Try-On (virtual garment fitting) ───────────────────────
   'p-image-try-on': {
     prunaModel: 'p-image-try-on',
-    endpoint: 'default',
     mode: 'sync',
     isVideo: false,
     defaultParams: {
@@ -512,6 +506,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     buildInput: (f) => {
       const input: Record<string, unknown> = {
         ...(f.prompt ? { prompt: f.prompt } : {}),
+        ...DISABLE_SAFETY_CHECKER,
         output_format: f.outputFormat ?? 'jpg',
         output_quality: 95,
         preserve_input_size: true,
@@ -535,7 +530,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── P-Image-Upscale (AI image upscaling) ─────────────────────────
   'p-image-upscale': {
     prunaModel: 'p-image-upscale',
-    endpoint: 'default',
     mode: 'sync',
     isVideo: false,
     defaultParams: {
@@ -550,6 +544,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       const target = Math.max(1, Math.min(128, f.width ? Math.round((f.width * (f.height || 1024)) / 1_000_000) : 4));
       const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
       const input: Record<string, unknown> = {
+        ...DISABLE_SAFETY_CHECKER,
         target,
         output_format: f.outputFormat ?? 'jpg',
         output_quality: 80,
@@ -568,7 +563,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── P-Video-Avatar (talking head from image) ───────────────────────
   'p-video-avatar': {
     prunaModel: 'p-video-avatar',
-    endpoint: 'default',
     mode: 'async',
     isVideo: true,
     defaultParams: {
@@ -582,10 +576,12 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     buildInput: (f) => {
 
       const input: Record<string, unknown> = {
+        ...DISABLE_SAFETY_FILTER,
         voice: 'Zephyr (Female)',
         voice_language: 'English (US)',
-        video_prompt: f.prompt || 'The person is talking.',
+        video_prompt: 'The person is talking.',
         voice_prompt: 'Say the following.',
+        voice_script: f.prompt,
         resolution: '720p',
         disable_safety_filter: true,
       };
@@ -601,7 +597,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── P-Video-Animate (motion transfer) ─────────────────────────────
   'p-video-animate': {
     prunaModel: 'p-video-animate',
-    endpoint: 'default',
     mode: 'async',
     isVideo: true,
     defaultParams: {
@@ -612,6 +607,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     buildInput: (f) => {
 
       const input: Record<string, unknown> = {
+        ...DISABLE_SAFETY_CHECKER,
         resolution: '720p',
         save_audio: f.audio ?? true,
         target_fps: 'original',
@@ -633,7 +629,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── P-Video-Replace (character replacement in video) ───────────────
   'p-video-replace': {
     prunaModel: 'p-video-replace',
-    endpoint: 'default',
     mode: 'async',
     isVideo: true,
     defaultParams: {
@@ -642,6 +637,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     },
     buildInput: (f) => {
       const input: Record<string, unknown> = {
+        ...DISABLE_SAFETY_CHECKER,
         resolution: '720p',
         save_audio: f.audio ?? true,
       };
@@ -665,7 +661,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── Wan-Image-Small (fast image generation) ───────────────────────
   'wan-image-small': {
     prunaModel: 'wan-image-small',
-    endpoint: 'default',
     mode: 'sync',
     isVideo: false,
     defaultParams: {
@@ -677,6 +672,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       const aspectRatio = resolveWanImageSmallAspectRatio(f);
       const input: Record<string, unknown> = {
         prompt: f.prompt,
+        ...DISABLE_SAFETY_CHECKER,
         aspect_ratio: aspectRatio,
         output_format: f.outputFormat ?? 'jpg',
         output_quality: 80,
@@ -694,7 +690,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── P-Image-Ideogram ───────────────────────────────────────────────
   'p-image-ideogram': {
     prunaModel: 'p-image-ideogram',
-    endpoint: 'default',
     mode: 'sync',
     isVideo: false,
     defaultParams: {
@@ -725,7 +720,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── P-Flux-Klein ───────────────────────────────────────────────────
   'p-flux-klein': {
     prunaModel: 'flux-2-klein-4b',
-    endpoint: 'default',
     mode: 'sync',
     isVideo: false,
     defaultParams: {

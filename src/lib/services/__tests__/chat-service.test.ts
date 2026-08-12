@@ -255,6 +255,66 @@ describe('ChatService', () => {
             expect(parsedBody.aspectRatio).toBe('16:9');
         });
 
+        it.each([
+            'p-video-avatar',
+            'p-video-animate',
+            'p-video-replace',
+            'vace',
+        ])('does not synthesize duration for %s', async (modelId) => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                headers: new Headers({ 'content-type': 'application/json' }),
+                json: async () => ({ videoUrl: 'https://example.com/video.mp4' }),
+            });
+
+            await ChatService.generateImage({ prompt: 'video', modelId, duration: 10 });
+
+            const parsedBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+            expect(parsedBody).not.toHaveProperty('duration');
+        });
+
+        it.each([
+            ['p-video', 20],
+            ['wan-t2v', 7.5],
+        ])('sends user-facing seconds for temporal model %s', async (modelId, duration) => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                headers: new Headers({ 'content-type': 'application/json' }),
+                json: async () => ({ videoUrl: 'https://example.com/video.mp4' }),
+            });
+
+            await ChatService.generateImage({ prompt: 'video', modelId, duration });
+
+            const parsedBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+            expect(parsedBody.duration).toBe(duration);
+        });
+
+        it('forwards an explicit duration for a legacy Pollinations durationRange model', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                headers: new Headers({ 'content-type': 'application/json' }),
+                json: async () => ({ videoUrl: 'https://example.com/video.mp4' }),
+            });
+
+            await ChatService.generateImage({ prompt: 'video', modelId: 'ltx-2', duration: 10 });
+
+            const parsedBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+            expect(parsedBody.duration).toBe(10);
+        });
+
+        it('does not synthesize duration for a legacy Pollinations durationRange model', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                headers: new Headers({ 'content-type': 'application/json' }),
+                json: async () => ({ videoUrl: 'https://example.com/video.mp4' }),
+            });
+
+            await ChatService.generateImage({ prompt: 'video', modelId: 'ltx-2' });
+
+            const parsedBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+            expect(parsedBody).not.toHaveProperty('duration');
+        });
+
         it('sends the local Pruna key and converts a media response into a blob URL', async () => {
             localStorage.setItem('prunaApiKey', 'pruna_test_1234567890');
             const createObjectUrl = jest.fn(() => 'blob:http://localhost/pruna-result');

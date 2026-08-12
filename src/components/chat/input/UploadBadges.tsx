@@ -1,87 +1,72 @@
 import React from 'react';
-import { ImageIcon, FileText, Camera } from 'lucide-react';
+import { Camera, FileText, ImageIcon, VideoIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/components/LanguageProvider';
 
-interface UploadBadgesProps {
-    isLoading: boolean;
-    onImageUploadClick: () => void;
-    onDocUploadClick: () => void;
-    onCameraClick: () => void;
-    disableImageUpload?: boolean;
+export type AttachmentActionKind = 'image' | 'document' | 'camera' | 'reference' | 'start-frame' | 'end-frame' | 'source-video';
+
+export interface AttachmentAction {
+    kind: AttachmentActionKind;
+    disabled?: boolean;
+    count?: number;
+    maxCount?: number;
 }
 
-export const UploadBadges: React.FC<UploadBadgesProps> = ({
-    isLoading,
-    onImageUploadClick,
-    onDocUploadClick,
-    onCameraClick,
-    disableImageUpload = false
-}) => {
-    const canUploadImage = !isLoading && !disableImageUpload;
+interface CapabilityUploadBadgesProps {
+    actions: AttachmentAction[];
+    onActionSelect: (kind: AttachmentActionKind) => void;
+    onAfterActionSelect?: () => void;
+}
+
+const actionIcon: Record<AttachmentActionKind, React.ReactNode> = {
+    image: <ImageIcon className="h-4 w-4" />,
+    document: <FileText className="h-4 w-4" />,
+    camera: <Camera className="h-4 w-4" />,
+    reference: <ImageIcon className="h-4 w-4" />,
+    'start-frame': <ImageIcon className="h-4 w-4" />,
+    'end-frame': <ImageIcon className="h-4 w-4" />,
+    'source-video': <VideoIcon className="h-4 w-4" />,
+};
+
+const actionLabelKey: Record<AttachmentActionKind, string> = {
+    image: 'action.uploadImage',
+    document: 'action.uploadDocument',
+    camera: 'action.camera',
+    reference: 'chat.attachment.referenceImage',
+    'start-frame': 'chat.attachment.startFrame',
+    'end-frame': 'chat.attachment.endFrame',
+    'source-video': 'chat.attachment.sourceVideo',
+};
+
+export const CapabilityUploadBadges: React.FC<CapabilityUploadBadgesProps> = ({ actions, onActionSelect, onAfterActionSelect }) => {
+    const { t } = useLanguage();
+    if (actions.length === 0) return null;
 
     return (
-        <div className="flex items-center gap-2 overflow-x-auto pb-0 scrollbar-hide mask-fade-right">
-            
-             {/* Image Upload */}
-             <button
-                type="button"
-                onClick={() => {
-                   if (canUploadImage) onImageUploadClick();
-                }}
-                disabled={!canUploadImage}
-                className={cn(
-                    "inline-flex h-9 w-9 items-center justify-center rounded-full border transition-[transform,box-shadow,background-color,opacity] duration-200 ease-out shrink-0",
-                    !canUploadImage
-                        ? "opacity-50 cursor-not-allowed bg-transparent border-border/20"
-                        : "bg-transparent border-border/30 hover:shadow-md hover:-translate-y-0.5"
-                )}
-                aria-label="Bild hochladen"
-                title="Bild hochladen"
-            >
-                <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                <span className="sr-only">Bild</span>
-            </button>
-
-            {/* Doc Upload */}
-            <button
-                type="button"
-                onClick={() => {
-                   if (!isLoading) onDocUploadClick();
-                }}
-                disabled={isLoading}
-                className={cn(
-                    "inline-flex h-9 w-9 items-center justify-center rounded-full border transition-[transform,box-shadow,background-color,opacity] duration-200 ease-out shrink-0",
-                    isLoading
-                        ? "opacity-50 cursor-not-allowed bg-transparent border-border/20"
-                        : "bg-transparent border-border/30 hover:shadow-md hover:-translate-y-0.5"
-                )}
-                aria-label="Dokument hochladen"
-                title="Dokument hochladen"
-            >
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="sr-only">Dokument</span>
-            </button>
-
-             {/* Camera */}
-             <button
-                type="button"
-                onClick={() => {
-                   if (!isLoading) onCameraClick();
-                }}
-                disabled={isLoading}
-                className={cn(
-                    "inline-flex h-9 w-9 items-center justify-center rounded-full border transition-[transform,box-shadow,background-color,opacity] duration-200 ease-out shrink-0",
-                    isLoading
-                        ? "opacity-50 cursor-not-allowed bg-transparent border-border/20"
-                        : "bg-transparent border-border/30 hover:shadow-md hover:-translate-y-0.5"
-                )}
-                aria-label="Kamera öffnen"
-                title="Kamera öffnen"
-            >
-                <Camera className="w-4 h-4 text-muted-foreground" />
-                <span className="sr-only">Kamera</span>
-            </button>
-
+        <div className="flex flex-wrap items-center gap-2">
+            {actions.map((action) => {
+                const label = t(actionLabelKey[action.kind]);
+                const count = action.count != null && action.maxCount != null ? ` ${action.count}/${action.maxCount}` : '';
+                return (
+                    <button
+                        key={action.kind}
+                        type="button"
+                        onClick={() => {
+                            onActionSelect(action.kind);
+                            onAfterActionSelect?.();
+                        }}
+                        disabled={action.disabled}
+                        className={cn(
+                            'inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs transition-all',
+                            action.disabled ? 'cursor-not-allowed opacity-50' : 'hover:shadow-md',
+                        )}
+                        aria-label={label}
+                    >
+                        {actionIcon[action.kind]}
+                        <span>{label}{count}</span>
+                    </button>
+                );
+            })}
         </div>
     );
 };

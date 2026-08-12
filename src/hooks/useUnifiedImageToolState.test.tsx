@@ -1,5 +1,17 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useUnifiedImageToolState } from './useUnifiedImageToolState';
+import { getVisualizeModelGroupsForProvider } from '@/config/unified-image-models';
+
+jest.mock('@/config/unified-image-models', () => {
+  const actual = jest.requireActual('@/config/unified-image-models');
+  return {
+    ...actual,
+    getVisualizeModelGroupsForProvider: jest.fn(actual.getVisualizeModelGroupsForProvider),
+  };
+});
+
+const mockGetVisualizeModelGroupsForProvider =
+  getVisualizeModelGroupsForProvider as jest.MockedFunction<typeof getVisualizeModelGroupsForProvider>;
 
 jest.mock('@/components/LanguageProvider', () => ({
   useLanguage: () => ({
@@ -14,8 +26,9 @@ jest.mock('@/hooks/use-toast', () => ({
   }),
 }));
 
+let mockHasPollenKey = true;
 jest.mock('./useHasPollenKey', () => ({
-  useHasPollenKey: () => true,
+  useHasPollenKey: () => mockHasPollenKey,
 }));
 
 describe('useUnifiedImageToolState provider persistence', () => {
@@ -23,6 +36,8 @@ describe('useUnifiedImageToolState provider persistence', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    mockHasPollenKey = true;
+    mockGetVisualizeModelGroupsForProvider.mockClear();
   });
 
   afterEach(() => {
@@ -109,5 +124,57 @@ describe('useUnifiedImageToolState provider persistence', () => {
       expect(result.current.selectedModelId).toBe(result.current.availableModels[0]);
       expect(result.current.selectedModelId).not.toBe('flux');
     });
+  });
+
+  it('uses Pruna availability rather than the Pollen key for Pruna visibility', async () => {
+    mockHasPollenKey = false;
+    localStorage.setItem('heyhi-provider-mode', JSON.stringify('pruna'));
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: true }),
+    } as Response);
+    renderHook(() => useUnifiedImageToolState());
+
+    await waitFor(() => {
+      expect(mockGetVisualizeModelGroupsForProvider).toHaveBeenCalledWith('pruna', { includeByopHidden: true });
+    });
+  });
+
+  it('initializes migrated Pruna duration from temporal control metadata', async () => {
+    localStorage.setItem('heyhi-provider-mode', JSON.stringify('pruna'));
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: true }),
+    } as Response);
+    const { result } = renderHook(() => useUnifiedImageToolState());
+
+    await waitFor(() => expect(result.current.providerMode).toBe('pruna'));
+    act(() => result.current.setSelectedModelId('wan-t2v'));
+
+    await waitFor(() => expect(result.current.formFields.duration).toBe(5));
+  });
+
+  it('initializes audio-enabled Pruna video models with audio on', async () => {
+    localStorage.setItem('heyhi-provider-mode', JSON.stringify('pruna'));
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: true }),
+    } as Response);
+    const { result } = renderHook(() => useUnifiedImageToolState());
+
+    await waitFor(() => expect(result.current.providerMode).toBe('pruna'));
+    act(() => result.current.setSelectedModelId('p-video-animate'));
+
+    await waitFor(() => expect(result.current.formFields.audio).toBe(true));
+  });
+
+  it('preserves an explicit Pruna audio default instead of using capability as the default', async () => {
+    localStorage.setItem('heyhi-provider-mode', JSON.stringify('pruna'));
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: true }),
+    } as Response);
+    const { result } = renderHook(() => useUnifiedImageToolState());
+
+    await waitFor(() => expect(result.current.providerMode).toBe('pruna'));
+    act(() => result.current.setSelectedModelId('p-video'));
+
+    await waitFor(() => expect(result.current.formFields.audio).toBe(false));
   });
 });

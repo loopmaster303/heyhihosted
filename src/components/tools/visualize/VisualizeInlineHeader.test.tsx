@@ -1,9 +1,12 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { VisualizeInlineHeader } from './VisualizeInlineHeader';
+import { getVisualizeModelGroupsForProvider } from '@/config/unified-image-models';
 
 jest.mock('@/components/ui/select', () => ({
-  Select: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Select: ({ children, value }: { children: React.ReactNode; value?: string }) => (
+    <div data-select-value={value}>{children}</div>
+  ),
   SelectTrigger: ({
     children,
     className,
@@ -41,8 +44,9 @@ jest.mock('@/components/LanguageProvider', () => ({
   }),
 }));
 
+let mockHasPollenKey = true;
 jest.mock('@/hooks/useHasPollenKey', () => ({
-  useHasPollenKey: () => true,
+  useHasPollenKey: () => mockHasPollenKey,
 }));
 
 jest.mock('@/config/image-aspect-ratio-presets', () => ({
@@ -52,12 +56,35 @@ jest.mock('@/config/image-aspect-ratio-presets', () => ({
 }));
 
 jest.mock('@/config/unified-image-models', () => ({
-  getUnifiedModel: () => ({
-    provider: 'pollinations',
-    kind: 'image',
-    supportsAudio: false,
-  }),
-  getVisualizeModelGroupsForProvider: () => [
+  shouldIncludeByopHidden: (
+    provider: string,
+    entitlements: { prunaAvailable: boolean; hasPollenKey: boolean },
+  ) => provider === 'pruna' ? entitlements.prunaAvailable : entitlements.hasPollenKey,
+  getDurationOptionsSeconds: (model?: { temporalControl?: Record<string, any> }) => {
+    const control = model?.temporalControl;
+    if (control?.mode === 'seconds') {
+      return Array.from({ length: control.max - control.min + 1 }, (_, index) => control.min + index);
+    }
+    return control?.mode === 'frame-backed-seconds' ? control.secondOptions : [];
+  },
+  getDefaultDurationSeconds: (model?: { temporalControl?: Record<string, any> }) =>
+    model?.temporalControl?.defaultSeconds,
+  getUnifiedModel: (id: string) => {
+    const temporalControls: Record<string, object> = {
+      'p-video': { mode: 'seconds', min: 1, max: 20, step: 1, defaultSeconds: 5 },
+      'wan-t2v': { mode: 'frame-backed-seconds', secondOptions: [5, 6, 7, 7.5], defaultSeconds: 5 },
+      'p-video-avatar': { mode: 'speech-driven' },
+      'p-video-animate': { mode: 'source-video-driven' },
+      'vace': { mode: 'fixed-frames', frames: 81 },
+    };
+    return {
+      provider: id.startsWith('p-video') || id.startsWith('wan-') ? 'pruna' : 'pollinations',
+      kind: temporalControls[id] ? 'video' : 'image',
+      supportsAudio: false,
+      temporalControl: temporalControls[id],
+    };
+  },
+  getVisualizeModelGroupsForProvider: jest.fn(() => [
     {
       key: 'standard-image',
       label: 'Standard',
@@ -65,8 +92,11 @@ jest.mock('@/config/unified-image-models', () => ({
       kind: 'image',
       models: [{ id: 'nanobanana-pro', name: 'Nano Banana Pro' }],
     },
-  ],
+  ]),
 }));
+
+const mockGetVisualizeModelGroupsForProvider =
+  getVisualizeModelGroupsForProvider as jest.MockedFunction<typeof getVisualizeModelGroupsForProvider>;
 
 jest.mock('@/config/ui-constants', () => ({
   imageModelIcons: {},
@@ -81,6 +111,37 @@ jest.mock('lucide-react', () => new Proxy({}, {
 }));
 
 describe('VisualizeInlineHeader', () => {
+  beforeEach(() => {
+    mockHasPollenKey = true;
+    mockGetVisualizeModelGroupsForProvider.mockClear();
+  });
+
+  const renderVideoHeader = (
+    selectedModelId: string,
+    formFields: Record<string, unknown> = { duration: 5 },
+  ) => render(
+    <VisualizeInlineHeader
+      selectedModelId={selectedModelId}
+      onModelChange={jest.fn()}
+      currentModelConfig={{
+        id: selectedModelId,
+        name: selectedModelId,
+        outputType: 'video',
+        inputs: [],
+      }}
+      formFields={formFields}
+      handleFieldChange={jest.fn()}
+      setFormFields={jest.fn()}
+      isGptImage={false}
+      isSeedream={false}
+      isNanoPollen={false}
+      isPollenModel={false}
+      isPollinationsVideo={false}
+      providerMode="pruna"
+      prunaAvailable
+    />
+  );
+
   it('uses tighter spacing so dropdown chevrons stay closer to their values', () => {
     render(
       <VisualizeInlineHeader
@@ -106,8 +167,7 @@ describe('VisualizeInlineHeader', () => {
       />
     );
 
-    const visualizeLabel = screen.getByText('Visualize with');
-    expect(visualizeLabel.parentElement).toHaveClass('px-2.5', 'gap-1.5');
+    expect(screen.queryByText('Visualize with')).not.toBeInTheDocument();
 
     const triggerButtons = screen
       .getAllByRole('button')
@@ -144,5 +204,109 @@ describe('VisualizeInlineHeader', () => {
     // toggle lives in the config sidebar.
     expect(screen.queryByRole('button', { name: 'switch' })).toBeNull();
     expect(screen.queryByText('provider.pruna')).toBeNull();
+  });
+
+  it('renders P-Video duration as integer seconds from 1 through 20', () => {
+    renderVideoHeader('p-video');
+
+    expect(screen.getByText('1s')).toBeInTheDocument();
+    expect(screen.getByText('20s')).toBeInTheDocument();
+    expect(screen.getAllByText(/^\d+s$/)).toHaveLength(20);
+  });
+
+  it('uses the configured five-second default for P-Video', () => {
+    const { container } = renderVideoHeader('p-video', {});
+
+    expect(container.querySelector('[data-select-value="5"]')).toBeInTheDocument();
+  });
+
+  it('renders Wan frame-backed duration as supported second choices', () => {
+    renderVideoHeader('wan-t2v');
+
+    expect(screen.getByText('5s')).toBeInTheDocument();
+    expect(screen.getByText('6s')).toBeInTheDocument();
+    expect(screen.getByText('7s')).toBeInTheDocument();
+    expect(screen.getByText('7.5s')).toBeInTheDocument();
+    expect(screen.queryByText('10s')).not.toBeInTheDocument();
+  });
+
+  it('limits Pruna video aspect ratios to values accepted by the adapter', () => {
+    render(
+      <VisualizeInlineHeader
+        selectedModelId="wan-t2v"
+        onModelChange={jest.fn()}
+        currentModelConfig={{
+          id: 'wan-t2v',
+          name: 'Wan T2V',
+          outputType: 'video',
+          inputs: [{ name: 'aspect_ratio', default: '16:9' }],
+        }}
+        formFields={{ aspect_ratio: '16:9', duration: 5 }}
+        handleFieldChange={jest.fn()}
+        setFormFields={jest.fn()}
+        isGptImage={false}
+        isSeedream={false}
+        isNanoPollen={false}
+        isPollenModel={false}
+        isPollinationsVideo={false}
+        providerMode="pruna"
+        prunaAvailable
+      />
+    );
+
+    expect(screen.getByText('16:9')).toBeInTheDocument();
+    expect(screen.getByText('9:16')).toBeInTheDocument();
+    expect(screen.queryByText('Match')).not.toBeInTheDocument();
+    expect(screen.queryByText('Custom')).not.toBeInTheDocument();
+    expect(screen.queryByText('4:5')).not.toBeInTheDocument();
+  });
+
+  it('does not render editable duration for speech-driven video models', () => {
+    renderVideoHeader('p-video-avatar');
+
+    expect(screen.queryByText(/\d+(?:\.\d+)?s/)).not.toBeInTheDocument();
+  });
+
+  it.each(['p-video-animate', 'vace'])(
+    'does not render editable duration for %s',
+    (modelId) => {
+      renderVideoHeader(modelId);
+
+      expect(screen.queryByText(/\d+(?:\.\d+)?s/)).not.toBeInTheDocument();
+    },
+  );
+
+  it('uses Pruna availability for Pruna model visibility regardless of Pollen', () => {
+    mockHasPollenKey = false;
+    renderVideoHeader('p-video');
+
+    expect(mockGetVisualizeModelGroupsForProvider).toHaveBeenCalledWith('pruna', {
+      includeByopHidden: true,
+    });
+  });
+
+  it('uses the Pollen key for Pollinations model visibility', () => {
+    mockHasPollenKey = false;
+    render(
+      <VisualizeInlineHeader
+        selectedModelId="nanobanana-pro"
+        onModelChange={jest.fn()}
+        currentModelConfig={{ id: 'nanobanana-pro', name: 'Nano Banana Pro', inputs: [] }}
+        formFields={{}}
+        handleFieldChange={jest.fn()}
+        setFormFields={jest.fn()}
+        isGptImage={false}
+        isSeedream={false}
+        isNanoPollen={true}
+        isPollenModel
+        isPollinationsVideo={false}
+        providerMode="pollinations"
+        prunaAvailable
+      />,
+    );
+
+    expect(mockGetVisualizeModelGroupsForProvider).toHaveBeenCalledWith('pollinations', {
+      includeByopHidden: false,
+    });
   });
 });

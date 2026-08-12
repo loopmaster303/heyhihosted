@@ -4,7 +4,6 @@
  * Server-side client for the Pruna AI prediction API.
  * - Sync mode (Try-Sync: true) for fast image models (<60s)
  * - Async mode (submit + poll) for video models
- * - VACE uses api.sharedservices.pruna.ai
  *
  * Auth: `apikey` header from PRUNA_API_KEY env var.
  */
@@ -16,7 +15,6 @@ import { validateRemoteMediaFetchUrl } from '@/lib/media/remote-fetch-policy';
 const MAX_PRUNA_DOWNLOAD_REDIRECTS = 5;
 
 const PRUNA_BASE_URL = 'https://api.pruna.ai/v1';
-const PRUNA_SHARED_BASE_URL = 'https://api.sharedservices.pruna.ai/v1';
 
 const ASYNC_POLL_MAX_MS = 180_000;
 const ASYNC_POLL_INTERVAL_MS = 2_000;
@@ -44,7 +42,6 @@ export async function generateViaPruna(
 
   const prunaModel = getPrunaModelName(modelId, fields) ?? mapping.prunaModel;
   const input = mapping.buildInput(fields);
-  const baseUrl = mapping.endpoint === 'shared' ? PRUNA_SHARED_BASE_URL : PRUNA_BASE_URL;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -56,12 +53,25 @@ export async function generateViaPruna(
     headers['Try-Sync'] = 'true';
   }
 
-  const submitResponse = await fetch(`${baseUrl}/predictions`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ input }),
-    signal,
-  });
+  let submitResponse: Response;
+  try {
+    submitResponse = await fetch(`${PRUNA_BASE_URL}/predictions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ input }),
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    if (signal?.aborted) {
+      throw new ApiError(499, 'Pruna prediction aborted', 'PRUNA_ABORTED');
+    }
+    throw new ApiError(
+      502,
+      `Unable to reach Pruna API while submitting ${modelId}`,
+      'PRUNA_NETWORK_ERROR',
+    );
+  }
 
   if (!submitResponse.ok) {
     const errorText = await submitResponse.text().catch(() => 'Unknown error');
@@ -94,7 +104,7 @@ export async function generateViaPruna(
     throw new ApiError(502, 'Pruna API returned no prediction ID or status URL', 'PRUNA_MISSING_STATUS');
   }
 
-  const statusUrl = prediction.get_url ?? `${baseUrl}/predictions/status/${prediction.id}`;
+  const statusUrl = prediction.get_url ?? `${PRUNA_BASE_URL}/predictions/status/${prediction.id}`;
   const result = await pollPrediction(statusUrl, apiKey, signal);
 
   return {

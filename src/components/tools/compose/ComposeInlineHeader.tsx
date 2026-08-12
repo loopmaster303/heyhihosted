@@ -23,6 +23,7 @@ interface ComposeInlineHeaderProps {
   disabled?: boolean;
   className?: string;
   variant?: 'framed' | 'bare';
+  section?: 'all' | 'model' | 'parameters';
 }
 
 const badgeClass =
@@ -52,11 +53,13 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
   onDeactivate,
   disabled = false,
   className,
+  section = 'all',
 }) => {
   const { t } = useLanguage();
   const currentMeta = AVAILABLE_COMPOSE_MODELS.find((m) => m.id === selectedModel);
   const isMobile = useMediaQuery('(max-width: 639px)');
-  const [paramsOpen, setParamsOpen] = React.useState(false);
+  const showModel = section !== 'parameters';
+  const showParameters = section !== 'model';
 
   return (
     <div
@@ -65,16 +68,8 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
         className
       )}
     >
-      {/* Mode label + Model selector */}
-      <div className={badgeClass}>
-        <button
-          type="button"
-          onClick={onDeactivate}
-          className={cn(labelClass, "text-mode-compose hover:opacity-60 transition-opacity cursor-pointer")}
-          title="Click to deactivate Compose mode"
-        >
-          {isMobile ? "Compose" : "Compose with"}
-        </button>
+      {/* Model selector only — mode identity is handled by VisualCorner */}
+      {showModel && <div className={badgeClass}>
         <Select
           value={selectedModel}
           onValueChange={(val) => onModelChange(val as ComposeMusicModel)}
@@ -110,9 +105,9 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
             })}
           </SelectContent>
         </Select>
-      </div>
+      </div>}
 
-      <InlineParamsContainer isMobile={isMobile} open={paramsOpen} onOpenChange={setParamsOpen}>
+      {showParameters && <InlineParamsContainer>
       {/* Duration Selector */}
       <div className={badgeClass}>
         <Select
@@ -163,7 +158,7 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
           </span>
         </div>
       )}
-      </InlineParamsContainer>
+      </InlineParamsContainer>}
     </div>
   );
 };

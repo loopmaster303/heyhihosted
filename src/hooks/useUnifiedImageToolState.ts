@@ -6,7 +6,15 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { getPollenHeaders } from '@/lib/pollen-key';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { unifiedModelConfigs, getUnifiedModelConfig, type UnifiedModelConfig } from '@/config/unified-model-configs';
-import { getReferenceMode, getUnifiedModel, getVisualizeModelGroupsForProvider, UNIFIED_IMAGE_MODELS, type ImageProvider } from '@/config/unified-image-models';
+import {
+    getDefaultDurationSeconds,
+    getReferenceMode,
+    getUnifiedModel,
+    getVisualizeModelGroupsForProvider,
+    shouldIncludeByopHidden,
+    UNIFIED_IMAGE_MODELS,
+    type ImageProvider,
+} from '@/config/unified-image-models';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
 import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
@@ -66,10 +74,11 @@ export function useUnifiedImageToolState() {
 
     const availableModels = useMemo(
         () => {
-            const groups = getVisualizeModelGroupsForProvider(providerMode, { includeByopHidden: hasPollenKey });
+            const includeByopHidden = shouldIncludeByopHidden(providerMode, { prunaAvailable, hasPollenKey });
+            const groups = getVisualizeModelGroupsForProvider(providerMode, { includeByopHidden });
             return groups.flatMap(g => g.models.map(m => m.id));
         },
-        [providerMode, hasPollenKey]
+        [providerMode, hasPollenKey, prunaAvailable]
     );
     const initialModelId = useMemo(() => {
         const model = getUnifiedModel(normalizedDefaultImageModelId);
@@ -166,6 +175,15 @@ export function useUnifiedImageToolState() {
                 }
             }
         });
+        const modelInfo = getUnifiedModel(selectedModelId);
+        const configDurationDefault = currentModelConfig.inputs.find(input => input.name === 'duration')?.default;
+        const durationDefault = getDefaultDurationSeconds(
+            modelInfo,
+            typeof configDurationDefault === 'number' ? configDurationDefault : undefined,
+        );
+        if (durationDefault !== undefined) {
+            initialFields.duration = durationDefault;
+        }
         
         // Use standard preset for all Pollinations image models
         if (isPollenModel) {
@@ -175,24 +193,14 @@ export function useUnifiedImageToolState() {
             initialFields.width = preset.width;
             initialFields.height = preset.height;
         } else if (isPollinationsVideo) {
-            const modelInfo = getUnifiedModel(selectedModelId);
             initialFields.aspect_ratio = '16:9';
+        }
 
-            // Dynamic Duration Default
-            if (modelInfo?.durationRange?.options && modelInfo.durationRange.options.length > 0) {
-                 // Default to the first option (usually the lowest/fastest)
-                 initialFields.duration = modelInfo.durationRange.options[0];
-            } else {
-                initialFields.duration = 5; // Fallback
-            }
-
-            // Dynamic Audio Default
-            // Default to TRUE if supported
-            if (modelInfo?.supportsAudio) {
-                initialFields.audio = true;
-            } else {
-                 initialFields.audio = false;
-            }
+        if (modelInfo?.kind === 'video') {
+            const configAudioDefault = currentModelConfig.inputs.find(input => input.name === 'audio')?.default;
+            initialFields.audio = typeof configAudioDefault === 'boolean'
+                ? configAudioDefault
+                : modelInfo.supportsAudio === true;
         }
         setFormFields(initialFields);
     }, [currentModelConfig, isPollenModel, isPollinationsVideo, selectedModelId]);
