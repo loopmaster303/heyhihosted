@@ -68,17 +68,25 @@ export function PlaygroundShell() {
   }, [currentModel?.id]);
 
   const onEnhance = async () => {
-    if (!state.prompt.trim()) return;
+    if (!state.prompt.trim() || !currentModel) return;
     setEnhancing(true);
+    setError(undefined);
     try {
       const res = await fetch('/api/enhance-prompt', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: state.prompt }),
+        headers: {
+          'Content-Type': 'application/json',
+          // Die Route zieht den Key aus dem Header; ohne ihn entfällt die
+          // Web-Recherche und der Aufruf läuft auf dem freien Kontingent.
+          ...(pollenKey ? { 'X-Pollen-Key': pollenKey } : {}),
+        },
+        // modelId ist Pflicht — die Route antwortet sonst mit 400 — und wählt
+        // die modellspezifischen Richtlinien aus.
+        body: JSON.stringify({ prompt: state.prompt, modelId: currentModel.id }),
       });
-      if (!res.ok) throw new Error(`enhance ${res.status}`);
+      if (!res.ok) throw new Error(`enhance ${res.status}: ${await res.text()}`);
       const data = await res.json();
-      if (data?.enhanced) setPrompt(data.enhanced);
+      if (data?.enhancedPrompt) setPrompt(data.enhancedPrompt);
     } catch (e) {
       setError((e as Error).message);
     } finally {
