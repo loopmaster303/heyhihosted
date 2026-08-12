@@ -1,6 +1,6 @@
 # Streaming Status & Current Architecture
 
-## Current Implementation (March 2026)
+## Current Implementation (August 2026)
 
 **Status**: No true SSE streaming from backend.  
 **Route**: `src/app/api/chat/completion/route.ts`
@@ -32,7 +32,8 @@ On the frontend, `ChatService.sendChatCompletion(...)` accepts an `onStream` cal
 
 - **Smart Router** decides effective search model routing server-side.
 - **Web Context** is injected before completion when query intent requires it.
-- **Deep Research** uses a dedicated routed model (`nomnom`) and deep context mode.
+- **Deep Research** uses a dedicated routed model and deep context mode.
+- **Playground** generation is request/response (not streaming); progress is shown via client-side loading state.
 
 ## Future streaming plan (optional)
 

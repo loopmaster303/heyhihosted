@@ -1,7 +1,7 @@
 # Component & App State Behavior Specifications
 
 This document details the actual state machines, routes, and logic flows of the application.
-**Last Updated:** March 2026
+**Last Updated:** August 2026 (Playground merge)
 
 ## 1. Global Application State
 
@@ -13,6 +13,10 @@ The app is orchestrated by `src/app/unified/page.tsx` and uses two primary view 
 | :--- | :--- | :--- | :--- |
 | **`landing`** | Default; triggered via `chat.startNewChat()` | `LandingView` | Initial entry point, hero section, and quick prompt starters. |
 | **`chat`** | Triggered when a message is sent or a history item is selected | `ChatInterface` | The main AI interaction hub (Text, Image, Video, Music). |
+
+### Playground Route
+* **`/playground`** is a standalone route, not an `AppState`. It does not use `ChatProvider`; state lives locally inside `PlaygroundShell`.
+* Navigation to/from `/playground` is a plain Next.js route transition (sidebar link or direct URL).
 
 ### Navigation & Transitions
 * **Landing -> Chat**: Handled by `handleNavigateToChat`. Initializes a new conversation and switches state.
@@ -187,10 +191,22 @@ Skips shortcuts when typing in input/textarea (except Escape).
 ### Image Generation Flow
 
 1. **Input Submission**: Checks for text prompt and/or reference images.
-2. **Reference Upload**: Images uploaded via `/api/media/upload` (Pollinations Media Storage), stored as `UploadedReference[]`.
+2. **Reference Upload**: Images uploaded via `/api/media/upload` (Pollinations Media Storage) or `/api/pruna/upload` (Pruna), stored as `UploadedReference[]`. Provider is derived from the selected model.
 3. **API Routing**:
-   - All enabled image/video models → `/api/generate` (Pollinations URL generation)
+   - All enabled image/video models → `/api/generate` (Pollinations URL generation or Pruna raw media)
 4. **Persistence**: Assets saved via `OutputService.saveGeneratedAsset()` to IndexedDB `assets` table. Chat messages store an `assetId` reference, not the asset itself.
+
+### Playground Generation Flow
+
+Same API surface as Visualize, but self-contained:
+
+1. **Shell**: `PlaygroundShell` owns layout and local state.
+2. **Model Selection**: `ModelPicker` + `ProviderSelect` filter `unified-image-models.ts` by provider and mode.
+3. **Parameters**: `ParamControls` renders model-specific controls (aspect ratio, duration, etc.).
+4. **References**: `ReferenceSlots` validates `maxImages` / `referenceMode` per model.
+5. **Generation**: `PromptBar` submits to `/api/generate`; loading/progress shown in main canvas.
+6. **Results**: `Gallery` shows thumbnails; `MetaRail` shows details + download/retry/reuse actions.
+7. **Persistence**: Same `OutputService.saveGeneratedAsset()` path as Visualize.
 
 ---
 

@@ -15,7 +15,8 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 ## Key Features
 
 - **Multimodal Chat**: Discuss ideas with Claude, GPT, Gemini, Deepseek, Mistral, and more. Vision support on compatible models.
-- **Generative Media**: Create images and videos instantly via Pollinations API.
+- **Generative Media**: Create images and videos instantly via Pollinations API — both inline in chat and in the dedicated **Playground** at `/playground`.
+- **Playground**: Full-screen generation workspace with provider switch (Pollinations / Pruna), mode tabs (text-to-image, image-to-image, text-to-video, image-to-video), reference uploads, parameter controls, generation progress, and a detail panel with download / retry / reuse.
 - **Compose Mode**: Music generation via **Pollinations** (`/api/compose`) — **ACE-Step 1.5** free up to 1 minute, plus **ElevenMusic v2** and **Stable Audio 3 Medium** with a Pollinations key.
 - **Code Questions**: Ask directly in chat; responses already use the normal code formatting you expect.
 - **Deep Research**: Toggle web browsing for real-time search and source analysis (Sonar / Sonar Reasoning).
@@ -23,7 +24,7 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 - **Voice I/O**: Speech-to-text and text-to-speech via Pollinations (OpenAI-compatible endpoints).
 - **Prompt Enhancement**: AI-powered prompt optimization for image and music generation.
 - **Local-First Output**: Chats, memories, and generated assets stay in your browser (IndexedDB metadata plus Pollinations media storage for generated media).
-- **Output Panel**: Quick overlay and full view for browsing generated images, videos, and tracks.
+- **Output Panel / Gallery**: Quick overlay and full view for browsing generated images, videos, and tracks.
 - **CRT Terminal Identity**: A specialized UI inspired by terminal aesthetics with real-time system feedback.
 - **No-Auth Architecture**: Instant utility. No sign-up, no logins.
 

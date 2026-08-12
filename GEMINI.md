@@ -19,10 +19,11 @@ Duplicated truth rots. So this file deliberately holds no model lists and no arc
 
 **hey.hi** is a local-first AI workspace built on Next.js 16, Pollinations.ai and Pruna AI.
 
-- Unified app shell with `landing` and `chat` states at `/unified`
+- Unified app shell with `landing` and `chat` states at `/unified` (root `/` redirects into the same shell)
 - Visible user modes: `standard`, `visualize`, `compose`, `research`
-- Generated media lives in Pollinations Media Storage; conversations, memories, settings, and output metadata live locally in IndexedDB / localStorage
-- The product surface calls the generated-media area **Output**
+- Dedicated **Playground** route at `/playground` for full-screen image/video generation
+- Generated media lives in Pollinations Media Storage or (for Pruna without Pollen token) as IndexedDB blobs; conversations, memories, settings, and output metadata live locally in IndexedDB / localStorage
+- The product surface calls the generated-media area **Output**; the Playground calls the same area **Gallery**
 
 ## Commands
 

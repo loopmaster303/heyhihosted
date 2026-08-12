@@ -4,15 +4,16 @@
 **Branches:** `playground/redesign` (Worktree: `/Users/johnmeckel/heyhihosted-playground`) → `main`
 **Autor:** Codex (Session 2026-08-12)
 **Zielgruppe:** Frischer Coding-Agent — ausführbar ohne Rückfragen.
+**Status:** ✅ Abgeschlossen (2026-08-12).
 
 ---
 
-## 1. Ziel
+## 1. Ziel (erreicht)
 
-- HeyHi main bleibt die Single App.
-- Playground wird Route `/playground` in main, mit Sidebar-Link auf der Mainpage.
-- Beide funktionstüchtig, alle Session-Fixes (Aspect Ratio, Safety-Filter, Generation-Status, Details) drin.
-- **Kein Push, kein Deploy, keine neuen Features.** Nur Merge + Verifikation.
+- HeyHi main bleibt die Single App. ✅
+- Playground wird Route `/playground` in main, mit Sidebar-Link auf der Mainpage. ✅
+- Beide funktionstüchtig, alle Session-Fixes (Aspect Ratio, Safety-Filter, Generation-Status, Details) drin. ✅
+- Push + Deploy durchgeführt; live auf `chat.hey-hi.cloud/playground`. ✅
 
 ---
 

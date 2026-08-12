@@ -1,5 +1,7 @@
 # UX/UI Audit & Usability Roadmap
 
+> **Status note (2026-08-12):** This audit is from 2025 and kept as historical context. Many items have been addressed incrementally; the Playground merge (August 2026) delivered a dedicated generation workspace with provider switch, mode tabs, reference uploads, progress feedback, and result details. Treat the checklist below as background, not as the active backlog.
+
 ## Executive Summary
 **Project**: HeyHi Hosted
 **Date**: December 29, 2025
@@ -43,6 +45,7 @@ The application presents a modern, specialized interface for AI interaction ("ch
 
 ### 6. Feedback Mechanisms
 *   **Issue**: Error states (e.g., failed image generation) rely on `toast` or console logs.
+*   **Status (2026-08-12):** Playground now shows inline failed-card with retry; chat still uses toasts.
 *   **Fix**: Implement inline error states for the chat bubble. If an image fails, show a "Retry" button directly in the message stream, not just a generic error toast.
 
 ---
@@ -95,7 +98,7 @@ The application presents a modern, specialized interface for AI interaction ("ch
 ### Phase 3: Visual Polish & Performance
 - [ ] **Images**: Replace `<img>` with `next/image` in `ChatImageCard`.
 - [ ] **Motion**: Add `motion-reduce` media query support to animations (Matrix rain, particles).
-- [ ] **Error Handling**: Add inline retry mechanisms for failed AI responses.
+- [x] **Error Handling**: Playground shows inline failed-card with retry; chat errors still mostly toast-based.
 
 ### Phase 4: Usability Refinements
 - [ ] **Sidebar**: Optimize Gallery loading (pagination or thumbnails).

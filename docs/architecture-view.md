@@ -47,21 +47,25 @@ graph TD
     end
     
     subgraph "Page Routes"
-        Home[/unified]
+        Home[/]
+        Chat[/chat]
+        Playground[/playground]
         Settings[/settings]
         About[/about]
-        Output[/gallery]
+        Output/Gallery[/gallery]
     end
     
     subgraph "Feature Components"
         Landing[LandingView]
         Chat[ChatInterface]
+        Playground[PlaygroundShell]
         Personalization[PersonalizationTool]
         OutputGrid[GalleryGrid]
     end
     
     subgraph "Integrated Tools"
         ImageTool[UnifiedImageTool Logic]
+        PlaygroundTool[Playground Generation Logic]
     end
     
     Home --> Landing
@@ -83,7 +87,7 @@ sequenceDiagram
     participant ExternalAPI
     participant IndexedDB
     
-    User->>UI: Send Message
+    User->>UI: Send Message / Generate Media
     UI->>ChatProvider: sendMessage()
     ChatProvider->>API: POST /api/chat/completion
     API->>ExternalAPI: User-selected model (plus optional injected web context)
@@ -93,6 +97,15 @@ sequenceDiagram
     ChatProvider->>IndexedDB: Save Message (Messages Table)
     ChatProvider-->>UI: Update State
     UI-->>User: Display Response
+
+    Note over User, IndexedDB: Playground flow (self-contained)
+    User->>PlaygroundUI: Select model, prompt, references
+    PlaygroundUI->>API: POST /api/generate
+    API->>ExternalAPI: Pollinations or Pruna generation
+    ExternalAPI-->>API: Media result / error
+    API-->>PlaygroundUI: Return media URL or error
+    PlaygroundUI->>IndexedDB: Save asset metadata (via OutputService)
+    PlaygroundUI-->>User: Display result + details rail
 ```
 
 ## State Management Flow

@@ -2,7 +2,7 @@
 
 **Datum:** 2026-08-12
 **Branch:** `main` in `/Users/johnmeckel/heyhihosted`
-**Status:** Merge abgeschlossen, lokal committet, **kein Push**.
+**Status:** Merge abgeschlossen, gepusht, live auf `chat.hey-hi.cloud/playground`.
 
 ---
 
@@ -38,6 +38,6 @@
 
 ## Noch offen / Rückstände
 
-- Kein Push, kein Deploy.
-- Echte API-Smoke-Tests (Pollinations + Pruna Generation mit gültigen Keys) noch nicht durchgeführt.
-- `playground/multimedia` und `playground/multimedia-b` Worktrees unangetastet.
+- Push + Deploy erledigt; Live-Smoke-Tests durch User bestätigt (Pollinations + Pruna inkl. i2i-Upload).
+- `heyhihosted-playground` und `heyhihosted-playground-b` Worktrees wurden entfernt.
+- `playground/multimedia` Worktree ist historisch; wurde nicht mehr benötigt.

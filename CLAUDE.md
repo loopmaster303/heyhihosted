@@ -2,7 +2,7 @@
 
 **Ecosystem:** democrabs — "The crab snaps with everyone but it's yours"
 
-Assistant guidance for Claude working in this repository. Last verified against the code on 2026-07-25.
+Assistant guidance for Claude working in this repository. Last verified against the code on 2026-08-12.
 
 ## Start Here
 
@@ -15,11 +15,12 @@ Assistant guidance for Claude working in this repository. Last verified against 
 
 **hey.hi** is a local-first AI workspace built on Next.js 16, Pollinations.ai and Pruna AI.
 
-- Unified app shell with `landing` and `chat` states at `/unified`
+- Unified app shell with `landing` and `chat` states at `/unified` (root `/` redirects into the same shell)
 - Visible user modes: `standard`, `visualize`, `compose`, `research`
+- Dedicated **Playground** route at `/playground` for full-screen image/video generation
 - Code mode exists as an internal response-mode flag (`Conversation.isCodeMode`), not as a separate visible tool
-- Generated media lives in Pollinations Media Storage; conversations, memories, settings, and output metadata live locally in IndexedDB / localStorage
-- The product surface calls the generated-media area **Output**
+- Generated media lives in Pollinations Media Storage or (for Pruna without Pollen token) as IndexedDB blobs; conversations, memories, settings, and output metadata live locally in IndexedDB / localStorage
+- The product surface calls the generated-media area **Output**; the Playground calls the same area **Gallery**
 
 ## Current Runtime Truth
 
@@ -48,6 +49,20 @@ Everything else in the file is `enabled: false` and waiting on upstream availabi
 
 ### Reference images
 `referenceMode` (`multi-image` | `start-frame` | `start-end-frame`) plus `maxImages` describe what a model accepts; `getReferenceMode()` derives it. `/api/generate` validates the request against both and rejects mismatches with a 400, so UI and API cannot drift apart.
+
+## Playground — read before touching `/playground`
+
+The `/playground` route (`src/app/playground/page.tsx`) is a standalone generation workspace, not a chat tool. It reuses the same model registry and generation API as Visualize but has its own shell and state:
+
+- **Shell:** `PlaygroundShell` (`src/app/playground/PlaygroundShell.tsx`) owns the three-column layout (sidebar params, main canvas, detail rail).
+- **State:** Local React state in `PlaygroundShell`; no ChatProvider involvement.
+- **API:** `/api/generate` for all image/video generation; `/api/media/upload` or `/api/pruna/upload` for reference images depending on `selectedModelInfo.provider`.
+- **Modes:** `t2i`, `i2i`, `t2v`, `i2v` — driven by `ModeTabs` and validated by `/api/generate`.
+- **Progress:** Generation status is shown via a loading spinner / progress state in the main canvas; failed generations render a retry card.
+- **Details:** Selecting a result opens `MetaRail` with prompt, parameters, seed, and actions: download, retry, use as reference.
+- **Provider switch:** Same semantics as Visualize — it only scopes the model list. The selected model decides the actual provider dispatch.
+
+Do not wire Playground state into ChatProvider. Keep it self-contained.
 
 ## Provider Semantics — read before touching Visualize
 
@@ -119,7 +134,7 @@ CI=1 npm test -- --runInBand path/to/test.ts
 
 ## Open Questions
 
-- **Deploy truth is unresolved.** `apphosting.yaml` points at Firebase App Hosting with `maxInstances: 1`; `vercel.json` exists but is now empty. What actually serves hey-hi.space has never been confirmed.
+- **Deploy truth resolved for this domain.** `chat.hey-hi.cloud` is served by Vercel (connected GitHub project, auto-deploy from `main`). `apphosting.yaml` still exists but is not the active host for this domain.
 - Search/research routing is delegated through a single strategy path; `WebContextService` is an optional helper invoked only when `shouldFetchWebContext` is set, not the default delegated path.
 - The system prompt in `chat-options.ts` still contains "Burn the Corpos" and filter-evasion passages. Editorial hardening only on explicit instruction.
 
