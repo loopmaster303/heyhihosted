@@ -65,7 +65,7 @@ jest.mock('@/hooks/useHasPrunaKey', () => ({ useHasPrunaKey: () => false }));
 
 jest.mock('@/lib/services/database', () => {
   const rows = [
-    { id: 'g1', remoteUrl: 'https://x/g.png', prompt: 'gallery item', modelId: 'gflux', conversationId: '__playground__', timestamp: 1, contentType: 'image/png' },
+    { id: 'g1', remoteUrl: 'https://x/g.png', prompt: 'gallery item', modelId: 'flux', conversationId: '__playground__', timestamp: 1, contentType: 'image/png', params: { seed: 7 } },
   ];
   return {
     db: {
@@ -125,6 +125,18 @@ describe('PlaygroundShell smoke', () => {
     localStorage.clear();
     jest.clearAllMocks();
     mockHooks();
+    // jest.setup stubbt matchMedia mit matches:false (= schmaler Viewport).
+    // Die Shell-Tests laufen auf Desktop: breite Viewports melden.
+    (window.matchMedia as jest.Mock).mockImplementation((query: string) => ({
+      matches: query.includes('1280'),
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
   });
 
   it('renders without crashing while the model list is loading', () => {
@@ -151,7 +163,7 @@ describe('PlaygroundShell smoke', () => {
     // Topbar actions
     expect(screen.getByRole('button', { name: 'Einstellungen' })).toBeInTheDocument();
     // Gallery renders the stored row
-    expect(await screen.findByText('gflux')).toBeInTheDocument();
+    expect(await screen.findByText('flux')).toBeInTheDocument();
   });
 
   it('keeps Senden disabled while the prompt is empty', async () => {
@@ -177,5 +189,42 @@ describe('PlaygroundShell smoke', () => {
     await user.click(screen.getByRole('button', { name: 'Einstellungen' }));
 
     expect(screen.getByRole('heading', { name: 'Einstellungen' })).toBeInTheDocument();
+  });
+
+  it('loads a stored result into the composer via Nochmal — without auto-sending', async () => {
+    const user = userEvent.setup();
+    render(<PlaygroundShell />);
+
+    // Karte waehlen -> Rail zeigt die gespeicherten Parameter als Chips
+    const card = await screen.findByRole('button', { name: /gallery item/ });
+    await user.click(card);
+    expect(await screen.findByText('seed 7')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Nochmal' }));
+    expect(screen.getByLabelText('Prompt')).toHaveValue('gallery item');
+    // Kein Auto-Senden: der Senden-Knopf wartet weiter auf den Nutzer
+    expect(screen.getByRole('button', { name: 'Senden' })).toBeEnabled();
+  });
+
+  it('opens the details as a bottom drawer on narrow viewports', async () => {
+    // Schmaler Viewport (wie in jest.setup): keine Media-Query matcht.
+    (window.matchMedia as jest.Mock).mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
+    const user = userEvent.setup();
+    render(<PlaygroundShell />);
+
+    const card = await screen.findByRole('button', { name: /gallery item/ });
+    await user.click(card);
+
+    // Rail (unsichtbar unter xl) UND Drawer zeigen die Details an.
+    expect((await screen.findAllByText('seed 7')).length).toBe(2);
   });
 });

@@ -6,16 +6,17 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { PlaygroundSidebar, PlaygroundSidebarContent } from '@/components/playground/PlaygroundSidebar';
 import { SettingsDialog } from '@/components/playground/SettingsDialog';
 import { PromptBar } from '@/components/playground/PromptBar';
-import { Gallery, type GalleryItem } from '@/components/playground/Gallery';
+import { Gallery, type GalleryItem, type PendingGeneration, type FailedGeneration } from '@/components/playground/Gallery';
 import { MetaRail } from '@/components/playground/MetaRail';
 import { usePlaygroundState } from '@/hooks/usePlaygroundState';
 import { usePlaygroundModels } from '@/hooks/usePlaygroundModels';
 import { usePollenKey } from '@/hooks/usePollenKey';
 import { useProviderMode } from '@/hooks/useProviderMode';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { buildGenerateBody, buildGenerateHeaders } from '@/lib/playground/generate-request';
 import { isModelInMode } from '@/lib/playground/mode-mapping';
 import { getDefaultDurationSeconds, getUnifiedModel } from '@/config/unified-image-models';
-import { schemaForEntry, defaultsFor } from '@/lib/playground/param-schema';
+import { schemaForEntry, defaultsFor, type ParamValues } from '@/lib/playground/param-schema';
 import { PLAYGROUND_PRUNA_IDS } from '@/lib/playground/param-schema';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { BlobManager } from '@/lib/blob-manager';
@@ -52,8 +53,16 @@ export function PlaygroundShell() {
   const [selected, setSelected] = useState<GalleryItem | null>(null);
   const [galleryKey, setGalleryKey] = useState(0);
   const [error, setError] = useState<string | undefined>();
+  const [pending, setPending] = useState<PendingGeneration | null>(null);
+  const [failed, setFailed] = useState<FailedGeneration | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  // Gleiche 1280px-Grenze wie die Rail (xl) — darunter wandern die Details
+  // bei Auswahl in den Bottom-Drawer.
+  const isWide = useMediaQuery('(min-width: 1280px)');
 
   const abortRef = useRef<AbortController | null>(null);
+  // Parameter, die ein "Nochmal" ueber einen Modellwechsel hinweg retten soll.
+  const rerunParamsRef = useRef<ParamValues | null>(null);
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
 
@@ -77,10 +86,13 @@ export function PlaygroundShell() {
 
   useEffect(() => {
     if (!currentModel) return;
-    const defaultParams = defaultsFor(schemaForEntry(currentModel));
+    // Bei "Nochmal" mit Modellwechsel liegen hier die uebernommenen
+    // Parameter statt der Schema-Defaults.
+    const override = rerunParamsRef.current;
+    rerunParamsRef.current = null;
     const prev = stateRef.current;
     resetForModel({
-      params: defaultParams,
+      params: override ?? defaultsFor(schemaForEntry(currentModel)),
       uploads: prev.uploads.slice(0, currentModel.maxImages),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,6 +134,19 @@ export function PlaygroundShell() {
     if (promptRequired && !state.prompt.trim()) return;
     setSending(true);
     setError(undefined);
+    setFailed(null);
+    // Eingefrorene Werte fuer diesen Lauf — der Composer darf sich waehrend
+    // der Generierung aendern, ohne den laufenden Request zu verfaelschen.
+    const sentPrompt = state.prompt;
+    const sentParams = state.params;
+    const gen: PendingGeneration = {
+      prompt: sentPrompt,
+      modelId: currentModel.id,
+      startedAt: Date.now(),
+      isVideo: state.mode === 't2v' || state.mode === 'i2v',
+      aspectRatio: typeof sentParams?.aspect_ratio === 'string' ? sentParams.aspect_ratio : undefined,
+    };
+    setPending(gen);
     const body = buildGenerateBody(state, currentModel, currentSchema);
     const prunaKey = readLocal('prunaApiKey') ?? undefined;
     const headers = {
@@ -151,23 +176,37 @@ export function PlaygroundShell() {
         mediaUrl = BlobManager.createURL(blob, 'playground');
         kind = ct.startsWith('video/') ? 'video' : 'image';
       }
-      await OutputService.saveGeneratedAsset({
+      const assetId = await OutputService.saveGeneratedAsset({
         url: mediaUrl,
-        prompt: state.prompt,
+        prompt: sentPrompt,
         modelId: currentModel.id,
         conversationId: PLAYGROUND_CONVERSATION_ID,
         isVideo: kind === 'video',
         isPollinations: currentModel.provider === 'pollinations',
+        params: sentParams,
       });
+      // Echte Asset-ID, damit die Selektion den Galerie-Reload ueberlebt.
       setSelected({
-        id: `${Date.now()}`, url: mediaUrl, kind,
-        prompt: state.prompt, modelId: currentModel.id, timestamp: Date.now(),
+        id: assetId ?? `${Date.now()}`, url: mediaUrl, kind,
+        prompt: sentPrompt, modelId: currentModel.id, timestamp: Date.now(),
+        params: sentParams,
       });
       setGalleryKey((k) => k + 1);
     } catch (e) {
-      if ((e as Error).name !== 'AbortError') setError((e as Error).message);
+      if ((e as Error).name !== 'AbortError') {
+        // Generierungs-Fehler landen als Karte in der Galerie — der Alert
+        // ueber der Leiste bleibt Enhance-Fehlern vorbehalten.
+        setFailed({
+          prompt: gen.prompt,
+          modelId: gen.modelId,
+          isVideo: gen.isVideo,
+          aspectRatio: gen.aspectRatio,
+          message: (e as Error).message,
+        });
+      }
     } finally {
       abortRef.current = null;
+      setPending(null);
       setSending(false);
     }
   };
@@ -179,6 +218,41 @@ export function PlaygroundShell() {
     onParams: setParams,
     onUploads: setUploads,
     onSourceVideo: setSourceVideo,
+  };
+
+  // "Nochmal": Werte nur in die Eingabe uebernehmen — bewusst KEIN
+  // Auto-Senden, damit vor dem erneuten Generieren angepasst werden kann.
+  const loadIntoComposer = (item: GalleryItem) => {
+    setPrompt(item.prompt);
+    if (item.modelId === currentModel?.id) {
+      if (item.params) setParams(item.params);
+      return;
+    }
+    // Der Modellwechsel-Effekt wuerde Parameter sonst auf Defaults
+    // zuruecksetzen — er bekommt die uebernommenen Werte als Override.
+    rerunParamsRef.current = item.params ?? null;
+    setModelId(item.modelId);
+  };
+
+  // Direkter Download per Blob; verweigert CORS/Netzwerk das, wenigstens
+  // im neuen Tab oeffnen statt still zu scheitern.
+  const downloadItem = async (item: GalleryItem) => {
+    try {
+      const res = await fetch(item.url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const ext = item.kind === 'video' ? 'mp4' : blob.type.split('/')[1] || 'jpg';
+      a.href = objectUrl;
+      a.download = `heyhi-${item.modelId || 'output'}-${item.timestamp}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.open(item.url, '_blank', 'noopener');
+    }
   };
 
   return (
@@ -213,14 +287,23 @@ export function PlaygroundShell() {
           <div className="grid min-h-0 grid-cols-1 xl:grid-cols-[1fr_296px]">
             <Gallery
               selectedId={selected?.id ?? null}
-              onSelect={setSelected}
+              onSelect={(item) => {
+                setSelected(item);
+                // Unter xl gibt es keine Rail — Details gehen als Bottom-Drawer auf.
+                if (!isWide) setDetailsOpen(true);
+              }}
               refreshKey={galleryKey}
+              pending={pending}
+              failed={failed}
+              onRetryFailed={() => onSend()}
+              onDismissFailed={() => setFailed(null)}
             />
             <div className="hidden min-h-0 xl:block">
               <MetaRail
                 item={selected}
+                onLoad={downloadItem}
+                onRerun={loadIntoComposer}
                 onUseAsReference={(item) => setUploads([...state.uploads, item.url])}
-                onRerun={() => onSend()}
               />
             </div>
           </div>
@@ -261,6 +344,26 @@ export function PlaygroundShell() {
         <DrawerContent className="h-dvh w-[84%] max-w-[310px]">
           <DrawerTitle className="sr-only">Einstellungen und Parameter</DrawerTitle>
           <PlaygroundSidebarContent {...sidebarProps} />
+        </DrawerContent>
+      </Drawer>
+
+      {/* Details fuer schmale Viewports — auf dem Desktop uebernimmt die Rail. */}
+      <Drawer open={detailsOpen} onOpenChange={setDetailsOpen} shouldScaleBackground={false}>
+        <DrawerContent className="max-h-[85dvh]">
+          <DrawerTitle className="sr-only">Generierungs-Details</DrawerTitle>
+          <MetaRail
+            className="max-h-[80dvh] border-l-0"
+            item={selected}
+            onLoad={downloadItem}
+            onRerun={(item) => {
+              loadIntoComposer(item);
+              setDetailsOpen(false);
+            }}
+            onUseAsReference={(item) => {
+              setUploads([...state.uploads, item.url]);
+              setDetailsOpen(false);
+            }}
+          />
         </DrawerContent>
       </Drawer>
 

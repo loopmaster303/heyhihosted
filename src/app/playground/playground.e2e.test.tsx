@@ -128,8 +128,35 @@ describe('playground e2e: generate flow', () => {
         prompt: 'ein roter Fuchs',
         conversationId: PLAYGROUND_CONVERSATION_ID,
         isVideo: false,
+        params: expect.any(Object),
       })
     );
+  });
+
+  it('shows a pending card in the gallery while the request is in flight', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    mockFetchModels();
+    let resolveGenerate: ((v: unknown) => void) | undefined;
+    (global.fetch as jest.Mock).mockImplementationOnce(
+      () => new Promise((res) => { resolveGenerate = res; }),
+    );
+
+    render(<PlaygroundShell />);
+    await typePromptAndSend('ein roter Fuchs');
+
+    // Solange die Route nicht antwortet, steht die Lade-Karte in der Galerie
+    const status = await screen.findByRole('status');
+    expect(status).toHaveTextContent('Generiere');
+    expect(status).toHaveTextContent(/flux/i);
+
+    resolveGenerate?.({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ imageUrl: 'https://x/out.png' }),
+    });
+
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
   });
 
   it('surfaces an error and saves nothing when the response carries no media url', async () => {
@@ -145,6 +172,8 @@ describe('playground e2e: generate flow', () => {
     await typePromptAndSend('ein roter Fuchs');
 
     expect(await screen.findByRole('alert')).toHaveTextContent('generate response missing videoUrl/imageUrl');
+    // Die Fehler-Karte bietet den direkten Neuversuch an
+    expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
   });
 });

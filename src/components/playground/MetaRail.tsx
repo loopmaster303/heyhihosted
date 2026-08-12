@@ -3,6 +3,7 @@
 import { Download, Plus, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import type { GalleryItem } from './Gallery';
 
 function relativeTime(ts: number): string {
@@ -14,16 +15,58 @@ function relativeTime(ts: number): string {
   return `vor ${Math.round(hours / 24)} Tg`;
 }
 
+// Kuratierte Chips fuer die Detailansicht. Reihenfolge = Anzeigereihenfolge.
+// Booleans nur wenn true ("fast", "audio", ...), lange Freitexte (negative_prompt)
+// bleiben bewusst raus — sie landen ueber "Nochmal" wieder im Composer.
+const CHIP_DEFS: {
+  name: string;
+  label?: string;
+  booleanLabel?: string;
+  format?: (v: string | number) => string;
+}[] = [
+  { name: 'aspect_ratio', label: 'ar' },
+  { name: 'resolution', label: 'res' },
+  { name: 'seed', label: 'seed' },
+  { name: 'steps', label: 'steps' },
+  { name: 'guidance', label: 'guid' },
+  { name: 'duration', format: (v) => `${v} s` },
+  { name: 'output_format' },
+  { name: 'go_fast', booleanLabel: 'fast' },
+  { name: 'audio', booleanLabel: 'audio' },
+  { name: 'transparent', booleanLabel: 'alpha' },
+];
+
+export function chipsFor(params?: Record<string, string | number | boolean>): string[] {
+  if (!params) return [];
+  const out: string[] = [];
+  for (const def of CHIP_DEFS) {
+    const v = params[def.name];
+    if (v === undefined || v === null) continue;
+    if (typeof v === 'boolean') {
+      if (v && def.booleanLabel) out.push(def.booleanLabel);
+      continue;
+    }
+    out.push(def.format ? def.format(v) : def.label ? `${def.label} ${v}` : String(v));
+  }
+  return out;
+}
+
 interface Props {
   item: GalleryItem | null;
+  className?: string;
   onLoad?: (item: GalleryItem) => void;
   onRerun?: (item: GalleryItem) => void;
   onUseAsReference?: (item: GalleryItem) => void;
 }
 
-export function MetaRail({ item, onLoad, onRerun, onUseAsReference }: Props) {
+export function MetaRail({ item, className, onLoad, onRerun, onUseAsReference }: Props) {
   return (
-    <aside className="glass-panel flex min-h-0 flex-col gap-3.5 overflow-y-auto border-l border-border/45 p-4">
+    <aside
+      className={cn(
+        'glass-panel flex min-h-0 flex-col gap-3.5 overflow-y-auto border-l border-border/45 p-4',
+        className,
+      )}
+    >
       {!item ? (
         <div className="grid h-full place-items-center p-5 text-center text-xs text-muted-foreground/70">
           Wähl ein Ergebnis, um Prompt und Parameter zu sehen.
@@ -53,6 +96,14 @@ export function MetaRail({ item, onLoad, onRerun, onUseAsReference }: Props) {
                 {item.modelId}
               </span>
             )}
+            {chipsFor(item.params).map((chip) => (
+              <span
+                key={chip}
+                className="rounded-md border border-border bg-background px-2 py-1 font-mono text-[10.5px] tabular-nums text-muted-foreground"
+              >
+                {chip}
+              </span>
+            ))}
             <span className="rounded-md border border-border bg-background px-2 py-1 font-mono text-[10.5px] tabular-nums text-muted-foreground">
               {relativeTime(item.timestamp)}
             </span>

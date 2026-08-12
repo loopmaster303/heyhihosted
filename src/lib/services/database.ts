@@ -43,6 +43,8 @@ export interface Asset {
   storageKey?: string;
   remoteUrl?: string;
   starred?: boolean;
+  // Generierungs-Parameter (seed, aspect_ratio, ...) fuer die Detailansicht. Nicht indexiert — alte Eintraege haben das Feld nicht.
+  params?: Record<string, string | number | boolean>;
 }
 
 // --- Die Dexie Datenbank-Klasse ---

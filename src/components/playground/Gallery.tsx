@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { Image as ImageIcon, Play } from 'lucide-react';
+import { AlertTriangle, Image as ImageIcon, Loader2, Play, X } from 'lucide-react';
 import { db, type Asset } from '@/lib/services/database';
 import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,25 @@ export interface GalleryItem {
   prompt: string;
   modelId: string;
   timestamp: number;
+  params?: Record<string, string | number | boolean>;
+}
+
+// Laufende Generierung — wird als Platzhalter-Karte in der Galerie gezeigt.
+export interface PendingGeneration {
+  prompt: string;
+  modelId: string;
+  startedAt: number;
+  isVideo: boolean;
+  aspectRatio?: string;
+}
+
+// Fehlgeschlagene Generierung — gleiche Kartenposition, kippbar in "erneut versuchen".
+export interface FailedGeneration {
+  prompt: string;
+  modelId: string;
+  isVideo: boolean;
+  aspectRatio?: string;
+  message: string;
 }
 
 function toItem(a: Asset): GalleryItem | null {
@@ -24,7 +43,84 @@ function toItem(a: Asset): GalleryItem | null {
     prompt: a.prompt ?? '',
     modelId: a.modelId ?? '',
     timestamp: a.timestamp,
+    params: a.params,
   };
+}
+
+// "16:9" -> "16 / 9" fuer CSS. Ungueltige Werte fallen auf Quadrat zurueck.
+function cssAspectRatio(ar?: string): string {
+  return ar && /^\d+(\.\d+)?:\d+(\.\d+)?$/.test(ar) ? ar.replace(':', ' / ') : '1 / 1';
+}
+
+function PendingCard({ gen }: { gen: PendingGeneration }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const secs = Math.max(0, Math.floor((now - gen.startedAt) / 1000));
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-primary/35 bg-muted/30 p-3 text-center"
+      style={{ aspectRatio: cssAspectRatio(gen.aspectRatio) }}
+    >
+      <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+      <span className="text-[11px] font-medium text-foreground">Generiere…</span>
+      <span className="font-mono text-[10.5px] text-muted-foreground">{gen.modelId}</span>
+      <span className="text-[11px] tabular-nums text-muted-foreground/80">{secs} s</span>
+      {gen.isVideo && (
+        <span className="text-[10px] leading-snug text-muted-foreground/60">
+          Video kann mehrere Minuten dauern
+        </span>
+      )}
+    </div>
+  );
+}
+
+function FailedCard({
+  gen,
+  onRetry,
+  onDismiss,
+}: {
+  gen: FailedGeneration;
+  onRetry?: () => void;
+  onDismiss?: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="flex w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-destructive/50 bg-destructive/10 p-3 text-center"
+      style={{ aspectRatio: cssAspectRatio(gen.aspectRatio) }}
+    >
+      <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
+      <span className="text-[11px] font-medium text-destructive">Fehlgeschlagen</span>
+      <span className="line-clamp-3 text-[10px] leading-snug text-destructive/80">{gen.message}</span>
+      <span className="font-mono text-[10px] text-muted-foreground">{gen.modelId}</span>
+      <div className="mt-1 flex items-center gap-1.5">
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="rounded-md border border-border bg-background px-2 py-1 text-[10.5px] font-medium text-foreground transition-colors hover:border-primary/55"
+          >
+            Erneut versuchen
+          </button>
+        )}
+        {onDismiss && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label="Verwerfen"
+            className="grid h-6 w-6 place-items-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:border-primary/55 hover:text-foreground"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 interface Props {
@@ -32,9 +128,21 @@ interface Props {
   onSelect: (item: GalleryItem) => void;
   /** Bump to re-read the store after a generation lands. */
   refreshKey?: number;
+  pending?: PendingGeneration | null;
+  failed?: FailedGeneration | null;
+  onRetryFailed?: () => void;
+  onDismissFailed?: () => void;
 }
 
-export function Gallery({ selectedId, onSelect, refreshKey = 0 }: Props) {
+export function Gallery({
+  selectedId,
+  onSelect,
+  refreshKey = 0,
+  pending = null,
+  failed = null,
+  onRetryFailed,
+  onDismissFailed,
+}: Props) {
   const [items, setItems] = useState<GalleryItem[]>([]);
   // Ein 401 von Pollinations kommt im img-Tag an, nicht in unserem fetch. Ohne
   // diesen Merker zeigt die Karte einfach nichts und niemand weiß warum.
@@ -54,7 +162,9 @@ export function Gallery({ selectedId, onSelect, refreshKey = 0 }: Props) {
     return () => { cancelled = true; };
   }, [refreshKey]);
 
-  if (items.length === 0) {
+  // Leere Galerie, aber eine laufende oder fehlgeschlagene Generierung
+  // trotzdem zeigen — sonst wirkt die App waehrend des ersten Sends tot.
+  if (items.length === 0 && !pending && !failed) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
         <div className="grid h-12 w-12 place-items-center rounded-xl border border-border bg-muted/40 text-primary">
@@ -83,6 +193,10 @@ export function Gallery({ selectedId, onSelect, refreshKey = 0 }: Props) {
         className="grid gap-3"
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(168px, 1fr))' }}
       >
+        {pending && <PendingCard gen={pending} />}
+        {!pending && failed && (
+          <FailedCard gen={failed} onRetry={onRetryFailed} onDismiss={onDismissFailed} />
+        )}
         {items.map((it) => {
           const selected = it.id === selectedId;
           return (
