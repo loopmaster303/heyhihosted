@@ -302,6 +302,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       const { duration, ...rest } = f.params ?? {};
       const input: Record<string, unknown> = {
         prompt: f.prompt,
+        num_frames: wanFramesFor(duration ?? f.duration),
         resolution: '480p',
         aspect_ratio: resolveSupportedAspectRatio(f, WAN_VIDEO_ASPECT_RATIOS, '16:9'),
         frames_per_second: WAN_FPS,
@@ -335,7 +336,6 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         last_image: (Array.isArray(f.image) && f.image.length > 1) ? f.image[1] : undefined,
         num_frames: wanFramesFor(duration ?? f.duration),
         resolution: '480p',
-        aspect_ratio: resolveSupportedAspectRatio(f, WAN_VIDEO_ASPECT_RATIOS, '16:9'),
         frames_per_second: WAN_FPS,
         interpolate_output: false,
         go_fast: true,
