@@ -12,6 +12,8 @@ export interface SaveGeneratedAssetOptions {
   sessionId?: string;
   isVideo?: boolean;
   isPollinations?: boolean;
+  // Generierungs-Parameter fuer die Detailansicht (optional, alte Caller unveraendert).
+  params?: Record<string, string | number | boolean>;
 }
 
 /**
@@ -41,7 +43,7 @@ export const OutputService = {
    * @returns The asset ID if successfully saved, undefined otherwise
    */
   async saveGeneratedAsset(options: SaveGeneratedAssetOptions): Promise<string | undefined> {
-    const { url, prompt, modelId, conversationId, sessionId, isVideo = false, isPollinations = true } = options;
+    const { url, prompt, modelId, conversationId, sessionId, isVideo = false, isPollinations = true, params } = options;
 
     if (!url) {
       console.warn('[OutputService] No URL provided for asset save');
@@ -57,6 +59,7 @@ export const OutputService = {
       modelId,
       conversationId,
       timestamp: Date.now(),
+      ...(params ? { params } : {}),
     };
 
     try {

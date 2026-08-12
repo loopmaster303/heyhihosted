@@ -16,7 +16,10 @@ export interface UsePrunaKeyReturn {
 }
 
 export function usePrunaKey(): UsePrunaKeyReturn {
-  const [prunaKey, setPrunaKey] = useState<string | null>(() => getStoredPrunaKey());
+  // Bewusst NICHT synchron aus dem localStorage initialisieren: Der Server
+  // rendert mit null, der Client mit hinterlegtem Key mit dem Wert — und die
+  // Hydration bricht. Der Effekt synchronisiert direkt nach dem Mount.
+  const [prunaKey, setPrunaKey] = useState<string | null>(null);
 
   useEffect(() => {
     const sync = () => setPrunaKey(getStoredPrunaKey());

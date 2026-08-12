@@ -1,4 +1,4 @@
-import { PRUNA_MODEL_IDS, getPrunaModelMapping } from '@/config/pruna-models';
+import { PRUNA_MODEL_IDS, getPrunaModelMapping, isPrunaModel } from '@/config/pruna-models';
 
 describe('Pruna model mappings', () => {
   it('keeps every exported Pruna model ID backed by a mapping', () => {
@@ -17,6 +17,33 @@ describe('Pruna model mappings', () => {
       prompt: 'same character in a rainy street',
       src_ref_images: ['https://example.com/a.jpg', 'https://example.com/b.jpg'],
     }));
+  });
+
+  it('translates zimage aspect_ratio into width/height and strips the ratio field', () => {
+    const input = getPrunaModelMapping('zimage')?.buildInput({
+      prompt: 'a red fox',
+      params: { aspect_ratio: '16:9', num_inference_steps: 12, go_fast: true },
+    });
+
+    expect(input).toEqual(expect.objectContaining({
+      prompt: 'a red fox',
+      width: 1344,
+      height: 768,
+      num_inference_steps: 12,
+      go_fast: true,
+    }));
+    // Die API kennt aspect_ratio nicht — es darf nicht durchgereicht werden.
+    expect(input).not.toHaveProperty('aspect_ratio');
+  });
+
+  it('keeps explicit zimage width/height ahead of the ratio table', () => {
+    const input = getPrunaModelMapping('zimage')?.buildInput({
+      prompt: 'a red fox',
+      width: 512,
+      height: 640,
+    });
+
+    expect(input).toEqual(expect.objectContaining({ width: 512, height: 640 }));
   });
 
   it('maps p-video-animate source video and subject reference separately', () => {
@@ -207,3 +234,70 @@ describe('Pruna model mappings', () => {
     expect(landscapeInput).toEqual(expect.objectContaining({ aspect_ratio: '16:9' }));
   });
 });
+
+  it('recognizes p-image-ideogram as a Pruna model', () => {
+    expect(getPrunaModelMapping('p-image-ideogram')).toBeDefined();
+    expect(isPrunaModel('p-image-ideogram')).toBe(true);
+  });
+
+  it('recognizes p-flux-klein as a Pruna model', () => {
+    expect(getPrunaModelMapping('p-flux-klein')).toBeDefined();
+    expect(isPrunaModel('p-flux-klein')).toBe(true);
+  });
+
+  it('p-image-ideogram buildInput uses params', () => {
+    const input = getPrunaModelMapping('p-image-ideogram')?.buildInput({
+      prompt: 'test',
+      params: { thinking: 'high', image_size: '1K' },
+    });
+    expect(input?.thinking).toBe('high');
+    expect(input?.image_size).toBe('1K');
+  });
+
+  it('p-flux-klein buildInput passes up to 5 images', () => {
+    const input = getPrunaModelMapping('p-flux-klein')?.buildInput({
+      prompt: 'test',
+      image: ['a', 'b', 'c', 'd', 'e', 'f'],
+    });
+    expect(input?.images).toEqual(['a', 'b', 'c', 'd', 'e']);
+  });
+
+  it('lets a schema value beat the baked-in default', () => {
+    const mapping = getPrunaModelMapping('wan-t2v');
+    const input = mapping?.buildInput({
+      prompt: 'x',
+      params: { resolution: '720p', frames_per_second: 24 },
+    });
+    expect(input?.resolution).toBe('720p');
+    expect(input?.frames_per_second).toBe(24);
+  });
+
+  it('sends the second image as the end frame for wan-i2v', () => {
+    const mapping = getPrunaModelMapping('wan-i2v');
+    const input = mapping?.buildInput({
+      prompt: 'x',
+      image: ['https://a/1.png', 'https://a/2.png'],
+    });
+    expect(input?.image).toBe('https://a/1.png');
+    expect(input?.last_image).toBe('https://a/2.png');
+  });
+
+  it('passes a source video to vace', () => {
+    const mapping = getPrunaModelMapping('vace');
+    const input = mapping?.buildInput({
+      prompt: 'x',
+      video: 'https://a/clip.mp4',
+    });
+    expect(input?.src_video).toBe('https://a/clip.mp4');
+  });
+
+  it('builds an upscale request without a prompt', () => {
+    const mapping = getPrunaModelMapping('p-image-upscale');
+    const input = mapping?.buildInput({
+      prompt: '',
+      image: 'https://a/1.png',
+      params: { target: 8 },
+    });
+    expect(input?.prompt).toBeUndefined();
+    expect(input?.target).toBe(8);
+  });

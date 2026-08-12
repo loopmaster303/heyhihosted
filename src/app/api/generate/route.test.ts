@@ -260,7 +260,10 @@ describe('/api/generate route', () => {
 
     expect(response.status).toBe(200);
     expect(body).toEqual({
-      imageUrl: 'https://example.com/v1-image.png',
+      // Die rohe Pollinations-URL verlangt beim Abruf erneut einen Key, den der
+      // Browser nicht hat. Die Route legt das Bild deshalb serverseitig ab und
+      // gibt die dauerhafte Adresse zurück.
+      imageUrl: 'https://media.pollinations.ai/stored-key',
       videoUrl: undefined,
     });
   });
@@ -550,7 +553,8 @@ describe('/api/generate route', () => {
     const body = responseJson.mock.calls.at(-1)?.[0] as { imageUrl: string };
 
     expect(response.status).toBe(200);
-    expect(body.imageUrl).toBe('https://example.com/fallback.png');
+    // Auch der Fallback läuft über die serverseitige Ablage.
+    expect(body.imageUrl).toBe('https://media.pollinations.ai/stored-key');
     expect(generateViaPrunaMock).toHaveBeenCalled();
     expect(generatePollinationsImageMock).toHaveBeenCalledWith(
       expect.objectContaining({ enhance: true }),
@@ -585,7 +589,8 @@ describe('/api/generate route', () => {
     const body = responseJson.mock.calls.at(-1)?.[0] as { imageUrl: string };
 
     expect(response.status).toBe(200);
-    expect(body.imageUrl).toBe('https://example.com/fallback.png');
+    // Auch der Fallback läuft über die serverseitige Ablage.
+    expect(body.imageUrl).toBe('https://media.pollinations.ai/stored-key');
     expect(generateViaPrunaMock).toHaveBeenCalled();
     expect(generatePollinationsImageMock).toHaveBeenCalledWith(
       expect.objectContaining({ enhance: true }),
@@ -621,7 +626,8 @@ describe('/api/generate route', () => {
     const body = responseJson.mock.calls.at(-1)?.[0] as { imageUrl: string };
 
     expect(response.status).toBe(200);
-    expect(body.imageUrl).toBe('https://example.com/fallback.png');
+    // Auch der Fallback läuft über die serverseitige Ablage.
+    expect(body.imageUrl).toBe('https://media.pollinations.ai/stored-key');
     expect(generateViaPrunaMock).toHaveBeenCalled();
     expect(generatePollinationsImageMock).toHaveBeenCalledWith(
       expect.objectContaining({ enhance: true }),

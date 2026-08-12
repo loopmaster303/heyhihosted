@@ -7,6 +7,19 @@ export type ImageProvider = 'pollinations' | 'pruna';
 export type ImageKind = 'image' | 'video';
 export type ImageCategory = 'Standard' | 'Advanced';
 export type ReferenceMode = 'multi-image' | 'start-frame' | 'start-end-frame';
+export type TemporalControl =
+  | { mode: 'seconds'; min: number; max: number; step: number; options?: number[]; defaultSeconds: number }
+  | {
+      mode: 'frame-backed-seconds';
+      fps: number;
+      minFrames: number;
+      maxFrames: number;
+      secondOptions: number[];
+      defaultSeconds: number;
+    }
+  | { mode: 'speech-driven' }
+  | { mode: 'source-video-driven' }
+  | { mode: 'fixed-frames'; frames: number };
 
 export interface UnifiedImageModel {
   id: string;
@@ -24,6 +37,7 @@ export interface UnifiedImageModel {
   supportsPromptEnhance?: boolean;
   supportsEndFrame?: boolean;
   referenceMode?: ReferenceMode;
+  temporalControl?: TemporalControl;
   durationRange?: {
     min?: number;
     max?: number;
@@ -34,6 +48,34 @@ export interface UnifiedImageModel {
 
 export interface VisualModelVisibilityOptions {
   includeByopHidden?: boolean;
+}
+
+export function getDurationOptionsSeconds(model?: UnifiedImageModel): number[] {
+  const temporalControl = model?.temporalControl;
+  if (temporalControl?.mode === 'seconds') {
+    if (temporalControl.options) return temporalControl.options;
+    const count = Math.floor((temporalControl.max - temporalControl.min) / temporalControl.step) + 1;
+    return Array.from({ length: count }, (_, index) =>
+      temporalControl.min + index * temporalControl.step
+    );
+  }
+  if (temporalControl?.mode === 'frame-backed-seconds') {
+    return temporalControl.secondOptions;
+  }
+  if (temporalControl) return [];
+  return model?.durationRange?.options ?? [];
+}
+
+export function getDefaultDurationSeconds(
+  model?: UnifiedImageModel,
+  legacyConfigDefault?: number,
+): number | undefined {
+  const temporalControl = model?.temporalControl;
+  if (temporalControl?.mode === 'seconds' || temporalControl?.mode === 'frame-backed-seconds') {
+    return temporalControl.defaultSeconds;
+  }
+  if (temporalControl) return undefined;
+  return legacyConfigDefault ?? model?.durationRange?.options?.[0];
 }
 
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
@@ -63,6 +105,8 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
    { id: 'nanobanana-2-lite', name: 'Nano Banana 2 Lite', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: false, enabled: false, byopVisible: true, description: 'Gemini Flash Lite Image' },
    { id: 'wan-image-small', name: 'Wan Image Small', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast, efficient image generation via Pruna' },
    { id: 'p-image-try-on', name: 'P-Image Try-On', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 7, isFree: false, enabled: true, byopVisible: true, description: 'Virtual garment try-on (person + up to 6 garments)' },
+   { id: 'p-image-ideogram', name: 'P-Image Ideogram', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: true, byopVisible: true, description: 'Pruna Ideogram — advanced text rendering and illustration' },
+   { id: 'p-flux-klein', name: 'Flux 2 Klein 4B (Pruna)', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 5, isFree: false, enabled: true, byopVisible: true, description: 'Pruna FLUX.2 Klein 4B — fast, dense prose prompts, up to 5 reference images' },
    { id: 'p-image-upscale', name: 'P-Image Upscale', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: true, byopVisible: true, description: 'AI image upscaling 1-128 MP with detail enhancement' },
 
   // STANDARD Video Models

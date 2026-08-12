@@ -15,6 +15,13 @@ import {
 import { isPrunaModel } from '@/config/pruna-models';
 import { generateViaPruna, downloadPrunaResult } from '@/lib/pruna/client';
 import { MEDIA_UPLOAD_URL } from '@/lib/upload/constants';
+import { pixelsForAspect, QUALITY_MODELS } from '@/lib/playground/pollinations-caps';
+import {
+  findRegistryModel,
+  registryModelIsVideo,
+  registryMaxImages,
+  type RegistryModel,
+} from '@/lib/pollinations-registry';
 
 /**
  * Pollinations Generation Route (Safe Mode)
@@ -36,9 +43,13 @@ const ImageGenerationSchema = z.object({
   transparent: z.boolean().default(false),
   safe: z.boolean().default(false),
   negative_prompt: z.string().optional(),
+  guidance: z.number().optional(),
+  steps: z.number().int().positive().optional(),
   image: z.union([z.string().url(), z.array(z.string().url())]).optional(),
   srcRefImages: z.array(z.string().url()).optional(),
   video: z.string().url().optional(),
+  resolution: z.enum(['480p', '720p', '1080p']).optional(),
+  params: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
 });
 
 export async function POST(request: Request) {
@@ -59,9 +70,13 @@ export async function POST(request: Request) {
       transparent,
       safe,
       negative_prompt,
+      guidance,
+      steps,
       image,
       srcRefImages,
       video,
+      resolution,
+      params,
     } = validateRequest(ImageGenerationSchema, body);
 
     // --- SDK Migration ---
@@ -72,25 +87,37 @@ export async function POST(request: Request) {
     console.log('[Pollinations] Key source:', userHeader ? 'BYOP (X-Pollen-Key header)' : 'env fallback');
 
     // Model Logic
-    const canonicalModelId = resolvePollinationsVisualModelId(model || 'flux');
+    // Die lokale Config ist eine handgepflegte Auswahl. Der Playground zeigt die
+    // volle Live-Registry, also darf ein dort bekanntes Modell hier nicht an
+    // einer veralteten Liste scheitern. Chat schickt nur Modelle aus der Config,
+    // trifft diesen Zweig also nie.
+    let canonicalModelId = resolvePollinationsVisualModelId(model || 'flux');
+    let liveModel: RegistryModel | undefined;
     if (!canonicalModelId) {
-      throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`);
+      liveModel = model ? await findRegistryModel(model, apiKey) : undefined;
+      if (!liveModel) {
+        throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`);
+      }
+      canonicalModelId = liveModel.name;
     }
 
     const modelInfo = getUnifiedModel(canonicalModelId);
     const modelId = toPollinationsVisualApiModelId(canonicalModelId);
-    const isVideoModel = modelInfo?.kind === 'video';
+    // Fehlt der Config-Eintrag, liefert die Registry dieselben Angaben.
+    const isVideoModel = modelInfo ? modelInfo.kind === 'video' : !!liveModel && registryModelIsVideo(liveModel);
+    const maxImages = modelInfo?.maxImages ?? (liveModel ? registryMaxImages(liveModel) : undefined);
+    const supportsReference = modelInfo ? modelInfo.supportsReference === true : (maxImages ?? 0) > 0;
     const referenceMode = modelInfo ? getReferenceMode(modelInfo) : 'multi-image';
     const referenceImages = image ? (Array.isArray(image) ? image : [image]) : [];
 
-    if (referenceImages.length > 0 && modelInfo?.supportsReference !== true) {
+    if (referenceImages.length > 0 && !supportsReference) {
       throw new ApiError(400, `Model ${canonicalModelId} does not support reference images`);
     }
     if (referenceMode === 'start-frame' && referenceImages.length > 1) {
       throw new ApiError(400, `Model ${canonicalModelId} does not support an end frame`);
     }
-    if (modelInfo?.maxImages !== undefined && referenceImages.length > modelInfo.maxImages) {
-      throw new ApiError(400, `Model ${canonicalModelId} accepts a maximum ${modelInfo.maxImages} reference image${modelInfo.maxImages === 1 ? '' : 's'}`);
+    if (maxImages !== undefined && referenceImages.length > maxImages) {
+      throw new ApiError(400, `Model ${canonicalModelId} accepts a maximum ${maxImages} reference image${maxImages === 1 ? '' : 's'}`);
     }
 
     // Auto-enhance for z-image-turbo (restored regression fix).
@@ -127,11 +154,14 @@ export async function POST(request: Request) {
           aspectRatio,
           seed,
           negativePrompt: negative_prompt,
+          guidance,
+          steps,
           image,
           srcRefImages,
           video,
           duration,
           audio,
+          params,
         };
 
         const result = await generateViaPruna(canonicalModelId, prunaFields, request.signal, prunaApiKey);
@@ -214,11 +244,24 @@ export async function POST(request: Request) {
 
     let resultUrl: string;
 
+    // Translate aspectRatio to pixels for image models
+    let effectiveWidth = width;
+    let effectiveHeight = height;
+    let effectiveAspectRatio = aspectRatio;
+    if (!isVideoModel && aspectRatio) {
+      const pixels = pixelsForAspect(aspectRatio);
+      if (pixels) {
+        effectiveWidth = pixels.width;
+        effectiveHeight = pixels.height;
+        effectiveAspectRatio = undefined;
+      }
+    }
+
     const imageOptions = {
         model: modelId,
-        width,
-        height,
-        aspectRatio,
+        width: effectiveWidth,
+        height: effectiveHeight,
+        aspectRatio: isVideoModel ? effectiveAspectRatio : undefined,
         seed,
         nologo,
         enhance: effectiveEnhance,
@@ -226,8 +269,10 @@ export async function POST(request: Request) {
         safe,
         transparent,
         negativePrompt: negative_prompt,
+        guidance,
+        steps,
         referenceImage: image,
-        quality: 'hd' as const,
+        ...(QUALITY_MODELS.has(modelId) ? { quality: 'hd' as const } : {}),
     };
 
     const hasReferenceImage = !!image && (Array.isArray(image) ? image.length > 0 : true);
@@ -238,7 +283,7 @@ export async function POST(request: Request) {
         // a URL that reaches the client, so we resolve the generation server-side
         // (Authorization header) and return the permanent media URL instead.
         const generationUrl = isVideoModel
-            ? await videoUrl(prompt, { ...imageOptions, duration, audio })
+            ? await videoUrl(prompt, { ...imageOptions, duration, audio, resolution })
             : await imageUrl(prompt, imageOptions);
 
         const stored = await fetchAndStoreRemoteMedia({
@@ -248,7 +293,7 @@ export async function POST(request: Request) {
         });
         resultUrl = stored.url;
     } else {
-        resultUrl = await generatePollinationsImage({
+        const generated = await generatePollinationsImage({
           prompt,
           model: modelId,
           width,
@@ -262,6 +307,21 @@ export async function POST(request: Request) {
           image,
           apiKey: hasToken ? apiKey : undefined,
         });
+
+        // Pollinations antwortet mit einer eigenen URL, die beim Abruf erneut
+        // einen Key verlangt. Der Browser hat keinen — er bekäme 401 und das
+        // Bild bliebe leer. Also hier serverseitig holen und ablegen, genau wie
+        // im Video-Zweig darüber. Data-URLs tragen die Daten schon in sich.
+        if (generated.startsWith('data:')) {
+          resultUrl = generated;
+        } else {
+          const stored = await fetchAndStoreRemoteMedia({
+            sourceUrl: generated,
+            apiKey: hasToken ? apiKey : undefined,
+            kind: 'image',
+          });
+          resultUrl = stored.url;
+        }
     }
 
     console.log('[Pollinations] SDK Dispatch:', hasToken ? 'Authenticated' : 'Public', { model: modelId, isVideo: isVideoModel, urlLength: resultUrl.length });
