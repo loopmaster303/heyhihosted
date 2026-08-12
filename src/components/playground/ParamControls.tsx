@@ -30,12 +30,17 @@ function isFieldVisible(field: ParamField, vals: ParamValues): boolean {
 export function ParamControls({ schema, values, onChange, uploadCount }: Props) {
   const [openAdvanced, setOpenAdvanced] = useState<Record<number, boolean>>({});
 
+  // Ein Zustand aus einer älteren Fassung kann das Feld noch gar nicht haben.
+  // Ohne diesen Rückfall riss die Seite mit
+  // "undefined is not an object (evaluating 'values.image')" ab.
+  const vals = values ?? {};
+
   const setValue = (name: string, value: string | number | boolean) => {
-    onChange({ ...values, [name]: value });
+    onChange({ ...vals, [name]: value });
   };
 
-  const allImages = (values.image ? (Array.isArray(values.image) ? values.image : [values.image]) : []) as string[];
-  const effectiveValues: ParamValues = { ...values, image: allImages as unknown as string };
+  const allImages = (vals.image ? (Array.isArray(vals.image) ? vals.image : [vals.image]) : []) as string[];
+  const effectiveValues: ParamValues = { ...vals, image: allImages as unknown as string };
 
   return (
     <div className="flex flex-col gap-3">
@@ -71,7 +76,7 @@ export function ParamControls({ schema, values, onChange, uploadCount }: Props) 
             {isOpen && (
               <div className="flex flex-col gap-2.5">
                 {visibleFields.map((field) => {
-                  const val = values[field.name];
+                  const val = vals[field.name];
 
                   if (field.kind === 'number') {
                     return (

@@ -23,11 +23,29 @@ const DEFAULT_STATE: PlaygroundState = {
   sourceVideo: null,
 };
 
+/**
+ * Ein gespeicherter Zustand ersetzt die Vorgabe vollständig. Ältere Einträge
+ * kennen die Felder von heute nicht — vor dem Parameter-Umbau gab es statt
+ * `params` noch seed/negativePrompt/guidance/steps. Ein solcher Eintrag ließ
+ * `state.params` undefined werden und riss ParamControls mit.
+ */
+function withDefaults(stored: PlaygroundState): PlaygroundState {
+  return {
+    ...DEFAULT_STATE,
+    ...stored,
+    params: stored?.params ?? {},
+    uploads: Array.isArray(stored?.uploads) ? stored.uploads : [],
+  };
+}
+
 export function usePlaygroundState() {
-  const [state, setState] = useLocalStorageState<PlaygroundState>('playgroundState', DEFAULT_STATE);
+  const [raw, setState] = useLocalStorageState<PlaygroundState>('playgroundState', DEFAULT_STATE);
+  const state = withDefaults(raw);
 
   const patch = useCallback(
-    (p: Partial<PlaygroundState>) => setState((prev) => ({ ...prev, ...p })),
+    // Auch beim Schreiben normalisieren, damit ein alter Eintrag beim ersten
+    // Zugriff geheilt statt fortgeschrieben wird.
+    (p: Partial<PlaygroundState>) => setState((prev) => ({ ...withDefaults(prev), ...p })),
     [setState],
   );
 
