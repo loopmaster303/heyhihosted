@@ -36,6 +36,9 @@ interface Props {
 
 export function Gallery({ selectedId, onSelect, refreshKey = 0 }: Props) {
   const [items, setItems] = useState<GalleryItem[]>([]);
+  // Ein 401 von Pollinations kommt im img-Tag an, nicht in unserem fetch. Ohne
+  // diesen Merker zeigt die Karte einfach nichts und niemand weiß warum.
+  const [broken, setBroken] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -94,11 +97,29 @@ export function Gallery({ selectedId, onSelect, refreshKey = 0 }: Props) {
               )}
             >
               {/* Media keeps its natural aspect ratio — never cropped. */}
-              {it.kind === 'video' ? (
-                <video src={it.url} muted playsInline className="block h-auto w-full" />
+              {broken[it.id] ? (
+                <span className="flex aspect-square w-full flex-col items-center justify-center gap-1 bg-muted/40 p-3 text-center">
+                  <span className="text-[11px] font-medium text-foreground">Nicht abrufbar</span>
+                  <span className="text-[10px] leading-snug text-muted-foreground">
+                    {it.modelId} braucht vermutlich einen Key
+                  </span>
+                </span>
+              ) : it.kind === 'video' ? (
+                <video
+                  src={it.url}
+                  muted
+                  playsInline
+                  className="block h-auto w-full"
+                  onError={() => setBroken((b) => ({ ...b, [it.id]: true }))}
+                />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={it.url} alt={it.prompt} className="block h-auto w-full" />
+                <img
+                  src={it.url}
+                  alt={it.prompt}
+                  className="block h-auto w-full"
+                  onError={() => setBroken((b) => ({ ...b, [it.id]: true }))}
+                />
               )}
 
               {it.kind === 'video' && (

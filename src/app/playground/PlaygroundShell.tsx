@@ -61,7 +61,12 @@ export function PlaygroundShell() {
     ? entries.filter((e) => PLAYGROUND_PRUNA_IDS.includes(e.id as any))
     : entries;
   const modeEntries = filteredEntries.filter((e) => isModelInMode(e, state.mode));
-  const currentModel = modeEntries.find((e) => e.id === state.modelId) ?? modeEntries[0];
+  // Ohne Key ist ein kostenpflichtiges Modell nicht benutzbar — Pollinations
+  // antwortet mit 401 und das Bild bleibt leer. Als Vorgabe deshalb erst ein
+  // freies wählen; die Auswahl des Nutzers hat weiter Vorrang.
+  const currentModel =
+    modeEntries.find((e) => e.id === state.modelId) ??
+    (pollenKey ? modeEntries[0] : modeEntries.find((e) => !e.paidOnly) ?? modeEntries[0]);
 
   useEffect(() => {
     if (currentModel && state.modelId !== currentModel.id) setModelId(currentModel.id);

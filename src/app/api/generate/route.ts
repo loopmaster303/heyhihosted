@@ -293,7 +293,7 @@ export async function POST(request: Request) {
         });
         resultUrl = stored.url;
     } else {
-        resultUrl = await generatePollinationsImage({
+        const generated = await generatePollinationsImage({
           prompt,
           model: modelId,
           width,
@@ -307,6 +307,21 @@ export async function POST(request: Request) {
           image,
           apiKey: hasToken ? apiKey : undefined,
         });
+
+        // Pollinations antwortet mit einer eigenen URL, die beim Abruf erneut
+        // einen Key verlangt. Der Browser hat keinen — er bekäme 401 und das
+        // Bild bliebe leer. Also hier serverseitig holen und ablegen, genau wie
+        // im Video-Zweig darüber. Data-URLs tragen die Daten schon in sich.
+        if (generated.startsWith('data:')) {
+          resultUrl = generated;
+        } else {
+          const stored = await fetchAndStoreRemoteMedia({
+            sourceUrl: generated,
+            apiKey: hasToken ? apiKey : undefined,
+            kind: 'image',
+          });
+          resultUrl = stored.url;
+        }
     }
 
     console.log('[Pollinations] SDK Dispatch:', hasToken ? 'Authenticated' : 'Public', { model: modelId, isVideo: isVideoModel, urlLength: resultUrl.length });
