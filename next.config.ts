@@ -55,6 +55,7 @@ const nextConfig: NextConfig = {
     '9000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
     '6000-firebase-studio-1750029856915.cluster-6frnii43o5blcu522sivebzpii.cloudworkstations.dev',
     '172.20.10.14',   // LAN
+    '10.90.74.88',    // LAN (aktuelles Netz)
     '100.86.170.47',  // Tailscale, dieser Mac
   ],
 };

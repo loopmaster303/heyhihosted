@@ -205,8 +205,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     buildInput: (f) => {
       // Der Playground schickt aspect_ratio im params-Bag — hier in Pixel
       // übersetzen; die API kennt das Feld selbst nicht, also abziehen.
-      const { aspect_ratio, ...rest } = f.params ?? {};
-      const size = ZIMAGE_ASPECT_SIZES[String(aspect_ratio)] ?? ZIMAGE_ASPECT_SIZES['1:1'];
+      const rawAspect = f.params?.aspect_ratio ?? f.aspectRatio;
+      const { aspect_ratio: _drop, ...rest } = f.params ?? {};
+      const size = ZIMAGE_ASPECT_SIZES[String(rawAspect)] ?? ZIMAGE_ASPECT_SIZES["1:1"];
       return {
         prompt: f.prompt,
         width: f.width ?? size.width,
@@ -239,6 +240,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         num_inference_steps: 30,
         output_format: f.outputFormat ?? 'webp',
         output_quality: 80,
+        disable_safety_checker: true,
       };
       if (f.aspectRatio) input.aspect_ratio = resolveSupportedAspectRatio(f, IMAGE_ASPECT_RATIOS, '16:9');
       if (f.negativePrompt) input.negative_prompt = f.negativePrompt;
@@ -267,19 +269,20 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       output_quality: 95,
     },
     buildInput: (f) => {
-
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
       const input: Record<string, unknown> = {
         prompt: f.prompt,
         go_fast: true,
         aspect_ratio: allowedAspectRatio(f.aspectRatio, QWEN_EDIT_ASPECT_RATIOS, 'match_input_image'),
         output_format: f.outputFormat ?? 'webp',
         output_quality: 95,
+        disable_safety_checker: true,
       };
       if (f.seed !== undefined) input.seed = f.seed;
       if (f.image) {
         input.image = Array.isArray(f.image) ? f.image : [f.image];
       }
-      return { ...input, ...(f.params ?? {}) };
+      return { ...input, ...rest };
     },
   },
 
@@ -307,6 +310,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         frames_per_second: WAN_FPS,
         interpolate_output: true,
         go_fast: true,
+        disable_safety_checker: true,
       };
       if (f.seed !== undefined) input.seed = f.seed;
       return { ...input, ...rest };
@@ -339,6 +343,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         frames_per_second: WAN_FPS,
         interpolate_output: false,
         go_fast: true,
+        disable_safety_checker: true,
       };
       if (f.seed !== undefined) input.seed = f.seed;
       return { ...input, ...rest };
@@ -379,7 +384,8 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         input.src_ref_images = Array.isArray(f.image) ? f.image : [f.image];
       }
       if (f.seed !== undefined) input.seed = f.seed;
-      return { ...input, ...(f.params ?? {}) };
+      const { width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      return { ...input, ...rest };
     },
   },
 
@@ -428,7 +434,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         Object.assign(input, normalizePImageCustomSize(f.width, f.height));
       }
       if (f.seed !== undefined) input.seed = f.seed;
-      return { ...input, ...(f.params ?? {}) };
+      input.disable_safety_checker = true;
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      return { ...input, ...rest };
     },
   },
 
@@ -453,7 +461,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
           input.images = imgs;
         }
       }
-      return input;
+      input.disable_safety_checker = true;
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      return { ...input, ...rest };
     },
   },
 
@@ -482,7 +492,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         input.image = images[0];
         if (images[1]) input.last_frame_image = images[1];
       }
-      return { ...input, ...(f.params ?? {}) };
+      input.disable_safety_filter = true;
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      return { ...input, ...rest };
     },
   },
 
@@ -514,7 +526,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
           }
         }
       }
-      return input;
+      input.disable_safety_checker = true;
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      return { ...input, ...rest };
     },
   },
 
@@ -534,18 +548,20 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     buildInput: (f) => {
 
       const target = Math.max(1, Math.min(128, f.width ? Math.round((f.width * (f.height || 1024)) / 1_000_000) : 4));
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
       const input: Record<string, unknown> = {
         target,
         output_format: f.outputFormat ?? 'jpg',
         output_quality: 80,
         enhance_details: false,
         enhance_realism: false,
+        disable_safety_checker: true,
       };
       if (f.seed !== undefined) input.seed = f.seed;
       if (f.image) {
         input.image = Array.isArray(f.image) ? f.image[0] : f.image;
       }
-      return { ...input, ...(f.params ?? {}) };
+      return { ...input, ...rest };
     },
   },
 
@@ -577,7 +593,8 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       if (f.image) {
         input.image = Array.isArray(f.image) ? f.image[0] : f.image;
       }
-      return { ...input, ...(f.params ?? {}) };
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      return { ...input, ...rest };
     },
   },
 
@@ -607,7 +624,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       if (f.image) {
         input.image = Array.isArray(f.image) ? f.image[0] : f.image; // subject reference
       }
-      return { ...input, ...(f.params ?? {}) };
+      input.disable_safety_checker = true;
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      return { ...input, ...rest };
     },
   },
 
@@ -637,7 +656,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
           input.images = imgs.slice(0, 3);
         }
       }
-      return input;
+      input.disable_safety_checker = true;
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      return { ...input, ...rest };
     },
   },
 
@@ -664,7 +685,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         Object.assign(input, normalizeWanImageSmallCustomSize(f.width, f.height));
       }
       if (f.seed !== undefined) input.seed = f.seed;
-      return { ...input, ...(f.params ?? {}) };
+      input.disable_safety_checker = true;
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      return { ...input, ...rest };
     },
   },
 
@@ -693,7 +716,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         input.height = f.height ?? 1024;
       }
       if (f.seed !== undefined) input.seed = f.seed;
-      return { ...input, ...(f.params ?? {}) };
+      input.disable_safety_checker = true;
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      return { ...input, ...rest };
     },
   },
 
@@ -720,7 +745,9 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         }
       }
       if (f.seed !== undefined) input.seed = f.seed;
-      return { ...input, ...(f.params ?? {}) };
+      input.disable_safety_checker = true;
+      const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      return { ...input, ...rest };
     },
   },
 };
