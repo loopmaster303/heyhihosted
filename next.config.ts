@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
     '172.20.10.14',
     '10.90.74.88',
     'localhost',
+    'macbook-air-von-john.tail898c40.ts.net',
   ],
   images: {
     remotePatterns: [
