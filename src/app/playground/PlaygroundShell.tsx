@@ -176,13 +176,18 @@ export function PlaygroundShell() {
         mediaUrl = BlobManager.createURL(blob, 'playground');
         kind = ct.startsWith('video/') ? 'video' : 'image';
       }
+      // Die Route liefert bei beiden Providern eine bereits persistierte
+      // Media-Storage-URL — die darf direkt als remoteUrl gespeichert werden.
+      // Der Blob-Pfad (isPollinations: false) speichert OHNE remoteUrl, und
+      // solche Assets zeigt die Galerie schlicht nicht — darum durften Pruna-
+      // Ergebnisse nie erscheinen. Nur der blob:-Fallback bleibt lokal.
       const assetId = await OutputService.saveGeneratedAsset({
         url: mediaUrl,
         prompt: sentPrompt,
         modelId: currentModel.id,
         conversationId: PLAYGROUND_CONVERSATION_ID,
         isVideo: kind === 'video',
-        isPollinations: currentModel.provider === 'pollinations',
+        isPollinations: mediaUrl.startsWith('http'),
         params: sentParams,
       });
       // Echte Asset-ID, damit die Selektion den Galerie-Reload ueberlebt.
