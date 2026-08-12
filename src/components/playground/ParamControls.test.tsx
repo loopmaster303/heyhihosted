@@ -46,8 +46,11 @@ describe('ParamControls', () => {
     const schema = schemaFor('zimage')!;
     const vals = defaultsFor(schema);
     render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
-    expect(screen.getByLabelText(/Breite/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Höhe/i)).toBeInTheDocument();
+    // Keine freien Pixelmaße mehr — der Nutzer wählt ein Seitenverhältnis,
+    // die Route übersetzt es pro Modell in width/height.
+    expect(screen.getByText(/Seitenverhältnis/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Breite/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Höhe/i)).not.toBeInTheDocument();
   });
 
   it('toggles advanced group', () => {
@@ -80,8 +83,9 @@ describe('ParamControls', () => {
     const vals = defaultsFor(schema);
     const onChange = jest.fn();
     render(<ParamControls schema={schema} values={vals} onChange={onChange} uploadCount={0} />);
-    fireEvent.change(screen.getByLabelText(/Breite/i), { target: { value: '512' } });
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ width: 512 }));
+    fireEvent.click(screen.getByText(/Qualität/i));
+    fireEvent.change(screen.getByLabelText(/Schritte/i), { target: { value: '12' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ num_inference_steps: 12 }));
   });
 
   it('renders seconds slider with correct display', () => {

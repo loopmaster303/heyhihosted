@@ -176,6 +176,16 @@ function resolveWanImageSmallAspectRatio(f: PrunaFieldInput): string {
   return resolveSupportedAspectRatio(f, WAN_IMAGE_SMALL_ASPECT_RATIOS, '1:1');
 }
 
+// Pixel-Tabelle für zimage (z-image-turbo kennt nur Kantenlängen, die
+// Oberfläche bietet Seitenverhältnisse). Alle Vielfache von 16, ~1-MP-Klasse.
+const ZIMAGE_ASPECT_SIZES: Record<string, { width: number; height: number }> = {
+  '1:1': { width: 1024, height: 1024 },
+  '4:3': { width: 1152, height: 864 },
+  '3:4': { width: 864, height: 1152 },
+  '16:9': { width: 1344, height: 768 },
+  '9:16': { width: 768, height: 1344 },
+};
+
 const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
   // ── Z-Image Turbo ──────────────────────────────────────────────────
   zimage: {
@@ -192,13 +202,20 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       output_format: 'jpg',
       output_quality: 80,
     },
-    buildInput: (f) => ({
-      prompt: f.prompt,
-      width: f.width ?? 1024,
-      height: f.height ?? 1024,
-      seed: f.seed,
-      output_format: f.outputFormat ?? 'jpg',
-    }),
+    buildInput: (f) => {
+      // Der Playground schickt aspect_ratio im params-Bag — hier in Pixel
+      // übersetzen; die API kennt das Feld selbst nicht, also abziehen.
+      const { aspect_ratio, ...rest } = f.params ?? {};
+      const size = ZIMAGE_ASPECT_SIZES[String(aspect_ratio)] ?? ZIMAGE_ASPECT_SIZES['1:1'];
+      return {
+        prompt: f.prompt,
+        width: f.width ?? size.width,
+        height: f.height ?? size.height,
+        seed: f.seed,
+        output_format: f.outputFormat ?? 'jpg',
+        ...rest,
+      };
+    },
   },
 
   // ── Qwen-Image ─────────────────────────────────────────────────────

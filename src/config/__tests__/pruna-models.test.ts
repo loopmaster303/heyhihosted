@@ -19,6 +19,33 @@ describe('Pruna model mappings', () => {
     }));
   });
 
+  it('translates zimage aspect_ratio into width/height and strips the ratio field', () => {
+    const input = getPrunaModelMapping('zimage')?.buildInput({
+      prompt: 'a red fox',
+      params: { aspect_ratio: '16:9', num_inference_steps: 12, go_fast: true },
+    });
+
+    expect(input).toEqual(expect.objectContaining({
+      prompt: 'a red fox',
+      width: 1344,
+      height: 768,
+      num_inference_steps: 12,
+      go_fast: true,
+    }));
+    // Die API kennt aspect_ratio nicht — es darf nicht durchgereicht werden.
+    expect(input).not.toHaveProperty('aspect_ratio');
+  });
+
+  it('keeps explicit zimage width/height ahead of the ratio table', () => {
+    const input = getPrunaModelMapping('zimage')?.buildInput({
+      prompt: 'a red fox',
+      width: 512,
+      height: 640,
+    });
+
+    expect(input).toEqual(expect.objectContaining({ width: 512, height: 640 }));
+  });
+
   it('maps p-video-animate source video and subject reference separately', () => {
     const input = getPrunaModelMapping('p-video-animate')?.buildInput({
       prompt: 'follow this motion',
