@@ -9,12 +9,21 @@ export async function uploadPlaygroundReference(
   file: File,
   provider: 'pollinations' | 'pruna'
 ): Promise<string> {
-  const form = new FormData();
-  form.append('file', file);
-  const endpoint = provider === 'pruna' ? '/api/pruna/upload' : '/api/media/upload';
-  const res = await fetch(endpoint, { method: 'POST', body: form });
+  // Both upload routes expect a raw request body with an explicit content-type.
+  // Multipart/form-data is rejected server-side to enforce size limits.
+  const endpoint = provider === 'pruna'
+    ? `/api/pruna/upload?filename=${encodeURIComponent(file.name)}`
+    : '/api/media/upload';
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream',
+    },
+    body: file,
+  });
   if (!res.ok) {
-    throw new Error(`Upload failed with status ${res.status}`);
+    const text = await res.text().catch(() => '');
+    throw new Error(`Upload failed with status ${res.status}: ${text}`);
   }
   const data = await res.json();
   return data.url;
