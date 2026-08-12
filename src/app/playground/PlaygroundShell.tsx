@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
-import { Menu, Settings } from 'lucide-react';
+import { Menu, Settings, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { PlaygroundSidebar, PlaygroundSidebarContent } from '@/components/playground/PlaygroundSidebar';
@@ -22,6 +22,20 @@ import { BlobManager } from '@/lib/blob-manager';
 import { OutputService } from '@/lib/services/output-service';
 import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
 import { readLocal } from '@/lib/safe-storage';
+
+/**
+ * Die Routen antworten mit { error }. Ohne das Auslesen landet der rohe
+ * JSON-Text in der Oberfläche, was niemandem hilft.
+ */
+async function messageFrom(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = await res.json();
+    if (typeof body?.error === 'string') return body.error;
+  } catch {
+    // Keine JSON-Antwort — der Statuscode muss reichen.
+  }
+  return `${fallback} (${res.status})`;
+}
 
 export function PlaygroundShell() {
   const {
@@ -84,7 +98,7 @@ export function PlaygroundShell() {
         // die modellspezifischen Richtlinien aus.
         body: JSON.stringify({ prompt: state.prompt, modelId: currentModel.id }),
       });
-      if (!res.ok) throw new Error(`enhance ${res.status}: ${await res.text()}`);
+      if (!res.ok) throw new Error(await messageFrom(res, 'Enhance fehlgeschlagen'));
       const data = await res.json();
       if (data?.enhancedPrompt) setPrompt(data.enhancedPrompt);
     } catch (e) {
@@ -115,7 +129,7 @@ export function PlaygroundShell() {
       const res = await fetch('/api/generate', {
         method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal,
       });
-      if (!res.ok) throw new Error(`generate ${res.status}: ${await res.text()}`);
+      if (!res.ok) throw new Error(await messageFrom(res, 'Generierung fehlgeschlagen'));
       const ct = res.headers.get('content-type') ?? '';
       let mediaUrl: string;
       let kind: 'image' | 'video';
@@ -207,7 +221,20 @@ export function PlaygroundShell() {
           </div>
 
           {error && (
-            <p role="alert" className="px-4 text-xs text-destructive">{error}</p>
+            <div
+              role="alert"
+              className="mx-4 mb-1 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
+              <span className="flex-1">{error}</span>
+              <button
+                type="button"
+                aria-label="Meldung schließen"
+                onClick={() => setError(undefined)}
+                className="shrink-0 opacity-70 hover:opacity-100"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           )}
 
           <PromptBar

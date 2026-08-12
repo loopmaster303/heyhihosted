@@ -16,6 +16,12 @@ import { isPrunaModel } from '@/config/pruna-models';
 import { generateViaPruna, downloadPrunaResult } from '@/lib/pruna/client';
 import { MEDIA_UPLOAD_URL } from '@/lib/upload/constants';
 import { pixelsForAspect, QUALITY_MODELS } from '@/lib/playground/pollinations-caps';
+import {
+  findRegistryModel,
+  registryModelIsVideo,
+  registryMaxImages,
+  type RegistryModel,
+} from '@/lib/pollinations-registry';
 
 /**
  * Pollinations Generation Route (Safe Mode)
@@ -81,25 +87,37 @@ export async function POST(request: Request) {
     console.log('[Pollinations] Key source:', userHeader ? 'BYOP (X-Pollen-Key header)' : 'env fallback');
 
     // Model Logic
-    const canonicalModelId = resolvePollinationsVisualModelId(model || 'flux');
+    // Die lokale Config ist eine handgepflegte Auswahl. Der Playground zeigt die
+    // volle Live-Registry, also darf ein dort bekanntes Modell hier nicht an
+    // einer veralteten Liste scheitern. Chat schickt nur Modelle aus der Config,
+    // trifft diesen Zweig also nie.
+    let canonicalModelId = resolvePollinationsVisualModelId(model || 'flux');
+    let liveModel: RegistryModel | undefined;
     if (!canonicalModelId) {
-      throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`);
+      liveModel = model ? await findRegistryModel(model, apiKey) : undefined;
+      if (!liveModel) {
+        throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`);
+      }
+      canonicalModelId = liveModel.name;
     }
 
     const modelInfo = getUnifiedModel(canonicalModelId);
     const modelId = toPollinationsVisualApiModelId(canonicalModelId);
-    const isVideoModel = modelInfo?.kind === 'video';
+    // Fehlt der Config-Eintrag, liefert die Registry dieselben Angaben.
+    const isVideoModel = modelInfo ? modelInfo.kind === 'video' : !!liveModel && registryModelIsVideo(liveModel);
+    const maxImages = modelInfo?.maxImages ?? (liveModel ? registryMaxImages(liveModel) : undefined);
+    const supportsReference = modelInfo ? modelInfo.supportsReference === true : (maxImages ?? 0) > 0;
     const referenceMode = modelInfo ? getReferenceMode(modelInfo) : 'multi-image';
     const referenceImages = image ? (Array.isArray(image) ? image : [image]) : [];
 
-    if (referenceImages.length > 0 && modelInfo?.supportsReference !== true) {
+    if (referenceImages.length > 0 && !supportsReference) {
       throw new ApiError(400, `Model ${canonicalModelId} does not support reference images`);
     }
     if (referenceMode === 'start-frame' && referenceImages.length > 1) {
       throw new ApiError(400, `Model ${canonicalModelId} does not support an end frame`);
     }
-    if (modelInfo?.maxImages !== undefined && referenceImages.length > modelInfo.maxImages) {
-      throw new ApiError(400, `Model ${canonicalModelId} accepts a maximum ${modelInfo.maxImages} reference image${modelInfo.maxImages === 1 ? '' : 's'}`);
+    if (maxImages !== undefined && referenceImages.length > maxImages) {
+      throw new ApiError(400, `Model ${canonicalModelId} accepts a maximum ${maxImages} reference image${maxImages === 1 ? '' : 's'}`);
     }
 
     // Auto-enhance for z-image-turbo (restored regression fix).
