@@ -42,12 +42,14 @@ jest.mock('@/lib/blob-manager', () => ({
 
 import { Gallery } from './Gallery';
 
-const PENDING = {
+const RUNNING = {
+  id: 'run-1',
   prompt: 'ein Fuchs',
   modelId: 'flux',
   startedAt: Date.now(),
   isVideo: false,
   aspectRatio: '16:9',
+  status: 'running' as const,
 };
 
 describe('Gallery', () => {
@@ -62,12 +64,31 @@ describe('Gallery', () => {
     expect(await screen.findByText('Noch nichts generiert')).toBeInTheDocument();
   });
 
-  it('shows a pending card instead of the empty state while generating', async () => {
-    render(<Gallery selectedId={null} onSelect={jest.fn()} pending={PENDING} />);
+  it('shows a running card instead of the empty state while generating', async () => {
+    render(<Gallery selectedId={null} onSelect={jest.fn()} runs={[RUNNING]} />);
     const status = await screen.findByRole('status');
     expect(status).toHaveTextContent('Generiere');
     expect(status).toHaveTextContent('flux');
     expect(screen.queryByText('Noch nichts generiert')).not.toBeInTheDocument();
+  });
+
+  it('renders one card per parallel run and cancels only the one asked for', async () => {
+    const user = userEvent.setup();
+    const onCancelRun = jest.fn();
+    render(
+      <Gallery
+        selectedId={null}
+        onSelect={jest.fn()}
+        runs={[RUNNING, { ...RUNNING, id: 'run-2', modelId: 'zimage' }]}
+        onCancelRun={onCancelRun}
+      />,
+    );
+
+    const cards = await screen.findAllByRole('status');
+    expect(cards).toHaveLength(2);
+
+    await user.click(screen.getAllByRole('button', { name: 'Abbrechen' })[1]);
+    expect(onCancelRun).toHaveBeenCalledWith('run-2');
   });
 
   it('shows a failed card with retry and dismiss actions', async () => {
@@ -78,9 +99,9 @@ describe('Gallery', () => {
       <Gallery
         selectedId={null}
         onSelect={jest.fn()}
-        failed={{ prompt: 'x', modelId: 'flux', isVideo: false, message: 'HTTP 401' }}
-        onRetryFailed={onRetry}
-        onDismissFailed={onDismiss}
+        runs={[{ ...RUNNING, status: 'failed', message: 'HTTP 401' }]}
+        onRetryRun={onRetry}
+        onDismissRun={onDismiss}
       />,
     );
 
@@ -88,10 +109,10 @@ describe('Gallery', () => {
     expect(alert).toHaveTextContent('HTTP 401');
 
     await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
-    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(onRetry).toHaveBeenCalledWith('run-1');
 
     await user.click(screen.getByRole('button', { name: 'Verwerfen' }));
-    expect(onDismiss).toHaveBeenCalledTimes(1);
+    expect(onDismiss).toHaveBeenCalledWith('run-1');
   });
 
   // Pruna ohne Pollen-Key liefert rohe Bytes; das Asset liegt dann als Blob in

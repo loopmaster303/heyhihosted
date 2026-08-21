@@ -10,8 +10,13 @@ interface Props {
   onEnhance: () => void;
   enhancing: boolean;
   onSend: () => void;
-  onCancel: () => void;
-  sending: boolean;
+  /**
+   * Ob ueberhaupt noch ein Lauf angestossen werden darf. False heisst: die
+   * Nebenlaeufigkeits-Grenze ist erreicht — der Grund gehoert dann in
+   * `queueFullHint`, damit die Sperre nicht stumm bleibt.
+   */
+  canQueue?: boolean;
+  queueFullHint?: string;
   modelName?: string;
   providerName?: string;
   promptRequired?: boolean;
@@ -25,8 +30,8 @@ export function PromptBar({
   onEnhance,
   enhancing,
   onSend,
-  onCancel,
-  sending,
+  canQueue = true,
+  queueFullHint,
   modelName,
   providerName,
   promptRequired = true,
@@ -44,7 +49,7 @@ export function PromptBar({
   }, [value]);
 
   const status = [modelName, providerName].filter(Boolean) as string[];
-  const canSend = !sending && (!empty || !promptRequired);
+  const canSend = canQueue && (!empty || !promptRequired);
 
   return (
     <div className="px-4 pb-3.5 pt-3">
@@ -71,25 +76,28 @@ export function PromptBar({
             <span className="hidden sm:inline">{enhancing ? 'Läuft…' : 'Enhance'}</span>
           </Button>
 
-          {sending ? (
-            <Button onClick={onCancel} className="rounded-full font-semibold">
-              Abbrechen
-            </Button>
-          ) : (
-            <Button onClick={onSend} disabled={!canSend} className="rounded-full font-semibold">
-              Senden
-            </Button>
-          )}
+          <Button
+            onClick={onSend}
+            disabled={!canSend}
+            title={!canQueue ? queueFullHint : undefined}
+            className="rounded-full font-semibold"
+          >
+            Senden
+          </Button>
         </div>
       </div>
 
       <div className="mt-1.5 flex items-center gap-2 px-1 text-[10px] text-muted-foreground/70">
-        {status.map((part, i) => (
-          <span key={part} className="flex items-center gap-2">
-            {i > 0 && <span aria-hidden="true" className="h-[3px] w-[3px] rounded-full bg-current opacity-50" />}
-            {part}
-          </span>
-        ))}
+        {/* Ein `title` auf einem disabled Button loest in den meisten Browsern
+            nicht aus — der Grund muss deshalb auch sichtbar dastehen. */}
+        {!canQueue && queueFullHint
+          ? <span className="text-foreground/80">{queueFullHint}</span>
+          : status.map((part, i) => (
+            <span key={part} className="flex items-center gap-2">
+              {i > 0 && <span aria-hidden="true" className="h-[3px] w-[3px] rounded-full bg-current opacity-50" />}
+              {part}
+            </span>
+          ))}
         <span className="ml-auto tabular-nums">
           {value.length} / {MAX_CHARS}
         </span>

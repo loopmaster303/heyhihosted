@@ -258,3 +258,146 @@ describe('playground e2e: generate flow', () => {
     expect(retryBody.prompt).toBe('ein roter Fuchs');
   });
 });
+
+/**
+ * Bis zu MAX_CONCURRENT_RUNS Laeufe duerfen gleichzeitig fliegen, ohne dass die
+ * Leiste sperrt. Die Registry liefert `name` als id und `title` als Anzeigename.
+ */
+describe('playground e2e: parallel runs', () => {
+  const PARALLEL_MODELS = [
+    { name: 'flux', title: 'Flux', outputModalities: ['image'], inputModalities: ['text'] },
+    { name: 'gpt-image', title: 'Zweitmodell', outputModalities: ['image'], inputModalities: ['text'] },
+  ];
+
+  /** Ein fetch, der nie von selbst antwortet — der Test loest ihn aus. */
+  function hangingFetch() {
+    const resolvers: Array<(v: unknown) => void> = [];
+    (global.fetch as jest.Mock).mockImplementation(
+      () => new Promise((res) => { resolvers.push(res); }),
+    );
+    return resolvers;
+  }
+
+  const imageResponse = (url: string) => ({
+    ok: true,
+    headers: { get: () => 'application/json' },
+    json: async () => ({ imageUrl: url }),
+  });
+
+  beforeEach(() => {
+    localStorage.clear();
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
+    (useProviderMode as jest.Mock).mockReturnValue({
+      providerMode: 'pollinations', setProviderMode: jest.fn(), prunaAvailable: false,
+    });
+    (usePollenKey as jest.Mock).mockReturnValue({
+      pollenKey: '', isConnected: false, connectManual: jest.fn(), disconnect: jest.fn(),
+      accountInfo: null, refreshAccount: jest.fn(), isLoadingAccount: false,
+    });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => PARALLEL_MODELS });
+  });
+
+  async function readyToSend() {
+    await waitFor(() => expect(screen.queryByText('Lädt…')).not.toBeInTheDocument());
+  }
+
+  function send(prompt: string) {
+    fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: prompt } });
+    fireEvent.click(screen.getByRole('button', { name: 'Senden' }));
+  }
+
+  it('runs two sends at once and saves both assets', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    render(<PlaygroundShell />);
+    await readyToSend();
+
+    const resolvers = hangingFetch();
+    send('erster Fuchs');
+    send('zweiter Fuchs');
+
+    // Beide Requests sind raus, beide Karten stehen — ohne dass der Erste fertig ist.
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+    expect(await screen.findAllByRole('status')).toHaveLength(2);
+
+    resolvers[0](imageResponse('https://x/a.png'));
+    resolvers[1](imageResponse('https://x/b.png'));
+
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(save.mock.calls.map((c) => c[0].prompt).sort())
+      .toEqual(['erster Fuchs', 'zweiter Fuchs']);
+  });
+
+  it('keeps each run on the model it was started with', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    render(<PlaygroundShell />);
+    await readyToSend();
+
+    const resolvers = hangingFetch();
+    send('lauf auf flux');
+    // Modellwechsel mitten im ersten Lauf — der Dropdown-Mock rendert die
+    // Eintraege ohne Oeffnen.
+    fireEvent.click(screen.getByRole('button', { name: 'Zweitmodell' }));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /Zweitmodell/ }).length).toBeGreaterThan(1));
+    send('lauf auf modell b');
+
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+    resolvers[0](imageResponse('https://x/a.png'));
+    resolvers[1](imageResponse('https://x/b.png'));
+
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    const byPrompt = Object.fromEntries(save.mock.calls.map((c) => [c[0].prompt, c[0].modelId]));
+    expect(byPrompt['lauf auf flux']).toBe('flux');
+    expect(byPrompt['lauf auf modell b']).toBe('gpt-image');
+  });
+
+  it('blocks the fourth send while three runs are in flight', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    render(<PlaygroundShell />);
+    await readyToSend();
+
+    const resolvers = hangingFetch();
+    send('eins');
+    send('zwei');
+    send('drei');
+    await waitFor(() => expect(resolvers).toHaveLength(3));
+
+    const sendButton = screen.getByRole('button', { name: 'Senden' });
+    expect(sendButton).toBeDisabled();
+    fireEvent.click(sendButton);
+    expect(resolvers).toHaveLength(3);
+  });
+
+  it('cancels only the run that was asked for', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    render(<PlaygroundShell />);
+    await readyToSend();
+
+    // Der Abbruch muss bei diesem fetch als AbortError ankommen, sonst kippt der
+    // Lauf in "fehlgeschlagen" statt zu verschwinden.
+    const resolvers: Array<(v: unknown) => void> = [];
+    (global.fetch as jest.Mock).mockImplementation((_url, init) => new Promise((res, rej) => {
+      resolvers.push(res);
+      init.signal.addEventListener('abort', () => {
+        const err = new Error('aborted');
+        err.name = 'AbortError';
+        rej(err);
+      });
+    }));
+
+    send('eins');
+    send('zwei');
+    send('drei');
+    await waitFor(() => expect(screen.getAllByRole('status')).toHaveLength(3));
+
+    // Karten stehen neueste-zuerst: Index 1 ist "zwei".
+    fireEvent.click(screen.getAllByRole('button', { name: 'Abbrechen' })[1]);
+    await waitFor(() => expect(screen.getAllByRole('status')).toHaveLength(2));
+
+    resolvers[0](imageResponse('https://x/a.png'));
+    resolvers[2](imageResponse('https://x/c.png'));
+
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(save.mock.calls.map((c) => c[0].prompt).sort()).toEqual(['drei', 'eins']);
+  });
+});

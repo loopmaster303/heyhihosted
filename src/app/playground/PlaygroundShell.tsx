@@ -6,7 +6,7 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { PlaygroundSidebar, PlaygroundSidebarContent } from '@/components/playground/PlaygroundSidebar';
 import { SettingsDialog } from '@/components/playground/SettingsDialog';
 import { PromptBar } from '@/components/playground/PromptBar';
-import { Gallery, type GalleryItem, type PendingGeneration, type FailedGeneration } from '@/components/playground/Gallery';
+import { Gallery, type GalleryItem, type GalleryRun } from '@/components/playground/Gallery';
 import { MetaRail } from '@/components/playground/MetaRail';
 import { usePlaygroundState } from '@/hooks/usePlaygroundState';
 import { usePlaygroundModels } from '@/hooks/usePlaygroundModels';
@@ -37,6 +37,28 @@ interface QueuedRun {
 }
 
 /**
+ * Ein Lauf im Flug oder gescheitert. Der Run *ist* der Retry-Kontext — daher
+ * kein separater Merker fuer den letzten Fehlschlag. Der AbortController haengt
+ * am einzelnen Lauf, damit ein Abbruch die anderen nicht mitreisst.
+ */
+interface ActiveRun extends QueuedRun {
+  id: string;
+  startedAt: number;
+  status: 'running' | 'failed';
+  message?: string;
+  controller: AbortController;
+}
+
+/**
+ * Pollinations quittiert Bursts mit 429, und eine Warteschlange waere Zustand,
+ * den niemand angefordert hat. Darueber bleibt der Senden-Knopf gesperrt.
+ */
+const MAX_CONCURRENT_RUNS = 3;
+
+let runCounter = 0;
+const nextRunId = () => `run-${++runCounter}`;
+
+/**
  * Die Routen antworten mit { error }. Ohne das Auslesen landet der rohe
  * JSON-Text in der Oberfläche, was niemandem hilft.
  */
@@ -59,29 +81,30 @@ export function PlaygroundShell() {
   const { providerMode } = useProviderMode();
 
   const [enhancing, setEnhancing] = useState(false);
-  const [sending, setSending] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selected, setSelected] = useState<GalleryItem | null>(null);
   const [galleryKey, setGalleryKey] = useState(0);
   const [error, setError] = useState<string | undefined>();
-  const [pending, setPending] = useState<PendingGeneration | null>(null);
-  const [failed, setFailed] = useState<FailedGeneration | null>(null);
+  const [runs, setRuns] = useState<ActiveRun[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   // Gleiche 1280px-Grenze wie die Rail (xl) — darunter wandern die Details
   // bei Auswahl in den Bottom-Drawer.
   const isWide = useMediaQuery('(min-width: 1280px)');
 
-  const abortRef = useRef<AbortController | null>(null);
   // Parameter, die ein "Nochmal" ueber einen Modellwechsel hinweg retten soll.
   const rerunParamsRef = useRef<ParamValues | null>(null);
   // Ob der Modellwechsel-Effekt schon einmal gelaufen ist. Nur beim ersten Mal
   // darf ein gespeicherter Zustand die Schema-Defaults schlagen.
   const hydratedRef = useRef(false);
-  // Der zuletzt gescheiterte Lauf, den "Erneut versuchen" wiederholt.
-  const failedRunRef = useRef<QueuedRun | null>(null);
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
+  // Bei mehreren parallelen Laeufen wuerde jeder Abschluss die Detailansicht
+  // umspringen lassen. Ein Ergebnis waehlt sich deshalb nur selbst aus, wenn
+  // gerade nichts anderes ausgewaehlt ist — der State-Wert im Closure ist zum
+  // Zeitpunkt des Abschlusses veraltet, darum der Ref.
+  const selectedRef = useRef<GalleryItem | null>(null);
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
 
   // usePlaygroundModels liefert im Pruna-Modus bereits die gefilterte Liste
   // (PRUNA_HIDDEN_IN_PLAYGROUND) — hier nicht ein zweites Mal filtern.
@@ -162,29 +185,21 @@ export function PlaygroundShell() {
 
   const promptRequired = currentSchema?.promptRequired ?? true;
 
-  const runGeneration = async (run: QueuedRun) => {
-    setSending(true);
+  /**
+   * Startet einen bereits eingefrorenen Lauf. Der Run haengt zu diesem
+   * Zeitpunkt schon in `runs` — diese Funktion verwaltet nur noch sein Ende.
+   */
+  const runGeneration = async (run: ActiveRun) => {
     setError(undefined);
-    setFailed(null);
     const { body, prompt: sentPrompt, params: sentParams } = run;
-    const gen: PendingGeneration = {
-      prompt: sentPrompt,
-      modelId: run.modelId,
-      startedAt: Date.now(),
-      isVideo: run.isVideo,
-      aspectRatio: run.aspectRatio,
-    };
-    setPending(gen);
     const prunaKey = readLocal('prunaApiKey') ?? undefined;
     const headers = {
       'Content-Type': 'application/json',
       ...buildGenerateHeaders(pollenKey || undefined, prunaKey || undefined),
     };
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
     try {
       const res = await fetch('/api/generate', {
-        method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal,
+        method: 'POST', headers, body: JSON.stringify(body), signal: run.controller.signal,
       });
       if (!res.ok) throw new Error(await messageFrom(res, 'Generierung fehlgeschlagen'));
       const ct = res.headers.get('content-type') ?? '';
@@ -217,44 +232,60 @@ export function PlaygroundShell() {
         isPollinations: mediaUrl.startsWith('http'),
         params: sentParams,
       });
-      failedRunRef.current = null;
       // Echte Asset-ID, damit die Selektion den Galerie-Reload ueberlebt.
-      setSelected({
+      const item: GalleryItem = {
         id: assetId ?? `${Date.now()}`, url: mediaUrl, kind,
         prompt: sentPrompt, modelId: run.modelId, timestamp: Date.now(),
         params: sentParams,
-      });
+      };
+      // Der Effekt schreibt den Ref erst nach dem Render — zwei im selben Tick
+      // fertige Laeufe saehen sonst beide "nichts ausgewaehlt".
+      if (selectedRef.current === null) {
+        selectedRef.current = item;
+        setSelected(item);
+      }
+      setRuns((rs) => rs.filter((r) => r.id !== run.id));
       setGalleryKey((k) => k + 1);
     } catch (e) {
-      if ((e as Error).name !== 'AbortError') {
-        // Den Lauf festhalten, damit "Erneut versuchen" genau ihn wiederholt
-        // und nicht das, was inzwischen im Composer steht.
-        failedRunRef.current = run;
-        // Generierungs-Fehler landen als Karte in der Galerie — der Alert
-        // ueber der Leiste bleibt Enhance-Fehlern vorbehalten.
-        setFailed({
-          prompt: gen.prompt,
-          modelId: gen.modelId,
-          isVideo: gen.isVideo,
-          aspectRatio: gen.aspectRatio,
-          message: (e as Error).message,
-        });
+      if ((e as Error).name === 'AbortError') {
+        setRuns((rs) => rs.filter((r) => r.id !== run.id));
+        return;
       }
-    } finally {
-      abortRef.current = null;
-      setPending(null);
-      setSending(false);
+      // Generierungs-Fehler bleiben als Karte in der Galerie liegen — der Alert
+      // ueber der Leiste bleibt Enhance-Fehlern vorbehalten. Der Lauf selbst ist
+      // der Retry-Kontext und darf deshalb nicht verworfen werden.
+      setRuns((rs) => rs.map((r) => (
+        r.id === run.id ? { ...r, status: 'failed', message: (e as Error).message } : r
+      )));
     }
+  };
+
+  // Nur laufende Generierungen zaehlen gegen die Grenze; gescheiterte Karten
+  // liegen nur noch herum und blockieren nichts.
+  const runningCount = runs.filter((r) => r.status === 'running').length;
+  const canQueue = runningCount < MAX_CONCURRENT_RUNS;
+
+  /** Haengt einen eingefrorenen Lauf an `runs` und startet ihn. */
+  const startRun = (queued: QueuedRun) => {
+    const run: ActiveRun = {
+      ...queued,
+      id: nextRunId(),
+      startedAt: Date.now(),
+      status: 'running',
+      controller: new AbortController(),
+    };
+    setRuns((rs) => [run, ...rs]);
+    void runGeneration(run);
   };
 
   const onSend = () => {
     // p-image-upscale works from the image alone, so an empty prompt is valid
     // there. Anywhere else it still blocks.
-    if (!currentModel) return;
+    if (!currentModel || !canQueue) return;
     if (promptRequired && !state.prompt.trim()) return;
     // Eingefrorene Werte fuer diesen Lauf — der Composer darf sich waehrend
     // der Generierung aendern, ohne den laufenden Request zu verfaelschen.
-    void runGeneration({
+    startRun({
       body: buildGenerateBody(state, currentModel, currentSchema),
       prompt: state.prompt,
       params: state.params,
@@ -264,9 +295,20 @@ export function PlaygroundShell() {
     });
   };
 
-  const onRetryFailed = () => {
-    if (failedRunRef.current) void runGeneration(failedRunRef.current);
+  // Der gescheiterte Lauf traegt seinen Kontext selbst — wiederholt wird genau
+  // er, nicht das, was inzwischen im Composer steht.
+  const onRetryRun = (id: string) => {
+    const failed = runs.find((r) => r.id === id);
+    if (!failed || !canQueue) return;
+    setRuns((rs) => rs.filter((r) => r.id !== id));
+    startRun(failed);
   };
+
+  const onCancelRun = (id: string) => {
+    runs.find((r) => r.id === id)?.controller.abort();
+  };
+
+  const onDismissRun = (id: string) => setRuns((rs) => rs.filter((r) => r.id !== id));
 
   const sidebarProps = {
     state, entries, currentModel, loading, fallbackActive,
@@ -378,10 +420,10 @@ export function PlaygroundShell() {
                 if (!isWide) setDetailsOpen(true);
               }}
               refreshKey={galleryKey}
-              pending={pending}
-              failed={failed}
-              onRetryFailed={onRetryFailed}
-              onDismissFailed={() => setFailed(null)}
+              runs={runs}
+              onCancelRun={onCancelRun}
+              onRetryRun={onRetryRun}
+              onDismissRun={onDismissRun}
             />
             <div className="hidden min-h-0 xl:block">
               <MetaRail
@@ -416,8 +458,8 @@ export function PlaygroundShell() {
             onEnhance={onEnhance}
             enhancing={enhancing}
             onSend={onSend}
-            onCancel={() => abortRef.current?.abort()}
-            sending={sending}
+            canQueue={canQueue}
+            queueFullHint={`${MAX_CONCURRENT_RUNS} Generierungen laufen bereits — warte auf eine davon.`}
             modelName={currentModel?.name}
             providerName={providerMode === 'pruna' ? 'Pruna' : 'Pollinations'}
             promptRequired={promptRequired}

@@ -16,22 +16,22 @@ export interface GalleryItem {
   params?: Record<string, string | number | boolean>;
 }
 
-// Laufende Generierung — wird als Platzhalter-Karte in der Galerie gezeigt.
-export interface PendingGeneration {
+/**
+ * Ein Lauf, den die Galerie als Karte zeigt — laufend oder gescheitert. Beide
+ * Zustaende teilen sich Position und Groesse, damit die Karte beim Kippen nicht
+ * springt. Mehrere davon existieren gleichzeitig; die `id` haengt Abbrechen,
+ * Wiederholen und Verwerfen an genau einen Lauf.
+ */
+export interface GalleryRun {
+  id: string;
   prompt: string;
   modelId: string;
   startedAt: number;
   isVideo: boolean;
   aspectRatio?: string;
-}
-
-// Fehlgeschlagene Generierung — gleiche Kartenposition, kippbar in "erneut versuchen".
-export interface FailedGeneration {
-  prompt: string;
-  modelId: string;
-  isVideo: boolean;
-  aspectRatio?: string;
-  message: string;
+  status: 'running' | 'failed';
+  /** Nur bei `failed` gesetzt. */
+  message?: string;
 }
 
 /**
@@ -63,39 +63,50 @@ function cssAspectRatio(ar?: string): string {
   return ar && /^\d+(\.\d+)?:\d+(\.\d+)?$/.test(ar) ? ar.replace(':', ' / ') : '1 / 1';
 }
 
-function PendingCard({ gen }: { gen: PendingGeneration }) {
+function RunningCard({ run, onCancel }: { run: GalleryRun; onCancel?: () => void }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
-  const secs = Math.max(0, Math.floor((now - gen.startedAt) / 1000));
+  const secs = Math.max(0, Math.floor((now - run.startedAt) / 1000));
   return (
     <div
       role="status"
       aria-live="polite"
       className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-primary/35 bg-muted/30 p-3 text-center"
-      style={{ aspectRatio: cssAspectRatio(gen.aspectRatio) }}
+      style={{ aspectRatio: cssAspectRatio(run.aspectRatio) }}
     >
       <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
       <span className="text-[11px] font-medium text-foreground">Generiere…</span>
-      <span className="font-mono text-[10.5px] text-muted-foreground">{gen.modelId}</span>
+      <span className="font-mono text-[10.5px] text-muted-foreground">{run.modelId}</span>
       <span className="text-[11px] tabular-nums text-muted-foreground/80">{secs} s</span>
-      {gen.isVideo && (
+      {run.isVideo && (
         <span className="text-[10px] leading-snug text-muted-foreground/60">
           Video kann mehrere Minuten dauern
         </span>
+      )}
+      {onCancel && (
+        // Der Abbruch haengt an der Karte, nicht an der Leiste: bei mehreren
+        // Laeufen muss erkennbar bleiben, welcher gemeint ist.
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mt-1 rounded-md border border-border bg-background px-2 py-1 text-[10.5px] font-medium text-muted-foreground transition-colors hover:border-primary/55 hover:text-foreground"
+        >
+          Abbrechen
+        </button>
       )}
     </div>
   );
 }
 
 function FailedCard({
-  gen,
+  run,
   onRetry,
   onDismiss,
 }: {
-  gen: FailedGeneration;
+  run: GalleryRun;
   onRetry?: () => void;
   onDismiss?: () => void;
 }) {
@@ -103,12 +114,12 @@ function FailedCard({
     <div
       role="alert"
       className="flex w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-destructive/50 bg-destructive/10 p-3 text-center"
-      style={{ aspectRatio: cssAspectRatio(gen.aspectRatio) }}
+      style={{ aspectRatio: cssAspectRatio(run.aspectRatio) }}
     >
       <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
       <span className="text-[11px] font-medium text-destructive">Fehlgeschlagen</span>
-      <span className="line-clamp-3 text-[10px] leading-snug text-destructive/80">{gen.message}</span>
-      <span className="font-mono text-[10px] text-muted-foreground">{gen.modelId}</span>
+      <span className="line-clamp-3 text-[10px] leading-snug text-destructive/80">{run.message}</span>
+      <span className="font-mono text-[10px] text-muted-foreground">{run.modelId}</span>
       <div className="mt-1 flex items-center gap-1.5">
         {onRetry && (
           <button
@@ -139,20 +150,21 @@ interface Props {
   onSelect: (item: GalleryItem) => void;
   /** Bump to re-read the store after a generation lands. */
   refreshKey?: number;
-  pending?: PendingGeneration | null;
-  failed?: FailedGeneration | null;
-  onRetryFailed?: () => void;
-  onDismissFailed?: () => void;
+  /** Laufende und gescheiterte Generierungen, neueste zuerst. */
+  runs?: GalleryRun[];
+  onCancelRun?: (id: string) => void;
+  onRetryRun?: (id: string) => void;
+  onDismissRun?: (id: string) => void;
 }
 
 export function Gallery({
   selectedId,
   onSelect,
   refreshKey = 0,
-  pending = null,
-  failed = null,
-  onRetryFailed,
-  onDismissFailed,
+  runs = [],
+  onCancelRun,
+  onRetryRun,
+  onDismissRun,
 }: Props) {
   const [items, setItems] = useState<GalleryItem[]>([]);
   // Ein 401 von Pollinations kommt im img-Tag an, nicht in unserem fetch. Ohne
@@ -194,7 +206,7 @@ export function Gallery({
 
   // Leere Galerie, aber eine laufende oder fehlgeschlagene Generierung
   // trotzdem zeigen — sonst wirkt die App waehrend des ersten Sends tot.
-  if (items.length === 0 && !pending && !failed) {
+  if (items.length === 0 && runs.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
         <div className="grid h-12 w-12 place-items-center rounded-xl border border-border bg-muted/40 text-primary">
@@ -223,10 +235,20 @@ export function Gallery({
         className="grid gap-3"
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(168px, 1fr))' }}
       >
-        {pending && <PendingCard gen={pending} />}
-        {!pending && failed && (
-          <FailedCard gen={failed} onRetry={onRetryFailed} onDismiss={onDismissFailed} />
-        )}
+        {runs.map((run) => (run.status === 'running' ? (
+          <RunningCard
+            key={run.id}
+            run={run}
+            onCancel={onCancelRun && (() => onCancelRun(run.id))}
+          />
+        ) : (
+          <FailedCard
+            key={run.id}
+            run={run}
+            onRetry={onRetryRun && (() => onRetryRun(run.id))}
+            onDismiss={onDismissRun && (() => onDismissRun(run.id))}
+          />
+        )))}
         {items.map((it) => {
           const selected = it.id === selectedId;
           return (

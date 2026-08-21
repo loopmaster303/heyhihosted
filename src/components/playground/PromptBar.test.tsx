@@ -23,8 +23,6 @@ const base = {
   onEnhance: jest.fn(),
   enhancing: false,
   onSend: jest.fn(),
-  onCancel: jest.fn(),
-  sending: false,
 };
 
 describe('PromptBar', () => {
@@ -40,12 +38,21 @@ describe('PromptBar', () => {
     expect(screen.getByRole('button', { name: 'Senden' })).toBeEnabled();
   });
 
-  it('swaps Senden for Abbrechen while sending and wires onCancel', () => {
-    const onCancel = jest.fn();
-    render(<PromptBar {...base} value="ein fuchs" sending onCancel={onCancel} />);
-    expect(screen.queryByRole('button', { name: 'Senden' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
-    expect(onCancel).toHaveBeenCalledTimes(1);
+  it('keeps Senden available while other runs are in flight', () => {
+    const onSend = jest.fn();
+    render(<PromptBar {...base} value="ein fuchs" onSend={onSend} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Senden' }));
+    expect(onSend).toHaveBeenCalledTimes(1);
+    // Der Abbruch haengt jetzt an der Lade-Karte, nicht mehr an der Leiste.
+    expect(screen.queryByRole('button', { name: 'Abbrechen' })).not.toBeInTheDocument();
+  });
+
+  it('blocks Senden at the concurrency limit and names the reason', () => {
+    render(
+      <PromptBar {...base} value="ein fuchs" canQueue={false} queueFullHint="3 Generierungen laufen bereits" />,
+    );
+    expect(screen.getByRole('button', { name: 'Senden' })).toBeDisabled();
+    expect(screen.getByText('3 Generierungen laufen bereits')).toBeInTheDocument();
   });
 
   it('reports typing through onChange', () => {
