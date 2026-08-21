@@ -99,22 +99,24 @@ describe('processAssistantMediaIntents', () => {
     expect(result.extraParts[0].type).toBe('image_url');
   });
 
-  it('isolates a single image failure and still generates the rest', async () => {
+  // Die Deckelung wirkt pro Art: ein zweiter Bild-Marker kommt nicht mehr dran,
+  // ein Musik-Marker in derselben Antwort dagegen schon.
+  it('isolates a failed image without cancelling the music marker', async () => {
     const input = baseInput();
-    input.generateImage = jest.fn<Promise<string>, [GenerateImageOptions]>(async (options: GenerateImageOptions) => {
-      if (options.prompt === 'cat') throw new Error('upstream down');
-      return 'https://cdn.example.com/ok.png';
+    input.generateImage = jest.fn<Promise<string>, [GenerateImageOptions]>(async () => {
+      throw new Error('upstream down');
     });
-    input.rawText = '[IMAGE_GEN: cat] and [IMAGE_GEN: dog]';
+    input.rawText = '[IMAGE_GEN: cat] and [IMAGE_GEN: dog] and [MUSIC_GEN: lofi beat]';
     const onError = jest.fn();
 
     const result = await processAssistantMediaIntents({ ...input, onError });
 
     expect(onError).toHaveBeenCalledWith('image', 'upstream down');
+    // Nur der erste Bild-Marker wird ueberhaupt versucht.
+    expect(input.generateImage).toHaveBeenCalledTimes(1);
+    expect(input.generateImage).toHaveBeenCalledWith(expect.objectContaining({ prompt: 'cat' }));
     expect(result.extraParts).toHaveLength(1);
-    expect((result.extraParts[0] as { image_url: { url: string } }).image_url.url).toBe(
-      'https://cdn.example.com/ok.png',
-    );
+    expect(result.extraParts[0].type).toBe('audio_url');
   });
 
   it('skips an image part if generateImage returns an empty string', async () => {
@@ -166,5 +168,43 @@ describe('processAssistantMediaIntents', () => {
       type: 'image_url',
       image_url: { url: 'https://cdn.example.com/cat.png' },
     });
+  });
+
+
+  // D1: "Hier drei Varianten" waeren sonst drei Generierungen auf einmal.
+  it('generates at most one marker per response', async () => {
+    const generateImage = jest.fn().mockResolvedValue('https://x/out.png');
+    const saveGeneratedAsset = jest.fn().mockResolvedValue('asset-1');
+
+    const result = await processAssistantMediaIntents({
+      rawText: 'Drei Varianten:\n[IMAGE_GEN: fox one]\n[IMAGE_GEN: fox two]\n[IMAGE_GEN: fox three]',
+      conversationId: 'c1',
+      sessionId: 's1',
+      selectedImageModelId: 'flux',
+      generateImage,
+      saveGeneratedAsset,
+    });
+
+    expect(generateImage).toHaveBeenCalledTimes(1);
+    expect(generateImage).toHaveBeenCalledWith(expect.objectContaining({ prompt: 'fox one' }));
+    expect(result.extraParts).toHaveLength(1);
+    // Auch die uebersprungenen Marker duerfen nicht im Text stehenbleiben.
+    expect(result.cleanText).not.toContain('IMAGE_GEN');
+  });
+
+  it('does not generate for a marker that only appears inside a code block', async () => {
+    const generateImage = jest.fn().mockResolvedValue('https://x/out.png');
+
+    const result = await processAssistantMediaIntents({
+      rawText: 'Die Syntax lautet:\n\n```\n[IMAGE_GEN: your prompt here]\n```',
+      conversationId: 'c1',
+      sessionId: 's1',
+      selectedImageModelId: 'flux',
+      generateImage,
+      saveGeneratedAsset: jest.fn(),
+    });
+
+    expect(generateImage).not.toHaveBeenCalled();
+    expect(result.extraParts).toEqual([]);
   });
 });

@@ -131,4 +131,41 @@ describe('parseMediaIntents', () => {
     expect(result.markers).toHaveLength(1);
     expect(result.markers[0].prompt).toBe('cat');
   });
+
+
+  // D1: Der Parser ist ein Regex-Scan ueber den Rohtext und unterschied Prosa
+  // nicht von Code. Erklaert das Modell die Syntax, darf sie nicht feuern.
+  describe('code blocks', () => {
+    it('ignores a marker inside a fenced code block and keeps it visible', () => {
+      const text = 'So funktioniert es:\n\n```\n[IMAGE_GEN: a red fox]\n```\n\nAlles klar?';
+      const result = parseMediaIntents(text);
+
+      expect(result.markers).toHaveLength(0);
+      expect(result.cleanText).toContain('[IMAGE_GEN: a red fox]');
+    });
+
+    it('ignores a marker inside inline code', () => {
+      const result = parseMediaIntents('Schreib `[IMAGE_GEN: a red fox]` in die Zeile.');
+
+      expect(result.markers).toHaveLength(0);
+      expect(result.cleanText).toContain('[IMAGE_GEN: a red fox]');
+    });
+
+    it('ignores a marker inside a tilde-fenced block', () => {
+      const result = parseMediaIntents('~~~\n[MUSIC_GEN: lofi beat]\n~~~');
+
+      expect(result.markers).toHaveLength(0);
+    });
+
+    it('still fires for a marker outside the code block in the same message', () => {
+      const text = 'Beispiel:\n\n```\n[IMAGE_GEN: example]\n```\n\nHier ist deins:\n[IMAGE_GEN: a red fox in fog]';
+      const result = parseMediaIntents(text);
+
+      expect(result.markers).toHaveLength(1);
+      expect(result.markers[0].prompt).toBe('a red fox in fog');
+      // Das Beispiel bleibt stehen, der echte Marker verschwindet.
+      expect(result.cleanText).toContain('[IMAGE_GEN: example]');
+      expect(result.cleanText).not.toContain('a red fox in fog');
+    });
+  });
 });

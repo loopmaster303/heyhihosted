@@ -37,6 +37,28 @@ export interface MediaIntentParseResult {
 
 const MARKER_PATTERN = /\[(IMAGE_GEN|MUSIC_GEN):\s*([^\]]*?)\s*\]/g;
 
+/**
+ * Fenced Code-Bloecke und Inline-Code. Ein Marker darin ist Anschauungsmaterial,
+ * keine Anweisung: erklaert das Modell die Syntax, darf sie nicht feuern. Sich
+ * dafuer allein auf den System-Prompt zu verlassen hiesse, auf Modellfolgsamkeit
+ * zu wetten — der Parser entscheidet das selbst.
+ */
+const CODE_SPAN_PATTERN = /```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`/g;
+
+/** Die von Code-Spans belegten Bereiche des Textes, in Reihenfolge. */
+function codeRanges(text: string): Array<[number, number]> {
+  const ranges: Array<[number, number]> = [];
+  for (const match of text.matchAll(CODE_SPAN_PATTERN)) {
+    const start = match.index ?? 0;
+    ranges.push([start, start + match[0].length]);
+  }
+  return ranges;
+}
+
+function isInsideCode(index: number, ranges: Array<[number, number]>): boolean {
+  return ranges.some(([start, end]) => index >= start && index < end);
+}
+
 const KIND_MAP: Record<'IMAGE_GEN' | 'MUSIC_GEN', MediaIntentKind> = {
   IMAGE_GEN: 'image',
   MUSIC_GEN: 'music',
@@ -70,9 +92,21 @@ export function parseMediaIntents(text: string): MediaIntentParseResult {
   }
 
   const markers: MediaIntent[] = [];
+  const ranges = codeRanges(text);
+  // Positionen, die aus dem Text fallen: jeder syntaktische Treffer ausserhalb
+  // von Code — auch der mit leerem Prompt, der kein Intent wird, aber als
+  // Rauschen ebenso wenig in der Antwort stehenbleiben soll. Was im Code-Block
+  // steht, gehoert dagegen zur Antwort und bleibt sichtbar.
+  const cuts: Array<[number, number]> = [];
 
   for (const match of text.matchAll(MARKER_PATTERN)) {
     const [raw, markerTag, promptBody] = match;
+    const index = match.index ?? 0;
+    if (isInsideCode(index, ranges)) {
+      continue;
+    }
+    cuts.push([index, index + raw.length]);
+
     const prompt = promptBody.replace(/\s+/g, ' ').trim();
     if (prompt.length === 0) {
       continue;
@@ -80,12 +114,17 @@ export function parseMediaIntents(text: string): MediaIntentParseResult {
     markers.push({
       kind: KIND_MAP[markerTag as 'IMAGE_GEN' | 'MUSIC_GEN'],
       prompt,
-      index: match.index ?? 0,
+      index,
       raw,
     });
   }
 
-  const cleanText = normaliseWhitespace(text.replace(MARKER_PATTERN, ''));
+  // Von hinten nach vorne, damit die vorderen Positionen gueltig bleiben.
+  let stripped = text;
+  for (let i = cuts.length - 1; i >= 0; i -= 1) {
+    const [start, end] = cuts[i];
+    stripped = stripped.slice(0, start) + stripped.slice(end);
+  }
 
-  return { cleanText, markers };
+  return { cleanText: normaliseWhitespace(stripped), markers };
 }

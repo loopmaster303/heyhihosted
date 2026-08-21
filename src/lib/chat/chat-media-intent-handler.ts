@@ -47,6 +47,13 @@ const EMPTY_RESULT: ProcessAssistantMediaIntentsResult = {
   extraParts: [],
 };
 
+/**
+ * Deckelung gegen Mehrfach-Emission ("hier drei Varianten") — pro Art, nicht
+ * insgesamt: ein Bild und dazu ein Musikstueck ist eine sinnvolle Antwort,
+ * drei Bilder auf einmal sind es nicht.
+ */
+const MAX_MARKERS_PER_KIND = 1;
+
 export async function processAssistantMediaIntents(
   input: ProcessAssistantMediaIntentsInput,
 ): Promise<ProcessAssistantMediaIntentsResult> {
@@ -61,7 +68,17 @@ export async function processAssistantMediaIntents(
 
   const extraParts: ChatMessageContentPart[] = [];
 
-  for (const marker of markers) {
+  // Die Deckelung gehoert hierher und nicht nur in den System-Prompt: sie darf
+  // nicht davon abhaengen, dass sich das Modell an die Anweisung haelt.
+  const usedPerKind = new Map<MediaIntent['kind'], number>();
+  const capped = markers.filter((marker) => {
+    const used = usedPerKind.get(marker.kind) ?? 0;
+    if (used >= MAX_MARKERS_PER_KIND) return false;
+    usedPerKind.set(marker.kind, used + 1);
+    return true;
+  });
+
+  for (const marker of capped) {
     try {
       if (marker.kind === 'image') {
         const part = await generateImagePart(marker, input);

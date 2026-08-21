@@ -23,6 +23,31 @@ const RUNTIME_CONTEXT = `
 const REGENERATION_INSTRUCTION =
   'Generiere eine neue, alternative Antwort auf die letzte Anfrage des Benutzers. Wiederhole deine vorherige Antwort nicht. Biete eine andere Perspektive oder einen anderen Stil.';
 
+/**
+ * Die Marker-Mechanik ist seit Langem gebaut und getestet (chat-media-intent
+ * plus -handler), lief aber ins Leere: kein System-Prompt hat je erwaehnt, dass
+ * es diese Marker gibt. Das hier ist das fehlende Stueck.
+ *
+ * Die Deckelung auf einen Marker und die Code-Block-Ausnahme stehen zusaetzlich
+ * im Parser bzw. Handler — sie duerfen nicht davon abhaengen, dass sich das
+ * Modell an eine Anweisung haelt.
+ */
+const MEDIA_MARKER_PROTOCOL = `
+<media_generation>
+    You can generate an image or a music track directly inside your answer by emitting a marker.
+
+    Image: [IMAGE_GEN: <english prompt>]
+    Music: [MUSIC_GEN: <english prompt>]
+
+    Rules:
+    - Only when the user actually wants media. "Draw me a fox", "mach mir ein Bild davon", "generate a logo" — yes. A question that merely mentions something visual — no. Never illustrate an answer unasked.
+    - At most ONE marker per response. If the user wants variants, produce one and offer more.
+    - The marker sits alone on its own line, never inside a sentence, a code block or a quote.
+    - The prompt inside the marker must be English and visual: subject, action, setting, light, style. It is fed to an image model, not to a human.
+    - Write a short sentence before the marker saying what you are making. Do not describe the image afterwards — the user will see it.
+    - When you are explaining the marker syntax itself, put it in a code block; markers inside code blocks do not fire.
+</media_generation>`;
+
 function supportsHiddenReasoning(selectedModelId: string): boolean {
   return (
     selectedModelId.startsWith('claude') ||
@@ -64,7 +89,7 @@ export function buildChatSystemPrompt(input: BuildChatSystemPromptInput): string
   prompt = `${prompt}\n${RUNTIME_CONTEXT}\n<language_preference>${buildLanguageHint(input.language)}</language_preference>${buildCustomInstructionBlock(
     input.customSystemPrompt,
     input.userDisplayName,
-  )}\n${buildInternalReasoningDirective(input.selectedModelId)}`;
+  )}\n${buildInternalReasoningDirective(input.selectedModelId)}\n${MEDIA_MARKER_PROTOCOL}`;
 
   if (input.isRegeneration) {
     prompt = `${REGENERATION_INSTRUCTION}\n\n${prompt}`;

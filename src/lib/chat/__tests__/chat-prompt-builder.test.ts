@@ -71,4 +71,21 @@ describe('chat prompt builder', () => {
 
     expect(prompt).toBe('Base prompt');
   });
+
+
+  // D1: Die Marker-Mechanik war fertig gebaut, aber kein System-Prompt hat sie
+  // je erwaehnt — der Handler lief bei jeder Antwort und fand nie etwas.
+  it('teaches the media-generation markers', () => {
+    const prompt = buildChatSystemPrompt({
+      baseStylePrompt: '<system_prompt>base</system_prompt>',
+      selectedModelId: 'deepseek',
+      language: 'de',
+    });
+
+    expect(prompt).toContain('[IMAGE_GEN:');
+    expect(prompt).toContain('[MUSIC_GEN:');
+    expect(prompt).toContain('At most ONE marker per response');
+    expect(prompt).toContain('own line');
+    expect(prompt).toContain('Never illustrate an answer unasked');
+  });
 });
