@@ -4,10 +4,11 @@ import type { PlaygroundMode } from '@/lib/playground/mode-mapping';
 import type { PlaygroundModelEntry } from '@/lib/playground/model-source';
 import type { PlaygroundState } from '@/hooks/usePlaygroundState';
 import type { ParamValues } from '@/lib/playground/param-schema';
+import { useState } from 'react';
 import { ProviderSelect } from './ProviderSelect';
 import { ModeTabs } from './ModeTabs';
 import { ModelPicker } from './ModelPicker';
-import { ReferenceSlots } from './ReferenceSlots';
+import { ReferenceSlots, uploadPlaygroundReference } from './ReferenceSlots';
 import { ParamControls } from './ParamControls';
 import { schemaForEntry } from '@/lib/playground/param-schema';
 
@@ -91,16 +92,41 @@ export function PlaygroundSidebarContent({
         </Group>
       )}
 
-      {schema?.sourceVideo && (
+      {schema?.sourceVideo && currentModel && (
         <Group label="Quellvideo">
-          <VideoUpload value={state.sourceVideo} onChange={onSourceVideo} />
+          {/* Der Provider kommt vom Modell, nicht vom Provider-Schalter — der
+              scopet nur die Modellliste. */}
+          <VideoUpload
+            value={state.sourceVideo}
+            onChange={onSourceVideo}
+            provider={currentModel.provider}
+          />
         </Group>
       )}
     </div>
   );
 }
 
-function VideoUpload({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+/**
+ * Quellvideo-Upload. Bisher schickte er multipart an /api/media/upload — die
+ * Route lehnt das mit 415 ab, weil `formData()` sich nicht groessenbegrenzen
+ * laesst. Selbst danach waere es der falsche Endpunkt: das einzige Modell mit
+ * `sourceVideo` ist `vace`, und das ist ein Pruna-Modell. Der Upload lief also
+ * gegen Pollinations Media (10 MB, anderer Key) statt gegen Pruna (100 MB).
+ * Gescheitert ist er in jedem Fall, sichtbar war davon nichts.
+ */
+function VideoUpload({
+  value,
+  onChange,
+  provider,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  provider: 'pollinations' | 'pruna';
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
   return (
     <div className="flex flex-col gap-2">
       {value ? (
@@ -112,27 +138,34 @@ function VideoUpload({ value, onChange }: { value: string | null; onChange: (v: 
         </div>
       ) : (
         <label className="flex h-8 cursor-pointer items-center justify-center rounded-md border border-dashed border-border text-xs text-muted-foreground hover:border-primary/60 hover:text-foreground">
-          Video hochladen
+          {uploading ? 'Lädt hoch…' : 'Video hochladen'}
           <input
             type="file"
             accept="video/*"
             className="sr-only"
+            disabled={uploading}
             onChange={async (e) => {
               const file = e.target.files?.[0];
+              // Zuruecksetzen, sonst feuert dieselbe Datei kein zweites Mal.
+              e.target.value = '';
               if (!file) return;
-              const form = new FormData();
-              form.append('file', file);
+              setError(null);
+              setUploading(true);
               try {
-                const res = await fetch('/api/media/upload', { method: 'POST', body: form });
-                if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-                const data = await res.json();
-                onChange(data.url);
+                onChange(await uploadPlaygroundReference(file, provider));
               } catch (err) {
-                console.error('Video upload failed:', err);
+                setError((err as Error).message);
+              } finally {
+                setUploading(false);
               }
             }}
           />
         </label>
+      )}
+      {error && (
+        <p role="alert" className="text-[10px] leading-snug text-destructive">
+          {error}
+        </p>
       )}
     </div>
   );

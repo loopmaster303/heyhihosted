@@ -9,7 +9,7 @@ jest.mock('lucide-react', () => new Proxy({}, {
   },
 }));
 
-import { ReferenceSlots } from './ReferenceSlots';
+import { ReferenceSlots, uploadPlaygroundReference } from './ReferenceSlots';
 import type { PlaygroundModelEntry } from '@/lib/playground/model-source';
 
 function model(overrides: Partial<PlaygroundModelEntry> = {}): PlaygroundModelEntry {
@@ -127,5 +127,72 @@ describe('ReferenceSlots', () => {
 
     rerender(<ReferenceSlots model={model()} uploads={['https://x/start.png']} onChange={() => {}} />);
     expect(screen.getByText('Ende')).toBeInTheDocument();
+  });
+});
+
+
+/**
+ * Der Upload schickte nie die BYOP-Keys mit. Serverseitig sah `resolvePrunaKey`
+ * darum nur die Env-Variable und antwortete mit 503 — obwohl der Key in den
+ * Einstellungen lag. Der Generate-Aufruf schickte ihn laengst mit, nur der
+ * Upload davor nicht, also scheiterte jedes Referenzbild bei Pruna-Modellen.
+ */
+describe('uploadPlaygroundReference', () => {
+  const file = () => new File([new Uint8Array([1, 2, 3])], 'ref.png', { type: 'image/png' });
+
+  beforeEach(() => {
+    localStorage.clear();
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: 'https://x/ref.png' }),
+    });
+  });
+
+  it('sends the stored Pruna key to the Pruna upload route', async () => {
+    localStorage.setItem('prunaApiKey', 'pruna_secret');
+
+    await uploadPlaygroundReference(file(), 'pruna');
+
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toContain('/api/pruna/upload');
+    expect(init.headers['X-Pruna-Key']).toBe('pruna_secret');
+    expect(init.headers['Content-Type']).toBe('image/png');
+  });
+
+  it('sends the stored Pollen key to the media upload route', async () => {
+    localStorage.setItem('pollenApiKey', 'pollen_secret');
+
+    await uploadPlaygroundReference(file(), 'pollinations');
+
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe('/api/media/upload');
+    expect(init.headers['X-Pollen-Key']).toBe('pollen_secret');
+  });
+
+  it('never sends multipart — the routes reject it with 415', async () => {
+    await uploadPlaygroundReference(file(), 'pruna');
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(init.body).toBeInstanceOf(File);
+    expect(String(init.headers['Content-Type'])).not.toContain('multipart');
+  });
+
+  it('omits key headers entirely when nothing is stored', async () => {
+    await uploadPlaygroundReference(file(), 'pruna');
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(init.headers['X-Pruna-Key']).toBeUndefined();
+    expect(init.headers['X-Pollen-Key']).toBeUndefined();
+  });
+
+  it('surfaces the server error message instead of the bare status code', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: 'A Pruna API key is required' }),
+    });
+
+    await expect(uploadPlaygroundReference(file(), 'pruna'))
+      .rejects.toThrow('A Pruna API key is required');
   });
 });

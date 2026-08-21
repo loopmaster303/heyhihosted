@@ -4,30 +4,31 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import type { PlaygroundModelEntry } from '@/lib/playground/model-source';
 import type { ModelParamSchema } from '@/lib/playground/param-schema';
+import { uploadFileToPruna } from '@/lib/upload/pruna';
+import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
 import { cn } from '@/lib/utils';
 
+/**
+ * Referenz-Upload fuer den Playground.
+ *
+ * Das war frueher eine eigene fetch-Implementierung neben den beiden Clients,
+ * die Visualize benutzt — und sie hatte genau einen Unterschied: sie schickte
+ * die BYOP-Keys nicht mit. Serverseitig sah `resolvePrunaKey` darum nur die
+ * Env-Variable und antwortete mit 503, obwohl der Key in den Einstellungen lag.
+ *
+ * Deshalb keine zweite Implementierung mehr: die Clients kennen Endpunkt,
+ * Rohbody (multipart quittieren beide Routen mit 415), Key-Header samt
+ * Normalisierung und die Fehlermeldung der Route.
+ */
 export async function uploadPlaygroundReference(
   file: File,
   provider: 'pollinations' | 'pruna'
 ): Promise<string> {
-  // Both upload routes expect a raw request body with an explicit content-type.
-  // Multipart/form-data is rejected server-side to enforce size limits.
-  const endpoint = provider === 'pruna'
-    ? `/api/pruna/upload?filename=${encodeURIComponent(file.name)}`
-    : '/api/media/upload';
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': file.type || 'application/octet-stream',
-    },
-    body: file,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Upload failed with status ${res.status}: ${text}`);
+  if (provider === 'pruna') {
+    return uploadFileToPruna(file, file.name);
   }
-  const data = await res.json();
-  return data.url;
+  const { mediaUrl } = await uploadFileToPollinationsMedia(file, file.name, file.type);
+  return mediaUrl;
 }
 
 function labelFor(model: PlaygroundModelEntry, schema: ModelParamSchema | undefined, i: number): string {
