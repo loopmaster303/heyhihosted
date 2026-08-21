@@ -6,6 +6,59 @@
 
 ---
 
+## Status — umgesetzt am 2026-08-21
+
+| Phase | Status |
+|---|---|
+| A1 — parallele Läufe im Playground | ✅ |
+| B1–B4 — Enhancement-Korrekturen | ✅ |
+| C1 — registry-gestützter DEFAULT | ✅ |
+| C2 + C3 — fehlende Prompts, Korrekturen | ✅ |
+| A2 — Visualize entsperren | ✅ |
+| D1 — Marker lehren, Parser härten | ✅ |
+| D3.1 — Search-Regex entschärfen | ✅ |
+| 4b — Tool-Calling-Support verifizieren | ✅ Ergebnis unten |
+| C4 — Struktur-Refactor | ⛔ bewusst nicht umgesetzt, Begründung unten |
+| D2 / D3.2 — Tools | offen, jetzt planbar |
+| D3.3 — Quellen im Chat anzeigen | offen |
+
+### Abweichungen vom Plan
+
+- **A1, Auswahlverhalten.** Statt `hadSelection` beim Start einzufrieren, prüft der Abschluss `selectedRef.current === null`. Erfüllt dieselbe Absicht (keine springende Detailansicht, keine überschriebene Nutzerauswahl) ohne zusätzliches Feld — und deckt zusätzlich den Fall ab, dass zwei Läufe im selben Tick fertig werden.
+- **B1 / C3, Negative-Prompt-Sektion.** Statt je eines Tests für `wan` und `zimage` ein Tabellentest über **alle** Prompts: keiner darf eine eigenständige `Negative Prompt:`-Zeile enthalten. Das leistet, was C4 strukturell garantieren sollte — zu einem Bruchteil der Kosten.
+- **C3, Gloss-Filter-Opt-out.** Umgesetzt als `<quality_terms>`-Block, den auch das Modell sinnvoll liest — analog zu `<unfiltered>`, statt eines für das LLM bedeutungslosen Marker-Tags.
+- **D1, Marker-Deckelung.** Eine pro *Art* statt eine pro Antwort: ein Bild plus ein Musikstück ist eine sinnvolle Antwort, drei Bilder sind es nicht.
+- **D1, System-Prompt.** Der Block sitzt in `buildChatSystemPrompt`, nicht in den sechs Response-Styles — eine Stelle statt sechs.
+- **C3, seedream5-Kapazität.** Prompt-Kommentar und `unified-image-models.ts` sagen beide 10 Referenzbilder und stimmen damit überein; das Dokument sagt 14. Nicht geändert: das Modell ist `enabled: false`, und die Config ist die Zahl, die `/api/generate` durchsetzt — eine ungeprüfte Anhebung erzeugt 400er. Korrigiert wurde stattdessen das durch C2 falsch gewordene Alias `seedream-pro` → `seedream5-pro`.
+- **C3, nanobanana-Kapazität.** Kein Handlungsbedarf: die Config sagt inzwischen `maxImages: 3` und deckt sich mit dem Dokument.
+
+### Nebenbefund: Bug in `stripGlossTerms`
+
+Beim Verifizieren von C3 aufgefallen und gefixt. Die Muster fressen über `,?\s*…\s*\b` **beide** angrenzenden Leerzeichen. Aus `"highly detailed masterpiece portrait"` wurde `"highly detailedportrait"` — und weil dort keine Wortgrenze mehr stand, lief das nächste Muster ins Leere und `highly detailed` blieb stehen. Der Filter war also nicht nur für Qwen falsch, sondern für alle Modelle unzuverlässig. Ersetzt wird jetzt durch ein Leerzeichen, danach werden Leerzeichen und Satzzeichen normalisiert. Regressionstest vorhanden.
+
+### 4b — Ergebnis der Tool-Calling-Verifikation
+
+Die Live-Registry (`https://gen.pollinations.ai/v1/models`) meldet Tool-Calling **pro Modell**, über `"tools": true` und `"capabilities": ["tool_calling"]`. Von den zwölf sichtbaren Textmodellen können es neun:
+
+| unterstützt | unterstützt nicht |
+|---|---|
+| `claude-fast`, `gemini-fast`, `deepseek`, `nova-fast`, `mistral`, `kimi`, `glm`, `minimax`, `qwen-coder` | `gemini-search`, `perplexity-fast`, `perplexity-reasoning` |
+
+Die drei Ausnahmen sind genau die Such-Modelle — sie haben Websuche eingebaut und bräuchten kein `web_search`-Tool. **D2 und D3.2 sind damit nicht mehr blockiert** und brauchen als Nächstes eine eigene Planung (Tool-Definition, Tool-Result-Rückkanal, Message-Rollen, UI, plus ein Fallback für die drei Modelle ohne Support).
+
+### Warum C4 nicht umgesetzt wurde
+
+Der Plan macht C4 ausdrücklich von einer Bedarfsprüfung nach C1–C3 abhängig. Die Prüfung fällt negativ aus:
+
+1. Der Hauptnutzen — die Fakten prüfbar machen, sodass ein Leck wie B1 strukturell unmöglich wird — ist durch den Tabellentest über alle Prompts bereits erreicht.
+2. Das „Fakten am Prompt"-Muster existiert produktiv über `<unfiltered>` und `<quality_terms>` an 14 Stellen. Es synchronisiert sich selbst und kostete keinen Refactor.
+3. Der zweite genannte Gewinn — dieselbe Karte speist die UI — ist ein Feature, das niemand angefordert hat.
+4. Der Plan sagt selbst: „ein Refactor über 27 Prompts, bei dem inhaltlich nichts besser wird."
+
+Die Mode-Detection steht weiterhin 19-mal fast wortgleich in der Datei (1841 Zeilen). Das ist der verbleibende Grund, C4 doch zu machen — aber es ist ein Kosmetik-, kein Korrektheitsargument.
+
+---
+
 ## Teil A — Mehrere Generierungen gleichzeitig, UI nicht mehr gesperrt
 
 ### A0. Was tatsächlich blockiert (verifiziert)
