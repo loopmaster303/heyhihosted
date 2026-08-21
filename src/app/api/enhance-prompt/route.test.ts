@@ -34,7 +34,7 @@ describe('/api/enhance-prompt route', () => {
     consoleWarnSpy.mockRestore();
   });
 
-  it('uses claude-fast as the primary enhancer and gemini-fast as fallback', async () => {
+  it('uses deepseek as the primary enhancer and gemini-fast as fallback', async () => {
     getPollinationsChatCompletionMock
       .mockRejectedValueOnce(new Error('primary down'))
       .mockResolvedValueOnce({ responseText: 'A compact enhanced prompt.' });
@@ -53,7 +53,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ modelId: 'claude-fast' }),
+      expect.objectContaining({ modelId: 'deepseek' }),
     );
     expect(getPollinationsChatCompletionMock).toHaveBeenNthCalledWith(
       2,
@@ -97,7 +97,7 @@ describe('/api/enhance-prompt route', () => {
     expect(getPollinationsChatCompletionMock).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('<web_research_suggestions>'),
       }),
     );
@@ -130,7 +130,7 @@ describe('/api/enhance-prompt route', () => {
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledTimes(1);
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
       }),
     );
   });
@@ -154,7 +154,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('FLUX.1 is text-to-image only in this app'),
       }),
     );
@@ -193,7 +193,7 @@ describe('/api/enhance-prompt route', () => {
     await POST(request as any);
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({ modelId: 'claude-fast' }),
+      expect.objectContaining({ modelId: 'deepseek' }),
     );
   });
 
@@ -216,7 +216,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Assume the model needs more help than Klein 9B'),
       }),
     );
@@ -251,7 +251,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Assume the model needs more help than Klein 9B'),
       }),
     );
@@ -286,7 +286,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Assume the model needs more help than Klein 9B'),
       }),
     );
@@ -323,14 +323,14 @@ describe('/api/enhance-prompt route', () => {
     expect(getPollinationsChatCompletionMock).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Assume the model needs more help than Klein 9B'),
       }),
     );
     expect(getPollinationsChatCompletionMock).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Assume the model needs more help than Klein 9B'),
       }),
     );
@@ -355,7 +355,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Qwen Image Plus prompt specialist'),
       }),
     );
@@ -390,7 +390,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('P-Image prompt specialist'),
       }),
     );
@@ -420,7 +420,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('P-Image-Edit specialist'),
       }),
     );
@@ -455,7 +455,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Weak or ambiguous wording alone is NOT enough for I2I mode.'),
       }),
     );
@@ -500,7 +500,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('If the request could plausibly be either mode, default to T2I_MODE.'),
       }),
     );
@@ -545,7 +545,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Weak or ambiguous wording alone is NOT enough for I2I mode.'),
       }),
     );
@@ -590,7 +590,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Weak or ambiguous wording alone is NOT enough for I2I mode.'),
       }),
     );
@@ -630,7 +630,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.not.stringContaining('real-time web search grounding'),
       }),
     );
@@ -675,7 +675,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Subject + Action/Pose/Mood + Setting + Style'),
       }),
     );
@@ -715,7 +715,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('describe what happens — subject, action, camera movement'),
       }),
     );
@@ -755,7 +755,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.not.stringContaining('real-time web search integration'),
       }),
     );
@@ -795,7 +795,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('I2V mode is triggered only from the text prompt'),
       }),
     );
@@ -835,7 +835,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('P-Video prompt specialist'),
       }),
     );
@@ -875,7 +875,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('LTX-2 via Pollinations now supports both text-to-video and image-to-video'),
       }),
     );
@@ -917,11 +917,11 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
       }),
     );
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({ modelId: 'claude-fast' }),
+      expect.objectContaining({ modelId: 'deepseek' }),
     );
   });
 
@@ -944,7 +944,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Grok Imagine image specialist'),
       }),
     );
@@ -969,7 +969,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('Wan 2.6 video prompt specialist'),
       }),
     );
@@ -994,7 +994,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('I2I-Trigger'),
       }),
     );
@@ -1034,7 +1034,7 @@ describe('/api/enhance-prompt route', () => {
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        modelId: 'claude-fast',
+        modelId: 'deepseek',
         systemPrompt: expect.stringContaining('**Otherwise:** -> T2I_MODE'),
       }),
     );
