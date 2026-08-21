@@ -23,7 +23,7 @@ export interface ImageOptions extends PollinationsOptions {
     negativePrompt?: string;
     referenceImage?: string | string[];
     transparent?: boolean;
-    quality?: 'medium' | 'high' | 'hd';
+    quality?: 'low' | 'medium' | 'high' | 'hd';
 }
 
 export interface VideoOptions extends PollinationsOptions {

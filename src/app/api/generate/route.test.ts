@@ -171,6 +171,48 @@ describe('/api/generate route', () => {
     expect(videoUrlMock).not.toHaveBeenCalled();
   });
 
+  it('translates aspectRatio into pixels on the reference-free image path', async () => {
+    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/wide.png');
+
+    const request = new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'wide landscape',
+        model: 'flux',
+        aspectRatio: '16:9',
+      }),
+    });
+
+    await POST(request);
+
+    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ width: 1344, height: 768 }),
+    );
+  });
+
+  it('keeps the requested pixels when the aspect ratio is not a known preset', async () => {
+    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/odd.png');
+
+    const request = new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'odd ratio',
+        model: 'flux',
+        aspectRatio: '7:5',
+        width: 800,
+        height: 600,
+      }),
+    });
+
+    await POST(request);
+
+    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ width: 800, height: 600 }),
+    );
+  });
+
   it('rejects unknown image models with a 400 response', async () => {
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
@@ -244,6 +286,59 @@ describe('/api/generate route', () => {
       }),
     );
     expect(videoUrlMock).not.toHaveBeenCalled();
+  });
+
+  it('forwards the requested quality for models that support it', async () => {
+    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/quality.png');
+
+    const request = new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'studio portrait', model: 'gpt-image', quality: 'low' }),
+    });
+
+    await POST(request);
+
+    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'gptimage', quality: 'low' }),
+    );
+  });
+
+  it('drops quality for models that do not support it', async () => {
+    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/no-quality.png');
+
+    const request = new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'landscape', model: 'flux', quality: 'low' }),
+    });
+
+    await POST(request);
+
+    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
+      expect.not.objectContaining({ quality: expect.anything() }),
+    );
+  });
+
+  it('forwards the requested resolution to video generation', async () => {
+    videoUrlMock.mockResolvedValueOnce('https://gen.pollinations.ai/image/clip?model=grok-video-pro');
+
+    const request = new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'animate a neon skyline',
+        model: 'grok-imagine-video',
+        resolution: '1080p',
+      }),
+    });
+
+    await POST(request);
+
+    expect(videoUrlMock).toHaveBeenCalledWith(
+      'animate a neon skyline',
+      expect.objectContaining({ resolution: '1080p' }),
+    );
   });
 
   it('keeps the app response shape stable for v1 image generation', async () => {

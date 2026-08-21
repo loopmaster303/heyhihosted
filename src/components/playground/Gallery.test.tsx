@@ -31,6 +31,15 @@ jest.mock('@/lib/services/database', () => ({
   },
 }));
 
+const createURL = jest.fn(() => 'blob:playground/1');
+const releaseURL = jest.fn();
+jest.mock('@/lib/blob-manager', () => ({
+  BlobManager: {
+    createURL: (...args: unknown[]) => createURL(...(args as [])),
+    releaseURL: (...args: unknown[]) => releaseURL(...(args as [])),
+  },
+}));
+
 import { Gallery } from './Gallery';
 
 const PENDING = {
@@ -44,6 +53,8 @@ const PENDING = {
 describe('Gallery', () => {
   beforeEach(() => {
     mockRows = [];
+    createURL.mockClear();
+    releaseURL.mockClear();
   });
 
   it('shows the empty state when nothing exists and nothing is running', async () => {
@@ -81,6 +92,58 @@ describe('Gallery', () => {
 
     await user.click(screen.getByRole('button', { name: 'Verwerfen' }));
     expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  // Pruna ohne Pollen-Key liefert rohe Bytes; das Asset liegt dann als Blob in
+  // IndexedDB und hat keine remoteUrl. Ohne diesen Pfad blieb es unsichtbar.
+  it('renders blob-backed assets that have no remoteUrl', async () => {
+    mockRows = [{
+      id: 'b1',
+      blob: new Blob(['x'], { type: 'image/png' }),
+      contentType: 'image/png',
+      prompt: 'ein Dachs',
+      modelId: 'p-image',
+      conversationId: '__playground__',
+      timestamp: 2,
+    }];
+
+    render(<Gallery selectedId={null} onSelect={jest.fn()} />);
+
+    const card = await screen.findByRole('button', { name: /ein Dachs/ });
+    expect(card.querySelector('img')).toHaveAttribute('src', 'blob:playground/1');
+    expect(createURL).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases the blob urls it created when it unmounts', async () => {
+    mockRows = [{
+      id: 'b1',
+      blob: new Blob(['x'], { type: 'image/png' }),
+      contentType: 'image/png',
+      prompt: 'ein Dachs',
+      modelId: 'p-image',
+      conversationId: '__playground__',
+      timestamp: 2,
+    }];
+
+    const { unmount } = render(<Gallery selectedId={null} onSelect={jest.fn()} />);
+    await screen.findByRole('button', { name: /ein Dachs/ });
+
+    unmount();
+    expect(releaseURL).toHaveBeenCalledWith('blob:playground/1');
+  });
+
+  it('skips assets that have neither a remoteUrl nor a blob', async () => {
+    mockRows = [{
+      id: 'c1',
+      contentType: 'image/png',
+      prompt: 'ein Geist',
+      modelId: 'flux',
+      conversationId: '__playground__',
+      timestamp: 3,
+    }];
+
+    render(<Gallery selectedId={null} onSelect={jest.fn()} />);
+    expect(await screen.findByText('Noch nichts generiert')).toBeInTheDocument();
   });
 
   it('passes stored params along when an item is selected', async () => {

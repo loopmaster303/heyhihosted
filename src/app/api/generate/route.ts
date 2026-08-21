@@ -49,6 +49,7 @@ const ImageGenerationSchema = z.object({
   srcRefImages: z.array(z.string().url()).optional(),
   video: z.string().url().optional(),
   resolution: z.enum(['480p', '720p', '1080p']).optional(),
+  quality: z.enum(['low', 'medium', 'high', 'hd']).optional(),
   params: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
 });
 
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
       srcRefImages,
       video,
       resolution,
+      quality,
       params,
     } = validateRequest(ImageGenerationSchema, body);
 
@@ -308,7 +310,7 @@ export async function POST(request: Request) {
         guidance,
         steps,
         referenceImage: image,
-        ...(QUALITY_MODELS.has(modelId) ? { quality: 'hd' as const } : {}),
+        ...(QUALITY_MODELS.has(modelId) ? { quality: quality ?? ('hd' as const) } : {}),
     };
 
     const hasReferenceImage = !!image && (Array.isArray(image) ? image.length > 0 : true);
@@ -332,8 +334,8 @@ export async function POST(request: Request) {
         const generated = await generatePollinationsImage({
           prompt,
           model: modelId,
-          width,
-          height,
+          width: effectiveWidth,
+          height: effectiveHeight,
           seed,
           nologo,
           enhance: effectiveEnhance,
@@ -341,6 +343,7 @@ export async function POST(request: Request) {
           transparent,
           negative_prompt,
           image,
+          ...(QUALITY_MODELS.has(modelId) ? { quality: quality ?? ('hd' as const) } : {}),
           apiKey: hasToken ? apiKey : undefined,
         });
 

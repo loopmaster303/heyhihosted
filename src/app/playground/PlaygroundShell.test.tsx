@@ -206,6 +206,35 @@ describe('PlaygroundShell smoke', () => {
     expect(screen.getByRole('button', { name: 'Senden' })).toBeEnabled();
   });
 
+  it('refuses to adopt a reference for a model that takes none', async () => {
+    const user = userEvent.setup();
+    render(<PlaygroundShell />);
+
+    const card = await screen.findByRole('button', { name: /gallery item/ });
+    await user.click(card);
+    await user.click(screen.getByRole('button', { name: /Als Referenz übernehmen/ }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('nimmt keine Referenzbilder');
+  });
+
+  it('stops adopting references once maxImages is reached', async () => {
+    mockHooks({
+      entries: [{ ...DUMMY_MODEL, supportsReference: true, maxImages: 1 }],
+    });
+    const user = userEvent.setup();
+    render(<PlaygroundShell />);
+
+    const card = await screen.findByRole('button', { name: /gallery item/ });
+    await user.click(card);
+
+    const adopt = screen.getByRole('button', { name: /Als Referenz übernehmen/ });
+    await user.click(adopt);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    await user.click(adopt);
+    expect(await screen.findByRole('alert')).toHaveTextContent('höchstens 1 Referenzbild');
+  });
+
   it('opens the details as a bottom drawer on narrow viewports', async () => {
     // Schmaler Viewport (wie in jest.setup): keine Media-Query matcht.
     (window.matchMedia as jest.Mock).mockImplementation((query: string) => ({

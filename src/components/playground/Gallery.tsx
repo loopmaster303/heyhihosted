@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Image as ImageIcon, Loader2, Play, X } from 'lucide-react';
 import { db, type Asset } from '@/lib/services/database';
 import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
+import { BlobManager } from '@/lib/blob-manager';
 import { cn } from '@/lib/utils';
 
 export interface GalleryItem {
@@ -33,8 +34,18 @@ export interface FailedGeneration {
   message: string;
 }
 
-function toItem(a: Asset): GalleryItem | null {
-  const url = a.remoteUrl;
+/**
+ * Pruna ohne Pollen-Key liefert rohe Bytes: OutputService legt das Asset dann
+ * mit `blob` und ohne `remoteUrl` ab. Nur auf remoteUrl zu schauen hiess, genau
+ * diese Ergebnisse nie anzuzeigen. Die erzeugten Blob-URLs gibt der Effekt
+ * unten wieder frei.
+ */
+function toItem(a: Asset, created: string[]): GalleryItem | null {
+  let url = a.remoteUrl;
+  if (!url && a.blob) {
+    url = BlobManager.createURL(a.blob, 'playground-gallery');
+    created.push(url);
+  }
   if (!url) return null;
   return {
     id: a.id,
@@ -148,19 +159,38 @@ export function Gallery({
   // diesen Merker zeigt die Karte einfach nichts und niemand weiß warum.
   const [broken, setBroken] = useState<Record<string, boolean>>({});
 
+  // Blob-URLs, die dieser Lauf erzeugt hat — beim naechsten Lauf und beim
+  // Unmount wieder freigeben, sonst haelt jeder Refresh die Blobs im Speicher.
+  const ownedUrls = useRef<string[]>([]);
+
   useEffect(() => {
     let cancelled = false;
+    const created: string[] = [];
     (async () => {
       const rows = await db.assets
         .where('conversationId')
         .equals(PLAYGROUND_CONVERSATION_ID)
         .reverse()
         .sortBy('timestamp');
-      if (cancelled) return;
-      setItems(rows.slice(0, 50).map(toItem).filter((x): x is GalleryItem => x !== null));
+      const next = rows
+        .slice(0, 50)
+        .map((a) => toItem(a, created))
+        .filter((x): x is GalleryItem => x !== null);
+      if (cancelled) {
+        created.forEach((u) => BlobManager.releaseURL(u));
+        return;
+      }
+      ownedUrls.current.forEach((u) => BlobManager.releaseURL(u));
+      ownedUrls.current = created;
+      setItems(next);
     })();
     return () => { cancelled = true; };
   }, [refreshKey]);
+
+  useEffect(() => () => {
+    ownedUrls.current.forEach((u) => BlobManager.releaseURL(u));
+    ownedUrls.current = [];
+  }, []);
 
   // Leere Galerie, aber eine laufende oder fehlgeschlagene Generierung
   // trotzdem zeigen — sonst wirkt die App waehrend des ersten Sends tot.

@@ -12,6 +12,7 @@ interface GeneratePollinationsImageInput {
   enhance?: boolean;
   safe?: boolean;
   transparent?: boolean;
+  quality?: 'low' | 'medium' | 'high' | 'hd';
   negative_prompt?: string;
   image?: string | string[];
   apiKey?: string;
@@ -49,6 +50,7 @@ export async function generatePollinationsImage(input: GeneratePollinationsImage
     ...(input.enhance !== undefined ? { enhance: input.enhance } : {}),
     ...(input.safe !== undefined ? { safe: input.safe } : {}),
     ...(input.transparent !== undefined ? { transparent: input.transparent } : {}),
+    ...(input.quality ? { quality: input.quality } : {}),
     ...(input.negative_prompt ? { negative_prompt: input.negative_prompt } : {}),
     ...(input.image ? { image: input.image } : {}),
     response_format: 'url',

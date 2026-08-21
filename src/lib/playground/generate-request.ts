@@ -12,6 +12,9 @@ export interface GenerateBody {
   negative_prompt?: string;
   guidance?: number;
   steps?: number;
+  quality?: string;
+  transparent?: boolean;
+  resolution?: string;
   image?: string | string[];
   srcRefImages?: string[];
   video?: string;
@@ -42,6 +45,17 @@ export function buildGenerateBody(
 
   const aspectVal = state.params?.aspect_ratio;
   if (typeof aspectVal === 'string') body.aspectRatio = aspectVal;
+
+  // Der params-Bag geht serverseitig nur an Pruna. Was Pollinations als eigenes
+  // Feld erwartet, muss hier heraufgehoben werden, sonst bleiben die Regler wirkungslos.
+  const qualityVal = state.params?.quality;
+  if (typeof qualityVal === 'string') body.quality = qualityVal;
+
+  const transparentVal = state.params?.transparent;
+  if (typeof transparentVal === 'boolean') body.transparent = transparentVal;
+
+  const resolutionVal = state.params?.resolution;
+  if (typeof resolutionVal === 'string') body.resolution = resolutionVal;
 
   // Handle reference images
   if (model.supportsReference && state.uploads.length > 0) {

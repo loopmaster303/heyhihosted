@@ -159,6 +159,58 @@ describe('playground e2e: generate flow', () => {
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
   });
 
+  // params werden nach localStorage geschrieben; der Modellwechsel-Effekt hat
+  // sie beim Mount mit den Schema-Defaults ueberschrieben.
+  it('sends the params stored for this model instead of the schema defaults', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    localStorage.setItem('playgroundState', JSON.stringify({
+      mode: 't2i',
+      modelId: 'Flux',
+      prompt: '',
+      params: { aspect_ratio: '16:9' },
+      uploads: [],
+      sourceVideo: null,
+    }));
+    mockFetchModels();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ imageUrl: 'https://x/out.png' }),
+    });
+
+    render(<PlaygroundShell />);
+    await typePromptAndSend('ein roter Fuchs');
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBe(2));
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body);
+    expect(body.aspectRatio).toBe('16:9');
+  });
+
+  it('drops stored params that the current schema no longer knows', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    localStorage.setItem('playgroundState', JSON.stringify({
+      mode: 't2i',
+      modelId: 'Flux',
+      prompt: '',
+      params: { aspect_ratio: '16:9', long_gone_field: 'x' },
+      uploads: [],
+      sourceVideo: null,
+    }));
+    mockFetchModels();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ imageUrl: 'https://x/out.png' }),
+    });
+
+    render(<PlaygroundShell />);
+    await typePromptAndSend('ein roter Fuchs');
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBe(2));
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body);
+    expect(body.params).toEqual({ aspect_ratio: '16:9' });
+  });
+
   it('surfaces an error and saves nothing when the response carries no media url', async () => {
     const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
     mockFetchModels();
@@ -175,5 +227,34 @@ describe('playground e2e: generate flow', () => {
     // Die Fehler-Karte bietet den direkten Neuversuch an
     expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
+  });
+
+  // "Erneut versuchen" schickte den aktuellen Composer-Zustand, nicht den Lauf,
+  // der gescheitert war.
+  it('retries the failed run, not whatever the composer holds now', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    mockFetchModels();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      json: async () => ({ error: 'upstream kaputt' }),
+    });
+
+    render(<PlaygroundShell />);
+    await typePromptAndSend('ein roter Fuchs');
+    await screen.findByRole('button', { name: 'Erneut versuchen' });
+
+    // Der Nutzer tippt weiter, bevor er den Neuversuch anstoesst.
+    fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'etwas ganz anderes' } });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ imageUrl: 'https://x/out.png' }),
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBe(3));
+    const retryBody = JSON.parse((global.fetch as jest.Mock).mock.calls[2][1].body);
+    expect(retryBody.prompt).toBe('ein roter Fuchs');
   });
 });

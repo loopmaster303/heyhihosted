@@ -37,7 +37,19 @@ export interface PollinationsLiveModel {
   community?: boolean;
 }
 
-export const PRUNA_HIDDEN_IN_PLAYGROUND: ReadonlySet<string> = new Set(['p-image-try-on', 'p-video-avatar']);
+/**
+ * Die einzige Stelle, die entscheidet, welche Pruna-Modelle der Playground
+ * zeigt. Neben try-on und avatar fallen die Modelle heraus, für die
+ * `SCHEMA_MAP` in param-schema kein handgepflegtes Schema hat: ohne das
+ * bekämen sie über den Pollinations-Zweig Regler, die ihre API nicht kennt.
+ */
+export const PRUNA_HIDDEN_IN_PLAYGROUND: ReadonlySet<string> = new Set([
+  'p-image-try-on',
+  'p-video-avatar',
+  'wan-fast',
+  'p-video-animate',
+  'p-video-replace',
+]);
 
 const PRUNA_REQUIRES_REF: ReadonlySet<string> = new Set([
   'qwen-image-edit-plus',

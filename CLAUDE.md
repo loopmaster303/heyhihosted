@@ -66,9 +66,9 @@ Do not wire Playground state into ChatProvider. Keep it self-contained.
 
 ## Provider Semantics — read before touching Visualize
 
-There are two providers, Pollinations and Pruna, and a user-facing switch. **The switch only scopes the visualize model list.** It is not a global mode:
+There are two providers, Pollinations and Pruna, and a user-facing switch. **The switch only scopes the model list** — in Visualize and, since the merge, in the Playground. It is not a global mode:
 
-- `providerMode` is read in exactly four places, all visualize UI: [useUnifiedImageToolState.ts](/Users/johnmeckel/heyhihosted/src/hooks/useUnifiedImageToolState.ts), `VisualizeInlineHeader`, `VisualizeInputContainer`, `PersonalizationSidebarSection`. It filters the model list and picks the default model.
+- `useProviderMode` is read in five modules, all of them model-picking UI: [useUnifiedImageToolState.ts](/Users/johnmeckel/heyhihosted/src/hooks/useUnifiedImageToolState.ts) and `PersonalizationSidebarSection` for Visualize, plus [usePlaygroundModels.ts](/Users/johnmeckel/heyhihosted/src/hooks/usePlaygroundModels.ts), `PlaygroundShell` and `ProviderSelect` for the Playground. It filters the model list and picks the default model. (`VisualizeInlineHeader` and `VisualizeInputContainer` receive the value as props rather than reading the hook.)
 - The actual dispatch depends on the **selected model**, never on the switch: `/api/generate` branches on `isPrunaModel(canonicalModelId)`, and reference uploads branch on `selectedModelInfo.provider`.
 - Chat, TTS, STT, compose and prompt enhancement always run through Pollinations and never receive a Pruna key.
 - Prompt enhancement is `/api/enhance-prompt` and is provider-independent. The `enhance` field on `/api/generate` is a Pollinations image-API parameter — Pruna has no such field.

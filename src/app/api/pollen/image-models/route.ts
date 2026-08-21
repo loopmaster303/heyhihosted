@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 
 const UPSTREAM = 'https://gen.pollinations.ai/image/models';
 const TTL_MS = 60_000;
+const MAX_CACHE_ENTRIES = 32;
 const cache = new Map<string, { at: number; body: string; contentType: string }>();
 
 export function _clearCacheForTesting() {
@@ -27,6 +28,10 @@ export async function GET(request: Request) {
   const upstream = await fetch(UPSTREAM, { headers });
   const body = await upstream.text();
   const contentType = upstream.headers.get('content-type') ?? 'application/json';
-  if (upstream.ok) cache.set(hash, { at: now, body, contentType });
+  if (upstream.ok) {
+    // Ein Eintrag pro Key — ohne Grenze waechst die Map mit jedem neuen Key.
+    if (cache.size >= MAX_CACHE_ENTRIES) cache.clear();
+    cache.set(hash, { at: now, body, contentType });
+  }
   return new Response(body, { status: upstream.status, headers: { 'content-type': contentType } });
 }

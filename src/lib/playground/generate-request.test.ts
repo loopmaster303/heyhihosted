@@ -35,6 +35,23 @@ describe('buildGenerateBody', () => {
     expect(withDur.duration).toBe(10);
   });
 
+  it('lifts quality, transparent and resolution out of the params bag', () => {
+    const body = buildGenerateBody(
+      { ...baseState, params: { quality: 'high', transparent: true, resolution: '1080p' } },
+      modelPollen
+    );
+    expect(body.quality).toBe('high');
+    expect(body.transparent).toBe(true);
+    expect(body.resolution).toBe('1080p');
+  });
+
+  it('leaves the lifted fields undefined when the model has no such controls', () => {
+    const body = buildGenerateBody(baseState, modelPollen);
+    expect(body.quality).toBeUndefined();
+    expect(body.transparent).toBeUndefined();
+    expect(body.resolution).toBeUndefined();
+  });
+
   it('passes sourceVideo when set', () => {
     const withVideo = buildGenerateBody({ ...baseState, sourceVideo: 'https://a/v.mp4' }, modelPruna);
     expect(withVideo.video).toBe('https://a/v.mp4');

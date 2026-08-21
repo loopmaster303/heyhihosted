@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 
 jest.mock('lucide-react', () => new Proxy({}, {
   get: (_target, prop) => {
@@ -89,6 +89,34 @@ describe('ReferenceSlots', () => {
     );
     expect(screen.getAllByRole('button', { name: /entfernen/ })).toHaveLength(2);
     expect(screen.queryByText('#3')).not.toBeInTheDocument();
+  });
+
+  it('reports a failed upload instead of silently doing nothing', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 413,
+      text: async () => 'file too large',
+    });
+    const originalFetch = global.fetch;
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const onChange = jest.fn();
+
+    try {
+      const { container } = render(
+        <ReferenceSlots model={model({ maxImages: 1, referenceMode: undefined })} uploads={[]} onChange={onChange} />
+      );
+      const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+      const file = new File(['x'], 'shot.png', { type: 'image/png' });
+
+      await act(async () => {
+        fireEvent.change(input, { target: { files: [file] } });
+      });
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('shot.png');
+      expect(onChange).not.toHaveBeenCalled();
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 
   // Das Endframe ergibt sich aus derselben Regel: ohne Startframe kein zweiter Platz.

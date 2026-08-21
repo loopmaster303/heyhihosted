@@ -13,16 +13,28 @@ import { usePlaygroundModels } from '@/hooks/usePlaygroundModels';
 import { usePollenKey } from '@/hooks/usePollenKey';
 import { useProviderMode } from '@/hooks/useProviderMode';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { buildGenerateBody, buildGenerateHeaders } from '@/lib/playground/generate-request';
+import { buildGenerateBody, buildGenerateHeaders, type GenerateBody } from '@/lib/playground/generate-request';
 import { isModelInMode } from '@/lib/playground/mode-mapping';
 import { getDefaultDurationSeconds, getUnifiedModel } from '@/config/unified-image-models';
-import { schemaForEntry, defaultsFor, type ParamValues } from '@/lib/playground/param-schema';
-import { PLAYGROUND_PRUNA_IDS } from '@/lib/playground/param-schema';
+import { schemaForEntry, defaultsFor, visibleFields, type ParamValues } from '@/lib/playground/param-schema';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { BlobManager } from '@/lib/blob-manager';
 import { OutputService } from '@/lib/services/output-service';
 import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
 import { readLocal } from '@/lib/safe-storage';
+
+/**
+ * Ein abgeschickter Lauf mit allem, was seine Wiederholung braucht. Ohne das
+ * schickte "Erneut versuchen" den inzwischen veraenderten Composer-Zustand.
+ */
+interface QueuedRun {
+  body: GenerateBody;
+  prompt: string;
+  params: ParamValues;
+  modelId: string;
+  isVideo: boolean;
+  aspectRatio?: string;
+}
 
 /**
  * Die Routen antworten mit { error }. Ohne das Auslesen landet der rohe
@@ -63,13 +75,17 @@ export function PlaygroundShell() {
   const abortRef = useRef<AbortController | null>(null);
   // Parameter, die ein "Nochmal" ueber einen Modellwechsel hinweg retten soll.
   const rerunParamsRef = useRef<ParamValues | null>(null);
+  // Ob der Modellwechsel-Effekt schon einmal gelaufen ist. Nur beim ersten Mal
+  // darf ein gespeicherter Zustand die Schema-Defaults schlagen.
+  const hydratedRef = useRef(false);
+  // Der zuletzt gescheiterte Lauf, den "Erneut versuchen" wiederholt.
+  const failedRunRef = useRef<QueuedRun | null>(null);
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
 
-  const filteredEntries = providerMode === 'pruna'
-    ? entries.filter((e) => PLAYGROUND_PRUNA_IDS.includes(e.id as any))
-    : entries;
-  const modeEntries = filteredEntries.filter((e) => isModelInMode(e, state.mode));
+  // usePlaygroundModels liefert im Pruna-Modus bereits die gefilterte Liste
+  // (PRUNA_HIDDEN_IN_PLAYGROUND) — hier nicht ein zweites Mal filtern.
+  const modeEntries = entries.filter((e) => isModelInMode(e, state.mode));
   // Ohne Key ist ein kostenpflichtiges Modell nicht benutzbar — Pollinations
   // antwortet mit 401 und das Bild bleibt leer. Als Vorgabe deshalb erst ein
   // freies wählen; die Auswahl des Nutzers hat weiter Vorrang.
@@ -91,8 +107,27 @@ export function PlaygroundShell() {
     const override = rerunParamsRef.current;
     rerunParamsRef.current = null;
     const prev = stateRef.current;
+    const schema = schemaForEntry(currentModel);
+    const defaults = defaultsFor(schema);
+
+    // Erster Lauf nach dem Mount: der aus dem localStorage geladene Zustand
+    // gehoert zu genau diesem Modell und wird nicht mit Defaults ueberschrieben
+    // — sonst waere das Persistieren von params wirkungslos. Uebernommen wird
+    // nur, was das heutige Schema noch kennt; alles andere faellt weg.
+    let restored: ParamValues | undefined;
+    if (!hydratedRef.current) {
+      hydratedRef.current = true;
+      if (!override && prev.modelId === currentModel.id && Object.keys(prev.params).length > 0) {
+        const known = new Set(visibleFields(schema, prev.params).map((f) => f.name));
+        restored = {
+          ...defaults,
+          ...Object.fromEntries(Object.entries(prev.params).filter(([k]) => known.has(k))),
+        };
+      }
+    }
+
     resetForModel({
-      params: override ?? defaultsFor(schemaForEntry(currentModel)),
+      params: override ?? restored ?? defaults,
       uploads: prev.uploads.slice(0, currentModel.maxImages),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,27 +162,19 @@ export function PlaygroundShell() {
 
   const promptRequired = currentSchema?.promptRequired ?? true;
 
-  const onSend = async () => {
-    // p-image-upscale works from the image alone, so an empty prompt is valid
-    // there. Anywhere else it still blocks.
-    if (!currentModel) return;
-    if (promptRequired && !state.prompt.trim()) return;
+  const runGeneration = async (run: QueuedRun) => {
     setSending(true);
     setError(undefined);
     setFailed(null);
-    // Eingefrorene Werte fuer diesen Lauf — der Composer darf sich waehrend
-    // der Generierung aendern, ohne den laufenden Request zu verfaelschen.
-    const sentPrompt = state.prompt;
-    const sentParams = state.params;
+    const { body, prompt: sentPrompt, params: sentParams } = run;
     const gen: PendingGeneration = {
       prompt: sentPrompt,
-      modelId: currentModel.id,
+      modelId: run.modelId,
       startedAt: Date.now(),
-      isVideo: state.mode === 't2v' || state.mode === 'i2v',
-      aspectRatio: typeof sentParams?.aspect_ratio === 'string' ? sentParams.aspect_ratio : undefined,
+      isVideo: run.isVideo,
+      aspectRatio: run.aspectRatio,
     };
     setPending(gen);
-    const body = buildGenerateBody(state, currentModel, currentSchema);
     const prunaKey = readLocal('prunaApiKey') ?? undefined;
     const headers = {
       'Content-Type': 'application/json',
@@ -184,21 +211,25 @@ export function PlaygroundShell() {
       const assetId = await OutputService.saveGeneratedAsset({
         url: mediaUrl,
         prompt: sentPrompt,
-        modelId: currentModel.id,
+        modelId: run.modelId,
         conversationId: PLAYGROUND_CONVERSATION_ID,
         isVideo: kind === 'video',
         isPollinations: mediaUrl.startsWith('http'),
         params: sentParams,
       });
+      failedRunRef.current = null;
       // Echte Asset-ID, damit die Selektion den Galerie-Reload ueberlebt.
       setSelected({
         id: assetId ?? `${Date.now()}`, url: mediaUrl, kind,
-        prompt: sentPrompt, modelId: currentModel.id, timestamp: Date.now(),
+        prompt: sentPrompt, modelId: run.modelId, timestamp: Date.now(),
         params: sentParams,
       });
       setGalleryKey((k) => k + 1);
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
+        // Den Lauf festhalten, damit "Erneut versuchen" genau ihn wiederholt
+        // und nicht das, was inzwischen im Composer steht.
+        failedRunRef.current = run;
         // Generierungs-Fehler landen als Karte in der Galerie — der Alert
         // ueber der Leiste bleibt Enhance-Fehlern vorbehalten.
         setFailed({
@@ -216,8 +247,29 @@ export function PlaygroundShell() {
     }
   };
 
+  const onSend = () => {
+    // p-image-upscale works from the image alone, so an empty prompt is valid
+    // there. Anywhere else it still blocks.
+    if (!currentModel) return;
+    if (promptRequired && !state.prompt.trim()) return;
+    // Eingefrorene Werte fuer diesen Lauf — der Composer darf sich waehrend
+    // der Generierung aendern, ohne den laufenden Request zu verfaelschen.
+    void runGeneration({
+      body: buildGenerateBody(state, currentModel, currentSchema),
+      prompt: state.prompt,
+      params: state.params,
+      modelId: currentModel.id,
+      isVideo: state.mode === 't2v' || state.mode === 'i2v',
+      aspectRatio: typeof state.params?.aspect_ratio === 'string' ? state.params.aspect_ratio : undefined,
+    });
+  };
+
+  const onRetryFailed = () => {
+    if (failedRunRef.current) void runGeneration(failedRunRef.current);
+  };
+
   const sidebarProps = {
-    state, entries: filteredEntries, currentModel, loading, fallbackActive,
+    state, entries, currentModel, loading, fallbackActive,
     onMode: setMode,
     onModel: setModelId,
     onParams: setParams,
@@ -239,6 +291,32 @@ export function PlaygroundShell() {
     setModelId(item.modelId);
   };
 
+  /**
+   * ReferenceSlots zeigt nur `min(gefuellt + 1, maxImages)` Plaetze. Ungeprueft
+   * angehaengte Uploads waeren darueber hinaus unsichtbar und nicht mehr zu
+   * entfernen, gingen aber trotzdem mit und liessen die Route mit 400 antworten.
+   * Blob-URLs existieren nur im Browser — der Server koennte sie nicht abrufen.
+   */
+  const adoptAsReference = (item: GalleryItem) => {
+    if (!currentModel?.supportsReference || currentModel.maxImages === 0) {
+      setError(`${currentModel?.name ?? 'Dieses Modell'} nimmt keine Referenzbilder.`);
+      return;
+    }
+    if (item.url.startsWith('blob:')) {
+      setError('Dieses Ergebnis liegt nur lokal vor und lässt sich nicht als Referenz verwenden.');
+      return;
+    }
+    if (state.uploads.length >= currentModel.maxImages) {
+      setError(
+        `${currentModel.name} nimmt höchstens ${currentModel.maxImages} `
+        + `Referenzbild${currentModel.maxImages === 1 ? '' : 'er'}.`,
+      );
+      return;
+    }
+    setError(undefined);
+    setUploads([...state.uploads, item.url]);
+  };
+
   // Direkter Download per Blob; verweigert CORS/Netzwerk das, wenigstens
   // im neuen Tab oeffnen statt still zu scheitern.
   const downloadItem = async (item: GalleryItem) => {
@@ -246,7 +324,7 @@ export function PlaygroundShell() {
       const res = await fetch(item.url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
+      const objectUrl = BlobManager.createURL(blob, 'playground-download');
       const a = document.createElement('a');
       const ext = item.kind === 'video' ? 'mp4' : blob.type.split('/')[1] || 'jpg';
       a.href = objectUrl;
@@ -254,7 +332,9 @@ export function PlaygroundShell() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(objectUrl);
+      // Der Download laeuft asynchron an: sofortiges Widerrufen bricht ihn in
+      // Safari und Firefox ab. Die Freigabe wartet deshalb.
+      setTimeout(() => BlobManager.releaseURL(objectUrl), 60_000);
     } catch {
       window.open(item.url, '_blank', 'noopener');
     }
@@ -300,7 +380,7 @@ export function PlaygroundShell() {
               refreshKey={galleryKey}
               pending={pending}
               failed={failed}
-              onRetryFailed={() => onSend()}
+              onRetryFailed={onRetryFailed}
               onDismissFailed={() => setFailed(null)}
             />
             <div className="hidden min-h-0 xl:block">
@@ -308,7 +388,7 @@ export function PlaygroundShell() {
                 item={selected}
                 onLoad={downloadItem}
                 onRerun={loadIntoComposer}
-                onUseAsReference={(item) => setUploads([...state.uploads, item.url])}
+                onUseAsReference={adoptAsReference}
               />
             </div>
           </div>
@@ -365,7 +445,7 @@ export function PlaygroundShell() {
               setDetailsOpen(false);
             }}
             onUseAsReference={(item) => {
-              setUploads([...state.uploads, item.url]);
+              adoptAsReference(item);
               setDetailsOpen(false);
             }}
           />

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import type { PlaygroundModelEntry } from '@/lib/playground/model-source';
 import type { ModelParamSchema } from '@/lib/playground/param-schema';
@@ -46,6 +47,10 @@ interface Props {
 }
 
 export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
+  // Ein gescheiterter Upload sah vorher wie gar nichts aus — der Platz blieb
+  // leer und der Grund stand nur in der Konsole.
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   if (!model.supportsReference || model.maxImages === 0) return null;
   const maxImages = schema?.images.max ?? model.maxImages;
 
@@ -69,17 +74,27 @@ export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
   const uploadFiles = async (files: File[]) => {
     const room = maxImages - filled;
     const taken = files.slice(0, room);
+    setUploadError(null);
     const results = await Promise.all(
       taken.map(async (file) => {
         try {
           return await uploadPlaygroundReference(file, model.provider);
         } catch (err) {
           console.error('Failed to upload reference:', err);
-          return null;
+          return { name: file.name, message: (err as Error).message };
         }
       })
     );
-    addUrls(results.filter((u): u is string => u !== null));
+    const urls = results.filter((r): r is string => typeof r === 'string');
+    const failures = results.filter((r): r is { name: string; message: string } => typeof r !== 'string');
+    if (failures.length > 0) {
+      setUploadError(
+        failures.length === 1
+          ? `${failures[0].name}: ${failures[0].message}`
+          : `${failures.length} Uploads fehlgeschlagen: ${failures[0].message}`,
+      );
+    }
+    addUrls(urls);
   };
 
   return (
@@ -139,6 +154,11 @@ export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
         );
       })}
       </div>
+      {uploadError && (
+        <p role="alert" className="text-[10px] leading-snug text-destructive">
+          {uploadError}
+        </p>
+      )}
     </div>
   );
 }

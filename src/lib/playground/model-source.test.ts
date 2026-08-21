@@ -1,14 +1,21 @@
 import { buildPrunaEntries, buildPollinationsEntries, PRUNA_HIDDEN_IN_PLAYGROUND } from './model-source';
+import { PLAYGROUND_PRUNA_IDS } from './param-schema';
 
 describe('model-source', () => {
   it('pruna list excludes try-on and avatar', () => {
     const ids = buildPrunaEntries().map((m) => m.id);
     expect(ids).not.toContain('p-image-try-on');
     expect(ids).not.toContain('p-video-avatar');
-    expect(PRUNA_HIDDEN_IN_PLAYGROUND.size).toBe(2);
+    expect(PRUNA_HIDDEN_IN_PLAYGROUND.size).toBe(5);
     expect(ids).toContain('zimage');
     expect(ids).toContain('wan-t2v');
-    expect(ids).toContain('p-video-animate');
+  });
+
+  // Diese Gleichheit ist der Grund, warum die Shell nicht noch einmal filtern
+  // muss. Kippt sie, taucht ein Pruna-Modell mit Pollinations-Reglern auf.
+  it('shows exactly those pruna models that have a hand-written schema', () => {
+    const ids = buildPrunaEntries().map((m) => m.id).sort();
+    expect(ids).toEqual([...PLAYGROUND_PRUNA_IDS].sort());
   });
 
   it('pollinations entries mark unknown ids as unmapped', () => {
