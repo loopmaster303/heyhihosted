@@ -409,10 +409,11 @@ export function useUnifiedImageToolState() {
             const response = await fetch('/api/enhance-prompt', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
+                // Kein `language`: der Output muss modellbedingt immer Englisch
+                // sein (outputLanguageGuard in der Route), das Feld wurde nie gelesen.
                 body: JSON.stringify({
                     prompt,
                     modelId: selectedModelId,
-                    language,
                 }),
             });
 
@@ -436,7 +437,7 @@ export function useUnifiedImageToolState() {
         } finally {
             setIsEnhancing(false);
         }
-    }, [prompt, selectedModelId, isEnhancing, toast, language]);
+    }, [prompt, selectedModelId, isEnhancing, toast]);
 
     return {
         // State

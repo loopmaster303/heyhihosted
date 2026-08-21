@@ -131,10 +131,11 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
       const response = await fetch('/api/enhance-prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPollenHeaders() },
+        // Kein `language`: der Output muss modellbedingt immer Englisch sein
+        // (outputLanguageGuard in der Route), das Feld wurde nie gelesen.
         body: JSON.stringify({
           prompt,
           modelId: selectedModel,
-          language,
         }),
       });
 
@@ -159,7 +160,7 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
     } finally {
       setIsEnhancing(false);
     }
-  }, [isEnhancing, toast, selectedModel, t, language]);
+  }, [isEnhancing, toast, selectedModel, t]);
 
   const reset = useCallback(() => {
     setAudioUrl(null);
