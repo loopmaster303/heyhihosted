@@ -198,6 +198,16 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
         endFrame: () => endFrameInputRef.current?.click(),
     });
 
+    /**
+     * Die Visualize-Einstellungen bleiben waehrend einer laufenden Generierung
+     * bedienbar: der Sendepfad friert Modell, Parameter und Referenzen beim
+     * Absenden ein (`imageConfig` in ChatInterface, `selectedImageModelId` als
+     * useCallback-Dependency), eine Aenderung kann den Request also nicht mehr
+     * verfaelschen — sie gilt fuer den naechsten Lauf. Nur Aufnahme und
+     * Transkription sperren weiter, weil sie dasselbe Eingabefeld belegen.
+     */
+    const visualizeControlsDisabled = isRecording || isTranscribing;
+
     // One presentation model; the standard pending upload and provider-hosted
     // Visualize references deliberately remain separate state pipelines.
     const attachmentActions: AttachmentAction[] = (() => {
@@ -212,7 +222,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
         }
         if (!visualizeToolState) return [];
 
-        const visualizeDisabled = disabled || visualizeToolState.isUploading;
+        const visualizeDisabled = visualizeControlsDisabled || visualizeToolState.isUploading;
         const actions: AttachmentAction[] = [];
         if (visualizeToolState.requiresSourceVideo) {
             actions.push({ kind: 'source-video', disabled: visualizeDisabled });
@@ -261,7 +271,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                     inlineContent={null}
                     onDeactivate={() => setActiveMode('standard')}
                     variant="bare"
-                    disabled={isLoading || isRecording || isTranscribing}
+                    disabled={visualizeControlsDisabled}
                     providerMode={visualizeToolState.providerMode}
                     prunaAvailable={visualizeToolState.prunaAvailable}
                 />
@@ -719,7 +729,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 onDeactivate={() => setActiveMode('standard')}
                                 variant="bare"
                                 section="model"
-                                disabled={isLoading || isRecording || isTranscribing}
+                                disabled={visualizeControlsDisabled}
                                 providerMode={visualizeToolState.providerMode}
                                 prunaAvailable={visualizeToolState.prunaAvailable}
                             />
@@ -761,7 +771,7 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 onDeactivate={() => setActiveMode('standard')}
                                 variant="bare"
                                 section="parameters"
-                                disabled={isLoading || isRecording || isTranscribing}
+                                disabled={visualizeControlsDisabled}
                                 providerMode={visualizeToolState.providerMode}
                                 prunaAvailable={visualizeToolState.prunaAvailable}
                             />

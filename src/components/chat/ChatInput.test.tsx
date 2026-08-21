@@ -38,10 +38,12 @@ jest.mock('./input/AttachmentPreviewRow', () => ({
 }));
 
 jest.mock('@/components/tools/visualize/VisualizeInlineHeader', () => ({
-  VisualizeInlineHeader: ({ section }: { section?: 'model' | 'parameters' }) => (
+  VisualizeInlineHeader: ({ section, disabled }: { section?: 'model' | 'parameters'; disabled?: boolean }) => (
     <div data-testid="visualize-model-header">
-      {section !== 'parameters' && <span>Visualize model selector</span>}
-      {section !== 'model' && <input aria-label="visualize parameter" />}
+      {section !== 'parameters' && (
+        <button type="button" disabled={disabled}>Visualize model selector</button>
+      )}
+      {section !== 'model' && <input aria-label="visualize parameter" disabled={disabled} />}
     </div>
   ),
 }));
@@ -403,5 +405,95 @@ describe('ChatInput mobile configuration drawer', () => {
     );
 
     expect(screen.queryByText('Upload choices')).not.toBeInTheDocument();
+  });
+});
+
+
+/**
+ * A2: Waehrend einer laufenden Generierung bleibt in Visualize nur der
+ * Senden-Weg gesperrt. Modell, Parameter und Referenz-Slots wirken ab dann auf
+ * den naechsten Lauf — der abgeschickte Request ist eingefroren.
+ */
+describe('ChatInput Visualize controls during a running generation', () => {
+  const visualizeState = {
+    uploadedImages: [],
+    isUploading: false,
+    supportsReference: true,
+    requiresSourceVideo: false,
+    maxImages: 4,
+    selectedModelId: 'flux',
+    setSelectedModelId: jest.fn(),
+    currentModelConfig: { id: 'flux', name: 'Flux', inputs: [] },
+    formFields: {},
+    handleFieldChange: jest.fn(),
+    setFormFields: jest.fn(),
+    isGptImage: false,
+    isSeedream: false,
+    isNanoPollen: false,
+    isPollenModel: false,
+    isPollinationsVideo: false,
+    providerMode: 'pollinations',
+    prunaAvailable: false,
+    isVideoModel: false,
+    supportsEndFrame: false,
+    sourceVideo: null,
+    handleRemoveImage: jest.fn(),
+    handleRemoveSourceVideo: jest.fn(),
+    handleEnhancePrompt: jest.fn(),
+    isEnhancing: false,
+    setPrompt: jest.fn(),
+  };
+
+  const renderComposer = (over: { isLoading?: boolean; isRecording?: boolean; isTranscribing?: boolean }) => render(
+    <ChatInput
+      onSendMessage={jest.fn()} uploadedFilePreviewUrl={null} onFileSelect={jest.fn()}
+      isLongLanguageLoopActive={false} inputValue="" onInputChange={jest.fn()}
+      isImageMode onToggleImageMode={jest.fn()} selectedModelId="openai"
+      handleModelChange={jest.fn()} webBrowsingEnabled={false} onToggleWebBrowsing={jest.fn()}
+      selectedResponseStyleName="default" handleStyleChange={jest.fn()} selectedVoice=""
+      handleVoiceChange={jest.fn()} selectedTtsSpeed={1} handleTtsSpeedChange={jest.fn()}
+      startRecording={jest.fn()} stopRecording={jest.fn()} openCamera={jest.fn()}
+      isLoading={over.isLoading ?? false}
+      isRecording={over.isRecording ?? false}
+      isTranscribing={over.isTranscribing ?? false}
+      visualizeToolState={visualizeState as any}
+    />,
+  );
+
+  beforeEach(() => {
+    mockUseChatInputLogic.mockReturnValue({
+      isMobile: false,
+      activeBadgeRow: 'upload',
+      hasActiveTool: true,
+      badgePanelRef: { current: null },
+      badgeActionsRef: { current: null },
+      docInputRef: { current: null },
+      imageInputRef: { current: null },
+      quickSettingsButtonRef: { current: null },
+      toggleBadgeRow: jest.fn(),
+      setActiveMode: jest.fn(),
+      handleSelectMode: jest.fn(),
+      handleSubmit: jest.fn(),
+      handleFileChange: jest.fn(),
+    });
+  });
+
+  it('leaves model, parameters and reference slots usable while a generation runs', () => {
+    renderComposer({ isLoading: true });
+
+    expect(screen.getByRole('button', { name: 'Visualize model selector' })).toBeEnabled();
+    expect(screen.getByLabelText('visualize parameter')).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'reference' })).toBeEnabled();
+  });
+
+  it('still locks them while recording or transcribing — they share the input', () => {
+    const { unmount } = renderComposer({ isRecording: true });
+    expect(screen.getByRole('button', { name: 'Visualize model selector' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'reference' })).toBeDisabled();
+    unmount();
+
+    renderComposer({ isTranscribing: true });
+    expect(screen.getByRole('button', { name: 'Visualize model selector' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'reference' })).toBeDisabled();
   });
 });
