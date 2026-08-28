@@ -4,7 +4,7 @@
 
 `~/heyhihosted` — kanonisches Level-2-Repo im hey-hi Ökosystem.
 
-GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (Stand `f880389`)
+GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (Stand `aa3eac4`)
 Live: `https://chat.hey-hi.cloud` + `https://chat.hey-hi.cloud/playground`
 Geplant: `https://create.hey-hi.cloud` (gleiches Vercel-Projekt, Rewrite auf `/playground`)
 
@@ -14,19 +14,24 @@ Geplant: `https://create.hey-hi.cloud` (gleiches Vercel-Projekt, Rewrite auf `/p
 
 Seit August 2026 enthält `main` auch den **Playground** (`/playground`): einen dedizierten, Vollbild-Workspace für Bild- und Videogenerierung mit Provider-Switch, Modus-Tabs, Referenz-Uploads und Generierungs-Details.
 
-## Aktueller State (2026-08-27)
+## Aktueller State (2026-08-28)
 
-> **⚠ Der Arbeitsbaum ist nicht sauber.** 65 geänderte und rund 20 neue Dateien liegen
-> **uncommitted** da, aus mindestens zwei nicht abgeschlossenen Sitzungen. Vor jeder weiteren
-> Arbeit gehört das sortiert — das ist Phase 0 des aktiven Fahrplans. Nicht als Block
-> committen: die zweite Gruppe löscht Komponenten und verschiebt Module, ohne dass ein
-> Handoff die Absicht festhält.
+> **✅ Der Arbeitsbaum ist sauber.** Phase 0 ist abgeschlossen: die 99 offenen Dateien
+> sind in **sechzehn thematische Commits** überführt, gepusht und live verifiziert.
+> `git status` ist leer. Jeder Commit wurde einzeln in einem eigenen Worktree geprüft und
+> ist für sich grün. Details, Werkzeuge und die Befunde je Phase:
+> [`docs/HANDOFF-2026-08-28-phase-0.md`](docs/HANDOFF-2026-08-28-phase-0.md).
 
-- **HEAD = `f880389`**, synchron mit `origin/main`. Darüber liegt der offene Arbeitsbaum.
+- **HEAD = `aa3eac4`**, synchron mit `origin/main`. Kein offener Arbeitsbaum mehr.
 - **Aktiver Plan:** [`docs/FAHRPLAN-create.md`](docs/FAHRPLAN-create.md) — zehn Phasen zur öffentlich verlinkbaren Version.
 - **Orientierung je Phase:** [`docs/HANDOFF-2026-08-27-fahrplan.md`](docs/HANDOFF-2026-08-27-fahrplan.md) — Zuordnung des Arbeitsbaums nach Herkunft, Wegweiser und Fallstricke pro Phase.
 - **Letzte Sitzung mit Code:** [`docs/HANDOFF-2026-08-26-pruna-video.md`](docs/HANDOFF-2026-08-26-pruna-video.md) — 780 Tests grün, `typecheck` und `lint` sauber, gegen den laufenden Dev-Server verifiziert. **Nicht live verifiziert.**
-- **Live-Deploy:** `chat.hey-hi.cloud` und `chat.hey-hi.cloud/playground` erreichbar; sie zeigen den Stand `f880389`, nicht den Arbeitsbaum.
+- **Live-Deploy:** `chat.hey-hi.cloud` und `chat.hey-hi.cloud/playground` zeigen den Stand
+  `aa3eac4`. Live geprüft: Chat antwortet, `flux` erzeugt ein echtes Bild, die
+  Intent-Erkennung emittiert ihren Marker, `/api/pruna/status` ist erreichbar.
+- **⚠ `PRUNA_API_KEY` ist in der Vercel-Umgebung nicht gesetzt** (live geprüft am 2026-08-28).
+  Besucher ohne eigenen Pruna-Schlüssel bekommen bei jedem Pruna-Modell einen 503. Mit
+  BYOP-Schlüssel im Browser funktioniert es.
 
 ### ⚠ Die Modell-Listen im Repo stimmen nicht mehr
 
@@ -83,16 +88,17 @@ Dokumentation.** Der Abgleich ist Phase 3 des Fahrplans.
 
 ## Nächste Schritte
 
-Priorisiert im [Fahrplan](docs/FAHRPLAN-create.md). Kurzfassung:
+Priorisiert im [Fahrplan](docs/FAHRPLAN-create.md). **Phase 0 ist erledigt**, der Weg
+beginnt bei Phase 1. Kurzfassung:
 
 ```
-Phase 0 ─► Phase 1 ─► Phase 2 ─► Phase 3 ─┬─► Phase 4 ─► Phase 5 ─► Phase 6 ─► Phase 8 ─► Phase 9
+Phase 0 ✅ ─► Phase 1 ─► Phase 2 ─► Phase 3 ─┬─► Phase 4 ─► Phase 5 ─► Phase 6 ─► Phase 8 ─► Phase 9
                                           └─► Phase 7
 ```
 
 | Phase | Inhalt |
 |---|---|
-| **0** | Arbeitsbaum konsolidieren — **blockiert alles** |
+| ~~**0**~~ | ~~Arbeitsbaum konsolidieren~~ — **erledigt am 2026-08-28**, `f880389..aa3eac4` |
 | **1** | Launch-Kriterien als Definition of Done festschreiben |
 | **2** | Playground heißt Create, eigene Adresse, Navigation in beide Richtungen |
 | **3** | Modellwahrheit gegen die Live-Registry — **blockiert 4, 7 und 8** |
@@ -113,7 +119,12 @@ Weiterhin offen, außerhalb des Fahrplans:
 ## Für den nächsten Agenten
 
 1. Dieses Handoff lesen.
-2. [`docs/HANDOFF-2026-08-27-fahrplan.md`](docs/HANDOFF-2026-08-27-fahrplan.md) lesen — es ordnet den Arbeitsbaum zu und nennt je Phase Fundort und Fallstricke.
+2. [`docs/HANDOFF-2026-08-28-phase-0.md`](docs/HANDOFF-2026-08-28-phase-0.md) lesen — was
+   Phase 0 hinterlässt, welche Befunde in welche Phase gehören, und was aus ihr offen blieb.
+3. [`docs/HANDOFF-2026-08-27-fahrplan.md`](docs/HANDOFF-2026-08-27-fahrplan.md) für Fundort
+   und Fallstricke je Phase. **Achtung:** seine Zuordnung des Arbeitsbaums (Abschnitt 5.1)
+   ist historisch — der Baum ist aufgelöst, und die Zuordnung war unvollständig; das
+   Phase-0-Handoff nennt die fünf fehlenden Gruppen.
 3. `AGENTS.md` für den 4-Phasen-Workflow beachten.
 4. `CLAUDE.md` für Runtime-Truth — **außer Modell-Listen**, siehe Warnung oben.
 5. `docs/README.md` als Karte für aktive vs. archivierte Docs nutzen.

@@ -10,7 +10,7 @@ Assistant guidance for Claude working in this repository. Architecture last veri
 2. Treat [README.md](/Users/johnmeckel/heyhihosted/README.md), [docs/PRODUCT_AUDIT_2026-04-21.md](/Users/johnmeckel/heyhihosted/docs/PRODUCT_AUDIT_2026-04-21.md), and [docs/PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md](/Users/johnmeckel/heyhihosted/docs/PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md) as the current product/runtime truth.
 3. Use [docs/README.md](/Users/johnmeckel/heyhihosted/docs/README.md) as the docs map for active vs archived material.
 4. Prefer updating one canonical truth document instead of duplicating architecture notes in multiple places.
-5. Active plan: [docs/FAHRPLAN-create.md](/Users/johnmeckel/heyhihosted/docs/FAHRPLAN-create.md) — ten phases toward the publicly shareable version, with [docs/HANDOFF-2026-08-27-fahrplan.md](/Users/johnmeckel/heyhihosted/docs/HANDOFF-2026-08-27-fahrplan.md) as the orientation for each phase.
+5. Active plan: [docs/FAHRPLAN-create.md](/Users/johnmeckel/heyhihosted/docs/FAHRPLAN-create.md) — ten phases toward the publicly shareable version. **Phase 0 is done** (2026-08-28, `f880389..aa3eac4`): the working tree is committed and the repo is clean. Read [docs/HANDOFF-2026-08-28-phase-0.md](/Users/johnmeckel/heyhihosted/docs/HANDOFF-2026-08-28-phase-0.md) first — it carries the per-phase findings. [docs/HANDOFF-2026-08-27-fahrplan.md](/Users/johnmeckel/heyhihosted/docs/HANDOFF-2026-08-27-fahrplan.md) still gives entry points and pitfalls per phase, but its working-tree breakdown is historical.
 
 ## Project Snapshot
 

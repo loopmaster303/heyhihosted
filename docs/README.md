@@ -19,7 +19,10 @@ add new documents there.
 ## Start Here
 
 - `FAHRPLAN-create.md` — **the active plan.** Ten phases toward the publicly shareable version, with the user's binding decisions on domain, gallery and music.
-- `HANDOFF-2026-08-27-fahrplan.md` — orientation for anyone picking up a phase: working-tree breakdown by origin, per-phase entry points and pitfalls, and what was deliberately left unchecked.
+- `HANDOFF-2026-08-28-phase-0.md` — **start here.** What Phase 0 delivered (99 files into
+  sixteen commits, `f880389..aa3eac4`), how it was done, the per-phase findings it
+  surfaced, and what it left open.
+- `HANDOFF-2026-08-27-fahrplan.md` — orientation for anyone picking up a phase: working-tree breakdown by origin (**historical** — the tree is committed, and that breakdown was missing five groups; see the Phase 0 handoff), per-phase entry points and pitfalls, and what was deliberately left unchecked.
 - `HANDOFF-2026-08-26-pruna-video.md` — last session that touched code: Pruna payload fixes, the 202 client-polling protocol, VACE switched off.
 - `PROMPTS-phasen.md` — one self-contained session starter per phase (0–9), for writing the implementation plans.
 

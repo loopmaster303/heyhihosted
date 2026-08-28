@@ -83,7 +83,11 @@ Oberfläche steht „Fehler".
 
 ## Ausgangslage
 
-### Blocker: der Arbeitsbaum
+> **Historisch — dieser Abschnitt beschreibt den Stand vom 2026-08-26/27.** Der Blocker ist
+> am 2026-08-28 aufgelöst worden (`f880389..aa3eac4`); es waren tatsächlich 99 Dateien, nicht
+> 85. Siehe [`HANDOFF-2026-08-28-phase-0.md`](HANDOFF-2026-08-28-phase-0.md).
+
+### Blocker: der Arbeitsbaum ~~(offen)~~ — aufgelöst am 2026-08-28
 
 65 geänderte und rund 20 neue Dateien, **nichts committet**, aus mindestens zwei Sitzungen
 vermischt:
@@ -165,7 +169,18 @@ Solange das nicht sortiert und committet ist, plant jede Phase auf Sand.
 
 ## Phasen
 
-### Phase 0 — Arbeitsbaum konsolidieren
+### Phase 0 — Arbeitsbaum konsolidieren · ✅ ERLEDIGT am 2026-08-28
+
+**Ergebnis:** 99 offene Dateien in sechzehn thematische Commits überführt
+(`f880389..aa3eac4`), gepusht, live verifiziert. Jeder Commit einzeln in einem eigenen
+Worktree geprüft und grün (685 → 780 Tests, kein Sinken). Vollständiger Bericht mit den
+Befunden je Phase: [`HANDOFF-2026-08-28-phase-0.md`](HANDOFF-2026-08-28-phase-0.md).
+
+**Offen geblieben** (braucht einen Browser, deshalb nicht erledigt, sondern offen
+ausgewiesen): kein Compose-Badge auf dem Telefon · Pollen-Key-Feld beim ersten Öffnen ·
+ein echter Pruna-Videolauf über das 202-Protokoll · Antwortstil/Stimme/Tempo auf dem
+Telefon erreichbar.
+
 **Warum zuerst:** Jede weitere Phase editiert Dateien, die hier bereits offen sind.
 
 - Die Änderungen nach Thema in getrennte Commits sortieren (Pruna/Polling · Chat-Input-Umbau ·
@@ -342,13 +357,13 @@ rechnen, entscheiden.
 ## Reihenfolge und Parallelität
 
 ```
-Phase 0 ─► Phase 1 ─► Phase 2 ─► Phase 3 ─┬─► Phase 4 ─► Phase 5 ─► Phase 6 ─► Phase 8 ─► Phase 9
+Phase 0 ✅ ─► Phase 1 ─► Phase 2 ─► Phase 3 ─┬─► Phase 4 ─► Phase 5 ─► Phase 6 ─► Phase 8 ─► Phase 9
                                           └─► Phase 7
 
 Phase 10 ist zurückgestellt und Teil keines Pfads.
 ```
 
-- **Phase 0 blockiert alles.**
+- ~~**Phase 0 blockiert alles.**~~ Erledigt am 2026-08-28.
 - **Phase 3 ist der zweite Flaschenhals**: Phase 4, 7 und 8 hängen an der Modellwahrheit.
 - **Phase 7** berührt keine Create-Datei und läuft parallel zu 4–6.
 - **Phase 6 vor Phase 8**, sonst wird die Musik-Oberfläche zweimal gebaut.
