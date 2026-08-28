@@ -11,11 +11,22 @@ describe('model-source', () => {
     expect(ids).toContain('wan-t2v');
   });
 
-  // Diese Gleichheit ist der Grund, warum die Shell nicht noch einmal filtern
-  // muss. Kippt sie, taucht ein Pruna-Modell mit Pollinations-Reglern auf.
-  it('shows exactly those pruna models that have a hand-written schema', () => {
-    const ids = buildPrunaEntries().map((m) => m.id).sort();
-    expect(ids).toEqual([...PLAYGROUND_PRUNA_IDS].sort());
+  // Diese Teilmengen-Beziehung ist der Grund, warum die Shell nicht noch einmal
+  // filtern muss. Kippt sie, taucht ein Pruna-Modell mit Pollinations-Reglern auf.
+  it('shows only pruna models that have a hand-written schema', () => {
+    const ids = buildPrunaEntries().map((m) => m.id);
+    for (const id of ids) {
+      expect(PLAYGROUND_PRUNA_IDS).toContain(id);
+    }
+  });
+
+  // Ein in der Registry abgeschaltetes Modell darf hier nicht wieder
+  // auftauchen — der Playground liest sonst nur die Id-Liste und uebergeht
+  // die einzige Stelle, an der Sichtbarkeit entschieden wird.
+  it('drops pruna models that the registry has disabled', () => {
+    const ids = buildPrunaEntries().map((m) => m.id);
+    expect(ids).not.toContain('vace');
+    expect(PLAYGROUND_PRUNA_IDS).toContain('vace');
   });
 
   it('pollinations entries mark unknown ids as unmapped', () => {

@@ -259,7 +259,6 @@ describe('ChatService', () => {
             'p-video-avatar',
             'p-video-animate',
             'p-video-replace',
-            'vace',
         ])('does not synthesize duration for %s', async (modelId) => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
@@ -276,6 +275,7 @@ describe('ChatService', () => {
         it.each([
             ['p-video', 20],
             ['wan-t2v', 7.5],
+            ['vace', 5],
         ])('sends user-facing seconds for temporal model %s', async (modelId, duration) => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,

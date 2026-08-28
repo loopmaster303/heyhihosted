@@ -415,11 +415,22 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     supportsReference: true,
     maxImages: 3,
     isFree: false,
-    enabled: true,
+    // Ausgeblendet: ein VACE-Lauf dauert 6-12 Minuten (gemessen 2026-08-26),
+    // wovon die Oberflaeche nichts zeigen kann ausser einer wartenden Karte.
+    // byopVisible: false, sonst holt ein Pruna-Schluessel es wieder hervor.
+    enabled: false,
+    byopVisible: false,
     description: 'VACE — video with character consistency via Pruna',
     supportsAudio: false,
     referenceMode: 'multi-image',
-    temporalControl: { mode: 'fixed-frames', frames: 81 },
+    temporalControl: {
+      mode: 'frame-backed-seconds',
+      fps: 16,
+      minFrames: 1,
+      maxFrames: 81,
+      secondOptions: [1, 2, 3, 4, 5],
+      defaultSeconds: 5,
+    },
   },
 ];
 

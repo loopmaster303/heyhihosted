@@ -64,6 +64,9 @@ const PRUNA_SUPPORTS_AUDIO: ReadonlySet<string> = new Set(['p-video']);
 export function buildPrunaEntries(): PlaygroundModelEntry[] {
   return PRUNA_MODEL_IDS
     .filter((id) => !PRUNA_HIDDEN_IN_PLAYGROUND.has(id))
+    // Abgeschaltet in der Registry heisst abgeschaltet — sonst zeigt der
+    // Playground weiter ein Modell, das Visualize laengst ausblendet.
+    .filter((id) => getUnifiedModel(id)?.enabled !== false)
     .map((id) => {
       const cfg = getUnifiedModel(id);
       const isVideo = id.includes('video') || (id.startsWith('wan-') && id.endsWith('v'));

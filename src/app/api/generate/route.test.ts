@@ -991,7 +991,6 @@ describe('/api/generate route', () => {
     ['p-video-avatar', {}],
     ['p-video-animate', { video: 'https://example.com/source.mp4' }],
     ['p-video-replace', { video: 'https://example.com/source.mp4' }],
-    ['vace', {}],
   ] as const)('rejects supplied duration for %s rather than ignoring it', async (model, extraBody) => {
     const response = await POST(new Request('http://localhost/api/generate', {
       method: 'POST',
@@ -1144,74 +1143,19 @@ describe('/api/generate route', () => {
     expect(videoUrlMock).not.toHaveBeenCalled();
   });
 
-  it('allows vace text-to-video without a reference image', async () => {
-    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/vace-t2v' });
-    downloadPrunaResultMock.mockResolvedValueOnce({
-      buffer: Buffer.from('fake-vace-video'),
-      contentType: 'video/mp4',
-    });
-    global.fetch = jest.fn().mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ url: 'https://media.pollinations.ai/vace-video' }),
-    });
-
+  // VACE ist in der Registry abgeschaltet (ein Lauf dauert 6-12 Minuten). Die
+  // Route darf es deshalb gar nicht erst an Pruna weiterreichen.
+  it('rejects the disabled vace model instead of dispatching it', async () => {
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: 'character walking through rain',
-        model: 'vace',
-      }),
-    });
-
-    const response = await POST(request);
-    const body = responseJson.mock.calls.at(-1)?.[0] as { videoUrl: string };
-
-    expect(response.status).toBe(200);
-    expect(body.videoUrl).toBe('https://media.pollinations.ai/vace-video');
-    expect(generateViaPrunaMock).toHaveBeenCalledWith(
-      'vace',
-      expect.objectContaining({
-        prompt: 'character walking through rain',
-        srcRefImages: undefined,
-      }),
-      expect.any(AbortSignal),
-      'test-pruna-key',
-    );
-  });
-
-  it('passes vace srcRefImages to Pruna', async () => {
-    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/vace-ref' });
-    downloadPrunaResultMock.mockResolvedValueOnce({
-      buffer: Buffer.from('fake-vace-video'),
-      contentType: 'video/mp4',
-    });
-    global.fetch = jest.fn().mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ url: 'https://media.pollinations.ai/vace-ref-video' }),
-    });
-
-    const request = new Request('http://localhost/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: 'same character in a city',
-        model: 'vace',
-        srcRefImages: ['https://example.com/char-a.jpg', 'https://example.com/char-b.jpg'],
-      }),
+      body: JSON.stringify({ prompt: 'character walking through rain', model: 'vace' }),
     });
 
     const response = await POST(request);
 
-    expect(response.status).toBe(200);
-    expect(generateViaPrunaMock).toHaveBeenCalledWith(
-      'vace',
-      expect.objectContaining({
-        srcRefImages: ['https://example.com/char-a.jpg', 'https://example.com/char-b.jpg'],
-      }),
-      expect.any(AbortSignal),
-      'test-pruna-key',
-    );
+    expect(response.status).toBe(400);
+    expect(generateViaPrunaMock).not.toHaveBeenCalled();
   });
 
   it.each(['p-video-animate', 'p-video-replace'] as const)('rejects %s without a source video', async (model) => {

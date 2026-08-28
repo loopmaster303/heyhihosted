@@ -164,6 +164,15 @@ describe('model invariants', () => {
     ]));
   });
 
+  // VACE bleibt in der Registry stehen, darf aber auch mit Pruna-Schluessel
+  // nirgends auftauchen: ein Lauf dauert 6-12 Minuten.
+  test('disabled VACE stays hidden even for a user with a Pruna key', () => {
+    const withKey = getVisualizeModelGroups({ includeByopHidden: true })
+      .flatMap((group) => group.modelIds);
+
+    expect(withKey).not.toContain('vace');
+  });
+
   test('Pruna video models expose their individual duration semantics in seconds', () => {
     expect(getUnifiedModel('p-video')).toEqual(expect.objectContaining({
       temporalControl: { mode: 'seconds', min: 1, max: 20, step: 1, defaultSeconds: 5 },
@@ -192,7 +201,14 @@ describe('model invariants', () => {
       temporalControl: { mode: 'source-video-driven' },
     }));
     expect(getUnifiedModel('vace')).toEqual(expect.objectContaining({
-      temporalControl: { mode: 'fixed-frames', frames: 81 },
+      temporalControl: {
+        mode: 'frame-backed-seconds',
+        fps: 16,
+        minFrames: 1,
+        maxFrames: 81,
+        secondOptions: [1, 2, 3, 4, 5],
+        defaultSeconds: 5,
+      },
     }));
   });
 
@@ -226,7 +242,8 @@ describe('model invariants', () => {
     expect(getDurationOptionsSeconds(legacyPollinations)).toEqual([6, 8, 10]);
     expect(getDefaultDurationSeconds(legacyPollinations, 8)).toBe(8);
     expect(getDefaultDurationSeconds(legacyPollinations)).toBe(6);
-    expect(getDefaultDurationSeconds(getUnifiedModel('vace'))).toBeUndefined();
+    expect(getDurationOptionsSeconds(getUnifiedModel('vace'))).toEqual([1, 2, 3, 4, 5]);
+    expect(getDefaultDurationSeconds(getUnifiedModel('vace'))).toBe(5);
   });
 
   test('migrated Pruna video configs contain no generic duration input', () => {
