@@ -1,6 +1,6 @@
 import { CODE_REASONING_SYSTEM_PROMPT } from '@/config/chat-options';
 
-import { buildChatSystemPrompt, buildSystemPromptForRequest } from '../chat-prompt-builder';
+import { buildChatSystemPrompt, buildRuntimeContext, buildSystemPromptForRequest } from '../chat-prompt-builder';
 
 describe('chat prompt builder', () => {
   it('injects username, language, custom instructions, and hidden reasoning for supported models', () => {
@@ -54,13 +54,16 @@ describe('chat prompt builder', () => {
   });
 
   it('uses code reasoning prompt for code requests and prepends older summary block', () => {
+    const now = new Date('2026-08-22T08:12:00Z');
     const prompt = buildSystemPromptForRequest({
       effectiveSystemPrompt: 'Base prompt',
       isCodeMode: true,
       olderSummaryBlock: '<conversation_summary>old</conversation_summary>',
+      now,
+      timeZone: 'Europe/Berlin',
     });
 
-    expect(prompt).toBe(`<conversation_summary>old</conversation_summary>\n${CODE_REASONING_SYSTEM_PROMPT}`);
+    expect(prompt).toBe(`<conversation_summary>old</conversation_summary>\n${CODE_REASONING_SYSTEM_PROMPT}\n${buildRuntimeContext(now, 'Europe/Berlin')}`);
   });
 
   it('keeps effective prompt when not in code mode', () => {

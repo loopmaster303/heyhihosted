@@ -1,5 +1,5 @@
 import { CODE_REASONING_SYSTEM_PROMPT } from '@/config/chat-options';
-import { buildChatSystemPrompt, buildSystemPromptForRequest } from '../chat-prompt-builder';
+import { buildChatSystemPrompt, buildRuntimeContext, buildSystemPromptForRequest } from '../chat-prompt-builder';
 
  
 
@@ -18,12 +18,17 @@ describe('sendMessage adjacent contracts (regression-safe prompts)', () => {
     expect(prompt).toContain('Alice');
   });
 
-  it('code-mode path uses CODE_REASONING_SYSTEM_PROMPT', () => {
+  it('code-mode path uses CODE_REASONING_SYSTEM_PROMPT plus the runtime context', () => {
     const prompt = buildSystemPromptForRequest({
       effectiveSystemPrompt: 'Base',
       isCodeMode: true,
+      now: new Date('2026-08-22T08:12:00Z'),
+      timeZone: 'Europe/Berlin',
     });
-    expect(prompt).toBe(CODE_REASONING_SYSTEM_PROMPT);
+    // Code mode drops the persona enrichments but keeps the date: "the latest
+    // version of X" is exactly the question that goes wrong on a stale year.
+    expect(prompt).toBe(`${CODE_REASONING_SYSTEM_PROMPT}\n${buildRuntimeContext(new Date('2026-08-22T08:12:00Z'), 'Europe/Berlin')}`);
+    expect(prompt).not.toContain('Base');
   });
 
   it('older-summary prefix path prepends older conversation summary', () => {

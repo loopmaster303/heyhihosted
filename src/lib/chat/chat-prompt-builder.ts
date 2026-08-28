@@ -7,18 +7,66 @@ interface BuildChatSystemPromptInput {
   userDisplayName?: string;
   customSystemPrompt?: string;
   isRegeneration?: boolean;
+  /** Zeitpunkt des Requests — injizierbar, damit der Prompt testbar bleibt */
+  now?: Date;
+  timeZone?: string;
 }
 
 interface BuildSystemPromptForRequestInput {
   effectiveSystemPrompt: string;
   isCodeMode: boolean;
   olderSummaryBlock?: string;
+  now?: Date;
+  timeZone?: string;
 }
 
-const RUNTIME_CONTEXT = `
+/**
+ * Ohne diesen Block raet das Modell das heutige Datum aus seinem Trainingsstand.
+ * Bei Recherche ist genau das der teuerste Fehler: „diese Woche" und „aktuell"
+ * werden dann gegen ein falsches Jahr gerechnet, und zwar lautlos.
+ *
+ * Die Zeitzone kommt aus `Intl` — sie braucht keine Freigabe, wird fuer die
+ * lokale Uhrzeit ohnehin gebraucht und sagt dem Modell nebenbei die Region.
+ * Ein Standort wird bewusst nicht erhoben.
+ */
+export function resolveTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+export function buildRuntimeContext(now: Date = new Date(), timeZone: string = resolveTimeZone()): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    weekday: 'long',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZoneName: 'shortOffset',
+  }).formatToParts(now);
+
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+
+  // Aus den Teilen zusammengesetzt, nicht aus toISOString(): das waere UTC und
+  // damit fuer den Nutzer je nach Zone der falsche Tag.
+  const date = `${part('year')}-${part('month')}-${part('day')}`;
+  const time = `${part('hour')}:${part('minute')}`;
+
+  return `
 <runtime_context>
     Environment: hey.hi web-interface
+    Current date: ${date} (${part('weekday')})
+    Current local time: ${time} — ${timeZone}, ${part('timeZoneName')}
+    This is the real current date and time. It overrides any date you infer from your training data, which is older. Use it for anything relative — "today", "this week", "the latest", "how long ago", "next Monday" — and never state or assume a different current year.
+    The time zone is the only location signal available. No location is collected; do not guess a city or claim to know where the user is.
 </runtime_context>`;
+}
 
 const REGENERATION_INSTRUCTION =
   'Generiere eine neue, alternative Antwort auf die letzte Anfrage des Benutzers. Wiederhole deine vorherige Antwort nicht. Biete eine andere Perspektive oder einen anderen Stil.';
@@ -86,7 +134,7 @@ export function buildChatSystemPrompt(input: BuildChatSystemPromptInput): string
     input.userDisplayName && input.userDisplayName !== 'User' ? input.userDisplayName : '',
   );
 
-  prompt = `${prompt}\n${RUNTIME_CONTEXT}\n<language_preference>${buildLanguageHint(input.language)}</language_preference>${buildCustomInstructionBlock(
+  prompt = `${prompt}\n${buildRuntimeContext(input.now, input.timeZone)}\n<language_preference>${buildLanguageHint(input.language)}</language_preference>${buildCustomInstructionBlock(
     input.customSystemPrompt,
     input.userDisplayName,
   )}\n${buildInternalReasoningDirective(input.selectedModelId)}\n${MEDIA_MARKER_PROTOCOL}`;
@@ -99,8 +147,12 @@ export function buildChatSystemPrompt(input: BuildChatSystemPromptInput): string
 }
 
 export function buildSystemPromptForRequest(input: BuildSystemPromptForRequestInput): string {
-  // This preserves the current code-mode behavior exactly, including dropping non-code enrichments.
-  let prompt = input.isCodeMode ? CODE_REASONING_SYSTEM_PROMPT : input.effectiveSystemPrompt;
+  // This preserves the current code-mode behavior exactly, including dropping non-code enrichments —
+  // except for the runtime context, which the code prompt would otherwise lose. Das Datum ist auch
+  // beim Coden relevant (Versionen, Deprecations, Jahreszahlen in Headern).
+  let prompt = input.isCodeMode
+    ? `${CODE_REASONING_SYSTEM_PROMPT}\n${buildRuntimeContext(input.now, input.timeZone)}`
+    : input.effectiveSystemPrompt;
 
   if (input.olderSummaryBlock) {
     prompt = `${input.olderSummaryBlock}\n${prompt}`;
