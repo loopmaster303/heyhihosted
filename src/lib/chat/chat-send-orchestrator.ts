@@ -1,10 +1,12 @@
-import type { ApiChatMessage, ChatMessage, ChatMessageContentPart } from '@/types';
+import type { ApiChatMessage, GenerationRecord, ChatMessage, ChatMessageContentPart } from '@/types';
 import type { GenerateImageOptions } from '@/lib/services/chat-service';
 import { isPollinationsHostedModel } from '@/config/unified-image-models';
 
 interface RunImageGenerationFlowInput {
   imageParams: GenerateImageOptions;
   selectedImageModelId: string;
+  /** Was dieser Lauf verwendet hat — wandert an das Ergebnis, nicht in die Leiste. */
+  generation?: GenerationRecord;
   conversationId: string;
   sessionId: string;
   prompt: string;
@@ -158,6 +160,10 @@ export async function runImageGenerationFlow(
     });
   }
 
+  const metadata = (generatedAssetId || input.generation)
+    ? { assetId: generatedAssetId ?? null, generation: input.generation }
+    : undefined;
+
   const aiMessage: ChatMessage = {
     id: input.createMessageId(),
     role: 'assistant',
@@ -169,7 +175,7 @@ export async function runImageGenerationFlow(
               url: imageUrl,
               altText: `Generated video (${input.selectedImageModelId})`,
               isGenerated: true,
-              metadata: generatedAssetId ? { assetId: generatedAssetId } : undefined,
+              metadata,
             },
           },
         ]
@@ -180,7 +186,7 @@ export async function runImageGenerationFlow(
               url: imageUrl,
               altText: `Generated image (${input.selectedImageModelId})`,
               isGenerated: true,
-              metadata: generatedAssetId ? { assetId: generatedAssetId } : undefined,
+              metadata,
             },
           },
         ],

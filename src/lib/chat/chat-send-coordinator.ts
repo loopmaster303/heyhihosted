@@ -1,4 +1,4 @@
-import type {
+import type { GenerationRecord,
   ApiChatMessage,
   ChatMessage,
   ChatMessageContentPart,
@@ -124,6 +124,7 @@ interface ExecuteChatSendCoordinatorInput {
     ) => Promise<{ cleanText: string; extraParts: ChatMessageContentPart[] }>;
   }) => Promise<{ assistantMessage: ChatMessage; finalMessages: ChatMessage[] }>;
   runImageGenerationFlow: (input: {
+    generation?: GenerationRecord;
     imageParams: GenerateImageOptions;
     selectedImageModelId: string;
     conversationId: string;
@@ -391,11 +392,12 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
   try {
     if (isImagePrompt && userInputText) {
       const imageConfig = input.options.imageConfig;
-      const modelInfo = input.getUnifiedModel(input.selectedImageModelId);
+      const imageModelId = imageConfig?.selectedModelId || input.selectedImageModelId;
+      const modelInfo = input.getUnifiedModel(imageModelId);
       const resolvedReferenceUrls = imageConfig ? await input.resolveReferenceUrls(imageConfig.uploadedImages) : [];
       const imageParams: GenerateImageOptions = {
         prompt: userInputText.trim(),
-        modelId: input.selectedImageModelId,
+        modelId: imageModelId,
       };
 
       if (imageConfig) {
@@ -414,7 +416,18 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
 
       const imageFlowResult = await input.runImageGenerationFlow({
         imageParams,
-        selectedImageModelId: input.selectedImageModelId,
+        selectedImageModelId: imageModelId,
+        generation: {
+          prompt: userInputText.trim(),
+          modelId: imageModelId,
+          aspectRatio: typeof imageConfig?.formFields.aspect_ratio === 'string'
+            ? imageConfig.formFields.aspect_ratio
+            : undefined,
+          duration: imageParams.duration,
+          audio: imageParams.audio,
+          references: imageConfig?.uploadedImages,
+          sourceVideo: imageConfig?.sourceVideo ?? null,
+        },
         conversationId: convId,
         sessionId: input.getSessionId(),
         prompt: userInputText,
@@ -424,7 +437,7 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
         createMessageId: input.createId,
         createTimestamp: input.createTimestamp,
       });
-      input.toast({ title: 'Generation started', description: `Creating image with ${input.selectedImageModelId}...`, duration: 3000 });
+      input.toast({ title: 'Generation started', description: `Creating image with ${imageModelId}...`, duration: 3000 });
       finalMessages = [...updatedMessagesForState, imageFlowResult.aiMessage];
     } else {
       const systemPromptForRequest = input.buildSystemPromptForRequest({

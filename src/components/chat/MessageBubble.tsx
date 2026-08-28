@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import type { ChatMessage, ChatMessageContentPart } from '@/types';
+import type { ChatMessage, ChatMessageContentPart, GenerationRecord } from '@/types';
 import { Loader2, StopCircle, RefreshCw, Copy, Download, Maximize2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BlinkingCursor } from '@/components/ui/BlinkingCursor';
@@ -17,6 +17,7 @@ import { DatabaseService } from '@/lib/services/database';
 
 import { useAssetUrl } from '@/hooks/useAssetUrl';
 import { AudioMessage } from './AudioMessage';
+import { GenerationControlStrip } from './GenerationControlStrip';
 
 const fitWithin = (ratio: number, maxWidth: number, maxHeight: number) => {
   const safeRatio = ratio > 0 ? ratio : 1;
@@ -297,6 +298,8 @@ interface MessageBubbleProps {
   isAnyAudioActive?: boolean;
   onCopy?: (text: string) => void;
   onRegenerate?: () => void;
+  /** Neulauf eines generierten Bildes/Videos mit geaenderten Werten */
+  onRerunGeneration?: (generation: GenerationRecord) => void;
   isLastMessage?: boolean;
   isAiResponding?: boolean;
   shouldAnimate?: boolean;
@@ -311,6 +314,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   isAnyAudioActive,
   onCopy,
   onRegenerate,
+  onRerunGeneration,
   isLastMessage,
   isAiResponding = false,
   shouldAnimate = false,
@@ -440,16 +444,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   : part.image_url.isUploaded
                     ? t('media.uploadedImage')
                     : t('media.image'));
+              const generation = part.image_url.metadata?.generation;
 
               return (
-                <ChatImageCard
-                  key={`image-${index}`}
-                  url={part.image_url.url}
-                  altText={altText}
-                  isGenerated={part.image_url.isGenerated}
-                  isUploaded={part.image_url.isUploaded}
-                  assetId={(part.image_url as any).metadata?.assetId}
-                />
+                <div key={`image-${index}`} className="flex flex-col">
+                  <ChatImageCard
+                    url={part.image_url.url}
+                    altText={altText}
+                    isGenerated={part.image_url.isGenerated}
+                    isUploaded={part.image_url.isUploaded}
+                    assetId={part.image_url.metadata?.assetId ?? undefined}
+                  />
+                  {generation && onRerunGeneration && (
+                    <GenerationControlStrip generation={generation} onRerun={onRerunGeneration} />
+                  )}
+                </div>
               );
             })}
           </div>
@@ -459,14 +468,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             {videoParts.map((part, index) => {
               if (part.type !== 'video_url') return null;
               const altText = part.video_url.altText || t('media.generatedVideo');
+              const generation = part.video_url.metadata?.generation;
               return (
-                <ChatVideoCard
-                  key={`video-${index}`}
-                  url={part.video_url.url}
-                  altText={altText}
-                  isGenerated={part.video_url.isGenerated}
-                  assetId={(part.video_url as any).metadata?.assetId}
-                />
+                <div key={`video-${index}`} className="flex flex-col">
+                  <ChatVideoCard
+                    url={part.video_url.url}
+                    altText={altText}
+                    isGenerated={part.video_url.isGenerated}
+                    assetId={part.video_url.metadata?.assetId ?? undefined}
+                  />
+                  {generation && onRerunGeneration && (
+                    <GenerationControlStrip generation={generation} onRerun={onRerunGeneration} />
+                  )}
+                </div>
               );
             })}
           </div>

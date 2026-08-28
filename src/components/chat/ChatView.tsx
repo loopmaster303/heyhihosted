@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
-import type { ChatMessage } from '@/types';
+import type { ChatMessage, GenerationRecord } from '@/types';
 import MessageBubble from './MessageBubble';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +15,7 @@ interface ChatViewProps {
   isTtsLoadingForId: string | null;
   onCopyToClipboard: (text: string) => void;
   onRegenerate: () => void;
+  onRerunGeneration?: (generation: GenerationRecord) => void;
   className?: string;
 }
 
@@ -26,6 +27,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   isTtsLoadingForId,
   onCopyToClipboard,
   onRegenerate,
+  onRerunGeneration,
   className,
 }) => {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
@@ -91,6 +93,7 @@ const ChatView: React.FC<ChatViewProps> = ({
           isAnyAudioActive={playingMessageId !== null || isTtsLoadingForId !== null}
           onCopy={onCopyToClipboard}
           onRegenerate={onRegenerate}
+          onRerunGeneration={onRerunGeneration}
           isLastMessage={!isLoadingMessage && isLastMessageForRegeneration(index)}
           isAiResponding={isAiResponding && isLast}
           shouldAnimate={shouldAnimate}
@@ -98,7 +101,7 @@ const ChatView: React.FC<ChatViewProps> = ({
         />
       </div>
     );
-  }, [displayMessages, isAiResponding, onPlayAudio, playingMessageId, isTtsLoadingForId, onCopyToClipboard, onRegenerate, isLastMessageForRegeneration]);
+  }, [displayMessages, isAiResponding, onPlayAudio, playingMessageId, isTtsLoadingForId, onCopyToClipboard, onRegenerate, onRerunGeneration, isLastMessageForRegeneration]);
 
   if (displayMessages.length === 0) {
     return <div className={cn("w-full h-full", className)} />;

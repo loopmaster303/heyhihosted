@@ -1,10 +1,31 @@
 
 
+/**
+ * Was ein Lauf tatsaechlich verwendet hat. Haengt am Ergebnis, damit der
+ * Kontrollstreifen unter der Karte einen Neulauf mit genau diesen Werten
+ * ausloesen kann — die Leiste kennt sie zu dem Zeitpunkt laengst nicht mehr.
+ */
+export interface GenerationRecord {
+  prompt: string;
+  modelId: string;
+  aspectRatio?: string;
+  duration?: number;
+  audio?: boolean;
+  /** Referenzen des Laufs — ohne sie wuerde ein Neulauf etwas anderes erzeugen */
+  references?: UploadedReference[];
+  sourceVideo?: UploadedReference | null;
+}
+
+export interface GeneratedMediaMetadata {
+  assetId: string | null;
+  generation?: GenerationRecord;
+}
+
 export type ChatMessageContentPart =
   | { type: 'text'; text: string }
-  | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; remoteUrl?: string; metadata?: { assetId: string | null } } }
-  | { type: 'video_url'; video_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; metadata?: { assetId: string | null } } }
-  | { type: 'audio_url'; audio_url: { url: string; altText?: string; isGenerated?: boolean; duration?: number; metadata?: { assetId: string | null } } };
+  | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; remoteUrl?: string; metadata?: GeneratedMediaMetadata } }
+  | { type: 'video_url'; video_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; metadata?: GeneratedMediaMetadata } }
+  | { type: 'audio_url'; audio_url: { url: string; altText?: string; isGenerated?: boolean; duration?: number; metadata?: GeneratedMediaMetadata } };
 
 
 export interface ChatMessage {

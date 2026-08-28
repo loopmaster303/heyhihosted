@@ -1,5 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import ChatView from '@/components/chat/ChatView';
+import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
+import type { GenerationRecord } from '@/types';
 import ChatInput from '@/components/chat/ChatInput';
 import type { UnifiedImageToolState } from '@/hooks/useUnifiedImageToolState';
 import {
@@ -147,6 +149,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState, compo
         }
     }, [handleImageModelChange, isImageMode, selectedImageModelId, visualizeToolState.selectedModelId]);
 
+    /**
+     * Neulauf vom Kontrollstreifen unter der Ergebniskarte. Er geht durch den
+     * normalen Sendepfad — nur mit dem eingefrorenen Zustand dieses Laufs
+     * statt dem, was die Leiste gerade zeigt.
+     */
+    const handleRerunGeneration = useCallback((generation: GenerationRecord) => {
+        const preset = generation.aspectRatio
+            ? getAspectRatioPresetsForModel(generation.modelId)[generation.aspectRatio]
+            : undefined;
+
+        composer.sendMessage(generation.prompt, {
+            isImageModeIntent: true,
+            imageConfig: {
+                selectedModelId: generation.modelId,
+                uploadedImages: generation.references ?? [],
+                sourceVideo: generation.sourceVideo ?? null,
+                formFields: {
+                    ...(generation.aspectRatio ? { aspect_ratio: generation.aspectRatio } : {}),
+                    ...(preset ? { width: preset.width, height: preset.height } : {}),
+                    ...(generation.duration !== undefined ? { duration: generation.duration } : {}),
+                    ...(generation.audio !== undefined ? { audio: generation.audio } : {}),
+                },
+            },
+        });
+    }, [composer]);
+
     if (!conversation.activeConversation) {
         return null; // Don't show anything while loading to prevent flicker
     }
@@ -171,6 +199,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState, compo
                             isTtsLoadingForId={media.isTtsLoadingForId}
                             onCopyToClipboard={composer.handleCopyToClipboard}
                             onRegenerate={composer.regenerateLastResponse}
+                            onRerunGeneration={handleRerunGeneration}
                         />
                     </ErrorBoundary>
                 ) : (
