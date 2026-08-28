@@ -84,6 +84,49 @@ describe('/api/pollen/polly route', () => {
     );
     await expect(response.json()).resolves.toEqual({ choices: [{ message: { content: 'ok' } }] });
   });
+
+  it('rejects payloads outside the allowed schema', async () => {
+    resolvePollenKeyMock.mockReturnValue('sk_test');
+    const { POST } = await import('./route');
+
+    const response = await POST(new Request('http://localhost/api/pollen/polly', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'polly',
+        messages: [{ role: 'user', content: 'hi' }],
+        tools: [{ type: 'function', function: { name: 'evil' } }],
+      }),
+    }));
+
+    expect(response.status).toBe(400);
+    expect(httpsPostMock).not.toHaveBeenCalled();
+  });
+
+  it('does not leak internal error details', async () => {
+    resolvePollenKeyMock.mockReturnValue('sk_test');
+    httpsPostMock.mockRejectedValue(new Error('getaddrinfo ENOTFOUND internal-host.corp'));
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { POST } = await import('./route');
+
+    try {
+      const response = await POST(new Request('http://localhost/api/pollen/polly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'polly', messages: [{ role: 'user', content: 'hi' }] }),
+      }));
+
+      // NextResponse bodies are unreadable under the jsdom fetch polyfill, so
+      // assert the masked status plus the server-side log carrying the detail.
+      expect(response.status).toBe(500);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'API Error:',
+        expect.objectContaining({ message: expect.stringContaining('internal-host.corp') })
+      );
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
 });
 
 export {};

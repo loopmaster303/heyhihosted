@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import { httpsFetchBinary } from '@/lib/https-post';
 import { handleApiError } from '@/lib/api-error-handler';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const POLLINATIONS_BASE = 'https://gen.pollinations.ai';
 type ComposeModel = 'elevenmusic' | 'acestep' | 'stable-audio-3-medium';
@@ -12,6 +13,14 @@ const DEFAULT_DURATION = 60;
 
 export async function POST(request: NextRequest) {
   try {
+    const rate = checkRateLimit(request, { name: 'compose', limit: 10, windowMs: 60_000 });
+    if (!rate.ok) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
     const { prompt, duration, instrumental = false, model = 'acestep' } = await request.json();
 
     if (!prompt || typeof prompt !== 'string') {

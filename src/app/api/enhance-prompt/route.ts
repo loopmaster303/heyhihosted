@@ -14,6 +14,7 @@ import { getPollinationsChatCompletion } from '@/ai/flows/pollinations-chat-flow
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import { SmartRouter } from '@/lib/services/smart-router';
 import { handleApiError } from '@/lib/api-error-handler';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const AUDIO_PROMPTS: Record<string, string> = {
   acestep: ACESTEP_ENHANCEMENT_PROMPT,
@@ -234,11 +235,26 @@ async function fetchPromptResearchSuggestions(
 
 export async function POST(request: NextRequest) {
   try {
+    const rate = checkRateLimit(request, { name: 'enhance-prompt', limit: 15, windowMs: 60_000 });
+    if (!rate.ok) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
     const { prompt, modelId } = await request.json();
 
     if (!prompt || !modelId) {
       return NextResponse.json(
         { error: 'Prompt and modelId are required' },
+        { status: 400 }
+      );
+    }
+
+    if (typeof prompt !== 'string' || prompt.length > 4000) {
+      return NextResponse.json(
+        { error: 'Prompt must be a string of at most 4000 characters' },
         { status: 400 }
       );
     }

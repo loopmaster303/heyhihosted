@@ -4,6 +4,8 @@ import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handl
 import { WebContextService } from '@/lib/services/web-context-service';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import { httpsPost, httpsPostStream } from '@/lib/https-post';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { readBodyWithLimit } from '@/lib/upload/read-body-with-limit';
 import { resolveChatSearchStrategy } from '@/lib/chat/chat-search-strategy';
 import { isKnownPollinationsTextModelId } from '@/config/chat-options';
 
@@ -31,10 +33,36 @@ interface ChatCompletionMessage {
 }
 
 // Validation schema
+const MAX_MESSAGE_CHARS = 100_000;
+const ImageUrlDataSchema = z.object({
+  url: z.string().min(1).max(6_000_000),
+  // Client-originated fields preserved on input; stripped on output.
+  remoteUrl: z.string().optional(),
+  altText: z.string().optional(),
+  isGenerated: z.boolean().optional(),
+  isUploaded: z.boolean().optional(),
+  metadata: z.object({ assetId: z.string().nullable() }).optional(),
+});
+const MessageSchema = z.object({
+  role: z.enum(['system', 'user', 'assistant', 'tool']),
+  content: z.union([
+    z.string().max(MAX_MESSAGE_CHARS),
+    z
+      .array(
+        z.union([
+          z.object({ type: z.literal('text'), text: z.string().max(MAX_MESSAGE_CHARS) }),
+          z.object({ type: z.literal('image_url'), image_url: ImageUrlDataSchema }),
+        ])
+      )
+      .max(20),
+  ]),
+  name: z.string().optional(),
+});
+
 const ChatCompletionSchema = z.object({
-  messages: z.array(z.any()).min(1, 'At least one message is required'),
+  messages: z.array(MessageSchema).min(1, 'At least one message is required').max(200),
   modelId: z.string().min(1, 'Model ID is required'),
-  systemPrompt: z.string().optional(),
+  systemPrompt: z.string().max(50_000).optional(),
   webBrowsingEnabled: z.boolean().optional(),
   skipSmartRouter: z.boolean().optional(),
   stream: z.boolean().optional(),
@@ -96,7 +124,16 @@ async function readStreamAsText(stream: ReadableStream<Uint8Array>): Promise<str
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const rate = checkRateLimit(request, { name: 'chat-completion', limit: 30, windowMs: 60_000 });
+    if (!rate.ok) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
+    const rawBody = await readBodyWithLimit(request, 8 * 1024 * 1024, 'Request body too large (max 8MB)');
+    const body = JSON.parse(rawBody.toString('utf8'));
 
     // BYOP: Resolve API key (user key from header → env var fallback)
     const apiKey = resolvePollenKey(request);
@@ -208,7 +245,7 @@ export async function POST(request: Request) {
             detail = errorJson.error?.message || errorJson.error || fallbackResponse.body;
           } catch { }
           console.error(`[API] Pollinations ${fallbackResponse.status}:`, detail);
-          throw new ApiError(fallbackResponse.status, `Pollinations API error: ${detail}`);
+          throw new ApiError(fallbackResponse.status >= 500 ? 502 : fallbackResponse.status, 'Upstream model request failed');
         }
 
         return new Response(fallbackResponse.body, {
@@ -232,7 +269,7 @@ export async function POST(request: Request) {
           normalizedDetail = errorJson.error?.message || errorJson.error || detail;
         } catch { }
         console.error(`[API] Pollinations ${pollinationsResponse.status}:`, normalizedDetail);
-        throw new ApiError(pollinationsResponse.status, `Pollinations API error: ${normalizedDetail}`);
+        throw new ApiError(pollinationsResponse.status >= 500 ? 502 : pollinationsResponse.status, 'Upstream model request failed');
       }
 
       return new Response(pollinationsResponse.stream, {
@@ -259,7 +296,7 @@ export async function POST(request: Request) {
         detail = errorJson.error?.message || errorJson.error || pollinationsResponse.body;
       } catch { }
       console.error(`[API] Pollinations ${pollinationsResponse.status}:`, detail);
-      throw new ApiError(pollinationsResponse.status, `Pollinations API error: ${detail}`);
+      throw new ApiError(pollinationsResponse.status >= 500 ? 502 : pollinationsResponse.status, 'Upstream model request failed');
     }
 
     const result = JSON.parse(pollinationsResponse.body);

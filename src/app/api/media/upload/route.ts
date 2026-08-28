@@ -62,8 +62,11 @@ export async function POST(request: Request) {
     }
 
     if (!upstreamResponse.ok) {
-      const errorMessage = parsed?.error || `Upstream media upload failed (${upstreamResponse.status})`;
-      return NextResponse.json({ error: errorMessage }, { status: upstreamResponse.status });
+      console.error('[media/upload] Upstream error:', upstreamResponse.status, rawBody);
+      return NextResponse.json(
+        { error: `Upstream media upload failed (${upstreamResponse.status})` },
+        { status: upstreamResponse.status }
+      );
     }
 
     return NextResponse.json(parsed);

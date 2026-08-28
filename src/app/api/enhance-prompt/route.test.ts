@@ -1,4 +1,5 @@
 import { POST } from './route';
+import { _resetRateLimitForTesting } from '@/lib/rate-limit';
 
 const getPollinationsChatCompletionMock = jest.fn();
 const resolvePollenKeyMock = jest.fn((_request?: unknown) => '');
@@ -23,6 +24,7 @@ describe('/api/enhance-prompt route', () => {
   let consoleWarnSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    _resetRateLimitForTesting();
     getPollinationsChatCompletionMock.mockReset();
     getPollinationsChatCompletionMock.mockResolvedValue({ responseText: 'enhanced prompt' });
     resolvePollenKeyMock.mockReset();

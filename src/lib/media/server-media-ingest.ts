@@ -185,8 +185,8 @@ export async function fetchAndStoreRemoteMedia(
   }
 
   if (!uploadResponse.ok) {
-    const errorMessage = uploadData?.error || `Upstream media ingest failed (${uploadResponse.status})`;
-    throw new ApiError(uploadResponse.status, errorMessage);
+    console.error('[media-ingest] Upstream error:', uploadResponse.status, rawBody);
+    throw new ApiError(uploadResponse.status, `Upstream media ingest failed (${uploadResponse.status})`);
   }
 
   return {

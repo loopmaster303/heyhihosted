@@ -3,6 +3,7 @@ import { ApiError, handleApiError } from '@/lib/api-error-handler';
 import { resolvePrunaKey } from '@/lib/resolve-pruna-key';
 import { uploadPrunaFile } from '@/lib/pruna/client';
 import { readBodyWithLimit } from '@/lib/upload/read-body-with-limit';
+import { isActiveContentType } from '@/lib/upload/content-type-policy';
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
@@ -12,6 +13,9 @@ export async function POST(request: Request) {
     if (!apiKey) throw new ApiError(503, 'A Pruna API key is required', 'MISSING_PRUNA_KEY');
 
     const contentType = request.headers.get('content-type')?.split(';')[0].trim() || '';
+    if (isActiveContentType(contentType)) {
+      throw new ApiError(415, 'This content type is not allowed for uploads', 'INVALID_MEDIA_TYPE');
+    }
     if (!contentType.startsWith('image/') && !contentType.startsWith('video/')) {
       throw new ApiError(400, 'Only image or video uploads are supported', 'INVALID_MEDIA_TYPE');
     }

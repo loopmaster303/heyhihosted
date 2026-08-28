@@ -15,6 +15,7 @@ import {
 import { getPrunaModelMapping } from '@/config/pruna-models';
 import { generateViaPruna, isPendingPrediction } from '@/lib/pruna/client';
 import { deliverPrunaResult } from '@/lib/pruna/deliver';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { pixelsForAspect, QUALITY_MODELS } from '@/lib/playground/pollinations-caps';
 import {
   findRegistryModel,
@@ -55,6 +56,14 @@ const ImageGenerationSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const rate = checkRateLimit(request, { name: 'generate', limit: 20, windowMs: 60_000 });
+    if (!rate.ok) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
     const body = await request.json();
     const {
       prompt,

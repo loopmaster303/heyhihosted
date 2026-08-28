@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { textToSpeech } from '@/ai/flows/tts-flow';
 import { handleApiError, validateRequest } from '@/lib/api-error-handler';
 import { DEFAULT_TTS_SPEED, isSupportedTtsSpeed } from '@/lib/chat/audio-settings';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const MAX_TTS_TEXT_LENGTH = 4000;
 
@@ -18,6 +19,14 @@ const TTSSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const rate = checkRateLimit(request, { name: 'tts', limit: 30, windowMs: 60_000 });
+    if (!rate.ok) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
     const body = await request.json();
     
     // Validate request

@@ -1,6 +1,30 @@
 import type { NextConfig } from 'next';
 
+const securityHeaders = [
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), geolocation=()' },
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+  // Report-only first: collect violations before enforcing a CSP. The app
+  // embeds user-generated media from many hosts, so an enforcing CSP needs
+  // its allowlist validated against real traffic.
+  {
+    key: 'Content-Security-Policy-Report-Only',
+    value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https:",
+  },
+];
+
 const nextConfig: NextConfig = {
+  /* Kein output: 'export' - normal Server-Build */
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
+    ];
+  },
   /* Kein output: 'export' - normal Server-Build */
   turbopack: {
     root: process.cwd(),

@@ -1,5 +1,6 @@
 import { POST } from './route';
 import { UNIFIED_IMAGE_MODELS } from '@/config/unified-image-models';
+import { _resetRateLimitForTesting } from '@/lib/rate-limit';
 
 const enabledPrunaImageModelIds = UNIFIED_IMAGE_MODELS
   .filter((model) => model.provider === 'pruna' && model.kind === 'image' && model.enabled !== false)
@@ -53,6 +54,7 @@ describe('/api/generate route', () => {
 
   beforeEach(() => {
     process.env.PRUNA_API_KEY = 'test-pruna-key';
+    _resetRateLimitForTesting();
     global.fetch = originalFetch;
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});

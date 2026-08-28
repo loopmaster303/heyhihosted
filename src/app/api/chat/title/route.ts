@@ -3,13 +3,36 @@ import { handleApiError, validateRequest } from '@/lib/api-error-handler';
 import { z } from 'zod';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
 import { httpsPost } from '@/lib/https-post';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { readBodyWithLimit } from '@/lib/upload/read-body-with-limit';
 
 const POLLEN_CHAT_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
 
 // Validation schema
 const TitleGenerationSchema = z.object({
-  messages: z.array(z.any()).min(1, 'At least one message is required'),
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(['system', 'user', 'assistant', 'tool']),
+        content: z.union([
+          z.string().max(100_000),
+          z
+            .array(z.object({ type: z.string(), text: z.string().max(100_000).optional() }).passthrough())
+            .max(20),
+        ]),
+      })
+    )
+    .min(1)
+    .max(200),
 });
+
+function extractTextContent(content: z.infer<typeof TitleGenerationSchema>['messages'][number]['content']): string {
+  if (typeof content === 'string') return content;
+  return content
+    .filter((part) => part.type === 'text')
+    .map((part) => part.text || '')
+    .join(' ');
+}
 
 const buildFallbackTitle = (userMessage: string) => {
   const trimmed = userMessage.trim();
@@ -19,13 +42,22 @@ const buildFallbackTitle = (userMessage: string) => {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const rate = checkRateLimit(request, { name: 'chat-title', limit: 30, windowMs: 60_000 });
+    if (!rate.ok) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
+    const rawBody = await readBodyWithLimit(request, 8 * 1024 * 1024, 'Request body too large (max 8MB)');
+    const body = JSON.parse(rawBody.toString('utf8'));
     const { messages } = validateRequest(TitleGenerationSchema, body);
 
     // Extract user message for title generation
-    const userMessage = messages
-      .filter((m: any) => m.role === 'user')
-      .pop()?.content || '';
+    const userMessage = extractTextContent(
+      messages.filter((m) => m.role === 'user').pop()?.content ?? ''
+    );
 
     const fallbackTitle = buildFallbackTitle(userMessage);
 

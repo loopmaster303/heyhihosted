@@ -147,7 +147,7 @@ describe('/api/media/upload route', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('forwards upstream upload failures', async () => {
+  it('reports the upstream status without leaking the upstream error text', async () => {
     const { POST } = await import('./route');
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
@@ -164,6 +164,9 @@ describe('/api/media/upload route', () => {
     const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
 
     expect(response.status).toBe(502);
-    expect(body.error).toBe('upstream down');
+    // Der Upstream-Text geht ins Log, nicht an den Client: er kann Interna der
+    // Gegenstelle enthalten, und der Status allein ist die verwertbare Info.
+    expect(body.error).toBe('Upstream media upload failed (502)');
+    expect(body.error).not.toContain('upstream down');
   });
 });
