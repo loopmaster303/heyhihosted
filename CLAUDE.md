@@ -2,7 +2,7 @@
 
 **Ecosystem:** democrabs — "The crab snaps with everyone but it's yours"
 
-Assistant guidance for Claude working in this repository. Last verified against the code on 2026-08-12.
+Assistant guidance for Claude working in this repository. Architecture last verified against the code on 2026-08-12. **Model lists last verified 2026-08-12 and known to be stale — see the warning under Current Runtime Truth.**
 
 ## Start Here
 
@@ -10,6 +10,7 @@ Assistant guidance for Claude working in this repository. Last verified against 
 2. Treat [README.md](/Users/johnmeckel/heyhihosted/README.md), [docs/PRODUCT_AUDIT_2026-04-21.md](/Users/johnmeckel/heyhihosted/docs/PRODUCT_AUDIT_2026-04-21.md), and [docs/PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md](/Users/johnmeckel/heyhihosted/docs/PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md) as the current product/runtime truth.
 3. Use [docs/README.md](/Users/johnmeckel/heyhihosted/docs/README.md) as the docs map for active vs archived material.
 4. Prefer updating one canonical truth document instead of duplicating architecture notes in multiple places.
+5. Active plan: [docs/FAHRPLAN-create.md](/Users/johnmeckel/heyhihosted/docs/FAHRPLAN-create.md) — ten phases toward the publicly shareable version, with [docs/HANDOFF-2026-08-27-fahrplan.md](/Users/johnmeckel/heyhihosted/docs/HANDOFF-2026-08-27-fahrplan.md) as the orientation for each phase.
 
 ## Project Snapshot
 
@@ -24,6 +25,27 @@ Assistant guidance for Claude working in this repository. Last verified against 
 - The product surface calls the generated-media area **Output**; the Playground calls the same area **Gallery**
 
 ## Current Runtime Truth
+
+> **⚠ The model lists in this section have drifted (verified live 2026-08-27).**
+> Architecture, provider semantics, BYOP keys, asset persistence and upload rules below
+> remain reliable. **Model lists do not.** Confirmed against
+> `gen.pollinations.ai/audio/models` and `gen.pollinations.ai/image/models`:
+>
+> - `acestep` **no longer exists**, and **every** Pollinations text→audio model is now
+>   `paid_only`. There is no free music model. The id still sits in 19 places in the code,
+>   four of them as a default value.
+> - `qwen-image`, `grok-imagine` and `ideogram-v4-turbo` are **key-gated**, not free.
+> - `gpt-image`, `wan-image-small` and `ltx-2` **do not exist** in the registry.
+> - Free and unlisted here: `dreamshaper`, `nova-canvas`, `nova-reel` (video, free).
+> - The registry now carries namespaced models (`vendouple/…`, `MarcosFRG/…`) that the
+>   config does not know, and `p-image` / `p-image-edit` / `p-video` now appear on
+>   Pollinations too — which touches the provider split described below. Both are open
+>   questions, not settled facts.
+>
+> **Check the live registry, not this file, for model questions.** Reconciling the lists is
+> Phase 3 of [the active plan](/Users/johnmeckel/heyhihosted/docs/FAHRPLAN-create.md);
+> the full findings are in
+> [the handoff](/Users/johnmeckel/heyhihosted/docs/HANDOFF-2026-08-27-fahrplan.md), section 4.
 
 ### Visible text models
 Governed manually by `VISIBLE_POLLINATIONS_MODEL_IDS` in [src/config/chat-options.ts](/Users/johnmeckel/heyhihosted/src/config/chat-options.ts):
@@ -42,7 +64,7 @@ Careful: the `gemini` id is Gemini 3 Flash (paid) and is *not* the same as the v
 | `isFree` | usable without a key |
 | `byopVisible` | surfaces once the user brings their own key |
 
-Free and enabled today: `flux`, `zimage`, `gpt-image`, `klein`, `kontext`, `gptimage-large`, `qwen-image`, `grok-imagine`, `ideogram-v4-turbo`, `wan-image-small`, `ltx-2`.
+Marked free and enabled in the config: `flux`, `zimage`, `gpt-image`, `klein`, `kontext`, `gptimage-large`, `qwen-image`, `grok-imagine`, `ideogram-v4-turbo`, `wan-image-small`, `ltx-2` — **six of these eleven are wrong as of 2026-08-27**, see the warning above. Only `flux`, `zimage`, `klein`, `kontext` and `gptimage-large` still check out.
 
 Enabled but key-gated: the `p-*` Pruna family (`p-image`, `p-image-edit`, `p-image-try-on`, `p-image-upscale`, `p-video`, `p-video-avatar`, `p-video-animate`, `p-video-replace`), plus `qwen-image-edit-plus`, `wan-t2v`, `wan-i2v`, `vace`.
 
@@ -115,6 +137,25 @@ Where a generated asset ends up depends on the model's provider, via `isPollinat
 
 Never use `URL.createObjectURL` directly — go through `BlobManager` so the URL is revoked on unload. Never hardcode `isPollinations`; a blob URL stored as a `remoteUrl` is dead after a reload.
 
+### Long runs answer 202, the browser polls (since 2026-08-26)
+
+No request waits for a video any more. Anything not immediately finished comes back as
+`202 { pending, predictionId, model }` and the browser takes over:
+
+- `generateViaPruna` in [src/lib/pruna/client.ts](/Users/johnmeckel/heyhihosted/src/lib/pruna/client.ts) ends at the run id; the server-side `pollPrediction` is gone.
+- [`/api/pruna/status`](/Users/johnmeckel/heyhihosted/src/app/api/pruna/status/route.ts) — `GET ?id=&model=`, answers 202 while computing, otherwise exactly like `/api/generate`.
+- [src/lib/pruna/deliver.ts](/Users/johnmeckel/heyhihosted/src/lib/pruna/deliver.ts) — download plus media upload, shared by both routes so the response shape stays identical.
+- [src/lib/generation/request-generation.ts](/Users/johnmeckel/heyhihosted/src/lib/generation/request-generation.ts) — holds the wait in the tab (3 s interval, 30 min cutoff, abortable) and returns the same `Response` the caller used to get directly. Callers use it in place of `fetch`.
+
+Why: VACE runs 348–700 s measured, the old server poll limit was 180 s and Vercel's default
+function limit is 300 s — it could never structurally complete. A reload still loses the run;
+the `predictionId` lives only in memory.
+
+**Pruna rejects any unknown input field** with `400 additional properties forbidden, found <field>`.
+Model schemas at `docs.api.pruna.ai/guides/models/<model>` proved reliable; guessing did not.
+Pruna has **no cancel endpoint**, so every valid payload starts a billable run — to exercise
+validation without paying, send an unreachable media URL (`https://invalid.invalid/x.jpg`).
+
 ## Upload Hardening
 
 - `readBodyWithLimit()` streams a request or response body and aborts at the limit. Use it instead of `arrayBuffer()`, which buffers before the size can be checked.
@@ -156,6 +197,20 @@ CI=1 npm test -- --runInBand path/to/test.ts
 - **Deploy truth resolved for this domain.** `chat.hey-hi.cloud` is served by Vercel (connected GitHub project, auto-deploy from `main`). `apphosting.yaml` still exists but is not the active host for this domain.
 - Search/research routing is delegated through a single strategy path; `WebContextService` is an optional helper invoked only when `shouldFetchWebContext` is set, not the default delegated path.
 - The system prompt in `chat-options.ts` still contains "Burn the Corpos" and filter-evasion passages. Editorial hardening only on explicit instruction.
+
+## Schriftregel
+
+Zwei Familien, seit dem Umbau 2026-08-22 (vorher war alles Monospace):
+
+| | |
+|---|---|
+| **Proportional** (`font-body`, IBM Plex Sans) | Gesprochenes: Chat-Antworten, Erklaerungen, Fehlermeldungen, Beschriftungen |
+| **Monospace** (`font-mono`, Code) | Maschinelles: Werte, Modell-IDs, Seeds, Zustaende, Zeitangaben, Code |
+
+`body` traegt Proportional — Maschinelles muss **explizit** ausgezeichnet werden.
+`code`, `pre`, `kbd`, `samp` sind global in [globals.css](/Users/johnmeckel/heyhihosted/src/app/globals.css) gesichert, weil sie vorher nur monospace waren, als es die ganze App war; ohne die Regel fielen Code-Bloecke still auf Proportional zurueck.
+
+Kein globales `lowercase` im Chat: dort steht deutscher Fliesstext, Substantive bleiben gross. Das democrabs-Onboarding fuehrt `font-mono lowercase` durchgehend — das ist dort richtig und hier nicht.
 
 ## Cleanup Rules
 

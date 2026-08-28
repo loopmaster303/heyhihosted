@@ -47,16 +47,41 @@ Visualize offers **two providers**, switchable in the config sidebar:
 
 The switch scopes the visualize model list only. Everything else — chat, compose, voice, prompt enhancement — always runs through Pollinations.
 
-Per-model tiers (free · key-required · hidden) are governed by the `isFree` / `enabled` / `byopVisible` flags in [`src/config/unified-image-models.ts`](src/config/unified-image-models.ts) — **that file is the single source of truth**. Representative free-tier models: Flux.1 Fast (`flux`), GPT Image 1 Mini (`gpt-image`), Flux.2 Klein (`klein`), Flux.1 Kontext (`kontext`), GPT-Image Large (`gptimage-large`), Grok Imagine (`grok-imagine`), Ideogram V4 Turbo (`ideogram-v4-turbo`), Z-Image Turbo (`zimage`), plus LTX-2 (`ltx-2`) for video. Advanced image models (Seedream, Nano Banana family, Grok Imagine Pro, WAN 2.7) and the remaining video models require a key.
+Per-model tiers (free · key-required · hidden) are governed by the `isFree` / `enabled` / `byopVisible` flags in [`src/config/unified-image-models.ts`](src/config/unified-image-models.ts) — **that file is the single source of truth**.
+
+> **⚠ The config has drifted from the live Pollinations registry (checked 2026-08-27).**
+> Free and confirmed: Flux.1 Fast (`flux`), Flux.2 Klein (`klein`), Flux.1 Kontext (`kontext`),
+> GPT-Image Large (`gptimage-large`), Z-Image Turbo (`zimage`).
+> Listed as free but actually **key-gated**: `qwen-image`, `grok-imagine`, `ideogram-v4-turbo`.
+> Listed but **no longer in the registry at all**: `gpt-image`, `wan-image-small`, `ltx-2`.
+> Free and not yet listed: `dreamshaper`, `nova-canvas`, `nova-reel` (video).
+> Reconciling this is Phase 3 of [the active plan](docs/FAHRPLAN-create.md).
+
+Advanced image models (Seedream, Nano Banana family, Grok Imagine Pro, WAN 2.7) and the remaining video models require a key.
 
 ### Compose (Music)
 
-| Model | Access | Length |
-| ----- | ------ | ------ |
-| **ACE-Step 1.5** (`acestep`) | Free (no key) | up to 1 minute |
-| **ACE-Step 1.5** with key | Pollinations key | stepped up to 5 minutes |
-| **ElevenMusic v2** (`elevenmusic`) | Pollinations key | stepped up to 5 minutes |
-| **Stable Audio 3 Medium** (`stable-audio-3-medium`) | Pollinations key | stepped up to 5 minutes |
+> **⚠ Compose is currently switched off** (`FEATURES.compose = false` in
+> [`src/config/features.ts`](src/config/features.ts)) and the table below no longer matches
+> reality. Checked live on 2026-08-27: **`acestep` no longer exists at Pollinations, and every
+> Pollinations text→audio model is key-gated.** There is no free music tier any more. Music
+> moves into Create behind the Pollen wall — Phase 8 of
+> [the active plan](docs/FAHRPLAN-create.md).
+
+What the live registry offers today, all requiring a Pollinations key:
+
+| Model | Access | Note |
+| ----- | ------ | ---- |
+| **ElevenMusic** (`elevenmusic`) | Pollinations key | music from a prompt or reference track |
+| **Stable Audio 3 Large** (`stable-audio-3-large`) | Pollinations key | priced per generation |
+| **Stable Audio 3 Medium** (`stable-audio-3-medium`) | Pollinations key | long-form stereo |
+| **Lyria 3 Clip** (`lyria-3-clip`) | Pollinations key | 30 s, vocals or instrumental — not yet wired up |
+
+What the code still contains, and which no longer works:
+
+| Model | Status |
+| ----- | ------ |
+| **ACE-Step 1.5** (`acestep`) | **gone from the registry**; still the default in four places in the code |
 
 ## Tech Stack
 

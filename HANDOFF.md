@@ -4,8 +4,9 @@
 
 `~/heyhihosted` — kanonisches Level-2-Repo im hey-hi Ökosystem.
 
-GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (Stand `2b59c86`)
+GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (Stand `f880389`)
 Live: `https://chat.hey-hi.cloud` + `https://chat.hey-hi.cloud/playground`
+Geplant: `https://create.hey-hi.cloud` (gleiches Vercel-Projekt, Rewrite auf `/playground`)
 
 ## Was ist das Projekt
 
@@ -13,13 +14,34 @@ Live: `https://chat.hey-hi.cloud` + `https://chat.hey-hi.cloud/playground`
 
 Seit August 2026 enthält `main` auch den **Playground** (`/playground`): einen dedizierten, Vollbild-Workspace für Bild- und Videogenerierung mit Provider-Switch, Modus-Tabs, Referenz-Uploads und Generierungs-Details.
 
-## Aktueller State (2026-08-12)
+## Aktueller State (2026-08-27)
 
-- **HEAD = `2b59c86`**, synchron mit `origin/main`.
-- **Playground-Merge abgeschlossen:** `playground/redesign` + WIP-Checkpoint `wip/aug12-chat-upload-visualize` wurden in `main` gemergt, Konflikte aufgelöst, gepusht.
-- **Cleanup erledigt:** Worktrees `heyhihosted-playground` und `heyhihosted-playground-b` entfernt, obsolete Branches gelöscht, Tailscale-Test-Port entfernt.
-- **Verifikation grün:** `npm run lint` 0 Fehler · `npm run typecheck` sauber · **588/588 Tests** (90 Suiten) · `npm run build` grün.
-- **Live-Deploy bestätigt:** `chat.hey-hi.cloud` und `chat.hey-hi.cloud/playground` erreichbar und funktionsfähig.
+> **⚠ Der Arbeitsbaum ist nicht sauber.** 65 geänderte und rund 20 neue Dateien liegen
+> **uncommitted** da, aus mindestens zwei nicht abgeschlossenen Sitzungen. Vor jeder weiteren
+> Arbeit gehört das sortiert — das ist Phase 0 des aktiven Fahrplans. Nicht als Block
+> committen: die zweite Gruppe löscht Komponenten und verschiebt Module, ohne dass ein
+> Handoff die Absicht festhält.
+
+- **HEAD = `f880389`**, synchron mit `origin/main`. Darüber liegt der offene Arbeitsbaum.
+- **Aktiver Plan:** [`docs/FAHRPLAN-create.md`](docs/FAHRPLAN-create.md) — zehn Phasen zur öffentlich verlinkbaren Version.
+- **Orientierung je Phase:** [`docs/HANDOFF-2026-08-27-fahrplan.md`](docs/HANDOFF-2026-08-27-fahrplan.md) — Zuordnung des Arbeitsbaums nach Herkunft, Wegweiser und Fallstricke pro Phase.
+- **Letzte Sitzung mit Code:** [`docs/HANDOFF-2026-08-26-pruna-video.md`](docs/HANDOFF-2026-08-26-pruna-video.md) — 780 Tests grün, `typecheck` und `lint` sauber, gegen den laufenden Dev-Server verifiziert. **Nicht live verifiziert.**
+- **Live-Deploy:** `chat.hey-hi.cloud` und `chat.hey-hi.cloud/playground` erreichbar; sie zeigen den Stand `f880389`, nicht den Arbeitsbaum.
+
+### ⚠ Die Modell-Listen im Repo stimmen nicht mehr
+
+Live gegen die Pollinations-Registry geprüft am 2026-08-27:
+
+- **`acestep` existiert nicht mehr**, und **alle** Pollinations-Modelle mit Text→Audio sind
+  schlüsselpflichtig. Es gibt kein kostenloses Musikmodell. Die Id steht weiterhin an
+  19 Stellen im Code, vier davon als Vorgabewert.
+- `qwen-image`, `grok-imagine`, `ideogram-v4-turbo` sind **schlüsselpflichtig**, nicht frei.
+- `gpt-image`, `wan-image-small`, `ltx-2` **existieren nicht mehr**.
+- Frei und nirgends geführt: `dreamshaper`, `nova-canvas`, `nova-reel` (Video).
+
+Betrifft `CLAUDE.md`, `README.md`, `src/config/unified-image-models.ts` und
+`src/config/chat-options.ts`. **Modellfragen gegen die Live-Registry prüfen, nicht gegen die
+Dokumentation.** Der Abgleich ist Phase 3 des Fahrplans.
 
 ## Wichtige technische Eckpunkte nach dem Merge
 
@@ -31,7 +53,19 @@ Seit August 2026 enthält `main` auch den **Playground** (`/playground`): einen 
 - **Safety-Filter:** Für Pruna-Modelle pro Modell-Doku deaktiviert (`disable_safety_checker` / `disable_safety_filter` je nach API-Schema).
 - **Upload-Härtung:** Raw-body only, multipart wird abgelehnt; `readBodyWithLimit()` streamt statt zu puffern.
 
-## Was in dieser Session passiert ist (2026-08-12)
+## Was seit dem 12.08. passiert ist
+
+- **2026-08-26** — Pruna-Payload-Korrekturen, Umstellung auf Client-Polling (`202`-Protokoll,
+  `/api/pruna/status`), VACE ausgeblendet, Pollen-Key-Feld repariert. Details im
+  [Sitzungs-Handoff](docs/HANDOFF-2026-08-26-pruna-video.md). Uncommitted.
+- **2026-08-27** — Analyse und Planung, kein Code: Fahrplan in zehn Phasen, Registry-Drift
+  aufgedeckt, Entscheidungen zu Domain, Galerie und Musik festgehalten. Details im
+  [Fahrplan-Handoff](docs/HANDOFF-2026-08-27-fahrplan.md).
+- Dazwischen liegt eine **ältere, undokumentierte Sitzung** (Chat-Input-Umbau,
+  Settings-Umzug, ASCII-Komponenten, Rate-Limit, Features-Flag), deren Absicht nirgends
+  festgehalten ist. Ihre Dateien sind in Abschnitt 5.1 des Fahrplan-Handoffs aufgelistet.
+
+## Was beim Playground-Merge passiert ist (2026-08-12)
 
 1. **Playground-Redesign finalisieren:** Lade-Spinner, Generation-Details, Download/Retry/Referenz-Buttons, Detail-Drawer für fertige Ergebnisse.
 2. **Aspect-Ratio-Fix:** UI zeigt echte Seitenverhältnisse; serverseitige Übersetzung für Pollinations- und Pruna-Modelle.
@@ -47,17 +81,41 @@ Seit August 2026 enthält `main` auch den **Playground** (`/playground`): einen 
 - **Ökosystem-Integration:** Level-1 (sayhi) und Level-3 (democrabs) sind separate Repos; XLinks/MainSpace in `heyhireset`.
 - **True Streaming:** Chat bleibt non-streaming JSON über `/api/chat/completion` (siehe `docs/streaming-status.md`).
 
-## Nächste Schritte (unpriorisiert)
+## Nächste Schritte
+
+Priorisiert im [Fahrplan](docs/FAHRPLAN-create.md). Kurzfassung:
+
+```
+Phase 0 ─► Phase 1 ─► Phase 2 ─► Phase 3 ─┬─► Phase 4 ─► Phase 5 ─► Phase 6 ─► Phase 8 ─► Phase 9
+                                          └─► Phase 7
+```
+
+| Phase | Inhalt |
+|---|---|
+| **0** | Arbeitsbaum konsolidieren — **blockiert alles** |
+| **1** | Launch-Kriterien als Definition of Done festschreiben |
+| **2** | Playground heißt Create, eigene Adresse, Navigation in beide Richtungen |
+| **3** | Modellwahrheit gegen die Live-Registry — **blockiert 4, 7 und 8** |
+| **4** | Verständliche Fehlermeldungen, Laufstabilität |
+| **5** | Eine Galerie für Chat und Create, Löschen |
+| **6** | Create auf dem Telefon |
+| **7** | Visualize im Chat entschlanken |
+| **8** | Musik im Create, hinter der Pollenwall |
+| **9** | ASCII-Flow im Create |
+| **10** | Musik auf eigener Infrastruktur — **zurückgestellt** |
+
+Weiterhin offen, außerhalb des Fahrplans:
 
 1. Ungenutzte Dependencies prüfen (`knip` meldete historisch False Positives).
-2. Restliche tote UI-Bausteine aufräumen, falls sie nicht mehr benötigt werden.
-3. Ghost-Einträge in Registries (z. B. `seedream`, `dirtberry`) gegen aktuelle API-Realität prüfen.
-4. Weiteres Ökosystem-Cleanup nach Bedarf in den anderen Level-Repos.
+2. Ghost-Einträge in Registries (z. B. `seedream`, `dirtberry`) — fällt weitgehend mit Phase 3 zusammen.
+3. Weiteres Ökosystem-Cleanup nach Bedarf in den anderen Level-Repos.
 
 ## Für den nächsten Agenten
 
 1. Dieses Handoff lesen.
-2. `AGENTS.md` für den 4-Phasen-Workflow beachten.
-3. `CLAUDE.md` für Runtime-Truth (Modelle, Provider-Semantik, BYOP-Keys, Asset-Persistence).
-4. `docs/README.md` als Karte für aktive vs. archivierte Docs nutzen.
-5. Keine neuen Wahrheitsdokumente erfinden — bestehende aktualisieren.
+2. [`docs/HANDOFF-2026-08-27-fahrplan.md`](docs/HANDOFF-2026-08-27-fahrplan.md) lesen — es ordnet den Arbeitsbaum zu und nennt je Phase Fundort und Fallstricke.
+3. `AGENTS.md` für den 4-Phasen-Workflow beachten.
+4. `CLAUDE.md` für Runtime-Truth — **außer Modell-Listen**, siehe Warnung oben.
+5. `docs/README.md` als Karte für aktive vs. archivierte Docs nutzen.
+6. Keine neuen Wahrheitsdokumente erfinden — bestehende aktualisieren.
+7. Modell- und Schnittstellenfragen gegen die laufende API prüfen, nicht gegen den Code. Das ist die durchgehende Lehre der August-Sitzungen.
