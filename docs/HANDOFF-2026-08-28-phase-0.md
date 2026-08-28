@@ -185,9 +185,14 @@ Das ist der Teil, der dich betrifft.
   Toter oder vorgezogener Text. Beim Anfassen der Übersetzungen mitentscheiden.
 
 ### Für Phase 3 — Modellwahrheit
-- **`PRUNA_API_KEY` ist in der Vercel-Umgebung nicht gesetzt** (live geprüft). Jedes
-  Pruna-Modell antwortet einem Besucher ohne eigenen Schlüssel mit 503. Das ändert die
-  Frage, welche Modelle „verfügbar" überhaupt heisst.
+- **Pruna ist BYOP-only, und das ist so gewollt** (bestätigt vom Nutzer am 2026-08-28).
+  In der Vercel-Umgebung liegt kein `PRUNA_API_KEY` und soll auch keiner liegen — jeder
+  Lauf kostet Geld, also bringt jeder seinen eigenen Schlüssel mit. Für **Pollinations**
+  liegt dagegen ein Server-Key bereit, weshalb die freien Modelle dort ohne Zutun laufen.
+  **Für die Modellwahrheit heisst das:** „verfügbar" hat zwei Stufen — ohne Schlüssel nur
+  die freien Pollinations-Modelle, mit Schlüssel zusätzlich die schlüsselpflichtigen und
+  die gesamte `p-*`-Familie. Die Flags `isFree` und `byopVisible` bilden genau diese zwei
+  Stufen ab; sie müssen dazu aber stimmen (siehe Registry-Drift).
 - VACE ist seit C7 `enabled: false` **und** `byopVisible: false`. Bewusst abgeschaltet,
   nicht gelöscht — Mapping, Schema und Enhancement-Prompt liegen unberührt weiter.
   **Nicht versehentlich reaktivieren.**
@@ -197,7 +202,10 @@ Das ist der Teil, der dich betrifft.
 ### Für Phase 4 — Fehlerklarheit und Laufstabilität
 Fünf konkrete Fundstellen, alle live oder mechanisch belegt:
 - **Die 503-Meldung nennt einer Endnutzerin eine Server-Umgebungsvariable:**
-  `"Model wan-i2v requires PRUNA_API_KEY which is not set"`. Musterfall für diese Phase.
+  `"Model wan-i2v requires PRUNA_API_KEY which is not set"`. Der Zustand dahinter ist
+  richtig (Pruna ist BYOP-only), die Formulierung ist es nicht — sie müsste sagen, dass
+  für dieses Modell ein eigener Pruna-Schlüssel nötig ist, und den Weg zu den
+  Einstellungen zeigen. Musterfall für diese Phase.
 - **`/api/pollen/polly` hat keinen Aufrufer im Frontend** — nur Tests referenzieren die
   Route. Klären, ob sie bleibt.
 - **Der Kommentar in `src/lib/rate-limit.ts` ist irreführend.** Er nennt

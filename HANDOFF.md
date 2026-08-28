@@ -29,9 +29,14 @@ Seit August 2026 enthält `main` auch den **Playground** (`/playground`): einen 
 - **Live-Deploy:** `chat.hey-hi.cloud` und `chat.hey-hi.cloud/playground` zeigen den Stand
   `aa3eac4`. Live geprüft: Chat antwortet, `flux` erzeugt ein echtes Bild, die
   Intent-Erkennung emittiert ihren Marker, `/api/pruna/status` ist erreichbar.
-- **⚠ `PRUNA_API_KEY` ist in der Vercel-Umgebung nicht gesetzt** (live geprüft am 2026-08-28).
-  Besucher ohne eigenen Pruna-Schlüssel bekommen bei jedem Pruna-Modell einen 503. Mit
-  BYOP-Schlüssel im Browser funktioniert es.
+- **Pruna ist bewusst BYOP-only.** In der Vercel-Umgebung ist **kein** `PRUNA_API_KEY`
+  hinterlegt, und das bleibt so: Pruna-Läufe kosten pro Lauf, jeder bringt seinen eigenen
+  Schlüssel mit. Für **Pollinations** liegt dagegen ein Server-Key bereit — deshalb
+  funktionieren die freien Modelle dort ohne Zutun. Live geprüft am 2026-08-28:
+  ohne Pruna-Schlüssel antwortet jedes Pruna-Modell mit 503, mit BYOP-Schlüssel im
+  Browser läuft es. Der Unterschied ist gewollt, nicht kaputt.
+  Offen bleibt allein die **Formulierung**: die 503-Meldung nennt einer Nutzerin die
+  Server-Variable `PRUNA_API_KEY`, statt sie zu den Einstellungen zu schicken (Phase 4).
 
 ### ⚠ Die Modell-Listen im Repo stimmen nicht mehr
 
