@@ -38,6 +38,8 @@ const downloadPrunaResultMock = jest.fn();
 jest.mock('@/lib/pruna/client', () => ({
   generateViaPruna: (...args: unknown[]) => generateViaPrunaMock(...args),
   downloadPrunaResult: (...args: unknown[]) => downloadPrunaResultMock(...args),
+  isPendingPrediction: (result: unknown) =>
+    !!result && typeof result === 'object' && 'predictionId' in result,
 }));
 
 describe('/api/generate route', () => {
@@ -782,7 +784,10 @@ describe('/api/generate route', () => {
 
     // Upload: Storage returned non-ok → 502 (WIP Branch version)
     expect(response.status).toBe(502);
-    expect(body.error).toBe('Media upload failed (500): Storage unavailable');
+    // Wie in /api/media/upload: der Upstream-Text bleibt im Log, der Client
+    // bekommt Status und Ursache-Code.
+    expect(body.error).toBe('Media upload failed (500)');
+    expect(body.error).not.toContain('Storage unavailable');
     expect(body.code).toBe('MEDIA_UPLOAD_ERROR');
     expect(generateViaPrunaMock).toHaveBeenCalled();
     expect(generatePollinationsImageMock).not.toHaveBeenCalled();

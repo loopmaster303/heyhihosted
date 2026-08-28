@@ -13,8 +13,8 @@ import {
   toPollinationsVisualApiModelId,
 } from '@/config/unified-image-models';
 import { getPrunaModelMapping } from '@/config/pruna-models';
-import { generateViaPruna, downloadPrunaResult } from '@/lib/pruna/client';
-import { MEDIA_UPLOAD_URL } from '@/lib/upload/constants';
+import { generateViaPruna, isPendingPrediction } from '@/lib/pruna/client';
+import { deliverPrunaResult } from '@/lib/pruna/deliver';
 import { pixelsForAspect, QUALITY_MODELS } from '@/lib/playground/pollinations-caps';
 import {
   findRegistryModel,
@@ -210,63 +210,25 @@ export async function POST(request: Request) {
         };
 
         const result = await generateViaPruna(canonicalModelId, prunaFields, request.signal, prunaApiKey);
-        const downloaded = await downloadPrunaResult(
-          result.generationUrl,
-          prunaApiKey,
-          request.signal,
-        );
 
-        if (!hasToken) {
-          return new Response(new Uint8Array(downloaded.buffer), {
-            status: 200,
-            headers: {
-              'Content-Type': downloaded.contentType,
-              'Cache-Control': 'no-store',
-              'X-HeyHi-Media-Kind': isVideoModel ? 'video' : 'image',
-            },
-          });
-        }
-
-        // Past the early return above, a token is guaranteed to exist.
-        // Pollinations Media Storage requires multipart/form-data (field `file`);
-        // a raw binary body is rejected with "Unsupported content type".
-        const uploadHeaders: Record<string, string> = {
-          Authorization: `Bearer ${apiKey}`,
-        };
-
-        const uploadForm = new FormData();
-        const prunaFileName = isVideoModel ? `pruna-${Date.now()}.mp4` : `pruna-${Date.now()}.png`;
-        uploadForm.append('file', new Blob([downloaded.buffer], { type: downloaded.contentType }), prunaFileName);
-
-        const uploadResponse = await fetch(MEDIA_UPLOAD_URL, {
-          method: 'POST',
-          headers: uploadHeaders,
-          body: uploadForm,
-          signal: request.signal,
-        });
-
-        if (!uploadResponse.ok) {
-          const errorText = await uploadResponse.text().catch(() => 'Unknown error');
-          throw new ApiError(
-            uploadResponse.status >= 500 ? 502 : 400,
-            `Media upload failed (${uploadResponse.status}): ${errorText}`,
-            'MEDIA_UPLOAD_ERROR'
-          );
-        }
-
-        const uploadData = await uploadResponse.json();
-        if (!uploadData?.url) {
-          throw new ApiError(
-            502,
-            'Media upload succeeded but returned no URL',
-            'MEDIA_UPLOAD_MISSING_URL'
+        // Nichts wartet hier auf ein Video. Wer nicht sofort fertig ist,
+        // bekommt seine Lauf-Id — der Browser fragt sie ueber
+        // /api/pruna/status ab, bis das Ergebnis da ist.
+        if (isPendingPrediction(result)) {
+          console.log('[Pruna] Dispatch pending for', canonicalModelId, result.predictionId);
+          return NextResponse.json(
+            { pending: true, predictionId: result.predictionId, model: canonicalModelId },
+            { status: 202 },
           );
         }
 
         console.log('[Pruna] Dispatch succeeded for', canonicalModelId);
-        return NextResponse.json({
-          imageUrl: isVideoModel ? undefined : uploadData.url,
-          videoUrl: isVideoModel ? uploadData.url : undefined,
+        return await deliverPrunaResult({
+          result,
+          prunaApiKey,
+          pollenKey: hasToken ? apiKey : undefined,
+          isVideo: isVideoModel,
+          signal: request.signal,
         });
     } else if (prunaEligible && !hasPrunaKey) {
       throw new ApiError(503, `Model ${canonicalModelId} requires PRUNA_API_KEY which is not set`);

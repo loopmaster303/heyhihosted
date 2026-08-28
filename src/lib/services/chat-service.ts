@@ -11,6 +11,7 @@ import { processSseStream } from '@/utils/chatHelpers';
 import { getPollenHeaders } from '@/lib/pollen-key';
 import { getPrunaHeaders } from '@/lib/pruna-key';
 import { BlobManager } from '@/lib/blob-manager';
+import { requestGeneration } from '@/lib/generation/request-generation';
 
 export interface SendMessageOptions {
     messages: ApiChatMessage[];
@@ -135,10 +136,10 @@ export class ChatService {
         if (options.video) body.video = options.video;
         if (options.negative_prompt) body.negative_prompt = options.negative_prompt;
 
-        const response = await fetch('/api/generate', {
-            method: 'POST',
+        // Lange Pruna-Laeufe antworten mit einer Lauf-Id statt mit dem Ergebnis;
+        // requestGeneration fragt sie zu Ende ab und liefert dieselbe Response.
+        const response = await requestGeneration(body, {
             headers: { 'Content-Type': 'application/json', ...getPollenHeaders(), ...getPrunaHeaders() },
-            body: JSON.stringify(body),
         });
 
         if (response.status === 404) {

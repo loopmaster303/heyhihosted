@@ -14,6 +14,7 @@ import { usePollenKey } from '@/hooks/usePollenKey';
 import { useProviderMode } from '@/hooks/useProviderMode';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { buildGenerateBody, buildGenerateHeaders, type GenerateBody } from '@/lib/playground/generate-request';
+import { requestGeneration } from '@/lib/generation/request-generation';
 import { isModelInMode } from '@/lib/playground/mode-mapping';
 import { getDefaultDurationSeconds, getUnifiedModel } from '@/config/unified-image-models';
 import { schemaForEntry, defaultsFor, visibleFields, type ParamValues } from '@/lib/playground/param-schema';
@@ -198,9 +199,9 @@ export function PlaygroundShell() {
       ...buildGenerateHeaders(pollenKey || undefined, prunaKey || undefined),
     };
     try {
-      const res = await fetch('/api/generate', {
-        method: 'POST', headers, body: JSON.stringify(body), signal: run.controller.signal,
-      });
+      // Lange Pruna-Laeufe warten nicht im Request — requestGeneration haelt
+      // die Statusabfrage im Browser, bis das Ergebnis da ist.
+      const res = await requestGeneration(body, { headers, signal: run.controller.signal });
       if (!res.ok) throw new Error(await messageFrom(res, 'Generierung fehlgeschlagen'));
       const ct = res.headers.get('content-type') ?? '';
       let mediaUrl: string;

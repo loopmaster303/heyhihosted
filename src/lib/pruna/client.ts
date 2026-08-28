@@ -3,7 +3,9 @@
  *
  * Server-side client for the Pruna AI prediction API.
  * - Sync mode (Try-Sync: true) for fast image models (<60s)
- * - Async mode (submit + poll) for video models
+ * - Anything not finished at that point returns a prediction id; the browser
+ *   polls `/api/pruna/status` until it is done. Nichts wartet mehr im Request:
+ *   VACE braucht 6-12 Minuten und sprengt jedes Function-Timeout.
  *
  * Auth: `apikey` header from PRUNA_API_KEY env var.
  */
@@ -16,20 +18,31 @@ const MAX_PRUNA_DOWNLOAD_REDIRECTS = 5;
 
 const PRUNA_BASE_URL = 'https://api.pruna.ai/v1';
 
-const ASYNC_POLL_MAX_MS = 180_000;
-const ASYNC_POLL_INTERVAL_MS = 2_000;
-
 export interface PrunaPredictionResult {
   generationUrl: string;
   contentType: string;
 }
+
+/** Der Lauf steht noch aus — der Browser fragt ihn ueber seine id weiter ab. */
+export interface PrunaPendingPrediction {
+  predictionId: string;
+}
+
+export type PrunaDispatchResult = PrunaPredictionResult | PrunaPendingPrediction;
+
+export function isPendingPrediction(result: PrunaDispatchResult): result is PrunaPendingPrediction {
+  return 'predictionId' in result;
+}
+
+/** Pruna-Ids sind undurchsichtige Tokens; alles andere gehoert nicht in eine URL. */
+const PREDICTION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
 export async function generateViaPruna(
   modelId: string,
   fields: PrunaFieldInput,
   signal?: AbortSignal,
   requestApiKey?: string,
-): Promise<PrunaPredictionResult> {
+): Promise<PrunaDispatchResult> {
   const apiKey = requestApiKey ?? process.env.PRUNA_API_KEY;
   if (!apiKey) {
     throw new ApiError(503, 'PRUNA_API_KEY is not set', 'MISSING_PRUNA_KEY');
@@ -100,17 +113,91 @@ export async function generateViaPruna(
     );
   }
 
-  if (!prediction.get_url && !prediction.id) {
+  const predictionId = predictionIdFrom(prediction);
+  if (!predictionId) {
     throw new ApiError(502, 'Pruna API returned no prediction ID or status URL', 'PRUNA_MISSING_STATUS');
   }
 
-  const statusUrl = prediction.get_url ?? `${PRUNA_BASE_URL}/predictions/status/${prediction.id}`;
-  const result = await pollPrediction(statusUrl, apiKey, signal);
+  return { predictionId };
+}
 
-  return {
-    generationUrl: result.generation_url,
-    contentType: inferContentType(result.generation_url, mapping.isVideo),
-  };
+/**
+ * Eine einzelne Statusabfrage. Der Aufrufer (die Status-Route) wiederholt sie,
+ * damit kein Request auf ein Video wartet, das Minuten braucht.
+ */
+export async function fetchPrunaPredictionStatus(
+  modelId: string,
+  predictionId: string,
+  requestApiKey?: string,
+  signal?: AbortSignal,
+): Promise<PrunaPredictionResult | 'pending'> {
+  const apiKey = requestApiKey ?? process.env.PRUNA_API_KEY;
+  if (!apiKey) {
+    throw new ApiError(503, 'PRUNA_API_KEY is not set', 'MISSING_PRUNA_KEY');
+  }
+
+  const mapping = getPrunaModelMapping(modelId);
+  if (!mapping) {
+    throw new ApiError(400, `Unknown Pruna model: ${modelId}`, 'UNKNOWN_PRUNA_MODEL');
+  }
+
+  if (!PREDICTION_ID_PATTERN.test(predictionId)) {
+    throw new ApiError(400, 'Invalid Pruna prediction id', 'PRUNA_INVALID_ID');
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${PRUNA_BASE_URL}/predictions/status/${predictionId}`, {
+      headers: { apikey: apiKey },
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    if (signal?.aborted) {
+      throw new ApiError(499, 'Pruna prediction aborted', 'PRUNA_ABORTED');
+    }
+    throw new ApiError(502, 'Unable to reach Pruna API while polling', 'PRUNA_NETWORK_ERROR');
+  }
+
+  if (!response.ok) {
+    throw new ApiError(502, `Pruna status check failed (${response.status})`, 'PRUNA_STATUS_ERROR');
+  }
+
+  const status: PrunaPredictionStatus = await response.json();
+  const generationUrl = normalizeGenerationUrl(status.generation_url);
+
+  if (status.status === 'failed') {
+    throw new ApiError(
+      502,
+      `Pruna prediction failed: ${status.error ?? status.message ?? 'Unknown error'}`,
+      'PRUNA_PREDICTION_FAILED',
+    );
+  }
+
+  if (status.status === 'succeeded') {
+    if (!generationUrl) {
+      throw new ApiError(
+        502,
+        'Pruna prediction succeeded but returned no generation URL',
+        'PRUNA_MISSING_STATUS',
+      );
+    }
+    return { generationUrl, contentType: inferContentType(generationUrl, mapping.isVideo) };
+  }
+
+  return 'pending';
+}
+
+/** Pruna liefert mal `id`, mal nur `get_url` — beides fuehrt auf dieselbe Id. */
+function predictionIdFrom(prediction: { id?: unknown; get_url?: unknown }): string | undefined {
+  if (typeof prediction.id === 'string' && PREDICTION_ID_PATTERN.test(prediction.id)) {
+    return prediction.id;
+  }
+  if (typeof prediction.get_url === 'string') {
+    const last = prediction.get_url.split('?')[0].split('/').filter(Boolean).pop();
+    if (last && PREDICTION_ID_PATTERN.test(last)) return last;
+  }
+  return undefined;
 }
 
 export async function downloadPrunaResult(
@@ -226,70 +313,6 @@ interface PrunaPredictionStatus {
   error?: string;
 }
 
-async function pollPrediction(
-  statusUrl: string,
-  apiKey: string,
-  signal?: AbortSignal,
-): Promise<{ generation_url: string }> {
-  const startTime = Date.now();
-  let consecutiveErrors = 0;
-  const MAX_RETRIES = 3;
-
-  while (Date.now() - startTime < ASYNC_POLL_MAX_MS) {
-    if (signal?.aborted) {
-      throw new ApiError(499, 'Pruna prediction aborted', 'PRUNA_ABORTED');
-    }
-
-    try {
-      const response = await fetch(statusUrl, {
-        headers: { apikey: apiKey },
-        signal,
-      });
-
-      if (!response.ok) {
-        const isTransient = response.status >= 502 && response.status <= 504;
-        if (isTransient && consecutiveErrors < MAX_RETRIES) {
-          consecutiveErrors++;
-          const backoff = ASYNC_POLL_INTERVAL_MS * consecutiveErrors;
-          await sleep(backoff);
-          continue;
-        }
-        throw new ApiError(502, `Pruna status check failed (${response.status})`, 'PRUNA_STATUS_ERROR');
-      }
-
-      consecutiveErrors = 0;
-      const status: PrunaPredictionStatus = await response.json();
-
-      const generationUrl = normalizeGenerationUrl(status.generation_url);
-      if (status.status === 'succeeded' && generationUrl) {
-        return { generation_url: generationUrl };
-      }
-
-      if (status.status === 'succeeded' && !generationUrl) {
-        throw new ApiError(
-          502,
-          'Pruna prediction succeeded but returned no generation URL',
-          'PRUNA_MISSING_STATUS'
-        );
-      }
-
-      if (status.status === 'failed') {
-        throw new ApiError(502, `Pruna prediction failed: ${status.error ?? status.message ?? 'Unknown error'}`, 'PRUNA_PREDICTION_FAILED');
-      }
-    } catch (err) {
-      if (err instanceof ApiError) throw err;
-      if (signal?.aborted) {
-        throw new ApiError(499, 'Pruna prediction aborted', 'PRUNA_ABORTED');
-      }
-      throw new ApiError(502, `Pruna status check error: ${err instanceof Error ? err.message : 'Unknown'}`, 'PRUNA_STATUS_ERROR');
-    }
-
-    await sleep(ASYNC_POLL_INTERVAL_MS);
-  }
-
-  throw new ApiError(504, `Pruna prediction timed out after ${ASYNC_POLL_MAX_MS / 1000}s`, 'PRUNA_TIMEOUT');
-}
-
 function inferContentType(url: string, isVideo: boolean): string {
   const lower = url.toLowerCase();
   if (lower.endsWith('.mp4')) return 'video/mp4';
@@ -308,8 +331,4 @@ function normalizeGenerationUrl(value: unknown): string | undefined {
     return value.find((item): item is string => typeof item === 'string' && item.trim().length > 0);
   }
   return undefined;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

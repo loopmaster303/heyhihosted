@@ -1,4 +1,4 @@
-import { generateViaPruna, uploadPrunaFile, downloadPrunaResult } from './client';
+import { generateViaPruna, fetchPrunaPredictionStatus, uploadPrunaFile, downloadPrunaResult } from './client';
 
 describe('Pruna client', () => {
   const originalFetch = global.fetch;
@@ -88,26 +88,69 @@ describe('Pruna client', () => {
     });
   });
 
-  it('throws PRUNA_MISSING_STATUS when async poll succeeds without a generation URL', async () => {
+  // Kein Request wartet mehr auf ein Video: der Submit endet bei der Lauf-Id,
+  // die Statusabfrage ist eine einzelne Runde, die der Browser wiederholt.
+  it('returns the prediction id for an async model without polling', async () => {
     process.env.PRUNA_API_KEY = 'test-pruna-key';
-    global.fetch = jest
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: 'starting', id: 'pred-123' }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: 'succeeded', generation_url: '' }),
-      } as Response);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'starting', id: 'pred-123' }),
+    } as Response);
 
-    await expect(generateViaPruna('wan-t2v', { prompt: 'test', duration: 5 })).rejects.toMatchObject({
+    await expect(generateViaPruna('wan-t2v', { prompt: 'test', duration: 5 }))
+      .resolves.toEqual({ predictionId: 'pred-123' });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('derives the prediction id from get_url when the submit omits the id', async () => {
+    process.env.PRUNA_API_KEY = 'test-pruna-key';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: 'starting',
+        get_url: 'https://api.pruna.ai/v1/predictions/status/pred-456',
+      }),
+    } as Response);
+
+    await expect(generateViaPruna('vace', { prompt: 'test' }))
+      .resolves.toEqual({ predictionId: 'pred-456' });
+  });
+
+  it('reports a still-running prediction as pending', async () => {
+    process.env.PRUNA_API_KEY = 'test-pruna-key';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'processing' }),
+    } as Response);
+
+    await expect(fetchPrunaPredictionStatus('vace', 'pred-123')).resolves.toBe('pending');
+  });
+
+  it('throws PRUNA_MISSING_STATUS when a prediction succeeds without a generation URL', async () => {
+    process.env.PRUNA_API_KEY = 'test-pruna-key';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'succeeded', generation_url: '' }),
+    } as Response);
+
+    await expect(fetchPrunaPredictionStatus('wan-t2v', 'pred-123')).rejects.toMatchObject({
       statusCode: 502,
       message: 'Pruna prediction succeeded but returned no generation URL',
       code: 'PRUNA_MISSING_STATUS',
     });
+  });
 
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+  // Die Id landet in einer URL — ein Pfad darin wuerde die Abfrage umlenken.
+  it('rejects a prediction id that is not an opaque token', async () => {
+    process.env.PRUNA_API_KEY = 'test-pruna-key';
+    global.fetch = jest.fn();
+
+    await expect(fetchPrunaPredictionStatus('vace', '../../files/secret')).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'PRUNA_INVALID_ID',
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('submits VACE to the standard Pruna host and never the retired shared host', async () => {
