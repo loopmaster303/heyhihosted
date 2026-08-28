@@ -53,13 +53,13 @@ export const translations = {
         'nav.theme': 'App Design',
 
         // Playground
-        'playground.sidebarLink': 'Playground →',
-        'playground.title': 'Playground',
+        'playground.sidebarLink': 'Create →',
+        'playground.title': 'Create',
         'playground.prunaEmpty': 'Add a Pruna key to unlock 14 Pruna models',
-        'playground.fallbackNotice': 'Offline list — live registry unavailable',
-        'playground.generate': 'Generate',
-        'playground.cancel': 'Cancel',
-        'playground.enhance': 'Enhance',
+        'playground.fallbackNotice': 'Offline-Liste — Live-Registry nicht verfügbar',
+        'playground.generate': 'Generieren',
+        'playground.cancel': 'Abbrechen',
+        'playground.enhance': 'Verbessern',
 
         // Settings & Configuration
         'settings.language': 'Sprache',
@@ -247,7 +247,6 @@ export const translations = {
         'provider.label': 'Bild-Provider',
         'chat.placeholder.standard': 'Worüber möchtest du sprechen?',
         'chat.placeholder.imageMode': 'In-Chat-Visualisierung aktiv.',
-        'chat.with': 'mit',
         'chat.placeholder.web': 'Web-Recherche aktiv.',
         'chat.placeholder.code': 'Code-Modus aktiv.',
         'chat.placeholder.compose': 'Was willst du hören?',
@@ -315,8 +314,8 @@ export const translations = {
         'nav.theme': 'App Design',
 
         // Playground
-        'playground.sidebarLink': 'Playground →',
-        'playground.title': 'Playground',
+        'playground.sidebarLink': 'Create →',
+        'playground.title': 'Create',
         'playground.prunaEmpty': 'Add a Pruna key to unlock 14 Pruna models',
         'playground.fallbackNotice': 'Offline list — live registry unavailable',
         'playground.generate': 'Generate',
@@ -509,8 +508,6 @@ export const translations = {
         'provider.label': 'Image Provider',
         'chat.placeholder.standard': 'What do you want to discuss?',
         'chat.placeholder.imageMode': 'In-chat visualization active.',
-        'chat.with': 'with',
-        'chat.placeholder.visualizeWith': 'Visualize with {model}…',
         'chat.placeholder.web': 'Web research active.',
         'chat.placeholder.code': 'Code mode active.',
         'chat.placeholder.compose': 'What do you want to hear?',

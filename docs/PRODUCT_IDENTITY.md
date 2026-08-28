@@ -18,8 +18,8 @@ A specialized header that provides real-time system status in a typewriter/CRT s
 ### Unified Chat & Vision
 Interactions with LLMs (Claude, GPT, Gemini, Grok, Deepseek, Mistral, Kimi, Qwen) with full multimodal support. Includes the **Integrated Visualize Module** for on-the-fly image and video generation within the chat context.
 
-### Playground
-A dedicated, full-screen generation workspace at `/playground`. Users can switch between Pollinations and Pruna providers, pick text-to-image / image-to-image / text-to-video / image-to-video modes, upload reference images, adjust parameters, and inspect generation details with download / retry / reuse actions.
+### Create
+A dedicated, full-screen generation workspace at `/playground` (also reachable via `create.hey-hi.cloud`, which redirects onto the shared chat origin). Users can switch between Pollinations and Pruna providers, pick text-to-image / image-to-image / text-to-video / image-to-video modes, upload reference images, adjust parameters, and inspect generation details with download / retry / reuse actions.
 
 ### Compose Mode
 Music composing with **Eleven Music** (`model=elevenmusic`) via **Pollinations** (`/api/compose`) with VibeCraft prompt enhancement. Users describe a vibe, the system enhances the prompt, and generates a track.

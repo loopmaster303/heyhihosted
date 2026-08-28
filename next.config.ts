@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next';
 
+const CREATE_HOST = 'create.hey-hi.cloud';
+
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -28,6 +30,27 @@ const nextConfig: NextConfig = {
   /* Kein output: 'export' - normal Server-Build */
   turbopack: {
     root: process.cwd(),
+  },
+  // create.hey-hi.cloud -> chat.hey-hi.cloud/playground. Ein Redirect statt eines
+  // Rewrites, damit Chat und Create denselben Browser-Ursprung teilen (IndexedDB /
+  // localStorage sind pro Ursprung getrennt). Reihenfolge zählt: '/' muss vor
+  // '/:path*' stehen. permanent: false, damit der Redirect später korrigierbar bleibt.
+  // Greift nur unter dem echten Host — localhost und Preview-Deployments bleiben unberührt.
+  async redirects() {
+    return [
+      {
+        source: '/',
+        has: [{ type: 'host', value: CREATE_HOST }],
+        destination: 'https://chat.hey-hi.cloud/playground',
+        permanent: false,
+      },
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: CREATE_HOST }],
+        destination: 'https://chat.hey-hi.cloud/:path*',
+        permanent: false,
+      },
+    ];
   },
   // Dev-only: reaching the dev server over a Tailscale or LAN address instead of
   // localhost makes Next block /_next/* requests as cross-origin. The page still

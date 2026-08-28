@@ -108,7 +108,7 @@ Solange das nicht sortiert und committet ist, plant jede Phase auf Sand.
 |---|---|
 | Compose aus dem Chat entfernt | `FEATURES.compose = false`, `ComposeTool.tsx` gelöscht — uncommitted |
 | Intent-Erkennung im Chat | `chat-media-intent.ts` + Handler + Tests vorhanden — live unbestätigt |
-| ASCII-Effekte | `src/components/ascii/` existiert — im Playground nicht verdrahtet |
+| ASCII-Effekte | `src/components/ascii/` existiert — im Create nicht als Flow verdrahtet |
 | Client-Polling für lange Läufe | Gegen Dev-Server verifiziert, nicht live |
 
 ### Offene Altlasten aus dem Handoff vom 2026-08-26
@@ -128,19 +128,21 @@ Solange das nicht sortiert und committet ist, plant jede Phase auf Sand.
 ### Identität und Adresse
 - **P1** — Die Oberfläche nennt `/playground` künftig **Create**: Sidebar-Link
   (`t('playground.sidebarLink')`), Translations DE/EN, Seitentitel, Metadaten.
-- **P2** — `create.hey-hi.cloud` als zusätzliche Domain auf demselben Vercel-Projekt,
-  Rewrite auf `/playground`. Die Live-Domain heißt `hey-hi.cloud` **mit** Bindestrich.
+- **P2** — `create.hey-hi.cloud` als zusätzliche Domain auf demselben Vercel-Projekt.
+  Umgesetzt als **Redirect** auf `chat.hey-hi.cloud/playground` (Variante B — gemeinsamer
+  Browser-Ursprung, damit Phase 5 machbar bleibt; `next.config.ts`, `CREATE_HOST`).
+  Die Live-Domain heißt `hey-hi.cloud` **mit** Bindestrich.
 - **P3** — Neue Adresse überall nachziehen: `README.md`, `CLAUDE.md`, `AGENTS.md`,
   `GEMINI.md`, `HANDOFF.md`, `/about`, `docs/`.
 
 ### Navigation
-- **P4** — Der Rückweg fehlt. Chat → Playground existiert (`AppSidebar.tsx:122`),
-  Playground → Chat gibt es nicht: `PlaygroundShell` enthält keinerlei Navigation.
+- **P4** — Umgesetzt: Create → Chat per `← chat`-Anker in der `PlaygroundShell`-Kopfzeile
+  (relativer Pfad auf `/unified`). Chat → Create existiert (`AppSidebar.tsx:122`).
 
 ### Galerie
 - **P5** — Löschen im Create fehlt. `MetaRail` kann Download, Retry, als Referenz verwenden.
 - **P6** — Ein Asset-Pool statt zwei. Technisch günstig: beide Oberflächen schreiben schon in
-  denselben `db.assets`-Store, der Playground filtert nur auf `PLAYGROUND_CONVERSATION_ID`.
+  denselben `db.assets`-Store, Create filtert nur auf `PLAYGROUND_CONVERSATION_ID`.
   Das ist eine Sicht- und Filterfrage, keine Datenmigration.
 
 ### Wahrheit über Modelle
@@ -190,7 +192,7 @@ Telefon erreichbar.
   Compose), Pollen-Key-Feld, ein echter Pruna-Video-Lauf über das 202-Protokoll
 
 **Fertig, wenn:** `lint`, `typecheck`, `npm test`, `npm run build` grün · gepusht ·
-Chat und Playground live erreichbar · Intent-Erkennung im Live-Chat bestätigt.
+Chat und Create live erreichbar · Intent-Erkennung im Live-Chat bestätigt.
 
 ---
 

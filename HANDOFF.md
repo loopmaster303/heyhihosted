@@ -4,15 +4,18 @@
 
 `~/heyhihosted` — kanonisches Level-2-Repo im hey-hi Ökosystem.
 
-GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (Stand `aa3eac4`)
+GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (Stand `741c08c`)
 Live: `https://chat.hey-hi.cloud` + `https://chat.hey-hi.cloud/playground`
-Geplant: `https://create.hey-hi.cloud` (gleiches Vercel-Projekt, Rewrite auf `/playground`)
+Geplant: `https://create.hey-hi.cloud` (gleiches Vercel-Projekt; **Redirect** auf
+`chat.hey-hi.cloud/playground` — Variante B, gemeinsamer Browser-Ursprung. Die
+Weiterleitung liegt im Code: `next.config.ts`, `CREATE_HOST`. Offen: die
+Dashboard-Schritte V1–V3 aus [`docs/PLAN-phase-2-create-identitaet.md`](docs/PLAN-phase-2-create-identitaet.md))
 
 ## Was ist das Projekt
 
 **Level 2 („Benutzen")** im hey-hi Ökosystem — Produktions-App. Next.js 16, Pollinations + Pruna, minimalistisches Chat-Interface, Text/Bild/Video/Musik (Compose) + Voice (TTS/STT), lokale Persistenz (IndexedDB/localStorage), BYOP-Key.
 
-Seit August 2026 enthält `main` auch den **Playground** (`/playground`): einen dedizierten, Vollbild-Workspace für Bild- und Videogenerierung mit Provider-Switch, Modus-Tabs, Referenz-Uploads und Generierungs-Details.
+Seit August 2026 enthält `main` auch das **Create** (`/playground`): einen dedizierten, Vollbild-Workspace für Bild- und Videogenerierung mit Provider-Switch, Modus-Tabs, Referenz-Uploads und Generierungs-Details.
 
 ## Aktueller State (2026-08-28)
 

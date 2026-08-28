@@ -390,9 +390,16 @@ export function PlaygroundShell() {
           <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.6)]" />
           <span>heyhi</span>
           <span className="font-light text-muted-foreground/50">/</span>
-          <span className="text-muted-foreground">playground</span>
+          <span className="text-muted-foreground">create</span>
         </div>
         <div className="flex items-center gap-1">
+          <a
+            href="/unified"
+            className="mr-1 font-mono text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Zurück zum Chat"
+          >
+            ← chat
+          </a>
           <Button
             variant="ghost" size="icon" aria-label="Einstellungen"
             onClick={() => setSettingsOpen(true)}

@@ -18,11 +18,11 @@ Assistant guidance for Claude working in this repository. Architecture last veri
 
 - Unified app shell with `landing` and `chat` states at `/unified` (root `/` redirects into the same shell)
 - Visible user modes: `standard`, `visualize`, `compose`, `research`
-- Dedicated **Playground** route at `/playground` for full-screen image/video generation
+- Dedicated **Create** workspace at `/playground` for full-screen image/video generation (product name **Create**; the route path stays `/playground`)
 - Code mode exists as an internal response-mode flag (`Conversation.isCodeMode`), not as a separate visible tool
 - Standard chat can generate media inline: the assistant emits `[IMAGE_GEN: …]` / `[MUSIC_GEN: …]`, taught by `MEDIA_MARKER_PROTOCOL` in [chat-prompt-builder.ts](/Users/johnmeckel/heyhihosted/src/lib/chat/chat-prompt-builder.ts). The parser skips markers inside code blocks and the handler caps at one per kind — neither guarantee may depend on the model obeying the prompt
 - Generated media lives in Pollinations Media Storage or (for Pruna without Pollen token) as IndexedDB blobs; conversations, memories, settings, and output metadata live locally in IndexedDB / localStorage
-- The product surface calls the generated-media area **Output**; the Playground calls the same area **Gallery**
+- The product surface calls the generated-media area **Output**; Create calls the same area **Gallery**
 
 ## Current Runtime Truth
 
@@ -73,9 +73,9 @@ Everything else in the file is `enabled: false` and waiting on upstream availabi
 ### Reference images
 `referenceMode` (`multi-image` | `start-frame` | `start-end-frame`) plus `maxImages` describe what a model accepts; `getReferenceMode()` derives it. `/api/generate` validates the request against both and rejects mismatches with a 400, so UI and API cannot drift apart.
 
-## Playground — read before touching `/playground`
+## Create — read before touching `/playground`
 
-The `/playground` route (`src/app/playground/page.tsx`) is a standalone generation workspace, not a chat tool. It reuses the same model registry and generation API as Visualize but has its own shell and state:
+The `/playground` route (`src/app/playground/page.tsx`) — product name **Create** — is a standalone generation workspace, not a chat tool. It reuses the same model registry and generation API as Visualize but has its own shell and state:
 
 - **Shell:** `PlaygroundShell` (`src/app/playground/PlaygroundShell.tsx`) owns the three-column layout (sidebar params, main canvas, detail rail).
 - **State:** Local React state in `PlaygroundShell`; no ChatProvider involvement.
@@ -85,13 +85,14 @@ The `/playground` route (`src/app/playground/page.tsx`) is a standalone generati
 - **Details:** Selecting a result opens `MetaRail` with prompt, parameters, seed, and actions: download, retry, use as reference.
 - **Provider switch:** Same semantics as Visualize — it only scopes the model list. The selected model decides the actual provider dispatch.
 
-Do not wire Playground state into ChatProvider. Keep it self-contained.
+Do not wire Create state into ChatProvider. Keep it self-contained.
 
 ## Provider Semantics — read before touching Visualize
 
-There are two providers, Pollinations and Pruna, and a user-facing switch. **The switch only scopes the model list** — in Visualize and, since the merge, in the Playground. It is not a global mode:
+There are two providers, Pollinations and Pruna, and a user-facing switch. **The switch only scopes the model list** — in Visualize and, since the merge, in Create. It is not a global mode:
 
-- `useProviderMode` is read in five modules, all of them model-picking UI: [useUnifiedImageToolState.ts](/Users/johnmeckel/heyhihosted/src/hooks/useUnifiedImageToolState.ts) and `PersonalizationSidebarSection` for Visualize, plus [usePlaygroundModels.ts](/Users/johnmeckel/heyhihosted/src/hooks/usePlaygroundModels.ts), `PlaygroundShell` and `ProviderSelect` for the Playground. It filters the model list and picks the default model. (`VisualizeInlineHeader` and `VisualizeInputContainer` receive the value as props rather than reading the hook.)
+- `useProviderMode` is read in five modules, all of them model-picking UI: [useUnifiedImageToolState.ts](/Users/johnmeckel/heyhihosted/src/hooks/useUnifiedImageToolState.ts) and `PersonalizationSidebarSection` for Visualize, plus [usePlaygroundModels.ts](/Users/johnmeckel/heyhihosted/src/hooks/usePlaygroundModels.ts), `PlaygroundShell` and `ProviderSelect` for Create. It filters the model list and picks the default model. (`VisualizeInlineHeader` and `VisualizeInputContainer` receive the value as props rather than reading the hook.)
+
 - The actual dispatch depends on the **selected model**, never on the switch: `/api/generate` branches on `isPrunaModel(canonicalModelId)`, and reference uploads branch on `selectedModelInfo.provider`.
 - Chat, TTS, STT, compose and prompt enhancement always run through Pollinations and never receive a Pruna key.
 - Prompt enhancement is `/api/enhance-prompt` and is provider-independent. The `enhance` field on `/api/generate` is a Pollinations image-API parameter — Pruna has no such field.
@@ -194,7 +195,7 @@ CI=1 npm test -- --runInBand path/to/test.ts
 
 ## Open Questions
 
-- **Deploy truth resolved for this domain.** `chat.hey-hi.cloud` is served by Vercel (connected GitHub project, auto-deploy from `main`). `apphosting.yaml` still exists but is not the active host for this domain.
+- **Deploy truth resolved for this domain.** `chat.hey-hi.cloud` is served by Vercel (connected GitHub project, auto-deploy from `main`), with **Cloudflare as proxy in front** (`server: cloudflare` in every response — DNS entries live in Cloudflare, not Vercel). `create.hey-hi.cloud` points at the same Vercel project via a code-level redirect onto `chat.hey-hi.cloud/playground` (`next.config.ts`, `CREATE_HOST`). `apphosting.yaml` still exists but is not the active host for this domain.
 - Search/research routing is delegated through a single strategy path; `WebContextService` is an optional helper invoked only when `shouldFetchWebContext` is set, not the default delegated path.
 - The system prompt in `chat-options.ts` still contains "Burn the Corpos" and filter-evasion passages. Editorial hardening only on explicit instruction.
 

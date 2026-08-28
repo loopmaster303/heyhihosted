@@ -162,6 +162,8 @@ describe('PlaygroundShell smoke', () => {
     expect(screen.getByRole('button', { name: 'Senden' })).toBeInTheDocument();
     // Topbar actions
     expect(screen.getByRole('button', { name: 'Einstellungen' })).toBeInTheDocument();
+    // Back link to the chat (P4) — a plain anchor, relative on purpose
+    expect(screen.getByRole('link', { name: 'Zurück zum Chat' })).toHaveAttribute('href', '/unified');
     // Gallery renders the stored row
     expect(await screen.findByText('flux')).toBeInTheDocument();
   });

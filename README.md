@@ -15,8 +15,8 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 ## Key Features
 
 - **Multimodal Chat**: Discuss ideas with Claude, GPT, Gemini, Deepseek, Mistral, and more. Vision support on compatible models.
-- **Generative Media**: Create images and videos instantly via Pollinations API — both inline in chat and in the dedicated **Playground** at `/playground`.
-- **Playground**: Full-screen generation workspace with provider switch (Pollinations / Pruna), mode tabs (text-to-image, image-to-image, text-to-video, image-to-video), reference uploads, parameter controls, generation progress, and a detail panel with download / retry / reuse.
+- **Generative Media**: Create images and videos instantly via Pollinations API — both inline in chat and in the dedicated **Create** workspace at `/playground` (also reachable via `create.hey-hi.cloud`).
+- **Create**: Full-screen generation workspace with provider switch (Pollinations / Pruna), mode tabs (text-to-image, image-to-image, text-to-video, image-to-video), reference uploads, parameter controls, generation progress, and a detail panel with download / retry / reuse.
 - **Compose Mode**: Music generation via **Pollinations** (`/api/compose`) — **ACE-Step 1.5** free up to 1 minute, plus **ElevenMusic v2** and **Stable Audio 3 Medium** with a Pollinations key.
 - **Code Questions**: Ask directly in chat; responses already use the normal code formatting you expect.
 - **Deep Research**: Toggle web browsing for real-time search and source analysis (Sonar / Sonar Reasoning).
