@@ -35,3 +35,6 @@ gcp-credentials.json
 server.log
 test-*.png
 .clawpatch/
+
+# SDD-Workspace (Plan-Ausführung, nicht Teil des Produkts)
+.superpowers/
