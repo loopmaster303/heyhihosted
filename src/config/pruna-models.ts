@@ -109,6 +109,20 @@ export function wanFramesFor(seconds: unknown): number {
   return Math.max(WAN_MIN_FRAMES, Math.min(WAN_MAX_FRAMES, Math.round(secs * WAN_FPS)));
 }
 
+/**
+ * VACE kennt ebenfalls nur Frames. Damit die Dauer ueberall als Sekunden
+ * bedient wird, rechnet die Oberflaeche mit derselben Bildrate wie die
+ * uebrigen Wan-Modelle; das Schema erlaubt hier hoechstens 81 Frames.
+ */
+const VACE_MIN_FRAMES = 1;
+const VACE_MAX_FRAMES = 81;
+
+export function vaceFramesFor(seconds: unknown): number {
+  const secs = typeof seconds === 'number' ? seconds : Number(seconds);
+  if (!Number.isFinite(secs) || secs <= 0) return VACE_MAX_FRAMES;
+  return Math.max(VACE_MIN_FRAMES, Math.min(VACE_MAX_FRAMES, Math.round(secs * WAN_FPS)));
+}
+
 function normalizeWanImageSmallCustomSize(width?: number, height?: number): { width: number; height: number } {
   const rawWidth = width ?? WAN_IMAGE_SMALL_MAX_DIMENSION;
   const rawHeight = height ?? WAN_IMAGE_SMALL_MAX_DIMENSION;
@@ -328,7 +342,10 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       go_fast: true,
     },
     buildInput: (f) => {
-      const { duration, ...rest } = f.params ?? {};
+      // Wan I2V kennt weder aspect_ratio (das Verhaeltnis kommt aus dem
+      // Startbild) noch optimize_prompt. Die API antwortet auf jedes
+      // unbekannte Feld mit 400, also duerfen beide nicht durchgereicht werden.
+      const { duration, aspect_ratio: _dropAR, optimize_prompt: _dropOP, ...rest } = f.params ?? {};
       const input: Record<string, unknown> = {
         prompt: f.prompt,
         ...DISABLE_SAFETY_CHECKER,
@@ -362,12 +379,13 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     },
     buildInput: (f) => {
 
+      // Kein Safety-Feld: VACE ist das einzige Pruna-Modell ohne einen solchen
+      // Schalter im Input-Schema, und ein zusaetzliches Feld ergibt 400.
       const input: Record<string, unknown> = {
         prompt: f.prompt,
-        ...DISABLE_SAFETY_CHECKER,
         src_video: f.video,
         size: f.size ?? '832*480',
-        frame_num: f.frameNum ?? 81,
+        frame_num: f.frameNum ?? vaceFramesFor(f.params?.duration ?? f.duration),
         speed_mode: f.speedMode ?? 'Lightly Juiced 🍊 (more consistent)',
         sample_steps: f.sampleSteps ?? 50,
         sample_solver: 'unipc',
@@ -380,7 +398,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         input.src_ref_images = Array.isArray(f.image) ? f.image : [f.image];
       }
       if (f.seed !== undefined) input.seed = f.seed;
-      const { width: _dropW, height: _dropH, ...rest } = f.params ?? {};
+      const { duration: _dropDuration, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
       return { ...input, ...rest };
     },
   },

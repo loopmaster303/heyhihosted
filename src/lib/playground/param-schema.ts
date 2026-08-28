@@ -570,16 +570,8 @@ const wanI2VSchema: ModelParamSchema = {
           ],
           default: '480p',
         },
-        {
-          kind: 'enum',
-          name: 'aspect_ratio',
-          label: 'Seitenverhältnis',
-          options: [
-            { value: '16:9', label: '16:9' },
-            { value: '9:16', label: '9:16' },
-          ],
-          default: '16:9',
-        },
+        // Kein Seitenverhältnis und kein optimize_prompt: das Input-Schema von
+        // wan-i2v kennt beide nicht, das Verhältnis kommt aus dem Startbild.
       ],
     },
     {
@@ -588,7 +580,6 @@ const wanI2VSchema: ModelParamSchema = {
       fields: [
         { kind: 'boolean', name: 'interpolate_output', label: 'Interpolieren', default: false },
         { kind: 'boolean', name: 'go_fast', label: 'Schnellmodus', default: true },
-        { kind: 'boolean', name: 'optimize_prompt', label: 'Prompt optimieren', default: false },
         { kind: 'number', name: 'sample_shift', label: 'Sample Shift', min: 1, max: 20, step: 0.5, default: 12 },
         { kind: 'number', name: 'seed', label: 'Seed', min: 0, max: 999999999, default: 0 },
       ],
@@ -617,7 +608,10 @@ const vaceSchema: ModelParamSchema = {
           ],
           default: '832*480',
         },
-        { kind: 'number', name: 'frame_num', label: 'Frames', min: 1, max: 200, step: 1, default: 81 },
+        // Frames sagen niemandem etwas ueber die Laenge — die Oberflaeche stellt
+        // wie bei allen anderen Videomodellen Sekunden ein, buildInput rechnet
+        // sie in die vom Schema erlaubten 1-81 Frames um.
+        { kind: 'seconds', name: 'duration', label: 'Dauer', options: [1, 2, 3, 4, 5], default: 5 },
       ],
     },
     {
@@ -630,8 +624,8 @@ const vaceSchema: ModelParamSchema = {
           label: 'Geschwindigkeitsmodus',
           options: [
             { value: 'Lightly Juiced 🍊 (more consistent)', label: 'Leicht (konsistenter)' },
-            { value: 'Moderately Juiced 🍊🍊 (balanced)', label: 'Mittel (ausgewogen)' },
-            { value: 'Heavily Juiced 🍊🍊🍊 (more dynamic)', label: 'Stark (dynamischer)' },
+            { value: 'Juiced 🔥 (more speed)', label: 'Mittel (schneller)' },
+            { value: 'Extra Juiced 🚀 (even more speed)', label: 'Stark (am schnellsten)' },
           ],
           default: 'Lightly Juiced 🍊 (more consistent)',
         },

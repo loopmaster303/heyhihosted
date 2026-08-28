@@ -307,6 +307,29 @@ describe('Pruna model mappings', () => {
     });
   });
 
+  // Die Oberflaeche stellt ueberall Sekunden ein — VACE rechnet sie wie die
+  // uebrigen Wan-Modelle in Frames um, statt Frames roh anzuzeigen.
+  it.each([
+    [1, 16],
+    [3, 48],
+    [5, 80],
+  ])('translates %s VACE seconds into %s frames', (duration, frameNum) => {
+    const input = getPrunaModelMapping('vace')?.buildInput({
+      prompt: 'consistent character',
+      duration,
+    });
+
+    expect(input).toEqual(expect.objectContaining({ frame_num: frameNum }));
+    expect(input).not.toHaveProperty('duration');
+  });
+
+  it('clamps VACE frames into the 1-81 range the schema allows', () => {
+    expect(getPrunaModelMapping('vace')?.buildInput({ prompt: 'x', duration: 99 }))
+      .toEqual(expect.objectContaining({ frame_num: 81 }));
+    expect(getPrunaModelMapping('vace')?.buildInput({ prompt: 'x', duration: 0 }))
+      .toEqual(expect.objectContaining({ frame_num: 81 }));
+  });
+
   it('uses VACE frame_num and never forwards generic duration', () => {
     const input = getPrunaModelMapping('vace')?.buildInput({
       prompt: 'consistent character',
@@ -370,8 +393,57 @@ describe('Pruna model mappings', () => {
     expect(landscapeInput).toEqual(expect.objectContaining({ aspect_ratio: '16:9' }));
   });
 
+  // Die Pruna-API lehnt unbekannte Felder mit 400 ab. Wan I2V kennt weder
+  // aspect_ratio (das Seitenverhaeltnis kommt aus dem Startbild) noch
+  // optimize_prompt — beide stehen aber im Parameter-Bag der Oberflaeche.
+  it('drops UI parameters that Wan I2V does not accept', () => {
+    const input = getPrunaModelMapping('wan-i2v')?.buildInput({
+      prompt: 'transition',
+      image: 'https://example.com/start.jpg',
+      params: {
+        duration: 5,
+        resolution: '720p',
+        aspect_ratio: '16:9',
+        interpolate_output: false,
+        go_fast: true,
+        optimize_prompt: false,
+        sample_shift: 12,
+        seed: 7,
+      },
+    });
+
+    expect(input).not.toHaveProperty('aspect_ratio');
+    expect(input).not.toHaveProperty('optimize_prompt');
+    expect(input).toEqual(expect.objectContaining({
+      resolution: '720p',
+      sample_shift: 12,
+      seed: 7,
+    }));
+  });
+
+  it('drops the same parameters on the wan-fast image-to-video path', () => {
+    const input = getPrunaModelMapping('wan-fast')?.buildInput({
+      prompt: 'transition',
+      image: 'https://example.com/start.jpg',
+      params: { aspect_ratio: '16:9', optimize_prompt: false },
+    });
+
+    expect(input).not.toHaveProperty('aspect_ratio');
+    expect(input).not.toHaveProperty('optimize_prompt');
+  });
+
+  // VACE hat als einziges Pruna-Modell keinen Safety-Schalter im Schema.
+  it('never sends a safety flag to VACE', () => {
+    const input = getPrunaModelMapping('vace')?.buildInput({ prompt: 'test' });
+
+    expect(input).not.toHaveProperty('disable_safety_checker');
+    expect(input).not.toHaveProperty('disable_safety_filter');
+  });
+
   it('disables the provider safety filter for every registered Pruna model', () => {
-    for (const modelId of PRUNA_MODEL_IDS) {
+    // VACE ausgenommen: sein Input-Schema kennt kein Safety-Feld und die API
+    // antwortet auf jedes zusaetzliche Feld mit 400.
+    for (const modelId of PRUNA_MODEL_IDS.filter((id) => id !== 'vace')) {
       const input = getPrunaModelMapping(modelId)?.buildInput({ prompt: 'test' });
       const safetyDisabled = input?.disable_safety_checker === true || input?.disable_safety_filter === true;
 
