@@ -66,7 +66,7 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     isStandardActive
                         ? "text-foreground"
-                        : "text-muted-foreground/50 hover:text-muted-foreground/80"
+                        : "text-muted-foreground/70 hover:text-muted-foreground/90"
                 )}
             >
                 <span className="text-[11px] font-semibold tracking-wide uppercase">{t('tools.standard')}</span>
@@ -121,7 +121,7 @@ function ModeBadge({
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                 isActive
                     ? "hover:-translate-y-0.5 scale-105"
-                    : "text-muted-foreground/50 hover:text-muted-foreground/80 hover:-translate-y-0.5"
+                    : "text-muted-foreground/70 hover:text-muted-foreground/90 hover:-translate-y-0.5"
             )}
             style={isActive ? {
                 color: `hsl(${cssVar})`,

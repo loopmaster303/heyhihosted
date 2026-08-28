@@ -13,7 +13,6 @@ interface UnifiedInputProps {
   disabled?: boolean;
   leftActions?: React.ReactNode;
   rightActions?: React.ReactNode;
-  topElements?: React.ReactNode;
   children?: React.ReactNode;
   drawer?: React.ReactNode;
   isDrawerOpen?: boolean;
@@ -25,6 +24,12 @@ interface UnifiedInputProps {
   visualCorner?: React.ReactNode;
   /** Attachment preview row above the input */
   attachmentRow?: React.ReactNode;
+  /**
+   * Auswahl, die den Inhalt der Leiste *ersetzt*. Solange sie gesetzt ist,
+   * verschwinden Textzeile und Chip-Reihe: die Leiste ist die Auswahl, nichts
+   * klappt darueber auf und kein Wert steht zweimal da.
+   */
+  picker?: React.ReactNode;
 }
 
 export const UnifiedInput: React.FC<UnifiedInputProps> = ({
@@ -37,7 +42,6 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
   disabled,
   leftActions,
   rightActions,
-  topElements,
   children,
   drawer,
   isDrawerOpen,
@@ -46,6 +50,7 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
   modeColor,
   visualCorner,
   attachmentRow,
+  picker,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { t } = useLanguage();
@@ -73,14 +78,13 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
     }
   };
 
-  const hasTopElements = !!topElements;
 
   return (
     <div className={cn("relative w-full max-w-3xl mx-auto", className)}>
       {/* Container — real glass */}
       <div
         className={cn(
-          "relative rounded-[28px] p-4 sm:p-5 transition-all duration-500 ease-out overflow-hidden",
+          "group relative rounded-[28px] p-4 sm:p-5 transition-all duration-500 ease-out overflow-hidden",
           "backdrop-blur-3xl",
           !modeColor && "border border-primary/30 hover:border-primary/50 hover:shadow-glow-primary focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/40 focus-within:shadow-glow-primary",
           modeColor && "border",
@@ -113,6 +117,26 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
           borderColor: modeColor ? `hsl(${modeColor} / 0.27)` : undefined,
         }}
       >
+        {/* Rotating light sweep on the border ring — focus only, reduced-motion safe */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[28px] opacity-0 transition-opacity duration-700 group-focus-within:opacity-100"
+          style={{
+            padding: '1.5px',
+            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+            WebkitMaskComposite: 'xor',
+            maskComposite: 'exclude',
+          }}
+        >
+          <div
+            className="animate-border-spin absolute left-1/2 top-1/2 aspect-square w-[120%] -translate-x-1/2 -translate-y-1/2"
+            style={{
+              background:
+                'conic-gradient(from 0deg, transparent 0deg, hsl(var(--primary) / 0.8) 40deg, transparent 80deg)',
+            }}
+          />
+        </div>
+
         {/* Flash overlay on mode activation */}
         {modeColor && (
           <div
@@ -130,28 +154,53 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
         {/* Visual Corner — decorative mode indicator */}
         {visualCorner}
 
+        {picker}
+
+        {!picker && <>
+
         {/* Attachment Preview Row */}
         {attachmentRow}
 
-        {/* Textarea */}
+        {/*
+          Eine Zeile: Steuerung links, Eingabe in der Mitte, Aktionen rechts.
+          `items-end` haelt die Knoepfe unten, wenn die Textarea mehrzeilig
+          waechst — sonst wandern sie mit der Mitte nach unten weg.
+          `flex-wrap` ist das Sicherheitsnetz fuer sehr schmale Fenster: dort
+          bricht die Zeile um, statt die Chips abzuschneiden.
+        */}
+        {/* Eingabe: volle Breite, damit der Platzhalter nie umbricht. */}
         <div className="relative">
-          <Textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            aria-label={placeholder || "Chat message input"}
-            disabled={disabled || isLoading}
-            autoFocus={autoFocus}
-            rows={1}
-            className={cn(
-              "w-full bg-transparent px-2 py-1 text-lg text-foreground placeholder:text-muted-foreground/70",
-              "border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
-              "resize-none overflow-y-auto min-h-[40px] max-h-[200px]"
-            )}
-            style={{ fontSize: '1.125rem', lineHeight: '1.5' }}
-          />
+            <Textarea
+              ref={textareaRef}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              aria-label={placeholder}
+              disabled={disabled || isLoading}
+              autoFocus={autoFocus}
+              rows={1}
+              className={cn(
+                "w-full bg-transparent px-2 py-1.5 text-foreground placeholder:text-muted-foreground/70",
+                "border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
+                "resize-none overflow-y-auto min-h-[40px] max-h-[200px]",
+              )}
+              style={{ fontSize: '1.0625rem', lineHeight: '1.5' }}
+            />
+        </div>
+
+        {/*
+          Steuerzeile: eine Reihe, links die Konfiguration, rechts Aufnahme und
+          Senden. `flex-wrap` faengt sehr schmale Fenster ab, statt die Chips
+          stillschweigend abzuschneiden — genau das ist vorher passiert.
+        */}
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex min-w-0 shrink items-center gap-1.5 md:gap-2">
+            {leftActions}
+          </div>
+          <div data-testid="bar-actions-right" className="flex shrink-0 items-center gap-2">
+            {rightActions}
+          </div>
         </div>
 
         {/* Drawer Slot */}
@@ -166,21 +215,14 @@ export const UnifiedInput: React.FC<UnifiedInputProps> = ({
           </div>
         </div>
 
-        {/* Actions — config + controls on one line */}
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 md:gap-2 overflow-x-auto no-scrollbar min-w-0">
-            {topElements}
-            {leftActions}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {rightActions}
-          </div>
-        </div>
+
+
+        </>}
       </div>
 
       {/* Disclaimer */}
       <div className="mt-3 text-center hidden lg:block">
-        <p className="text-[9px] md:text-[10px] text-muted-foreground/60 px-4">
+        <p className="text-[11px] md:text-xs text-muted-foreground/70 px-4">
           {t('chat.disclaimer')}
         </p>
       </div>

@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import ChatInput, { dispatchAttachmentAction } from './ChatInput';
 import { useChatInputLogic } from '@/hooks/useChatInputLogic';
 
@@ -22,10 +22,6 @@ jest.mock('@/components/LanguageProvider', () => ({
 
 jest.mock('@/hooks/useChatInputLogic', () => ({
   useChatInputLogic: jest.fn(),
-}));
-
-jest.mock('./input/VisualCorner', () => ({
-  VisualCorner: () => <div data-testid="visual-corner" />,
 }));
 
 jest.mock('./input/AttachmentPreviewRow', () => ({
@@ -53,7 +49,6 @@ jest.mock('@/components/tools/compose/ComposeInlineHeader', () => ({
 }));
 
 jest.mock('./input/ModelSelector', () => ({ ModelSelector: () => null }));
-jest.mock('./input/QuickSettingsBadges', () => ({ QuickSettingsBadges: () => null }));
 jest.mock('./input/ToolsBadges', () => ({ ToolsBadges: () => null }));
 jest.mock('./input/UploadBadges', () => ({
   CapabilityUploadBadges: ({ actions }: { actions: Array<{ kind: string; disabled?: boolean }> }) => (
@@ -104,12 +99,13 @@ describe('ChatInput Visualize desktop composer', () => {
     mockUseChatInputLogic.mockReturnValue({
       isMobile: false,
       activeBadgeRow: null,
-      hasActiveTool: true,
-      badgePanelRef: { current: null },
+      badgePanelRef: { current: null }, uploadButtonRef: { current: null },
       badgeActionsRef: { current: null },
+      modeButtonRef: { current: null },
+      modelButtonRef: { current: null },
+      paramsButtonRef: { current: null },
       docInputRef: { current: null },
       imageInputRef: { current: null },
-      quickSettingsButtonRef: { current: null },
       toggleBadgeRow: jest.fn(),
       setActiveMode: jest.fn(),
       handleSelectMode: jest.fn(),
@@ -135,12 +131,6 @@ describe('ChatInput Visualize desktop composer', () => {
         webBrowsingEnabled={false}
         onToggleWebBrowsing={jest.fn()}
         isRecording={false}
-        selectedResponseStyleName="default"
-        handleStyleChange={jest.fn()}
-        selectedVoice=""
-        handleVoiceChange={jest.fn()}
-        selectedTtsSpeed={1}
-        handleTtsSpeedChange={jest.fn()}
         isTranscribing={false}
         startRecording={jest.fn()}
         stopRecording={jest.fn()}
@@ -176,9 +166,9 @@ describe('ChatInput Visualize desktop composer', () => {
       />,
     );
 
-    expect(screen.getByTestId('visualize-model-header')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'modelSelector.select' })).toBeInTheDocument();
+    expect(screen.queryByTestId('visualize-model-header')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'menu.section.upload' })).toBeInTheDocument();
-    expect(screen.getByTestId('visual-corner')).toBeInTheDocument();
     expect(screen.getByTestId('attachment-preview-row')).toBeInTheDocument();
     expect(screen.getByText('chat.attachment.referenceImage 1')).toBeInTheDocument();
   });
@@ -200,12 +190,6 @@ describe('ChatInput Visualize desktop composer', () => {
         webBrowsingEnabled={false}
         onToggleWebBrowsing={jest.fn()}
         isRecording={false}
-        selectedResponseStyleName="default"
-        handleStyleChange={jest.fn()}
-        selectedVoice=""
-        handleVoiceChange={jest.fn()}
-        selectedTtsSpeed={1}
-        handleTtsSpeedChange={jest.fn()}
         isTranscribing={false}
         startRecording={jest.fn()}
         stopRecording={jest.fn()}
@@ -218,9 +202,9 @@ describe('ChatInput Visualize desktop composer', () => {
 
   it('does not expose standard-chat uploads for a Visualize model without reference capabilities', () => {
     mockUseChatInputLogic.mockReturnValue({
-      isMobile: false, activeBadgeRow: 'upload', hasActiveTool: true,
-      badgePanelRef: { current: null }, badgeActionsRef: { current: null },
-      docInputRef: { current: null }, imageInputRef: { current: null }, quickSettingsButtonRef: { current: null },
+      isMobile: false, activeBadgeRow: 'upload', badgePanelRef: { current: null }, uploadButtonRef: { current: null }, badgeActionsRef: { current: null },
+      modeButtonRef: { current: null }, modelButtonRef: { current: null }, paramsButtonRef: { current: null },
+      docInputRef: { current: null }, imageInputRef: { current: null },
       toggleBadgeRow: jest.fn(), setActiveMode: jest.fn(), handleSelectMode: jest.fn(), handleSubmit: jest.fn(), handleFileChange: jest.fn(),
     });
     render(
@@ -229,8 +213,6 @@ describe('ChatInput Visualize desktop composer', () => {
         isLongLanguageLoopActive={false} inputValue="" onInputChange={jest.fn()} isImageMode
         onToggleImageMode={jest.fn()} selectedModelId="visual-only" handleModelChange={jest.fn()}
         webBrowsingEnabled={false} onToggleWebBrowsing={jest.fn()} isRecording={false}
-        selectedResponseStyleName="default" handleStyleChange={jest.fn()} selectedVoice=""
-        handleVoiceChange={jest.fn()} selectedTtsSpeed={1} handleTtsSpeedChange={jest.fn()}
         isTranscribing={false} startRecording={jest.fn()} stopRecording={jest.fn()} openCamera={jest.fn()}
         visualizeToolState={{
           uploadedImages: [], isUploading: false, supportsReference: false, requiresSourceVideo: false,
@@ -257,12 +239,13 @@ describe('ChatInput mobile configuration drawer', () => {
     mockUseChatInputLogic.mockReturnValue({
       isMobile: true,
       activeBadgeRow: null,
-      hasActiveTool: true,
-      badgePanelRef: { current: null },
+      badgePanelRef: { current: null }, uploadButtonRef: { current: null },
       badgeActionsRef: { current: null },
+      modeButtonRef: { current: null },
+      modelButtonRef: { current: null },
+      paramsButtonRef: { current: null },
       docInputRef: { current: null },
       imageInputRef: { current: null },
-      quickSettingsButtonRef: { current: null },
       toggleBadgeRow: jest.fn(),
       setActiveMode: jest.fn(),
       handleSelectMode: jest.fn(),
@@ -278,9 +261,7 @@ describe('ChatInput mobile configuration drawer', () => {
         onFileSelect={jest.fn()} isLongLanguageLoopActive={false} inputValue=""
         onInputChange={jest.fn()} isImageMode onToggleImageMode={jest.fn()}
         selectedModelId="openai" handleModelChange={jest.fn()} webBrowsingEnabled={false}
-        onToggleWebBrowsing={jest.fn()} isRecording={false} selectedResponseStyleName="default"
-        handleStyleChange={jest.fn()} selectedVoice="" handleVoiceChange={jest.fn()}
-        selectedTtsSpeed={1} handleTtsSpeedChange={jest.fn()} isTranscribing={false}
+        onToggleWebBrowsing={jest.fn()} isRecording={false} isTranscribing={false}
         startRecording={jest.fn()} stopRecording={jest.fn()} openCamera={jest.fn()}
         visualizeToolState={{
           uploadedImages: [], isUploading: false, supportsReference: true, requiresSourceVideo: false,
@@ -310,9 +291,7 @@ describe('ChatInput mobile configuration drawer', () => {
         onFileSelect={jest.fn()} isLongLanguageLoopActive={false} inputValue=""
         onInputChange={jest.fn()} isImageMode onToggleImageMode={jest.fn()}
         selectedModelId="openai" handleModelChange={jest.fn()} webBrowsingEnabled={false}
-        onToggleWebBrowsing={jest.fn()} isRecording={false} selectedResponseStyleName="default"
-        handleStyleChange={jest.fn()} selectedVoice="" handleVoiceChange={jest.fn()}
-        selectedTtsSpeed={1} handleTtsSpeedChange={jest.fn()} isTranscribing={false}
+        onToggleWebBrowsing={jest.fn()} isRecording={false} isTranscribing={false}
         startRecording={jest.fn()} stopRecording={jest.fn()} openCamera={jest.fn()}
         visualizeToolState={{
           uploadedImages: [], isUploading: false, supportsReference: true, requiresSourceVideo: false,
@@ -340,9 +319,7 @@ describe('ChatInput mobile configuration drawer', () => {
         onFileSelect={jest.fn()} isLongLanguageLoopActive={false} inputValue=""
         onInputChange={jest.fn()} isImageMode={false} onToggleImageMode={jest.fn()}
         selectedModelId="openai" handleModelChange={jest.fn()} webBrowsingEnabled={false}
-        onToggleWebBrowsing={jest.fn()} isRecording={false} selectedResponseStyleName="default"
-        handleStyleChange={jest.fn()} selectedVoice="" handleVoiceChange={jest.fn()}
-        selectedTtsSpeed={1} handleTtsSpeedChange={jest.fn()} isTranscribing={false}
+        onToggleWebBrowsing={jest.fn()} isRecording={false} isTranscribing={false}
         startRecording={jest.fn()} stopRecording={jest.fn()} openCamera={jest.fn()}
       />,
     );
@@ -357,9 +334,7 @@ describe('ChatInput mobile configuration drawer', () => {
         onFileSelect={jest.fn()} isLongLanguageLoopActive={false} inputValue=""
         onInputChange={jest.fn()} isImageMode={false} onToggleImageMode={jest.fn()}
         selectedModelId="openai" handleModelChange={jest.fn()} webBrowsingEnabled={false}
-        onToggleWebBrowsing={jest.fn()} isRecording={false} selectedResponseStyleName="default"
-        handleStyleChange={jest.fn()} selectedVoice="" handleVoiceChange={jest.fn()}
-        selectedTtsSpeed={1} handleTtsSpeedChange={jest.fn()} isTranscribing={false}
+        onToggleWebBrowsing={jest.fn()} isRecording={false} isTranscribing={false}
         startRecording={jest.fn()} stopRecording={jest.fn()} openCamera={jest.fn()}
         isComposeMode
         composeToolState={{
@@ -377,10 +352,9 @@ describe('ChatInput mobile configuration drawer', () => {
     mockUseChatInputLogic.mockReturnValue({
       isMobile: false,
       activeBadgeRow: 'upload',
-      hasActiveTool: true,
-      badgePanelRef: { current: null }, badgeActionsRef: { current: null },
-      docInputRef: { current: null }, imageInputRef: { current: null },
-      quickSettingsButtonRef: { current: null }, toggleBadgeRow: jest.fn(),
+      badgePanelRef: { current: null }, uploadButtonRef: { current: null }, badgeActionsRef: { current: null },
+      modeButtonRef: { current: null }, modelButtonRef: { current: null }, paramsButtonRef: { current: null },
+      docInputRef: { current: null }, imageInputRef: { current: null }, toggleBadgeRow: jest.fn(),
       setActiveMode: jest.fn(), handleSelectMode: jest.fn(), handleSubmit: jest.fn(),
       handleFileChange: jest.fn(),
     });
@@ -391,9 +365,7 @@ describe('ChatInput mobile configuration drawer', () => {
         onFileSelect={jest.fn()} isLongLanguageLoopActive={false} inputValue=""
         onInputChange={jest.fn()} isImageMode={false} onToggleImageMode={jest.fn()}
         selectedModelId="openai" handleModelChange={jest.fn()} webBrowsingEnabled={false}
-        onToggleWebBrowsing={jest.fn()} isRecording={false} selectedResponseStyleName="default"
-        handleStyleChange={jest.fn()} selectedVoice="" handleVoiceChange={jest.fn()}
-        selectedTtsSpeed={1} handleTtsSpeedChange={jest.fn()} isTranscribing={false}
+        onToggleWebBrowsing={jest.fn()} isRecording={false} isTranscribing={false}
         startRecording={jest.fn()} stopRecording={jest.fn()} openCamera={jest.fn()}
         isComposeMode
         composeToolState={{
@@ -444,32 +416,44 @@ describe('ChatInput Visualize controls during a running generation', () => {
     setPrompt: jest.fn(),
   };
 
-  const renderComposer = (over: { isLoading?: boolean; isRecording?: boolean; isTranscribing?: boolean }) => render(
+  const renderComposer = (over: { isLoading?: boolean; isRecording?: boolean; isTranscribing?: boolean; row?: string | null }) => {
+    mockUseChatInputLogic.mockReturnValue({
+      ...(mockUseChatInputLogic.mock.results[0]?.value ?? {}),
+      isMobile: false,
+      activeBadgeRow: over.row === undefined ? 'upload' : over.row,
+      badgePanelRef: { current: null }, uploadButtonRef: { current: null },
+      badgeActionsRef: { current: null },
+      modeButtonRef: { current: null }, modelButtonRef: { current: null }, paramsButtonRef: { current: null },
+      docInputRef: { current: null }, imageInputRef: { current: null },
+      toggleBadgeRow: jest.fn(), setActiveMode: jest.fn(), handleSelectMode: jest.fn(),
+      handleSubmit: jest.fn(), handleFileChange: jest.fn(),
+    } as any);
+    return render(
     <ChatInput
       onSendMessage={jest.fn()} uploadedFilePreviewUrl={null} onFileSelect={jest.fn()}
       isLongLanguageLoopActive={false} inputValue="" onInputChange={jest.fn()}
       isImageMode onToggleImageMode={jest.fn()} selectedModelId="openai"
       handleModelChange={jest.fn()} webBrowsingEnabled={false} onToggleWebBrowsing={jest.fn()}
-      selectedResponseStyleName="default" handleStyleChange={jest.fn()} selectedVoice=""
-      handleVoiceChange={jest.fn()} selectedTtsSpeed={1} handleTtsSpeedChange={jest.fn()}
       startRecording={jest.fn()} stopRecording={jest.fn()} openCamera={jest.fn()}
       isLoading={over.isLoading ?? false}
       isRecording={over.isRecording ?? false}
       isTranscribing={over.isTranscribing ?? false}
       visualizeToolState={visualizeState as any}
     />,
-  );
+    );
+  };
 
   beforeEach(() => {
     mockUseChatInputLogic.mockReturnValue({
       isMobile: false,
       activeBadgeRow: 'upload',
-      hasActiveTool: true,
-      badgePanelRef: { current: null },
+      badgePanelRef: { current: null }, uploadButtonRef: { current: null },
       badgeActionsRef: { current: null },
+      modeButtonRef: { current: null },
+      modelButtonRef: { current: null },
+      paramsButtonRef: { current: null },
       docInputRef: { current: null },
       imageInputRef: { current: null },
-      quickSettingsButtonRef: { current: null },
       toggleBadgeRow: jest.fn(),
       setActiveMode: jest.fn(),
       handleSelectMode: jest.fn(),
@@ -479,21 +463,251 @@ describe('ChatInput Visualize controls during a running generation', () => {
   });
 
   it('leaves model, parameters and reference slots usable while a generation runs', () => {
-    renderComposer({ isLoading: true });
+    // Geschlossene Auswahl: die Chips tragen den Zugang.
+    const { unmount } = renderComposer({ isLoading: true, row: null });
+    expect(screen.getByRole('button', { name: 'modelSelector.select' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'menu.section.parameters' })).toBeEnabled();
+    unmount();
 
-    expect(screen.getByRole('button', { name: 'Visualize model selector' })).toBeEnabled();
-    expect(screen.getByLabelText('visualize parameter')).toBeEnabled();
+    // Offene Auswahl: die Leiste *ist* die Auswahl, die Chips sind ersetzt.
+    renderComposer({ isLoading: true, row: 'upload' });
+    expect(screen.queryByRole('button', { name: 'modelSelector.select' })).toBeNull();
     expect(screen.getByRole('button', { name: 'reference' })).toBeEnabled();
   });
 
   it('still locks them while recording or transcribing — they share the input', () => {
-    const { unmount } = renderComposer({ isRecording: true });
-    expect(screen.getByRole('button', { name: 'Visualize model selector' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'reference' })).toBeDisabled();
+    const { unmount } = renderComposer({ isRecording: true, row: null });
+    expect(screen.getByRole('button', { name: 'modelSelector.select' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'menu.section.parameters' })).toBeDisabled();
     unmount();
 
-    renderComposer({ isTranscribing: true });
-    expect(screen.getByRole('button', { name: 'Visualize model selector' })).toBeDisabled();
+    const second = renderComposer({ isRecording: true, row: 'upload' });
     expect(screen.getByRole('button', { name: 'reference' })).toBeDisabled();
+    second.unmount();
+
+    renderComposer({ isTranscribing: true, row: null });
+    expect(screen.getByRole('button', { name: 'modelSelector.select' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'menu.section.parameters' })).toBeDisabled();
+  });
+});
+
+/**
+ * Der Kern von Schnitt 02+01: rechts stehen in jedem Modus dieselben zwei
+ * Elemente, und der Zugang zu Stimme/Stil verschwindet nicht, nur weil ein
+ * Werkzeug laeuft. Beides war vorher modusabhaengig.
+ */
+describe('ChatInput fixed slots across modes', () => {
+  const baseProps = {
+    onSendMessage: jest.fn(), isLoading: false, uploadedFilePreviewUrl: null,
+    onFileSelect: jest.fn(), isLongLanguageLoopActive: false, inputValue: 'ein prompt',
+    onInputChange: jest.fn(), onToggleImageMode: jest.fn(), selectedModelId: 'openai',
+    handleModelChange: jest.fn(), onToggleWebBrowsing: jest.fn(), isRecording: false,
+    isTranscribing: false, startRecording: jest.fn(), stopRecording: jest.fn(),
+    openCamera: jest.fn(),
+  };
+
+  const visualizeState = {
+    uploadedImages: [], isUploading: false, supportsReference: true, requiresSourceVideo: false,
+    maxImages: 4, selectedModelId: 'flux', setSelectedModelId: jest.fn(),
+    currentModelConfig: { id: 'flux', name: 'Flux', inputs: [] }, formFields: { aspect_ratio: '16:9' },
+    handleFieldChange: jest.fn(), setFormFields: jest.fn(), isPollenModel: false,
+    isPollinationsVideo: false, providerMode: 'pollinations', prunaAvailable: false,
+    isVideoModel: false, supportsEndFrame: false, sourceVideo: null,
+    handleRemoveImage: jest.fn(), handleRemoveSourceVideo: jest.fn(),
+    handleEnhancePrompt: jest.fn(), isEnhancing: false, setPrompt: jest.fn(),
+  };
+
+  const MODES = [
+    ['standard', {}],
+    ['visualize', { isImageMode: true, visualizeToolState: visualizeState }],
+    ['research', { webBrowsingEnabled: true }],
+    ['code', { isCodeMode: true, onToggleCodeMode: jest.fn() }],
+  ] as const;
+
+  beforeEach(() => {
+    mockUseChatInputLogic.mockReturnValue({
+      isMobile: false, activeBadgeRow: null,
+      badgePanelRef: { current: null }, uploadButtonRef: { current: null },
+      badgeActionsRef: { current: null }, modeButtonRef: { current: null },
+      modelButtonRef: { current: null }, paramsButtonRef: { current: null },
+      docInputRef: { current: null }, imageInputRef: { current: null },
+      toggleBadgeRow: jest.fn(), setActiveMode: jest.fn(), handleSelectMode: jest.fn(),
+      handleSubmit: jest.fn(), handleFileChange: jest.fn(),
+    });
+  });
+
+  it.each(MODES)('keeps the send side to microphone and send in %s mode', (_name, modeProps) => {
+    const { unmount } = render(
+      <ChatInput
+        {...baseProps}
+        isImageMode={false}
+        webBrowsingEnabled={false}
+        {...(modeProps as Record<string, unknown>)}
+      />,
+    );
+
+    const right = screen.getByTestId('bar-actions-right');
+    // Aufnahme und Senden stehen in jedem Modus rechts; Visualize und Compose
+    // legen die Prompt-Verbesserung davor.
+    expect(within(right).getByRole('button', { name: 'chat.send' })).toBeInTheDocument();
+    expect(within(right).getByRole('button', { name: 'chat.startRecording' })).toBeInTheDocument();
+    unmount();
+  });
+
+  /**
+   * Antwortstil, Stimme und Tempo lagen doppelt vor — hier und in der Sidebar,
+   * beide aus demselben useChatModes(). Die Leiste traegt sie nicht mehr; dieser
+   * Test haelt den Rueckfall auf.
+   */
+  it('no longer carries voice and style — they live in settings only', () => {
+    mockUseChatInputLogic.mockReturnValue({
+      isMobile: false, activeBadgeRow: null,
+      badgePanelRef: { current: null }, uploadButtonRef: { current: null },
+      badgeActionsRef: { current: null }, modeButtonRef: { current: null },
+      modelButtonRef: { current: null }, paramsButtonRef: { current: null },
+      docInputRef: { current: null }, imageInputRef: { current: null },
+      toggleBadgeRow: jest.fn(), setActiveMode: jest.fn(), handleSelectMode: jest.fn(),
+      handleSubmit: jest.fn(), handleFileChange: jest.fn(),
+    } as any);
+    render(<ChatInput {...baseProps} isImageMode={false} webBrowsingEnabled={false} onToggleCodeMode={jest.fn()} />);
+    expect(screen.queryByRole('button', { name: 'chat.quickSettings' })).toBeNull();
+  });
+
+  /** Prompt-Verbesserung steht vor Aufnahme und Senden — alle drei sind Aktionen. */
+  it('puts prompt enhancement first in the action group', () => {
+    render(
+      <ChatInput {...baseProps} isImageMode webBrowsingEnabled={false} visualizeToolState={visualizeState as any} />,
+    );
+
+    const right = screen.getByTestId('bar-actions-right');
+    const enhance = within(right).getByRole('button', { name: 'action.enhancePrompt' });
+    expect(right.children[0]).toBe(enhance);
+  });
+
+  /**
+   * Ohne Text belegt Senden keine Breite, damit Aufnahme und Verbesserung am
+   * rechten Rand sitzen. Gemountet bleibt der Knopf trotzdem — beim Aus- und
+   * Einhaengen verliert das Eingabefeld waehrend des Tippens den Fokus.
+   */
+  it('collapses send while there is nothing to send, without unmounting it', () => {
+    const { unmount } = render(
+      <ChatInput {...baseProps} inputValue="" isImageMode={false} webBrowsingEnabled={false} />,
+    );
+    const collapsed = screen.getByRole('button', { name: 'chat.send' });
+    expect(collapsed).toBeInTheDocument();
+    expect(collapsed.className).toContain('max-w-0');
+    expect(collapsed).toBeDisabled();
+    unmount();
+
+    render(<ChatInput {...baseProps} inputValue="yo" isImageMode={false} webBrowsingEnabled={false} />);
+    const expanded = screen.getByRole('button', { name: 'chat.send' });
+    expect(expanded.className).not.toContain('max-w-0');
+    expect(expanded).toBeEnabled();
+  });
+});
+
+describe('ChatInput mode panel', () => {
+  const baseProps = {
+    onSendMessage: jest.fn(),
+    isLoading: false,
+    uploadedFilePreviewUrl: null,
+    onFileSelect: jest.fn(),
+    isLongLanguageLoopActive: false,
+    inputValue: '',
+    onInputChange: jest.fn(),
+    isImageMode: false,
+    onToggleImageMode: jest.fn(),
+    selectedModelId: 'openai',
+    handleModelChange: jest.fn(),
+    webBrowsingEnabled: false,
+    onToggleWebBrowsing: jest.fn(),
+    isRecording: false,
+    isTranscribing: false,
+    startRecording: jest.fn(),
+    stopRecording: jest.fn(),
+    openCamera: jest.fn(),
+  };
+
+  const logicMock = (overrides: Record<string, unknown>) => ({
+    isMobile: false,
+    activeBadgeRow: null,
+    badgePanelRef: { current: null },
+    uploadButtonRef: { current: null },
+    badgeActionsRef: { current: null },
+    modeButtonRef: { current: null },
+    modelButtonRef: { current: null },
+    paramsButtonRef: { current: null },
+    docInputRef: { current: null },
+    imageInputRef: { current: null },
+    toggleBadgeRow: jest.fn(),
+    setActiveMode: jest.fn(),
+    handleSelectMode: jest.fn(),
+    handleSubmit: jest.fn(),
+    handleFileChange: jest.fn(),
+    ...overrides,
+  });
+
+  it('opens the mode panel from the mode chip', () => {
+    const toggleBadgeRow = jest.fn();
+    mockUseChatInputLogic.mockReturnValue(logicMock({ toggleBadgeRow }) as any);
+
+    render(<ChatInput {...baseProps} onToggleCodeMode={jest.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'menu.section.mode' }));
+    expect(toggleBadgeRow).toHaveBeenCalledWith('mode');
+  });
+
+  /**
+   * Der Text hat die ganze Breite, die Steuerung steht darunter in *einer*
+   * Reihe. Einzeilig verschmolzen brach der Platzhalter neben langen
+   * Modellnamen um und lief unten aus der Leiste.
+   */
+  it('gives the input its own full-width row, controls below it', () => {
+    mockUseChatInputLogic.mockReturnValue(logicMock({}) as any);
+    const { container } = render(
+      <ChatInput {...baseProps} isImageMode={false} webBrowsingEnabled={false} onToggleCodeMode={jest.fn()} />,
+    );
+
+    const textarea = container.querySelector('textarea');
+    const rightActions = screen.getByTestId('bar-actions-right');
+    expect(textarea).not.toBeNull();
+
+    // Die Eingabe teilt sich ihre Zeile mit niemandem.
+    expect(textarea!.parentElement).not.toContainElement(rightActions);
+
+    // Konfiguration und Aktionen dagegen stehen zusammen in einer Reihe.
+    const controlRow = rightActions.parentElement!;
+    expect(controlRow.className).toContain('flex');
+    expect(controlRow.querySelectorAll('button').length).toBeGreaterThan(1);
+  });
+
+  it('replaces the bar contents with the options — no second trigger, no doubled value', () => {
+    mockUseChatInputLogic.mockReturnValue(logicMock({ activeBadgeRow: 'mode' }) as any);
+    render(<ChatInput {...baseProps} onToggleCodeMode={jest.fn()} />);
+
+    // Textzeile und Chip-Reihe sind fort: die Leiste *ist* die Auswahl.
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.queryByTestId('bar-actions-right')).toBeNull();
+
+    // Der aktive Modus steht genau einmal da — als Option, nicht zusaetzlich
+    // als Ausloeser darunter.
+    const group = screen.getByRole('radiogroup', { name: 'menu.section.mode' });
+    expect(within(group).getAllByText('tools.chat')).toHaveLength(1);
+    expect(screen.getAllByText('tools.chat')).toHaveLength(1);
+  });
+
+  it('renders the mode options while the mode row is open and selects a mode', () => {
+    const handleSelectMode = jest.fn();
+    mockUseChatInputLogic.mockReturnValue(
+      logicMock({ activeBadgeRow: 'mode', handleSelectMode }) as any,
+    );
+
+    render(<ChatInput {...baseProps} onToggleCodeMode={jest.fn()} />);
+
+    const group = screen.getByRole('radiogroup', { name: 'menu.section.mode' });
+    expect(within(group).getByRole('radio', { name: /tools.visualize/ })).toBeInTheDocument();
+
+    fireEvent.click(within(group).getByRole('radio', { name: /tools.chat/ }));
+    expect(handleSelectMode).toHaveBeenCalledWith('standard');
   });
 });

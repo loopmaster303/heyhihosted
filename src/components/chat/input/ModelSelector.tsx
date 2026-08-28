@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, ChevronDown, X } from 'lucide-react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { modelIcons, featuredModels, modelDisplayMap } from '@/config/ui-constants';
-import { ModalPopup } from '@/components/ui/popup';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useVisiblePollinationsTextModels } from '@/hooks/useVisiblePollinationsTextModels';
 
@@ -15,73 +14,155 @@ interface ModelSelectorProps {
     compact?: boolean;
     disabled?: boolean;
     modelFilterIds?: string[];
+    /** Whether the shared panel above the textarea currently shows the model list */
+    isOpen?: boolean;
+    onToggle?: () => void;
+    panelId?: string;
+    buttonRef?: React.Ref<HTMLButtonElement>;
 }
 
+const useModelLists = (modelFilterIds?: string[]) => {
+    const { visibleModels: allModels, findModelById } = useVisiblePollinationsTextModels();
+    const filtered = modelFilterIds && modelFilterIds.length > 0
+        ? modelFilterIds.map((id) => allModels.find((model) => model.id === id)).filter(Boolean)
+        : null;
+
+    return {
+        findModelById,
+        featuredList: filtered ?? featuredModels.map(f => allModels.find(m => m.id === f.id)).filter(Boolean),
+        otherModels: filtered ? [] : allModels.filter(m => !featuredModels.some(f => f.id === m.id)),
+    };
+};
+
+/**
+ * Nur der Ausloeser. Die Liste liegt im Feld ueber der Textzeile — dieselbe
+ * Oeffnungsgeste wie Upload, Einstellungen und Modus.
+ */
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
     selectedModelId,
     onModelChange,
     isMobile = false,
     compact = false,
     disabled = false,
-    modelFilterIds
+    modelFilterIds,
+    isOpen = false,
+    onToggle,
+    panelId,
+    buttonRef,
 }) => {
     const { t } = useLanguage();
-    const { visibleModels: allModels, findModelById } = useVisiblePollinationsTextModels();
-    const [isOpen, setIsOpen] = useState(false);
-    const [expanded, setExpanded] = useState(false);
+    const { findModelById } = useModelLists(modelFilterIds);
 
-    const filteredModels = modelFilterIds && modelFilterIds.length > 0
-        ? modelFilterIds.map((id) => allModels.find((model) => model.id === id)).filter(Boolean)
-        : null;
-
-    // Filter featured models
-    const featuredList = filteredModels ?? featuredModels.map(f => allModels.find(m => m.id === f.id)).filter(Boolean);
-    // Filter other models
-    const otherModels = filteredModels ? [] : allModels.filter(m => !featuredModels.some(f => f.id === m.id));
-
-    const closePopover = useCallback(() => {
-        setIsOpen(false);
-        setExpanded(false);
-    }, []);
-
-    const openPopover = useCallback(() => {
+    const handleClick = () => {
         if (disabled) return;
-        setIsOpen(true);
-    }, [disabled]);
-
-    useEffect(() => {
-        if (!isOpen) return;
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                closePopover();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, closePopover]);
-
-    const handleModelSelect = (modelId: string) => {
-        onModelChange(modelId);
-        closePopover();
+        onToggle?.();
     };
+
+    if (compact) {
+        const model = findModelById(selectedModelId);
+        const icon = modelIcons[selectedModelId];
+        const displayName = modelDisplayMap[selectedModelId] || model?.name || 'AI';
+
+        return (
+            <Button
+                ref={buttonRef}
+                type="button"
+                variant="ghost"
+                disabled={disabled}
+                onClick={handleClick}
+                aria-expanded={isOpen}
+                aria-controls={isOpen ? panelId : undefined}
+                className={cn(
+                    "h-auto shrink-0 gap-2 bg-transparent px-1 py-3 font-mono text-sm font-medium shadow-none transition-opacity hover:bg-transparent",
+                    isOpen ? "opacity-100" : "opacity-70 hover:opacity-100",
+                )}
+            >
+                <div className="flex items-center gap-1.5 min-w-0">
+                    {icon && (
+                        <div className="w-4 h-4 shrink-0 relative">
+                            <Image
+                                src={icon}
+                                alt=""
+                                fill
+                                sizes="16px"
+                                className="object-contain grayscale-[0.5] group-hover:grayscale-0 transition-all"
+                            />
+                        </div>
+                    )}
+                    <span className={cn("truncate max-w-[160px] md:max-w-[220px] font-mono", icon && "hidden sm:inline")}>{displayName}</span>
+                </div>
+                <ChevronDown className="w-3 h-3 opacity-50 shrink-0" />
+            </Button>
+        );
+    }
+
+    const modelName = findModelById(selectedModelId)?.name || 'AI';
+    return (
+        <Button
+            ref={buttonRef}
+            type="button"
+            variant="ghost"
+            disabled={disabled}
+            onClick={handleClick}
+            aria-expanded={isOpen}
+            aria-controls={isOpen ? panelId : undefined}
+            className={cn(
+                "group rounded-lg h-14 md:h-12 transition-colors duration-300 text-muted-foreground hover:text-foreground",
+                isMobile ? 'w-auto px-2' : 'w-auto px-1'
+            )}
+            aria-label={t('modelSelector.select')}
+        >
+            <div className="flex items-center gap-1.5 truncate max-w-full">
+                {isMobile ? (
+                    <div className="flex items-center gap-1">
+                        <span className="text-sm font-semibold truncate max-w-[120px]">{modelName}</span>
+                        <ChevronDown className="w-5 h-5 flex-shrink-0 text-primary/80" />
+                    </div>
+                ) : (
+                    <div className="flex items-center">
+                        <div className="h-14 flex items-center justify-center px-4">
+                            <span className="text-lg font-bold tracking-tight pointer-events-auto">{modelName}</span>
+                        </div>
+                        <ChevronDown className="w-6 h-6 flex-shrink-0 text-primary/80 ml-1" />
+                    </div>
+                )}
+            </div>
+        </Button>
+    );
+};
+
+interface ModelSelectorPanelProps {
+    selectedModelId: string;
+    onModelChange: (modelId: string) => void;
+    modelFilterIds?: string[];
+}
+
+export const ModelSelectorPanel: React.FC<ModelSelectorPanelProps> = ({
+    selectedModelId,
+    onModelChange,
+    modelFilterIds,
+}) => {
+    const { t } = useLanguage();
+    const { featuredList, otherModels } = useModelLists(modelFilterIds);
+    const [expanded, setExpanded] = useState(false);
 
     const renderModelItem = (model: any, isCompact = false) => {
         if (!model) return null;
-        const config = featuredModels.find(f => f.id === model.id);
         const isSelected = selectedModelId === model.id;
 
         return (
-            <div
+            <button
                 key={model.id}
-                onClick={() => handleModelSelect(model.id)}
+                type="button"
+                onClick={() => onModelChange(model.id)}
                 className={cn(
-                    "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all duration-200 border",
+                    "flex items-center gap-3 p-2.5 rounded-lg text-left transition-all duration-200 border",
                     isSelected
                         ? "bg-primary/10 border-primary/30 shadow-sm"
                         : "hover:bg-muted/50 border-transparent hover:border-border/50"
                 )}
             >
-                <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center bg-muted/50 flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted/50 flex-shrink-0">
                     {modelIcons[model.id] ? (
                         <Image
                             src={modelIcons[model.id]}
@@ -97,7 +178,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     )}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                         <span className={cn("font-semibold truncate", isCompact ? "text-xs" : "text-sm")}>
                             {model.name}
                         </span>
@@ -113,172 +194,49 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                         </p>
                     )}
                 </div>
-            </div>
+            </button>
         );
     };
 
-    const trigger = compact ? (
-        <Button
-            type="button"
-            variant="ghost"
-            disabled={disabled}
-            onClick={openPopover}
-            aria-haspopup="dialog"
-            aria-expanded={isOpen}
-            className="h-9 px-2 md:px-3 gap-2 rounded-full border border-border/30 hover:bg-accent transition-all text-xs font-semibold text-foreground/70 shadow-sm shrink-0"
-        >
-            <div className="flex items-center gap-1.5 min-w-0">
-                {(() => {
-                    const model = findModelById(selectedModelId);
-                    const icon = modelIcons[selectedModelId];
-                    const displayName = modelDisplayMap[selectedModelId] || model?.name || 'AI';
-                    
-                    return (
-                        <>
-                            {icon && (
-                                <div className="w-4 h-4 shrink-0 relative">
-                                    <Image
-                                        src={icon}
-                                        alt=""
-                                        fill
-                                        sizes="16px"
-                                        className="object-contain grayscale-[0.5] group-hover:grayscale-0 transition-all"
-                                    />
-                                </div>
-                            )}
-                            <span className={cn("truncate max-w-[160px] md:max-w-[220px]", icon && "hidden sm:inline")}>{displayName}</span>
-                        </>
-                    );
-                })()}
-            </div>
-            <ChevronDown className="w-3 h-3 opacity-50 shrink-0" />
-        </Button>
-    ) : (
-        <Button
-            type="button"
-            variant="ghost"
-            disabled={disabled}
-            onClick={openPopover}
-            aria-haspopup="dialog"
-            aria-expanded={isOpen}
-            className={cn(
-                "group rounded-lg h-14 md:h-12 transition-colors duration-300 text-muted-foreground hover:text-foreground",
-                isMobile ? 'w-auto px-2' : 'w-auto px-1'
-            )}
-            aria-label={t('modelSelector.select')}
-        >
-            <div className="flex items-center gap-1.5 truncate max-w-full">
-                {(() => {
-                    const modelName = findModelById(selectedModelId)?.name || 'AI';
-                    if (isMobile) {
-                        return (
-                            <div className="flex items-center gap-1">
-                                <span className="text-sm font-semibold truncate max-w-[120px]">{modelName}</span>
-                                <ChevronDown className="w-5 h-5 flex-shrink-0 text-primary/80" />
-                            </div>
-                        );
-                    }
-                    return (
-                        <div className="flex items-center">
-                            <div className="h-14 flex items-center justify-center px-4">
-                                <span className="text-lg font-bold tracking-tight pointer-events-auto">
-                                    {modelName}
-                                </span>
-                            </div>
-                            <ChevronDown className="w-6 h-6 flex-shrink-0 text-primary/80 ml-1" />
-                        </div>
-                    );
-                })()}
-            </div>
-        </Button>
-    );
-
     return (
-        <>
-            {trigger}
-            {isOpen && (
-                <ModalPopup
-                    maxWidth={expanded ? "4xl" : "xl"}
-                    onClose={closePopover}
-                    className={cn(
-                        "p-0 overflow-hidden shadow-glass-heavy border-primary/10",
-                        expanded ? "w-[95vw] md:w-[820px]" : "w-[90vw] sm:w-[420px]"
-                    )}
+        <div className="max-h-[45vh] overflow-y-auto overscroll-contain pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {featuredList.map((model) => renderModelItem(model, false))}
+            </div>
+
+            {!expanded && otherModels.length > 0 && (
+                <button
+                    type="button"
+                    onClick={() => setExpanded(true)}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border/50 py-2.5 group hover:bg-muted/50"
                 >
-                    <div className={cn(
-                        "overflow-y-auto overscroll-contain",
-                        expanded ? "max-h-[80vh] md:max-h-[calc(100vh-180px)]" : "max-h-[75vh] md:max-h-[calc(100vh-240px)]"
-                    )}>
-                        {/* Header */}
-                        <div className="px-4 py-3 border-b border-border/50 sticky top-0 bg-popover/90 backdrop-blur-md z-10 flex items-center justify-between">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-primary" />
-                                    <span className="text-sm font-bold uppercase tracking-wider">{t('modelSelector.title')}</span>
-                                </div>
-                                <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-tight opacity-60">{t('modelSelector.subtitle')}</p>
-                            </div>
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={closePopover}
-                                className="h-8 w-8 rounded-full hover:bg-muted/80 transition-colors"
-                            >
-                                <X className="w-4 h-4" />
-                            </Button>
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-2 pb-12">
-                            <div className={cn(
-                                "grid gap-2",
-                                expanded ? "grid-cols-2" : "grid-cols-1"
-                            )}>
-                                {featuredList.map((model) => renderModelItem(model, false))}
-                            </div>
-
-                            {!expanded && otherModels.length > 0 && (
-                                <div
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setExpanded(true);
-                                    }}
-                                    className="flex items-center justify-center py-3 cursor-pointer hover:bg-muted/50 rounded-lg mt-2 group gap-2 border border-dashed border-border/50"
-                                >
-                                    <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary transition-colors uppercase tracking-widest">
-                                        {t('modelSelector.showAll')} ({otherModels.length})
-                                    </span>
-                                    <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
-                                </div>
-                            )}
-
-                            {expanded && (
-                                <>
-                                    <div className="px-2 py-3 text-[9px] font-bold text-primary uppercase tracking-[0.2em] mt-4 mb-1 opacity-60">
-                                        {t('modelSelector.advanced')}
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                        {otherModels.map((model) => renderModelItem(model, true))}
-                                    </div>
-
-                                    <div
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setExpanded(false);
-                                        }}
-                                        className="flex items-center justify-center py-3 cursor-pointer hover:bg-muted/50 rounded-lg mt-4 group gap-2 border-t border-border/30"
-                                    >
-                                        <ChevronUp className="w-3 h-3 text-muted-foreground group-hover:text-foreground transition-colors" />
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-foreground">{t('modelSelector.showLess')}</span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </ModalPopup>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">
+                        {t('modelSelector.showAll')} ({otherModels.length})
+                    </span>
+                    <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                </button>
             )}
-        </>
+
+            {expanded && (
+                <>
+                    <div className="px-2 pt-4 pb-2 text-[9px] font-bold text-primary uppercase tracking-[0.2em] opacity-60">
+                        {t('modelSelector.advanced')}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {otherModels.map((model) => renderModelItem(model, true))}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setExpanded(false)}
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border-t border-border/30 py-2.5 group hover:bg-muted/50"
+                    >
+                        <ChevronUp className="w-3 h-3 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-foreground">
+                            {t('modelSelector.showLess')}
+                        </span>
+                    </button>
+                </>
+            )}
+        </div>
     );
 };

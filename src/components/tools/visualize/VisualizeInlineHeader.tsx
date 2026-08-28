@@ -1,7 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { ChevronDown, ImageIcon, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
@@ -29,9 +28,6 @@ interface VisualizeInlineHeaderProps {
   formFields: Record<string, any>;
   handleFieldChange: (name: string, value: any) => void;
   setFormFields: React.Dispatch<React.SetStateAction<Record<string, any>>>;
-  isGptImage: boolean;
-  isSeedream: boolean;
-  isNanoPollen: boolean;
   isPollenModel: boolean;
   isPollinationsVideo: boolean;
   inlineContent?: React.ReactNode;
@@ -61,9 +57,6 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   formFields,
   handleFieldChange,
   setFormFields,
-  isGptImage,
-  isSeedream,
-  isNanoPollen,
   isPollenModel,
   isPollinationsVideo,
   inlineContent,
@@ -107,10 +100,6 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   const standardGroups = modelGroups.filter(group => group.category === 'Standard');
   const advancedGroups = modelGroups.filter(group => group.category === 'Advanced');
 
-  const shouldShowResolution = React.useMemo(() => {
-    const aspectRatio = formFields.aspect_ratio || '1:1';
-    return aspectRatio !== 'custom';
-  }, [formFields.aspect_ratio]);
   const aspectRatioPresets = React.useMemo(
     () => getAspectRatioPresetsForModel(selectedModelId),
     [selectedModelId]
@@ -352,33 +341,8 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
         </div>
       )}
 
-      {/* Quality / Resolution */}
-      {selectedModelId !== 'z-image-turbo' && !isGptImage && !isSeedream && !isPollinationsVideo && shouldShowResolution && currentModelConfig.inputs.find(i => i.name === 'resolution') && (
-        <div className={badgeClass}>
-          <Select
-            value={formFields.resolution || '1 MP'}
-            onValueChange={(value) => handleFieldChange('resolution', value)}
-            disabled={disabled}
-          >
-            <SelectTrigger className={triggerClass}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {selectedModelId === 'flux-2-pro' && (
-                <>
-                  {formFields.aspect_ratio === 'match_input_image' && <SelectItem value="match_input_image">Match</SelectItem>}
-                  <SelectItem value="0.5 MP">0.5 MP</SelectItem>
-                  <SelectItem value="1 MP">1 MP</SelectItem>
-                  <SelectItem value="2 MP">2 MP</SelectItem>
-                  <SelectItem value="4 MP">4 MP</SelectItem>
-                </>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Duration */}
+      {/* Duration — bleibt vorne: 4s gegen 30s ist eine andere Szene, nicht
+          dasselbe Video in anderer Laenge. */}
       {((currentModelConfig.outputType === 'video' || isPollinationsVideo) && durationOptions.length > 0) && (
         <div className={badgeClass}>
           <Select
@@ -390,85 +354,18 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-                {durationOptions.map(option => (
-                  <SelectItem key={option} value={String(option)}>{option}s</SelectItem>
-                ))}
-</SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Audio Toggle */}
-      {(() => {
-          const model = getUnifiedModel(selectedModelId);
-          if (model?.supportsAudio) {
-                return (
-                  <div className={badgeClass}>
-                      <div className="flex items-center gap-1.5 h-6">
-                            <Switch
-                                id="audio-toggle-inline"
-                                checked={!!formFields.audio}
-                                onCheckedChange={(checked) => handleFieldChange('audio', checked)}
-                                disabled={disabled}
-                                className="scale-75 origin-left data-[state=checked]:bg-primary" 
-                            />
-                      </div>
-                  </div>
-                );
-          }
-          return null;
-      })()}
-
-      {/* Enhance Prompt Toggle (for models that support it) */}
-      {getUnifiedModel(selectedModelId)?.supportsPromptEnhance && (
-        <div className={badgeClass}>
-          <span className={labelClass}>ENHANCE</span>
-          <div className="flex items-center gap-1.5 h-6">
-            <Switch
-              id="enhance-prompt-inline"
-              checked={!!formFields.enhance_prompt}
-              onCheckedChange={(checked) => handleFieldChange('enhance_prompt', checked)}
-              disabled={disabled}
-              className="scale-75 origin-left data-[state=checked]:bg-primary"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Output Format */}
-      {(!isPollenModel && !isPollinationsVideo && currentModelConfig.inputs.find(i => i.name === 'output_format')) && (
-        <div className={badgeClass}>
-          <Select
-            value={formFields.output_format || (currentModelConfig.outputType === 'video' ? 'mp4' : (selectedModelId === 'flux-2-pro' ? 'webp' : 'jpg'))}
-            onValueChange={(value) => handleFieldChange('output_format', value)}
-            disabled={disabled}
-          >
-            <SelectTrigger className={triggerClass}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="jpg">JPG</SelectItem>
-              <SelectItem value="png">PNG</SelectItem>
-              <SelectItem value="webp">WebP</SelectItem>
-              {currentModelConfig.outputType === 'video' && <SelectItem value="mp4">MP4</SelectItem>}
+              {durationOptions.map(option => (
+                <SelectItem key={option} value={String(option)}>{option}s</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       )}
 
-      {/* Negative Prompt */}
-      {currentModelConfig.inputs.find(i => i.name === 'negative_prompt') && (
-        <div className={badgeClass}>
-          <input
-            type="text"
-            value={formFields.negative_prompt || ''}
-            onChange={(e) => handleFieldChange('negative_prompt', e.target.value)}
-            disabled={disabled}
-            placeholder="..."
-            className="bg-transparent border-0 text-[10px] font-semibold focus:ring-0 w-[80px] md:w-[150px] text-foreground placeholder:text-muted-foreground/50 outline-none"
-          />
-        </div>
-      )}
+      {/* Aufloesung, Ton, Ausgabeformat und Negativ-Prompt sind Korrekturen am
+         fertigen Ergebnis, nicht Vorgaben fuer die Bildidee — sie leben am
+         Kontrollstreifen der Ergebniskarte. Der Enhance-Schalter entfaellt:
+         der Funken-Knopf in der Textzeile macht dasselbe sichtbar. */}
 
       {inlineContent && (
         <div className={badgeClass}>

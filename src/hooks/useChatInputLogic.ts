@@ -8,6 +8,12 @@ import { useVisiblePollinationsTextModels } from './useVisiblePollinationsTextMo
 
 export type ToolMode = 'standard' | 'visualize' | 'compose' | 'research' | 'code';
 
+/**
+ * Jede aufklappbare Konfiguration der Leiste benutzt dasselbe Feld ueber der
+ * Textzeile. Genau ein Panel ist offen — deshalb ein Wert, keine Flags.
+ */
+export type BadgeRow = 'upload' | 'mode' | 'model' | 'params';
+
 export interface UseChatInputLogicProps {
     onSendMessage: (message: string, options?: { isImageModeIntent?: boolean }) => void;
     isLoading: boolean;
@@ -52,22 +58,40 @@ export function useChatInputLogic({
     visualizeToolState,
 }: UseChatInputLogicProps) {
     const isMobile = useMediaQuery('(max-width: 639px)');
-    const [activeBadgeRow, setActiveBadgeRow] = useState<'tools' | 'upload' | 'settings' | null>(null);
+    const [activeBadgeRow, setActiveBadgeRow] = useState<BadgeRow | null>(null);
     const badgePanelRef = useRef<HTMLDivElement>(null);
     const badgeActionsRef = useRef<HTMLDivElement>(null);
-    
+    const uploadButtonRef = useRef<HTMLButtonElement>(null);
+    const modeButtonRef = useRef<HTMLButtonElement>(null);
+    const modelButtonRef = useRef<HTMLButtonElement>(null);
+    const paramsButtonRef = useRef<HTMLButtonElement>(null);
+    const lastOpenedRowRef = useRef<BadgeRow | null>(null);
+	
     // Refs for hidden inputs
     const docInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
-    const quickSettingsButtonRef = useRef<HTMLButtonElement>(null);
 
-    const hasActiveTool = isImageMode || isComposeMode || webBrowsingEnabled || isCodeMode;
     const [defaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
     const { isKnownModelId } = useVisiblePollinationsTextModels();
 
-    const visibleBadgeRow = (hasActiveTool && activeBadgeRow === 'tools')
-        ? null
-        : activeBadgeRow;
+    // Escape closes the open panel and returns focus to its toggle button
+    useEffect(() => {
+        if (!activeBadgeRow) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            setActiveBadgeRow(null);
+            const toggleRefs = {
+                upload: uploadButtonRef,
+                mode: modeButtonRef,
+                model: modelButtonRef,
+                params: paramsButtonRef,
+            } as const;
+            toggleRefs[lastOpenedRowRef.current ?? activeBadgeRow]?.current?.focus();
+            lastOpenedRowRef.current = null;
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [activeBadgeRow]);
 
     const wasCodeMode = useRef(isCodeMode);
 
@@ -84,16 +108,18 @@ export function useChatInputLogic({
     }, [isCodeMode, defaultTextModelId, handleModelChange, isKnownModelId]);
 
     useOnClickOutside([badgePanelRef, badgeActionsRef], () => {
-        if (visibleBadgeRow) setActiveBadgeRow(null);
+        if (activeBadgeRow) {
+            setActiveBadgeRow(null);
+            lastOpenedRowRef.current = null;
+        }
     });
 
-    const toggleBadgeRow = useCallback((row: 'tools' | 'upload' | 'settings') => {
-        if (row === 'tools' && hasActiveTool) {
-            setActiveBadgeRow(null);
-            return;
-        }
-        setActiveBadgeRow(current => current === row ? null : row);
-    }, [hasActiveTool]);
+    const toggleBadgeRow = useCallback((row: BadgeRow) => {
+        setActiveBadgeRow(current => {
+            if (current !== row) lastOpenedRowRef.current = row;
+            return current === row ? null : row;
+        });
+    }, []);
 
     const setActiveMode = useCallback((mode: ToolMode) => {
         const shouldEnableImage = mode === 'visualize';
@@ -183,15 +209,17 @@ export function useChatInputLogic({
     return {
         // State
         isMobile,
-        activeBadgeRow: visibleBadgeRow,
-        hasActiveTool,
+        activeBadgeRow,
         
         // Refs
         badgePanelRef,
         badgeActionsRef,
+        uploadButtonRef,
+        modeButtonRef,
+        modelButtonRef,
+        paramsButtonRef,
         docInputRef,
         imageInputRef,
-        quickSettingsButtonRef,
 
         // Handlers
         toggleBadgeRow,

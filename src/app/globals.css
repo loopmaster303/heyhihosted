@@ -312,6 +312,48 @@ h6 {
   }
 }
 
+/* Rotierender Licht-Sweep fuer den Fokus-Ring der Prompt-Bar */
+@keyframes border-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-border-spin {
+  animation: border-spin 6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-border-spin {
+    animation: none;
+  }
+}
+
+/* Inline-Moduswechsel: Optionen loesen sich aus dem Verb auf */
+@keyframes mode-option-in {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+.mode-option-in {
+  animation: mode-option-in 350ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-option-in {
+    animation: none;
+  }
+}
+
 /* Glass & Material Utilities */
 @layer utilities {
   .glass-panel {

@@ -152,7 +152,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState, compo
     }
 
     const activeConversation = conversation.activeConversation;
-    const { messages, selectedModelId, selectedResponseStyleName, uploadedFilePreview } = activeConversation;
+    const { messages, selectedModelId, uploadedFilePreview } = activeConversation;
 
     return (
         <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
@@ -211,12 +211,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState, compo
                     onComposeSubmit={handleComposeSubmit}
                     selectedModelId={selectedModelId!}
                     handleModelChange={modes.handleModelChange}
-                    selectedResponseStyleName={selectedResponseStyleName!}
-                    handleStyleChange={modes.handleStyleChange}
-                    selectedVoice={modes.selectedVoice}
-                    handleVoiceChange={modes.handleVoiceChange}
-                    selectedTtsSpeed={modes.selectedTtsSpeed}
-                    handleTtsSpeedChange={modes.handleTtsSpeedChange}
                     isRecording={media.isRecording}
                     isTranscribing={media.isTranscribing}
                     startRecording={media.startRecording}
