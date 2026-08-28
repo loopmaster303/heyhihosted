@@ -4,7 +4,7 @@ import { Menu, Settings, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { PlaygroundSidebar, PlaygroundSidebarContent } from '@/components/playground/PlaygroundSidebar';
-import { SettingsDialog } from '@/components/playground/SettingsDialog';
+import { SettingsPopover } from '@/components/settings/SettingsPopover';
 import { PromptBar } from '@/components/playground/PromptBar';
 import { Gallery, type GalleryItem, type GalleryRun } from '@/components/playground/Gallery';
 import { MetaRail } from '@/components/playground/MetaRail';
@@ -495,7 +495,7 @@ export function PlaygroundShell() {
         </DrawerContent>
       </Drawer>
 
-      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsPopover open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

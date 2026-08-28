@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { SettingsDialog } from './SettingsDialog';
+import { SettingsPopover } from './SettingsPopover';
 
 jest.mock('@/components/ui/button', () => ({
   Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
@@ -42,7 +42,7 @@ jest.mock('@/hooks/usePollenKey', () => ({ usePollenKey: jest.fn() }));
 
 import { usePollenKey } from '@/hooks/usePollenKey';
 
-describe('SettingsDialog', () => {
+describe('SettingsPopover', () => {
   const mockOnClose = jest.fn();
   const mockConnectManual = jest.fn();
   const mockDisconnect = jest.fn();
@@ -59,19 +59,21 @@ describe('SettingsDialog', () => {
   });
 
   it('renders nothing when open is false', () => {
-    const { container } = render(<SettingsDialog open={false} onClose={mockOnClose} />);
+    const { container } = render(<SettingsPopover open={false} onClose={mockOnClose} />);
     expect(container.firstChild).toBeNull();
   });
 
   it('shows Pollinations and Pruna sections when open is true', () => {
-    render(<SettingsDialog open={true} onClose={mockOnClose} />);
+    render(<SettingsPopover open={true} onClose={mockOnClose} />);
 
-    expect(screen.getByText('Pollinations')).toBeInTheDocument();
-    expect(screen.getByText('Pruna')).toBeInTheDocument();
+    // Seit dem Zusammenlegen steht "Pollinations" zweimal: als Zugang-Ueberschrift
+    // und als Label am Provider-Schalter unter Voreinstellungen.
+    expect(screen.getAllByText('Pollinations').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Pruna').length).toBeGreaterThan(0);
   });
 
   it('saves the typed Pruna key to localStorage when Verbinden is clicked', () => {
-    render(<SettingsDialog open={true} onClose={mockOnClose} />);
+    render(<SettingsPopover open={true} onClose={mockOnClose} />);
 
     const input = screen.getByLabelText('Pruna-Key');
     fireEvent.change(input, { target: { value: 'my-pruna-secret' } });
@@ -82,16 +84,27 @@ describe('SettingsDialog', () => {
     expect(localStorage.getItem('prunaApiKey')).toBe('my-pruna-secret');
   });
 
-  it('shows the connected pollen key in the Pollen-Key input', () => {
+  // So kommt der Schluessel wirklich an: usePollenKey liest localStorage erst
+  // nach dem Mount, der erste Render sieht von dort also nichts. Wer den Wert
+  // nur als Startwert aus dem Hook nimmt, zeigt dauerhaft ein leeres Feld
+  // neben einer gruenen Lampe.
+  it('shows the stored pollen key even before the hook reports it', () => {
+    localStorage.setItem('pollenApiKey', 'connected-pollen-key');
     (usePollenKey as jest.Mock).mockReturnValue({
-      pollenKey: 'connected-pollen-key',
-      isConnected: true,
+      pollenKey: null,
+      isConnected: false,
       connectManual: mockConnectManual,
       disconnect: mockDisconnect,
     });
 
-    render(<SettingsDialog open={true} onClose={mockOnClose} />);
+    render(<SettingsPopover open={true} onClose={mockOnClose} />);
 
     expect(screen.getByLabelText('Pollen-Key')).toHaveValue('connected-pollen-key');
+  });
+
+  it('leaves the Pollen-Key input empty when nothing is stored', () => {
+    render(<SettingsPopover open={true} onClose={mockOnClose} />);
+
+    expect(screen.getByLabelText('Pollen-Key')).toHaveValue('');
   });
 });

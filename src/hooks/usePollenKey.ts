@@ -96,7 +96,15 @@ export function usePollenKey(): UsePollenKeyReturn {
       });
 
       if (!response.ok) {
-        console.warn('[BYOP] Failed to fetch account info:', response.status);
+        // Der Status allein sagt nicht, warum: 403 kann ein abgelaufener
+        // Token, eine fehlende Berechtigung oder ein fremder Schluessel sein.
+        // Die Route reicht den Text von Pollinations durch — der gehoert ins Log.
+        const detail = await response.json().catch(() => null);
+        console.warn(
+          '[BYOP] Failed to fetch account info:',
+          response.status,
+          detail?.error ?? '(keine Begruendung von Pollinations)',
+        );
         setAccountInfo(null);
         return;
       }
