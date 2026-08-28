@@ -19,6 +19,7 @@ add new documents there.
 ## Start Here
 
 - `FAHRPLAN-create.md` — **the active plan.** Ten phases toward the publicly shareable version, with the user's binding decisions on domain, gallery and music.
+- `LAUNCH_CRITERIA.md` — **the release gate.** What must work before the address may be shared publicly; per-criterion status, operator decisions recorded 2026-08-28.
 - `HANDOFF-2026-08-28-phase-0.md` — **start here.** What Phase 0 delivered (99 files into
   sixteen commits, `f880389..aa3eac4`), how it was done, the per-phase findings it
   surfaced, and what it left open.
