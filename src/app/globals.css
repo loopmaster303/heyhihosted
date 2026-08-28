@@ -145,6 +145,16 @@
     @apply border-border;
   }
 
+  /**
+   * Zweischriftig seit dem Umbau: `body` traegt Proportional (Gesprochenes),
+   * alles Maschinelle wird explizit ausgezeichnet. Code, Tastenkuerzel und
+   * Programmausgabe waren vorher nur deshalb monospace, weil die ganze App es
+   * war — ohne diese Regel fielen sie still auf Proportional zurueck.
+   */
+  code, pre, kbd, samp {
+    font-family: theme('fontFamily.mono');
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-weight: 400;

@@ -13,7 +13,11 @@ export default {
         'radial-gradient-fog': 'radial-gradient(circle, rgba(0,0,0,0.85) 50%, rgba(0,0,0,0))',
       },
       fontFamily: {
-        body: ['Code', 'ui-monospace', 'Menlo', 'Consolas', '"Courier New"', 'monospace'],
+        // Gesprochenes: Chat-Antworten, Erklaerungen, Fehlermeldungen. Deutscher
+        // Fliesstext ueber zwanzig Zeilen liest sich in Monospace zaeh.
+        body: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Maschinelles: Werte, Modell-IDs, Seeds, Zustaende, Zeitangaben, Code.
         code: ['Code', 'ui-monospace', 'Menlo', 'Consolas', '"Courier New"', 'monospace'],
         mono: ['Code', 'ui-monospace', 'Menlo', 'Consolas', '"Courier New"', 'monospace'],
       },
