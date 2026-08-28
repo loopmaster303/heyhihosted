@@ -3,6 +3,15 @@ import { findRegistryModel, _clearRegistryCacheForTesting } from './pollinations
 const PAID = [{ name: 'flux' }, { name: 'nanobanana', paid_only: true }];
 const FREE = [{ name: 'flux' }];
 
+// Die Registry wird als Rohtext geholt und gecacht, damit `/api/generate` sie
+// unveraendert durchreichen kann — der Mock muss deshalb `text()` bedienen.
+const upstream = (models: unknown) => ({
+  ok: true,
+  status: 200,
+  text: async () => JSON.stringify(models),
+  headers: { get: () => 'application/json' },
+});
+
 describe('pollinations-registry', () => {
   beforeEach(() => {
     _clearRegistryCacheForTesting();
@@ -11,8 +20,8 @@ describe('pollinations-registry', () => {
 
   it('caches per key instead of sharing one entry across callers', async () => {
     (global.fetch as jest.Mock)
-      .mockResolvedValueOnce({ ok: true, json: async () => FREE })
-      .mockResolvedValueOnce({ ok: true, json: async () => PAID });
+      .mockResolvedValueOnce(upstream(FREE))
+      .mockResolvedValueOnce(upstream(PAID));
 
     // Anonym zuerst: sieht das bezahlte Modell nicht.
     expect(await findRegistryModel('nanobanana')).toBeUndefined();
@@ -22,7 +31,7 @@ describe('pollinations-registry', () => {
   });
 
   it('serves a repeated lookup for the same key from the cache', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => PAID });
+    (global.fetch as jest.Mock).mockResolvedValue(upstream(PAID));
 
     await findRegistryModel('flux', 'key-a');
     await findRegistryModel('nanobanana', 'key-a');
