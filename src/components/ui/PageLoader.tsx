@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { AsciiSpinner } from '@/components/ascii';
 
 interface PageLoaderProps {
   text?: string;
@@ -7,7 +7,7 @@ interface PageLoaderProps {
 
 export const PageLoader = ({ text = 'Lade...', className = '' }: PageLoaderProps) => (
   <div className={`flex flex-col h-screen items-center justify-center bg-background ${className}`}>
-    <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+    <AsciiSpinner className="mb-2 text-2xl text-primary" />
     <span className="text-sm text-muted-foreground">{text}</span>
   </div>
 );

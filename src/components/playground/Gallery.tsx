@@ -1,4 +1,5 @@
 "use client";
+import { AsciiSpinner } from '@/components/ascii'
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Image as ImageIcon, Loader2, Play, X } from 'lucide-react';
 import { db, type Asset } from '@/lib/services/database';
@@ -77,7 +78,7 @@ function RunningCard({ run, onCancel }: { run: GalleryRun; onCancel?: () => void
       className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-primary/35 bg-muted/30 p-3 text-center"
       style={{ aspectRatio: cssAspectRatio(run.aspectRatio) }}
     >
-      <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+      <AsciiSpinner />
       <span className="text-[11px] font-medium text-foreground">Generiere…</span>
       <span className="font-mono text-[10.5px] text-muted-foreground">{run.modelId}</span>
       <span className="text-[11px] tabular-nums text-muted-foreground/80">{secs} s</span>
