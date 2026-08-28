@@ -1,6 +1,7 @@
 import React, { useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/LanguageProvider';
+import { FEATURES } from '@/config/features';
 
 type ToolMode = 'standard' | 'visualize' | 'compose' | 'research' | 'code';
 
@@ -77,12 +78,14 @@ export const ToolsBadges: React.FC<ToolsBadgesProps> = ({
                 onSelect={() => onSelectMode('visualize')}
                 label={t(MODE_CONFIG.visualize.label)}
             />
-            <ModeBadge
-                mode="compose"
-                isActive={isComposeMode}
-                onSelect={() => onSelectMode('compose')}
-                label={t(MODE_CONFIG.compose.label)}
-            />
+            {FEATURES.compose && (
+                <ModeBadge
+                    mode="compose"
+                    isActive={isComposeMode}
+                    onSelect={() => onSelectMode('compose')}
+                    label={t(MODE_CONFIG.compose.label)}
+                />
+            )}
             <ModeBadge
                 mode="research"
                 isActive={webBrowsingEnabled}

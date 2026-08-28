@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/components/LanguageProvider';
 import { AVAILABLE_RESPONSE_STYLES, AVAILABLE_TTS_VOICES } from '@/config/chat-options';
+import { FEATURES } from '@/config/features';
 import { TTS_SPEED_PRESETS } from '@/lib/chat/audio-settings';
 
 interface MobileOptionsMenuProps {
@@ -258,24 +259,26 @@ export const MobileOptionsMenu: React.FC<MobileOptionsMenuProps> = ({
                                                                 <span className="text-sm font-medium">{t('tools.standardChat')}</span>
                                                             </DropdownMenuItem>
 
-                                                            <DropdownMenuItem
-                                                                onClick={() => {
-                                                                    if (onToggleCodeMode) onToggleCodeMode(false);
-                                                                    onToggleWebBrowsing(false);
-                                                                    onToggleImageMode(false);
-                                                                    onToggleComposeMode(!isComposeMode);
-                                                                }}
-                                                                className={cn(
-                                                                    "flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10",
-                                                                    isComposeMode && "bg-mode-compose/10"
-                                                                )}
-                                                            >
-                                                                <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
-                                                                    <Music2 className="w-4 h-4" />
-                                                                </div>
-                                                                <span className="text-sm font-medium">{t('tools.compose')}</span>
-                                                                {isComposeMode && <div className="w-2 h-2 rounded-full bg-mode-compose/60 ml-auto" />}
-                                                            </DropdownMenuItem>
+                                                            {FEATURES.compose && (
+                                                                <DropdownMenuItem
+                                                                    onClick={() => {
+                                                                        if (onToggleCodeMode) onToggleCodeMode(false);
+                                                                        onToggleWebBrowsing(false);
+                                                                        onToggleImageMode(false);
+                                                                        onToggleComposeMode(!isComposeMode);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg focus:bg-primary/10",
+                                                                        isComposeMode && "bg-mode-compose/10"
+                                                                    )}
+                                                                >
+                                                                    <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
+                                                                        <Music2 className="w-4 h-4" />
+                                                                    </div>
+                                                                    <span className="text-sm font-medium">{t('tools.compose')}</span>
+                                                                    {isComposeMode && <div className="w-2 h-2 rounded-full bg-mode-compose/60 ml-auto" />}
+                                                                </DropdownMenuItem>
+                                                            )}
 
                                                             <DropdownMenuItem
                                                                 onClick={() => {
