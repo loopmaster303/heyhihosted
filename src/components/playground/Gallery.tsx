@@ -228,6 +228,8 @@ interface Props {
   onOpenSettings?: () => void;
   /** Handlung "Modell wählen" auf der Fehlerkarte. */
   onPickModel?: () => void;
+  /** Meldet die frisch geladenen Items — fuer den URL-Tausch nach der Generierung (W5). */
+  onItemsLoaded?: (items: GalleryItem[]) => void;
 }
 
 export function Gallery({
@@ -241,6 +243,7 @@ export function Gallery({
   onDismissRun,
   onOpenSettings,
   onPickModel,
+  onItemsLoaded,
 }: Props) {
   const [items, setItems] = useState<GalleryItem[]>([]);
   // Ein 401 von Pollinations kommt im img-Tag an, nicht in unserem fetch. Ohne
@@ -274,6 +277,7 @@ export function Gallery({
       ownedUrls.current.forEach((u) => BlobManager.releaseURL(u));
       ownedUrls.current = created;
       setItems(next);
+      onItemsLoaded?.(next);
     })();
     return () => { cancelled = true; };
     // originKey statt origins: ein Array-Literal wechselt seine Identitaet,

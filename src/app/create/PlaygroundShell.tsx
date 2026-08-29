@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Menu, Settings, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
@@ -137,6 +137,11 @@ export function PlaygroundShell() {
   // Zeitpunkt des Abschlusses veraltet, darum der Ref.
   const selectedRef = useRef<GalleryItem | null>(null);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
+  // W5/E5.6: Die vom Generierungspfad erzeugte Object-URL wird freigegeben,
+  // sobald der Galerie-Ladelauf eine eigene aus dem gespeicherten Blob gebaut
+  // hat. Bis dahin zeigt die Detailansicht noch auf sie — der Tausch passiert
+  // in handleItemsLoaded, direkt vor der Freigabe.
+  const pendingUrlSwapRef = useRef<{ id: string; url: string } | null>(null);
 
   // usePlaygroundModels liefert im Pruna-Modus bereits die gefilterte Liste
   // (PRUNA_HIDDEN_IN_PLAYGROUND) — hier nicht ein zweites Mal filtern.
@@ -253,51 +258,83 @@ export function PlaygroundShell() {
 
   /** Nimmt eine fertige Response an: speichern, auswählen, Galerie auffrischen. */
   const consumeFinishedResponse = async (res: Response, run: ActiveRun) => {
-    const ct = res.headers.get('content-type') ?? '';
-    let mediaUrl: string;
-    let kind: 'image' | 'video';
-    if (ct.startsWith('application/json')) {
-      const data = await res.json();
-      const candidate = data.videoUrl ?? data.imageUrl;
-      if (typeof candidate !== 'string' || !candidate) {
-        throw new Error('generate response missing videoUrl/imageUrl');
+    let ownedBlobUrl: string | null = null;
+    try {
+      const ct = res.headers.get('content-type') ?? '';
+      let mediaUrl: string;
+      let kind: 'image' | 'video';
+      if (ct.startsWith('application/json')) {
+        const data = await res.json();
+        const candidate = data.videoUrl ?? data.imageUrl;
+        if (typeof candidate !== 'string' || !candidate) {
+          throw new Error('generate response missing videoUrl/imageUrl');
+        }
+        mediaUrl = candidate;
+        kind = data.videoUrl ? 'video' : 'image';
+      } else {
+        const blob = await res.blob();
+        mediaUrl = BlobManager.createURL(blob, 'playground');
+        ownedBlobUrl = mediaUrl;
+        kind = ct.startsWith('video/') ? 'video' : 'image';
       }
-      mediaUrl = candidate;
-      kind = data.videoUrl ? 'video' : 'image';
-    } else {
-      const blob = await res.blob();
-      mediaUrl = BlobManager.createURL(blob, 'playground');
-      kind = ct.startsWith('video/') ? 'video' : 'image';
+      // Die Route liefert bei beiden Providern eine bereits persistierte
+      // Media-Storage-URL — die darf direkt als remoteUrl gespeichert werden.
+      // Der Blob-Pfad (isPollinations: false) speichert OHNE remoteUrl, und
+      // solche Assets zeigt die Galerie schlicht nicht — darum durften Pruna-
+      // Ergebnisse nie erscheinen. Nur der blob:-Fallback bleibt lokal.
+      const assetId = await OutputService.saveGeneratedAsset({
+        url: mediaUrl,
+        prompt: run.prompt,
+        modelId: run.modelId,
+        conversationId: PLAYGROUND_CONVERSATION_ID,
+        isVideo: kind === 'video',
+        isPollinations: mediaUrl.startsWith('http'),
+        params: run.params,
+      });
+      // Echte Asset-ID, damit die Selektion den Galerie-Reload ueberlebt.
+      const item: GalleryItem = {
+        id: assetId ?? `${Date.now()}`, url: mediaUrl, kind,
+        prompt: run.prompt, modelId: run.modelId, timestamp: Date.now(),
+        params: run.params,
+      };
+      // Der Effekt schreibt den Ref erst nach dem Render — zwei im selben Tick
+      // fertige Laeufe saehen sonst beide "nichts ausgewaehlt".
+      if (selectedRef.current === null) {
+        selectedRef.current = item;
+        setSelected(item);
+      }
+      setRuns((rs) => rs.filter((r) => r.id !== run.id));
+      setGalleryKey((k) => k + 1);
+      // Der Ladelauf der Galerie baut aus dem gespeicherten Blob eine eigene
+      // URL (Kontext 'playground-gallery'). Ohne diese Freigabe haelt jeder
+      // Pruna-Lauf ohne Pollen-Token seinen Blob bis zum Reload im Speicher —
+      // cleanupOld() ueberspringt ihn, weil sein refCount > 0 ist. Ohne
+      // gespeichertes Asset (B6, Blob unter SMALL_BLOB_SKIP_BYTES) gibt es
+      // keine eigene URL — dann bleibt sie stehen, sonst zeigt die
+      // Detailansicht ins Leere.
+      if (ownedBlobUrl && assetId) {
+        pendingUrlSwapRef.current = { id: assetId, url: ownedBlobUrl };
+      }
+    } catch (e) {
+      // Ein Fehler nach dem createURL darf die URL nicht leaken.
+      if (ownedBlobUrl) BlobManager.releaseURL(ownedBlobUrl);
+      throw e;
     }
-    // Die Route liefert bei beiden Providern eine bereits persistierte
-    // Media-Storage-URL — die darf direkt als remoteUrl gespeichert werden.
-    // Der Blob-Pfad (isPollinations: false) speichert OHNE remoteUrl, und
-    // solche Assets zeigt die Galerie schlicht nicht — darum durften Pruna-
-    // Ergebnisse nie erscheinen. Nur der blob:-Fallback bleibt lokal.
-    const assetId = await OutputService.saveGeneratedAsset({
-      url: mediaUrl,
-      prompt: run.prompt,
-      modelId: run.modelId,
-      conversationId: PLAYGROUND_CONVERSATION_ID,
-      isVideo: kind === 'video',
-      isPollinations: mediaUrl.startsWith('http'),
-      params: run.params,
-    });
-    // Echte Asset-ID, damit die Selektion den Galerie-Reload ueberlebt.
-    const item: GalleryItem = {
-      id: assetId ?? `${Date.now()}`, url: mediaUrl, kind,
-      prompt: run.prompt, modelId: run.modelId, timestamp: Date.now(),
-      params: run.params,
-    };
-    // Der Effekt schreibt den Ref erst nach dem Render — zwei im selben Tick
-    // fertige Laeufe saehen sonst beide "nichts ausgewaehlt".
-    if (selectedRef.current === null) {
-      selectedRef.current = item;
-      setSelected(item);
-    }
-    setRuns((rs) => rs.filter((r) => r.id !== run.id));
-    setGalleryKey((k) => k + 1);
   };
+
+  // W5: Nach dem Ladelauf zeigt die Auswahl auf die frische URL, und die
+  // URL aus dem Generierungspfad wird freigegeben (F8).
+  const handleItemsLoaded = useCallback((items: GalleryItem[]) => {
+    const swap = pendingUrlSwapRef.current;
+    if (!swap) return;
+    pendingUrlSwapRef.current = null;
+    const fresh = items.find((i) => i.id === swap.id);
+    if (fresh && selectedRef.current?.id === swap.id && selectedRef.current.url === swap.url) {
+      selectedRef.current = { ...selectedRef.current, url: fresh.url };
+      setSelected(selectedRef.current);
+    }
+    BlobManager.releaseURL(swap.url);
+  }, []);
 
   /** Gescheiterte Laeufe bleiben als Karte liegen — mit Satz, Rohtext und Handlung. */
   const handleRunFailure = (run: ActiveRun, e: unknown) => {
@@ -543,6 +580,7 @@ export function PlaygroundShell() {
               }}
               refreshKey={galleryKey}
               origins={galleryOrigins}
+              onItemsLoaded={handleItemsLoaded}
               runs={runs}
               onCancelRun={onCancelRun}
               onRetryRun={onRetryRun}
