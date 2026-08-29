@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import AppSidebar from './AppSidebar';
 import { GalleryPanel } from '@/components/gallery/GalleryPanel';
 import { useGalleryAssets } from '@/hooks/useGalleryAssets';
+import type { AssetOrigin } from '@/lib/assets/asset-origin';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
 import { DEFAULT_IMAGE_MODEL, findVisiblePollinationsModelById } from '@/config/chat-options';
@@ -95,9 +96,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const [sidebarExpanded, setSidebarExpanded] = useLocalStorageState<boolean>('sidebarExpanded', false);
   const [galleryPanelOpen, setGalleryPanelOpen] = useState(false);
+  // Fluechtig, kein localStorage (Entscheidung E5.2): nach jedem Reload steht
+  // der Filter auf der eigenen Herkunft, und genau darauf stuetzt sich der
+  // Pruefweg von L-D.3.
+  const [galleryOrigins, setGalleryOrigins] =
+    useState<readonly AssetOrigin[] | undefined>(['chat', 'compose']);
 
   // Gallery data (lifted for layout-level rendering)
-  const galleryData = useGalleryAssets();
+  const galleryData = useGalleryAssets(galleryOrigins);
   const { language } = useLanguage();
   const { isConnected, connectOAuth } = usePollenKey();
   const { findModelById } = useVisiblePollinationsTextModels();
@@ -315,7 +321,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           isOpen={true}
           onClose={() => setGalleryPanelOpen(false)}
           assets={galleryData.assets}
-          totalAssetCount={galleryData.assets.length}
+          totalAssetCount={galleryData.totalInScope}
+          origins={galleryOrigins}
+          onOriginsChange={setGalleryOrigins}
           onDelete={galleryData.deleteAsset}
           onClearAll={galleryData.clearAllAssets}
           onToggleStar={galleryData.toggleStarred}

@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAssetUrl } from '@/hooks/useAssetUrl';
 import type { Asset } from '@/lib/services/database';
+import type { AssetOrigin } from '@/lib/assets/asset-origin';
+import { OriginFilter } from '@/components/gallery/OriginFilter';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/components/LanguageProvider';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -316,6 +318,9 @@ export interface GalleryPanelProps {
   onClose: () => void;
   assets: Asset[];
   totalAssetCount: number;
+  /** Sichtbarer Herkunftsbereich (E5.2: fluechtig, Vorgabe eigene Herkunft). */
+  origins: readonly AssetOrigin[] | undefined;
+  onOriginsChange: (next: readonly AssetOrigin[] | undefined) => void;
   onDelete: (id: string) => void;
   onClearAll: () => void;
   onToggleStar: (id: string) => void;
@@ -328,6 +333,8 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   onClose,
   assets,
   totalAssetCount,
+  origins,
+  onOriginsChange,
   onDelete,
   onClearAll,
   onToggleStar,
@@ -425,7 +432,13 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
             {/* Panel header */}
             <div className="flex items-center justify-between gap-2 px-4 pt-4 shrink-0">
               <Button variant="ghost" size="sm"
-                onClick={() => { if (totalAssetCount === 0) return; if (confirm(t('gallery.clearConfirm'))) onClearAll(); }}
+                onClick={() => {
+                  if (totalAssetCount === 0) return;
+                  // E5.3/F11: Anzahl (die ehrliche, nicht die auf 50 begrenzte)
+                  // und Herkunft in Worten statt "Output wirklich leeren?".
+                  const msg = t('gallery.clearConfirmScoped').replace('{count}', String(totalAssetCount));
+                  if (confirm(msg)) onClearAll();
+                }}
                 className="h-8 px-4 text-[11px] font-semibold text-foreground/80 hover:text-foreground hover:bg-transparent hover:shadow-[0_0_18px_rgba(180,150,255,0.35)]">
                 {t('gallery.clearButton')}
               </Button>
@@ -444,7 +457,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
             </div>
 
             {/* Tabs */}
-            <div role="tablist" aria-label={t('nav.gallery')} className="flex gap-1 px-4 pt-3 pb-2 shrink-0">
+            <div role="tablist" aria-label={t('nav.gallery')} className="flex items-center gap-1 px-4 pt-3 pb-2 shrink-0">
               <button role="tab" id="gallery-tab-images"
                 aria-selected={activeTab === 'images'} aria-controls="gallery-panel-images"
                 tabIndex={activeTab === 'images' ? 0 : -1}
@@ -465,6 +478,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
                 {t('gallery.tabTracks')}
                 {trackAssets.length > 0 && <span className="text-[10px] opacity-60">{trackAssets.length}</span>}
               </button>
+              <OriginFilter value={origins} onChange={onOriginsChange} className="ml-auto" />
             </div>
 
             {/* Grid */}
