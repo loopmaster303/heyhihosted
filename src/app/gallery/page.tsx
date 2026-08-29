@@ -22,7 +22,7 @@ import { useAssetUrl } from '@/hooks/useAssetUrl';
 import type { Asset } from '@/lib/services/database';
 
 import { motion } from 'framer-motion';
-import { Download, Maximize2, X, Image as ImageIcon, Trash2, MessageSquare, Heart, Music, AlertTriangle } from 'lucide-react';
+import { Download, Maximize2, X, Image as ImageIcon, MessageSquare, Heart, Music, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
@@ -169,7 +169,7 @@ function GalleryPageContent() {
   const panels = useChatPanels();
   const router = useRouter();
   const { t } = useLanguage();
-  const { assets, isLoading, clearAllAssets, toggleStarred } = useGalleryAssets();
+  const { assets, isLoading, toggleStarred } = useGalleryAssets();
   const [lightboxData, setLightboxData] = useState<{ url: string, type: 'image' | 'video' } | null>(null);
   const [activeTab, setActiveTab] = useState<'images' | 'tracks'>('images');
 
@@ -235,20 +235,6 @@ function GalleryPageContent() {
                         {t('gallery.pageBadge')}
                     </span>
                 </h1>
-                
-                {assets.length > 0 && (
-                   <Button 
-                     variant="ghost" 
-                     size="sm" 
-                     onClick={() => {
-                        if(confirm(t('gallery.clearConfirm'))) clearAllAssets();
-                     }}
-                     className="text-red-500 hover:text-red-400 hover:bg-red-950/20 gap-2"
-                   >
-                     <Trash2 className="w-4 h-4" />
-                     <span className="hidden sm:inline">{t('action.clearVault')}</span>
-                   </Button>
-                )}
             </div>
 
             <p className="max-w-2xl text-sm text-muted-foreground/70">
