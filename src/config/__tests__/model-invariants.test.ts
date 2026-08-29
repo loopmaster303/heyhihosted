@@ -29,7 +29,7 @@ import { getPrunaModelMapping } from '@/config/pruna-models';
     expect(getUnifiedModel('ideogram-v4-turbo')).toEqual(expect.objectContaining({ supportsReference: false, maxImages: 0 }));
   });
 
-  test.each(['veo', 'veo-1080p', 'seedance-2.0', 'pollinations-wan-fast', 'wan-pro', 'wan-pro-1080p'])(
+  test.each(['veo', 'seedance-2.0', 'wan-pro', 'wan-pro-1080p'])(
     '%s exposes distinct start and end frames',
     (modelId) => {
       expect(getUnifiedModel(modelId)).toEqual(expect.objectContaining({
@@ -128,24 +128,14 @@ describe('model invariants', () => {
       'p-video',
     ]));
 
-    expect(visibleImageModelIds).not.toEqual(expect.arrayContaining([
-      'klein',
-      'dirtberry',
-      'flux-2-dev',
-      'imagen-4',
-      'klein-large',
-      'seedream',
-      'seedream-pro',
-    ]));
-
-    expect(visibleGroupModelIds).not.toEqual(expect.arrayContaining([
-      'dirtberry',
-      'flux-2-dev',
-      'imagen-4',
-      'klein-large',
-      'seedream',
-      'seedream-pro',
-    ]));
+    // Befund B5: not.toEqual(arrayContaining([...])) haelt schon, wenn nur
+    // EIN Element fehlt. Aufgeloest in Einzelpruefungen — jede ID muss
+    // einzeln abwesend sein. 'klein' gehoert nicht in die Verbotsliste:
+    // es ist sichtbar und aktiv (der alte Test lief nur wegen 'dirtberry').
+    for (const staleId of ['dirtberry', 'flux-2-dev', 'imagen-4', 'klein-large', 'seedream', 'seedream-pro']) {
+      expect(visibleImageModelIds).not.toContain(staleId);
+      expect(visibleGroupModelIds).not.toContain(staleId);
+    }
   });
 
   test('visual registry keeps video models separate from image models while still exposing them with Pollen key access', () => {
@@ -233,15 +223,17 @@ describe('model invariants', () => {
   test('shared duration helpers derive Pruna seconds and preserve legacy Pollinations defaults', () => {
     const pVideo = getUnifiedModel('p-video');
     const wan = getUnifiedModel('wan-t2v');
-    const legacyPollinations = getUnifiedModel('ltx-2');
+    // ltx-2 wurde entfernt (Phase 3) — 'wan-pro' traegt dieselbe
+    // durationRange-Semantik fuer den Pollinations-Zweig.
+    const legacyPollinations = getUnifiedModel('wan-pro');
 
     expect(getDurationOptionsSeconds(pVideo)).toEqual(Array.from({ length: 20 }, (_, index) => index + 1));
     expect(getDefaultDurationSeconds(pVideo)).toBe(5);
     expect(getDurationOptionsSeconds(wan)).toEqual([5, 6, 7, 7.5]);
     expect(getDefaultDurationSeconds(wan)).toBe(5);
-    expect(getDurationOptionsSeconds(legacyPollinations)).toEqual([6, 8, 10]);
-    expect(getDefaultDurationSeconds(legacyPollinations, 8)).toBe(8);
-    expect(getDefaultDurationSeconds(legacyPollinations)).toBe(6);
+    expect(getDurationOptionsSeconds(legacyPollinations)).toEqual([5, 10, 15]);
+    expect(getDefaultDurationSeconds(legacyPollinations, 10)).toBe(10);
+    expect(getDefaultDurationSeconds(legacyPollinations)).toBe(5);
     expect(getDurationOptionsSeconds(getUnifiedModel('vace'))).toEqual([1, 2, 3, 4, 5]);
     expect(getDefaultDurationSeconds(getUnifiedModel('vace'))).toBe(5);
   });
@@ -284,10 +276,11 @@ describe('model invariants', () => {
   });
 
   test('chat image model list stays curated and separate from the full Visualize registry', () => {
+    // zimage ist seit E-A (Pruna BYOP-only) deaktiviert und fällt aus der
+    // kuratierten Chat-Liste heraus.
     expect(getChatImageModels().map((model) => model.id).sort()).toEqual([
       'flux',
       'gpt-image',
-      'zimage',
     ].sort());
   });
 

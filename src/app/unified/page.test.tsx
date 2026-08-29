@@ -86,7 +86,7 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@/hooks/useLocalStorageState', () => ({
   __esModule: true,
-  default: jest.fn(() => ['gemini-fast', jest.fn()]),
+  default: jest.fn(() => ['deepseek', jest.fn()]),
 }));
 
 jest.mock('@/hooks/useUnifiedImageToolState', () => ({
@@ -158,7 +158,7 @@ describe('UnifiedAppContent', () => {
     await waitFor(() => expect(appLayoutSpy).toHaveBeenCalled());
 
     const lastProps = appLayoutSpy.mock.calls.at(-1)?.[0];
-    expect(lastProps.selectedModelId).toBe('gemini-fast');
+    expect(lastProps.selectedModelId).toBe('deepseek');
   });
 
   it('passes one shared compose tool state from the page layer into landing and chat views', async () => {

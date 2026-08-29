@@ -296,7 +296,7 @@ describe('ChatService', () => {
                 json: async () => ({ videoUrl: 'https://example.com/video.mp4' }),
             });
 
-            await ChatService.generateImage({ prompt: 'video', modelId: 'ltx-2', duration: 10 });
+            await ChatService.generateImage({ prompt: 'video', modelId: 'grok-video-pro', duration: 10 });
 
             const parsedBody = JSON.parse(mockFetch.mock.calls[0][1].body);
             expect(parsedBody.duration).toBe(10);
@@ -309,7 +309,7 @@ describe('ChatService', () => {
                 json: async () => ({ videoUrl: 'https://example.com/video.mp4' }),
             });
 
-            await ChatService.generateImage({ prompt: 'video', modelId: 'ltx-2' });
+            await ChatService.generateImage({ prompt: 'video', modelId: 'grok-video-pro' });
 
             const parsedBody = JSON.parse(mockFetch.mock.calls[0][1].body);
             expect(parsedBody).not.toHaveProperty('duration');

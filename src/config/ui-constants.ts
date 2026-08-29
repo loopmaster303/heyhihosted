@@ -1,6 +1,7 @@
 import ClaudeIcon from '../assets/icons-models/claude-color.png';
 import DeepSeekIcon from '../assets/icons-models/deepseek-color.png';
 import GeminiIcon from '../assets/icons-models/gemini-color.png';
+import GoogleIcon from '../assets/icons-models/google-color.png';
 import GrokIcon from '../assets/icons-models/grokfarbe.png';
 import KimiIcon from '../assets/icons-models/kimifarbe.png';
 import MistralIcon from '../assets/icons-models/mistral-color.png';
@@ -14,7 +15,6 @@ import ByteDanceIcon from '../assets/icons-models/bytedance-color.png';
 import FluxFarbeIcon from '../assets/icons-models/fluxfarbe.png';
 import WANIcon from '../assets/icons-models/wan.png';
 import ZAIFarbeIcon from '../assets/icons-models/zaifarbe.png';
-import LTXFarbeIcon from '../assets/icons-models/ltxfarbe.png';
 import PrunaIcon from '../assets/icons-models/prunafarbe.png';
 import IdeogramIcon from '../assets/icons-models/ideogramfarbe.png';
 import MiniMaxIcon from '../assets/icons-models/minimaxfarbe.png';
@@ -105,9 +105,7 @@ export const imageModelIcons: Record<string, any> = {
     'wan-t2v': WANIcon,
     'wan-i2v': WANIcon,
     'zimage': WANIcon,
-    'ltx-2': LTXFarbeIcon,
     'grok-imagine': GrokIcon,
-    'grok-video': GrokIcon,
     'grok-video-pro': GrokIcon,
     'p-image': PrunaIcon,
     'p-image-edit': PrunaIcon,
@@ -120,6 +118,17 @@ export const imageModelIcons: Record<string, any> = {
     'vace': WANIcon,
     'ideogram-v4-turbo': IdeogramIcon,
     'ideogram': IdeogramIcon,
+    // Die neun fehlenden Image-Modelle ergänzt (Phase 3, T4/F5) —
+    // Brand-Icons analog zur Modellfamilie.
+    'ideogram-v4-quality': IdeogramIcon,
+    'p-image-ideogram': PrunaIcon,
+    'p-flux-klein': PrunaIcon,
+    'seedance-pro': ByteDanceIcon,
+    'seedance-2.0': ByteDanceIcon,
+    'wan-pro': WANIcon,
+    'wan-pro-1080p': WANIcon,
+    'veo': GoogleIcon,
+    'nova-reel': AmazonNovaIcon,
     'acestep': AceStepIcon,
     'ace-step': AceStepIcon,
     'stable-audio-3-medium': StabilityIcon,

@@ -6,7 +6,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { useHasPollenKey } from '@/hooks/useHasPollenKey';
 import { AVAILABLE_COMPOSE_MODELS, getComposeDurations } from '@/config/chat-options';
 
-export type ComposeMusicModel = 'elevenmusic' | 'acestep' | 'stable-audio-3-medium';
+export type ComposeMusicModel = 'elevenmusic' | 'stable-audio-3-medium';
 
 export const COMPOSE_MODELS = AVAILABLE_COMPOSE_MODELS;
 
@@ -43,7 +43,7 @@ export const durationLabel = (seconds: number): string =>
   seconds < 60 ? `${seconds}s` : `${seconds / 60}m`;
 
 export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions {
-  const [selectedModel, setSelectedModel] = useState<ComposeMusicModel>('acestep');
+  const [selectedModel, setSelectedModel] = useState<ComposeMusicModel>('elevenmusic');
   const [duration, setDuration] = useState(30);
   const [instrumental, setInstrumental] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);

@@ -103,6 +103,46 @@ describe('useUnifiedImageToolState provider persistence', () => {
     });
   });
 
+  // T7 (Phase 3, R1): gespeicherte Auswahlen auf entfernte IDs dürfen keine
+  // Fehler erzeugen. Die Hydration läuft nach dem Mount, deshalb gilt: die
+  // gewählte Modell-ID ist immer in availableModels, und der Normalizer
+  // entfernt die Leiche einer bekannten entfernten ID aus dem localStorage.
+  it.each([
+    'ltx-2',
+    'grok-video',
+    'veo-1080p',
+    'pollinations-wan-fast',
+  ])('recovers a persisted removed model id (%s) without an error', async (persisted) => {
+    localStorage.setItem('heyhi-provider-mode', JSON.stringify('pollinations'));
+    localStorage.setItem('defaultImageModelId', JSON.stringify(persisted));
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: false }),
+    } as Response);
+
+    const { result } = renderHook(() => useUnifiedImageToolState());
+
+    await waitFor(() => {
+      expect(result.current.providerMode).toBe('pollinations');
+      expect(result.current.availableModels.length).toBeGreaterThan(0);
+      expect(result.current.availableModels).toContain(result.current.selectedModelId);
+    });
+    expect(JSON.parse(localStorage.getItem('defaultImageModelId') ?? '""')).not.toBe(persisted);
+  });
+
+  it('keeps an unknown persisted model id from breaking the selection', async () => {
+    localStorage.setItem('heyhi-provider-mode', JSON.stringify('pollinations'));
+    localStorage.setItem('defaultImageModelId', JSON.stringify('definitely-not-a-model'));
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: false }),
+    } as Response);
+
+    const { result } = renderHook(() => useUnifiedImageToolState());
+
+    await waitFor(() => {
+      expect(result.current.availableModels).toContain(result.current.selectedModelId);
+    });
+  });
+
   it('resets the selected model when switching to a provider that does not contain it', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => ({ prunaAvailable: true }),

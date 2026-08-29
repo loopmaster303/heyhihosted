@@ -92,6 +92,14 @@ export function buildPrunaEntries(): PlaygroundModelEntry[] {
 export function buildPollinationsEntries(live: PollinationsLiveModel[]): PlaygroundModelEntry[] {
   return live
     .filter((m) => !isPrunaModel(m.name ?? ''))
+    .filter((m) => {
+      // enabled: false aus der kuratierten Config blendet aus (z. B. Modelle,
+      // die am Server-Key scheitern oder synchron nicht lieferbar sind) —
+      // aber nur für gemappte Einträge: Registry-only Modelle bleiben
+      // stehen, sonst verlöre der Playground seinen Zweck als volle Auswahl.
+      const cfg = getUnifiedModel(m.name ?? '');
+      return !cfg || cfg.enabled !== false;
+    })
     .map((m) => {
       const cfg = getUnifiedModel(m.name ?? '');
       const out = m.output_modalities ?? [];

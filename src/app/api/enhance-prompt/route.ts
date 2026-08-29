@@ -3,7 +3,6 @@ import {
   ENHANCEMENT_PROMPTS,
   DEFAULT_ENHANCEMENT_PROMPT,
   ELEVENMUSIC_ENHANCEMENT_PROMPT,
-  ACESTEP_ENHANCEMENT_PROMPT,
   STABLE_AUDIO_ENHANCEMENT_PROMPT,
   AUDIO_ENHANCEMENT_KEYS,
   canonicalEnhancementKey,
@@ -17,7 +16,6 @@ import { handleApiError } from '@/lib/api-error-handler';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 const AUDIO_PROMPTS: Record<string, string> = {
-  acestep: ACESTEP_ENHANCEMENT_PROMPT,
   elevenmusic: ELEVENMUSIC_ENHANCEMENT_PROMPT,
   'stable-audio-3-medium': STABLE_AUDIO_ENHANCEMENT_PROMPT,
 };
@@ -339,7 +337,9 @@ export async function POST(request: NextRequest) {
 
     // Prompt enhancement: primary model + fallback if output is low-quality (suffix-only) or request fails.
     const primaryEnhancerModelId = 'deepseek';
-    const fallbackEnhancerModelId = 'gemini-fast';
+    // 'gemini-fast' ist live paid_only (2026-08-28) — der Fallback lief für
+    // keylose Nutzer garantiert in einen 402. 'nova-fast' ist frei.
+    const fallbackEnhancerModelId = 'nova-fast';
     let enhancedText: string | null = null;
     let usedModel: string = primaryEnhancerModelId;
 

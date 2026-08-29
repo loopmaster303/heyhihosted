@@ -12,6 +12,8 @@ export interface PollinationsModel {
   costPerToken?: number; // New: Cost per million tokens
   useCases?: string[]; // User-friendly: What is this model good for?
   reasoning?: boolean; // New: Whether the model supports reasoning
+  isFree?: boolean; // True = laeuft ohne Pollen-Schluessel. Fehlt das Feld bei
+  // einem sichtbaren Modell, gilt es als schluesselpflichtig (F2, Phase 3).
 }
 
 export interface ResponseStyle {
@@ -32,13 +34,13 @@ export interface ComposeModelOption {
   keyedDurations: number[];      // duration steps (seconds) available with a Pollen key
 }
 
-// ACE-Step 1.5 Turbo is the only key-free model (Pollinations `paid_only: null`).
-// Free tier is capped at 1 minute; a Pollen key unlocks the full stepped range.
-// ElevenMusic v2 and Stable Audio 3 Medium are `paid_only: true` → key required.
+// Kein Text→Audio-Modell ist kostenlos (Registry 2026-08-28) — der alte
+// Ace-Step-Eintrag mit isFree: true war ein falsches Versprechen; `acestep`
+// existiert in der Registry nicht mehr. Die Route lehnt es ab (Phase 3).
+// Die vollständige Ausrottung samt neuer Musik-UI bleibt Phase 8.
 const KEYED_DURATION_STEPS = [30, 60, 120, 180, 240, 300];
 
 export const AVAILABLE_COMPOSE_MODELS: ComposeModelOption[] = [
-  { id: 'acestep', name: 'ACE-Step 1.5', isFree: true, freeDurations: [30, 60], keyedDurations: KEYED_DURATION_STEPS },
   { id: 'elevenmusic', name: 'ElevenMusic v2', isFree: false, freeDurations: [], keyedDurations: KEYED_DURATION_STEPS },
   { id: 'stable-audio-3-medium', name: 'Stable Audio 3 Medium', isFree: false, freeDurations: [], keyedDurations: KEYED_DURATION_STEPS },
 ];
@@ -55,6 +57,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   // FEATURED - Standard Models
   {
     id: "claude-fast",
+    isFree: false, // live paid_only (2026-08-28)
     name: "Anthropic Claude Haiku 4.5",
     description: "Fast and intelligent for efficient tasks.",
     vision: true,
@@ -64,6 +67,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "gemini-fast",
+    isFree: false, // live paid_only (2026-08-28)
     name: "Google Gemini 2.5 Flash Lite",
     description: "Ultra fast and cost-effective for everyday tasks.",
     vision: true,
@@ -73,6 +77,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
   },
   {
     id: "gemini-search",
+    isFree: false, // live paid_only (2026-08-28)
     name: "Google Gemini 2.5 Flash Lite + Search",
     description: "Google Gemini 2.5 Flash Lite with grounded Google Search.",
     vision: true,
@@ -102,6 +107,7 @@ const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
 
   {
     id: "mistral",
+    isFree: false, // live paid_only (2026-08-28)
     name: "Mistral Small 3.2 24B",
     description: "Efficient and cost-effective general-purpose model.",
     vision: false,
@@ -599,7 +605,10 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
 ];
 
 // Default model for new users/chats (cost-first default)
-export const DEFAULT_POLLINATIONS_MODEL_ID = 'gemini-fast';
+// 'gemini-fast' war der Vorgabe und ist live paid_only (2026-08-28) — neue
+// Nutzer ohne Pollen-Schluessel landeten damit garantiert in einem 402.
+// 'deepseek' ist das erste freie Modell der sichtbaren Liste.
+export const DEFAULT_POLLINATIONS_MODEL_ID = 'deepseek';
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // For in-chat image generation
@@ -607,7 +616,9 @@ export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 // Filter out disabled models
 import { getImageModels } from './unified-image-models';
 export const FALLBACK_IMAGE_MODELS = getImageModels().map(m => m.id);
-export const DEFAULT_IMAGE_MODEL = 'zimage'; // Default to Z-Image Turbo for chat
+// 'zimage' war die Vorgabe und haengt am Pruna-Dispatch (BYOP-only) — keylose
+// Nutzer bekamen garantiert 503. 'flux' ist live verifiziert frei (2026-08-28).
+export const DEFAULT_IMAGE_MODEL = 'flux';
 
 // Code reasoning system prompt used when Code Mode is enabled
 export const CODE_REASONING_SYSTEM_PROMPT = `<system_prompt>

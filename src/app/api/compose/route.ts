@@ -5,9 +5,13 @@ import { handleApiError } from '@/lib/api-error-handler';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 const POLLINATIONS_BASE = 'https://gen.pollinations.ai';
-type ComposeModel = 'elevenmusic' | 'acestep' | 'stable-audio-3-medium';
-const VALID_COMPOSE_MODELS: readonly ComposeModel[] = ['elevenmusic', 'acestep', 'stable-audio-3-medium'];
-const FREE_TIER_MODELS: readonly ComposeModel[] = ['acestep'];
+type ComposeModel = 'elevenmusic' | 'stable-audio-3-medium';
+const VALID_COMPOSE_MODELS: readonly ComposeModel[] = ['elevenmusic', 'stable-audio-3-medium'];
+// Phase 3 Modellwahrheit: kein Text→Audio-Modell ist kostenlos (Registry
+// 2026-08-28). `acestep` existiert nicht mehr und war hier fälschlich als
+// freie Stufe geführt — der schlüssellose Weg war eine Sackgasse. Die
+// vollständige Ausrottung samt Musik-UI bleibt Phase 8.
+const FREE_TIER_MODELS: readonly ComposeModel[] = [];
 const MAX_COMPOSE_URL_LENGTH = 2000;
 const DEFAULT_DURATION = 60;
 
@@ -21,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { prompt, duration, instrumental = false, model = 'acestep' } = await request.json();
+    const { prompt, duration, instrumental = false, model = 'elevenmusic' } = await request.json();
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -49,7 +53,8 @@ export async function POST(request: NextRequest) {
     // BYOP: Resolve API key (user key from header → env var fallback)
     const apiKey = resolvePollenKey(request);
 
-    // Free tier (no key): only acestep is allowed. Paid models require a Pollinations API key.
+    // Free tier (no key): kein Modell — alle Text→Audio-Modelle sind
+    // schlüsselpflichtig (Registry 2026-08-28). Paid models require a Pollinations API key.
     if (!apiKey && !FREE_TIER_MODELS.includes(selectedModel)) {
       return NextResponse.json(
         { error: 'This model requires a Pollinations API key' },

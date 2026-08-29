@@ -93,14 +93,28 @@ export function getDefaultDurationSeconds(
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
   { id: 'flux', name: 'Flux.1 Fast', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
-  { id: 'zimage', name: 'Z-Image Turbo', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'ByteDance Z-Image Turbo (Seedream-family)' },
+  { id: 'zimage', name: 'Z-Image Turbo', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: false, enabled: false, byopVisible: true, description: 'ByteDance Z-Image Turbo (Seedream-family)' },
+  // Pruna ist BYOP-only (Entscheidung 2026-08-28): kein PRUNA_API_KEY auf Vercel.
+  // isFree: true war hier ein falsches Versprechen — ohne eigenen Schluessel
+  // antwortet der Pruna-Dispatch mit 503. Die Registry fuehrt zimage zwar als
+  // kostenlos (und der Server-Key liefe darauf), aber der Dispatch haengt am
+  // Modell, nicht am Schalter; eine Pollinations-Anbindung waere eine
+  // Provider-Entscheidung und gehoert nicht in diese Phase.
   { id: 'gpt-image', name: 'GPT Image 1 Mini', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 16, isFree: true, enabled: true, description: 'OpenAI image generation with reference support' },
   { id: 'klein', name: 'Flux.2 Klein 4B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: true, description: 'FLUX.2 Klein — fast, dense prose prompts, I2I capable' },
-  { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Context-aware frame editing' },
-  { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 16, isFree: true, enabled: true, description: 'Advanced OpenAI Image' },
+  { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: false, description: 'Context-aware frame editing' },
+  // kontext ist registry-frei, aber nicht auf der Allowlist des Server-Keys:
+  // live geprueft 2026-08-28 → 403 "Model 'kontext' is not allowed for this
+  // API key". Fuer keylose Nutzer war das FREE-Gruppe mit Garantie-Fehler.
+  // Wieder freigeben, sobald der Server-Key das Modell erlaubt.
+  { id: 'gptimage-large', name: 'GPT-Image 1.5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 16, isFree: true, enabled: false, description: 'Advanced OpenAI Image' },
+  // gptimage-large: derselbe live-Beleg wie kontext — 403 am Server-Key
+  // (2026-08-28), obwohl registry-frei. Nach Allowlist-Erweiterung aktivieren.
   { id: 'seedream', name: 'Seedream 5', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: false, enabled: false, byopVisible: false, description: 'Seedream 5.0 Lite - ByteDance (stale — use seedream5 via BYOP when re-enabled)' },
   { id: 'nanobanana', name: 'Nano Banana', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 3, isFree: false, enabled: false, byopVisible: true, description: 'Gemini 2.5 Flash Image' },
-  { id: 'qwen-image', name: 'Qwen Image', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Qwen image generation and edit model' },
+  { id: 'qwen-image', name: 'Qwen Image', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, byopVisible: true, description: 'Qwen image generation and edit model' },
+  // Auch hier E-A: Pruna-Dispatch braucht immer einen eigenen Schluessel
+  // (BYOP-only, 2026-08-28). isFree: true versprach kostenlos, geliefert wurde 503.
   { id: 'grok-imagine-pro', name: 'Grok Imagine Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, byopVisible: true, description: 'Grok premium image generation' },
   { id: 'wan-image', name: 'Wan 2.7 Image', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 9, isFree: false, enabled: false, byopVisible: true, description: 'Alibaba Wan 2.7 image generation' },
   { id: 'wan-image-pro', name: 'Wan 2.7 Image Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 9, isFree: false, enabled: false, byopVisible: true, description: 'Alibaba Wan 2.7 Pro image generation' },
@@ -110,12 +124,17 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // ADVANCED Image Models
   { id: 'nanobanana-pro', name: 'Nano Banana Pro', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: false, enabled: false, byopVisible: true, description: 'Gemini 3 Pro Image (4K)' },
   { id: 'nanobanana-2', name: 'Nano Banana 2', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 14, isFree: false, enabled: false, byopVisible: true, description: 'Gemini 3.1 Flash Image' },
-  { id: 'grok-imagine', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: true, enabled: true, description: 'Grok Aurora — autoregressive architecture' },
+  { id: 'grok-imagine', name: 'Grok Imagine', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 1, isFree: false, enabled: false, byopVisible: true, description: 'Grok Aurora — autoregressive architecture' },
+  // grok-imagine/ideogram-v4-turbo sind live paid_only (2026-08-28) — sie standen
+  // unter "FREE" und liefen in 402/403. Mit Pollen-Schluessel via BYOP sichtbar.
   { id: 'qwen-image-edit-plus', name: 'Qwen Image Edit Plus', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 2, isFree: false, enabled: true, byopVisible: true, description: 'Qwen Image Edit Plus — multi-image editing with pose transfer' },
-  { id: 'ideogram-v4-turbo', name: 'Ideogram V4 Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Ideogram V4 Turbo — fast text rendering' },
+  { id: 'ideogram-v4-turbo', name: 'Ideogram V4 Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: false, enabled: false, byopVisible: true, description: 'Ideogram V4 Turbo — fast text rendering' },
   { id: 'ideogram-v4-quality', name: 'Ideogram V4 Quality', provider: 'pollinations', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: false, byopVisible: true, description: 'Ideogram V4 Quality — highest-quality text rendering' },
    { id: 'nanobanana-2-lite', name: 'Nano Banana 2 Lite', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 14, isFree: false, enabled: false, byopVisible: true, description: 'Gemini Flash Lite Image' },
-   { id: 'wan-image-small', name: 'Wan Image Small', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Fast, efficient image generation via Pruna' },
+   { id: 'wan-image-small', name: 'Wan Image Small', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: false, enabled: false, byopVisible: true, description: 'Fast, efficient image generation via Pruna' },
+  // Letzter E-A-Fall: das Modell existiert bei Pollinations nicht mehr (auch
+  // nicht als Alias), der Pruna-Dispatch ist BYOP-only. Ohne eigenen
+  // Schluessel war "kostenlos" schlicht falsch.
    { id: 'p-image-try-on', name: 'P-Image Try-On', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: true, maxImages: 7, isFree: false, enabled: true, byopVisible: true, description: 'Virtual garment try-on (person + up to 6 garments)' },
    { id: 'p-image-ideogram', name: 'P-Image Ideogram', provider: 'pruna', kind: 'image', category: 'Advanced', supportsReference: false, maxImages: 0, isFree: false, enabled: true, byopVisible: true, description: 'Pruna Ideogram — advanced text rendering and illustration' },
    { id: 'p-flux-klein', name: 'Flux 2 Klein 4B (Pruna)', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 5, isFree: false, enabled: true, byopVisible: true, description: 'Pruna FLUX.2 Klein 4B — fast, dense prose prompts, up to 5 reference images' },
@@ -154,6 +173,12 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     durationRange: { options: [5, 10, 15] },
   },
   {
+    // Namenskollision bewusst dokumentiert statt umbenannt: die ID `wan-fast`
+    // ist im Repo an den Pruna-Dispatch gebunden (PRUNA_MODEL_MAP), das
+    // Pollinations-Modell `wan-fast` (paid) ist davon ein anderes und wird im
+    // Playground als Pruna-Kopie herausgefiltert. Umbenennen wuerde Dispatch,
+    // Regler und Icons anfassen — kein Verhaltensgewinn bei einem
+    // deaktivierten Eintrag.
     id: 'wan-fast',
     name: 'Wan Pruna',
     provider: 'pruna',
@@ -175,34 +200,9 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
       defaultSeconds: 5,
     },
   },
-  {
-    id: 'ltx-2',
-    name: 'LTX 2.3 Fast',
-    provider: 'pollinations',
-    kind: 'video',
-    category: 'Advanced',
-    supportsReference: true,
-    isFree: true,
-    enabled: true,
-    description: 'Lightricks LTX 2.3 (T2V)',
-    maxImages: 1,
-    supportsAudio: true,
-    durationRange: { options: [6, 8, 10] },
-  },
-  {
-    id: 'grok-video',
-    name: 'Grok Video',
-    provider: 'pollinations',
-    kind: 'video',
-    category: 'Advanced',
-    supportsReference: true,
-    maxImages: 1,
-    isFree: false,
-    enabled: false,
-    description: 'Grok Video — native audio, T2V + I2V (only grok-video-pro exists upstream; free tier removed)',
-    supportsAudio: true,
-    durationRange: { options: [5, 10] },
-  },
+  // ltx-2 entfernt (2026-08-28): existiert nicht mehr in der Live-Registry
+  // (weder Name noch Alias). Regler, Icon und Enhancement-Prompt wurden mit
+  // entfernt; gespeicherte Auswahlen fallen aufs Vorgabemodell zurueck.
   {
     id: 'grok-video-pro',
     name: 'Grok Imagine Pro Video',
@@ -299,12 +299,9 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     supportsEndFrame: true,
     durationRange: { options: [4, 6, 8] },
   },
-  {
-    id: 'veo-1080p', name: 'Veo 1080p', provider: 'pollinations', kind: 'video', category: 'Advanced',
-    supportsReference: true, maxImages: 2, isFree: false, enabled: false, byopVisible: true,
-    description: 'Google Veo 1080p — start and end frame', supportsAudio: true, supportsEndFrame: true,
-    durationRange: { options: [4, 6, 8] },
-  },
+  // veo-1080p entfernt (2026-08-28): Registry-Alias von `veo` — als eigenes
+  // Modell gefuehrt schlug der Registry-Lookup fehl. Der interne Alias unten
+  // haelt gespeicherte Auswahlen am Leben.
   {
     id: 'seedance-2.0',
     name: 'Seedance 2.0',
@@ -321,12 +318,9 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     supportsEndFrame: true,
     durationRange: { options: [4, 8, 12, 15] },
   },
-  {
-    id: 'pollinations-wan-fast', name: 'Wan Fast', provider: 'pollinations', kind: 'video', category: 'Advanced',
-    supportsReference: true, maxImages: 2, isFree: false, enabled: false, byopVisible: true,
-    description: 'Pollinations Wan Fast — start and end frame', supportsAudio: true, supportsEndFrame: true,
-    durationRange: { options: [5, 10, 15] },
-  },
+  // pollinations-wan-fast entfernt (2026-08-28): existiert in der Registry
+  // nicht (weder Name noch Alias) — `wan-fast` ist ein eigenes, anderes
+  // Pollinations-Modell und die ID im Repo vom Pruna-Dispatch belegt.
   {
     id: 'wan-pro',
     name: 'Wan Pro',
@@ -359,10 +353,15 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     maxImages: 1,
     isFree: false,
     enabled: false,
-    description: 'Nova Reel — long-form video (up to 120s), free tier',
+    description: 'Nova Reel — long-form video (up to 120s)',
     supportsAudio: false,
     durationRange: { options: [6, 12, 18, 24, 30] },
   },
+  // nova-reel ist registry-frei, bleibt aber aus: live geprueft 2026-08-28 —
+  // ein 6s-Lauf brach nach 125s mit 524 ab, bevor das Ergebnis da war. Der
+  // Dispatch laeuft synchron; das 202-Protokoll deckt nur Pruna ab. Damit ist
+  // das Modell ohne weitere Arbeit (Phase 4) nicht anbietbar, auch wenn die
+  // Registry es als kostenlos fuehrt.
   {
     id: 'wan-t2v',
     name: 'Wan T2V',
@@ -441,9 +440,11 @@ const POLLINATIONS_IMAGE_MODEL_ALIASES: Record<string, string> = {
   'z-image-turbo': 'zimage',
   'grok-image': 'grok-imagine',
   'grok-imagine-video': 'grok-video-pro',
+  // Entfernte eigene Eintraege, die in der Registry (oder als deren Alias)
+  // weiterexistieren — gespeicherte Auswahlen bleiben so bedienbar.
+  'grok-video': 'grok-video-pro',
+  'veo-1080p': 'veo',
   'wan2.6': 'wan',
-  'ltxvideo': 'ltx-2',
-  'ltx-video': 'ltx-2',
   'ideogram': 'ideogram-v4-turbo',
   'nanobanana-lite': 'nanobanana-2-lite',
 };

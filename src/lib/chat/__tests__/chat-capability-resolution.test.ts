@@ -8,15 +8,15 @@ import { VISIBLE_POLLINATIONS_MODEL_IDS } from '@/config/chat-options';
 
 describe('chat capability resolution', () => {
   it('falls back to the default text model when no id is provided', () => {
-    expect(resolveEffectiveTextModel(undefined)).toBe('gemini-fast');
+    expect(resolveEffectiveTextModel(undefined)).toBe('deepseek');
   });
 
   it('falls back to the default text model for unknown ids', () => {
-    expect(resolveEffectiveTextModel('definitely-not-real')).toBe('gemini-fast');
+    expect(resolveEffectiveTextModel('definitely-not-real')).toBe('deepseek');
   });
 
   it('falls back to the default text model for hidden legacy ids', () => {
-    expect(resolveEffectiveTextModel('openai')).toBe('gemini-fast');
+    expect(resolveEffectiveTextModel('openai')).toBe('deepseek');
   });
 
   it('keeps compose and visualize mutually exclusive when compose wins', () => {

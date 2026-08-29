@@ -19,7 +19,9 @@ describe('usePlaygroundModels', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(global.fetch).not.toHaveBeenCalled();
     expect(result.current.entries.every((e) => e.provider === 'pruna')).toBe(true);
-    expect(result.current.entries.some((e) => e.id === 'zimage')).toBe(true);
+    // E-A: zimage ist deaktiviert (BYOP-only) — 'p-image' als Pruna-Beleg.
+    expect(result.current.entries.some((e) => e.id === 'p-image')).toBe(true);
+    expect(result.current.entries.some((e) => e.id === 'zimage')).toBe(false);
   });
 
   it('fetches live models when provider is pollinations', async () => {

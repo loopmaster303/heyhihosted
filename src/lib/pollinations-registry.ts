@@ -17,6 +17,7 @@ import { fetchImageModelsRaw, _clearRegistryCacheForTesting } from '@/lib/pollin
 export interface RegistryModel {
   name: string;
   title?: string;
+  aliases?: string[];
   input_modalities?: string[];
   output_modalities?: string[];
   video_capabilities?: string[];
@@ -35,9 +36,10 @@ async function loadRegistry(apiKey?: string): Promise<RegistryModel[]> {
 }
 
 /**
- * Sucht ein Modell in der Registry. Schlägt der Abruf fehl, gilt das Modell als
- * unbekannt — ein Ausfall der Registry darf keine 500er aus einer ohnehin
- * fehlerhaften Anfrage machen.
+ * Sucht ein Modell in der Registry — unter dem Namen oder einem Anbieter-Alias
+ * (z. B. löst `gpt-image` zu `gptimage` auf, `veo-1080p` zu `veo`). Schlägt der
+ * Abruf fehl, gilt das Modell als unbekannt — ein Ausfall der Registry darf
+ * keine 500er aus einer ohnehin fehlerhaften Anfrage machen.
  */
 export async function findRegistryModel(
   modelId: string,
@@ -45,7 +47,10 @@ export async function findRegistryModel(
 ): Promise<RegistryModel | undefined> {
   try {
     const models = await loadRegistry(apiKey);
-    return models.find((m) => m.name === modelId);
+    return (
+      models.find((m) => m.name === modelId) ??
+      models.find((m) => m.aliases?.includes(modelId))
+    );
   } catch (error) {
     console.warn('[Registry] Lookup failed:', error instanceof Error ? error.message : String(error));
     return undefined;

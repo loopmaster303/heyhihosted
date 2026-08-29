@@ -7,7 +7,9 @@ describe('model-source', () => {
     expect(ids).not.toContain('p-image-try-on');
     expect(ids).not.toContain('p-video-avatar');
     expect(PRUNA_HIDDEN_IN_PLAYGROUND.size).toBe(5);
-    expect(ids).toContain('zimage');
+    // E-A (Pruna BYOP-only, 2026-08-28): zimage ist enabled:false und taucht
+    // im Playground nicht mehr auf, solange kein eigener Schluessel wirkt.
+    expect(ids).not.toContain('zimage');
     expect(ids).toContain('wan-t2v');
   });
 
@@ -49,9 +51,22 @@ describe('model-source', () => {
     expect(entries[0].name).toBe('Flux.1 Fast');
   });
 
+  // Schritt 5 / T6: enabled: false aus der kuratierten Config blendet ein
+  // gemapptes Modell aus; ein Registry-only Modell bleibt trotzdem stehen.
+  it('drops config-disabled pollinations models but keeps unmapped ones', () => {
+    const entries = buildPollinationsEntries([
+      { name: 'grok-imagine', output_modalities: ['image'] },
+      { name: 'brand-new-live-model', output_modalities: ['image'] },
+    ]);
+    const ids = entries.map((m) => m.id);
+    expect(ids).not.toContain('grok-imagine');
+    expect(ids).toContain('brand-new-live-model');
+    expect(entries.find((m) => m.id === 'brand-new-live-model')?.unmapped).toBe(true);
+  });
+
   it('reads the registry snake_case fields', () => {
     const [e] = buildPollinationsEntries([{
-      name: 'veo',
+      name: 'veo-3.1-fast',
       title: 'Veo 3.1 Fast',
       input_modalities: ['text', 'image'],
       output_modalities: ['video'],

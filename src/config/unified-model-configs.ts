@@ -208,20 +208,10 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
   },
-  'ltx-2': {
-    id: 'ltx-2',
-    name: 'LTX 2.3 Fast',
-    outputType: 'video',
-    inputs: [
-      { name: 'prompt', isPrompt: true },
-      { name: 'image' },
-      { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 6 },
-      { name: 'audio', default: true },
-      { name: 'seed' },
-      { name: 'output_format', default: 'mp4', hidden: true },
-    ],
-  },
+  // ltx-2, pollinations-wan-fast, veo-1080p und grok-video entfernt
+  // (2026-08-28, Phase 3 Modellwahrheit) — die IDs existieren in der
+  // Live-Registry nicht mehr bzw. sind nur noch Aliase der Kanoniker
+  // (veo, grok-video-pro). Siehe Kommentar in unified-image-models.ts.
   'zimage': {
     id: 'zimage',
     name: 'Z-Image Turbo',
@@ -256,24 +246,8 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
   },
-  'pollinations-wan-fast': {
-    id: 'pollinations-wan-fast', name: 'Wan Fast', outputType: 'video',
-    inputs: [
-      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 5 }, { name: 'audio', default: true }, { name: 'seed' },
-      { name: 'output_format', default: 'mp4', hidden: true },
-    ],
-  },
   'veo': {
     id: 'veo', name: 'Veo', outputType: 'video',
-    inputs: [
-      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 4 }, { name: 'audio', default: true }, { name: 'seed' },
-      { name: 'output_format', default: 'mp4', hidden: true },
-    ],
-  },
-  'veo-1080p': {
-    id: 'veo-1080p', name: 'Veo 1080p', outputType: 'video',
     inputs: [
       { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
       { name: 'duration', default: 4 }, { name: 'audio', default: true }, { name: 'seed' },
@@ -285,6 +259,38 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     inputs: [
       { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
       { name: 'duration', default: 4 }, { name: 'audio', default: true }, { name: 'seed' },
+      { name: 'output_format', default: 'mp4', hidden: true },
+    ],
+  },
+  // Die vier fehlenden Regler-Eintraege ergaenzt (Phase 3, T4/F5):
+  // p-image-ideogram, p-flux-klein, seedance-pro, nova-reel.
+  'p-image-ideogram': {
+    id: 'p-image-ideogram', name: 'P-Image Ideogram', outputType: 'image',
+    inputs: [
+      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '1:1' },
+      { name: 'seed' }, { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'p-flux-klein': {
+    id: 'p-flux-klein', name: 'Flux 2 Klein 4B (Pruna)', outputType: 'image',
+    inputs: [
+      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '1:1' },
+      { name: 'seed' }, { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  'seedance-pro': {
+    id: 'seedance-pro', name: 'Seedance Pro', outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 5 }, { name: 'audio', default: true }, { name: 'seed' },
+      { name: 'output_format', default: 'mp4', hidden: true },
+    ],
+  },
+  'nova-reel': {
+    id: 'nova-reel', name: 'Nova Reel', outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
+      { name: 'duration', default: 6 }, { name: 'seed' },
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
   },
@@ -350,19 +356,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'height', default: 1024 },
       { name: 'seed' },
       { name: 'output_format', default: 'jpg', hidden: true },
-    ],
-  },
-  'grok-video': {
-    id: 'grok-video',
-    name: 'Grok Video',
-    outputType: 'video',
-    inputs: [
-      { name: 'prompt', isPrompt: true },
-      { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 5 },
-      { name: 'audio', default: true },
-      { name: 'seed' },
-      { name: 'output_format', default: 'mp4', hidden: true },
     ],
   },
   'grok-video-pro': {

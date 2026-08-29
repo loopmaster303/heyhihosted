@@ -44,4 +44,31 @@ describe('pollinations-registry', () => {
 
     expect(await findRegistryModel('flux')).toBeUndefined();
   });
+
+  // Befund B3 (Phase 3): die Registry führt Aliase — `gpt-image` löst zu
+  // `gptimage` auf, `veo-1080p` zu `veo`. Ohne Alias-Auflösung liefen solche
+  // IDs in einen 400, obwohl der Anbieter sie bedient.
+  it('resolves provider aliases via findRegistryModel', async () => {
+    const WITH_ALIASES = [
+      { name: 'gptimage', aliases: ['gpt-image'], paid_only: false },
+      { name: 'veo', aliases: ['veo-1080p', 'veo-3.1-fast'], paid_only: true },
+    ];
+    (global.fetch as jest.Mock).mockResolvedValue(upstream(WITH_ALIASES));
+
+    expect(await findRegistryModel('gpt-image')).toEqual({
+      name: 'gptimage',
+      aliases: ['gpt-image'],
+      paid_only: false,
+    });
+    expect(await findRegistryModel('veo-3.1-fast')).toEqual({
+      name: 'veo',
+      aliases: ['veo-1080p', 'veo-3.1-fast'],
+      paid_only: true,
+    });
+    expect(await findRegistryModel('gptimage')).toEqual({
+      name: 'gptimage',
+      aliases: ['gpt-image'],
+      paid_only: false,
+    });
+  });
 });

@@ -66,7 +66,7 @@ describe('/api/enhance-prompt route', () => {
     );
     expect(getPollinationsChatCompletionMock).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ modelId: 'gemini-fast' }),
+      expect.objectContaining({ modelId: 'nova-fast' }),
     );
   });
 
@@ -705,7 +705,7 @@ describe('/api/enhance-prompt route', () => {
     );
   });
 
-  it('uses a text-triggered grok-video prompt with modern t2v and i2v guidance', async () => {
+  it('uses a text-triggered grok-video-pro prompt with modern t2v and i2v guidance', async () => {
     getPollinationsChatCompletionMock.mockResolvedValueOnce({
       responseText: 'A cybernetic fox sprints through a neon forest at midnight, legs kicking up wet leaves, fast tracking shot from behind through the trees, blue-purple volumetric light filtering through branches. AUDIO: intense synthwave pulse, rain hiss, metallic footfalls on wet ground. Smooth motion, no jitter, no deformation.',
     });
@@ -715,7 +715,7 @@ describe('/api/enhance-prompt route', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         prompt: 'cybernetic fox sprints through neon forest at midnight',
-        modelId: 'grok-video',
+        modelId: 'grok-video-pro',
         language: 'en',
       }),
     });
@@ -861,46 +861,6 @@ describe('/api/enhance-prompt route', () => {
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
         systemPrompt: expect.not.stringContaining('Always output a negative prompt'),
-      }),
-    );
-  });
-
-  it('uses an LTX-2 prompt aligned to the official t2v-only prompting guide', async () => {
-    getPollinationsChatCompletionMock.mockResolvedValueOnce({
-      responseText: 'A low-angle tracking shot follows a courier sprinting through a rain-soaked market, neon reflections sliding across puddles as fabric snaps in the wind and distant sirens bleed into the soundscape.',
-    });
-
-    const request = new Request('http://localhost/api/enhance-prompt', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: 'courier sprinting through a rain-soaked market at night',
-        modelId: 'ltx-2',
-        language: 'en',
-      }),
-    });
-
-    await POST(request as any);
-
-    expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        modelId: 'deepseek',
-        systemPrompt: expect.stringContaining('LTX-2 via Pollinations now supports both text-to-video and image-to-video'),
-      }),
-    );
-    expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        systemPrompt: expect.stringContaining('Shot -> Scene -> Action -> Character -> Camera -> Audio'),
-      }),
-    );
-    expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        systemPrompt: expect.stringContaining('Use present tense only'),
-      }),
-    );
-    expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        systemPrompt: expect.stringContaining('Output exactly one flowing English paragraph'),
       }),
     );
   });
@@ -1075,7 +1035,6 @@ describe('/api/enhance-prompt route', () => {
 
   it('routes each compose model to its own enhancement prompt', async () => {
     const markers: Record<string, string> = {
-      acestep: 'ACE-Step 1.5 prompt engineer',
       elevenmusic: 'VibeCraft',
       'stable-audio-3-medium': 'Stable Audio 3 Medium prompt engineer',
     };
@@ -1113,12 +1072,12 @@ describe('/api/enhance-prompt route', () => {
         'energetic mood, instrumental, verse-chorus structure, radio-ready production',
     });
 
-    await POST(composeRequest('acestep', 'happy tune') as any);
+    await POST(composeRequest('elevenmusic', 'happy tune') as any);
 
     expect(getPollinationsChatCompletionMock).toHaveBeenCalledTimes(2);
     expect(getPollinationsChatCompletionMock).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ modelId: 'gemini-fast' }),
+      expect.objectContaining({ modelId: 'nova-fast' }),
     );
   });
 
@@ -1334,5 +1293,67 @@ describe('/api/enhance-prompt route', () => {
     expect(enhancedPrompt).not.toContain('8k');
     // Kein Leerzeichen vor Satzzeichen, wo ein Begriff herausfiel.
     expect(enhancedPrompt).not.toMatch(/\s[,.]/);
+  });
+});
+
+describe('enhancement prompt integrity (T5, F6)', () => {
+  const {
+    ENHANCEMENT_PROMPTS,
+    MODEL_ALIASES,
+    AUDIO_ENHANCEMENT_KEYS,
+    canonicalEnhancementKey,
+  } = jest.requireActual('@/config/enhancement-prompts');
+  const { UNIFIED_IMAGE_MODELS } = jest.requireActual('@/config/unified-image-models');
+  const snapshot = jest.requireActual('@/config/__fixtures__/registry-snapshot.json');
+
+  const knownAudioKeys = new Set(AUDIO_ENHANCEMENT_KEYS);
+  const handWrittenKeys = new Set(Object.keys(ENHANCEMENT_PROMPTS));
+  const registryNames = new Set(snapshot.image.map((m: { name: string }) => m.name));
+  const registryAliases = new Set(
+    snapshot.image.flatMap((m: { aliases?: string[] }) => m.aliases ?? []),
+  );
+
+  test('jeder Alias in MODEL_ALIASES zeigt auf einen existierenden Key', () => {
+    for (const [alias, target] of Object.entries(MODEL_ALIASES as Record<string, string>)) {
+      const known =
+        handWrittenKeys.has(target) ||
+        knownAudioKeys.has(target) ||
+        registryNames.has(target) ||
+        registryAliases.has(target);
+      expect(known).toBe(true);
+    }
+  });
+
+  test('kein handgeschriebener Prompt gehoert zu einer entfernten/led-losen ID', () => {
+    const ledIds = new Set([
+      ...UNIFIED_IMAGE_MODELS.map((m: { id: string }) => m.id),
+    ]);
+    // Registry-Keys sind erlaubt: sie bedienen Live-Modelle ausserhalb der
+    // kuratierten Auswahl. seedream5 ist Legacy-Ziel des Normalizers.
+    const documentedOrphans = new Set([
+      'seedream5',
+      'seedance',
+      'seedream5-pro',
+      'recraft-v4.1-vector',
+    ]);
+    for (const key of handWrittenKeys) {
+      if (documentedOrphans.has(key)) continue;
+      expect(ledIds.has(key) || registryNames.has(key) || registryAliases.has(key)).toBe(true);
+    }
+  });
+
+  test('jede geführte ID hat einen Beleg: handgeschrieben, Audio oder Registry', () => {
+    for (const model of UNIFIED_IMAGE_MODELS) {
+      const key = canonicalEnhancementKey(model.id);
+      const covered =
+        handWrittenKeys.has(key) ||
+        knownAudioKeys.has(key) ||
+        registryNames.has(key) ||
+        registryAliases.has(key);
+      // VACE ist bewusst abgeschaltet (byopVisible: false) und bleibt ohne
+      // Beleg — es ist in keiner Oberflaeche erreichbar.
+      if (model.id === 'vace') continue;
+      expect(covered).toBe(true);
+    }
   });
 });

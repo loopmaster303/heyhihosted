@@ -35,7 +35,6 @@ function normalizeLegacyImageModelId(id: string): string {
     if (!id) return id;
     // Pollinations model ID drift + removals
     if (id === 'seedance-fast') return 'seedance';
-    if (id === 'ltx-video') return 'ltx-2';
     if (id === 'z-image-turbo') return 'zimage';
     if (id === 'gptimage' || id === 'gpt-image-1-mini') return 'gpt-image';
     if (id === 'imagen' || id === 'imagen-4') return 'zimage';
@@ -45,7 +44,12 @@ function normalizeLegacyImageModelId(id: string): string {
     if (id === 'flux-klein') return 'klein';
     if (id === 'wan-video' || id === 'wan-2.5-t2v') return 'wan';
     if (id === 'grok-image') return 'grok-imagine';
-    if (id === 'grok-imagine-video') return 'grok-video';
+    // Entfernte IDs (Phase 3, 2026-08-28) auf die Kanoniker führen, damit
+    // gespeicherte Auswahlen nicht auf ein Leiche zeigen.
+    if (id === 'ltx-video' || id === 'ltx2' || id === 'ltx-2') return 'klein';
+    if (id === 'grok-imagine-video' || id === 'grok-video') return 'grok-video-pro';
+    if (id === 'veo-1080p') return 'veo';
+    if (id === 'pollinations-wan-fast') return 'wan';
     if (id === 'seedream' || id === 'seedream-pro') return 'seedream5';
     return id;
 }
