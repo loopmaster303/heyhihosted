@@ -1,5 +1,8 @@
 # Launch-Kriterien — Freigabeschwelle für `chat.hey-hi.cloud`
 
+**Letzte Prüfung:** 2026-08-29 · **Geprüft von:** Phase 6 (Code und Muster; die Messungen
+L-E.1/L-E.2 führt der Betreiber selbst durch — keine Agenten-Browser-Tests).
+
 **Zweck:** Dieses Dokument beantwortet die Frage „Darf die Adresse öffentlich geteilt
 werden?" mit Ja oder Nein. Es beschreibt beobachtbare Endzustände aus Nutzersicht —
 wie sie hergestellt werden, steht in [`FAHRPLAN-create.md`](FAHRPLAN-create.md).
@@ -172,6 +175,8 @@ Prüfweg: Auf einem iPhone und einem Android-Gerät je einen t2i- und einen i2v-
 durchführen; kein Bedienelement bleibt unerreichbar oder von der Tastatur verdeckt.
 Herkunft: Phase 6
 Status: offen
+> Betreiberaufgabe — Checkliste in [`PLAN-phase-6-create-telefon.md`](PLAN-phase-6-create-telefon.md),
+> Abschnitt 8. Braucht zwei echte Geräte.
 
 **L-E.2 — Kein horizontales Scrollen bei 375 px**
 Kriterium: Die Seite scrollt bei 375 px Breite nicht horizontal.
@@ -179,6 +184,10 @@ Prüfweg: Auf einem 375-px-Gerät oder -Emulator jede Hauptansicht durchblätter
 horizontaler Scrollbalken erscheint.
 Herkunft: Phase 6
 Status: offen
+> Betreiberaufgabe — die Browser-Messung macht der Betreiber selbst (keine
+> Agenten-Browser-Tests). Prüfweg: Q Schritt 5 in
+> [`PLAN-phase-6-create-telefon.md`](PLAN-phase-6-create-telefon.md); die Code-Seite ist
+> umgesetzt (Phase 6, Commit `cbf3011`).
 
 ## F — Chat-Oberfläche *(Phase 7)*
 
@@ -279,6 +288,10 @@ einmaligen Bestätigungsschritt beim ersten Pruna-Lauf öffnen — der Hinweis i
 ohne den Lauf zu starten.
 Herkunft: Phase 4
 Status: offen
+> Hinweis (Phase 6, Querlesen): Der Satz existiert als Konstante `RUN_CONTINUES_NOTICE`
+> (`src/lib/playground/constants.ts`) und steht sichtbar an der laufenden Karte in der
+> Galerie. Die dauerhafte Zeile an der Sendeleiste vor dem Start ist noch nicht gebaut —
+> die Phase-4-Anteile an `PromptBar.tsx` (W7/W8) fehlen im Stand `cbf3011`.
 
 **L-K.3 — Abbruch wird nicht als Stornierung dargestellt**
 Kriterium: Ein Abbruch in der Oberfläche wird nicht als Stornierung oder Erstattung

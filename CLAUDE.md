@@ -75,6 +75,7 @@ The `/create` route (`src/app/create/page.tsx`) — product name **Create** — 
 - **Progress:** Up to 3 generations run in parallel. Each is an `ActiveRun` in `PlaygroundShell` with its own `AbortController` and renders its own card in the gallery — running (with a per-card cancel) or failed (with retry/dismiss). The run itself is the retry context, so a retry repeats what was sent, not what the composer holds now. The send button only locks at the concurrency limit and names the reason.
 - **Details:** Selecting a result opens `MetaRail` with prompt, parameters, seed, and actions: download, retry, use as reference.
 - **Provider switch:** Same semantics as Visualize — it only scopes the model list. The selected model decides the actual provider dispatch.
+- **Telefon:** Die Shell bezieht ihre Höhe aus `--vvh` (`useViewportHeight`), nicht aus `dvh` — die Tastatur verkleinert den visual viewport, `dvh` folgt ihm nicht. Trefferflächen unter `md` sind 44 px. Parameter kommen als linke Schublade, Details als Bottom-Drawer. Phase 8 folgt demselben Muster.
 
 Do not wire Create state into ChatProvider. Keep it self-contained.
 

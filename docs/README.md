@@ -43,8 +43,10 @@ add new documents there.
   Corrects the Fahrplan — both drawers already exist; what is missing is the send bar under
   an open keyboard (`--vvh` instead of `dvh`), touch targets, the two-column gallery, and
   the cancel notice that today only lives in a `title`. Carries the four patterns Phase 8
-  inherits, plus an operator checklist for L-E.1 (needs two real devices). **Not yet
-  executed** — see its section 0 on the Phase 4 / Phase 5 ordering.
+  inherits, plus an operator checklist for L-E.1 (needs two real devices). **Executed
+  2026-08-29** — code complete (`5e3bdf1`, `cbf3011`); the L-E.1 device checklist and the
+  L-E.2 browser measurement are **operator tasks** (browser tests are run by the
+  operator, not by an agent).
 - `PLAN-phase-7-chat-entschlanken.md` — implementation plan for Phase 7: reduce the chat's
   image selection to the key-free rule, move video and Pruna into Create, label the way
   there. Carries operator decisions E7-1 to E7-4. **Not yet executed.**

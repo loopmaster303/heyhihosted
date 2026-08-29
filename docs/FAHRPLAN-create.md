@@ -315,9 +315,9 @@ Löschen entfernt Eintrag und Blob · nach einem Reload ist nichts zurück.
 
 ---
 
-### Phase 6 — Create auf dem Telefon (**P12**)
+### Phase 6 — Create auf dem Telefon (**P12**) · TEILWEISE — L-E.1 und L-E.2 offen (Betreiberaufgabe: echte Geräte + Browser-Messung)
 
-- Drei-Spalten-Aufbau auf klein: Parameter und Detailleiste als Schubladen
+- ~~Drei-Spalten-Aufbau auf klein: Parameter und Detailleiste als Schubladen~~ — **war bereits gebaut** (Parameter als `<Drawer direction="left">`, Details als Bottom-Drawer, Menüknopf `md:hidden`). Befund der Phase-6-Planung, 2026-08-29.
 - Prompt-Leiste über der Tastatur bedienbar
 - Galerie-Raster, Referenz-Slots, Modellauswahl per Finger benutzbar
 - Auf einem echten Gerät prüfen, nicht nur im schmalen Fenster
