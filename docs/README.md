@@ -63,6 +63,9 @@ add new documents there.
 - `HANDOFF-2026-08-28-phase-3.md` — what Phase 3 delivered: model truth verified against
   the live registry (with the key-scoped registry finding), the registry check script +
   snapshot + weekly Action, corrected defaults, and the dead model ids removed.
+- `HANDOFF-2026-08-29-phase-7.md` — what Phase 7 delivered: the chat's image picker
+  reduced to a rule (free + Pollinations + image) instead of a curated list, both
+  consumers on one source, the labelled way into Create. Written after the fact.
 - `HANDOFF-2026-08-29-audit-patch.md` — what the audit patch delivered: the working tree
   sorted into five thematic commits, ten worker packages (subagent-driven, GLM-5.3-Flash
   workers), and the three operator decisions E1–E3 written into the gate document.
