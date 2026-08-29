@@ -4,6 +4,7 @@ import { db } from '@/lib/services/database';
 import { DatabaseService } from '@/lib/services/database';
 import type { Asset } from '@/lib/services/database';
 import { isInScope, type AssetOrigin } from '@/lib/assets/asset-origin';
+import { deleteAssetById, deleteAssetsInScope } from '@/lib/assets/delete-assets';
 
 const PREVIEW_LIMIT = 50;
 
@@ -51,11 +52,11 @@ export function useGalleryAssets(origins?: readonly AssetOrigin[]) {
   const isLoading = assets === undefined;
 
   const deleteAsset = async (id: string) => {
-    await db.assets.delete(id);
+    await deleteAssetById(id);
   };
 
   const clearAllAssets = async () => {
-    await db.assets.filter((a) => isInScope(a, origins)).delete();
+    await deleteAssetsInScope(origins);
   };
 
   const toggleStarred = async (id: string) => {
