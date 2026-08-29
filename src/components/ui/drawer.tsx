@@ -36,23 +36,34 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DrawerPortal>
-    <DrawerOverlay />
-    <DrawerPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-3xl border border-glass-border bg-popover/80 backdrop-blur-2xl shadow-glass-heavy",
-        className
-      )}
-      {...props}
-    >
-      <div className="mx-auto mt-4 h-1.5 w-12 rounded-full bg-muted/40" />
-      {children}
-    </DrawerPrimitive.Content>
-  </DrawerPortal>
-))
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & {
+    direction?: "top" | "bottom" | "left" | "right"
+  }
+>(({ className, children, direction = "bottom", ...props }, ref) => {
+  // Die Klassen unten waren bis 2026-08-29 fuer jede Richtung gesetzt — ein
+  // linker Drawer bekam damit eine oben abgerundete Kante, einen mt-24-Vorschub
+  // und einen waagerechten Ziehgriff ueber einer senkrechten Flaeche.
+  const isBottom = direction === "bottom"
+  return (
+    <DrawerPortal>
+      <DrawerOverlay />
+      <DrawerPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed z-50 flex flex-col border border-glass-border bg-popover/80 backdrop-blur-2xl shadow-glass-heavy",
+          isBottom
+            ? "inset-x-0 bottom-0 mt-24 h-auto rounded-t-3xl"
+            : "inset-y-0 left-0 rounded-r-3xl",
+          className
+        )}
+        {...props}
+      >
+        {isBottom && <div className="mx-auto mt-4 h-1.5 w-12 rounded-full bg-muted/40" />}
+        {children}
+      </DrawerPrimitive.Content>
+    </DrawerPortal>
+  )
+})
 DrawerContent.displayName = "DrawerContent"
 
 const DrawerHeader = ({

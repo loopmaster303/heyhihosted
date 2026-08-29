@@ -137,7 +137,7 @@ function VideoUpload({
           </button>
         </div>
       ) : (
-        <label className="flex h-8 cursor-pointer items-center justify-center rounded-md border border-dashed border-border text-xs text-muted-foreground hover:border-primary/60 hover:text-foreground">
+        <label className="flex h-11 cursor-pointer items-center justify-center rounded-md border border-dashed border-border text-xs text-muted-foreground hover:border-primary/60 hover:text-foreground md:h-8">
           {uploading ? 'Lädt hoch…' : 'Video hochladen'}
           <input
             type="file"

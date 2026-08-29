@@ -129,7 +129,7 @@ export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
                   type="button"
                   aria-label={`${label} entfernen`}
                   onClick={() => removeAt(i)}
-                  className="absolute right-1.5 top-1.5 z-10 grid h-5 w-5 place-items-center rounded bg-black/70 text-white backdrop-blur-sm transition-colors hover:bg-black/85"
+                  className="absolute right-1.5 top-1.5 z-10 grid h-5 w-5 place-items-center rounded bg-black/70 text-white backdrop-blur-sm transition-colors after:absolute after:-inset-3 after:content-[''] hover:bg-black/85"
                 >
                   <X className="h-2.5 w-2.5" />
                 </button>

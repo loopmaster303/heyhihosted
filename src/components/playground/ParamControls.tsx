@@ -96,7 +96,7 @@ export function ParamControls({ schema, values, onChange, uploadCount }: Props) 
                               const num = e.target.value === '' ? undefined : Number(e.target.value);
                               if (num !== undefined) setValue(field.name, num);
                             }}
-                            className="h-8 text-xs"
+                            className="h-11 text-xs md:h-8"
                           />
                           {field.unit && (
                             <span className="text-[10.5px] text-muted-foreground">{field.unit}</span>
@@ -116,7 +116,7 @@ export function ParamControls({ schema, values, onChange, uploadCount }: Props) 
                           <DropdownMenuTrigger asChild>
                             <button
                               type="button"
-                              className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 text-xs hover:bg-accent"
+                              className="flex h-11 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 text-xs hover:bg-accent md:h-8"
                             >
                               <span>{selected?.label ?? current}</span>
                               <ChevronRight className="h-3 w-3 rotate-90 text-muted-foreground" />
@@ -173,7 +173,7 @@ export function ParamControls({ schema, values, onChange, uploadCount }: Props) 
                             value={String(val ?? '')}
                             placeholder={field.placeholder ?? ''}
                             onChange={(e) => setValue(field.name, e.target.value)}
-                            className="h-8 text-xs"
+                            className="h-11 text-xs md:h-8"
                           />
                         )}
                       </div>

@@ -75,7 +75,7 @@ export function ModelPicker({ entries, mode, value, onChange, loading, fallbackA
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="w-full justify-start gap-2 h-auto py-2.5 text-[12.5px]"
+            className="w-full justify-start gap-2 h-auto min-h-11 py-2.5 text-[12.5px] md:min-h-0"
             disabled={loading || filtered.length === 0}
           >
             <span>{current?.name ?? (loading ? 'Lädt…' : emptyLabel)}</span>
@@ -93,7 +93,7 @@ export function ModelPicker({ entries, mode, value, onChange, loading, fallbackA
                 <DropdownMenuItem
                   key={entry.id}
                   onSelect={() => onChange(entry.id)}
-                  className={cn(entry.id === value && 'bg-accent')}
+                  className={cn('min-h-11 md:min-h-0', entry.id === value && 'bg-accent')}
                 >
                   <span>{entry.name}</span>
                   <span className="flex-1" />
@@ -110,7 +110,7 @@ export function ModelPicker({ entries, mode, value, onChange, loading, fallbackA
                 <DropdownMenuItem
                   key={entry.id}
                   onSelect={() => onChange(entry.id)}
-                  className={cn(entry.id === value && 'bg-accent')}
+                  className={cn('min-h-11 md:min-h-0', entry.id === value && 'bg-accent')}
                 >
                   <span>{entry.name}</span>
                   <span className="flex-1" />

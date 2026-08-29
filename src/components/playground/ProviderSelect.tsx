@@ -111,9 +111,9 @@ export function ProviderSelect() {
               aria-label={providerMode === 'pruna' ? 'Pruna-Key' : 'Pollen-Key'}
               autoComplete="off"
               spellCheck={false}
-              className="h-8 flex-1 text-xs"
+              className="h-11 flex-1 text-xs md:h-8"
             />
-            <Button size="sm" className="h-8 shrink-0 px-3 text-xs" onClick={connect} disabled={!draft.trim()}>
+            <Button size="sm" className="h-11 shrink-0 px-3 text-xs md:h-8" onClick={connect} disabled={!draft.trim()}>
               Verbinden
             </Button>
           </div>

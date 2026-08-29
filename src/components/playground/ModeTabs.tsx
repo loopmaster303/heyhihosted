@@ -18,7 +18,7 @@ export function ModeTabs({ value, onChange }: { value: PlaygroundMode; onChange:
             type="button"
             onClick={() => onChange(mode)}
             className={cn(
-              'rounded-lg py-2 text-xs font-medium transition-colors',
+              'min-h-11 rounded-lg py-2 text-xs font-medium transition-colors md:min-h-0',
               isActive ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
             )}
           >
