@@ -7,17 +7,29 @@
 import nextConfig from './next.config';
 
 describe('next.config redirects', () => {
+  it('keeps the old /playground path reachable — it lives in bookmarks and shared links', async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+
+    expect(redirects[0]).toMatchObject({
+      source: '/playground',
+      destination: '/create',
+      permanent: false,
+    });
+    // Keine Host-Bedingung: der alte Pfad muss unter jedem Host greifen.
+    expect(redirects[0]).not.toHaveProperty('has');
+  });
+
   it('redirects the create host onto the shared chat origin — hyphen included', async () => {
     const redirects = (await nextConfig.redirects?.()) ?? [];
 
-    expect(redirects).toHaveLength(2);
-    expect(redirects[0]).toMatchObject({
+    expect(redirects).toHaveLength(3);
+    expect(redirects[1]).toMatchObject({
       source: '/',
       has: [{ type: 'host', value: 'create.hey-hi.cloud' }],
-      destination: 'https://chat.hey-hi.cloud/playground',
+      destination: 'https://chat.hey-hi.cloud/create',
       permanent: false,
     });
-    expect(redirects[1]).toMatchObject({
+    expect(redirects[2]).toMatchObject({
       source: '/:path*',
       has: [{ type: 'host', value: 'create.hey-hi.cloud' }],
       destination: 'https://chat.hey-hi.cloud/:path*',

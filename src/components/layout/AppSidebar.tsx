@@ -119,10 +119,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigateTo('/playground')}
+            onClick={() => navigateTo('/create')}
             className={cn(
               'w-full justify-start rounded-xl mb-5 h-9 text-xs border transition-colors',
-              currentPath === '/playground'
+              currentPath === '/create'
                 ? 'bg-primary/10 border-primary/30 text-primary'
                 : 'border-transparent text-foreground/75 hover:bg-primary/5 hover:border-primary/20'
             )}
