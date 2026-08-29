@@ -49,7 +49,7 @@ graph TD
     subgraph "Page Routes"
         Home[/]
         Chat[/chat]
-        Playground[/playground]
+        Create[/create]
         Settings[/settings]
         About[/about]
         Output/Gallery[/gallery]

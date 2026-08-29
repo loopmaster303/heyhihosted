@@ -5,17 +5,17 @@
 `~/heyhihosted` — kanonisches Level-2-Repo im hey-hi Ökosystem.
 
 GitHub: `loopmaster303/heyhihosted` · Branch: **`main`** (Stand `741c08c`)
-Live: `https://chat.hey-hi.cloud` + `https://chat.hey-hi.cloud/playground`
-Geplant: `https://create.hey-hi.cloud` (gleiches Vercel-Projekt; **Redirect** auf
-`chat.hey-hi.cloud/playground` — Variante B, gemeinsamer Browser-Ursprung. Die
-Weiterleitung liegt im Code: `next.config.ts`, `CREATE_HOST`. Offen: die
-Dashboard-Schritte V1–V3 aus [`docs/PLAN-phase-2-create-identitaet.md`](docs/PLAN-phase-2-create-identitaet.md))
+Live: `https://chat.hey-hi.cloud` + `https://chat.hey-hi.cloud/create`
+Keine zweite Domain (Entscheidung 2026-08-29): `create.hey-hi.cloud` wäre ein
+zweiter Browser-Ursprung und würde IndexedDB und localStorage aufteilen — getrennte
+Galerie, Schlüssel zweimal. Stattdessen liegt Create als Pfad auf demselben Ursprung.
+Die `CREATE_HOST`-Regeln in `next.config.ts` bleiben schlafend liegen.
 
 ## Was ist das Projekt
 
 **Level 2 („Benutzen")** im hey-hi Ökosystem — Produktions-App. Next.js 16, Pollinations + Pruna, minimalistisches Chat-Interface, Text/Bild/Video/Musik (Compose) + Voice (TTS/STT), lokale Persistenz (IndexedDB/localStorage), BYOP-Key.
 
-Seit August 2026 enthält `main` auch das **Create** (`/playground`): einen dedizierten, Vollbild-Workspace für Bild- und Videogenerierung mit Provider-Switch, Modus-Tabs, Referenz-Uploads und Generierungs-Details.
+Seit August 2026 enthält `main` auch das **Create** (`/create`, bis 2026-08-29 `/playground`): einen dedizierten, Vollbild-Workspace für Bild- und Videogenerierung mit Provider-Switch, Modus-Tabs, Referenz-Uploads und Generierungs-Details.
 
 ## Aktueller State (2026-08-28)
 
@@ -25,11 +25,11 @@ Seit August 2026 enthält `main` auch das **Create** (`/playground`): einen dedi
 > ist für sich grün. Details, Werkzeuge und die Befunde je Phase:
 > [`docs/HANDOFF-2026-08-28-phase-0.md`](docs/HANDOFF-2026-08-28-phase-0.md).
 
-- **HEAD = `aa3eac4`**, synchron mit `origin/main`. Kein offener Arbeitsbaum mehr.
+- **HEAD = `fcb1124`** (Phase 2), synchron mit `origin/main`. Kein offener Arbeitsbaum mehr.
 - **Aktiver Plan:** [`docs/FAHRPLAN-create.md`](docs/FAHRPLAN-create.md) — zehn Phasen zur öffentlich verlinkbaren Version.
 - **Orientierung je Phase:** [`docs/HANDOFF-2026-08-27-fahrplan.md`](docs/HANDOFF-2026-08-27-fahrplan.md) — Zuordnung des Arbeitsbaums nach Herkunft, Wegweiser und Fallstricke pro Phase.
-- **Letzte Sitzung mit Code:** [`docs/HANDOFF-2026-08-26-pruna-video.md`](docs/HANDOFF-2026-08-26-pruna-video.md) — 780 Tests grün, `typecheck` und `lint` sauber, gegen den laufenden Dev-Server verifiziert. **Nicht live verifiziert.**
-- **Live-Deploy:** `chat.hey-hi.cloud` und `chat.hey-hi.cloud/playground` zeigen den Stand
+- **Letzte Sitzung mit Code:** [`docs/HANDOFF-2026-08-28-phase-3.md`](docs/HANDOFF-2026-08-28-phase-3.md) — Modellwahrheit gegen die Live-Registry, 849 Tests grün, lint/tsc/build sauber, gegen Live und Dev-Server verifiziert.
+- **Live-Deploy:** `chat.hey-hi.cloud` und `chat.hey-hi.cloud/create` zeigen den Stand
   `aa3eac4`. Live geprüft: Chat antwortet, `flux` erzeugt ein echtes Bild, die
   Intent-Erkennung emittiert ihren Marker, `/api/pruna/status` ist erreichbar.
 - **Pruna ist bewusst BYOP-only.** In der Vercel-Umgebung ist **kein** `PRUNA_API_KEY`
@@ -38,27 +38,23 @@ Seit August 2026 enthält `main` auch das **Create** (`/playground`): einen dedi
   funktionieren die freien Modelle dort ohne Zutun. Live geprüft am 2026-08-28:
   ohne Pruna-Schlüssel antwortet jedes Pruna-Modell mit 503, mit BYOP-Schlüssel im
   Browser läuft es. Der Unterschied ist gewollt, nicht kaputt.
-  Offen bleibt allein die **Formulierung**: die 503-Meldung nennt einer Nutzerin die
-  Server-Variable `PRUNA_API_KEY`, statt sie zu den Einstellungen zu schicken (Phase 4).
+  Die drei ehemals „kostenlosen" Pruna-Modelle (`zimage`, `qwen-image`, `wan-image-small`)
+  sind deshalb jetzt korrekt `isFree: false, enabled: false, byopVisible: true`.
 
-### ⚠ Die Modell-Listen im Repo stimmen nicht mehr
+### Modellwahrheit: geprüft und messbar
 
-Live gegen die Pollinations-Registry geprüft am 2026-08-27:
-
-- **`acestep` existiert nicht mehr**, und **alle** Pollinations-Modelle mit Text→Audio sind
-  schlüsselpflichtig. Es gibt kein kostenloses Musikmodell. Die Id steht weiterhin an
-  19 Stellen im Code, vier davon als Vorgabewert.
-- `qwen-image`, `grok-imagine`, `ideogram-v4-turbo` sind **schlüsselpflichtig**, nicht frei.
-- `gpt-image`, `wan-image-small`, `ltx-2` **existieren nicht mehr**.
-- Frei und nirgends geführt: `dreamshaper`, `nova-canvas`, `nova-reel` (Video).
-
-Betrifft `CLAUDE.md`, `README.md`, `src/config/unified-image-models.ts` und
-`src/config/chat-options.ts`. **Modellfragen gegen die Live-Registry prüfen, nicht gegen die
-Dokumentation.** Der Abgleich ist Phase 3 des Fahrplans.
+Die Modell-Listen sind seit dem 2026-08-28 gegen die Live-Registry geprüft
+(`scripts/check-model-registry.mjs`, Snapshot `src/config/__fixtures__/registry-snapshot.json`,
+Tests in `registry-truth.test.ts` / `registry-consistency.test.ts`, wöchentlicher
+GitHub-Action-Lauf). Ein Registry-Befund wandert nie still in die Config — Angebotsfragen
+sind Produktentscheidungen. Details: `CLAUDE.md`, Abschnitt „Modellwahrheit prüfen".
+Wichtig: die Registry ist **key-scoped** — die Server-Key-Allowlist entscheidet, was
+keylose Nutzer wirklich erreichen (deshalb sind `kontext`/`gptimage-large` bis auf
+Weiteres ausgeblendet).
 
 ## Wichtige technische Eckpunkte nach dem Merge
 
-- **Routes:** `/` (Landing/Chat), `/playground` (Playground), `/chat`, `/gallery`, `/settings`, `/about`.
+- **Routes:** `/` (Landing/Chat), `/create` (Create; `/playground` leitet dorthin weiter), `/chat`, `/gallery`, `/settings`, `/about`.
 - **Playground-Komponenten:** `PlaygroundShell`, `PlaygroundSidebar`, `ParamControls`, `ModelPicker`, `ModeTabs`, `ReferenceSlots`, `PromptBar`, `Gallery`, `MetaRail`, `SettingsDialog`.
 - **Provider-Switch:** Pollinations ↔ Pruna; scopet nur die Visualize/Playground-Modellliste (Chat/Compose/Voice bleiben Pollinations).
 - **Modi:** t2i, i2i, t2v, i2v — jeweils mit validiertem Referenz-Upload (`/api/media/upload` für Pollinations, `/api/pruna/upload` für Pruna).
@@ -96,12 +92,12 @@ Dokumentation.** Der Abgleich ist Phase 3 des Fahrplans.
 
 ## Nächste Schritte
 
-Priorisiert im [Fahrplan](docs/FAHRPLAN-create.md). **Phase 0 ist erledigt**, der Weg
-beginnt bei Phase 1. Kurzfassung:
+Priorisiert im [Fahrplan](docs/FAHRPLAN-create.md). **Phase 0–3 sind erledigt**, der Weg
+beginnt bei Phase 4. Kurzfassung:
 
 ```
-Phase 0 ✅ ─► Phase 1 ─► Phase 2 ─► Phase 3 ─┬─► Phase 4 ─► Phase 5 ─► Phase 6 ─► Phase 8 ─► Phase 9
-                                          └─► Phase 7
+Phase 0-3 ✅ ─┬─► Phase 4 ─► Phase 5 ─► Phase 6 ─► Phase 8 ─► Phase 9
+              └─► Phase 7
 ```
 
 | Phase | Inhalt |
@@ -109,7 +105,7 @@ Phase 0 ✅ ─► Phase 1 ─► Phase 2 ─► Phase 3 ─┬─► Phase 4 �
 | ~~**0**~~ | ~~Arbeitsbaum konsolidieren~~ — **erledigt am 2026-08-28**, `f880389..aa3eac4` |
 | **1** | Launch-Kriterien als Definition of Done festschreiben |
 | **2** | Playground heißt Create, eigene Adresse, Navigation in beide Richtungen |
-| **3** | Modellwahrheit gegen die Live-Registry — **blockiert 4, 7 und 8** |
+| ~~**3**~~ | ~~Modellwahrheit gegen die Live-Registry~~ — **erledigt am 2026-08-28** (Handoff: `docs/HANDOFF-2026-08-28-phase-3.md`) |
 | **4** | Verständliche Fehlermeldungen, Laufstabilität |
 | **5** | Eine Galerie für Chat und Create, Löschen |
 | **6** | Create auf dem Telefon |

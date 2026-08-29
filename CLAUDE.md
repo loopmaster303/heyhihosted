@@ -2,7 +2,7 @@
 
 **Ecosystem:** democrabs — "The crab snaps with everyone but it's yours"
 
-Assistant guidance for Claude working in this repository. Architecture last verified against the code on 2026-08-12. **Model lists last verified 2026-08-12 and known to be stale — see the warning under Current Runtime Truth.**
+Assistant guidance for Claude working in this repository. Architecture last verified against the code on 2026-08-12. **Model lists verified against the live registry on 2026-08-28** — see "Modellwahrheit prüfen" below for how to keep them that way.
 
 ## Start Here
 
@@ -18,7 +18,7 @@ Assistant guidance for Claude working in this repository. Architecture last veri
 
 - Unified app shell with `landing` and `chat` states at `/unified` (root `/` redirects into the same shell)
 - Visible user modes: `standard`, `visualize`, `compose`, `research`
-- Dedicated **Create** workspace at `/playground` for full-screen image/video generation (product name **Create**; the route path stays `/playground`)
+- Dedicated **Create** workspace at `/create` for full-screen image/video generation (product name **Create**; the route path stays `/create`)
 - Code mode exists as an internal response-mode flag (`Conversation.isCodeMode`), not as a separate visible tool
 - Standard chat can generate media inline: the assistant emits `[IMAGE_GEN: …]` / `[MUSIC_GEN: …]`, taught by `MEDIA_MARKER_PROTOCOL` in [chat-prompt-builder.ts](/Users/johnmeckel/heyhihosted/src/lib/chat/chat-prompt-builder.ts). The parser skips markers inside code blocks and the handler caps at one per kind — neither guarantee may depend on the model obeying the prompt
 - Generated media lives in Pollinations Media Storage or (for Pruna without Pollen token) as IndexedDB blobs; conversations, memories, settings, and output metadata live locally in IndexedDB / localStorage
@@ -26,31 +26,12 @@ Assistant guidance for Claude working in this repository. Architecture last veri
 
 ## Current Runtime Truth
 
-> **⚠ The model lists in this section have drifted (verified live 2026-08-27).**
-> Architecture, provider semantics, BYOP keys, asset persistence and upload rules below
-> remain reliable. **Model lists do not.** Confirmed against
-> `gen.pollinations.ai/audio/models` and `gen.pollinations.ai/image/models`:
->
-> - `acestep` **no longer exists**, and **every** Pollinations text→audio model is now
->   `paid_only`. There is no free music model. The id still sits in 19 places in the code,
->   four of them as a default value.
-> - `qwen-image`, `grok-imagine` and `ideogram-v4-turbo` are **key-gated**, not free.
-> - `gpt-image`, `wan-image-small` and `ltx-2` **do not exist** in the registry.
-> - Free and unlisted here: `dreamshaper`, `nova-canvas`, `nova-reel` (video, free).
-> - The registry now carries namespaced models (`vendouple/…`, `MarcosFRG/…`) that the
->   config does not know, and `p-image` / `p-image-edit` / `p-video` now appear on
->   Pollinations too — which touches the provider split described below. Both are open
->   questions, not settled facts.
->
-> **Check the live registry, not this file, for model questions.** Reconciling the lists is
-> Phase 3 of [the active plan](/Users/johnmeckel/heyhihosted/docs/FAHRPLAN-create.md);
-> the full findings are in
-> [the handoff](/Users/johnmeckel/heyhihosted/docs/HANDOFF-2026-08-27-fahrplan.md), section 4.
-
 ### Visible text models
 Governed manually by `VISIBLE_POLLINATIONS_MODEL_IDS` in [src/config/chat-options.ts](/Users/johnmeckel/heyhihosted/src/config/chat-options.ts):
 
 `claude-fast`, `gemini-fast`, `gemini-search`, `deepseek`, `nova-fast`, `mistral`, `perplexity-fast`, `perplexity-reasoning`, `kimi`, `glm`, `minimax`, `qwen-coder`
+
+Key-gated (`isFree: false`, live `paid_only` as of 2026-08-28): `claude-fast`, `gemini-fast`, `gemini-search`, `mistral`. The rest run without a key. The default for new users is `deepseek` (`DEFAULT_POLLINATIONS_MODEL_ID`) — a free model; the picker shows a POLLEN badge and refuses selection without a key.
 
 Careful: the `gemini` id is Gemini 3 Flash (paid) and is *not* the same as the visible `gemini-fast`.
 
@@ -64,20 +45,30 @@ Careful: the `gemini` id is Gemini 3 Flash (paid) and is *not* the same as the v
 | `isFree` | usable without a key |
 | `byopVisible` | surfaces once the user brings their own key |
 
-Marked free and enabled in the config: `flux`, `zimage`, `gpt-image`, `klein`, `kontext`, `gptimage-large`, `qwen-image`, `grok-imagine`, `ideogram-v4-turbo`, `wan-image-small`, `ltx-2` — **six of these eleven are wrong as of 2026-08-27**, see the warning above. Only `flux`, `zimage`, `klein`, `kontext` and `gptimage-large` still check out.
+Marked free and enabled in the config (verified live 2026-08-28): `flux`, `gpt-image` (alias of `gptimage`), `klein`. `kontext` and `gptimage-large` are registry-free but **not on the server key's allowlist** (live 403) — they stay `enabled: false` until the operator extends the allowlist, then get re-enabled.
 
-Enabled but key-gated: the `p-*` Pruna family (`p-image`, `p-image-edit`, `p-image-try-on`, `p-image-upscale`, `p-video`, `p-video-avatar`, `p-video-animate`, `p-video-replace`), plus `qwen-image-edit-plus`, `wan-t2v`, `wan-i2v`, `vace`.
+Key-gated and BYOP-visible: the `p-*` Pruna family (`p-image`, `p-image-edit`, `p-image-try-on`, `p-image-upscale`, `p-video`, `p-video-avatar`, `p-video-animate`, `p-video-replace`), `p-image-ideogram`, `p-flux-klein`, plus `qwen-image-edit-plus`, `wan-t2v`, `wan-i2v`, `vace`, and the former "free" Pruna models `zimage`, `qwen-image`, `wan-image-small` (Pruna is BYOP-only — `isFree: true` on a Pruna model was a false promise).
+
+Removed on 2026-08-28 (registry truth): `ltx-2`, `grok-video`, `pollinations-wan-fast` (do not exist upstream), `veo-1080p` (alias of `veo` — internal alias kept for saved selections). `nova-reel` stays disabled: registry-free but a 6 s run timed out after 125 s behind the synchronous dispatch (524) — it needs the async protocol first.
 
 Everything else in the file is `enabled: false` and waiting on upstream availability. Check the config rather than trusting a list in prose.
+
+### Modellwahrheit prüfen
+Model lists drift daily (35/39 → 28/42 → 32/45 within 48 hours). The check is tooling, not memory:
+
+- `node scripts/check-model-registry.mjs` pulls all three registry endpoints live and diffs them against the led model ids. Exit 1 = drift.
+- `node scripts/check-model-registry.mjs --update-snapshot` refreshes `src/config/__fixtures__/registry-snapshot.json` — the offline fixture the tests T1–T3 run against. Refresh it deliberately, with the diff reviewed; never let a script write config silently.
+- A weekly GitHub Action runs the check and fails visibly on drift.
+- Rule: **a registry finding never silently rewrites the config.** Whether a model is offered is a product decision; the registry only reports facts. The registry is **key-scoped** — its response differs per API key, and the server key's allowlist (not `paid_only`) decides what keyless users can actually run.
 
 ### Reference images
 `referenceMode` (`multi-image` | `start-frame` | `start-end-frame`) plus `maxImages` describe what a model accepts; `getReferenceMode()` derives it. `/api/generate` validates the request against both and rejects mismatches with a 400, so UI and API cannot drift apart.
 
-## Create — read before touching `/playground`
+## Create — read before touching `/create`
 
-The `/playground` route (`src/app/playground/page.tsx`) — product name **Create** — is a standalone generation workspace, not a chat tool. It reuses the same model registry and generation API as Visualize but has its own shell and state:
+The `/create` route (`src/app/create/page.tsx`) — product name **Create** — is a standalone generation workspace, not a chat tool. It reuses the same model registry and generation API as Visualize but has its own shell and state:
 
-- **Shell:** `PlaygroundShell` (`src/app/playground/PlaygroundShell.tsx`) owns the three-column layout (sidebar params, main canvas, detail rail).
+- **Shell:** `PlaygroundShell` (`src/app/create/PlaygroundShell.tsx`) owns the three-column layout (sidebar params, main canvas, detail rail).
 - **State:** Local React state in `PlaygroundShell`; no ChatProvider involvement.
 - **API:** `/api/generate` for all image/video generation; `/api/media/upload` or `/api/pruna/upload` for reference images depending on `selectedModelInfo.provider`.
 - **Modes:** `t2i`, `i2i`, `t2v`, `i2v` — driven by `ModeTabs` and validated by `/api/generate`.
@@ -94,6 +85,7 @@ There are two providers, Pollinations and Pruna, and a user-facing switch. **The
 - `useProviderMode` is read in five modules, all of them model-picking UI: [useUnifiedImageToolState.ts](/Users/johnmeckel/heyhihosted/src/hooks/useUnifiedImageToolState.ts) and `PersonalizationSidebarSection` for Visualize, plus [usePlaygroundModels.ts](/Users/johnmeckel/heyhihosted/src/hooks/usePlaygroundModels.ts), `PlaygroundShell` and `ProviderSelect` for Create. It filters the model list and picks the default model. (`VisualizeInlineHeader` and `VisualizeInputContainer` receive the value as props rather than reading the hook.)
 
 - The actual dispatch depends on the **selected model**, never on the switch: `/api/generate` branches on `isPrunaModel(canonicalModelId)`, and reference uploads branch on `selectedModelInfo.provider`.
+- `p-image`, `p-image-edit` and `p-video` now also appear in the Pollinations registry (paid, aliased `pruna-*`). The name overlap is **deliberately ignored**: the repo claims the ids for the Pruna dispatch (BYOP key), and `buildPollinationsEntries` filters `isPrunaModel()` so the Create never lists a duplicate. Routing them through Pollinations instead is a provider-architecture decision that stays open.
 - Chat, TTS, STT, compose and prompt enhancement always run through Pollinations and never receive a Pruna key.
 - Prompt enhancement is `/api/enhance-prompt` and is provider-independent. The `enhance` field on `/api/generate` is a Pollinations image-API parameter — Pruna has no such field.
 
@@ -195,9 +187,12 @@ CI=1 npm test -- --runInBand path/to/test.ts
 
 ## Open Questions
 
-- **Deploy truth resolved for this domain.** `chat.hey-hi.cloud` is served by Vercel (connected GitHub project, auto-deploy from `main`), with **Cloudflare as proxy in front** (`server: cloudflare` in every response — DNS entries live in Cloudflare, not Vercel). `create.hey-hi.cloud` points at the same Vercel project via a code-level redirect onto `chat.hey-hi.cloud/playground` (`next.config.ts`, `CREATE_HOST`). `apphosting.yaml` still exists but is not the active host for this domain.
+- **Server-key allowlist decides the free tier.** The Pollinations registry is key-scoped: the response differs per API key, and the operator server key currently allows only a subset of the registry-free models (live 2026-08-28: `kontext`, `gptimage-large` → 403). Widening the allowlist at enter.pollinations.ai re-enables those config entries; until then they stay hidden.
+- **`zimage` works free via Pollinations but is claimed by the Pruna dispatch.** A provider decision (like the `p-*` question above) could route it to Pollinations and restore it as a free model. Not done here — dispatch hangs on the model, not the switch.
+- **TTS is a registry blind spot.** `/api/tts` runs on server-key `tts-1`/`elevenlabs`; the `/audio/models` registry does not list `tts-1`, yet the endpoint works (verified live 2026-08-28). Free for users, paid by the operator — fine today, but not represented by the registry check.
+- **Deploy truth resolved for this domain.** `chat.hey-hi.cloud` is served by Vercel (connected GitHub project, auto-deploy from `main`), with **Cloudflare as proxy in front** (`server: cloudflare` in every response — DNS entries live in Cloudflare, not Vercel). `create.hey-hi.cloud` does **not** exist (NXDOMAIN, checked 2026-08-29) and is not planned: a second hostname is a second browser origin, which would split IndexedDB and localStorage. `next.config.ts` still carries the `CREATE_HOST` redirect rules — dormant, ready if the decision ever flips. `apphosting.yaml` still exists but is not the active host for this domain.
 - Search/research routing is delegated through a single strategy path; `WebContextService` is an optional helper invoked only when `shouldFetchWebContext` is set, not the default delegated path.
-- The system prompt in `chat-options.ts` still contains "Burn the Corpos" and filter-evasion passages. Editorial hardening only on explicit instruction.
+- The system prompt in `chat-options.ts` still contains "Burn the Corpos" and filter-evasion passages. Editorial hardening only on explicit instruction. It also still names removed video models (`ltx-2`, `grok-video`) in its formatting guidance — model names in the system prompt are frozen for this repo; changing them needs an explicit mandate.
 
 ## Schriftregel
 

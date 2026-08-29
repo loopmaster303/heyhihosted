@@ -1,4 +1,4 @@
-# Launch-Kriterien — Freigabeschwelle für `create.hey-hi.cloud`
+# Launch-Kriterien — Freigabeschwelle für `chat.hey-hi.cloud`
 
 **Zweck:** Dieses Dokument beantwortet die Frage „Darf die Adresse öffentlich geteilt
 werden?" mit Ja oder Nein. Es beschreibt beobachtbare Endzustände aus Nutzersicht —
@@ -29,13 +29,19 @@ Herkunft (Phase N | phasenlos) · Status.
 
 ## A — Erreichbarkeit und Identität *(Phase 2)*
 
-**L-A.1 — Create ist unter der eigenen Adresse erreichbar**
-Kriterium: `https://create.hey-hi.cloud/` liefert ohne weitere Navigation die
-Create-Oberfläche, `https://chat.hey-hi.cloud/` den Chat.
-Prüfweg: Beide Adressen in einem frischen Browserprofil öffnen; Titel und erster
-sichtbarer Bereich stimmen mit der Erwartung überein.
+**L-A.1 — Create ist unter einer eigenen Adresse erreichbar**
+Kriterium: `https://chat.hey-hi.cloud/create` liefert die Create-Oberfläche,
+`https://chat.hey-hi.cloud/` den Chat. Der alte Pfad `/playground` leitet auf `/create`.
+Prüfweg: Alle drei Adressen in einem frischen Browserprofil öffnen; Titel und erster
+sichtbarer Bereich stimmen mit der Erwartung überein, `/playground` landet auf `/create`.
 Herkunft: Phase 2
 Status: offen
+
+> **Betreiberentscheidung 2026-08-29:** Kein `create.hey-hi.cloud`. Ein zweiter
+> Hostname ist ein zweiter Browser-Ursprung und würde IndexedDB und localStorage
+> teilen — getrennte Galerie, Schlüssel zweimal, Phase 5 nicht mehr baubar. Create
+> lebt deshalb als Pfad auf demselben Ursprung. Die `CREATE_HOST`-Regeln in
+> `next.config.ts` bleiben schlafend liegen, falls die Entscheidung je kippt.
 
 **L-A.2 — Rückweg Create → Chat mit einem Klick**
 Kriterium: Im Create gibt es ein sichtbares Element, das mit einem Klick zum Chat führt.
@@ -53,15 +59,16 @@ Status: offen
 Kriterium: Keine Oberfläche und kein aktives Wahrheitsdokument (CLAUDE.md, README.md,
 PRODUCT_IDENTITY.md, FAHRPLAN-create.md) nennt das Produkt noch „Playground".
 Prüfweg: Oberfläche in DE und EN sowie die vier genannten Dokumente nach „Playground"
-als Produktnennung durchsuchen; Codepfade wie `src/components/playground/` zählen nicht
-(Bereich M).
+als Produktnennung durchsuchen; Codepfade wie `src/components/playground/` und die
+`playground.*`-Übersetzungsschlüssel zählen nicht (Bereich M).
 Herkunft: Phase 2
 Status: offen
 
 **L-A.5 — Seitentitel und Metadaten gesetzt**
-Kriterium: Unter beiden Adressen nennt der Seitenquelltext Titel und Meta-Beschreibung
-des Produkts.
-Prüfweg: Quelltext beider Startadressen öffnen; `<title>` und `description` ablesen.
+Kriterium: Unter `/` und `/create` nennt der Seitenquelltext je einen eigenen Titel und
+eine Meta-Beschreibung, die das jeweilige Produkt benennt.
+Prüfweg: Quelltext beider Adressen öffnen; `<title>` und `description` ablesen. Achtung:
+`/create` erbt die Beschreibung heute aus dem Root-Layout und benennt damit den Chat.
 Herkunft: Phase 2
 Status: offen
 
@@ -303,8 +310,12 @@ Status: akzeptiert (Betreiber, 2026-08-28)
 - **Echtes Streaming im Chat.** Bewusst offen, siehe `docs/streaming-status.md`.
 - **Web-Crypto-Verschlüsselung lokaler Daten.** Audit-Punkt D, kein Launch-Gate.
 - **Öffentliche Produktseite / Marketing.** Nutzerentscheidung 2026-08-27.
-- **Umbenennung von `src/components/playground/` und `src/lib/playground/`.**
-  Ausdrücklich nicht Ziel von Phase 2.
+- **Umbenennung von `src/components/playground/`, `src/lib/playground/`, der
+  `playground.*`-Übersetzungsschlüssel und von `PlaygroundShell`.** Ausdrücklich nicht
+  Ziel von Phase 2. Der Routenpfad ist am 2026-08-29 auf `/create` gezogen, die
+  Verzeichnis- und Symbolnamen bewusst nicht.
+- **Eine eigene Domain `create.hey-hi.cloud`.** Betreiberentscheidung 2026-08-29,
+  Begründung bei L-A.1.
 - **Offene Tech-Debt aus dem April-Audit** (Sub-Extraktion `chat-send-coordinator`,
   `font-body`-Mapping, restliche `next/image`-Flächen).
 - **Ökosystem-Verlinkung** zu Level 1 und Level 3.

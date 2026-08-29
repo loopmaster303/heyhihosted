@@ -21,7 +21,7 @@ Duplicated truth rots. So this file deliberately holds no model lists and no arc
 
 - Unified app shell with `landing` and `chat` states at `/unified` (root `/` redirects into the same shell)
 - Visible user modes: `standard`, `visualize`, `compose`, `research`
-- Dedicated **Create** workspace at `/playground` for full-screen image/video generation (product name **Create**; the route path stays `/playground`)
+- Dedicated **Create** workspace at `/create` for full-screen image/video generation (product name **Create**; the route path stays `/create`)
 - Generated media lives in Pollinations Media Storage or (for Pruna without Pollen token) as IndexedDB blobs; conversations, memories, settings, and output metadata live locally in IndexedDB / localStorage
 - The product surface calls the generated-media area **Output**; Create calls the same area **Gallery**
 

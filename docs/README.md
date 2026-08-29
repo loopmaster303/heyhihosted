@@ -19,6 +19,9 @@ add new documents there.
 ## Start Here
 
 - `FAHRPLAN-create.md` — **the active plan.** Ten phases toward the publicly shareable version, with the user's binding decisions on domain, gallery and music.
+- `PLAN-audit-patch-2026-08-29.md` — **open work.** The audit findings from phases 0–3,
+  cut into subagent-sized packages with exact files, verification commands and three
+  decisions that need the operator.
 - `LAUNCH_CRITERIA.md` — **the release gate.** What must work before the address may be shared publicly; per-criterion status, operator decisions recorded 2026-08-28.
 - `HANDOFF-2026-08-28-phase-0.md` — **start here.** What Phase 0 delivered (99 files into
   sixteen commits, `f880389..aa3eac4`), how it was done, the per-phase findings it
@@ -26,13 +29,16 @@ add new documents there.
 - `HANDOFF-2026-08-28-phase-2.md` — what Phase 2 delivered: product name **Create**,
   the `create.hey-hi.cloud` redirect (Variante B), the chat back-link, and the open
   Dashboard steps V1–V3.
+- `HANDOFF-2026-08-28-phase-3.md` — what Phase 3 delivered: model truth verified against
+  the live registry (with the key-scoped registry finding), the registry check script +
+  snapshot + weekly Action, corrected defaults, and the dead model ids removed.
 - `HANDOFF-2026-08-27-fahrplan.md` — orientation for anyone picking up a phase: working-tree breakdown by origin (**historical** — the tree is committed, and that breakdown was missing five groups; see the Phase 0 handoff), per-phase entry points and pitfalls, and what was deliberately left unchecked.
 - `HANDOFF-2026-08-26-pruna-video.md` — last session that touched code: Pruna payload fixes, the 202 client-polling protocol, VACE switched off.
 - `PROMPTS-phasen.md` — one self-contained session starter per phase (0–9), for writing the implementation plans.
 
-> **⚠ Model lists across the repo have drifted** from the live Pollinations registry
-> (checked 2026-08-27). `acestep` is gone and all music models are key-gated; several
-> image models marked free are not. `CLAUDE.md` and `README.md` carry the details.
+> Model lists are verified against the live registry via `scripts/check-model-registry.mjs`
+> (snapshot + tests + weekly Action, 2026-08-28). Registry findings never silently rewrite
+> the config — see `CLAUDE.md`, section "Modellwahrheit prüfen".
 > Check the live registry for model questions. Reconciling is Phase 3 of the active plan.
 
 ## Current Truth

@@ -15,8 +15,8 @@ The app is orchestrated by `src/app/unified/page.tsx` and uses two primary view 
 | **`chat`** | Triggered when a message is sent or a history item is selected | `ChatInterface` | The main AI interaction hub (Text, Image, Video, Music). |
 
 ### Playground Route
-* **`/playground`** is a standalone route, not an `AppState`. It does not use `ChatProvider`; state lives locally inside `PlaygroundShell`.
-* Navigation to/from `/playground` is a plain Next.js route transition (sidebar link or direct URL).
+* **`/create`** is a standalone route, not an `AppState`. It does not use `ChatProvider`; state lives locally inside `PlaygroundShell`.
+* Navigation to/from `/create` is a plain Next.js route transition (sidebar link or direct URL).
 
 ### Navigation & Transitions
 * **Landing -> Chat**: Handled by `handleNavigateToChat`. Initializes a new conversation and switches state.

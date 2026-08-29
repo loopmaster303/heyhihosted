@@ -15,7 +15,7 @@ eigener Scope, eigene Verifikation, minimale Überlappung im Code.
 
 | Frage | Entscheidung |
 |---|---|
-| Domain | `create.hey-hi.cloud` auf **demselben** Vercel-Projekt, Rewrite `/` → `/playground`. `chat.hey-hi.cloud` bleibt der Chat. |
+| Domain | ~~`create.hey-hi.cloud` auf demselben Vercel-Projekt~~ — **verworfen am 2026-08-29.** Create lebt als Pfad `chat.hey-hi.cloud/create` auf demselben Ursprung; ein zweiter Hostname hätte IndexedDB und localStorage getrennt. |
 | Musik Stufe 1 | Bestehendes Pollinations-Backend, neue eigene UI, alle verfügbaren Audio/Music-Modelle. |
 | Musik Stufe 2 | **Zurückgestellt.** Nach dem Registry-Befund (kein kostenloses Musikmodell mehr bei Pollinations) hat der Nutzer entschieden: Musik läuft ausschließlich über schlüsselpflichtige Modelle, hinter der Pollenwall. Kein freies Einstiegsmodell, keine eigene Infrastruktur im Launch-Weg. |
 | Galerie | **Ein** Asset-Pool, Herkunft als Tag, Herkunftsfilter je Oberfläche **standardmäßig an**, umschaltbar. |
@@ -126,12 +126,14 @@ Solange das nicht sortiert und committet ist, plant jede Phase auf Sand.
 ## Die Punkte
 
 ### Identität und Adresse
-- **P1** — Die Oberfläche nennt `/playground` künftig **Create**: Sidebar-Link
-  (`t('playground.sidebarLink')`), Translations DE/EN, Seitentitel, Metadaten.
-- **P2** — `create.hey-hi.cloud` als zusätzliche Domain auf demselben Vercel-Projekt.
-  Umgesetzt als **Redirect** auf `chat.hey-hi.cloud/playground` (Variante B — gemeinsamer
-  Browser-Ursprung, damit Phase 5 machbar bleibt; `next.config.ts`, `CREATE_HOST`).
-  Die Live-Domain heißt `hey-hi.cloud` **mit** Bindestrich.
+- **P1** — Umgesetzt: Die Oberfläche nennt Create **Create** — Sidebar-Link, Translations
+  DE/EN, Seitentitel, Metadaten. Am 2026-08-29 ist zusätzlich der Routenpfad von
+  `/playground` auf `/create` gezogen; der alte Pfad leitet weiter.
+- **P2** — ~~`create.hey-hi.cloud` als zusätzliche Domain~~ — **entfallen am 2026-08-29.**
+  Ein zweiter Hostname ist ein zweiter Browser-Ursprung: getrennte IndexedDB, getrennter
+  localStorage, also getrennte Galerie und doppelt einzutragende Schlüssel. Die Adresse
+  heißt jetzt `chat.hey-hi.cloud/create`. Die `CREATE_HOST`-Regeln in `next.config.ts`
+  bleiben schlafend liegen, falls die Entscheidung kippt.
 - **P3** — Neue Adresse überall nachziehen: `README.md`, `CLAUDE.md`, `AGENTS.md`,
   `GEMINI.md`, `HANDOFF.md`, `/about`, `docs/`.
 
@@ -212,20 +214,28 @@ vermerkt.
 ### Phase 2 — Create-Identität (**P1**, **P2**, **P3**, **P4**)
 
 - Umbenennung in der Oberfläche und in beiden Sprachen
-- `create.hey-hi.cloud` auf demselben Projekt, Rewrite `/` → `/playground`
+- ~~`create.hey-hi.cloud` auf demselben Projekt~~ → Routenpfad `/playground` → `/create`
+  auf demselben Ursprung (Entscheidung 2026-08-29)
 - Navigation in beide Richtungen; im Create eine sichtbare Rückkehr zum Chat
 - Alle Wahrheitsdokumente auf die neue Adresse ziehen
 
-**Fertig, wenn:** `create.hey-hi.cloud` öffnet Create · `chat.hey-hi.cloud` öffnet den Chat ·
-beide Richtungen sind mit einem Klick erreichbar · kein Dokument nennt mehr nur die alte Adresse.
+**Fertig, wenn:** `chat.hey-hi.cloud/create` öffnet Create · `chat.hey-hi.cloud` öffnet den
+Chat · `/playground` leitet weiter · beide Richtungen sind mit einem Klick erreichbar ·
+kein Dokument nennt mehr nur die alte Adresse.
 
-**Achtung:** Beide Adressen zeigen auf dieselbe Anwendung, also auf denselben Ursprung im
-Browser — die lokale Galerie bleibt geteilt. Ein eigenes Deployment hätte sie getrennt und
-Phase 5 unmöglich gemacht.
+**Warum kein eigener Hostname:** `localStorage` und `IndexedDB` haengen am Hostnamen. Eine
+zweite Adresse wäre ein zweiter Speicher — getrennte Galerie, Schlüssel zweimal, Phase 5
+nicht mehr baubar. Der übliche iframe-Trick trägt seit dem Storage-Partitioning der
+Browser nicht mehr. Also ein Ursprung, zwei Pfade.
 
 ---
 
-### Phase 3 — Modellwahrheit gegen die Live-Registry (**P15**)
+### Phase 3 — Modellwahrheit gegen die Live-Registry (**P15**) — **erledigt 2026-08-28**
+**Ergebnis:** [`docs/HANDOFF-2026-08-28-phase-3.md`](HANDOFF-2026-08-28-phase-3.md).
+Skript + Snapshot + Tests + wöchentliche Action statt Handpflege; zwei Vorgabe-Bugs
+(`zimage`→503, `gemini-fast`→402) und die Server-Key-Allowlist als eigentliche
+Fehlerquelle gefunden. Ursprüngliche Aufzählung:
+
 **Warum vorgezogen:** Voraussetzung für Phase 4 (verständliche Fehler), Phase 7 (Chat
 entschlanken) und Phase 8 (Musik). Man kann nicht auf drei Modelle reduzieren, solange
 unklar ist, welche überhaupt funktionieren.
@@ -359,8 +369,8 @@ rechnen, entscheiden.
 ## Reihenfolge und Parallelität
 
 ```
-Phase 0 ✅ ─► Phase 1 ─► Phase 2 ─► Phase 3 ─┬─► Phase 4 ─► Phase 5 ─► Phase 6 ─► Phase 8 ─► Phase 9
-                                          └─► Phase 7
+Phase 0-3 ✅ ─┬─► Phase 4 ─► Phase 5 ─► Phase 6 ─► Phase 8 ─► Phase 9
+              └─► Phase 7
 
 Phase 10 ist zurückgestellt und Teil keines Pfads.
 ```
