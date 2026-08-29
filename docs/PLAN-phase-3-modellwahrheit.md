@@ -9,6 +9,8 @@ Pollinations-Registry am 2026-08-27, 09:54 UTC** — nicht der Befund aus dem Ha
 **Vorbild der Arbeitsweise:** `docs/pollinations-api-audit-2026-06-01.md`,
 `docs/pollinations-deep-audit-2026-06-27.md`.
 
+> **Ausgeführt am 2026-08-28.** Ergebnis und Abweichungen: [HANDOFF-2026-08-28-phase-3.md](HANDOFF-2026-08-28-phase-3.md). Abschnitt 0 (Vorbedingung) ist erledigt und nur noch historisch.
+
 Dieser Plan liefert **Phase 1 bis 3 des AGENTS-Workflows** und stoppt vor Phase 4.
 Ausführung erst nach ausdrücklicher Freigabe — und erst, nachdem die drei Entscheidungen
 in Abschnitt 7 beantwortet sind.

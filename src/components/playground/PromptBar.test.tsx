@@ -44,7 +44,7 @@ describe('PromptBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Senden' }));
     expect(onSend).toHaveBeenCalledTimes(1);
     // Der Abbruch haengt jetzt an der Lade-Karte, nicht mehr an der Leiste.
-    expect(screen.queryByRole('button', { name: 'Abbrechen' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nicht mehr warten' })).not.toBeInTheDocument();
   });
 
   it('blocks Senden at the concurrency limit and names the reason', () => {

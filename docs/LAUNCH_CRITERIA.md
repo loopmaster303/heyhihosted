@@ -5,13 +5,13 @@ werden?" mit Ja oder Nein. Es beschreibt beobachtbare Endzustände aus Nutzersic
 wie sie hergestellt werden, steht in [`FAHRPLAN-create.md`](FAHRPLAN-create.md).
 
 **Freigaberegel:** Alle Kriterien in **A–G und I–K** sind erfüllt → die Adresse darf
-geteilt werden. Ein offenes Kriterium blockiert. Bereich **H** greift nur, falls der
+geteilt werden; L-I.1 und L-K.1 werden erst unmittelbar vor der Freigabe geprüft, weil
+sie den fertigen Stand messen. Ein offenes Kriterium blockiert. Bereich **H** greift nur, falls der
 ASCII-Flow gebaut wird (Phase 9 steht in Bereich M). Ein bewusst akzeptiertes Risiko
 (**L**) blockiert nicht, muss aber schriftlich stehen. **M** gehört ausdrücklich nicht
 zum Launch.
 
-**Letzte Prüfung:** keine — alle Kriterien sind offen.
-**Geprüft von:** —
+**Letzte Prüfung:** 2026-08-29 · **Geprüft von:** Audit Phase 0–3
 
 **Entscheidungen des Betreibers (2026-08-28), die diesem Dokument zugrunde liegen:**
 - Impressum und DSGVO gelten als bewusst akzeptiertes Risiko (L-L.4), nicht als Gate.
@@ -47,22 +47,22 @@ Status: offen
 Kriterium: Im Create gibt es ein sichtbares Element, das mit einem Klick zum Chat führt.
 Prüfweg: Im Create das Rückkehrelement anklicken; der Chat ist geladen.
 Herkunft: Phase 2
-Status: offen
+Status: erledigt (2026-08-28)
 
 **L-A.3 — Hinweg Chat → Create mit einem Klick**
 Kriterium: Im Chat gibt es ein sichtbares Element, das mit einem Klick ins Create führt.
 Prüfweg: Im Chat das Element anklicken; das Create ist geladen.
 Herkunft: Phase 2
-Status: offen
+Status: erledigt (2026-08-28)
 
 **L-A.4 — Kein „Playground" als Produktname**
 Kriterium: Keine Oberfläche und kein aktives Wahrheitsdokument (CLAUDE.md, README.md,
 PRODUCT_IDENTITY.md, FAHRPLAN-create.md) nennt das Produkt noch „Playground".
-Prüfweg: Oberfläche in DE und EN sowie die vier genannten Dokumente nach „Playground"
+Prüfweg: Oberfläche (deutschsprachig, Bereich M) sowie die vier genannten Dokumente nach „Playground"
 als Produktnennung durchsuchen; Codepfade wie `src/components/playground/` und die
 `playground.*`-Übersetzungsschlüssel zählen nicht (Bereich M).
 Herkunft: Phase 2
-Status: offen
+Status: erledigt (2026-08-29)
 
 **L-A.5 — Seitentitel und Metadaten gesetzt**
 Kriterium: Unter `/` und `/create` nennt der Seitenquelltext je einen eigenen Titel und
@@ -81,14 +81,14 @@ Prüfweg: Die sichtbaren Modell-IDs gegen `gen.pollinations.ai/image/models`,
 `/audio/models`, `/v1/models` und die Pruna-Modell-Doku abgleichen; Ergebnis mit Datum
 in diesem Dokument vermerken.
 Herkunft: Phase 3
-Status: offen
+Status: erledigt (2026-08-28, Phase 3)
 
 **L-B.2 — Kostenlos heißt kostenlos**
 Kriterium: Kein als kostenlos markiertes Modell verlangt einen Schlüssel.
 Prüfweg: Frisches Profil ohne Schlüssel; jedes als „kostenlos" markierte Modell einmal
 anstoßen; keiner der Läufe endet mit „Schlüssel erforderlich".
 Herkunft: Phase 3
-Status: offen
+Status: erledigt (2026-08-28, Phase 3)
 
 **L-B.3 — Keine Drift-Warnung mehr**
 Kriterium: `CLAUDE.md` trägt keine Drift-Warnung mehr für Modell-Listen, und die Listen
@@ -96,7 +96,7 @@ stimmen mit der Live-Registry.
 Prüfweg: `CLAUDE.md` nach der Warnung durchsuchen; sie ist entfernt, die Listen entsprechen
 der Prüfung aus L-B.1.
 Herkunft: Phase 3
-Status: offen
+Status: erledigt (2026-08-28, Phase 3)
 
 **L-B.4 — Jedes sichtbare Modell hat erfolgreich erzeugt**
 Kriterium: Jedes in B.1 bestätigte Modell hat mindestens einmal ein Ergebnis geliefert.
@@ -237,7 +237,7 @@ Kriterium: In einem frischen Browserprofil ohne jeden Schlüssel lassen sich min
 ein Chatverlauf und mindestens ein Bild vollständig erzeugen.
 Prüfweg: Frisches Profil, keine Eingabe in den Einstellungen, je ein Chat- und ein
 Bildlauf mit dem Vorgabemodell.
-Herkunft: phasenlos
+Herkunft: Abschlussprüfung vor der Freigabe
 Status: offen
 
 **L-I.2 — Schlüsselpflicht ist vor dem Absenden erkennbar**
@@ -245,7 +245,15 @@ Kriterium: Schlüsselpflichtige Angebote sind als solche gekennzeichnet, bevor e
 abgesendet wird — nicht erst als Fehler danach.
 Prüfweg: Ohne Schlüssel jedes schlüsselpflichtige Angebot öffnen; die Kennzeichnung
 erscheint vor dem Absenden.
-Herkunft: phasenlos
+Herkunft: Phase 7
+Status: offen
+
+**L-I.3 — Videomodelle sind vor dem Absenden als schlüsselpflichtig erkennbar**
+Kriterium: Die Oberfläche sagt vor dem Absenden, dass Videogenerierung einen Schlüssel
+braucht — es gibt kein kostenloses Videomodell (Betreiberentscheidung E1, 2026-08-29).
+Prüfweg: Ein Videomodell wählen und ohne Schlüssel absenden wollen; die Schlüsselpflicht
+ist vor dem Absenden erkennbar, nicht erst aus einer Fehlermeldung.
+Herkunft: Phase 4
 Status: offen
 
 ## K — Kostenrisiko *(phasenlos)*
@@ -258,15 +266,18 @@ Pruna ist BYOP-only — serverseitig existiert kein Pruna-Schlüssel (Entscheidu
 Prüfweg: Serverseitige Env-Schlüssel prüfen; ohne Client-Schlüssel jeden Erzeugen-Pfad
 auslösen und im Pollinations-Konto gegenprüfen, dass kein kostenpflichtiger Lauf
 entstanden ist.
-Herkunft: phasenlos
+Herkunft: Abschlussprüfung vor der Freigabe
 Status: offen
 
 **L-K.2 — Nicht abbrechbare Pruna-Läufe werden vor dem Start gesagt**
 Kriterium: Die Oberfläche sagt vor dem Absenden, dass ein gestarteter Pruna-Lauf nicht
-abbrechbar ist und abgerechnet wird.
-Prüfweg: Den Bestätigungsschritt vor einem Pruna-Start öffnen; der Hinweis ist sichtbar,
+abbrechbar ist und abgerechnet wird — als dauerhafte Zeile an der Sendeleiste, sobald
+ein Pruna-Modell gewählt ist, plus einem einmaligen Bestätigungsschritt beim ersten
+Pruna-Lauf pro Browser (Betreiberentscheidung E2, 2026-08-29).
+Prüfweg: Bei gewähltem Pruna-Modell die Dauerzeile an der Sendeleiste prüfen; den
+einmaligen Bestätigungsschritt beim ersten Pruna-Lauf öffnen — der Hinweis ist sichtbar,
 ohne den Lauf zu starten.
-Herkunft: phasenlos
+Herkunft: Phase 4
 Status: offen
 
 **L-K.3 — Abbruch wird nicht als Stornierung dargestellt**
@@ -274,7 +285,7 @@ Kriterium: Ein Abbruch in der Oberfläche wird nicht als Stornierung oder Erstat
 beschriftet.
 Prüfweg: Einen laufenden Auftrag in der Oberfläche abbrechen; die Beschriftung sagt
 „verlassen" o. ä., nicht „storniert".
-Herkunft: phasenlos
+Herkunft: Phase 4
 Status: offen
 
 ## L — Bewusst akzeptierte Risiken *(phasenlos — blockiert nicht, muss schriftlich stehen)*
@@ -319,6 +330,9 @@ Status: akzeptiert (Betreiber, 2026-08-28)
 - **Offene Tech-Debt aus dem April-Audit** (Sub-Extraktion `chat-send-coordinator`,
   `font-body`-Mapping, restliche `next/image`-Flächen).
 - **Ökosystem-Verlinkung** zu Level 1 und Level 3.
+- **Zweisprachiges Create.** Betreiberentscheidung 2026-08-29 (E3): Create ist
+  deutschsprachig; ein EN-Create wird nicht nachgezogen. Nur `ModelPicker` nutzt
+  `t()`, alle übrigen Create-Texte sind hart deutsch — akzeptiert.
 
 ---
 
@@ -328,15 +342,16 @@ Status: akzeptiert (Betreiber, 2026-08-28)
 |---|---|---|
 | 2 | Create-Identität, Domain, Navigation | L-A.1 – L-A.5 |
 | 3 | Modellwahrheit | L-B.1 – L-B.4 (stützt L-C.1, L-F.1, L-G.2) |
-| 4 | Fehlerklarheit, Laufstabilität | L-C.1 – L-C.4 |
+| 4 | Fehlerklarheit, Laufstabilität | L-C.1 – L-C.4, L-K.2, L-K.3, L-I.3 |
 | 5 | Eine Galerie, Löschen | L-D.1 – L-D.3 |
 | 6 | Create auf dem Telefon | L-E.1, L-E.2 |
-| 7 | Chat entschlanken | L-F.1 |
+| 7 | Chat entschlanken | L-F.1, L-I.2 |
 | 8 | Musik im Create | L-G.1 – L-G.4 |
 | 9 | ASCII-Flow | L-H.1 — kein Gate, gilt nur falls gebaut (Bereich M) |
 | 10 | Musik auf eigener Infrastruktur | keine — Bereich M |
-| — | Verhalten ohne Schlüssel | L-I.1, L-I.2 (phasenlos) |
-| — | Kostenrisiko | L-K.1 – L-K.3 (phasenlos) |
+| — | Verhalten ohne Schlüssel | L-I.1 (phasenlos) |
+| — | Kostenrisiko | L-K.1 (phasenlos) |
+| — | Abschlussprüfung | L-I.1, L-K.1 |
 
 ## Verweise
 

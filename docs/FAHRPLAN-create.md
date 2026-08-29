@@ -25,6 +25,13 @@ eigener Scope, eigene Verifikation, minimale Überlappung im Code.
 
 ## Live-Registry-Befund (2026-08-26)
 
+> **⚠ Historisch — Stand 2026-08-26, überholt.** Phase 3 hat die Modellwahrheit am
+> 2026-08-28 gegen die Live-Registry gezogen und durch ein Prüfmittel ersetzt. Die
+> Zahlen und Einzelbefunde unten sind seitdem mehrfach falsch geworden (`gpt-image`
+> existiert und ist frei; die Zählung ging 74 → 70 → 77 in drei Tagen). Aktuelle
+> Wahrheit: `node scripts/check-model-registry.mjs`, siehe `CLAUDE.md`, Abschnitt
+> „Modellwahrheit prüfen".
+
 Gezogen von `gen.pollinations.ai/audio/models` und `/image/models`.
 
 ### Musik: kein kostenloser Weg mehr
@@ -198,7 +205,7 @@ Chat und Create live erreichbar · Intent-Erkennung im Live-Chat bestätigt.
 
 ---
 
-### Phase 1 — Launch-Kriterien festschreiben (**P14**)
+### Phase 1 — Launch-Kriterien festschreiben (**P14**) · ✅ ERLEDIGT am 2026-08-28
 **Warum hier:** Steuert die Reihenfolge und den Abbruchpunkt aller folgenden Phasen.
 
 - Datei `docs/LAUNCH_CRITERIA.md`: was muss laufen, damit die Adresse öffentlich geteilt wird
@@ -211,7 +218,9 @@ vermerkt.
 
 ---
 
-### Phase 2 — Create-Identität (**P1**, **P2**, **P3**, **P4**)
+### Phase 2 — Create-Identität (**P1**, **P2**, **P3**, **P4**) · ✅ ERLEDIGT am 2026-08-28
+
+Die eigene Domain ist am 2026-08-29 entfallen, Create liegt unter `/create`.
 
 - Umbenennung in der Oberfläche und in beiden Sprachen
 - ~~`create.hey-hi.cloud` auf demselben Projekt~~ → Routenpfad `/playground` → `/create`
@@ -268,6 +277,15 @@ markiertes Modell verlangt einen Schlüssel · `CLAUDE.md` stimmt mit der Regist
 - Verstrichene Zeit auf der laufenden Karte — Pruna liefert keinen Prozentwert
 - `vercel.json` mit `maxDuration` als Netz
 - `CLAUDE.md`: 202-Protokoll, `/api/pruna/status`, und dass Pruna unbekannte Felder ablehnt
+- Async-Protokoll für Pollinations-Videos: der Dispatch ist heute synchron und läuft
+  in ein 524, bevor ein Ergebnis da ist (nova-reel, live 2026-08-28, 125 s). Das
+  202-Protokoll deckt nur Pruna ab. Ohne diesen Punkt bleibt jedes kostenlose
+  Videomodell abgeschaltet.
+- Folge daraus, ausdrücklich zu entscheiden: Video ist seit Phase 3 vollständig
+  schlüsselpflichtig. Entweder das bleibt so und wird wie die Musik als gewollte
+  Pollenwall aufgeschrieben, oder Phase 4 holt nova-reel über das Async-Protokoll
+  zurück. Entschieden (Betreiber 2026-08-29, E1-A): Video bleibt hinter der
+  Pollenwall; die Oberfläche sagt die Schlüsselpflicht vor dem Absenden (L-I.3).
 
 **Fertig, wenn:** Für jeden bekannten Fehlerfall existiert eine Meldung, die ohne Konsole
 verständlich ist · ein Reload während eines Videolaufs verliert den Lauf nicht.

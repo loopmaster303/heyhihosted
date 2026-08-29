@@ -20,8 +20,8 @@ export interface GalleryItem {
 /**
  * Ein Lauf, den die Galerie als Karte zeigt — laufend oder gescheitert. Beide
  * Zustaende teilen sich Position und Groesse, damit die Karte beim Kippen nicht
- * springt. Mehrere davon existieren gleichzeitig; die `id` haengt Abbrechen,
- * Wiederholen und Verwerfen an genau einen Lauf.
+ * springt. Mehrere davon existieren gleichzeitig; die `id` haengt Nicht mehr
+ * warten, Wiederholen und Verwerfen an genau einen Lauf.
  */
 export interface GalleryRun {
   id: string;
@@ -93,9 +93,10 @@ function RunningCard({ run, onCancel }: { run: GalleryRun; onCancel?: () => void
         <button
           type="button"
           onClick={onCancel}
+          title="Der Lauf läuft beim Anbieter weiter und wird berechnet."
           className="mt-1 rounded-md border border-border bg-background px-2 py-1 text-[10.5px] font-medium text-muted-foreground transition-colors hover:border-primary/55 hover:text-foreground"
         >
-          Abbrechen
+          Nicht mehr warten
         </button>
       )}
     </div>

@@ -75,6 +75,20 @@ describe('registry truth (F1): geführte Modelle existieren', () => {
   test.each(AVAILABLE_COMPOSE_MODELS.map((m) => m.id))('audio/%s existiert in der Audio-Registry', (id) => {
     expect(findEntry(audioModels, id)).toBeDefined();
   });
+
+  // Der Dispatch in /api/generate entscheidet über isPrunaModel(), der
+  // Referenz-Upload über selectedModelInfo.provider. Gehen die beiden
+  // auseinander, läuft die Erzeugung woanders hin als der Upload.
+  test('provider und PRUNA_MODEL_MAP widersprechen sich nicht', () => {
+    const prunaOhneMapping = UNIFIED_IMAGE_MODELS
+      .filter((m) => m.provider === 'pruna' && !isPrunaModel(m.id))
+      .map((m) => m.id);
+    const gemapptOhneProvider = UNIFIED_IMAGE_MODELS
+      .filter((m) => m.provider !== 'pruna' && isPrunaModel(m.id))
+      .map((m) => m.id);
+    expect({ prunaOhneMapping, gemapptOhneProvider })
+      .toEqual({ prunaOhneMapping: [], gemapptOhneProvider: [] });
+  });
 });
 
 describe('registry truth (F2/F3): kostenlos heißt kostenlos', () => {

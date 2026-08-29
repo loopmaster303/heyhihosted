@@ -54,12 +54,9 @@ export const translations = {
 
         // Playground
         'playground.sidebarLink': 'Create →',
-        'playground.title': 'Create',
         'playground.prunaEmpty': 'Pruna-Modelle laufen mit deinem eigenen Pruna-Schlüssel — in den Einstellungen hinterlegen.',
         'playground.fallbackNotice': 'Offline-Liste — Live-Registry nicht verfügbar',
         'playground.generate': 'Generieren',
-        'playground.cancel': 'Abbrechen',
-        'playground.enhance': 'Verbessern',
 
         // Settings & Configuration
         'settings.language': 'Sprache',
@@ -316,12 +313,9 @@ export const translations = {
 
         // Playground
         'playground.sidebarLink': 'Create →',
-        'playground.title': 'Create',
         'playground.prunaEmpty': 'Pruna models run on your own Pruna key — add it in settings.',
         'playground.fallbackNotice': 'Offline list — live registry unavailable',
         'playground.generate': 'Generate',
-        'playground.cancel': 'Cancel',
-        'playground.enhance': 'Enhance',
 
         // Settings & Configuration
         'settings.language': 'Language',

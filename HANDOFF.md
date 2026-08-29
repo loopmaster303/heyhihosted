@@ -103,8 +103,8 @@ Phase 0-3 ✅ ─┬─► Phase 4 ─► Phase 5 ─► Phase 6 ─► Phase 8 
 | Phase | Inhalt |
 |---|---|
 | ~~**0**~~ | ~~Arbeitsbaum konsolidieren~~ — **erledigt am 2026-08-28**, `f880389..aa3eac4` |
-| **1** | Launch-Kriterien als Definition of Done festschreiben |
-| **2** | Playground heißt Create, eigene Adresse, Navigation in beide Richtungen |
+| ~~**1**~~ | ~~Launch-Kriterien als Definition of Done festschreiben~~ — **erledigt am 2026-08-28** |
+| ~~**2**~~ | ~~Playground heißt Create, eigene Adresse, Navigation in beide Richtungen~~ — **erledigt am 2026-08-28** |
 | ~~**3**~~ | ~~Modellwahrheit gegen die Live-Registry~~ — **erledigt am 2026-08-28** (Handoff: `docs/HANDOFF-2026-08-28-phase-3.md`) |
 | **4** | Verständliche Fehlermeldungen, Laufstabilität |
 | **5** | Eine Galerie für Chat und Create, Löschen |

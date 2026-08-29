@@ -391,7 +391,7 @@ describe('playground e2e: parallel runs', () => {
     await waitFor(() => expect(screen.getAllByRole('status')).toHaveLength(3));
 
     // Karten stehen neueste-zuerst: Index 1 ist "zwei".
-    fireEvent.click(screen.getAllByRole('button', { name: 'Abbrechen' })[1]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Nicht mehr warten' })[1]);
     await waitFor(() => expect(screen.getAllByRole('status')).toHaveLength(2));
 
     resolvers[0](imageResponse('https://x/a.png'));

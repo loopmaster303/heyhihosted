@@ -26,6 +26,9 @@ add new documents there.
 - `HANDOFF-2026-08-28-phase-0.md` — **start here.** What Phase 0 delivered (99 files into
   sixteen commits, `f880389..aa3eac4`), how it was done, the per-phase findings it
   surfaced, and what it left open.
+- `HANDOFF-2026-08-28-phase-1.md` — what Phase 1 delivered: `LAUNCH_CRITERIA.md` as the
+  release gate (29 gate criteria, one conditional criterion, accepted risks, non-goals),
+  built on the operator decisions of 2026-08-28.
 - `HANDOFF-2026-08-28-phase-2.md` — what Phase 2 delivered: product name **Create**,
   the `create.hey-hi.cloud` redirect (Variante B), the chat back-link, and the open
   Dashboard steps V1–V3.

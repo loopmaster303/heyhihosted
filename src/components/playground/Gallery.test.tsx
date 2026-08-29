@@ -87,7 +87,7 @@ describe('Gallery', () => {
     const cards = await screen.findAllByRole('status');
     expect(cards).toHaveLength(2);
 
-    await user.click(screen.getAllByRole('button', { name: 'Abbrechen' })[1]);
+    await user.click(screen.getAllByRole('button', { name: 'Nicht mehr warten' })[1]);
     expect(onCancelRun).toHaveBeenCalledWith('run-2');
   });
 

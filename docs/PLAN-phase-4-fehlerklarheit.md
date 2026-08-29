@@ -7,6 +7,8 @@ aus [`HANDOFF-2026-08-26-pruna-video.md`](HANDOFF-2026-08-26-pruna-video.md), Ab
 **Verifikation:** Alle Fehlerformen unten sind am 2026-08-27 **live gegen
 `chat.hey-hi.cloud` und `gen.pollinations.ai` gezogen**, nicht aus dem Code hergeleitet.
 
+> **Kopfstand veraltet.** Geplant wurde gegen `f880389` plus offenen Arbeitsbaum; Phase 0–3 sind seitdem gelandet. Vor der Ausführung gegen den aktuellen HEAD prüfen. Der Abhängigkeitsabschnitt „Phase 3 kommt zuerst" ist erfüllt. Neu hinzugekommen: Async-Protokoll für Pollinations-Videos und die Kriterien L-K.2 / L-K.3 (siehe Audit-Patch-Plan).
+
 ---
 
 ## Ziel
