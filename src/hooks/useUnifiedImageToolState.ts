@@ -10,8 +10,7 @@ import {
     getDefaultDurationSeconds,
     getReferenceMode,
     getUnifiedModel,
-    getVisualizeModelGroupsForProvider,
-    shouldIncludeByopHidden,
+    getChatImageModelIds,
     UNIFIED_IMAGE_MODELS,
     type ImageProvider,
 } from '@/config/unified-image-models';
@@ -21,7 +20,6 @@ import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
 import { uploadFileToPruna } from '@/lib/upload/pruna';
 import { getClientSessionId } from '@/lib/session';
 import type { UploadedReference } from '@/types';
-import { useHasPollenKey } from './useHasPollenKey';
 import { useProviderMode } from './useProviderMode';
 
 // Define which models need image upload (Pollinations reference models)
@@ -57,7 +55,6 @@ function normalizeLegacyImageModelId(id: string): string {
 export function useUnifiedImageToolState() {
     const { toast } = useToast();
     const { language } = useLanguage();
-    const hasPollenKey = useHasPollenKey();
 
     // Model selection
     // Provider mode switch (Pollinations vs Pruna) — shared source of truth,
@@ -76,34 +73,33 @@ export function useUnifiedImageToolState() {
         }
     }, [defaultImageModelId, normalizedDefaultImageModelId, setDefaultImageModelId]);
 
-    const availableModels = useMemo(
-        () => {
-            const includeByopHidden = shouldIncludeByopHidden(providerMode, { prunaAvailable, hasPollenKey });
-            const groups = getVisualizeModelGroupsForProvider(providerMode, { includeByopHidden });
-            return groups.flatMap(g => g.models.map(m => m.id));
-        },
-        [providerMode, hasPollenKey, prunaAvailable]
-    );
+    // Phase 7: der Chat fuehrt die schluesselfreie Bildauswahl, unabhaengig
+    // vom Provider-Schalter. Der Schalter scopet weiterhin die Liste im
+    // Create und im SettingsPopover — er ist und bleibt ein Listenfilter,
+    // nur eben nicht mehr fuer diese Liste.
+    const availableModels = useMemo(() => getChatImageModelIds(), []);
+
     const initialModelId = useMemo(() => {
-        const model = getUnifiedModel(normalizedDefaultImageModelId);
-        if (model?.provider === providerMode && availableModels.includes(normalizedDefaultImageModelId)) {
+        if (availableModels.includes(normalizedDefaultImageModelId)) {
             return normalizedDefaultImageModelId;
         }
-        if (providerMode === 'pollinations' && availableModels.includes('flux')) return 'flux';
+        if (availableModels.includes(DEFAULT_IMAGE_MODEL)) return DEFAULT_IMAGE_MODEL;
         return availableModels[0] || DEFAULT_IMAGE_MODEL;
-    }, [availableModels, normalizedDefaultImageModelId, providerMode]);
+    }, [availableModels, normalizedDefaultImageModelId]);
     const [selectedModelId, setSelectedModelId] = useState<string>(initialModelId);
     const currentModelConfig = getUnifiedModelConfig(selectedModelId);
 
-    // Reset selected model when provider mode changes (smart reset)
+    // Faellt das gewaehlte Modell aus der Chat-Auswahl — etwa weil der
+    // SettingsPopover im Create einen Standard geschrieben hat, den der Chat
+    // nicht fuehrt — zurueck auf den Vorgabewert statt still ins Leere.
     useEffect(() => {
         setSelectedModelId(prev => {
             if (availableModels.includes(prev) || availableModels.length === 0) return prev;
-            return providerMode === 'pollinations' && availableModels.includes('flux')
-                ? 'flux'
+            return availableModels.includes(DEFAULT_IMAGE_MODEL)
+                ? DEFAULT_IMAGE_MODEL
                 : availableModels[0];
         });
-    }, [providerMode, availableModels]);
+    }, [availableModels]);
 
     // Form state
     const [prompt, setPrompt] = useState('');

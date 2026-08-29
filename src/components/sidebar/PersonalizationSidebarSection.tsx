@@ -10,12 +10,11 @@ import { Switch } from '@/components/ui/switch';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from '@/components/LanguageProvider';
 import { DEFAULT_IMAGE_MODEL, DEFAULT_POLLINATIONS_MODEL_ID, AVAILABLE_TTS_VOICES, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
-import { getModelsByProvider, shouldIncludeByopHidden } from '@/config/unified-image-models';
+import { getChatImageModelGroups } from '@/config/unified-image-models';
 import { unifiedModelConfigs } from '@/config/unified-model-configs';
 import { useChatConversation, useChatModes } from '@/components/ChatProvider';
 import { Mic, MessageSquare, Lock } from 'lucide-react';
 import { useVisiblePollinationsTextModels } from '@/hooks/useVisiblePollinationsTextModels';
-import { useHasPollenKey } from '@/hooks/useHasPollenKey';
 import { useProviderMode } from '@/hooks/useProviderMode';
 import { TTS_SPEED_PRESETS } from '@/lib/chat/audio-settings';
 
@@ -23,7 +22,6 @@ const PersonalizationSidebarSection: React.FC = () => {
   const { language } = useLanguage();
   const { activeConversation } = useChatConversation();
   const { selectedVoice, selectedTtsSpeed, handleVoiceChange, handleTtsSpeedChange, handleStyleChange } = useChatModes();
-  const hasPollenKey = useHasPollenKey();
   const { providerMode, setProviderMode, prunaAvailable } = useProviderMode();
   const { visibleModels: allTextModels, isKnownModelId } = useVisiblePollinationsTextModels();
 
@@ -34,13 +32,14 @@ const PersonalizationSidebarSection: React.FC = () => {
   const [defaultTextModelId, setDefaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
   const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
 
+  // Phase 7: dieselbe Auswahl wie der Chat-Picker. Ein Standardmodell, das
+  // der Chat nicht fuehrt, waere ein Versprechen, das der Hook still
+  // zurueckdreht — und ohne Schluessel ein unmarkiertes BYOP-Angebot (L-I.2).
   const imageModels = useMemo(
-    () => getModelsByProvider(
-      providerMode,
-      { includeByopHidden: shouldIncludeByopHidden(providerMode, { prunaAvailable, hasPollenKey }) },
-    )
-      .filter(model => model.kind === 'image' && model.id in unifiedModelConfigs),
-    [providerMode, hasPollenKey, prunaAvailable]
+    () => getChatImageModelGroups()
+      .flatMap(group => group.models)
+      .filter(model => model.id in unifiedModelConfigs),
+    []
   );
 
   useEffect(() => {

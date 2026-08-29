@@ -1,7 +1,12 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { VisualizeInlineHeader } from './VisualizeInlineHeader';
-import { getVisualizeModelGroupsForProvider } from '@/config/unified-image-models';
+import { getChatImageModelGroups } from '@/config/unified-image-models';
+
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
 
 jest.mock('@/components/ui/select', () => ({
   Select: ({ children, value }: { children: React.ReactNode; value?: string }) => (
@@ -84,19 +89,20 @@ jest.mock('@/config/unified-image-models', () => ({
       temporalControl: temporalControls[id],
     };
   },
-  getVisualizeModelGroupsForProvider: jest.fn(() => [
+  getChatImageModelGroups: jest.fn(() => [
     {
-      key: 'standard-image',
-      label: 'Standard',
+      key: 'image-free',
+      label: 'IMAGE FREE',
       category: 'Standard',
       kind: 'image',
-      models: [{ id: 'nanobanana-pro', name: 'Nano Banana Pro' }],
+      modelIds: ['flux'],
+      models: [{ id: 'flux', name: 'Flux.1 Fast' }],
     },
   ]),
 }));
 
-const mockGetVisualizeModelGroupsForProvider =
-  getVisualizeModelGroupsForProvider as jest.MockedFunction<typeof getVisualizeModelGroupsForProvider>;
+const mockGetChatImageModelGroups =
+  getChatImageModelGroups as jest.MockedFunction<typeof getChatImageModelGroups>;
 
 jest.mock('@/config/ui-constants', () => ({
   imageModelIcons: {},
@@ -113,7 +119,7 @@ jest.mock('lucide-react', () => new Proxy({}, {
 describe('VisualizeInlineHeader', () => {
   beforeEach(() => {
     mockHasPollenKey = true;
-    mockGetVisualizeModelGroupsForProvider.mockClear();
+    mockGetChatImageModelGroups.mockClear();
   });
 
   const renderVideoHeader = (
@@ -134,8 +140,6 @@ describe('VisualizeInlineHeader', () => {
       setFormFields={jest.fn()}
       isPollenModel={false}
       isPollinationsVideo={false}
-      providerMode="pruna"
-      prunaAvailable
     />
   );
 
@@ -187,7 +191,6 @@ describe('VisualizeInlineHeader', () => {
         setFormFields={jest.fn()}
         isPollenModel={true}
         isPollinationsVideo={false}
-        providerMode="pollinations"
       />
     );
 
@@ -237,8 +240,6 @@ describe('VisualizeInlineHeader', () => {
         setFormFields={jest.fn()}
         isPollenModel={false}
         isPollinationsVideo={false}
-        providerMode="pruna"
-        prunaAvailable
       />
     );
 
@@ -264,34 +265,22 @@ describe('VisualizeInlineHeader', () => {
     },
   );
 
-  it('uses Pruna availability for Pruna model visibility regardless of Pollen', () => {
-    mockHasPollenKey = false;
-    renderVideoHeader('p-video');
-
-    expect(mockGetVisualizeModelGroupsForProvider).toHaveBeenCalledWith('pruna', {
-      includeByopHidden: true,
-    });
-  });
-
-  it('uses the Pollen key for Pollinations model visibility', () => {
-    mockHasPollenKey = false;
+  it('fuehrt im Modellbereich keine Advanced-Gruppe und keinen Mehr-anzeigen-Umschalter', () => {
     render(
       <VisualizeInlineHeader
-        selectedModelId="nanobanana-pro"
+        selectedModelId="flux"
         onModelChange={jest.fn()}
-        currentModelConfig={{ id: 'nanobanana-pro', name: 'Nano Banana Pro', inputs: [] }}
+        currentModelConfig={{ id: 'flux', name: 'flux', outputType: 'image', inputs: [] } as never}
         formFields={{}}
         handleFieldChange={jest.fn()}
         setFormFields={jest.fn()}
-        isPollenModel
+        isPollenModel={false}
         isPollinationsVideo={false}
-        providerMode="pollinations"
-        prunaAvailable
+        section="model"
       />,
     );
 
-    expect(mockGetVisualizeModelGroupsForProvider).toHaveBeenCalledWith('pollinations', {
-      includeByopHidden: false,
-    });
+    expect(screen.queryByText('visualize.showMore')).toBeNull();
+    expect(screen.queryByText('visualize.showLess')).toBeNull();
   });
 });

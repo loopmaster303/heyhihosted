@@ -1,17 +1,17 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useUnifiedImageToolState } from './useUnifiedImageToolState';
-import { getVisualizeModelGroupsForProvider } from '@/config/unified-image-models';
+import { getChatImageModelIds } from '@/config/unified-image-models';
 
 jest.mock('@/config/unified-image-models', () => {
   const actual = jest.requireActual('@/config/unified-image-models');
   return {
     ...actual,
-    getVisualizeModelGroupsForProvider: jest.fn(actual.getVisualizeModelGroupsForProvider),
+    getChatImageModelIds: jest.fn(actual.getChatImageModelIds),
   };
 });
 
-const mockGetVisualizeModelGroupsForProvider =
-  getVisualizeModelGroupsForProvider as jest.MockedFunction<typeof getVisualizeModelGroupsForProvider>;
+const mockGetChatImageModelIds =
+  getChatImageModelIds as jest.MockedFunction<typeof getChatImageModelIds>;
 
 jest.mock('@/components/LanguageProvider', () => ({
   useLanguage: () => ({
@@ -37,7 +37,7 @@ describe('useUnifiedImageToolState provider persistence', () => {
   beforeEach(() => {
     localStorage.clear();
     mockHasPollenKey = true;
-    mockGetVisualizeModelGroupsForProvider.mockClear();
+    mockGetChatImageModelIds.mockClear();
   });
 
   afterEach(() => {
@@ -143,7 +143,7 @@ describe('useUnifiedImageToolState provider persistence', () => {
     });
   });
 
-  it('resets the selected model when switching to a provider that does not contain it', async () => {
+  it('keeps the selected model when switching provider — the chat list does not follow the switch', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => ({ prunaAvailable: true }),
     } as Response);
@@ -159,23 +159,41 @@ describe('useUnifiedImageToolState provider persistence', () => {
       result.current.setProviderMode('pruna');
     });
 
+    // Phase 7: die Chat-Auswahl ist providerunabhaengig. Der Wechsel
+    // dreht das gewaehlte Modell nicht mehr still um.
     await waitFor(() => {
       expect(result.current.providerMode).toBe('pruna');
-      expect(result.current.selectedModelId).toBe(result.current.availableModels[0]);
-      expect(result.current.selectedModelId).not.toBe('flux');
+      expect(result.current.selectedModelId).toBe('flux');
     });
   });
 
-  it('uses Pruna availability rather than the Pollen key for Pruna visibility', async () => {
-    mockHasPollenKey = false;
+  it('fuehrt im Chat nur die schluesselfreie Bildauswahl, auch mit Pruna-Schluessel', async () => {
+    // E7-3: der Pruna-Schluessel darf im Chat nichts aufblaettern.
+    localStorage.setItem('prunaApiKey', 'pruna_test_1234567890');
     localStorage.setItem('heyhi-provider-mode', JSON.stringify('pruna'));
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => ({ prunaAvailable: true }),
     } as Response);
-    renderHook(() => useUnifiedImageToolState());
+
+    const { result } = renderHook(() => useUnifiedImageToolState());
 
     await waitFor(() => {
-      expect(mockGetVisualizeModelGroupsForProvider).toHaveBeenCalledWith('pruna', { includeByopHidden: true });
+      expect([...result.current.availableModels].sort()).toEqual(['flux', 'gpt-image', 'klein']);
+    });
+  });
+
+  it('faellt auf flux zurueck, wenn das gespeicherte Standardmodell nicht im Chat gefuehrt wird', async () => {
+    // Der SettingsPopover im Create schreibt denselben Schluessel und kennt
+    // die volle Liste. Der Chat darf daran nicht haengenbleiben.
+    localStorage.setItem('defaultImageModelId', JSON.stringify('p-video'));
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: false }),
+    } as Response);
+
+    const { result } = renderHook(() => useUnifiedImageToolState());
+
+    await waitFor(() => {
+      expect(result.current.selectedModelId).toBe('flux');
     });
   });
 

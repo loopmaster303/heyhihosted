@@ -1,7 +1,8 @@
 import React from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronDown, ImageIcon, Video } from 'lucide-react';
+import { ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { unifiedModelConfigs, type UnifiedModelConfig } from '@/config/unified-model-configs';
@@ -9,13 +10,10 @@ import {
   getDefaultDurationSeconds,
   getDurationOptionsSeconds,
   getUnifiedModel,
-  getVisualizeModelGroupsForProvider,
-  shouldIncludeByopHidden,
-  type ImageProvider,
+  getChatImageModelGroups,
 } from '@/config/unified-image-models';
 import { imageModelIcons } from '@/config/ui-constants';
 import { useLanguage } from '@/components/LanguageProvider';
-import { useHasPollenKey } from '@/hooks/useHasPollenKey';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { InlineParamsContainer } from '../InlineParamsContainer';
 import type { UploadedReference } from '@/types';
@@ -36,8 +34,6 @@ interface VisualizeInlineHeaderProps {
   className?: string;
   variant?: 'framed' | 'bare';
   section?: 'all' | 'model' | 'parameters';
-  providerMode?: ImageProvider;
-  prunaAvailable?: boolean;
   sourceVideo?: UploadedReference | null;
   onSourceVideoChange?: (video: UploadedReference | null) => void;
   requiresSourceVideo?: boolean;
@@ -65,28 +61,29 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   className,
   variant = 'framed',
   section = 'all',
-  providerMode = 'pollinations',
-  prunaAvailable = false,
   sourceVideo,
   onSourceVideoChange,
   requiresSourceVideo = false,
 }) => {
   const { t } = useLanguage();
-  const hasPollenKey = useHasPollenKey();
-  const [expanded, setExpanded] = React.useState(true); // For dropdown groups
+  const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 639px)');
   const showModel = section !== 'parameters';
   const showParameters = section !== 'model';
 
-  const modelGroups = React.useMemo(() => {
-    const includeByopHidden = shouldIncludeByopHidden(providerMode, { prunaAvailable, hasPollenKey });
-    return getVisualizeModelGroupsForProvider(providerMode, { includeByopHidden })
-      .map(group => ({
-        ...group,
-        models: group.models.filter(model => unifiedModelConfigs[model.id]),
-      }))
-      .filter(group => group.models.length > 0);
-  }, [providerMode, hasPollenKey, prunaAvailable]);
+  // Phase 7: derselbe Regelaufruf wie im Desktop-Picker. Beide Flaechen
+  // MUESSEN dieselbe Funktion lesen — laufen sie auseinander, waehlt der
+  // Hook ein Modell, das die eine Flaeche nicht anbietet.
+  const modelGroups = React.useMemo(
+    () =>
+      getChatImageModelGroups()
+        .map(group => ({
+          ...group,
+          models: group.models.filter(model => unifiedModelConfigs[model.id]),
+        }))
+        .filter(group => group.models.length > 0),
+    [],
+  );
 
   const durationOptions = React.useMemo(() => {
     return getDurationOptionsSeconds(getUnifiedModel(selectedModelId));
@@ -98,7 +95,6 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
   );
 
   const standardGroups = modelGroups.filter(group => group.category === 'Standard');
-  const advancedGroups = modelGroups.filter(group => group.category === 'Advanced');
 
   const aspectRatioPresets = React.useMemo(
     () => getAspectRatioPresetsForModel(selectedModelId),
@@ -150,12 +146,11 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
           </SelectTrigger>
           <SelectContent className="w-[min(520px,90vw)] bg-background/90 backdrop-blur-md border-border/40 p-1">
             {standardGroups.map((group) => {
-              const Icon = group.kind === 'image' ? ImageIcon : Video;
               return (
                 <SelectGroup key={group.key}>
                   <SelectLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 pt-2">
                     <span className="flex items-center gap-2">
-                      <Icon className="w-3 h-3" />
+                      <ImageIcon className="w-3 h-3" />
                       {group.label}
                     </span>
                   </SelectLabel>
@@ -196,58 +191,13 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
             <div className="px-2 pb-2">
               <button
                 type="button"
-                onClick={() => setExpanded(!expanded)}
+                onClick={() => router.push('/create')}
                 onMouseDown={(event) => event.preventDefault()}
                 className="w-full py-2 px-3 text-[10px] font-medium text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 border border-dashed border-border/50 rounded-lg hover:bg-muted/20 transition-colors"
               >
-                {expanded ? t('visualize.showLess') : t('visualize.showMore')}
-                <ChevronDown className={cn("w-4 h-4 transition-transform", expanded && "rotate-180")} />
+                {t('modelSelector.allModelsInCreate')}
               </button>
             </div>
-
-            {expanded && advancedGroups.map((group) => {
-              const Icon = group.kind === 'image' ? ImageIcon : Video;
-              return (
-                <SelectGroup key={group.key}>
-                  <SelectLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 pt-2">
-                    <span className="flex items-center gap-2">
-                      <Icon className="w-3 h-3" />
-                      {group.label}
-                    </span>
-                  </SelectLabel>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-2 pb-2">
-                    {group.models.map((model) => {
-                      const displayName = unifiedModelConfigs[model.id]?.name || model?.name || model.id;
-                      const isActive = selectedModelId === model.id;
-                      return (
-                        <SelectItem
-                          key={model.id}
-                          value={model.id}
-                          textValue={displayName}
-                          onClick={() => onModelChange(model.id)}
-                          className={cn(
-                            "rounded-lg px-2 py-2 focus:bg-muted/40 cursor-pointer [&>span:first-child]:hidden",
-                            isActive ? "bg-muted/30" : "hover:bg-muted/20"
-                          )}
-                        >
-                          <span className="flex items-center gap-2 min-w-0 w-full">
-                            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-muted/40 border border-border/30">
-                              {renderModelIcon(model.id)}
-                            </span>
-                            <span className="truncate text-[11px] font-semibold text-foreground">{displayName}</span>
-                            {isActive && (
-                              <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                                {t('visualize.active')}
-                              </span>
-                            )}
-                          </span>
-                        </SelectItem>
-                      );
-                    })}
-                  </div>
-                </SelectGroup>
-              );
-            })}
           </SelectContent>
         </Select>
       </div>}

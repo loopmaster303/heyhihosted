@@ -9,7 +9,8 @@ import {
   UNIFIED_IMAGE_MODELS,
   getDefaultDurationSeconds,
   getDurationOptionsSeconds,
-  getChatImageModels,
+  getChatImageModelGroups,
+  getChatImageModelIds,
   getImageModels,
   getUnifiedModel,
   getVisualizeModelGroups,
@@ -275,13 +276,30 @@ describe('model invariants', () => {
     expect(withKey).toContain('grok-video-pro');
   });
 
-  test('chat image model list stays curated and separate from the full Visualize registry', () => {
-    // zimage ist seit E-A (Pruna BYOP-only) deaktiviert und fällt aus der
-    // kuratierten Chat-Liste heraus.
-    expect(getChatImageModels().map((model) => model.id).sort()).toEqual([
-      'flux',
-      'gpt-image',
-    ].sort());
+  test('die Chat-Bildauswahl ist genau der schluesselfreie Pollinations-Bildtier', () => {
+    // E7-1: eine Regel, keine Handliste. Wird der Free-Tier erweitert
+    // (z. B. kontext nach Freischaltung der Allowlist), waechst diese
+    // Erwartung mit — und genau dann soll der Test brechen und gelesen werden.
+    expect([...getChatImageModelIds()].sort()).toEqual(['flux', 'gpt-image', 'klein']);
+  });
+
+  test('die Chat-Bildauswahl waechst mit keinem Schluessel', () => {
+    // Die Funktion nimmt keine Optionen entgegen. Das ist die Zusicherung:
+    // ein Pollen- oder Pruna-Schluessel kann die Chat-Liste nicht aufblaehen.
+    expect(getChatImageModelGroups).toHaveLength(0);
+    expect(getChatImageModelGroups().map((group) => group.key)).toEqual(['image-free']);
+  });
+
+  test('kein Video und kein Pruna in der Chat-Auswahl', () => {
+    // E7-2 und E7-3, strukturell statt per Badge.
+    const models = getChatImageModelGroups().flatMap((group) => group.models);
+    expect(models.length).toBeGreaterThan(0);
+    for (const model of models) {
+      expect(model.kind).toBe('image');
+      expect(model.provider).toBe('pollinations');
+      expect(model.isFree).toBe(true);
+      expect(model.enabled ?? true).toBe(true);
+    }
   });
 
   test('approved upstream visual models resolve directly and stale ids no longer resolve', () => {

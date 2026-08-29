@@ -616,11 +616,43 @@ export function getAdvancedModels(kind?: ImageKind): UnifiedImageModel[] {
   );
 }
 
-const CHAT_IMAGE_MODEL_IDS = ['zimage', 'flux', 'gpt-image'];
-export function getChatImageModels(): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m =>
-    CHAT_IMAGE_MODEL_IDS.includes(m.id) &&
-    m.kind === 'image' &&
-    (m.enabled ?? true)
+/**
+ * Die Bildauswahl im Chat (Phase 7).
+ *
+ * Eine Regel, keine Handliste: genau die Bildmodelle, die ohne Schluessel
+ * laufen. Waechst der freie Tier, folgt der Chat von selbst; faellt eines
+ * weg, verschwindet es hier ebenfalls. Die alte Handliste
+ * CHAT_IMAGE_MODEL_IDS stand daneben, wurde von keiner Oberflaeche gelesen
+ * und driftete deshalb unbemerkt (sie fuehrte 'zimage', das seit E-A
+ * deaktiviert ist).
+ *
+ * Bewusst OHNE Optionsparameter. Ein Pollen- oder Pruna-Schluessel darf
+ * diese Liste nicht aufblaehen — sonst ist der Chat wieder der volle
+ * Katalog und L-F.1 faellt. Wer mehr will, geht ins Create.
+ *
+ * Video (E7-2) und Pruna (E7-3) sind hier strukturell nicht vertreten:
+ * beides ist vollstaendig schluesselpflichtig. Damit ist die
+ * Kennzeichnungspflicht aus L-I.2 fuer die Bildflaeche des Chats erfuellt,
+ * ohne dass ein Badge sie tragen muss.
+ *
+ * Die Registry bleibt unberuehrt: enabled/isFree/byopVisible werden hier
+ * nur GELESEN. scripts/check-model-registry.mjs und registry-truth.test.ts
+ * sehen von dieser Funktion nichts.
+ */
+export function getChatImageModelGroups(): Array<VisualizeModelGroup & { models: UnifiedImageModel[] }> {
+  const models = UNIFIED_IMAGE_MODELS.filter((model) =>
+    model.provider === 'pollinations' &&
+    model.kind === 'image' &&
+    model.isFree === true &&
+    (model.enabled ?? true)
   );
+
+  return VISUALIZE_GROUP_DEFINITIONS
+    .filter((group) => group.key === 'image-free')
+    .map((group) => ({ ...group, modelIds: models.map((model) => model.id), models }))
+    .filter((group) => group.models.length > 0);
+}
+
+export function getChatImageModelIds(): string[] {
+  return getChatImageModelGroups().flatMap((group) => group.modelIds);
 }

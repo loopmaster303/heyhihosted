@@ -324,8 +324,6 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                             visualizeToolState.setSelectedModelId(id);
                             toggleBadgeRow('model');
                         }}
-                        providerMode={visualizeToolState.providerMode}
-                        prunaAvailable={visualizeToolState.prunaAvailable}
                         disabled={visualizeControlsDisabled}
                     />
                 );
@@ -811,8 +809,6 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 variant="bare"
                                 section="model"
                                 disabled={visualizeControlsDisabled}
-                                providerMode={visualizeToolState.providerMode}
-                                prunaAvailable={visualizeToolState.prunaAvailable}
                             />
                         )}
                         {isComposeMode && composeToolState && (
@@ -850,8 +846,6 @@ const ChatInput: React.FC<ChatInputProps> = (props) => {
                                 variant="bare"
                                 section="parameters"
                                 disabled={visualizeControlsDisabled}
-                                providerMode={visualizeToolState.providerMode}
-                                prunaAvailable={visualizeToolState.prunaAvailable}
                             />
                         )}
                         {isComposeMode && composeToolState && (
