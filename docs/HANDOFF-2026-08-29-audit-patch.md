@@ -1,7 +1,9 @@
 # Handoff — Audit-Patch 2026-08-29 (Phase 0–3-Befunde abarbeiten)
 
 **Datum:** 2026-08-29
-**Branch:** `main`, Ausgangs-HEAD `fcb1124`, nach P0 `9b47bf0`
+**Branch:** `main`, Ausgangs-HEAD `fcb1124`, nach P0 `9b47bf0`, **End-HEAD `ffefb04`**
+**Status:** committet und gepusht am 2026-08-29 nach Freigabe des Betreibers
+(`fcb1124..ffefb04`); der Vercel-Deploy läuft damit an.
 **Plan:** `docs/PLAN-audit-patch-2026-08-29.md` (ausgeführt in eigener Sitzung,
 Subagent-Driven Development; Worker-Modell GLM-5.3-Flash, Orchestrator verifizierte
 jedes Fertig-Kriterium selbst nach)
@@ -10,8 +12,10 @@ jedes Fertig-Kriterium selbst nach)
 
 Der Arbeitsbaum ist sortiert (P0, fünf thematische Commits), alle zehn
 Arbeitspakete W1–W10 sind ausgeführt und verifiziert — **852 Tests grün** (851 + 1
-aus W5), lint/tsc/build sauber. Offen sind nur die drei Betreiber-Entscheidungen
-E1–E3 und die Freigabe für Commit/Push der Paketänderungen.
+aus W5), lint/tsc/build sauber. Die drei Betreiber-Entscheidungen E1–E3 sind
+beantwortet und in `LAUNCH_CRITERIA.md` und im Fahrplan festgeschrieben. Alles ist
+committet und gepusht. Offen bleibt allein die **Umsetzung** von L-I.3 und L-K.2 im
+Code — beide sind Phase 4 zugeordnet.
 
 ## P0 — Arbeitsbaum sortiert *(Orchestrator, nicht delegiert)*
 
@@ -28,8 +32,8 @@ einzeln mit vollem Loop (lint, tsc, Jest, Build) geprüft grün:
 | `9b47bf0` | docs: Wahrheitsdokumente nach Phase 0–3 nachziehen (13 Dateien) |
 
 `next-env.d.ts` (Autogen-Rauschen) wurde ausgecheckt und ist in keinem Commit.
-**Nicht gepusht** — Push gesammelt nach Betreiber-Freigabe (main auto-deployt nach
-Vercel).
+Der Push erfolgte gesammelt nach der Betreiber-Freigabe, zusammen mit dem
+Abschlusscommit `ffefb04` (W1–W10 + E1–E3 + dieser Handoff).
 
 ## W-Pakete — ausgeführt, jeweils vom Orchestrator nachverifiziert
 
@@ -85,19 +89,23 @@ Chatverlauf):
 Offen bleibt damit nur die Umsetzung der Entscheidungen im Code (L-I.3, L-K.2 —
 beide mit Herkunft Phase 4 verortet).
 
-## Verifikationsstand zum Zeitpunkt dieses Handoffs
+## Verifikationsstand — Endstand `ffefb04`
 
 ```text
 npm run lint     → sauber
 npx tsc --noEmit → sauber
 CI=1 npx jest --silent → 109 Suiten, 852 Tests grün
-npm run build    → erfolgreich
-git status --porcelain -uall → 14 geänderte Dateien (W-Pakete) + dieser Handoff,
-                               uncommitted, warten auf Freigabe
+npm run build    → erfolgreich, /create statisch
+git status --porcelain -uall → leer
+git rev-parse HEAD == origin/main → ffefb04
 ```
 
 Plan-Greps: „Phase 0 is done" → 0 · „Herkunft: phasenlos" → 0 · „Abbrechen" in
 `src/components/playground` und `src/app/create` → 0.
+
+Unabhängig nachgeprüft am 2026-08-29 in einer Review-Sitzung: alle Zahlen und alle
+drei Greps bestätigt. Drei Lücken **zwischen** den Paketen wurden dort gefunden und
+behoben — siehe [`HANDOFF-2026-08-29-audit-review.md`](HANDOFF-2026-08-29-audit-review.md).
 
 ## Bewusst nicht angefasst (Kleinbefunde, Plan Abschnitt 6)
 

@@ -23,7 +23,7 @@ zum Launch.
 
 **Format je Kriterium:** Kriterium (prüfbarer Satz, Präsens, ohne Adjektiv ohne
 Messpunkt) · Prüfweg (ein Satz: wer klickt was, wo, und was muss dastehen) ·
-Herkunft (Phase N | phasenlos) · Status.
+Herkunft (Phase N | Abschlussprüfung vor der Freigabe) · Status.
 
 ---
 
@@ -230,7 +230,7 @@ die Bildrate beobachten; den Schalter betätigen.
 Herkunft: Phase 9
 Status: offen
 
-## I — Verhalten ohne Schlüssel *(phasenlos)*
+## I — Verhalten ohne Schlüssel *(L-I.1 Abschlussprüfung · L-I.2 Phase 7 · L-I.3 Phase 4)*
 
 **L-I.1 — Ohne Schlüssel ist das Produkt benutzbar, nicht nur sichtbar**
 Kriterium: In einem frischen Browserprofil ohne jeden Schlüssel lassen sich mindestens
@@ -256,7 +256,7 @@ ist vor dem Absenden erkennbar, nicht erst aus einer Fehlermeldung.
 Herkunft: Phase 4
 Status: offen
 
-## K — Kostenrisiko *(phasenlos)*
+## K — Kostenrisiko *(L-K.1 Abschlussprüfung · L-K.2 und L-K.3 Phase 4)*
 
 **L-K.1 — Kein fremder Klick erzeugt Kosten auf der Betreiberrechnung**
 Kriterium: Ohne eigenen Schlüssel des Nutzers löst keine Oberfläche einen
@@ -349,9 +349,7 @@ Status: akzeptiert (Betreiber, 2026-08-28)
 | 8 | Musik im Create | L-G.1 – L-G.4 |
 | 9 | ASCII-Flow | L-H.1 — kein Gate, gilt nur falls gebaut (Bereich M) |
 | 10 | Musik auf eigener Infrastruktur | keine — Bereich M |
-| — | Verhalten ohne Schlüssel | L-I.1 (phasenlos) |
-| — | Kostenrisiko | L-K.1 (phasenlos) |
-| — | Abschlussprüfung | L-I.1, L-K.1 |
+| — | Abschlussprüfung vor der Freigabe | L-I.1, L-K.1 |
 
 ## Verweise
 
