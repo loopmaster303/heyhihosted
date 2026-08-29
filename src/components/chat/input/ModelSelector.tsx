@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { modelIcons, featuredModels, modelDisplayMap } from '@/config/ui-constants';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useVisiblePollinationsTextModels } from '@/hooks/useVisiblePollinationsTextModels';
+import { useHasPollenKey } from '@/hooks/useHasPollenKey';
 
 interface ModelSelectorProps {
     selectedModelId: string;
@@ -145,21 +146,28 @@ export const ModelSelectorPanel: React.FC<ModelSelectorPanelProps> = ({
     const { t } = useLanguage();
     const { featuredList, otherModels } = useModelLists(modelFilterIds);
     const [expanded, setExpanded] = useState(false);
+    const hasPollenKey = useHasPollenKey();
+    const [lockedHint, setLockedHint] = useState<string | null>(null);
 
     const renderModelItem = (model: any, isCompact = false) => {
         if (!model) return null;
         const isSelected = selectedModelId === model.id;
+        // Pollenwall (Phase 3): schlüsselpflichtige Modelle bleiben sichtbar,
+        // aber ohne Pollen-Schlüssel nicht wählbar.
+        const isLocked = model.isFree === false && !hasPollenKey;
 
         return (
             <button
                 key={model.id}
                 type="button"
-                onClick={() => onModelChange(model.id)}
+                onClick={() => (isLocked ? setLockedHint(model.id) : onModelChange(model.id))}
+                aria-disabled={isLocked}
                 className={cn(
                     "flex items-center gap-3 p-2.5 rounded-lg text-left transition-all duration-200 border",
                     isSelected
                         ? "bg-primary/10 border-primary/30 shadow-sm"
-                        : "hover:bg-muted/50 border-transparent hover:border-border/50"
+                        : "hover:bg-muted/50 border-transparent hover:border-border/50",
+                    isLocked && "opacity-60",
                 )}
             >
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted/50 flex-shrink-0">
@@ -187,6 +195,12 @@ export const ModelSelectorPanel: React.FC<ModelSelectorPanelProps> = ({
                                 VISION
                             </span>
                         )}
+                        {isLocked && (
+                            <span className="flex items-center gap-0.5 text-[8px] px-1 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-bold">
+                                <Lock className="w-2 h-2" />
+                                POLLEN
+                            </span>
+                        )}
                     </div>
                     {!isCompact && model.description && (
                         <p className="text-[10px] text-muted-foreground truncate opacity-80">
@@ -203,6 +217,12 @@ export const ModelSelectorPanel: React.FC<ModelSelectorPanelProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {featuredList.map((model) => renderModelItem(model, false))}
             </div>
+
+            {lockedHint && (
+                <p className="mt-2 px-2 text-[10px] text-amber-600" role="note">
+                    {t('modelSelector.pollenRequired')}
+                </p>
+            )}
 
             {!expanded && otherModels.length > 0 && (
                 <button

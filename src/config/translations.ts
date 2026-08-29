@@ -55,7 +55,7 @@ export const translations = {
         // Playground
         'playground.sidebarLink': 'Create →',
         'playground.title': 'Create',
-        'playground.prunaEmpty': 'Add a Pruna key to unlock 14 Pruna models',
+        'playground.prunaEmpty': 'Pruna-Modelle laufen mit deinem eigenen Pruna-Schlüssel — in den Einstellungen hinterlegen.',
         'playground.fallbackNotice': 'Offline-Liste — Live-Registry nicht verfügbar',
         'playground.generate': 'Generieren',
         'playground.cancel': 'Abbrechen',
@@ -142,6 +142,7 @@ export const translations = {
         'modelSelector.showAll': 'Alle Modelle anzeigen',
         'modelSelector.showLess': 'Weniger anzeigen',
         'modelSelector.advanced': 'Weitere freie Modelle',
+        'modelSelector.pollenRequired': 'Dieses Modell benötigt einen Pollen-Schlüssel — in den Einstellungen hinterlegen.',
         'about.title': 'über/hey.hi',
         'about.description': 'hey.hi ist ein freier, no-login-first KI-Space: gebaut ohne Corporate-Overhead, für echte Menschen und echte Aufgaben.',
         'about.loading': 'Lade About-Seite...',
@@ -316,7 +317,7 @@ export const translations = {
         // Playground
         'playground.sidebarLink': 'Create →',
         'playground.title': 'Create',
-        'playground.prunaEmpty': 'Add a Pruna key to unlock 14 Pruna models',
+        'playground.prunaEmpty': 'Pruna models run on your own Pruna key — add it in settings.',
         'playground.fallbackNotice': 'Offline list — live registry unavailable',
         'playground.generate': 'Generate',
         'playground.cancel': 'Cancel',
@@ -403,6 +404,7 @@ export const translations = {
         'modelSelector.showAll': 'Show all models',
         'modelSelector.showLess': 'Show less',
         'modelSelector.advanced': 'More free models',
+        'modelSelector.pollenRequired': 'This model requires a Pollen key — add it in settings.',
         'about.title': 'about/hey.hi',
         'about.description': 'hey.hi is a free, no-login-first AI workspace built outside corporate playbooks for real people and real work.',
         'about.loading': 'Loading about page...',

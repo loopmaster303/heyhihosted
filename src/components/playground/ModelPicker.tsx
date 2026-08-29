@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useLanguage } from '@/components/LanguageProvider';
+import { useHasPrunaKey } from '@/hooks/useHasPrunaKey';
 import { isModelInMode, type PlaygroundMode } from '@/lib/playground/mode-mapping';
 import type { PlaygroundModelEntry } from '@/lib/playground/model-source';
 import { getUnifiedModel } from '@/config/unified-image-models';
@@ -37,6 +38,7 @@ function entryIsFree(entry: PlaygroundModelEntry): boolean {
 
 export function ModelPicker({ entries, mode, value, onChange, loading, fallbackActive }: Props) {
   const { t } = useLanguage();
+  const hasPrunaKey = useHasPrunaKey();
 
   const filtered = useMemo(() => entries.filter((entry) => isModelInMode(entry, mode)), [entries, mode]);
   const current = filtered.find((entry) => entry.id === value);
@@ -45,6 +47,9 @@ export function ModelPicker({ entries, mode, value, onChange, loading, fallbackA
   const keyModels = useMemo(() => filtered.filter((entry) => !entryIsFree(entry)), [filtered]);
 
   const currentIsFree = current ? entryIsFree(current) : false;
+  // Pruna-Hinweis: Der aktuelle Eintrag laeuft ueber Pruna, aber es ist kein
+  // eigener Schluessel hinterlegt. Pruna ist BYOP-only (2026-08-28).
+  const showPrunaHint = current?.provider === 'pruna' && !hasPrunaKey;
 
   // An empty list means different things per provider: Pruna is key-gated as a
   // whole, while Pollinations just has nothing matching this mode. Never show
@@ -57,6 +62,12 @@ export function ModelPicker({ entries, mode, value, onChange, loading, fallbackA
       {fallbackActive && (
         <div className="text-[11px] text-muted-foreground bg-muted rounded-md px-2 py-1">
           {t('playground.fallbackNotice')}
+        </div>
+      )}
+
+      {showPrunaHint && (
+        <div className="text-[11px] text-muted-foreground bg-muted rounded-md px-2 py-1">
+          {t('playground.prunaEmpty')}
         </div>
       )}
 
