@@ -1,17 +1,11 @@
+import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/services/database';
 import { DatabaseService } from '@/lib/services/database';
 import type { Asset } from '@/lib/services/database';
-import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
+import { isInScope, type AssetOrigin } from '@/lib/assets/asset-origin';
 
-/**
- * Predicate for the main gallery query: playground-generated assets (tagged
- * with PLAYGROUND_CONVERSATION_ID) live in the playground gallery only and
- * must not contaminate the vault / sidebar gallery / GallerySidebarSection.
- */
-export function isGalleryAsset(a: Asset): boolean {
-  return a.conversationId !== PLAYGROUND_CONVERSATION_ID;
-}
+const PREVIEW_LIMIT = 50;
 
 /** Keep Dexie's timestamp ordering, but float starred items to the top. */
 function sortStarredFirst(a: Asset, b: Asset): number {
@@ -21,22 +15,37 @@ function sortStarredFirst(a: Asset, b: Asset): number {
 }
 
 /**
- * Hook for managing Gallery Assets (IndexedDB / Dexie)
- * Provides a reactive list of all generated and uploaded images.
+ * Reaktive Liste der Assets im gewaehlten Herkunftsbereich.
+ *
+ * `origins` undefined = kein Filter (so liest /gallery, siehe E5.4).
+ *
+ * `assets` ist auf 50 begrenzt — Dexie filtert VOR dem Limit, eine Oberflaeche
+ * mit gesetztem Filter bekommt also weiterhin 50 aus ihrer eigenen Herkunft.
+ * `totalInScope` ist NICHT begrenzt: die Loeschbestaetigung braucht die echte
+ * Zahl (F12), und `assets.length` war dafuer nie geeignet.
  */
-export function useGalleryAssets() {
+export function useGalleryAssets(origins?: readonly AssetOrigin[]) {
+  // Ein Array-Literal aendert bei jedem Render seine Identitaet und wuerde die
+  // Query in einer Schleife neu ausloesen.
+  const key = origins ? [...origins].sort().join(',') : '';
+
   const assets = useLiveQuery(
     async () => {
       const all = await db.assets
         .orderBy('timestamp')
         .reverse()
-        .filter(isGalleryAsset)
-        .limit(50)
+        .filter((a) => isInScope(a, origins))
+        .limit(PREVIEW_LIMIT)
         .toArray();
 
       return all.sort(sortStarredFirst);
     },
-    []
+    [key]
+  );
+
+  const totalInScope = useLiveQuery(
+    async () => db.assets.filter((a) => isInScope(a, origins)).count(),
+    [key]
   );
 
   const isLoading = assets === undefined;
@@ -46,7 +55,7 @@ export function useGalleryAssets() {
   };
 
   const clearAllAssets = async () => {
-    await db.assets.filter(isGalleryAsset).delete();
+    await db.assets.filter((a) => isInScope(a, origins)).delete();
   };
 
   const toggleStarred = async (id: string) => {
@@ -54,7 +63,8 @@ export function useGalleryAssets() {
   };
 
   return {
-    assets: assets || [],
+    assets: useMemo(() => assets || [], [assets]),
+    totalInScope: totalInScope ?? 0,
     isLoading,
     deleteAsset,
     clearAllAssets,
