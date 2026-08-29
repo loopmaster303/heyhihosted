@@ -1,0 +1,35 @@
+name: registry-check
+
+# Frage 3 (Entscheidung B): wöchentlicher Registry-Abgleich ohne Auto-Sync.
+# Das Skript meldet Drift (Exit 1) — welche Modelle angeboten werden, bleibt
+# eine Produktentscheidung. Der Snapshot wird bewusst NICHT automatisch
+# aktualisiert; ein echter Befund läuft über einen Menschen.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # montags 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Modellwahrheit gegen die Live-Registry prüfen
+        run: node scripts/check-model-registry.mjs
+
+      - name: Drift melden
+        if: failure()
+        run: |
+          echo "::error::Die Modell-Listen des Repos weichen von der Live-Registry ab."
+          echo "::error::Snapshot aktualisieren (node scripts/check-model-registry.mjs --update-snapshot),"
+          echo "::error::Diff prüfen und die Angebotsentscheidung bewusst treffen."
+          exit 1
