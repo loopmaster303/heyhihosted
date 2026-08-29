@@ -1,9 +1,10 @@
 # Handoff — Review des Audit-Patch und drei Nacharbeiten
 
 **Datum:** 2026-08-29
-**Branch:** `main`, Ausgangs-HEAD `ffefb04`
-**Status:** Uncommitted — drei Dateien plus dieser Handoff im Arbeitsbaum, Commit und
-Push warten auf Freigabe des Betreibers.
+**Branch:** `main`, Ausgangs-HEAD `ffefb04`, **End-HEAD `bea6a53`**
+**Status:** Committet und gepusht am 2026-08-29 nach Freigabe des Betreibers
+(`ffefb04..bea6a53`, ein Commit, docs-only). Der Kopf wurde nach dem Push nachgezogen —
+nach der Regel aus Abschnitt 6, deren Verletzung Befund N2 war.
 **Art der Sitzung:** Unabhängige Nachprüfung des Abschlussberichts zu
 [`PLAN-audit-patch-2026-08-29.md`](PLAN-audit-patch-2026-08-29.md) und Behebung dessen,
 was die Nachprüfung fand. Kein neues Feature, keine Modelländerung.
@@ -155,7 +156,7 @@ Der Handoff wird **nach** dem Push geschrieben, nicht davor — oder danach nach
 
 ## 7. Für den nächsten Thread
 
-1. Commit und Push nachholen, sobald der Betreiber freigibt.
+1. Nichts offen aus dieser Sitzung — `ffefb04..bea6a53` ist auf `main`, Arbeitsbaum leer.
 2. **Phase 4 ist die nächste Phase.** Ihr Umfang ist seit heute größer als der
    Fahrplan-Text von 2026-08-26: die sieben Altlasten, plus das Async-Protokoll für
    Pollinations-Videos (Beleg: `nova-reel` 524 nach 125 s), plus L-K.2, L-K.3, L-I.3.
