@@ -141,13 +141,42 @@ No request waits for a video any more. Anything not immediately finished comes b
 - [src/lib/generation/request-generation.ts](/Users/johnmeckel/heyhihosted/src/lib/generation/request-generation.ts) — holds the wait in the tab (3 s interval, 30 min cutoff, abortable) and returns the same `Response` the caller used to get directly. Callers use it in place of `fetch`.
 
 Why: VACE runs 348–700 s measured, the old server poll limit was 180 s and Vercel's default
-function limit is 300 s — it could never structurally complete. A reload still loses the run;
-the `predictionId` lives only in memory.
+function limit is 300 s — it could never structurally complete. Since Phase 4 a reload no
+longer loses the run — see "Läufe überleben einen Reload" below.
 
 **Pruna rejects any unknown input field** with `400 additional properties forbidden, found <field>`.
 Model schemas at `docs.api.pruna.ai/guides/models/<model>` proved reliable; guessing did not.
 Pruna has **no cancel endpoint**, so every valid payload starts a billable run — to exercise
 validation without paying, send an unreachable media URL (`https://invalid.invalid/x.jpg`).
+
+### Fehler: Code → Satz, nie Statusraten (since 2026-08-29)
+
+Der Server bleibt die Instanz, die sagt, was passiert ist: `ApiError` trägt einen `code` aus
+[src/lib/errors/error-codes.ts](/Users/johnmeckel/heyhihosted/src/lib/errors/error-codes.ts)
+und — wo es eine gibt — strukturierte `details` (`field`, `modelLabel`). Der Client
+übersetzt **nur über `code`**:
+[src/lib/errors/describe-error.ts](/Users/johnmeckel/heyhihosted/src/lib/errors/describe-error.ts)
+mappt Code → Satz + Handlung (`settings` / `retry` / `pick-model`); kein Status- oder
+Textmuster-Matching, das gehört an den Anbieter-Code. Der Fallback verschweigt nichts:
+Status plus Rohtext, nie "Ein Fehler ist aufgetreten". Der Rohtext geht nie verloren — er
+hängt als aufklappbares "Details" an der Fehlerkarte. [src/lib/errors/read-error-response.ts](/Users/johnmeckel/heyhihosted/src/lib/errors/read-error-response.ts)
+liest alle drei live belegten Formen (`{error: string}`, `{error: {message, code}}`,
+Nicht-JSON) plus `Retry-After` und `details`. Wer einen Code ohne Satz einführt, macht
+einen Test rot — genau dagegen ist `describe-error.test.ts` da.
+
+### Läufe überleben einen Reload (since 2026-08-29)
+
+Ein 202-Lauf schreibt beim Dispatch einen Eintrag in
+[src/lib/generation/run-store.ts](/Users/johnmeckel/heyhihosted/src/lib/generation/run-store.ts)
+(localStorage über `safe-storage`): predictionId, Modell, Prompt, Parameter und der
+eingefrorene Request-Body. Ergebnis, Fehler und Abbruch löschen den Eintrag — nur ein
+Reload lässt ihn liegen, und genau dafür ist er da. Der PlaygroundShell-Mount liest die
+Liste, hängt wieder laufende Karten an (mit dem ursprünglichen `startedAt`, damit der
+Zähler stimmt) und fragt über `pollPrediction` weiter, **ohne neu zu dispatchen**. Einträge
+älter als die 30-Minuten-Reißleine werden beim Lesen verworfen, nicht wiederaufgenommen.
+"Erneut versuchen" wiederholt den gespeicherten Lauf (R2 = a), nicht den Composer-Stand.
+Pollinations-Läufe laufen im Request und haben keine Lauf-Id — ein Reload verliert sie
+weiterhin, richtig so, sie dauern Sekunden.
 
 ## Upload Hardening
 

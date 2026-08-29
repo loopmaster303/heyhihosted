@@ -873,7 +873,8 @@ describe('/api/generate route', () => {
     const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
 
     expect(response.status).toBe(503);
-    expect(body.error).toMatch(/wan-t2v requires PRUNA_API_KEY/i);
+    expect(body.error).toMatch(/wan-t2v requires a Pruna key/i);
+    expect((body as { code?: string }).code).toBe('MISSING_PRUNA_KEY');
 
     if (originalKey) process.env.PRUNA_API_KEY = originalKey;
   });
@@ -889,7 +890,7 @@ describe('/api/generate route', () => {
     const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
 
     expect(response.status).toBe(503);
-    expect(body.error).toMatch(/zimage requires PRUNA_API_KEY/i);
+    expect(body.error).toMatch(/zimage requires a Pruna key/i);
     expect(generateViaPrunaMock).not.toHaveBeenCalled();
     expect(generatePollinationsImageMock).not.toHaveBeenCalled();
     expect(imageUrlMock).not.toHaveBeenCalled();

@@ -8,7 +8,9 @@ export class ApiError extends Error {
   constructor(
     public statusCode: number,
     message: string,
-    public code?: string
+    public code?: string,
+    /** Strukturierte Zusatzinformationen fuer die Client-Uebersetzung (z. B. field, modelLabel). */
+    public details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'ApiError';
@@ -25,9 +27,10 @@ export function handleApiError(error: unknown): NextResponse {
   // Handle custom ApiError
   if (error instanceof ApiError) {
     return NextResponse.json(
-      { 
-        error: error.message, 
+      {
+        error: error.message,
         code: error.code,
+        ...(error.details ? { details: error.details } : {}),
         timestamp: new Date().toISOString()
       },
       { status: error.statusCode }
@@ -81,15 +84,20 @@ export function validateRequest<T>(
   data: unknown
 ): T {
   const result = schema.safeParse(data);
-  
+
   if (!result.success) {
+    // Das erste fehlende/ungueltige Feld wandert in die Anzeige ("Der Prompt
+    // fehlt.") — der Rest bleibt im Log der Route.
+    const first = result.error.errors[0];
+    const field = first && first.path.length > 0 ? String(first.path[0]) : undefined;
     throw new ApiError(
-      400, 
-      'Invalid request data', 
-      'VALIDATION_ERROR'
+      400,
+      'Invalid request data',
+      'VALIDATION_ERROR',
+      field ? { field } : undefined
     );
   }
-  
+
   return result.data;
 }
 

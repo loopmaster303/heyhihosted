@@ -20,9 +20,19 @@ export interface PollenAccountInfo {
   rateLimitEnabled: boolean;
 }
 
+/**
+ * Drei zustaendige Zustaende fuer einen hinterlegten Schluessel: 403 (fehlende
+ * account:usage-Berechtigung) darf NICHT als Trennung gelten — Erzeugen
+ * funktioniert trotzdem. Nur 401 ist eine echte Ablehnung.
+ */
+export type PollenKeyStatus = 'none' | 'ok' | 'rejected' | 'unverifiable';
+
 export interface UsePollenKeyReturn {
   pollenKey: string | null;
   isConnected: boolean;
+  keyStatus: PollenKeyStatus;
+  /** Grund aus der Route im Klartext, fuer die Anzeige neben der Lampe. */
+  keyDetail: string | null;
   accountInfo: PollenAccountInfo | null;
   isLoadingAccount: boolean;
   connectOAuth: () => void;
@@ -58,6 +68,8 @@ function extractKeyFromFragment(): string | null {
 export function usePollenKey(): UsePollenKeyReturn {
   const [pollenKey, setPollenKey] = useState<string | null>(null);
   const [accountInfo, setAccountInfo] = useState<PollenAccountInfo | null>(null);
+  const [keyStatus, setKeyStatus] = useState<PollenKeyStatus>('none');
+  const [keyDetail, setKeyDetail] = useState<string | null>(null);
   const [isLoadingAccount, setIsLoadingAccount] = useState(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -85,6 +97,8 @@ export function usePollenKey(): UsePollenKeyReturn {
     const key = getStoredPollenKey();
     if (!key) {
       setAccountInfo(null);
+      setKeyStatus('none');
+      setKeyDetail(null);
       return;
     }
 
@@ -100,20 +114,27 @@ export function usePollenKey(): UsePollenKeyReturn {
         // Token, eine fehlende Berechtigung oder ein fremder Schluessel sein.
         // Die Route reicht den Text von Pollinations durch — der gehoert ins Log.
         const detail = await response.json().catch(() => null);
+        const reason = typeof detail?.error === 'string' ? detail.error : null;
         console.warn(
           '[BYOP] Failed to fetch account info:',
           response.status,
-          detail?.error ?? '(keine Begruendung von Pollinations)',
+          reason ?? '(keine Begruendung von Pollinations)',
         );
         setAccountInfo(null);
+        setKeyStatus(response.status === 401 ? 'rejected' : 'unverifiable');
+        setKeyDetail(reason);
         return;
       }
 
       const data = await response.json();
       setAccountInfo(data);
+      setKeyStatus('ok');
+      setKeyDetail(null);
     } catch (error) {
       console.warn('[BYOP] Account info fetch error:', error);
       setAccountInfo(null);
+      setKeyStatus('unverifiable');
+      setKeyDetail(null);
     } finally {
       setIsLoadingAccount(false);
     }
@@ -149,7 +170,11 @@ export function usePollenKey(): UsePollenKeyReturn {
     const redirectUrl = `${window.location.origin}/unified`;
     const authorizeUrl = new URL('https://enter.pollinations.ai/authorize');
     authorizeUrl.searchParams.set('redirect_url', redirectUrl);
-    authorizeUrl.searchParams.set('permissions', 'profile,balance,usage');
+    // Pollinations verlangt fuer den Kontostand `account:usage` (403-Begruendung
+    // vom 2026-08-27). Ohne diesen Namen bleibt die Lampe dauerhaft
+    // "nicht pruefbar", obwohl der Schluessel funktioniert. Verifikation V1:
+    // einmal durch den echten OAuth-Flow gehen und /api/pollen/account pruefen.
+    authorizeUrl.searchParams.set('permissions', 'profile,balance,usage,account:usage');
     authorizeUrl.searchParams.set('expiry', '30');
 
     window.location.href = authorizeUrl.toString();
@@ -167,11 +192,15 @@ export function usePollenKey(): UsePollenKeyReturn {
     removeStoredPollenKey();
     setPollenKey(null);
     setAccountInfo(null);
+    setKeyStatus('none');
+    setKeyDetail(null);
   }, []);
 
   return {
     pollenKey,
     isConnected: !!pollenKey,
+    keyStatus,
+    keyDetail,
     accountInfo,
     isLoadingAccount,
     connectOAuth,

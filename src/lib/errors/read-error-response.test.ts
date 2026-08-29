@@ -25,3 +25,19 @@ test('liest Retry-After als retryAfterSeconds', async () => {
   const r = await readErrorResponse(res);
   expect(r.retryAfterSeconds).toBe(19);
 });
+
+test('liest details.field und details.modelLabel fuer die Uebersetzung', async () => {
+  const r = await readErrorResponse(jsonResponse({
+    error: 'Pruna API error (400): additional properties forbidden',
+    code: 'PRUNA_API_ERROR',
+    details: { field: 'voellig_unbekanntes_feld' },
+  }));
+  expect(r.field).toBe('voellig_unbekanntes_feld');
+
+  const m = await readErrorResponse(jsonResponse({
+    error: 'Model qwen-image requires a Pruna key which is not configured',
+    code: 'MISSING_PRUNA_KEY',
+    details: { modelLabel: 'qwen-image' },
+  }));
+  expect(m.modelLabel).toBe('qwen-image');
+});

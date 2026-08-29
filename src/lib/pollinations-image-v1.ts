@@ -67,7 +67,15 @@ export async function generatePollinationsImage(input: GeneratePollinationsImage
     const detail = typeof result.error === 'string'
       ? result.error
       : result.error?.message || 'Unknown Pollinations image generation error';
-    throw new ApiError(response.status, `Pollinations API error: ${detail}`);
+    // Ohne Code kann der Client nicht uebersetzen — 401 (kein/abgelehnter
+    // Schluessel) und 402 (Pollen aufgebraucht) sind die beiden Faelle, die
+    // der Nutzer selbst loesen kann.
+    const code = response.status === 401
+      ? 'POLLEN_KEY_REQUIRED'
+      : response.status === 402
+        ? 'POLLEN_INSUFFICIENT'
+        : undefined;
+    throw new ApiError(response.status, `Pollinations API error: ${detail}`, code);
   }
 
   const firstAsset = result.data?.[0];

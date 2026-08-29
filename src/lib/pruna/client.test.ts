@@ -72,6 +72,25 @@ describe('Pruna client', () => {
     });
   });
 
+  // Der Feldname ist die einzige verwertbare Information in der Pruna-400 —
+  // er wandert strukturiert in details.field (Tabelle Zeile 2).
+  it('extracts the rejected field name from a Pruna 400 into details.field', async () => {
+    process.env.PRUNA_API_KEY = 'test-pruna-key';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => JSON.stringify({
+        message: 'property input validation failed: additional properties forbidden, found voellig_unbekanntes_feld',
+      }),
+    } as Response);
+
+    await expect(generateViaPruna('wan-t2v', { prompt: 'x', duration: 5 })).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'PRUNA_API_ERROR',
+      details: { field: 'voellig_unbekanntes_feld' },
+    });
+  });
+
   it('throws PRUNA_PREDICTION_FAILED when Pruna submit returns an immediate failed status', async () => {
     process.env.PRUNA_API_KEY = 'test-pruna-key';
     global.fetch = jest.fn().mockResolvedValue({

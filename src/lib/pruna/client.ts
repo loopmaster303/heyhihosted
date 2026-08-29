@@ -45,7 +45,7 @@ export async function generateViaPruna(
 ): Promise<PrunaDispatchResult> {
   const apiKey = requestApiKey ?? process.env.PRUNA_API_KEY;
   if (!apiKey) {
-    throw new ApiError(503, 'PRUNA_API_KEY is not set', 'MISSING_PRUNA_KEY');
+    throw new ApiError(503, 'PRUNA_API_KEY is not set', 'MISSING_PRUNA_KEY', { modelLabel: modelId });
   }
 
   const mapping = getPrunaModelMapping(modelId);
@@ -88,10 +88,14 @@ export async function generateViaPruna(
 
   if (!submitResponse.ok) {
     const errorText = await submitResponse.text().catch(() => 'Unknown error');
+    // Der Feldname ist die einzige verwertbare Information in einer Pruna-400:
+    // "property input validation failed: additional properties forbidden, found <feld>"
+    const field = /additional properties forbidden, found ([A-Za-z0-9_.-]+)/.exec(errorText)?.[1];
     throw new ApiError(
       submitResponse.status >= 500 ? 502 : 400,
       `Pruna API error (${submitResponse.status}): ${errorText}`,
-      'PRUNA_API_ERROR'
+      'PRUNA_API_ERROR',
+      field ? { field } : undefined
     );
   }
 
@@ -133,7 +137,7 @@ export async function fetchPrunaPredictionStatus(
 ): Promise<PrunaPredictionResult | 'pending'> {
   const apiKey = requestApiKey ?? process.env.PRUNA_API_KEY;
   if (!apiKey) {
-    throw new ApiError(503, 'PRUNA_API_KEY is not set', 'MISSING_PRUNA_KEY');
+    throw new ApiError(503, 'PRUNA_API_KEY is not set', 'MISSING_PRUNA_KEY', { modelLabel: modelId });
   }
 
   const mapping = getPrunaModelMapping(modelId);

@@ -31,8 +31,12 @@ export interface GalleryRun {
   isVideo: boolean;
   aspectRatio?: string;
   status: 'running' | 'failed';
-  /** Nur bei `failed` gesetzt. */
+  /** Nur bei `failed` gesetzt: der uebersetzte Satz. */
   message?: string;
+  /** Roher Antwortkoerper — per "Details" aufklappbar, wird nie weggekuerzt. */
+  raw?: string;
+  /** Naechste Handlung aus der Uebersetzung: settings / retry / pick-model. */
+  aktion?: 'settings' | 'retry' | 'pick-model';
 }
 
 /**
@@ -64,6 +68,21 @@ function cssAspectRatio(ar?: string): string {
   return ar && /^\d+(\.\d+)?:\d+(\.\d+)?$/.test(ar) ? ar.replace(':', ' / ') : '1 / 1';
 }
 
+// Messwerte vom 2026-08-26: wan-t2v lag bei rund 45 s, VACE bei 348–700 s.
+// Erwartung als Satz, nicht als Balken — Pruna liefert keinen Prozentwert.
+const VIDEO_EXPECTATION: Record<string, { label: string; seconds: number }> = {
+  vace: { label: 'VACE braucht typischerweise 6–12 Minuten', seconds: 600 },
+  'wan-t2v': { label: 'Wan T2V braucht typischerweise etwa eine Minute', seconds: 45 },
+};
+const DEFAULT_VIDEO_EXPECTATION = { label: 'Video kann mehrere Minuten dauern', seconds: 300 };
+
+/** Ab 60 s lesbar: 11:40 statt 700 s. */
+function formatElapsed(secs: number): string {
+  return secs >= 60
+    ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`
+    : `${secs} s`;
+}
+
 function RunningCard({ run, onCancel }: { run: GalleryRun; onCancel?: () => void }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -71,6 +90,9 @@ function RunningCard({ run, onCancel }: { run: GalleryRun; onCancel?: () => void
     return () => clearInterval(t);
   }, []);
   const secs = Math.max(0, Math.floor((now - run.startedAt) / 1000));
+  const expectation = VIDEO_EXPECTATION[run.modelId]
+    ?? (run.isVideo ? DEFAULT_VIDEO_EXPECTATION : undefined);
+  const overdue = !!expectation && secs >= expectation.seconds * 2;
   return (
     <div
       role="status"
@@ -81,10 +103,13 @@ function RunningCard({ run, onCancel }: { run: GalleryRun; onCancel?: () => void
       <AsciiSpinner />
       <span className="text-[11px] font-medium text-foreground">Generiere…</span>
       <span className="font-mono text-[10.5px] text-muted-foreground">{run.modelId}</span>
-      <span className="text-[11px] tabular-nums text-muted-foreground/80">{secs} s</span>
-      {run.isVideo && (
-        <span className="text-[10px] leading-snug text-muted-foreground/60">
-          Video kann mehrere Minuten dauern
+      <span className="text-[11px] tabular-nums text-muted-foreground/80">{formatElapsed(secs)}</span>
+      {expectation && (
+        <span className="text-[10px] leading-snug text-muted-foreground/60">{expectation.label}</span>
+      )}
+      {overdue && (
+        <span className="text-[10px] leading-snug text-amber-600/90">
+          Dieser Lauf braucht ungewöhnlich lange.
         </span>
       )}
       {onCancel && (
@@ -107,11 +132,19 @@ function FailedCard({
   run,
   onRetry,
   onDismiss,
+  onOpenSettings,
+  onPickModel,
 }: {
   run: GalleryRun;
   onRetry?: () => void;
   onDismiss?: () => void;
+  onOpenSettings?: () => void;
+  onPickModel?: () => void;
 }) {
+  // Die Meldung wird nie abgeschnitten (F3): der Satz steht ungekuerzt auf der
+  // Karte, der Rohtext ist hinter "Details" erreichbar.
+  const [detailOpen, setDetailOpen] = useState(false);
+  const hasDetail = !!run.raw;
   return (
     <div
       role="alert"
@@ -120,9 +153,41 @@ function FailedCard({
     >
       <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
       <span className="text-[11px] font-medium text-destructive">Fehlgeschlagen</span>
-      <span className="line-clamp-3 text-[10px] leading-snug text-destructive/80">{run.message}</span>
+      <span className="text-[10px] leading-snug text-destructive/80">{run.message}</span>
+      {hasDetail && (
+        <button
+          type="button"
+          onClick={() => setDetailOpen((v) => !v)}
+          className="text-[10px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+        >
+          {detailOpen ? 'Details verbergen' : 'Details'}
+        </button>
+      )}
+      {hasDetail && detailOpen && (
+        <span className="max-h-24 w-full overflow-y-auto break-words rounded-md bg-background/70 p-1.5 text-left font-mono text-[9.5px] leading-snug text-muted-foreground">
+          {run.raw}
+        </span>
+      )}
       <span className="font-mono text-[10px] text-muted-foreground">{run.modelId}</span>
       <div className="mt-1 flex items-center gap-1.5">
+        {run.aktion === 'settings' && onOpenSettings && (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="rounded-md border border-border bg-background px-2 py-1 text-[10.5px] font-medium text-foreground transition-colors hover:border-primary/55"
+          >
+            Einstellungen öffnen
+          </button>
+        )}
+        {run.aktion === 'pick-model' && onPickModel && (
+          <button
+            type="button"
+            onClick={onPickModel}
+            className="rounded-md border border-border bg-background px-2 py-1 text-[10.5px] font-medium text-foreground transition-colors hover:border-primary/55"
+          >
+            Modell wählen
+          </button>
+        )}
         {onRetry && (
           <button
             type="button"
@@ -157,6 +222,10 @@ interface Props {
   onCancelRun?: (id: string) => void;
   onRetryRun?: (id: string) => void;
   onDismissRun?: (id: string) => void;
+  /** Handlung "Einstellungen öffnen" auf der Fehlerkarte. */
+  onOpenSettings?: () => void;
+  /** Handlung "Modell wählen" auf der Fehlerkarte. */
+  onPickModel?: () => void;
 }
 
 export function Gallery({
@@ -167,6 +236,8 @@ export function Gallery({
   onCancelRun,
   onRetryRun,
   onDismissRun,
+  onOpenSettings,
+  onPickModel,
 }: Props) {
   const [items, setItems] = useState<GalleryItem[]>([]);
   // Ein 401 von Pollinations kommt im img-Tag an, nicht in unserem fetch. Ohne
@@ -249,6 +320,8 @@ export function Gallery({
             run={run}
             onRetry={onRetryRun && (() => onRetryRun(run.id))}
             onDismiss={onDismissRun && (() => onDismissRun(run.id))}
+            onOpenSettings={onOpenSettings}
+            onPickModel={onPickModel}
           />
         )))}
         {items.map((it) => {

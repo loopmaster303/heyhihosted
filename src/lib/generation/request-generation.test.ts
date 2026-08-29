@@ -1,6 +1,14 @@
 import { requestGeneration } from './request-generation';
+import { readStoredRuns } from './run-store';
 
 const HEADERS = { 'Content-Type': 'application/json', 'X-Pruna-Key': 'pru_test' };
+const CONTEXT = {
+  runId: 'run-7',
+  prompt: 'ein roter fuchs',
+  params: { aspect_ratio: '16:9' },
+  isVideo: true,
+  aspectRatio: '16:9',
+};
 
 describe('requestGeneration', () => {
   const originalFetch = global.fetch;
@@ -76,5 +84,81 @@ describe('requestGeneration', () => {
 
     await expect(requestGeneration({ model: 'vace' }, { headers: HEADERS }))
       .rejects.toThrow(/missing predictionId/i);
+  });
+
+  describe('Laufstabilitaet (run-store)', () => {
+    beforeEach(() => localStorage.clear());
+
+    it('schreibt bei 202 einen Eintrag und loescht ihn beim Ergebnis', async () => {
+      jest.useFakeTimers();
+      let seenDuringPoll: ReturnType<typeof readStoredRuns> = [];
+      const done = new Response('{}', { status: 200 });
+      global.fetch = jest.fn()
+        .mockResolvedValueOnce(new Response(
+          JSON.stringify({ pending: true, predictionId: 'pred-9', model: 'vace' }),
+          { status: 202 },
+        ))
+        .mockImplementationOnce(async () => {
+          seenDuringPoll = readStoredRuns();
+          return done;
+        });
+
+      const pending = requestGeneration(
+        { model: 'vace', prompt: 'eingefroren' },
+        { headers: HEADERS, context: CONTEXT },
+      );
+      await jest.advanceTimersByTimeAsync(4_000);
+      await pending;
+
+      // Zwischen 202 und Ergebnis lag der Eintrag im Store — mit allem,
+      // was die Wiederaufnahme und der Retry (R2 = a) brauchen.
+      expect(seenDuringPoll).toHaveLength(1);
+      expect(seenDuringPoll[0]).toMatchObject({
+        runId: 'run-7',
+        predictionId: 'pred-9',
+        model: 'vace',
+        prompt: 'ein roter fuchs',
+        isVideo: true,
+        aspectRatio: '16:9',
+        body: { model: 'vace', prompt: 'eingefroren' },
+      });
+      // Danach ist er weg — das Ergebnis loescht ihn.
+      expect(readStoredRuns()).toEqual([]);
+    });
+
+    it('loescht den Eintrag auch beim Abbruch', async () => {
+      jest.useFakeTimers();
+      const controller = new AbortController();
+      global.fetch = jest.fn().mockResolvedValueOnce(new Response(
+        JSON.stringify({ pending: true, predictionId: 'pred-9', model: 'vace' }),
+        { status: 202 },
+      ));
+
+      const pending = requestGeneration({ model: 'vace' }, { headers: HEADERS, context: CONTEXT, signal: controller.signal });
+      const settled = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+      await jest.advanceTimersByTimeAsync(1);
+      expect(readStoredRuns().map((r) => r.runId)).toEqual(['run-7']);
+      controller.abort();
+      await settled;
+
+      expect(readStoredRuns()).toEqual([]);
+    });
+
+    it('schreibt ohne context nichts in den Store (Chat-Pfad unberuehrt)', async () => {
+      jest.useFakeTimers();
+      const done = new Response('{}', { status: 200 });
+      global.fetch = jest.fn()
+        .mockResolvedValueOnce(new Response(
+          JSON.stringify({ pending: true, predictionId: 'pred-9', model: 'vace' }),
+          { status: 202 },
+        ))
+        .mockResolvedValueOnce(done);
+
+      const pending = requestGeneration({ model: 'vace' }, { headers: HEADERS });
+      await jest.advanceTimersByTimeAsync(4_000);
+      await pending;
+
+      expect(readStoredRuns()).toEqual([]);
+    });
   });
 });

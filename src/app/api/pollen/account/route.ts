@@ -27,8 +27,17 @@ export async function GET(request: Request) {
     }
 
     if (!response.ok) {
+      // Pollinations liefert mal einen String, mal { message, code } — die
+      // Leser (Hook, Konsole) erwarten einen String. Genau dieses Durchreichen
+      // eines Objekts war der Mechanismus hinter "oft steht nur Fehler da".
+      const upstream = data?.error;
+      const message = typeof upstream === 'string'
+        ? upstream
+        : upstream && typeof upstream === 'object' && typeof upstream.message === 'string'
+          ? upstream.message
+          : undefined;
       return NextResponse.json(
-        { error: data?.error || `Failed to fetch Pollinations account info (${response.status})` },
+        { error: message ?? `Failed to fetch Pollinations account info (${response.status})` },
         { status: response.status },
       );
     }

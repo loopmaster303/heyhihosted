@@ -5,6 +5,8 @@ export interface ErrorResponse {
   raw: string;
   field?: string;
   retryAfterSeconds?: number;
+  /** Aus details.modelLabel — fuer Saetze, die das Modell beim Namen nennen. */
+  modelLabel?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -24,6 +26,7 @@ export async function readErrorResponse(res: Response): Promise<ErrorResponse> {
   let message = '';
   let code: string | undefined;
   let field: string | undefined;
+  let modelLabel: string | undefined;
 
   if (isRecord(body)) {
     const err = body.error;
@@ -37,8 +40,9 @@ export async function readErrorResponse(res: Response): Promise<ErrorResponse> {
     if (!message && typeof body.message === 'string') message = body.message;
 
     const details = body.details;
-    if (isRecord(details) && typeof details.field === 'string') {
-      field = details.field;
+    if (isRecord(details)) {
+      if (typeof details.field === 'string') field = details.field;
+      if (typeof details.modelLabel === 'string') modelLabel = details.modelLabel;
     } else if (Array.isArray(details) && isRecord(details[0]) && Array.isArray(details[0].path)) {
       const path = details[0].path;
       if (typeof path[0] === 'string') field = path[0];
@@ -52,5 +56,5 @@ export async function readErrorResponse(res: Response): Promise<ErrorResponse> {
     if (!Number.isNaN(parsed)) retryAfterSeconds = parsed;
   }
 
-  return { status: res.status, message, code, raw, field, retryAfterSeconds };
+  return { status: res.status, message, code, raw, field, retryAfterSeconds, modelLabel };
 }

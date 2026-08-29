@@ -14,7 +14,10 @@ import { usePollenKey } from '@/hooks/usePollenKey';
 import { useProviderMode } from '@/hooks/useProviderMode';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { buildGenerateBody, buildGenerateHeaders, type GenerateBody } from '@/lib/playground/generate-request';
-import { requestGeneration } from '@/lib/generation/request-generation';
+import { requestGeneration, pollPrediction } from '@/lib/generation/request-generation';
+import { readStoredRuns, removeStoredRun, type StoredRun } from '@/lib/generation/run-store';
+import { readErrorResponse } from '@/lib/errors/read-error-response';
+import { describeError, type ErrorDescription } from '@/lib/errors/describe-error';
 import { isModelInMode } from '@/lib/playground/mode-mapping';
 import { getDefaultDurationSeconds, getUnifiedModel } from '@/config/unified-image-models';
 import { schemaForEntry, defaultsFor, visibleFields, type ParamValues } from '@/lib/playground/param-schema';
@@ -23,6 +26,7 @@ import { BlobManager } from '@/lib/blob-manager';
 import { OutputService } from '@/lib/services/output-service';
 import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
 import { readLocal } from '@/lib/safe-storage';
+import { getStoredPollenKey } from '@/lib/client-pollen-key';
 
 /**
  * Ein abgeschickter Lauf mit allem, was seine Wiederholung braucht. Ohne das
@@ -60,17 +64,37 @@ let runCounter = 0;
 const nextRunId = () => `run-${++runCounter}`;
 
 /**
- * Die Routen antworten mit { error }. Ohne das Auslesen landet der rohe
- * JSON-Text in der Oberfläche, was niemandem hilft.
+ * Die Route antwortet mit allen drei live belegten Formen: {error: string},
+ * {error: {message, code}} und Nicht-JSON (Kante). Der Client uebersetzt NUR
+ * ueber unsere eigenen Codes (describe-error.ts); alles andere bleibt
+ * ungeschoent bei Status plus Rohtext — der Rohtext wandert als Detail an die
+ * Karte, er wird nie weggeworfen (F2, F4).
  */
-async function messageFrom(res: Response, fallback: string): Promise<string> {
-  try {
-    const body = await res.json();
-    if (typeof body?.error === 'string') return body.error;
-  } catch {
-    // Keine JSON-Antwort — der Statuscode muss reichen.
+interface ParsedFailure {
+  text: string;
+  /** Roher Antwortkoerper, wenn er mehr sagt als der uebersetzte Satz. */
+  raw?: string;
+  aktion?: ErrorDescription['aktion'];
+}
+
+async function parseFailure(res: Response, fallback: string): Promise<ParsedFailure> {
+  const parsed = await readErrorResponse(res);
+  const described = describeError(parsed.code, {
+    modelLabel: parsed.modelLabel,
+    field: parsed.field,
+    retryAfterSeconds: parsed.retryAfterSeconds,
+  });
+  if (described) {
+    const raw = parsed.raw && parsed.raw !== parsed.message ? parsed.raw : undefined;
+    return { text: described.satz, raw, aktion: described.aktion };
   }
-  return `${fallback} (${res.status})`;
+  const basis = parsed.message || fallback;
+  const raw = parsed.raw && parsed.raw !== basis ? parsed.raw : undefined;
+  return { text: `${basis} (${parsed.status})`, raw };
+}
+
+function failureError(failure: ParsedFailure): Error & { raw?: string; aktion?: ErrorDescription['aktion'] } {
+  return Object.assign(new Error(failure.text), { raw: failure.raw, aktion: failure.aktion });
 }
 
 export function PlaygroundShell() {
@@ -174,7 +198,7 @@ export function PlaygroundShell() {
         // die modellspezifischen Richtlinien aus.
         body: JSON.stringify({ prompt: state.prompt, modelId: currentModel.id }),
       });
-      if (!res.ok) throw new Error(await messageFrom(res, 'Enhance fehlgeschlagen'));
+      if (!res.ok) throw new Error((await parseFailure(res, 'Enhance fehlgeschlagen')).text);
       const data = await res.json();
       if (data?.enhancedPrompt) setPrompt(data.enhancedPrompt);
     } catch (e) {
@@ -200,66 +224,130 @@ export function PlaygroundShell() {
     };
     try {
       // Lange Pruna-Laeufe warten nicht im Request — requestGeneration haelt
-      // die Statusabfrage im Browser, bis das Ergebnis da ist.
-      const res = await requestGeneration(body, { headers, signal: run.controller.signal });
-      if (!res.ok) throw new Error(await messageFrom(res, 'Generierung fehlgeschlagen'));
-      const ct = res.headers.get('content-type') ?? '';
-      let mediaUrl: string;
-      let kind: 'image' | 'video';
-      if (ct.startsWith('application/json')) {
-        const data = await res.json();
-        const candidate = data.videoUrl ?? data.imageUrl;
-        if (typeof candidate !== 'string' || !candidate) {
-          throw new Error('generate response missing videoUrl/imageUrl');
-        }
-        mediaUrl = candidate;
-        kind = data.videoUrl ? 'video' : 'image';
-      } else {
-        const blob = await res.blob();
-        mediaUrl = BlobManager.createURL(blob, 'playground');
-        kind = ct.startsWith('video/') ? 'video' : 'image';
-      }
-      // Die Route liefert bei beiden Providern eine bereits persistierte
-      // Media-Storage-URL — die darf direkt als remoteUrl gespeichert werden.
-      // Der Blob-Pfad (isPollinations: false) speichert OHNE remoteUrl, und
-      // solche Assets zeigt die Galerie schlicht nicht — darum durften Pruna-
-      // Ergebnisse nie erscheinen. Nur der blob:-Fallback bleibt lokal.
-      const assetId = await OutputService.saveGeneratedAsset({
-        url: mediaUrl,
-        prompt: sentPrompt,
-        modelId: run.modelId,
-        conversationId: PLAYGROUND_CONVERSATION_ID,
-        isVideo: kind === 'video',
-        isPollinations: mediaUrl.startsWith('http'),
-        params: sentParams,
+      // die Statusabfrage im Browser, bis das Ergebnis da ist. Der context
+      // schreibt den Lauf in den run-store, damit ein Reload ihn wiederaufnimmt.
+      const res = await requestGeneration(body, {
+        headers,
+        signal: run.controller.signal,
+        context: {
+          runId: run.id,
+          prompt: sentPrompt,
+          params: sentParams,
+          isVideo: run.isVideo,
+          aspectRatio: run.aspectRatio,
+        },
       });
-      // Echte Asset-ID, damit die Selektion den Galerie-Reload ueberlebt.
-      const item: GalleryItem = {
-        id: assetId ?? `${Date.now()}`, url: mediaUrl, kind,
-        prompt: sentPrompt, modelId: run.modelId, timestamp: Date.now(),
-        params: sentParams,
-      };
-      // Der Effekt schreibt den Ref erst nach dem Render — zwei im selben Tick
-      // fertige Laeufe saehen sonst beide "nichts ausgewaehlt".
-      if (selectedRef.current === null) {
-        selectedRef.current = item;
-        setSelected(item);
-      }
-      setRuns((rs) => rs.filter((r) => r.id !== run.id));
-      setGalleryKey((k) => k + 1);
+      if (!res.ok) throw failureError(await parseFailure(res, 'Generierung fehlgeschlagen'));
+      await consumeFinishedResponse(res, run);
     } catch (e) {
-      if ((e as Error).name === 'AbortError') {
-        setRuns((rs) => rs.filter((r) => r.id !== run.id));
-        return;
-      }
-      // Generierungs-Fehler bleiben als Karte in der Galerie liegen — der Alert
-      // ueber der Leiste bleibt Enhance-Fehlern vorbehalten. Der Lauf selbst ist
-      // der Retry-Kontext und darf deshalb nicht verworfen werden.
-      setRuns((rs) => rs.map((r) => (
-        r.id === run.id ? { ...r, status: 'failed', message: (e as Error).message } : r
-      )));
+      handleRunFailure(run, e);
     }
   };
+
+  /** Nimmt eine fertige Response an: speichern, auswählen, Galerie auffrischen. */
+  const consumeFinishedResponse = async (res: Response, run: ActiveRun) => {
+    const ct = res.headers.get('content-type') ?? '';
+    let mediaUrl: string;
+    let kind: 'image' | 'video';
+    if (ct.startsWith('application/json')) {
+      const data = await res.json();
+      const candidate = data.videoUrl ?? data.imageUrl;
+      if (typeof candidate !== 'string' || !candidate) {
+        throw new Error('generate response missing videoUrl/imageUrl');
+      }
+      mediaUrl = candidate;
+      kind = data.videoUrl ? 'video' : 'image';
+    } else {
+      const blob = await res.blob();
+      mediaUrl = BlobManager.createURL(blob, 'playground');
+      kind = ct.startsWith('video/') ? 'video' : 'image';
+    }
+    // Die Route liefert bei beiden Providern eine bereits persistierte
+    // Media-Storage-URL — die darf direkt als remoteUrl gespeichert werden.
+    // Der Blob-Pfad (isPollinations: false) speichert OHNE remoteUrl, und
+    // solche Assets zeigt die Galerie schlicht nicht — darum durften Pruna-
+    // Ergebnisse nie erscheinen. Nur der blob:-Fallback bleibt lokal.
+    const assetId = await OutputService.saveGeneratedAsset({
+      url: mediaUrl,
+      prompt: run.prompt,
+      modelId: run.modelId,
+      conversationId: PLAYGROUND_CONVERSATION_ID,
+      isVideo: kind === 'video',
+      isPollinations: mediaUrl.startsWith('http'),
+      params: run.params,
+    });
+    // Echte Asset-ID, damit die Selektion den Galerie-Reload ueberlebt.
+    const item: GalleryItem = {
+      id: assetId ?? `${Date.now()}`, url: mediaUrl, kind,
+      prompt: run.prompt, modelId: run.modelId, timestamp: Date.now(),
+      params: run.params,
+    };
+    // Der Effekt schreibt den Ref erst nach dem Render — zwei im selben Tick
+    // fertige Laeufe saehen sonst beide "nichts ausgewaehlt".
+    if (selectedRef.current === null) {
+      selectedRef.current = item;
+      setSelected(item);
+    }
+    setRuns((rs) => rs.filter((r) => r.id !== run.id));
+    setGalleryKey((k) => k + 1);
+  };
+
+  /** Gescheiterte Laeufe bleiben als Karte liegen — mit Satz, Rohtext und Handlung. */
+  const handleRunFailure = (run: ActiveRun, e: unknown) => {
+    if ((e as Error).name === 'AbortError') {
+      setRuns((rs) => rs.filter((r) => r.id !== run.id));
+      return;
+    }
+    const err = e as Error & { raw?: string; aktion?: ErrorDescription['aktion'] };
+    setRuns((rs) => rs.map((r) => (
+      r.id === run.id
+        ? { ...r, status: 'failed', message: err.message, raw: err.raw, aktion: err.aktion }
+        : r
+    )));
+  };
+
+  // Wiederaufnahme nach einem Reload (L3): der run-store haelt die Laeufe, die
+  // kein Ende erlebt haben. Sie werden NICHT neu dispatcht — nur weitergefragt.
+  useEffect(() => {
+    const stored = readStoredRuns();
+    if (stored.length === 0) return;
+    // Bewusst aus dem Storage gelesen, nicht aus dem Hook-State: der ist beim
+    // ersten Effektlauf noch null.
+    const prunaKey = readLocal('prunaApiKey') ?? undefined;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...buildGenerateHeaders(getStoredPollenKey() ?? undefined, prunaKey),
+    };
+    stored.forEach((entry: StoredRun) => {
+      const run: ActiveRun = {
+        body: entry.body as GenerateBody,
+        prompt: entry.prompt,
+        params: entry.params as ParamValues,
+        modelId: entry.model,
+        isVideo: entry.isVideo,
+        aspectRatio: entry.aspectRatio,
+        id: nextRunId(),
+        startedAt: entry.startedAt,
+        status: 'running',
+        controller: new AbortController(),
+      };
+      setRuns((rs) => [run, ...rs]);
+      void (async () => {
+        try {
+          const res = await pollPrediction(entry.predictionId, entry.model, {
+            headers,
+            signal: run.controller.signal,
+          });
+          if (!res.ok) throw failureError(await parseFailure(res, 'Generierung fehlgeschlagen'));
+          await consumeFinishedResponse(res, run);
+        } catch (e) {
+          handleRunFailure(run, e);
+        } finally {
+          removeStoredRun(entry.runId);
+        }
+      })();
+    });
+  }, []);
 
   // Nur laufende Generierungen zaehlen gegen die Grenze; gescheiterte Karten
   // liegen nur noch herum und blockieren nichts.
@@ -432,6 +520,8 @@ export function PlaygroundShell() {
               onCancelRun={onCancelRun}
               onRetryRun={onRetryRun}
               onDismissRun={onDismissRun}
+              onOpenSettings={() => setSettingsOpen(true)}
+              onPickModel={() => setDrawerOpen(true)}
             />
             <div className="hidden min-h-0 xl:block">
               <MetaRail

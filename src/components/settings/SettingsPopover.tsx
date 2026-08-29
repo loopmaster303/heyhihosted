@@ -41,7 +41,7 @@ export function SettingsPopover({ open, onClose, voice }: {
   onClose: () => void
   voice?: VoiceSettings
 }) {
-  const { pollenKey, isConnected: isPollenConnected, connectManual, disconnect } = usePollenKey()
+  const { pollenKey, isConnected: isPollenConnected, keyStatus, keyDetail, connectManual, disconnect } = usePollenKey()
   const { providerMode, setProviderMode, prunaAvailable } = useProviderMode()
   const hasPollenKey = useHasPollenKey()
   const { visibleModels: allTextModels } = useVisiblePollinationsTextModels()
@@ -99,23 +99,35 @@ export function SettingsPopover({ open, onClose, voice }: {
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold">Pollinations</span>
+            {/* Drei Lampenzustaende: 403 heisst "nicht pruefbar", nicht abgelehnt —
+                Erzeugen funktioniert trotzdem. Nur 401 faerbt rot. */}
             <span
               className={cn(
                 'h-1.5 w-1.5 rounded-full',
-                isPollenConnected ? 'bg-[hsl(150_55%_50%)]' : 'bg-[hsl(38_85%_60%)]'
+                keyStatus === 'ok' && 'bg-[hsl(150_55%_50%)]',
+                (keyStatus === 'unverifiable' || (keyStatus !== 'ok' && keyStatus !== 'rejected' && isPollenConnected)) && 'bg-[hsl(38_85%_60%)]',
+                keyStatus === 'rejected' && 'bg-[hsl(0_72%_55%)]',
+                !isPollenConnected && 'bg-[hsl(38_85%_60%)]'
               )}
             />
             <span
               className={cn(
                 'text-[10px]',
-                isPollenConnected
+                keyStatus === 'ok'
                   ? 'text-[hsl(150_55%_50%)]'
                   : 'text-muted-foreground'
               )}
             >
-              {isPollenConnected ? 'Verbunden' : 'Nicht verbunden'}
+              {keyStatus === 'ok' && 'Verbunden'}
+              {keyStatus === 'rejected' && 'Schlüssel wird abgelehnt — neu verbinden'}
+              {keyStatus === 'unverifiable' && 'Verbunden — Kontostand nicht abrufbar, Erzeugen funktioniert trotzdem'}
+              {keyStatus !== 'ok' && keyStatus !== 'rejected' && keyStatus !== 'unverifiable'
+                && (isPollenConnected ? 'Verbunden' : 'Nicht verbunden')}
             </span>
           </div>
+          {keyStatus === 'unverifiable' && keyDetail && (
+            <p className="text-[10px] leading-snug text-muted-foreground">{keyDetail}</p>
+          )}
           <div className="flex items-center gap-2">
             <Input
               type="password"

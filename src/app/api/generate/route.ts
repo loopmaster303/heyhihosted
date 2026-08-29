@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     const rate = checkRateLimit(request, { name: 'generate', limit: 20, windowMs: 60_000 });
     if (!rate.ok) {
       return NextResponse.json(
-        { error: 'Too many requests' },
+        { error: 'Too many requests', code: 'RATE_LIMITED' },
         { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
       );
     }
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     if (!canonicalModelId) {
       liveModel = model ? await findRegistryModel(model, apiKey) : undefined;
       if (!liveModel) {
-        throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`);
+        throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`, 'UNKNOWN_MODEL', { modelLabel: model ?? 'unbekannt' });
       }
       canonicalModelId = liveModel.name;
     }
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
     const referenceImages = image ? (Array.isArray(image) ? image : [image]) : [];
 
     if (referenceImages.length > 0 && !supportsReference) {
-      throw new ApiError(400, `Model ${canonicalModelId} does not support reference images`);
+      throw new ApiError(400, `Model ${canonicalModelId} does not support reference images`, 'REFERENCE_NOT_SUPPORTED', { modelLabel: canonicalModelId });
     }
     if (referenceMode === 'start-frame' && referenceImages.length > 1) {
       throw new ApiError(400, `Model ${canonicalModelId} does not support an end frame`);
@@ -240,7 +240,13 @@ export async function POST(request: Request) {
           signal: request.signal,
         });
     } else if (prunaEligible && !hasPrunaKey) {
-      throw new ApiError(503, `Model ${canonicalModelId} requires PRUNA_API_KEY which is not set`);
+      // Der Satz beschreibt die Nutzersicht, nicht die Server-Umgebungsvariable.
+      throw new ApiError(
+        503,
+        `Model ${canonicalModelId} requires a Pruna key which is not configured`,
+        'MISSING_PRUNA_KEY',
+        { modelLabel: canonicalModelId },
+      );
     }
 
     // ── Pollinations dispatch (non-Pruna models only) ───────────────

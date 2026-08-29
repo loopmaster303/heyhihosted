@@ -78,4 +78,45 @@ describe('usePollenKey', () => {
     expect(localStorage.getItem('pollenApiKey')).toBeNull();
     expect(result.current.isConnected).toBe(false);
   });
+
+  // Drei Lampenzustaende: 403 (fehlende account:usage-Berechtigung) ist KEIN
+  // Trennungsfall — nur 401 faerbt rot (F5, Befund A).
+  it('reports keyStatus ok when the account route answers 200', async () => {
+    localStorage.setItem('pollenApiKey', 'sk_test');
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ balance: 5 }), { status: 200 }));
+
+    const { result } = renderHook(() => usePollenKey());
+    await waitFor(() => expect(result.current.keyStatus).toBe('ok'));
+  });
+
+  it('reports keyStatus rejected on 401', async () => {
+    localStorage.setItem('pollenApiKey', 'sk_test');
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ error: 'bad key' }), { status: 401 }));
+
+    const { result } = renderHook(() => usePollenKey());
+    await waitFor(() => expect(result.current.keyStatus).toBe('rejected'));
+  });
+
+  it('reports keyStatus unverifiable on 403 and keeps the plain-text reason', async () => {
+    localStorage.setItem('pollenApiKey', 'sk_test');
+    fetchMock.mockResolvedValue(new Response(
+      JSON.stringify({ error: "API key does not have 'account:usage' permission" }),
+      { status: 403 },
+    ));
+
+    const { result } = renderHook(() => usePollenKey());
+    await waitFor(() => expect(result.current.keyStatus).toBe('unverifiable'));
+    expect(result.current.keyDetail).toContain('account:usage');
+  });
+
+  it('starts with keyStatus none and returns there after disconnect', async () => {
+    const { result } = renderHook(() => usePollenKey());
+    expect(result.current.keyStatus).toBe('none');
+
+    localStorage.setItem('pollenApiKey', 'sk_test');
+    await act(async () => {
+      result.current.disconnect();
+    });
+    expect(result.current.keyStatus).toBe('none');
+  });
 });
