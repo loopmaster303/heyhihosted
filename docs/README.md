@@ -21,6 +21,19 @@ add new documents there.
 - `FAHRPLAN-create.md` — **the active plan.** Ten phases toward the publicly shareable version, with the user's binding decisions on domain, gallery and music.
 - `PLAN-audit-patch-2026-08-29.md` — the audit findings from phases 0–3, cut into
   subagent-sized packages. **Executed on 2026-08-29** — see the two handoffs below.
+- `PLAN-phase-4-5-koordiniert-2026-08-29.md` — **read before touching Phase 4 or 5.**
+  Two sessions worked the same working tree in parallel on 2026-08-29; this plan
+  inventories what each left behind (Phase 4: the `src/lib/errors/` module, unwired;
+  Phase 5: package U1, verified), fixes the true test ledger (869 green, not 852), and
+  orders both phases into one session so the shared files (`Gallery.tsx`,
+  `PlaygroundShell.tsx`) are never edited concurrently. **Not yet executed.**
+- `PLAN-phase-4-fehlerklarheit.md` — implementation plan for Phase 4: every error path
+  ends in one German sentence saying what happened and what to do next, plus run
+  stability (`maxDuration`, readable elapsed time, reload-surviving video runs). Carries
+  live findings from 2026-08-27 that correct its own legacy list, and open operator
+  questions R1–R5. **Partially executed** — see the coordination plan above for the
+  exact state. Note: four of its paths still read `src/app/playground/…` and must be
+  read as `src/app/create/…`.
 - `PLAN-phase-6-create-telefon.md` — implementation plan for Phase 6: Create on the phone.
   Corrects the Fahrplan — both drawers already exist; what is missing is the send bar under
   an open keyboard (`--vvh` instead of `dvh`), touch targets, the two-column gallery, and
