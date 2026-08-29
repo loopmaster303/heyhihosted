@@ -6,6 +6,7 @@ import { db, type Asset } from '@/lib/services/database';
 import { isInScope, type AssetOrigin } from '@/lib/assets/asset-origin';
 import { BlobManager } from '@/lib/blob-manager';
 import { cn } from '@/lib/utils';
+import { RUN_CONTINUES_NOTICE } from '@/lib/playground/constants';
 
 export interface GalleryItem {
   id: string;
@@ -114,15 +115,21 @@ function RunningCard({ run, onCancel }: { run: GalleryRun; onCancel?: () => void
       )}
       {onCancel && (
         // Der Abbruch haengt an der Karte, nicht an der Leiste: bei mehreren
-        // Laeufen muss erkennbar bleiben, welcher gemeint ist.
-        <button
-          type="button"
-          onClick={onCancel}
-          title="Der Lauf läuft beim Anbieter weiter und wird berechnet."
-          className="mt-1 rounded-md border border-border bg-background px-2 py-1 text-[10.5px] font-medium text-muted-foreground transition-colors hover:border-primary/55 hover:text-foreground"
-        >
-          Nicht mehr warten
-        </button>
+        // Laeufen muss erkennbar bleiben, welcher gemeint ist. Der Grund steht
+        // sichtbar darunter statt in einem `title` — auf dem Telefon gibt es
+        // kein Hover.
+        <>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="mt-1 min-h-11 rounded-md border border-border bg-background px-3 py-1 text-[10.5px] font-medium text-muted-foreground transition-colors hover:border-primary/55 hover:text-foreground md:min-h-0 md:px-2"
+          >
+            Nicht mehr warten
+          </button>
+          <span className="text-[10px] leading-snug text-muted-foreground/70">
+            {RUN_CONTINUES_NOTICE}
+          </span>
+        </>
       )}
     </div>
   );
@@ -192,7 +199,7 @@ function FailedCard({
           <button
             type="button"
             onClick={onRetry}
-            className="rounded-md border border-border bg-background px-2 py-1 text-[10.5px] font-medium text-foreground transition-colors hover:border-primary/55"
+            className="min-h-11 rounded-md border border-border bg-background px-3 py-1 text-[10.5px] font-medium text-foreground transition-colors hover:border-primary/55 md:min-h-0 md:px-2"
           >
             Erneut versuchen
           </button>
@@ -202,7 +209,7 @@ function FailedCard({
             type="button"
             onClick={onDismiss}
             aria-label="Verwerfen"
-            className="grid h-6 w-6 place-items-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:border-primary/55 hover:text-foreground"
+            className="grid size-11 place-items-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:border-primary/55 hover:text-foreground md:size-6"
           >
             <X className="h-3 w-3" />
           </button>
@@ -317,10 +324,12 @@ export function Gallery({
         </span>
       </div>
 
-      <div
-        className="grid gap-3"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(168px, 1fr))' }}
-      >
+      {/* Unter 520px feste zwei Spalten: auto-fill mit 168px kippt sonst
+          zwischen 375px (eine Spalte) und 390px (zwei) — zwei Telefone saeen
+          voellig verschieden aus. Ab 520px liefert auto-fill von sich aus
+          mindestens zwei, der Uebergang ist damit nahtlos und der Desktop
+          unveraendert. */}
+      <div className="grid grid-cols-2 gap-3 min-[520px]:[grid-template-columns:repeat(auto-fill,minmax(168px,1fr))]">
         {runs.map((run) => (run.status === 'running' ? (
           <RunningCard
             key={run.id}

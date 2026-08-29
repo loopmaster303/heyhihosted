@@ -43,7 +43,13 @@ export function PromptBar({
     const el = ref.current;
     if (!el) return;
     el.style.height = 'auto';
-    const max = Math.round(window.innerHeight * 0.45);
+    // An die sichtbare Hoehe koppeln, nicht an window.innerHeight: bei offener
+    // Tastatur ist innerHeight unveraendert und das Feld waechst ueber den
+    // sichtbaren Bereich hinaus. useViewportHeight setzt --vvh.
+    const visible = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--vvh'),
+    ) || window.innerHeight;
+    const max = Math.round(visible * 0.45);
     el.style.height = `${Math.min(el.scrollHeight, max)}px`;
     el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
   }, [value]);
@@ -51,8 +57,11 @@ export function PromptBar({
   const status = [modelName, providerName].filter(Boolean) as string[];
   const canSend = canQueue && (!empty || !promptRequired);
 
+  // max() statt env(): auf Geraeten ohne Home-Indicator ist der Inset 0 und
+  // die bisherigen 14px bleiben stehen. Braucht viewport-fit=cover aus
+  // src/app/create/page.tsx, sonst ist der Inset immer 0.
   return (
-    <div className="px-4 pb-3.5 pt-3">
+    <div className="px-4 pt-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
       <div className="glass-input flex items-end gap-2.5 rounded-2xl border border-border/80 py-2.5 pl-4 pr-2.5 shadow-lg transition-colors focus-within:border-primary/55 focus-within:ring-[3px] focus-within:ring-primary/15">
         <textarea
           ref={ref}

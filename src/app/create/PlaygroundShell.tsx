@@ -13,6 +13,7 @@ import { usePlaygroundModels } from '@/hooks/usePlaygroundModels';
 import { usePollenKey } from '@/hooks/usePollenKey';
 import { useProviderMode } from '@/hooks/useProviderMode';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useViewportHeight } from '@/hooks/useViewportHeight';
 import { buildGenerateBody, buildGenerateHeaders, type GenerateBody } from '@/lib/playground/generate-request';
 import { requestGeneration, pollPrediction } from '@/lib/generation/request-generation';
 import { readStoredRuns, removeStoredRun, type StoredRun } from '@/lib/generation/run-store';
@@ -101,6 +102,7 @@ function failureError(failure: ParsedFailure): Error & { raw?: string; aktion?: 
 }
 
 export function PlaygroundShell() {
+  useViewportHeight();
   const {
     state, setMode, setModelId, setPrompt, setParams, setUploads, setSourceVideo, resetForModel,
   } = usePlaygroundState();
@@ -532,7 +534,7 @@ export function PlaygroundShell() {
   };
 
   return (
-    <div className="relative isolate grid h-dvh grid-rows-[46px_1fr] bg-background bg-[radial-gradient(78%_52%_at_10%_-6%,hsl(var(--primary)/0.16),transparent_64%),radial-gradient(62%_48%_at_92%_104%,hsl(325_72%_60%/0.10),transparent_62%)] text-foreground">
+    <div className="relative isolate grid h-[var(--vvh,100dvh)] grid-rows-[46px_1fr] bg-background bg-[radial-gradient(78%_52%_at_10%_-6%,hsl(var(--primary)/0.16),transparent_64%),radial-gradient(62%_48%_at_92%_104%,hsl(325_72%_60%/0.10),transparent_62%)] text-foreground">
       <header className="flex items-center justify-between bg-glass-background/55 px-3.5 backdrop-blur-2xl">
         <div className="flex items-center gap-2.5 font-mono text-[13px]">
           <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.6)]" />
@@ -632,7 +634,7 @@ export function PlaygroundShell() {
       </div>
 
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} direction="left">
-        <DrawerContent className="h-dvh w-[84%] max-w-[310px]">
+        <DrawerContent direction="left" className="h-dvh w-[84%] max-w-[310px]">
           <DrawerTitle className="sr-only">Einstellungen und Parameter</DrawerTitle>
           <PlaygroundSidebarContent {...sidebarProps} />
         </DrawerContent>

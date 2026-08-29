@@ -111,18 +111,18 @@ export function MetaRail({ item, className, onLoad, onRerun, onUseAsReference, o
           </div>
 
           <div className="mt-0.5 grid grid-cols-2 gap-1.5">
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onLoad?.(item)}>
+            <Button variant="outline" size="sm" className="min-h-11 gap-1.5 xl:min-h-0" onClick={() => onLoad?.(item)}>
               <Download className="h-3 w-3" />
               Laden
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onRerun?.(item)}>
+            <Button variant="outline" size="sm" className="min-h-11 gap-1.5 xl:min-h-0" onClick={() => onRerun?.(item)}>
               <RotateCcw className="h-3 w-3" />
               Nochmal
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="col-span-2 gap-1.5"
+              className="col-span-2 min-h-11 gap-1.5 xl:min-h-0"
               onClick={() => onUseAsReference?.(item)}
             >
               <Plus className="h-3 w-3" />

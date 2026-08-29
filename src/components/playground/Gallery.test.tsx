@@ -93,6 +93,27 @@ describe('Gallery', () => {
     expect(onCancelRun).toHaveBeenCalledWith('run-2');
   });
 
+  // Auf dem Telefon gibt es kein Hover: der Grund fuer den Abbruch darf nicht
+  // nur in einem `title` stecken, sondern muss sichtbar auf der Karte stehen.
+  it('nennt den Grund fuer "Nicht mehr warten" sichtbar, nicht nur im title', () => {
+    render(
+      <Gallery
+        selectedId={null}
+        onSelect={jest.fn()}
+        runs={[{
+          id: 'r1', prompt: 'p', modelId: 'p-video', startedAt: Date.now(),
+          isVideo: true, status: 'running',
+        }]}
+        onCancelRun={jest.fn()}
+      />,
+    );
+    const knopf = screen.getByRole('button', { name: 'Nicht mehr warten' });
+    expect(knopf).not.toHaveAttribute('title');
+    expect(
+      screen.getByText('Der Lauf läuft beim Anbieter weiter und wird berechnet.'),
+    ).toBeVisible();
+  });
+
   it('shows a failed card with retry and dismiss actions', async () => {
     const user = userEvent.setup();
     const onRetry = jest.fn();
