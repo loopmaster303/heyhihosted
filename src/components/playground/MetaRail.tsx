@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Plus, RotateCcw } from 'lucide-react';
+import { Download, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -57,9 +57,10 @@ interface Props {
   onLoad?: (item: GalleryItem) => void;
   onRerun?: (item: GalleryItem) => void;
   onUseAsReference?: (item: GalleryItem) => void;
+  onDelete?: (item: GalleryItem) => void;
 }
 
-export function MetaRail({ item, className, onLoad, onRerun, onUseAsReference }: Props) {
+export function MetaRail({ item, className, onLoad, onRerun, onUseAsReference, onDelete }: Props) {
   return (
     <aside
       className={cn(
@@ -127,6 +128,17 @@ export function MetaRail({ item, className, onLoad, onRerun, onUseAsReference }:
               <Plus className="h-3 w-3" />
               Als Referenz übernehmen
             </Button>
+            {onDelete && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="col-span-2 gap-1.5 text-destructive hover:border-destructive/55 hover:text-destructive"
+                onClick={() => onDelete(item)}
+              >
+                <Trash2 className="h-3 w-3" />
+                Löschen
+              </Button>
+            )}
           </div>
         </>
       )}

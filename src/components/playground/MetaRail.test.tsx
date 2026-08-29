@@ -79,6 +79,16 @@ describe('MetaRail', () => {
     expect(screen.getByText(/Wähl ein Ergebnis/)).toBeInTheDocument();
   });
 
+  it('zeigt Loeschen nur mit onDelete und reicht das Item durch', async () => {
+    const onDelete = jest.fn();
+    const { rerender } = render(<MetaRail item={ITEM} />);
+    expect(screen.queryByRole('button', { name: /löschen/i })).toBeNull();
+
+    rerender(<MetaRail item={ITEM} onDelete={onDelete} />);
+    await userEvent.click(screen.getByRole('button', { name: /löschen/i }));
+    expect(onDelete).toHaveBeenCalledWith(ITEM);
+  });
+
   it('chipsFor skips false booleans and formats duration', () => {
     expect(chipsFor({ go_fast: false, audio: true, duration: 8 })).toEqual(['8 s', 'audio']);
     expect(chipsFor(undefined)).toEqual([]);

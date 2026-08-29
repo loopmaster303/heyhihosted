@@ -18,6 +18,9 @@ import { requestGeneration, pollPrediction } from '@/lib/generation/request-gene
 import { readStoredRuns, removeStoredRun, type StoredRun } from '@/lib/generation/run-store';
 import { readErrorResponse } from '@/lib/errors/read-error-response';
 import { describeError, type ErrorDescription } from '@/lib/errors/describe-error';
+import { deleteAssetById } from '@/lib/assets/delete-assets';
+import type { AssetOrigin } from '@/lib/assets/asset-origin';
+import { OriginFilter } from '@/components/gallery/OriginFilter';
 import { isModelInMode } from '@/lib/playground/mode-mapping';
 import { getDefaultDurationSeconds, getUnifiedModel } from '@/config/unified-image-models';
 import { schemaForEntry, defaultsFor, visibleFields, type ParamValues } from '@/lib/playground/param-schema';
@@ -113,6 +116,10 @@ export function PlaygroundShell() {
   const [error, setError] = useState<string | undefined>();
   const [runs, setRuns] = useState<ActiveRun[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  // Fluechtig, kein localStorage (E5.2): nach jedem Reload steht der Filter
+  // auf der eigenen Herkunft.
+  const [galleryOrigins, setGalleryOrigins] =
+    useState<readonly AssetOrigin[] | undefined>(['create']);
   // Gleiche 1280px-Grenze wie die Rail (xl) — darunter wandern die Details
   // bei Auswahl in den Bottom-Drawer.
   const isWide = useMediaQuery('(min-width: 1280px)');
@@ -399,6 +406,22 @@ export function PlaygroundShell() {
 
   const onDismissRun = (id: string) => setRuns((rs) => rs.filter((r) => r.id !== id));
 
+  /**
+   * Einzelloeschen wirkt global (E5.3): auf genau das Objekt, das der Nutzer
+   * vor sich hat — egal in welcher Oberflaeche es erzeugt wurde.
+   */
+  const deleteItem = async (item: GalleryItem) => {
+    await deleteAssetById(item.id);
+    // Sofort freigeben statt auf den naechsten Ladelauf zu warten (F7).
+    if (item.url.startsWith('blob:')) BlobManager.releaseURL(item.url);
+    if (selectedRef.current?.id === item.id) {
+      selectedRef.current = null;
+      setSelected(null);
+    }
+    setDetailsOpen(false);
+    setGalleryKey((k) => k + 1);
+  };
+
   const sidebarProps = {
     state, entries, currentModel, loading, fallbackActive,
     onMode: setMode,
@@ -481,6 +504,9 @@ export function PlaygroundShell() {
           <span className="text-muted-foreground">create</span>
         </div>
         <div className="flex items-center gap-1">
+          {/* Der Umschalter links vom Anker — die Create-Galerie liest denselben
+              Pool wie der Chat, zeigt standardmaessig aber die eigene Herkunft. */}
+          <OriginFilter value={galleryOrigins} onChange={setGalleryOrigins} className="mr-2" />
           <a
             href="/unified"
             className="mr-1 font-mono text-[13px] text-muted-foreground transition-colors hover:text-foreground"
@@ -516,6 +542,7 @@ export function PlaygroundShell() {
                 if (!isWide) setDetailsOpen(true);
               }}
               refreshKey={galleryKey}
+              origins={galleryOrigins}
               runs={runs}
               onCancelRun={onCancelRun}
               onRetryRun={onRetryRun}
@@ -529,6 +556,7 @@ export function PlaygroundShell() {
                 onLoad={downloadItem}
                 onRerun={loadIntoComposer}
                 onUseAsReference={adoptAsReference}
+                onDelete={deleteItem}
               />
             </div>
           </div>
@@ -588,6 +616,7 @@ export function PlaygroundShell() {
               adoptAsReference(item);
               setDetailsOpen(false);
             }}
+            onDelete={deleteItem}
           />
         </DrawerContent>
       </Drawer>

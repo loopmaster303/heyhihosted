@@ -276,6 +276,9 @@ export function Gallery({
       setItems(next);
     })();
     return () => { cancelled = true; };
+    // originKey statt origins: ein Array-Literal wechselt seine Identitaet,
+    // der Schluessel nicht (W1).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey, originKey]);
 
   useEffect(() => () => {
