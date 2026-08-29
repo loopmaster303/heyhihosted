@@ -340,6 +340,10 @@ gebaut zu werden.
 **Fertig, wenn:** Der Chat zeigt die reduzierte Auswahl, das Create die vollständige, und
 der Übergang ist beschriftet.
 
+**Erledigt am 2026-08-29.** Kriterium E7-1: schlüsselfrei statt Zahl. Kein Video (E7-2),
+kein Pruna (E7-3) im Chat. Übergang als letzte Zeile im Modell-Panel (E7-4). Plan:
+[`PLAN-phase-7-chat-entschlanken.md`](PLAN-phase-7-chat-entschlanken.md).
+
 *Hängt nur an Phase 3, sonst unabhängig — kann parallel laufen.*
 
 ---

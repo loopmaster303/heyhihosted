@@ -197,7 +197,10 @@ sichtbar den Weg zur vollen Auswahl im Create.
 Prüfweg: Modell-Liste im Chat mit der Bestätigungsliste aus L-B.4 vergleichen; der
 Verweis ins Create ist als Beschriftung vorhanden und führt dorthin.
 Herkunft: Phase 7
-Status: offen
+Status: erledigt (2026-08-29, Phase 7)
+**Endzustand seit Phase 7:** Der Chat führt `flux`, `gpt-image`, `klein` — die Regel
+„schlüsselfrei, Pollinations, Bild" in `getChatImageModelGroups()`. Video und Pruna sind
+strukturell abwesend (E7-2, E7-3). Der Verweis steht als letzte Zeile im Modell-Panel.
 
 ## G — Musik *(Phase 8)*
 
@@ -255,7 +258,9 @@ abgesendet wird — nicht erst als Fehler danach.
 Prüfweg: Ohne Schlüssel jedes schlüsselpflichtige Angebot öffnen; die Kennzeichnung
 erscheint vor dem Absenden.
 Herkunft: Phase 7
-Status: offen
+Status: teilweise — Text (Phase 3, Pollenwall im `ModelSelectorPanel`) und Bild/Video
+(Phase 7, strukturell: der Chat führt kein schlüsselpflichtiges Bild- oder Videomodell
+mehr) sind erfüllt. Offen bleibt der Musikmodus, siehe L-G.1 (Phase 8).
 
 **L-I.3 — Videomodelle sind vor dem Absenden als schlüsselpflichtig erkennbar**
 Kriterium: Die Oberfläche sagt vor dem Absenden, dass Videogenerierung einen Schlüssel

@@ -53,6 +53,8 @@ Removed on 2026-08-28 (registry truth): `ltx-2`, `grok-video`, `pollinations-wan
 
 Everything else in the file is `enabled: false` and waiting on upstream availability. Check the config rather than trusting a list in prose.
 
+**Der Chat ist die Ausnahme.** Seit Phase 7 liest die Bildauswahl im Chat nicht `getVisualizeModelGroupsForProvider`, sondern `getChatImageModelGroups()` — eine Regel ohne Optionsparameter: Pollinations, Bild, `isFree`, `enabled`. Sie wächst mit keinem Schlüssel und folgt dem Provider-Schalter nicht. Video und Pruna leben im Create. Wer die Chat-Auswahl ändern will, ändert die Regel, nicht die Registry.
+
 ### Modellwahrheit prüfen
 Model lists drift daily (35/39 → 28/42 → 32/45 within 48 hours). The check is tooling, not memory:
 
@@ -83,7 +85,7 @@ Do not wire Create state into ChatProvider. Keep it self-contained.
 
 There are two providers, Pollinations and Pruna, and a user-facing switch. **The switch only scopes the model list** — in Visualize and, since the merge, in Create. It is not a global mode:
 
-- `useProviderMode` is read in five modules, all of them model-picking UI: [useUnifiedImageToolState.ts](/Users/johnmeckel/heyhihosted/src/hooks/useUnifiedImageToolState.ts) and `PersonalizationSidebarSection` for Visualize, plus [usePlaygroundModels.ts](/Users/johnmeckel/heyhihosted/src/hooks/usePlaygroundModels.ts), `PlaygroundShell` and `ProviderSelect` for Create. It filters the model list and picks the default model. (`VisualizeInlineHeader` and `VisualizeInputContainer` receive the value as props rather than reading the hook.)
+- `useProviderMode` is read in five modules, all of them model-picking UI: [useUnifiedImageToolState.ts](/Users/johnmeckel/heyhihosted/src/hooks/useUnifiedImageToolState.ts) and `PersonalizationSidebarSection` for Visualize, plus [usePlaygroundModels.ts](/Users/johnmeckel/heyhihosted/src/hooks/usePlaygroundModels.ts), `PlaygroundShell` and `ProviderSelect` for Create. It filters the model list and picks the default model. (`VisualizeInlineHeader` and `VisualizeInputContainer` receive the value as props rather than reading the hook.) Seit Phase 7 gilt: `useUnifiedImageToolState` liest `useProviderMode` weiterhin (Durchreichung und Dispatch), **scopet damit aber nicht mehr die Chat-Modellliste** — die Chat-Bildauswahl ist providerunabhängig (`getChatImageModelGroups()`).
 
 - The actual dispatch depends on the **selected model**, never on the switch: `/api/generate` branches on `isPrunaModel(canonicalModelId)`, and reference uploads branch on `selectedModelInfo.provider`.
 - `p-image`, `p-image-edit` and `p-video` now also appear in the Pollinations registry (paid, aliased `pruna-*`). The name overlap is **deliberately ignored**: the repo claims the ids for the Pruna dispatch (BYOP key), and `buildPollinationsEntries` filters `isPrunaModel()` so the Create never lists a duplicate. Routing them through Pollinations instead is a provider-architecture decision that stays open.

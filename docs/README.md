@@ -49,7 +49,7 @@ add new documents there.
   operator, not by an agent).
 - `PLAN-phase-7-chat-entschlanken.md` — implementation plan for Phase 7: reduce the chat's
   image selection to the key-free rule, move video and Pruna into Create, label the way
-  there. Carries operator decisions E7-1 to E7-4. **Not yet executed.**
+  there. Carries operator decisions E7-1 to E7-4. **Executed 2026-08-29.**
 - `LAUNCH_CRITERIA.md` — **the release gate.** What must work before the address may be shared publicly; per-criterion status, operator decisions recorded 2026-08-28.
 - `HANDOFF-2026-08-28-phase-0.md` — **start here.** What Phase 0 delivered (99 files into
   sixteen commits, `f880389..aa3eac4`), how it was done, the per-phase findings it
