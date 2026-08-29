@@ -130,6 +130,29 @@ Where a generated asset ends up depends on the model's provider, via `isPollinat
 
 Never use `URL.createObjectURL` directly — go through `BlobManager` so the URL is revoked on unload. Never hardcode `isPollinations`; a blob URL stored as a `remoteUrl` is dead after a reload.
 
+### Herkunft: ein Pool, drei Tags (seit Phase 5)
+
+Chat und Create schreiben in denselben `db.assets`-Store und lesen ihn beide.
+`assetOrigin()` in [src/lib/assets/asset-origin.ts](/Users/johnmeckel/heyhihosted/src/lib/assets/asset-origin.ts) ist
+der **einzige** Ort, an dem `assets.conversationId` als Herkunft gelesen wird:
+`'__playground__'` → `create`, keine `conversationId` → `compose`, sonst → `chat`.
+`PLAYGROUND_CONVERSATION_ID` bleibt der Sentinel in gespeicherten Nutzerdaten — der
+Bezeichner wird nicht umbenannt, nur seine Rolle hat sich geändert. Kein Dexie 5,
+keine Migration.
+
+`compose` ist eine Zuordnung per Ausschluss, keine Aussage der Daten: Compose
+speichert ohne `conversationId`, Altbestand kann ebenfalls dort landen.
+
+Der Herkunftsfilter je Oberfläche ist **flüchtig** — kein `localStorage`. Nach jedem
+Reload steht er auf der eigenen Herkunft; L-D.1 und L-D.3 stützen sich darauf.
+
+Löschen läuft über **eine** Auswahlfunktion in
+[src/lib/assets/delete-assets.ts](/Users/johnmeckel/heyhihosted/src/lib/assets/delete-assets.ts). Einzellöschen wirkt
+global, „alles löschen" nur auf den aktiven Filterbereich. Der Blob ist ein Feld der
+Asset-Zeile — es gibt keinen zweiten Speicher und damit keine verwaisten Blobs. Was
+freigegeben werden muss, ist die **Object-URL**: beim Löschen sofort, im
+Generierungspfad nach dem Speichern.
+
 ### Long runs answer 202, the browser polls (since 2026-08-26)
 
 No request waits for a video any more. Anything not immediately finished comes back as

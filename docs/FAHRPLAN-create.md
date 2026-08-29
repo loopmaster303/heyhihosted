@@ -151,7 +151,8 @@ Solange das nicht sortiert und committet ist, plant jede Phase auf Sand.
 ### Galerie
 - **P5** — Löschen im Create fehlt. `MetaRail` kann Download, Retry, als Referenz verwenden.
 - **P6** — Ein Asset-Pool statt zwei. Technisch günstig: beide Oberflächen schreiben schon in
-  denselben `db.assets`-Store, Create filtert nur auf `PLAYGROUND_CONVERSATION_ID`.
+  denselben `db.assets`-Store, Create filtert nur auf `PLAYGROUND_CONVERSATION_ID` —
+  bis Phase 5; seither liest `assetOrigin()` den Sentinel als Herkunfts-Tag.
   Das ist eine Sicht- und Filterfrage, keine Datenmigration.
 
 ### Wahrheit über Modelle
@@ -297,13 +298,17 @@ Umfang.
 
 ---
 
-### Phase 5 — Eine Galerie (**P5**, **P6**)
+### Phase 5 — Eine Galerie (**P5**, **P6**) · ✅ ERLEDIGT am 2026-08-29
 
 - `PLAYGROUND_CONVERSATION_ID` wird vom Trennkriterium zum Herkunfts-Tag
 - Beide Oberflächen lesen denselben Pool, filtern standardmäßig auf ihre eigene Herkunft,
   umschaltbar
 - Löschen im Create: entfernt Datenbankeintrag **und** Blob, kein verwaister Blob-Speicher
-- `/gallery` zeigt weiterhin alles
+- `/gallery` ist seit dem Umbau auf `GalleryPanel` als DEPRECATED markiert und
+  unverlinkt. Die Seite wird nur mitgezogen: sie erbt den Pool und zeigt danach
+  auch Create-Assets, bekommt aber keinen Herkunftsfilter. Ihr „Vault leeren"-Knopf
+  ist entfallen, weil er ohne Filter alles gelöscht hätte. Sie zeigt weiterhin
+  höchstens 50 Einträge — bewusst hingenommen (Betreiber, 2026-08-29).
 
 **Fertig, wenn:** Ein im Chat erzeugtes Bild erscheint im Create nach Umschalten des Filters ·
 Löschen entfernt Eintrag und Blob · nach einem Reload ist nichts zurück.

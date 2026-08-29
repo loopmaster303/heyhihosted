@@ -21,6 +21,11 @@ add new documents there.
 - `FAHRPLAN-create.md` — **the active plan.** Ten phases toward the publicly shareable version, with the user's binding decisions on domain, gallery and music.
 - `PLAN-audit-patch-2026-08-29.md` — the audit findings from phases 0–3, cut into
   subagent-sized packages. **Executed on 2026-08-29** — see the two handoffs below.
+- `PLAN-phase-5-eine-galerie.md` — implementation plan for Phase 5: one asset pool for
+  chat and Create, `PLAYGROUND_CONVERSATION_ID` turned from a separator into an origin
+  tag, a per-surface origin filter, and deletion that also frees the object URL. Carries
+  the reality check that corrects two false Fahrplan claims (`/gallery` never showed
+  everything, and it is already deprecated).
 - `PLAN-phase-4-5-koordiniert-2026-08-29.md` — **read before touching Phase 4 or 5.**
   Two sessions worked the same working tree in parallel on 2026-08-29; this plan
   inventories what each left behind (Phase 4: the `src/lib/errors/` module, unwired;
