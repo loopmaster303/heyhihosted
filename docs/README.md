@@ -21,6 +21,15 @@ add new documents there.
 - `FAHRPLAN-create.md` — **the active plan.** Ten phases toward the publicly shareable version, with the user's binding decisions on domain, gallery and music.
 - `PLAN-audit-patch-2026-08-29.md` — the audit findings from phases 0–3, cut into
   subagent-sized packages. **Executed on 2026-08-29** — see the two handoffs below.
+- `PLAN-phase-6-create-telefon.md` — implementation plan for Phase 6: Create on the phone.
+  Corrects the Fahrplan — both drawers already exist; what is missing is the send bar under
+  an open keyboard (`--vvh` instead of `dvh`), touch targets, the two-column gallery, and
+  the cancel notice that today only lives in a `title`. Carries the four patterns Phase 8
+  inherits, plus an operator checklist for L-E.1 (needs two real devices). **Not yet
+  executed** — see its section 0 on the Phase 4 / Phase 5 ordering.
+- `PLAN-phase-7-chat-entschlanken.md` — implementation plan for Phase 7: reduce the chat's
+  image selection to the key-free rule, move video and Pruna into Create, label the way
+  there. Carries operator decisions E7-1 to E7-4. **Not yet executed.**
 - `LAUNCH_CRITERIA.md` — **the release gate.** What must work before the address may be shared publicly; per-criterion status, operator decisions recorded 2026-08-28.
 - `HANDOFF-2026-08-28-phase-0.md` — **start here.** What Phase 0 delivered (99 files into
   sixteen commits, `f880389..aa3eac4`), how it was done, the per-phase findings it
