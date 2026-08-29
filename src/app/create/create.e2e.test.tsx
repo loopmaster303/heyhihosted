@@ -63,9 +63,13 @@ jest.mock('@/hooks/useHasPrunaKey', () => ({ useHasPrunaKey: () => false }));
 jest.mock('@/lib/services/database', () => ({
   db: {
     assets: {
-      where: () => ({
-        equals: () => ({
-          reverse: () => ({ sortBy: async () => [] }),
+      orderBy: () => ({
+        reverse: () => ({
+          filter: () => ({
+            limit: () => ({
+              toArray: async () => [],
+            }),
+          }),
         }),
       }),
     },

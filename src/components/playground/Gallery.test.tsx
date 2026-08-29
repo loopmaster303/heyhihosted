@@ -20,10 +20,12 @@ let mockRows: Record<string, unknown>[] = [];
 jest.mock('@/lib/services/database', () => ({
   db: {
     assets: {
-      where: (col: string) => ({
-        equals: (val: string) => ({
-          reverse: () => ({
-            sortBy: async () => (col === 'conversationId' && val === '__playground__' ? mockRows : []),
+      orderBy: () => ({
+        reverse: () => ({
+          filter: (pred: (a: Record<string, unknown>) => boolean) => ({
+            limit: () => ({
+              toArray: async () => mockRows.filter(pred),
+            }),
           }),
         }),
       }),

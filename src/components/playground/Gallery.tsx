@@ -3,7 +3,7 @@ import { AsciiSpinner } from '@/components/ascii'
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Image as ImageIcon, Loader2, Play, X } from 'lucide-react';
 import { db, type Asset } from '@/lib/services/database';
-import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
+import { isInScope, type AssetOrigin } from '@/lib/assets/asset-origin';
 import { BlobManager } from '@/lib/blob-manager';
 import { cn } from '@/lib/utils';
 
@@ -217,6 +217,8 @@ interface Props {
   onSelect: (item: GalleryItem) => void;
   /** Bump to re-read the store after a generation lands. */
   refreshKey?: number;
+  /** Sichtbarer Herkunftsbereich. undefined = alles. */
+  origins?: readonly AssetOrigin[];
   /** Laufende und gescheiterte Generierungen, neueste zuerst. */
   runs?: GalleryRun[];
   onCancelRun?: (id: string) => void;
@@ -232,6 +234,7 @@ export function Gallery({
   selectedId,
   onSelect,
   refreshKey = 0,
+  origins,
   runs = [],
   onCancelRun,
   onRetryRun,
@@ -247,18 +250,21 @@ export function Gallery({
   // Blob-URLs, die dieser Lauf erzeugt hat — beim naechsten Lauf und beim
   // Unmount wieder freigeben, sonst haelt jeder Refresh die Blobs im Speicher.
   const ownedUrls = useRef<string[]>([]);
+  // origins ist ein Array und aendert seine Identitaet — der Effekt reagiert
+  // deshalb auf einen stabilen Schluessel.
+  const originKey = origins ? [...origins].sort().join(',') : '';
 
   useEffect(() => {
     let cancelled = false;
     const created: string[] = [];
     (async () => {
       const rows = await db.assets
-        .where('conversationId')
-        .equals(PLAYGROUND_CONVERSATION_ID)
+        .orderBy('timestamp')
         .reverse()
-        .sortBy('timestamp');
+        .filter((a) => isInScope(a, origins))
+        .limit(50)
+        .toArray();
       const next = rows
-        .slice(0, 50)
         .map((a) => toItem(a, created))
         .filter((x): x is GalleryItem => x !== null);
       if (cancelled) {
@@ -270,7 +276,7 @@ export function Gallery({
       setItems(next);
     })();
     return () => { cancelled = true; };
-  }, [refreshKey]);
+  }, [refreshKey, originKey]);
 
   useEffect(() => () => {
     ownedUrls.current.forEach((u) => BlobManager.releaseURL(u));
