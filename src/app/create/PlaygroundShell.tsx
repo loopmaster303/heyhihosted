@@ -588,8 +588,15 @@ export function PlaygroundShell() {
         </div>
         <div className="flex items-center gap-1">
           {/* Der Umschalter links vom Anker — die Create-Galerie liest denselben
-              Pool wie der Chat, zeigt standardmaessig aber die eigene Herkunft. */}
-          <OriginFilter value={galleryOrigins} onChange={setGalleryOrigins} className="mr-2" />
+              Pool wie der Chat, zeigt standardmaessig aber die eigene Herkunft.
+              L-E.2: unter md faellt er hier weg und lebt in der Parameter-Schublade.
+              Kopfzeile plus Filter plus Rueckweg brauchten 433 px, die Seite
+              scrollte bei 375 px quer und schnitt den Senden-Knopf ab. */}
+          <OriginFilter
+            value={galleryOrigins}
+            onChange={setGalleryOrigins}
+            className="mr-2 hidden md:flex"
+          />
           <a
             href="/unified"
             className="mr-1 font-mono text-[13px] text-muted-foreground transition-colors hover:text-foreground"
@@ -682,6 +689,15 @@ export function PlaygroundShell() {
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} direction="left">
         <DrawerContent direction="left" className="h-dvh w-[84%] max-w-[310px]">
           <DrawerTitle className="sr-only">Einstellungen und Parameter</DrawerTitle>
+          {/* L-E.2: unter md ist hier der einzige Ort fuer den Herkunftsfilter —
+              in der Kopfzeile passt er bei 375 px nicht mehr neben Brotkrume
+              und Rueckweg. */}
+          <div className="flex flex-col gap-1.5 px-4 pt-4 md:hidden">
+            <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Herkunft
+            </span>
+            <OriginFilter value={galleryOrigins} onChange={setGalleryOrigins} />
+          </div>
           <PlaygroundSidebarContent {...sidebarProps} />
         </DrawerContent>
       </Drawer>
