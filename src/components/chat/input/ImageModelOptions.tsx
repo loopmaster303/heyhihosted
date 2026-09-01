@@ -46,7 +46,7 @@ export const ImageModelOptions: React.FC<ImageModelOptionsProps> = ({
 
   return (
     <div className="flex flex-col gap-3">
-      <div role="radiogroup" aria-label={t('modelSelector.title')} className="flex flex-col gap-3">
+      <div role="group" aria-label={t('modelSelector.title')} className="flex flex-col gap-3">
         {groups.map(group => (
           <div key={group.key} className="flex flex-col gap-1.5">
             <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -60,9 +60,7 @@ export const ImageModelOptions: React.FC<ImageModelOptionsProps> = ({
                   <button
                     key={model.id}
                     type="button"
-                    role="radio"
-                    aria-checked={isActive}
-                    tabIndex={isActive ? 0 : -1}
+                    aria-pressed={isActive}
                     disabled={disabled}
                     onClick={() => onModelChange(model.id)}
                     className={cn(

@@ -639,18 +639,23 @@ export function getAdvancedModels(kind?: ImageKind): UnifiedImageModel[] {
  * nur GELESEN. scripts/check-model-registry.mjs und registry-truth.test.ts
  * sehen von dieser Funktion nichts.
  */
-export function getChatImageModelGroups(): Array<VisualizeModelGroup & { models: UnifiedImageModel[] }> {
-  const models = UNIFIED_IMAGE_MODELS.filter((model) =>
-    model.provider === 'pollinations' &&
-    model.kind === 'image' &&
-    model.isFree === true &&
-    (model.enabled ?? true)
-  );
+const CHAT_IMAGE_MODEL_GROUPS: Array<VisualizeModelGroup & { models: UnifiedImageModel[] }> =
+  (() => {
+    const models = UNIFIED_IMAGE_MODELS.filter((model) =>
+      model.provider === 'pollinations' &&
+      model.kind === 'image' &&
+      model.isFree === true &&
+      (model.enabled ?? true)
+    );
 
-  return VISUALIZE_GROUP_DEFINITIONS
-    .filter((group) => group.key === 'image-free')
-    .map((group) => ({ ...group, modelIds: models.map((model) => model.id), models }))
-    .filter((group) => group.models.length > 0);
+    return VISUALIZE_GROUP_DEFINITIONS
+      .filter((group) => group.key === 'image-free')
+      .map((group) => ({ ...group, modelIds: models.map((model) => model.id), models }))
+      .filter((group) => group.models.length > 0);
+  })();
+
+export function getChatImageModelGroups(): Array<VisualizeModelGroup & { models: UnifiedImageModel[] }> {
+  return CHAT_IMAGE_MODEL_GROUPS;
 }
 
 export function getChatImageModelIds(): string[] {
