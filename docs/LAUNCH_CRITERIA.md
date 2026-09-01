@@ -135,7 +135,15 @@ steht in der Oberfläche ein Satz, der die Ursache und den nächsten Schritt nen
 Prüfweg: Jeden der sieben Fälle auslösen (Pruna-400 mit `https://invalid.invalid/x.jpg`,
 ohne kostenpflichtigen Lauf) und die angezeigte Meldung notieren.
 Herkunft: Phase 4
-Status: offen
+Status: erledigt (2026-09-01)
+> Alle 24 Codes in `error-codes.ts` haben einen deutschen Satz mit Handlung
+> (`describe-error.test.ts` macht einen Code ohne Satz rot). Zwei der sieben Fälle
+> fehlten bis zum 2026-09-01 und sind live belegt nachgetragen: **403** — `kontext`
+> antwortet „Model 'kontext' is not allowed for this API key", gemeint ist der Schlüssel
+> des *Betreibers*; der Nutzer las diesen englischen Rohtext. Jetzt
+> `POLLEN_MODEL_NOT_ALLOWED`. Und **Anbieterausfall** (5xx) → `PROVIDER_UNAVAILABLE`
+> („liegt nicht an deiner Eingabe"). `pollinations-image-v1.test.ts` nagelt die
+> Zuordnung Status → Code fest.
 
 **L-C.2 — Ein Reload verliert keinen laufenden Videolauf**
 Kriterium: Ein Reload der Seite während eines laufenden Videolaufs beendet den Lauf
@@ -143,7 +151,13 @@ nicht; der Auftrag erscheint nach dem Reload wieder und endet mit einem Ergebnis
 Prüfweg: Videolauf starten, Seite neu laden; der Auftrag ist wieder sichtbar und die
 Galerie erhält das Ergebnis.
 Herkunft: Phase 4
-Status: offen
+Status: teilweise — der Code steht, der Beweis fehlt
+> `run-store.ts` schreibt jeden 202-Lauf beim Dispatch nach localStorage; der Mount der
+> `PlaygroundShell` liest die Liste, hängt laufende Karten mit ihrem ursprünglichen
+> `startedAt` wieder an und fragt über `pollPrediction` weiter, ohne neu zu dispatchen.
+> `run-store.test.ts` deckt Schreiben, Lesen und die 30-Minuten-Reißleine ab.
+> **Offen bleibt der Prüfweg selbst:** ein echter Videolauf mit Reload. Der braucht
+> einen Schlüssel und mehrere Minuten — Betreiberaufgabe, kein Code.
 
 **L-C.3 — Die Pollen-Statusanzeige kennt drei Zustände**
 Kriterium: Die Statusanzeige unterscheidet „kein Schlüssel", „Schlüssel vorhanden,
@@ -151,13 +165,20 @@ Konto nicht abrufbar" und „bestätigt".
 Prüfweg: Die drei Zustände nacheinander herstellen (ohne Key, mit ungültigem Key, mit
 gültigem Key) und die Beschriftung ablesen.
 Herkunft: Phase 4
-Status: offen
+Status: erledigt (2026-09-01)
+> `SettingsPopover.tsx` unterscheidet drei Zustände am `keyStatus`: `ok` (grün,
+> „Verbunden"), `rejected` (rot, „Schlüssel wird abgelehnt — neu verbinden") und
+> `unverifiable` (gelb, „Verbunden — Kontostand nicht abrufbar, Erzeugen funktioniert
+> trotzdem"), letzterer mit `keyDetail` als Begründung.
 
 **L-C.4 — Ein laufender Auftrag zeigt verstrichene Zeit**
 Kriterium: Während eines Auftrags zählt die Anzeige die verstrichene Zeit sichtbar hoch.
 Prüfweg: Einen Auftrag starten und die Anzeige über eine Minute beobachten.
 Herkunft: Phase 4
-Status: offen
+Status: erledigt (2026-09-01)
+> `Gallery.tsx`, `RunningCard`: ein Sekundenzähler auf `run.startedAt`, im
+> Sekundentakt aktualisiert. Für Video zusätzlich eine Erwartung je Modell; das
+> Doppelte davon markiert den Lauf als überfällig.
 
 ## D — Ergebnisse behalten *(Phase 5)*
 
@@ -166,7 +187,11 @@ Kriterium: Ein in Create erzeugtes Bild ist nach einem Reload derselben Adresse 
 Galerie sichtbar und anzeigbar.
 Prüfweg: Bild erzeugen, Seite neu laden, Galerie öffnen; Vorschau lädt ohne toten Blob.
 Herkunft: Phase 5
-Status: offen
+Status: erledigt (2026-09-01)
+> Ein Asset ist eine Dexie-Zeile mit dem Blob als Feld — es überlebt einen Reload, weil
+> es nie nur im Speicher lag. Die Object-URL wird nach dem Speichern freigegeben und
+> beim Anzeigen neu erzeugt; genau daran scheiterte es früher (eine tote Blob-URL als
+> `remoteUrl`). Abgedeckt von `output-service.test.ts` und `blob-manager.test.ts`.
 
 **L-D.2 — Löschen entfernt Eintrag und Blob**
 Kriterium: Nach dem Löschen ist der Eintrag nach einem Reload nicht zurück, und der
@@ -174,7 +199,11 @@ Blob ist entfernt.
 Prüfweg: Eintrag löschen, Seite neu laden; Galerie und Netzwerktab zeigen weder Eintrag
 noch Nachladen des Blobs.
 Herkunft: Phase 5
-Status: offen
+Status: erledigt (2026-09-01)
+> `delete-assets.ts` ist die eine Auswahlfunktion für beide Löschwege; vorher hatten
+> Einzel- und Massenlöschen getrennte Prädikate und drifteten. Der Blob ist ein Feld
+> der Zeile — mit `db.assets.delete(id)` ist er weg, es gibt keinen zweiten lokalen
+> Speicher. Die externe Kopie behandelt L-D.4.
 
 **L-D.3 — Chat-Ergebnisse erscheinen im Create**
 Kriterium: Ein im Chat erzeugtes Bild erscheint im Create, nachdem der Herkunftsfilter
@@ -182,7 +211,12 @@ auf Chat umgestellt wurde.
 Prüfweg: Bild im Chat erzeugen, ins Create wechseln, Galerie öffnen, Filter umstellen;
 Eintrag sichtbar und anzeigbar.
 Herkunft: Phase 5
-Status: offen
+Status: erledigt (2026-09-01)
+> `assetOrigin()` in `asset-origin.ts` ist der einzige Ort, an dem `conversationId` als
+> Herkunft gelesen wird (`__playground__` → create, keine → compose, sonst chat). Beide
+> Oberflächen lesen denselben Pool, `OriginFilter` schaltet um. Der Filter ist flüchtig
+> — nach jedem Reload steht er auf der eigenen Herkunft, worauf sich der Prüfweg stützt.
+> Abgedeckt von `asset-origin.test.ts` und `OriginFilter.test.tsx`.
 
 **L-D.4 — Löschen entfernt auch die externe Kopie**
 Kriterium: Wurde ein Asset in den Pollinations Media Storage hochgeladen (`storageKey`),
@@ -193,7 +227,16 @@ Prüfweg: Mit hinterlegtem eigenen Pollen-Schlüssel ein Asset mit `storageKey` 
 im Netzwerktab zeigt der `DELETE /api/media/delete` den Header `X-Pollen-Key` und eine
 Erfolgsantwort. Danach die Medien-URL erneut abrufen; sie liefert kein Objekt mehr.
 Herkunft: Phase 5
-Status: offen
+Status: teilweise — der Weg steht, die Antwort des Anbieters fehlt
+> `/api/media/delete` als Proxy, aufgerufen mit `getPollenHeaders()`. Der Header ist der
+> Punkt: ohne ihn fällt `resolvePollenKey` serverseitig auf den Schlüssel des Betreibers
+> zurück, der an fremden Medien keine Rechte hat — die Löschung scheitert still und die
+> Kopie bleibt zehn Jahre. Zwei Tests nageln den Header fest. Massenlöschen läuft über
+> denselben Pfad, mit sechs Arbeitern und Fortschrittsanzeige statt einer seriellen
+> Schleife.
+> **Offen bleibt der Prüfweg:** ob Pollinations das DELETE mit einem echten Nutzer-Key
+> tatsächlich befolgt. Das braucht einen Schlüssel — Betreiberaufgabe. Fällt die Antwort
+> negativ aus, wird daraus ein akzeptiertes Risiko in Bereich L.
 
 > **Warum das ein Gate ist und kein Risiko in Bereich L:** Der Punkt stand bis zum
 > 2026-08-29 als `L-L.5` in Bereich L — dem Bereich, der per Definition **nicht**
@@ -298,7 +341,11 @@ abgesendet wird — nicht erst als Fehler danach.
 Prüfweg: Ohne Schlüssel jedes schlüsselpflichtige Angebot öffnen; die Kennzeichnung
 erscheint vor dem Absenden.
 Herkunft: Phase 7
-Status: teilweise — Text (Phase 3, Pollenwall im `ModelSelectorPanel`) und Bild/Video
+Status: erledigt (2026-09-01)
+> Drei Wege, alle vor dem Absenden: Text im Chat über die Pollenwall im
+> `ModelSelectorPanel` (Phase 3, POLLEN-Badge, nicht wählbar). Bild im Chat gar nicht
+> betroffen — dort stehen seit Phase 7 nur schlüsselfreie Modelle. Im Create die
+> Gruppe „Key nötig" im `ModelPicker` plus die Hinweiszeile an der Sendeleiste.
 (Phase 7, strukturell: der Chat führt kein schlüsselpflichtiges Bild- oder Videomodell
 mehr) sind erfüllt. Offen bleibt der Musikmodus, siehe L-G.1 (Phase 8).
 
@@ -308,7 +355,12 @@ braucht — es gibt kein kostenloses Videomodell (Betreiberentscheidung E1, 2026
 Prüfweg: Ein Videomodell wählen und ohne Schlüssel absenden wollen; die Schlüsselpflicht
 ist vor dem Absenden erkennbar, nicht erst aus einer Fehlermeldung.
 Herkunft: Phase 4
-Status: offen
+Status: erledigt (2026-09-01)
+> Zwei Stellen, weil der Nutzer auf zwei Wegen dorthin kommt: Wählt er im Create einen
+> Videomodus ohne Schlüssel, ist die Modellliste leer — statt der Sackgasse
+> „Kein Modell für diesen Modus" steht dort jetzt, dass es für Video kein kostenloses
+> Modell gibt und welcher Schlüssel hilft. Ist ein schlüsselpflichtiges Modell gewählt,
+> trägt die Sendeleiste denselben Hinweis. Im Browser gegengeprüft 2026-09-01.
 
 ## K — Kostenrisiko *(L-K.1 Abschlussprüfung · L-K.2 und L-K.3 Phase 4)*
 
@@ -332,7 +384,13 @@ Prüfweg: Bei gewähltem Pruna-Modell die Dauerzeile an der Sendeleiste prüfen;
 einmaligen Bestätigungsschritt beim ersten Pruna-Lauf öffnen — der Hinweis ist sichtbar,
 ohne den Lauf zu starten.
 Herkunft: Phase 4
-Status: offen
+Status: erledigt (2026-09-01)
+> Form nach Betreiberentscheidung E2: **dauerhafte Zeile** an der Sendeleiste, solange
+> ein Pruna-Modell gewählt ist („lässt sich nicht abbrechen und wird abgerechnet — auch
+> wenn du hier aufhörst zu warten"), **plus einmaliger Bestätigungsschritt** beim ersten
+> Pruna-Lauf pro Browser (`heyhi_pruna_irreversible_ack`). Nicht bei jedem Lauf — dann
+> klickt man ihn weg, ohne ihn zu lesen. Steht die Schlüsselpflicht an, hat sie Vorrang:
+> ohne Schlüssel läuft ohnehin nichts.
 > Hinweis (Phase 6, Querlesen): Der Satz existiert als Konstante `RUN_CONTINUES_NOTICE`
 > (`src/lib/playground/constants.ts`) und steht sichtbar an der laufenden Karte in der
 > Galerie. Die dauerhafte Zeile an der Sendeleiste vor dem Start ist noch nicht gebaut —

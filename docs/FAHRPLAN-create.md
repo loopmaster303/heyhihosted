@@ -267,7 +267,23 @@ markiertes Modell verlangt einen Schlüssel · `CLAUDE.md` stimmt mit der Regist
 
 ---
 
-### Phase 4 — Fehlerklarheit und Laufstabilität (**P13** + Altlasten 1–7)
+### Phase 4 — Fehlerklarheit und Laufstabilität (**P13** + Altlasten 1–7) · ✅ ERLEDIGT am 2026-09-01
+
+**Ergebnis:** Fehler laufen über Code → Satz (`error-codes.ts`, `describe-error.ts`,
+`read-error-response.ts`), Läufe überleben einen Reload (`run-store.ts`), die
+Pollen-Lampe kennt drei Zustände, die laufende Karte zählt die Sekunden,
+`vercel.json` trägt `maxDuration: 300`. Am 2026-09-01 nachgetragen: die zwei
+Fehlerfälle, die noch ohne Satz waren (403 Allowlist, 5xx Anbieterausfall), sowie
+L-K.2 und L-I.3. **Offen bleiben zwei Prüfwege, kein Code:** L-C.2 (Reload während
+eines echten Videolaufs) und L-D.4 (befolgt Pollinations das DELETE?) — beide
+brauchen einen Schlüssel und sind Betreiberaufgabe.
+
+**Nicht Teil der Phase:** das Async-Protokoll für Pollinations-Videos. Es war nur
+nötig, um `nova-reel` als kostenloses Videomodell zurückzuholen; mit
+Betreiberentscheidung E1-A bleibt Video hinter der Pollenwall, damit entfällt der
+Grund. Der Beleg (524 nach 125 s) steht im Phase-3-Handoff.
+
+Ursprüngliche Aufzählung:
 
 - Jeder Fehlerpfad endet in einem verständlichen Satz: was ist passiert, was tun.
   Besonders: Pruna-400 (`additional properties forbidden`), fehlender Schlüssel, 401/402/403,
@@ -330,7 +346,7 @@ gebaut zu werden.
 
 ---
 
-### Phase 7 — Chat entschlanken (**P7**)
+### Phase 7 — Chat entschlanken (**P7**) · ✅ ERLEDIGT am 2026-08-29
 
 - Visualize im Chat auf eine kleine, begründete Auswahl reduzieren — aus den in Phase 3
   bestätigten Modellen
