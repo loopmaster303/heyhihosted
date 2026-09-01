@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/services/database';
 import { DatabaseService } from '@/lib/services/database';
@@ -51,12 +51,22 @@ export function useGalleryAssets(origins?: readonly AssetOrigin[]) {
 
   const isLoading = assets === undefined;
 
+  const [clearProgress, setClearProgress] = useState<{ done: number; total: number } | null>(null);
+
   const deleteAsset = async (id: string) => {
     await deleteAssetById(id);
   };
 
+  // F2: Massenloeschen macht eine Netzrunde je Zeile (externer
+  // Media-Storage-Blob). Bei hunderten Assets ist das kein Augenblick mehr —
+  // der Aufrufer bekommt den Fortschritt, statt eine haengende Oberflaeche.
   const clearAllAssets = async () => {
-    await deleteAssetsInScope(origins);
+    setClearProgress({ done: 0, total: 0 });
+    try {
+      await deleteAssetsInScope(origins, (done, total) => setClearProgress({ done, total }));
+    } finally {
+      setClearProgress(null);
+    }
   };
 
   const toggleStarred = async (id: string) => {
@@ -67,6 +77,7 @@ export function useGalleryAssets(origins?: readonly AssetOrigin[]) {
     assets: useMemo(() => assets || [], [assets]),
     totalInScope: totalInScope ?? 0,
     isLoading,
+    clearProgress,
     deleteAsset,
     clearAllAssets,
     toggleStarred,

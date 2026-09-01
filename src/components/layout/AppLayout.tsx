@@ -326,6 +326,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           onOriginsChange={setGalleryOrigins}
           onDelete={galleryData.deleteAsset}
           onClearAll={galleryData.clearAllAssets}
+          clearProgress={galleryData.clearProgress}
           onToggleStar={galleryData.toggleStarred}
           embedded={true}
         />

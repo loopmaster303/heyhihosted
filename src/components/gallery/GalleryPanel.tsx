@@ -323,6 +323,8 @@ export interface GalleryPanelProps {
   onOriginsChange: (next: readonly AssetOrigin[] | undefined) => void;
   onDelete: (id: string) => void;
   onClearAll: () => void;
+  /** F2: waehrend eines Massenloeschens (done, total), sonst null. */
+  clearProgress?: { done: number; total: number } | null;
   onToggleStar: (id: string) => void;
   /** When true, renders as a fixed popover-style panel positioned to the right of the sidebar (using --sidebar-width var). */
   embedded?: boolean;
@@ -337,6 +339,7 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   onOriginsChange,
   onDelete,
   onClearAll,
+  clearProgress,
   onToggleStar,
   embedded = false,
 }) => {
@@ -432,15 +435,25 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
             {/* Panel header */}
             <div className="flex items-center justify-between gap-2 px-4 pt-4 shrink-0">
               <Button variant="ghost" size="sm"
+                disabled={!!clearProgress}
                 onClick={() => {
                   if (totalAssetCount === 0) return;
                   // E5.3/F11: Anzahl (die ehrliche, nicht die auf 50 begrenzte)
                   // und Herkunft in Worten statt "Output wirklich leeren?".
-                  const msg = t('gallery.clearConfirmScoped').replace('{count}', String(totalAssetCount));
+                  const confirmKey = origins?.includes('create')
+                    ? 'gallery.clearConfirmCreate'
+                    : origins
+                      ? 'gallery.clearConfirmChat'
+                      : 'gallery.clearConfirmAll';
+                  const msg = t(confirmKey).replace('{count}', String(totalAssetCount));
                   if (confirm(msg)) onClearAll();
                 }}
                 className="h-8 px-4 text-[11px] font-semibold text-foreground/80 hover:text-foreground hover:bg-transparent hover:shadow-[0_0_18px_rgba(180,150,255,0.35)]">
-                {t('gallery.clearButton')}
+                {clearProgress
+                  ? t('gallery.clearProgress')
+                      .replace('{done}', String(clearProgress.done))
+                      .replace('{total}', String(clearProgress.total))
+                  : t('gallery.clearButton')}
               </Button>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" onClick={cycleDensity}
