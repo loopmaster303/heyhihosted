@@ -1,7 +1,8 @@
 # Launch-Kriterien — Freigabeschwelle für `chat.hey-hi.cloud`
 
 **Letzte Prüfung:** 2026-08-29 · **Geprüft von:** Phase 6 (Code und Muster; die Messungen
-L-E.1/L-E.2 führt der Betreiber selbst durch — keine Agenten-Browser-Tests).
+L-E.1/L-E.2 führt der Betreiber selbst durch — keine Agenten-Browser-Tests) · Audit
+Phase 0–3 · Patch-Plan `PLAN-patch-p6-p7-nachaudit-2026-08-29.md`.
 
 **Zweck:** Dieses Dokument beantwortet die Frage „Darf die Adresse öffentlich geteilt
 werden?" mit Ja oder Nein. Es beschreibt beobachtbare Endzustände aus Nutzersicht —
@@ -13,8 +14,6 @@ sie den fertigen Stand messen. Ein offenes Kriterium blockiert. Bereich **H** gr
 ASCII-Flow gebaut wird (Phase 9 steht in Bereich M). Ein bewusst akzeptiertes Risiko
 (**L**) blockiert nicht, muss aber schriftlich stehen. **M** gehört ausdrücklich nicht
 zum Launch.
-
-**Letzte Prüfung:** 2026-08-29 · **Geprüft von:** Audit Phase 0–3
 
 **Entscheidungen des Betreibers (2026-08-28), die diesem Dokument zugrunde liegen:**
 - Impressum und DSGVO gelten als bewusst akzeptiertes Risiko (L-L.4), nicht als Gate.
@@ -28,6 +27,19 @@ zum Launch.
 Messpunkt) · Prüfweg (ein Satz: wer klickt was, wo, und was muss dastehen) ·
 Herkunft (Phase N | Abschlussprüfung vor der Freigabe) · Status.
 
+**Die vier Statuswerte, abschließend:**
+
+| Status | Bedeutung | Blockiert die Freigabe |
+|---|---|---|
+| `offen` | Nicht erfüllt oder nicht geprüft. | **ja** |
+| `teilweise` | Ein Teil ist erfüllt und im Text benannt, ein anderer nicht. | **ja** — wie `offen` |
+| `erledigt (Datum)` | Vollständig erfüllt und am genannten Datum geprüft. | nein |
+| `akzeptiert (Betreiber, Datum)` | Nur in Bereich L. Bewusst getragenes Risiko. | nein |
+
+`teilweise` ist keine dritte Farbe zwischen offen und erledigt: es blockiert genauso,
+sagt aber der nächsten Sitzung, wo sie ansetzt. Ein Kriterium ohne einen dieser vier
+Werte ist ein Fehler im Dokument.
+
 ---
 
 ## A — Erreichbarkeit und Identität *(Phase 2)*
@@ -38,7 +50,9 @@ Kriterium: `https://chat.hey-hi.cloud/create` liefert die Create-Oberfläche,
 Prüfweg: Alle drei Adressen in einem frischen Browserprofil öffnen; Titel und erster
 sichtbarer Bereich stimmen mit der Erwartung überein, `/playground` landet auf `/create`.
 Herkunft: Phase 2
-Status: offen
+Status: erledigt (2026-08-29)
+> Live geprüft 2026-08-29 gegen `chat.hey-hi.cloud`: `/` → 200 (Chat), `/create` →
+> 200 (Create), `/playground` → 307 mit `location: /create`.
 
 > **Betreiberentscheidung 2026-08-29:** Kein `create.hey-hi.cloud`. Ein zweiter
 > Hostname ist ein zweiter Browser-Ursprung und würde IndexedDB und localStorage
@@ -106,7 +120,11 @@ Kriterium: Jedes in B.1 bestätigte Modell hat mindestens einmal ein Ergebnis ge
 Prüfweg: Jedes Modell einmal laufen lassen (schlüsselpflichtige mit eigenem Schlüssel);
 Ergebnis mit Datum notieren.
 Herkunft: Phase 3
-Status: offen
+Status: erledigt (2026-08-29)
+> Live geprüft 2026-08-29 ohne Schlüssel gegen `chat.hey-hi.cloud/api/generate`:
+> `flux` (7,3 s), `gpt-image` (38,1 s) und `klein` (7,0 s) antworten je mit 200 und
+> einer Medien-URL, die `image/jpeg` ausliefert. Das sind genau die drei Modelle, die
+> `getChatImageModelGroups()` führt — die Bestätigungsliste für L-F.1.
 
 ## C — Fehlerverhalten *(Phase 4)*
 
@@ -166,6 +184,25 @@ Eintrag sichtbar und anzeigbar.
 Herkunft: Phase 5
 Status: offen
 
+**L-D.4 — Löschen entfernt auch die externe Kopie**
+Kriterium: Wurde ein Asset in den Pollinations Media Storage hochgeladen (`storageKey`),
+entfernt das Löschen auch die dortige Kopie — mit dem Schlüssel des Nutzers, nicht dem
+des Betreibers. Antwortet der Anbieter nicht mit Erfolg, bleibt die Waise bis zum
+10-Jahre-Ablauf und der Befund wird hier als akzeptiertes Risiko nachgetragen.
+Prüfweg: Mit hinterlegtem eigenen Pollen-Schlüssel ein Asset mit `storageKey` löschen;
+im Netzwerktab zeigt der `DELETE /api/media/delete` den Header `X-Pollen-Key` und eine
+Erfolgsantwort. Danach die Medien-URL erneut abrufen; sie liefert kein Objekt mehr.
+Herkunft: Phase 5
+Status: offen
+
+> **Warum das ein Gate ist und kein Risiko in Bereich L:** Der Punkt stand bis zum
+> 2026-08-29 als `L-L.5` in Bereich L — dem Bereich, der per Definition **nicht**
+> blockiert — und trug dabei den Status „Betreiberentscheidung ausstehend". Eine
+> unentschiedene Frage in einem nicht blockierenden Bereich ist für die Freigabe
+> unsichtbar. Solange der Endpunkt nicht mit einem echten Schlüssel verifiziert ist,
+> blockiert der Punkt. Fällt die Prüfung negativ aus, wird daraus ein akzeptiertes
+> Risiko in Bereich L — dann aber als Entscheidung, nicht als Versäumnis.
+
 ## E — Telefon *(Phase 6)*
 
 **L-E.1 — Vollständige Erzeugung auf dem Telefon**
@@ -197,7 +234,10 @@ sichtbar den Weg zur vollen Auswahl im Create.
 Prüfweg: Modell-Liste im Chat mit der Bestätigungsliste aus L-B.4 vergleichen; der
 Verweis ins Create ist als Beschriftung vorhanden und führt dorthin.
 Herkunft: Phase 7
-Status: erledigt (2026-08-29, Phase 7)
+Status: erledigt (2026-08-29) — strukturell durch Phase 7 (nur schlüsselfreie
+Pollinations-Bildmodelle, Video/Pruna abwesend, Create-Verweis im Panel), und seit
+2026-08-29 ist die Bestätigungsliste aus L-B.4 dieselbe: `flux`, `gpt-image`, `klein`
+haben live erzeugt.
 **Endzustand seit Phase 7:** Der Chat führt `flux`, `gpt-image`, `klein` — die Regel
 „schlüsselfrei, Pollinations, Bild" in `getChatImageModelGroups()`. Video und Pruna sind
 strukturell abwesend (E7-2, E7-3). Der Verweis steht als letzte Zeile im Modell-Panel.
@@ -304,7 +344,10 @@ beschriftet.
 Prüfweg: Einen laufenden Auftrag in der Oberfläche abbrechen; die Beschriftung sagt
 „verlassen" o. ä., nicht „storniert".
 Herkunft: Phase 4
-Status: offen
+Status: erledigt (2026-08-29)
+> `Gallery.tsx`: der Knopf heißt „Nicht mehr warten", nicht „Abbrechen". Der Grund
+> („Der Lauf läuft beim Anbieter weiter und wird berechnet") hängt am `title`. Dass er
+> dort auf dem Telefon unsichtbar ist, gehört zu L-K.2 und Phase 6.
 
 ## L — Bewusst akzeptierte Risiken *(phasenlos — blockiert nicht, muss schriftlich stehen)*
 
@@ -361,7 +404,7 @@ Status: akzeptiert (Betreiber, 2026-08-28)
 | 2 | Create-Identität, Domain, Navigation | L-A.1 – L-A.5 |
 | 3 | Modellwahrheit | L-B.1 – L-B.4 (stützt L-C.1, L-F.1, L-G.2) |
 | 4 | Fehlerklarheit, Laufstabilität | L-C.1 – L-C.4, L-K.2, L-K.3, L-I.3 |
-| 5 | Eine Galerie, Löschen | L-D.1 – L-D.3 |
+| 5 | Eine Galerie, Löschen | L-D.1 – L-D.4 |
 | 6 | Create auf dem Telefon | L-E.1, L-E.2 |
 | 7 | Chat entschlanken | L-F.1, L-I.2 |
 | 8 | Musik im Create | L-G.1 – L-G.4 |
