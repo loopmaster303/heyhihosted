@@ -266,7 +266,14 @@ Kriterium: Die Seite scrollt bei 375 px Breite nicht horizontal.
 Prüfweg: Auf einem 375-px-Gerät oder -Emulator jede Hauptansicht durchblättern; kein
 horizontaler Scrollbalken erscheint.
 Herkunft: Phase 6
-Status: offen
+Status: erledigt (2026-09-01)
+> Im 375-px-Emulator gemessen — das Kriterium erlaubt das ausdrücklich. Gefunden:
+> `/create` scrollte quer, `scrollWidth` 433 bei 375 px Viewport, der Senden-Knopf war
+> abgeschnitten. Ursache war die Kopfzeile (Brotkrume + Herkunftsfilter + Rückweg +
+> zwei Icons = 433 px), deren Breite jedes Element darunter über das Grid erbte. Der
+> Filter fällt unter `md` aus dem Kopf in die Parameter-Schublade. Nachgemessen:
+> `/create`, `/unified`, `/gallery`, `/about` und `/create` mit offener Schublade
+> jeweils 375, kein Element ragt über den Viewport.
 > Betreiberaufgabe — die Browser-Messung macht der Betreiber selbst (keine
 > Agenten-Browser-Tests). Prüfweg: Q Schritt 5 in
 > [`PLAN-phase-6-create-telefon.md`](PLAN-phase-6-create-telefon.md); die Code-Seite ist
@@ -336,7 +343,11 @@ ein Chatverlauf und mindestens ein Bild vollständig erzeugen.
 Prüfweg: Frisches Profil, keine Eingabe in den Einstellungen, je ein Chat- und ein
 Bildlauf mit dem Vorgabemodell.
 Herkunft: Abschlussprüfung vor der Freigabe
-Status: offen
+Status: erledigt (2026-09-01)
+> Beide Hälften live und ohne jeden Schlüssel gegen `chat.hey-hi.cloud` geprüft:
+> Chat mit dem Vorgabemodell `deepseek` → 200 mit echter Antwort. Bild mit `flux` →
+> 200 mit einer Medien-URL, die `image/jpeg` ausliefert. Nach dem Kostenwächter aus
+> L-K.1 nochmals gegengeprüft — beide laufen weiter.
 
 **L-I.2 — Schlüsselpflicht ist vor dem Absenden erkennbar**
 Kriterium: Schlüsselpflichtige Angebote sind als solche gekennzeichnet, bevor etwas
@@ -376,7 +387,20 @@ Prüfweg: Serverseitige Env-Schlüssel prüfen; ohne Client-Schlüssel jeden Erz
 auslösen und im Pollinations-Konto gegenprüfen, dass kein kostenpflichtiger Lauf
 entstanden ist.
 Herkunft: Abschlussprüfung vor der Freigabe
-Status: offen
+Status: erledigt (2026-09-01) — der Pfad war offen und ist jetzt geschlossen
+> **Befund:** `resolvePollenKey` fiel für jede Anfrage auf den Server-Schlüssel zurück,
+> ohne zu fragen, was das Modell kostet. Die Pollenwall aus Phase 3 sitzt nur im
+> Modellwähler; die Routen sind öffentliche Endpunkte. Live belegt am 2026-09-01, alles
+> ohne Schlüssel: `claude-fast` → 200 mit echter Antwort, `gemini-fast` → 200,
+> `seedance-2.0` → 524 nach 125 s (der Lauf war losgeschickt), `veo` → keine Antwort
+> nach 240 s. Nur Pruna war dicht — nicht aus Vorsicht, sondern weil serverseitig kein
+> Pruna-Schlüssel existiert.
+> **Behoben:** beide Routen prüfen vor dem Dispatch und antworten mit 402
+> `POLLEN_KEY_REQUIRED`. Live gegengeprüft: alle vier antworten jetzt in unter einer
+> Sekunde mit 402, ohne Dispatch; `deepseek` und `flux` laufen unverändert.
+> **Bleibt beim Betreiber:** der Blick ins Pollinations-Konto. Der Pfad stand offen,
+> solange die Seite öffentlich war — dort können Läufe stehen, die niemand von hier
+> ausgelöst hat.
 
 **L-K.2 — Nicht abbrechbare Pruna-Läufe werden vor dem Start gesagt**
 Kriterium: Die Oberfläche sagt vor dem Absenden, dass ein gestarteter Pruna-Lauf nicht

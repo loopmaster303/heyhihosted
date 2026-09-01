@@ -331,7 +331,14 @@ Löschen entfernt Eintrag und Blob · nach einem Reload ist nichts zurück.
 
 ---
 
-### Phase 6 — Create auf dem Telefon (**P12**) · TEILWEISE — L-E.1 und L-E.2 offen (Betreiberaufgabe: echte Geräte + Browser-Messung)
+### Phase 6 — Create auf dem Telefon (**P12**) · TEILWEISE — nur noch L-E.1 offen
+
+**L-E.2 ist am 2026-09-01 erledigt** und war keine Betreiberaufgabe: das Kriterium
+erlaubt ausdrücklich einen Emulator. Die Messung bei 375 px fand einen echten Fehler
+— `/create` scrollte quer (433 px), der Senden-Knopf war abgeschnitten. Behoben.
+**L-E.1 bleibt beim Betreiber**, weil es echte Geräte verlangt: je ein t2i- und ein
+i2v-Lauf auf iPhone und Android, inklusive Referenz-Upload. Video braucht dafür einen
+Schlüssel.
 
 - ~~Drei-Spalten-Aufbau auf klein: Parameter und Detailleiste als Schubladen~~ — **war bereits gebaut** (Parameter als `<Drawer direction="left">`, Details als Bottom-Drawer, Menüknopf `md:hidden`). Befund der Phase-6-Planung, 2026-08-29.
 - Prompt-Leiste über der Tastatur bedienbar
