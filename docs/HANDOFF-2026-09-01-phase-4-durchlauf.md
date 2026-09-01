@@ -97,6 +97,7 @@ jetzt sechs Arbeiter (Browser-Grenze pro Host), und der Leeren-Knopf zeigt
 | **L-A.1** | `/` → 200, `/create` → 200, `/playground` → 307 `location: /create` |
 | **L-B.4** | ohne Schlüssel gegen `/api/generate`: `flux` 7,3 s · `gpt-image` 38,1 s · `klein` 7,0 s, je 200 mit Medien-URL, die `image/jpeg` ausliefert |
 | **L-I.3** | im Browser gegengeprüft: `t2v` ohne Schlüssel zeigt den Hinweis statt der Sackgasse |
+| **L-A.5** | nach dem Deploy: `/` trägt die Chat-Beschreibung, `/create` seit heute eine eigene |
 | Registry | `node scripts/check-model-registry.mjs` → „Keine Abweichungen" |
 
 `L-B.4` schließt zugleich `L-F.1`, das nur noch daran hing.
@@ -163,8 +164,6 @@ git status             → nur Compose/Modal, wie vereinbart
 3. **L-E.1 / L-E.2** — Telefon: je ein t2i- und ein i2v-Lauf auf iPhone und Android,
    kein horizontales Scrollen bei 375 px.
 4. **L-I.1 / L-K.1** — die zwei Abschlussprüfungen unmittelbar vor der Freigabe.
-5. **L-A.5** — nach dem Deploy prüfen, ob `/create` die eigene Meta-Beschreibung trägt
-   (in `bff6957` gesetzt, vorher erbte es die des Chats).
 
 **Noch zu bauen:**
 
