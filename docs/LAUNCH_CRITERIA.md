@@ -84,10 +84,13 @@ Status: erledigt (2026-08-29)
 **L-A.5 — Seitentitel und Metadaten gesetzt**
 Kriterium: Unter `/` und `/create` nennt der Seitenquelltext je einen eigenen Titel und
 eine Meta-Beschreibung, die das jeweilige Produkt benennt.
-Prüfweg: Quelltext beider Adressen öffnen; `<title>` und `description` ablesen. Achtung:
-`/create` erbt die Beschreibung heute aus dem Root-Layout und benennt damit den Chat.
+Prüfweg: Quelltext beider Adressen öffnen; `<title>` und `description` ablesen.
 Herkunft: Phase 2
-Status: offen
+Status: erledigt (2026-09-01)
+> Live geprüft nach dem Deploy: `/` trägt „HeyHi · local-first AI workspace" mit der
+> Chat-Beschreibung, `/create` trägt „heyhi / create" mit einer eigenen Beschreibung
+> („Create — der Vollbild-Arbeitsplatz für Bild und Video…"). Bis zum 2026-09-01 erbte
+> `/create` die Beschreibung des Chats und benannte sich damit nicht selbst.
 
 ## B — Modellwahrheit *(Phase 3)*
 
