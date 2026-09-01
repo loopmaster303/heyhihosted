@@ -37,11 +37,21 @@ const generateViaPrunaMock = jest.fn();
 const downloadPrunaResultMock = jest.fn();
 
 jest.mock('@/lib/pruna/client', () => ({
+
+
   generateViaPruna: (...args: unknown[]) => generateViaPrunaMock(...args),
   downloadPrunaResult: (...args: unknown[]) => downloadPrunaResultMock(...args),
   isPendingPrediction: (result: unknown) =>
     !!result && typeof result === 'object' && 'predictionId' in result,
 }));
+
+/**
+ * Seit dem L-K.1-Waechter (2026-09-01) laufen kostenpflichtige Modelle nur
+ * auf dem Schluessel des Aufrufers. Diese Tests pruefen Routing und Payload,
+ * nicht die Schluesselpflicht — sie treten deshalb als Nutzer mit eigenem
+ * Schluessel auf. Die Sperre selbst deckt pollen-cost-guard.test.ts ab.
+ */
+const TEST_POLLEN_KEY = 'sk_test_user_key';
 
 describe('/api/generate route', () => {
   const responseJson = jest.fn((body: unknown, init?: ResponseInit) => new Response(JSON.stringify(body), init));
@@ -99,7 +109,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'cyberpunk skyline',
         model: 'grok-imagine',
@@ -126,7 +136,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'cyberpunk skyline',
         model: 'grok-image',
@@ -153,7 +163,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'studio portrait',
         model: 'gpt-image',
@@ -180,7 +190,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'wide landscape',
         model: 'flux',
@@ -200,7 +210,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'odd ratio',
         model: 'flux',
@@ -220,7 +230,7 @@ describe('/api/generate route', () => {
   it('rejects unknown image models with a 400 response', async () => {
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'cyberpunk skyline',
         model: 'definitely-not-real',
@@ -244,7 +254,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'animate a neon skyline',
         model: 'grok-imagine-video',
@@ -269,7 +279,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: `model ${modelId}`,
         model: modelId,
@@ -297,7 +307,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({ prompt: 'studio portrait', model: 'gpt-image', quality: 'low' }),
     });
 
@@ -313,7 +323,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({ prompt: 'landscape', model: 'flux', quality: 'low' }),
     });
 
@@ -329,7 +339,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'animate a neon skyline',
         model: 'grok-imagine-video',
@@ -350,7 +360,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'portrait photo',
         model: 'flux',
@@ -377,7 +387,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'edit this',
         model: 'wan-image',
@@ -413,7 +423,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'standalone',
         model: 'flux',
@@ -430,7 +440,7 @@ describe('/api/generate route', () => {
 
   it('rejects multiple references for Grok Imagine Pro image', async () => {
     const response = await POST(new Request('http://localhost/api/generate', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'edit', model: 'grok-imagine-pro',
         image: ['https://example.com/a.jpg', 'https://example.com/b.jpg'],
@@ -444,7 +454,7 @@ describe('/api/generate route', () => {
 
   it('rejects an end frame for start-only Grok Pro video', async () => {
     const response = await POST(new Request('http://localhost/api/generate', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'animate', model: 'grok-video-pro',
         image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
@@ -459,7 +469,7 @@ describe('/api/generate route', () => {
   it('preserves start/end order for end-frame video models', async () => {
     videoUrlMock.mockResolvedValueOnce('https://example.com/veo.mp4');
     await POST(new Request('http://localhost/api/generate', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'transition', model: 'veo',
         image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
@@ -473,7 +483,7 @@ describe('/api/generate route', () => {
   it('rejects removed stale visual models', async () => {
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'legacy drift model',
         model: 'imagen-4',
@@ -506,7 +516,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'cyberpunk skyline',
         model: 'zimage',
@@ -539,7 +549,7 @@ describe('/api/generate route', () => {
 
     const response = await POST(new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({ prompt: `generate ${model}`, model }),
     }));
 
@@ -585,7 +595,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'test',
         model: 'wan-t2v',
@@ -605,7 +615,7 @@ describe('/api/generate route', () => {
   it('rejects wan-i2v without a reference image with 400', async () => {
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'animate this',
         model: 'wan-i2v',
@@ -636,7 +646,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'animate this photo',
         model: 'wan-i2v',
@@ -669,7 +679,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'test fallback',
         model: 'zimage',
@@ -703,7 +713,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'test upload fallback',
         model: 'zimage',
@@ -736,7 +746,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'test upload fallback',
         model: 'zimage',
@@ -772,7 +782,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'test upload error fallback',
         model: 'zimage',
@@ -804,7 +814,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'test exclusive',
         model: 'wan-t2v',
@@ -835,7 +845,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'test exclusive upload',
         model: 'wan-t2v',
@@ -860,7 +870,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'test no key',
         model: 'wan-t2v',
@@ -884,7 +894,7 @@ describe('/api/generate route', () => {
 
     const response = await POST(new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({ prompt: 'strict provider routing', model: 'zimage' }),
     }));
     const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
@@ -909,7 +919,7 @@ describe('/api/generate route', () => {
 
     const response = await POST(new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({ prompt: 'duration boundary', model: 'p-video', duration }),
     }));
 
@@ -925,7 +935,7 @@ describe('/api/generate route', () => {
   it.each([0, 20.5, 21])('rejects invalid p-video duration %s before Pruna dispatch', async (duration) => {
     const response = await POST(new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({ prompt: 'invalid duration', model: 'p-video', duration }),
     }));
     const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
@@ -954,7 +964,7 @@ describe('/api/generate route', () => {
 
     const response = await POST(new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'valid wan duration',
         model,
@@ -975,7 +985,7 @@ describe('/api/generate route', () => {
   it.each(['wan-t2v', 'wan-i2v'] as const)('rejects unsupported 10-second duration for %s before Pruna dispatch', async (model) => {
     const response = await POST(new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'invalid wan duration',
         model,
@@ -997,7 +1007,7 @@ describe('/api/generate route', () => {
   ] as const)('rejects supplied duration for %s rather than ignoring it', async (model, extraBody) => {
     const response = await POST(new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({ prompt: 'provider-controlled duration', model, duration: 5, ...extraBody }),
     }));
     const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
@@ -1018,7 +1028,7 @@ describe('/api/generate route', () => {
 
     const response = await POST(new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({ prompt: 'transition', model: 'wan-i2v', duration: 6, image: images }),
     }));
 
@@ -1047,7 +1057,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'a majestic lion',
         model: 'p-image',
@@ -1084,7 +1094,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'make it watercolor',
         model: 'p-image-edit',
@@ -1124,7 +1134,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'a cat walking',
         model: 'p-video',
@@ -1151,7 +1161,7 @@ describe('/api/generate route', () => {
   it('rejects the disabled vace model instead of dispatching it', async () => {
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({ prompt: 'character walking through rain', model: 'vace' }),
     });
 
@@ -1164,7 +1174,7 @@ describe('/api/generate route', () => {
   it.each(['p-video-animate', 'p-video-replace'] as const)('rejects %s without a source video', async (model) => {
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'move this character',
         model,
@@ -1196,7 +1206,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: 'replace the performer',
         model,
@@ -1244,7 +1254,7 @@ describe('/api/generate route', () => {
 
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         prompt: `generate ${model}`,
         model,

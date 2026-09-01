@@ -4,6 +4,7 @@ import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handl
 import { imageUrl, videoUrl } from '@/lib/pollinations-sdk';
 import { generatePollinationsImage } from '@/lib/pollinations-image-v1';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
+import { assertKeyForPaidModel, visualModelIsPaid } from '@/lib/pollen-cost-guard';
 import { resolvePrunaKey } from '@/lib/resolve-pruna-key';
 import { fetchAndStoreRemoteMedia } from '@/lib/media/server-media-ingest';
 import {
@@ -113,6 +114,16 @@ export async function POST(request: Request) {
     }
 
     const modelInfo = getUnifiedModel(canonicalModelId);
+
+    // L-K.1: kostenpflichtige Modelle laufen nur auf dem Schluessel des
+    // Aufrufers. Pruna ist strukturell dicht (kein Server-Schluessel), der
+    // Pollinations-Weg war offen — live belegt 2026-09-01: seedance-2.0 lief
+    // 125 s auf Betreiberkosten, bevor Cloudflare abbrach.
+    assertKeyForPaidModel(
+      request,
+      canonicalModelId,
+      visualModelIsPaid(canonicalModelId, liveModel?.paid_only),
+    );
     const modelId = toPollinationsVisualApiModelId(canonicalModelId);
     // Fehlt der Config-Eintrag, liefert die Registry dieselben Angaben.
     const isVideoModel = modelInfo ? modelInfo.kind === 'video' : !!liveModel && registryModelIsVideo(liveModel);

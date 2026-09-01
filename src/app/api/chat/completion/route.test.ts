@@ -26,8 +26,18 @@ jest.mock('@/lib/https-post', () => ({
 }));
 
 jest.mock('@/lib/chat/chat-search-strategy', () => ({
+
+
   resolveChatSearchStrategy: (...args: unknown[]) => resolveChatSearchStrategyMock(...args),
 }));
+
+/**
+ * Seit dem L-K.1-Waechter (2026-09-01) laufen kostenpflichtige Modelle nur
+ * auf dem Schluessel des Aufrufers. Diese Tests pruefen Routing und Payload,
+ * nicht die Schluesselpflicht — sie treten deshalb als Nutzer mit eigenem
+ * Schluessel auf. Die Sperre selbst deckt pollen-cost-guard.test.ts ab.
+ */
+const TEST_POLLEN_KEY = 'sk_test_user_key';
 
 describe('/api/chat/completion route', () => {
   const responseJson = jest.fn((body: unknown, init?: ResponseInit) => new Response(JSON.stringify(body), init));
@@ -77,7 +87,7 @@ describe('/api/chat/completion route', () => {
 
     const request = new Request('http://localhost/api/chat/completion', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'bitcoin price today' }],
         modelId: 'gemini-fast',
@@ -96,7 +106,7 @@ describe('/api/chat/completion route', () => {
     const { POST } = await import('./route');
     const request = new Request('http://localhost/api/chat/completion', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello there' }],
         modelId: 'definitely-not-real',
@@ -122,7 +132,7 @@ describe('/api/chat/completion route', () => {
 
     const request = new Request('http://localhost/api/chat/completion', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'bitcoin price today' }],
         modelId: 'gemini-fast',
@@ -142,7 +152,7 @@ describe('/api/chat/completion route', () => {
 
     const request = new Request('http://localhost/api/chat/completion', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello there' }],
         modelId: 'gemini-fast',
@@ -188,7 +198,7 @@ describe('/api/chat/completion route', () => {
 
     const request = new Request('http://localhost/api/chat/completion', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'stream this' }],
         modelId: 'gemini-fast',

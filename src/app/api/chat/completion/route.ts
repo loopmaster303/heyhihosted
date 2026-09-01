@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handler';
 import { WebContextService } from '@/lib/services/web-context-service';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
+import { assertKeyForPaidModel, textModelIsPaid } from '@/lib/pollen-cost-guard';
 import { httpsPost, httpsPostStream } from '@/lib/https-post';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { readBodyWithLimit } from '@/lib/upload/read-body-with-limit';
@@ -143,6 +144,10 @@ export async function POST(request: Request) {
 
     // Validate request
     const { messages, modelId, systemPrompt, webBrowsingEnabled, skipSmartRouter, stream } = validateRequest(ChatCompletionSchema, body);
+    // L-K.1: kostenpflichtige Modelle laufen nur auf dem Schluessel des
+    // Aufrufers. Ohne die Pruefung bediente die Route jeden Fremdaufruf aus
+    // der Betreiberkasse (live belegt 2026-09-01: claude-fast, gemini-fast).
+    assertKeyForPaidModel(request, modelId, textModelIsPaid(modelId));
     if (!isKnownPollinationsTextModelId(modelId)) {
       throw new ApiError(400, `Unknown or unavailable Pollinations text model: ${modelId}`);
     }
