@@ -73,3 +73,45 @@ describe('PromptBar', () => {
     expect(screen.getByText('Pollinations')).toBeInTheDocument();
   });
 });
+
+// L-I.3 und L-K.2: beide Saetze muessen VOR dem Absenden dastehen. Ein Fehler
+// danach ist genau das, was die Kriterien verbieten.
+describe('Hinweise vor dem Absenden', () => {
+  const basis = {
+    value: 'ein prompt',
+    onChange: () => {},
+    onEnhance: () => {},
+    enhancing: false,
+    onSend: () => {},
+  };
+
+  it('zeigt die Schluesselpflicht, wenn sie besteht', () => {
+    render(<PromptBar {...basis} keyRequiredHint="Braucht einen Pollen-Schlüssel." />);
+    expect(screen.getByRole('note')).toHaveTextContent('Braucht einen Pollen-Schlüssel.');
+  });
+
+  it('zeigt den Abrechnungshinweis fuer Pruna', () => {
+    render(<PromptBar {...basis} irreversibleHint="Nicht abbrechbar und wird abgerechnet." />);
+    expect(screen.getByRole('note')).toHaveTextContent('Nicht abbrechbar und wird abgerechnet.');
+  });
+
+  // Ohne Schluessel laeuft gar nichts — die Abrechenbarkeit ist dann noch
+  // nicht das Problem des Nutzers.
+  it('zeigt bei beiden Hinweisen nur die Schluesselpflicht', () => {
+    render(
+      <PromptBar
+        {...basis}
+        keyRequiredHint="Braucht einen Pruna-Schlüssel."
+        irreversibleHint="Nicht abbrechbar."
+      />,
+    );
+    const notes = screen.getAllByRole('note');
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toHaveTextContent('Braucht einen Pruna-Schlüssel.');
+  });
+
+  it('zeigt ohne Hinweise keine Notiz', () => {
+    render(<PromptBar {...basis} />);
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
+  });
+});

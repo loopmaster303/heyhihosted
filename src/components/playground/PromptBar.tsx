@@ -20,6 +20,19 @@ interface Props {
   modelName?: string;
   providerName?: string;
   promptRequired?: boolean;
+  /**
+   * L-K.2: Ein gestarteter Pruna-Lauf ist nicht abbrechbar — Pruna hat keinen
+   * Cancel-Endpunkt, jeder gueltige Payload wird abgerechnet. Der Satz steht
+   * deshalb dauerhaft an der Leiste, solange ein Pruna-Modell gewaehlt ist,
+   * und nicht erst im Fehlerfall.
+   */
+  irreversibleHint?: string;
+  /**
+   * L-I.3: Video ist seit Phase 3 vollstaendig schluesselpflichtig
+   * (Betreiberentscheidung E1-A). Ohne Schluessel muss das vor dem Absenden
+   * dastehen, nicht als 401 danach.
+   */
+  keyRequiredHint?: string;
 }
 
 const MAX_CHARS = 1000;
@@ -35,6 +48,8 @@ export function PromptBar({
   modelName,
   providerName,
   promptRequired = true,
+  irreversibleHint,
+  keyRequiredHint,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const empty = value.trim().length === 0;
@@ -95,6 +110,19 @@ export function PromptBar({
           </Button>
         </div>
       </div>
+
+      {/* L-I.3 vor L-K.2: ohne Schluessel laeuft gar nichts, die Abrechenbarkeit
+          ist dann noch nicht das Problem des Nutzers. */}
+      {keyRequiredHint && (
+        <p role="note" className="mt-1.5 px-1 text-[10px] leading-snug text-amber-600">
+          {keyRequiredHint}
+        </p>
+      )}
+      {!keyRequiredHint && irreversibleHint && (
+        <p role="note" className="mt-1.5 px-1 text-[10px] leading-snug text-muted-foreground/80">
+          {irreversibleHint}
+        </p>
+      )}
 
       <div className="mt-1.5 flex items-center gap-2 px-1 text-[10px] text-muted-foreground/70">
         {/* Ein `title` auf einem disabled Button loest in den meisten Browsern

@@ -57,11 +57,25 @@ export function ModelPicker({ entries, mode, value, onChange, loading, fallbackA
   const emptyLabel =
     entries.length === 0 ? 'Keine Modelle verfügbar' : 'Kein Modell für diesen Modus';
 
+  // L-I.3: "Kein Modell fuer diesen Modus" ist keine Erklaerung, sondern eine
+  // Sackgasse. Seit Phase 3 ist Video vollstaendig schluesselpflichtig
+  // (Betreiberentscheidung E1-A) — wer t2v waehlt und keinen Schluessel hat,
+  // findet eine leere Liste vor und erfaehrt den Grund sonst nirgends.
+  const modusIstVideo = mode === 't2v' || mode === 'i2v';
+  const leerWegenSchluessel = filtered.length === 0 && modusIstVideo;
+
   return (
     <div className="flex flex-col gap-2">
       {fallbackActive && (
         <div className="text-[11px] text-muted-foreground bg-muted rounded-md px-2 py-1">
           {t('playground.fallbackNotice')}
+        </div>
+      )}
+
+      {leerWegenSchluessel && (
+        <div role="note" className="rounded-md bg-amber-500/10 px-2 py-1 text-[11px] leading-snug text-amber-600">
+          Für Video gibt es kein kostenloses Modell. Mit einem eigenen Pollen- oder
+          Pruna-Schlüssel erscheinen hier welche — in den Einstellungen hinterlegen.
         </div>
       )}
 

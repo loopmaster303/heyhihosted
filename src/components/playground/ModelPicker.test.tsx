@@ -109,3 +109,18 @@ describe('ModelPicker', () => {
     expect(screen.getByText('Key nötig')).toBeInTheDocument();
   });
 });
+
+// L-I.3: Seit Phase 3 ist Video vollstaendig schluesselpflichtig. Wer t2v
+// waehlt und keinen Schluessel hat, sah bisher nur "Kein Modell für diesen
+// Modus" — eine Sackgasse ohne Grund.
+describe('L-I.3: leerer Videomodus erklaert sich', () => {
+  it('nennt die Schluesselpflicht, wenn im Videomodus nichts uebrig bleibt', () => {
+    render(<ModelPicker entries={[]} mode="t2v" value="" onChange={() => {}} loading={false} fallbackActive={false} />);
+    expect(screen.getByRole('note')).toHaveTextContent('kein kostenloses Modell');
+  });
+
+  it('schweigt im Bildmodus — dort gibt es freie Modelle', () => {
+    render(<ModelPicker entries={[]} mode="t2i" value="" onChange={() => {}} loading={false} fallbackActive={false} />);
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
+  });
+});

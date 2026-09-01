@@ -24,12 +24,14 @@ import type { AssetOrigin } from '@/lib/assets/asset-origin';
 import { OriginFilter } from '@/components/gallery/OriginFilter';
 import { isModelInMode } from '@/lib/playground/mode-mapping';
 import { getDefaultDurationSeconds, getUnifiedModel } from '@/config/unified-image-models';
+import { isPrunaModel } from '@/config/pruna-models';
+import { useHasPrunaKey } from '@/hooks/useHasPrunaKey';
 import { schemaForEntry, defaultsFor, visibleFields, type ParamValues } from '@/lib/playground/param-schema';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { BlobManager } from '@/lib/blob-manager';
 import { OutputService } from '@/lib/services/output-service';
 import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
-import { readLocal } from '@/lib/safe-storage';
+import { readLocal, writeLocal } from '@/lib/safe-storage';
 import { getStoredPollenKey } from '@/lib/client-pollen-key';
 
 /**
@@ -63,6 +65,13 @@ interface ActiveRun extends QueuedRun {
  * den niemand angefordert hat. Darueber bleibt der Senden-Knopf gesperrt.
  */
 const MAX_CONCURRENT_RUNS = 3;
+
+/**
+ * L-K.2: Merker, dass der Nutzer die Nicht-Abbrechbarkeit von Pruna einmal
+ * bestaetigt hat. Pro Browser, nicht pro Sitzung — die Bestaetigung soll
+ * nicht bei jedem Reload wiederkommen.
+ */
+const PRUNA_ACK_KEY = 'heyhi_pruna_irreversible_ack';
 
 let runCounter = 0;
 const nextRunId = () => `run-${++runCounter}`;
@@ -108,6 +117,7 @@ export function PlaygroundShell() {
   } = usePlaygroundState();
   const { entries, loading, fallbackActive } = usePlaygroundModels();
   const { pollenKey } = usePollenKey();
+  const hatPrunaSchluessel = useHasPrunaKey();
   const { providerMode } = useProviderMode();
 
   const [enhancing, setEnhancing] = useState(false);
@@ -161,6 +171,27 @@ export function PlaygroundShell() {
   }, [currentModel?.id]);
 
   const currentSchema = currentModel ? schemaForEntry(currentModel) : undefined;
+
+  // L-K.2 / L-I.3: beides haengt am gewaehlten Modell und muss VOR dem
+  // Absenden dastehen, nicht als Fehler danach.
+  const istPrunaLauf = currentModel ? isPrunaModel(currentModel.id) : false;
+  const brauchtPollen = !!currentModel
+    && currentModel.provider === 'pollinations'
+    && currentModel.paidOnly
+    && !pollenKey;
+  const brauchtPrunaSchluessel = istPrunaLauf && !hatPrunaSchluessel;
+
+  const keyRequiredHint = brauchtPrunaSchluessel
+    ? `${currentModel?.name ?? 'Dieses Modell'} läuft über Pruna und braucht deinen eigenen Pruna-Schlüssel — in den Einstellungen hinterlegen.`
+    : brauchtPollen
+      ? `${currentModel?.name ?? 'Dieses Modell'} braucht einen Pollen-Schlüssel — in den Einstellungen hinterlegen.${currentModel?.kind === 'video' ? ' Für Video gibt es kein kostenloses Modell.' : ''}`
+      : undefined;
+
+  // Pruna hat keinen Cancel-Endpunkt: jeder gueltige Payload startet einen
+  // abrechenbaren Lauf. "Nicht mehr warten" beendet nur das Warten hier.
+  const irreversibleHint = istPrunaLauf
+    ? 'Ein gestarteter Pruna-Lauf lässt sich nicht abbrechen und wird abgerechnet — auch wenn du hier aufhörst zu warten.'
+    : undefined;
 
   useEffect(() => {
     if (!currentModel) return;
@@ -418,6 +449,19 @@ export function PlaygroundShell() {
     // there. Anywhere else it still blocks.
     if (!currentModel || !canQueue) return;
     if (promptRequired && !state.prompt.trim()) return;
+    // L-K.2, zweite Haelfte: einmal pro Browser bestaetigen, dass ein
+    // Pruna-Lauf nicht abbrechbar ist. Nicht bei jedem Lauf — dann klickt man
+    // es weg, ohne es zu lesen. Die Dauerzeile an der Leiste bleibt danach
+    // stehen und traegt den Satz weiter.
+    if (istPrunaLauf && !readLocal(PRUNA_ACK_KEY)) {
+      const bestaetigt = window.confirm(
+        'Pruna kann einen gestarteten Lauf nicht abbrechen. Er wird abgerechnet, '
+        + 'auch wenn du hier aufhoerst zu warten oder die Seite schliesst.\n\n'
+        + 'Das wird einmal gefragt. Fortfahren?'
+      );
+      if (!bestaetigt) return;
+      writeLocal(PRUNA_ACK_KEY, '1');
+    }
     // Eingefrorene Werte fuer diesen Lauf — der Composer darf sich waehrend
     // der Generierung aendern, ohne den laufenden Request zu verfaelschen.
     startRun({
@@ -629,6 +673,8 @@ export function PlaygroundShell() {
             modelName={currentModel?.name}
             providerName={providerMode === 'pruna' ? 'Pruna' : 'Pollinations'}
             promptRequired={promptRequired}
+            keyRequiredHint={keyRequiredHint}
+            irreversibleHint={irreversibleHint}
           />
         </main>
       </div>
