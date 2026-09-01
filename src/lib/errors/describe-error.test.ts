@@ -41,3 +41,22 @@ test('describeUnknown nennt den Status und den Rohtext', () => {
   expect(d.satz).toContain('502');
   expect(d.satz).toContain('error code: 502');
 });
+
+// Live belegt am 2026-09-01: `kontext` antwortet 403 mit "Model 'kontext' is
+// not allowed for this API key". Gemeint ist der Schluessel des Betreibers.
+// Ohne eigenen Satz las der Nutzer diesen englischen Rohtext.
+test('POLLEN_MODEL_NOT_ALLOWED nennt das Modell und den eigenen Schluessel als Ausweg', () => {
+  const d = describeError('POLLEN_MODEL_NOT_ALLOWED', { modelLabel: 'kontext' });
+  expect(d!.satz).toContain('kontext');
+  expect(d!.satz).toContain('Pollen-Schlüssel');
+  expect(d!.aktion).toBe('settings');
+});
+
+test('PROVIDER_UNAVAILABLE sagt, dass es nicht an der Eingabe liegt', () => {
+  const d = describeError('PROVIDER_UNAVAILABLE', {});
+  expect(d!.satz).toContain('nicht an deiner Eingabe');
+  expect(d!.aktion).toBe('retry');
+
+  const mitWartezeit = describeError('PROVIDER_UNAVAILABLE', { retryAfterSeconds: 42 });
+  expect(mitWartezeit!.satz).toContain('42');
+});

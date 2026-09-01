@@ -67,15 +67,22 @@ export async function generatePollinationsImage(input: GeneratePollinationsImage
     const detail = typeof result.error === 'string'
       ? result.error
       : result.error?.message || 'Unknown Pollinations image generation error';
-    // Ohne Code kann der Client nicht uebersetzen — 401 (kein/abgelehnter
-    // Schluessel) und 402 (Pollen aufgebraucht) sind die beiden Faelle, die
-    // der Nutzer selbst loesen kann.
+    // Ohne Code kann der Client nicht uebersetzen und faellt auf Status plus
+    // Rohtext zurueck. Vier Faelle sind live belegt und tragen deshalb einen:
+    // 401 kein/abgelehnter Schluessel, 402 Pollen aufgebraucht, 403 das Modell
+    // steht nicht auf der Allowlist unseres Server-Keys (der Rohtext spricht
+    // dann von "this API key" und meint nicht den des Nutzers), 5xx der
+    // Anbieter ist weg.
     const code = response.status === 401
       ? 'POLLEN_KEY_REQUIRED'
       : response.status === 402
         ? 'POLLEN_INSUFFICIENT'
-        : undefined;
-    throw new ApiError(response.status, `Pollinations API error: ${detail}`, code);
+        : response.status === 403
+          ? 'POLLEN_MODEL_NOT_ALLOWED'
+          : response.status >= 500
+            ? 'PROVIDER_UNAVAILABLE'
+            : undefined;
+    throw new ApiError(response.status, `Pollinations API error: ${detail}`, code, { modelLabel: input.model });
   }
 
   const firstAsset = result.data?.[0];

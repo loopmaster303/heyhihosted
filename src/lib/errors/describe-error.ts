@@ -35,6 +35,22 @@ const TABLE: Record<ErrorCode, (ctx: DescribeContext) => ErrorDescription> = {
     satz: 'Dein Pollen-Guthaben reicht für dieses Modell nicht.',
     aktion: 'settings',
   }),
+  // Live belegt am 2026-09-01: `kontext` antwortet 403 "Model 'kontext' is not
+  // allowed for this API key". Gemeint ist der Schluessel des Betreibers, nicht
+  // der des Nutzers — ohne eigenen Satz las der Nutzer einen englischen
+  // Rohtext ueber einen Schluessel, den er gar nicht hat.
+  POLLEN_MODEL_NOT_ALLOWED: (ctx) => ({
+    satz: `**${ctx.modelLabel ?? 'Dieses Modell'}** ist auf unserem Schlüssel nicht freigeschaltet. Mit einem eigenen Pollen-Schlüssel läuft es, sonst ein anderes Modell wählen.`,
+    aktion: 'settings',
+  }),
+  // Der Anbieter antwortet gar nicht oder mit 5xx. Nichts davon kann der
+  // Nutzer beheben — der einzige sinnvolle Rat ist warten und erneut senden.
+  PROVIDER_UNAVAILABLE: (ctx) => ({
+    satz: ctx.retryAfterSeconds
+      ? `Der Anbieter antwortet gerade nicht. In etwa ${ctx.retryAfterSeconds} Sekunden nochmal versuchen.`
+      : 'Der Anbieter antwortet gerade nicht. Das liegt nicht an deiner Eingabe — in ein paar Minuten erneut versuchen.',
+    aktion: 'retry',
+  }),
   UNKNOWN_MODEL: (ctx) => ({
     satz: ctx.modelLabel
       ? `Das Modell \`${ctx.modelLabel}\` gibt es nicht (mehr).`
