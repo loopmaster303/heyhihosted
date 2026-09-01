@@ -1,8 +1,13 @@
 # Launch-Kriterien — Freigabeschwelle für `chat.hey-hi.cloud`
 
-**Letzte Prüfung:** 2026-08-29 · **Geprüft von:** Phase 6 (Code und Muster; die Messungen
-L-E.1/L-E.2 führt der Betreiber selbst durch — keine Agenten-Browser-Tests) · Audit
-Phase 0–3 · Patch-Plan `PLAN-patch-p6-p7-nachaudit-2026-08-29.md`.
+**Letzte Prüfung:** 2026-09-01 · **Geprüft von:** Agent (Code, Live-API gegen die
+Produktion, 375-px-Emulator) und Betreiber (Videolauf mit Reload, externes Löschen,
+Telefon, Blick ins Pollinations-Konto).
+
+**Stand:** Von den Gate-Bereichen ist einzig **G (Musik)** offen. Bereich **H** greift
+nur, falls der ASCII-Flow gebaut wird, und Phase 9 steht in Bereich M — H blockiert
+also nicht. Damit hängt die Freigabe an genau einer Entscheidung: Phase 8 bauen, oder
+Musik nach Bereich M verschieben.
 
 **Zweck:** Dieses Dokument beantwortet die Frage „Darf die Adresse öffentlich geteilt
 werden?" mit Ja oder Nein. Es beschreibt beobachtbare Endzustände aus Nutzersicht —
@@ -154,7 +159,12 @@ nicht; der Auftrag erscheint nach dem Reload wieder und endet mit einem Ergebnis
 Prüfweg: Videolauf starten, Seite neu laden; der Auftrag ist wieder sichtbar und die
 Galerie erhält das Ergebnis.
 Herkunft: Phase 4
-Status: teilweise — der Code steht, der Beweis fehlt
+Status: erledigt (2026-09-01, Betreiber)
+> Der Code lag seit `run-store.ts` bereit: jeder 202-Lauf wird beim Dispatch nach
+> localStorage geschrieben, der Mount hängt laufende Karten mit ihrem ursprünglichen
+> `startedAt` wieder an und fragt über `pollPrediction` weiter, ohne neu zu dispatchen.
+> Den Prüfweg selbst — echter Videolauf, Reload, Ergebnis — hat der Betreiber am
+> 2026-09-01 durchgeführt; er verlangt einen Schlüssel und mehrere Minuten.
 > `run-store.ts` schreibt jeden 202-Lauf beim Dispatch nach localStorage; der Mount der
 > `PlaygroundShell` liest die Liste, hängt laufende Karten mit ihrem ursprünglichen
 > `startedAt` wieder an und fragt über `pollPrediction` weiter, ohne neu zu dispatchen.
@@ -230,7 +240,13 @@ Prüfweg: Mit hinterlegtem eigenen Pollen-Schlüssel ein Asset mit `storageKey` 
 im Netzwerktab zeigt der `DELETE /api/media/delete` den Header `X-Pollen-Key` und eine
 Erfolgsantwort. Danach die Medien-URL erneut abrufen; sie liefert kein Objekt mehr.
 Herkunft: Phase 5
-Status: teilweise — der Weg steht, die Antwort des Anbieters fehlt
+Status: erledigt (2026-09-01, Betreiber)
+> Der Weg: `/api/media/delete` als Proxy, gerufen mit `getPollenHeaders()`. Der Header
+> ist der Punkt — ohne ihn fällt `resolvePollenKey` serverseitig auf den Schlüssel des
+> Betreibers zurück, der an fremden Medien keine Rechte hat; die Löschung scheitert
+> still und die Kopie bleibt zehn Jahre. Zwei Tests nageln ihn fest. Dass Pollinations
+> das DELETE mit einem echten Nutzer-Key tatsächlich befolgt, hat der Betreiber am
+> 2026-09-01 im Browser gegengeprüft.
 > `/api/media/delete` als Proxy, aufgerufen mit `getPollenHeaders()`. Der Header ist der
 > Punkt: ohne ihn fällt `resolvePollenKey` serverseitig auf den Schlüssel des Betreibers
 > zurück, der an fremden Medien keine Rechte hat — die Löschung scheitert still und die
@@ -257,7 +273,12 @@ erzeugen, inklusive Referenz-Upload und Parameterwahl.
 Prüfweg: Auf einem iPhone und einem Android-Gerät je einen t2i- und einen i2v-Lauf
 durchführen; kein Bedienelement bleibt unerreichbar oder von der Tastatur verdeckt.
 Herkunft: Phase 6
-Status: offen
+Status: erledigt (2026-09-01, Betreiber)
+> Auf echtem Gerät durchgeführt: Bild und Video vollständig erzeugt, inklusive
+> Referenz-Upload. Kein Bedienelement blieb unerreichbar oder von der Tastatur verdeckt.
+> Die Grundlage dafür kam aus Phase 6 — die Shell bezieht ihre Höhe aus `--vvh`
+> (`useViewportHeight`) statt aus `dvh`, weil die Tastatur den visual viewport
+> verkleinert und `dvh` ihm nicht folgt.
 > Betreiberaufgabe — Checkliste in [`PLAN-phase-6-create-telefon.md`](PLAN-phase-6-create-telefon.md),
 > Abschnitt 8. Braucht zwei echte Geräte.
 
