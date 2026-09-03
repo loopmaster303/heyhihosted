@@ -50,6 +50,11 @@ add new documents there.
 - `PLAN-phase-7-chat-entschlanken.md` — implementation plan for Phase 7: reduce the chat's
   image selection to the key-free rule, move video and Pruna into Create, label the way
   there. Carries operator decisions E7-1 to E7-4. **Executed 2026-08-29.**
+- `PLAN-sound-modellwahl-2026-09-03.md` — **next up.** Sound's five models under one
+  additive rule (self-hosted ACE-Step always; a Pollen key adds the four Pollinations
+  music models), per-model parameters, and the two-stage mode switch. Carries the
+  verified blocker: the 30 s proxy timeout that makes the Pollinations models
+  unfinishable.
 - `LAUNCH_CRITERIA.md` — **the release gate.** What must work before the address may be shared publicly; per-criterion status, operator decisions recorded 2026-08-28.
 - `HANDOFF-2026-08-28-phase-0.md` — **start here.** What Phase 0 delivered (99 files into
   sixteen commits, `f880389..aa3eac4`), how it was done, the per-phase findings it

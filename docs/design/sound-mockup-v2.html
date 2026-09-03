@@ -1,0 +1,812 @@
+<title>Sound für heyhi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  /* ------------------------------------------------------------------
+     Tokens des Dokuments. Die App-Nachbauten weiter unten tragen ihre
+     eigenen Tokens (--a-*) und bleiben IMMER dunkel — sie zeigen die App,
+     und die App ist dunkel. Das Dokument drumherum folgt dem Viewer.
+     ------------------------------------------------------------------ */
+  :root {
+    --ink: hsl(262 22% 12%);
+    --ink-soft: hsl(262 10% 42%);
+    --ink-faint: hsl(262 10% 58%);
+    --ground: hsl(280 20% 97%);
+    --panel: hsl(0 0% 100%);
+    --line: hsl(262 16% 88%);
+    --line-soft: hsl(262 16% 93%);
+    --sound: hsl(270 62% 48%);
+    --sound-wash: hsl(270 62% 48% / 0.09);
+    --create: hsl(325 62% 48%);
+    --chat: hsl(267 62% 50%);
+    --warn: hsl(28 72% 42%);
+    --gut: hsl(158 58% 32%);
+
+    --f-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: hsl(262 15% 94%);
+      --ink-soft: hsl(262 8% 66%);
+      --ink-faint: hsl(262 8% 52%);
+      --ground: hsl(262 20% 6%);
+      --panel: hsl(262 18% 9%);
+      --line: hsl(262 15% 19%);
+      --line-soft: hsl(262 15% 14%);
+      --sound: hsl(270 72% 72%);
+      --sound-wash: hsl(270 72% 70% / 0.13);
+      --create: hsl(325 72% 68%);
+      --chat: hsl(267 78% 68%);
+      --warn: hsl(38 82% 62%);
+      --gut: hsl(158 52% 55%);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ink: hsl(262 15% 94%);
+    --ink-soft: hsl(262 8% 66%);
+    --ink-faint: hsl(262 8% 52%);
+    --ground: hsl(262 20% 6%);
+    --panel: hsl(262 18% 9%);
+    --line: hsl(262 15% 19%);
+    --line-soft: hsl(262 15% 14%);
+    --sound: hsl(270 72% 72%);
+    --sound-wash: hsl(270 72% 70% / 0.13);
+    --create: hsl(325 72% 68%);
+    --chat: hsl(267 78% 68%);
+    --warn: hsl(38 82% 62%);
+    --gut: hsl(158 52% 55%);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 15.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px 120px; }
+  .prose { max-width: 68ch; }
+
+  /* ---------- Kopf ---------- */
+  header.top {
+    padding: 68px 0 40px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 52px;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--sound);
+    margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(30px, 4.4vw, 46px);
+    line-height: 1.1;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  .lede { font-size: 18px; color: var(--ink-soft); margin: 0; max-width: 62ch; }
+
+  h2 {
+    font-size: 25px;
+    font-weight: 600;
+    letter-spacing: -0.016em;
+    margin: 76px 0 8px;
+    text-wrap: balance;
+  }
+  h2 + .sub { color: var(--ink-soft); margin: 0 0 30px; max-width: 64ch; }
+  h3 { font-size: 17px; font-weight: 600; margin: 34px 0 8px; letter-spacing: -0.008em; }
+  p { margin: 0 0 16px; }
+  a { color: var(--sound); }
+
+  code, .mono { font-family: var(--f-mono); font-size: 0.885em; }
+  code {
+    background: var(--sound-wash);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ---------- Befundkasten ---------- */
+  .finding {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--sound);
+    background: var(--panel);
+    border-radius: 3px;
+    padding: 22px 26px;
+    margin: 0 0 20px;
+  }
+  .finding.warn { border-left-color: var(--warn); }
+  .finding h3 { margin: 0 0 8px; font-size: 16px; }
+  .finding p:last-child { margin-bottom: 0; }
+  .finding .tag {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  /* ---------- Vergleichsraster ---------- */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 26px;
+    margin: 34px 0 0;
+  }
+  @media (min-width: 1000px) { .compare { grid-template-columns: 1fr 1fr; } }
+
+  .col-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .col-head .n {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+    color: var(--ink-faint);
+  }
+  .col-head .n.neu { color: var(--sound); border-color: var(--sound); }
+  .col-head h3 { margin: 0; font-size: 16px; }
+
+  /* ==================================================================
+     APP-NACHBAU — eigener, immer dunkler Tokensatz.
+     Bewusst nicht theme-abhaengig: das ist die App, nicht das Dokument.
+     ================================================================== */
+  .app {
+    --a-bg: hsl(262 20% 5%);
+    --a-panel: hsl(262 18% 7%);
+    --a-panel-hi: hsl(262 16% 10%);
+    --a-line: hsl(262 15% 18%);
+    --a-fg: hsl(262 15% 95%);
+    --a-muted: hsl(262 8% 65%);
+    --a-faint: hsl(262 8% 44%);
+    --a-sound: hsl(270 72% 70%);
+    --a-primary: hsl(267 78% 65%);
+
+    background: var(--a-bg);
+    color: var(--a-fg);
+    border: 1px solid var(--a-line);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.45;
+    box-shadow: 0 8px 30px hsl(262 40% 3% / 0.45);
+  }
+
+  .app-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 12px;
+    height: 38px;
+    background: hsl(262 18% 8% / 0.6);
+    border-bottom: 1px solid var(--a-line);
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+  }
+  .app-head .brand { display: flex; align-items: center; gap: 7px; }
+  .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--a-sound);
+    box-shadow: 0 0 9px var(--a-sound);
+  }
+  .slash { color: var(--a-faint); }
+  .app-head .nav { display: flex; gap: 3px; align-items: center; }
+  .app-head .nav a {
+    color: var(--a-muted);
+    text-decoration: none;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .app-head .nav a.on { color: var(--a-sound); background: hsl(270 72% 70% / 0.13); }
+
+  .app-body { display: grid; grid-template-columns: 178px 1fr; min-height: 372px; }
+  .app-body.wide { grid-template-columns: 178px 1fr 172px; }
+
+  .side {
+    border-right: 1px solid var(--a-line);
+    padding: 13px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  .lbl {
+    font-family: var(--f-mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--a-faint);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .field {
+    background: hsl(262 15% 14%);
+    border: 1px solid var(--a-line);
+    border-radius: 7px;
+    padding: 6px 9px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    color: var(--a-fg);
+  }
+  .field .chev { color: var(--a-faint); }
+  .badge {
+    font-family: var(--f-mono);
+    font-size: 8.5px;
+    padding: 1px 5px;
+    border-radius: 99px;
+    border: 1px solid;
+    letter-spacing: 0.04em;
+  }
+  .badge.frei { color: var(--a-sound); border-color: hsl(270 72% 70% / 0.45); }
+  .badge.host { color: var(--a-muted); border-color: var(--a-line); }
+
+  .pills { display: flex; gap: 4px; background: hsl(262 15% 12%); padding: 3px; border-radius: 8px; }
+  .pills span {
+    flex: 1;
+    text-align: center;
+    padding: 4px 0;
+    border-radius: 6px;
+    color: var(--a-muted);
+    font-size: 11px;
+  }
+  .pills span.on { background: var(--a-sound); color: hsl(262 30% 8%); font-weight: 600; }
+  .pills.two span.on { background: hsl(262 16% 20%); color: var(--a-fg); }
+
+  .stage {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    min-width: 0;
+  }
+  .empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: var(--a-muted);
+    text-align: center;
+  }
+  .empty .glyph {
+    font-family: var(--f-mono);
+    font-size: 21px;
+    color: var(--a-sound);
+    letter-spacing: 2px;
+  }
+  .empty .hint { color: var(--a-faint); font-size: 11px; }
+
+  /* Trackkarte */
+  .track {
+    border: 1px solid var(--a-line);
+    border-radius: 9px;
+    background: var(--a-panel);
+    padding: 10px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .track.sel { border-color: hsl(270 72% 70% / 0.5); background: hsl(270 40% 12% / 0.5); }
+  .track-top { display: flex; align-items: center; gap: 8px; }
+  .play {
+    width: 21px; height: 21px; border-radius: 50%;
+    background: var(--a-sound);
+    color: hsl(262 30% 8%);
+    display: grid; place-items: center;
+    font-size: 8px;
+    flex-shrink: 0;
+  }
+  .track-name { font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .heart { color: var(--a-faint); }
+
+  .wave { display: flex; align-items: flex-end; gap: 1.5px; height: 24px; }
+  .wave i {
+    flex: 1;
+    background: hsl(270 72% 70% / 0.42);
+    border-radius: 1px;
+    display: block;
+  }
+  .track.sel .wave i { background: hsl(270 72% 70% / 0.72); }
+
+  .track-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--f-mono); font-size: 9px; color: var(--a-faint);
+  }
+  .chips { display: flex; gap: 3px; }
+  .chips b {
+    font-weight: 400;
+    border: 1px solid var(--a-line);
+    border-radius: 3px;
+    padding: 0 4px;
+  }
+
+  /* Eingabebereich */
+  .composer {
+    border: 1px solid var(--a-line);
+    border-radius: 11px;
+    background: hsl(262 16% 12% / 0.8);
+    overflow: hidden;
+  }
+  .composer .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--a-line);
+    font-family: var(--f-mono);
+    font-size: 10px;
+  }
+  .composer .tabs span {
+    padding: 6px 11px;
+    color: var(--a-faint);
+    border-right: 1px solid var(--a-line);
+    letter-spacing: 0.06em;
+  }
+  .composer .tabs span.on { color: var(--a-sound); background: hsl(270 72% 70% / 0.09); }
+  .composer .tabs .count { margin-left: auto; border-right: 0; padding-right: 11px; }
+  .ta { padding: 9px 11px; color: var(--a-faint); min-height: 34px; }
+  .ta.filled { color: var(--a-fg); }
+  .ta .mt { color: var(--a-sound); font-family: var(--f-mono); }
+  .composer .bar {
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 9px 8px;
+    border-top: 1px solid var(--a-line);
+  }
+  .btn {
+    border: 1px solid var(--a-line);
+    border-radius: 7px;
+    padding: 4px 10px;
+    color: var(--a-muted);
+    background: hsl(262 15% 17%);
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px;
+  }
+  .btn.go { background: var(--a-sound); color: hsl(262 30% 8%); border-color: transparent; font-weight: 600; }
+  .btn.ghost { background: transparent; }
+  .spacer { flex: 1; }
+  .statusline {
+    font-family: var(--f-mono);
+    font-size: 9px;
+    color: var(--a-faint);
+    display: flex; gap: 7px; align-items: center;
+    padding: 0 2px;
+  }
+
+  /* Detailleiste */
+  .rail { border-left: 1px solid var(--a-line); padding: 13px 11px; display: flex; flex-direction: column; gap: 11px; }
+  .rail .kv { display: flex; justify-content: space-between; gap: 8px; font-size: 10.5px; }
+  .rail .kv span:first-child { color: var(--a-faint); }
+  .rail .kv span:last-child { font-family: var(--f-mono); }
+  .rail .block { font-size: 10.5px; color: var(--a-muted); line-height: 1.5; }
+
+  .note {
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 10.5px;
+    line-height: 1.45;
+    background: hsl(38 80% 60% / 0.11);
+    color: hsl(38 82% 72%);
+    border: 1px solid hsl(38 80% 60% / 0.24);
+  }
+
+  /* ASCII */
+  .ascii { font-family: var(--f-mono); letter-spacing: 0.5px; color: var(--a-sound); }
+  .ascii-run {
+    display: flex; align-items: center; gap: 9px;
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--a-muted);
+  }
+
+  /* ---------- Tabellen ---------- */
+  .tw { overflow-x: auto; margin: 26px 0; border: 1px solid var(--line); border-radius: 3px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { padding: 11px 15px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line-soft); }
+  th {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--panel);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: 0; }
+  td.mono { font-family: var(--f-mono); font-size: 12.5px; white-space: nowrap; }
+  .ja { color: var(--gut); font-weight: 600; }
+  .nein { color: var(--warn); font-weight: 600; }
+
+  ul.clean { margin: 0 0 16px; padding-left: 20px; }
+  ul.clean li { margin-bottom: 7px; }
+
+  .foot {
+    margin-top: 84px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-faint);
+    font-size: 13px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">Entwurf · 2026-09-03 · ersetzt sound-mockup.html</p>
+  <h1>Sound für heyhi</h1>
+  <p class="lede">
+    Ein dritter Ort neben Chat und Create, gebaut auf selbst gehostetem ACE&#8209;Step 1.5.
+    Dieser Entwurf zeigt, was sich gegenüber dem ersten Mockup ändert — und warum die
+    wichtigste Änderung nicht das Aussehen betrifft, sondern die Eingabe.
+  </p>
+</header>
+
+<h2>Der Befund, der alles andere bestimmt</h2>
+<p class="sub">Bevor es um Farben geht: das erste Mockup baut ACE&#8209;Step so, wie man Suno bedient. Das ist genau verkehrt herum.</p>
+
+<div class="prose">
+  <div class="finding">
+    <span class="tag">Kern</span>
+    <h3>ACE&#8209;Step hat zwei Eingabefelder, nicht eins</h3>
+    <p>
+      <strong>Tags</strong> steuern den Klang — 3 bis 7 mechanische Stichworte, komma&shy;getrennt:
+      <code>dub techno, deep, analog synth, sub bass, 120 bpm</code>. <strong>Lyrics</strong> steuern
+      den Aufbau — mit Struktur&shy;marken wie <code>[verse]</code>, <code>[chorus]</code>, <code>[inst]</code>.
+    </p>
+    <p>
+      Prosa im Tag-Feld schadet aktiv. „Beschreibe den Track — Genre, Stimmung, BPM, Instrumente…"
+      als einziges Feld lädt genau zu der Prosa ein, die ACE&#8209;Step schlechter macht. Das ist kein
+      Detail der Beschriftung, sondern die Struktur der Oberfläche.
+    </p>
+  </div>
+
+  <div class="finding">
+    <span class="tag">Folge</span>
+    <h3>Ein Ergebnis reicht nie</h3>
+    <p>
+      ACE&#8209;Step ist seed-empfindlich; die eigene Dokumentation nennt die Ausgabe „gacha-style".
+      Der übliche Weg ist: vier bis acht Varianten erzeugen, die beste behalten. Eine Oberfläche,
+      die einen Track pro Klick liefert, zwingt zum Wiederholen von Hand.
+    </p>
+  </div>
+
+  <div class="finding warn">
+    <span class="tag">Widerspruch zum Fahrplan</span>
+    <h3>Das hier ist Phase 10, nicht Phase 8</h3>
+    <p>
+      Der Fahrplan sieht für Phase 8 Musik <em>als vierten Modus im Create</em> vor, über
+      Pollinations, hinter der Pollenwall — und verlangt ausdrücklich, <code>acestep</code> aus dem
+      Code zu entfernen (Kriterium L&#8209;G.4). Eigene Infrastruktur war als Phase 10
+      zurückgestellt.
+    </p>
+    <p>
+      Selbst gehostetes ACE&#8209;Step als eigene Oberfläche kehrt beides um. Das ist eine legitime
+      Entscheidung — der Fahrplan nennt sie sogar als Wiederaufnahme&shy;grund („ein kostenloses
+      Musikangebot wird doch gewünscht") — aber sie muss aufgeschrieben werden, und die vier
+      Kriterien in Bereich G sind auf die Pollenwall formuliert und werden dadurch
+      gegenstandslos. Bereich G ist der letzte offene Block vor der Freigabe.
+    </p>
+  </div>
+</div>
+
+<h2>Vorher und nachher</h2>
+<p class="sub">Links der Stand aus <code>sound-mockup.html</code>, rechts dieser Entwurf. Beide im selben Maßstab.</p>
+
+<div class="compare">
+
+  <!-- ============ VORHER ============ -->
+  <div>
+    <div class="col-head"><span class="n">Vorher</span><h3>Ein Feld, ein Ergebnis</h3></div>
+    <div class="app">
+      <div class="app-head">
+        <div class="brand"><span class="dot" style="background:hsl(267 78% 65%);box-shadow:0 0 9px hsl(267 78% 65%)"></span><span>heyhi</span><span class="slash">/</span><span>sound</span></div>
+        <div class="mono" style="color:var(--a-faint);font-size:10px">ACE-Step 1.5 · Modal</div>
+      </div>
+      <div class="app-body wide">
+        <div class="side">
+          <div><span class="lbl">Modell</span><div class="field"><span>ACE-Step 1.5 (Modal)</span><span class="chev">⌄</span></div></div>
+          <div><span class="lbl">Dauer</span><div class="pills two"><span>30s</span><span class="on">60s</span><span>2m</span></div></div>
+          <div><span class="lbl">Stimme</span><div class="pills two"><span class="on">Instrumental</span><span>Gesang</span></div></div>
+          <div><span class="lbl">Format</span><div class="pills two"><span class="on">MP3</span><span>WAV</span></div></div>
+          <div class="spacer"></div>
+          <div><span class="lbl">Status</span><div style="color:var(--a-muted);font-size:11px">Bereit</div></div>
+        </div>
+
+        <div class="stage">
+          <div class="track sel">
+            <div class="track-top"><span class="play">▶</span><span class="track-name">Analogue Resonance</span><span class="heart">♡</span></div>
+            <div class="wave" data-wave="10,15,7,19,12,22,9,17,13,20,8,16,11,21,14,6,18,10,15,9"></div>
+            <div class="track-foot"><span>2:00</span><span class="chips"><b>60s</b><b>inst</b><b>mp3</b></span></div>
+          </div>
+          <div class="track">
+            <div class="track-top"><span class="play">▶</span><span class="track-name">Deep Utility</span><span class="heart">♡</span></div>
+            <div class="wave" data-wave="8,14,19,6,16,11,21,9,17,12,20,7,15,18,10,13,22,8,14,16"></div>
+            <div class="track-foot"><span>1:00</span><span class="chips"><b>60s</b><b>inst</b><b>mp3</b></span></div>
+          </div>
+          <div class="spacer"></div>
+          <div class="composer">
+            <div class="ta">Beschreibe den Track — Genre, Stimmung, BPM, Instrumente…</div>
+            <div class="bar">
+              <span class="mono" style="font-size:9px;color:var(--a-faint)">⌘↵ Generieren</span>
+              <span class="spacer"></span>
+              <span class="btn go" style="border-radius:50%;width:22px;height:22px;padding:0;justify-content:center">↑</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rail">
+          <div style="font-weight:600">Analogue Resonance</div>
+          <div class="wave" data-wave="12,18,9,21,14,7,19,11,16,22,8,15,20,10,17,13"></div>
+          <div class="kv"><span>Dauer</span><span>2:00</span></div>
+          <div class="kv"><span>Modell</span><span>ACE-Step 1.5</span></div>
+          <div class="kv"><span>Host</span><span>Modal</span></div>
+          <span class="lbl" style="margin-top:4px">Prompt</span>
+          <div class="block">raw minimalistic acid house, analogue texture, 123 bpm, 909 kicks</div>
+        </div>
+      </div>
+    </div>
+
+    <ul class="clean" style="margin-top:16px;font-size:14px;color:var(--ink-soft)">
+      <li>Ein Prosa-Feld — kein Ort für Lyrics, keine Trennung von Tags und Struktur</li>
+      <li>Kein Enhance</li>
+      <li>Kein Batch: ein Klick, ein Track</li>
+      <li>Keine ASCII-Effekte, kein sichtbarer Wartezustand</li>
+      <li>„Format MP3/WAV" belegt eine ganze Reihe für eine Frage, die selten gestellt wird</li>
+    </ul>
+  </div>
+
+  <!-- ============ NACHHER ============ -->
+  <div>
+    <div class="col-head"><span class="n neu">Nachher</span><h3>Tags und Lyrics getrennt, Batch eingebaut</h3></div>
+    <div class="app">
+      <div class="app-head">
+        <div class="brand"><span class="dot"></span><span>heyhi</span><span class="slash">/</span><span>sound</span></div>
+        <div class="nav">
+          <a href="#vgl">chat</a><a href="#vgl">create</a><a href="#vgl" class="on">sound</a>
+          <span class="slash" style="margin:0 4px">·</span><a href="#vgl">⚙</a>
+        </div>
+      </div>
+      <div class="app-body wide">
+        <div class="side">
+          <div>
+            <span class="lbl">Modell</span>
+            <div class="field"><span>ACE-Step 1.5</span><span class="badge frei">frei</span></div>
+            <div class="mono" style="font-size:9px;color:var(--a-faint);margin-top:5px">eigener Modal-Container · kein Schlüssel nötig</div>
+          </div>
+          <div><span class="lbl">Dauer</span><div class="pills two"><span>30s</span><span class="on">60s</span><span>120s</span></div></div>
+          <div><span class="lbl">Stimme</span><div class="pills two"><span class="on">Instrumental</span><span>Gesang</span></div></div>
+          <div>
+            <span class="lbl">Varianten</span>
+            <div class="pills two"><span>1</span><span class="on">4</span><span>8</span></div>
+            <div class="mono" style="font-size:9px;color:var(--a-faint);margin-top:5px">ACE-Step ist seed-abhängig — mehrere lohnen sich</div>
+          </div>
+          <div><span class="lbl">Seed</span><div class="field"><span class="mono" style="font-size:10.5px;color:var(--a-muted)">zufällig</span><span class="chev">⟳</span></div></div>
+        </div>
+
+        <div class="stage">
+          <div class="track sel">
+            <div class="track-top"><span class="play">▶</span><span class="track-name">dub techno · Variante 2</span><span class="heart" style="color:var(--a-sound)">♥</span></div>
+            <div class="wave" data-wave="10,15,7,19,12,22,9,17,13,20,8,16,11,21,14,6,18,10,15,9"></div>
+            <div class="track-foot"><span>0:60 · seed 41822</span><span class="chips"><b>inst</b><b>4/4</b></span></div>
+          </div>
+          <div class="track">
+            <div class="track-top"><span class="play">▶</span><span class="track-name">dub techno · Variante 3</span><span class="heart">♡</span></div>
+            <div class="wave" data-wave="8,14,19,6,16,11,21,9,17,12,20,7,15,18,10,13,22,8,14,16"></div>
+            <div class="track-foot"><span>0:60 · seed 41823</span><span class="chips"><b>inst</b><b>4/4</b></span></div>
+          </div>
+
+          <div class="track" style="border-style:dashed">
+            <div class="ascii-run">
+              <span class="ascii" id="wave-run">▁▂▃▄▅▆▇▆▅▄▃▂</span>
+              <span>Variante 4 von 4 · 0:38</span>
+            </div>
+          </div>
+
+          <div class="spacer"></div>
+
+          <div class="composer">
+            <div class="tabs">
+              <span class="on">TAGS</span><span>LYRICS</span><span class="count mono">62 / 512</span>
+            </div>
+            <div class="ta filled">dub techno, deep, analog synth, sub bass, minimal, 120 bpm</div>
+            <div class="bar">
+              <span class="btn ghost">✦ Enhance</span>
+              <span class="spacer"></span>
+              <span class="btn go">Generieren</span>
+            </div>
+          </div>
+          <div class="statusline">
+            <span>ACE-Step 1.5</span><span>·</span><span>Modal</span><span>·</span><span>4 Varianten à 60s</span>
+          </div>
+        </div>
+
+        <div class="rail">
+          <div style="font-weight:600">Variante 2</div>
+          <div class="wave" data-wave="12,18,9,21,14,7,19,11,16,22,8,15,20,10,17,13"></div>
+          <div class="kv"><span>Dauer</span><span>0:60</span></div>
+          <div class="kv"><span>Seed</span><span>41822</span></div>
+          <div class="kv"><span>Schritte</span><span>8 · turbo</span></div>
+          <span class="lbl" style="margin-top:4px">Tags</span>
+          <div class="block mono" style="font-size:10px">dub techno, deep, analog synth, sub bass, minimal, 120 bpm</div>
+          <div style="display:flex;gap:5px;margin-top:auto">
+            <span class="btn" style="flex:1;justify-content:center">↓ Laden</span>
+            <span class="btn" style="flex:1;justify-content:center">⟳ Seed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ul class="clean" style="margin-top:16px;font-size:14px;color:var(--ink-soft)">
+      <li><strong>Zwei Reiter</strong> — Tags und Lyrics, mit dem 512-Zeichen-Zähler dort, wo er gilt</li>
+      <li><strong>Enhance</strong> an derselben Stelle wie in Create</li>
+      <li><strong>Varianten 1 / 4 / 8</strong> als erste Klasse, mit Seed je Karte</li>
+      <li><strong>ASCII-Welle</strong> als Wartezustand — dasselbe Bauteil wie in Create</li>
+      <li>Dreiwege-Navigation <span class="mono" style="font-size:11px">chat · create · sound</span> in der Kopfzeile</li>
+    </ul>
+  </div>
+</div>
+
+<h2 id="vgl">Woran man sieht, dass es dazugehört</h2>
+<p class="sub">Nichts hier ist neu erfunden. Jede Entscheidung greift auf etwas zurück, das im Repo schon existiert.</p>
+
+<div class="tw">
+<table>
+  <thead><tr><th>Element</th><th>Woher es kommt</th><th>Beleg im Code</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Akzentfarbe</td>
+      <td>Die Modusfarbe für Compose, die es seit Langem gibt — Sound bekommt keine neue Farbe, sondern die bereits vergebene</td>
+      <td class="mono">--mode-compose<br>270 72% 70%</td>
+    </tr>
+    <tr>
+      <td>Kopfzeile</td>
+      <td><code>● heyhi / sound</code> im selben Aufbau wie <code>heyhi / create</code>, 38&nbsp;px hoch, Mono</td>
+      <td class="mono">PlaygroundShell.tsx</td>
+    </tr>
+    <tr>
+      <td>Drei Spalten</td>
+      <td>Parameter links, Bühne mittig, Detailleiste rechts — auf dem Telefon Schubladen, wie in Create</td>
+      <td class="mono">grid-cols-[300px_1fr]</td>
+    </tr>
+    <tr>
+      <td>Eingabeleiste</td>
+      <td>Enhance links, Aktion rechts, Statuszeile darunter — Position und Reihenfolge wie in Create</td>
+      <td class="mono">PromptBar.tsx</td>
+    </tr>
+    <tr>
+      <td>Wartewelle</td>
+      <td>Vorhandenes Bauteil, unverändert. Für Sound liegt es besonders nahe — es <em>ist</em> eine Wellenform</td>
+      <td class="mono">AsciiWave<br>▁▂▃▄▅▆▇▆▅▄▃▂</td>
+    </tr>
+    <tr>
+      <td>Modusrhythmus</td>
+      <td>Eigenes Lauf&shy;muster für Sound, wie Chat und Create je eines haben</td>
+      <td class="mono">AsciiSignature</td>
+    </tr>
+    <tr>
+      <td>Schriften</td>
+      <td>Gesprochenes proportional, Maschinelles monospace — Seeds, Dauern, Modell-IDs stehen in Mono</td>
+      <td class="mono">Schriftregel<br>CLAUDE.md</td>
+    </tr>
+    <tr>
+      <td>Fertige Wellenform</td>
+      <td>CSS, nicht ASCII. Die Modulregel lautet: ASCII macht, was sich bewegt und vergeht; CSS macht, was steht und angefasst wird</td>
+      <td class="mono">ascii/index.tsx</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Enhance — warum ACE&#8209;Step ein eigenes braucht</h2>
+<p class="sub">Der Enhance-Pfad existiert und ist modellspezifisch. Für ACE&#8209;Step fehlt heute der Eintrag.</p>
+
+<div class="prose">
+  <p>
+    <code>selectGuidelines()</code> löst in fester Reihenfolge auf: Alias, dann Audio-Schlüssel, dann
+    handgeschriebener Eintrag, dann Registry, dann Standard. Für Stable&nbsp;Audio gibt es einen
+    eigenen Prompt. Der ACE&#8209;Step-Eintrag wurde eingeführt, in Phase&nbsp;3 aber mitentfernt, als
+    <code>acestep</code> aus den Listen flog.
+  </p>
+  <p>
+    Das generische Audio-Guiding hilft hier nicht, sondern schadet: es schreibt eine
+    <em>Klangbeschreibung</em>, und genau das ist bei ACE&#8209;Step das Falsche. Enhance muss stattdessen
+    <strong>zu Tags verdichten</strong> — aus „irgendwas Dunkles zum Programmieren" wird
+    <code>dub techno, deep, minimal, sub bass, 120 bpm, instrumental</code>, nicht ein
+    ausgeschmückter Satz.
+  </p>
+  <div class="finding">
+    <span class="tag">Zwei Knöpfe, nicht einer</span>
+    <p style="margin:0">
+      Weil es zwei Felder gibt, braucht Enhance zwei Verhalten: im Tag-Reiter verdichtet es zu
+      3–7 Stichworten und respektiert die 512 Zeichen. Im Lyrics-Reiter schreibt es Text mit
+      Strukturmarken und passender Silbenzahl zur eingestellten Dauer — rund zwei bis drei Wörter
+      je Sekunde.
+    </p>
+  </div>
+</div>
+
+<h2>Was noch zu entscheiden ist</h2>
+<p class="sub">Fünf Fragen, die den Bau bestimmen. Keine davon kann ich für dich beantworten.</p>
+
+<div class="tw">
+<table>
+  <thead><tr><th style="width:34%">Frage</th><th>Worum es geht</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Eigene Route oder vierter Modus?</strong></td>
+      <td>Dieser Entwurf zeigt <code>/sound</code> als dritten Ort — so wie du es beschrieben hast und wie das erste Mockup es anlegt. Der Fahrplan sagt „vierter Modus im Create". Beides geht; die Route kostet eine Navigation mehr, der Modus drängt Tags, Lyrics und Varianten in eine Spalte, die für Bildparameter gebaut ist.</td>
+    </tr>
+    <tr>
+      <td><strong>Was passiert mit Pollinations-Musik?</strong></td>
+      <td><code>elevenmusic</code> und <code>stable-audio-3-medium</code> sind geführt und schlüsselpflichtig. Bleiben sie als zweite Modellzeile neben ACE&#8209;Step, oder fliegen sie raus, weil das eigene Hosting sie überflüssig macht?</td>
+    </tr>
+    <tr>
+      <td><strong>Vierte Herkunft in der Galerie?</strong></td>
+      <td>Der Filter kennt heute <code>chat · create · compose</code>. Tracks aus Sound landen ohne Zutun bei <code>compose</code> — der Kategorie „hat keine Konversation". Eine eigene Herkunft <code>sound</code> wäre ehrlicher, kostet aber, dass beim Speichern aktiv getaggt wird.</td>
+    </tr>
+    <tr>
+      <td><strong>Wer zahlt die GPU?</strong></td>
+      <td>Ein A10G auf Modal kostet gut einen Dollar je Stunde und bleibt nach dem letzten Lauf zehn Minuten warm. Ohne Schlüssel ist Sound damit das erste Angebot, das dich pro fremdem Klick echtes Geld kostet — anders als Pollinations, wo der Server&shy;schlüssel gerade erst abgesichert wurde.</td>
+    </tr>
+    <tr>
+      <td><strong>Batch und Warteschlange</strong></td>
+      <td>Vier Varianten heißen vier Läufe auf einer GPU, die nur einen gleichzeitig rechnet. Laufen sie nacheinander mit sichtbarem Fortschritt, oder gibt es eine Warteschlange, die auch einen Reload übersteht — wie bei Pruna in Create?</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p class="foot">
+  Entwurf, kein Code. Nichts hiervon ist gebaut — der Zweck ist, vor dem Bauen über Struktur
+  zu streiten, nicht danach. Die App-Nachbauten oben sind dunkel, weil die App dunkel ist;
+  das Dokument selbst folgt deinem Systemthema.
+</p>
+
+</div>
+
+<script>
+  // Wellenformen aus data-wave aufbauen — kein handgeschriebenes Markup je Balken.
+  document.querySelectorAll('.wave[data-wave]').forEach(function (el) {
+    el.innerHTML = el.dataset.wave.split(',').map(function (h) {
+      return '<i style="height:' + (Number(h) / 22 * 100) + '%"></i>';
+    }).join('');
+  });
+
+  // AsciiWave, wie im Repo: ein rotierendes Fenster ueber dem Grundmuster.
+  (function () {
+    var el = document.getElementById('wave-run');
+    if (!el) return;
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
+    var base = '▁▂▃▄▅▆▇▆▅▄▃▂', i = 0;
+    setInterval(function () {
+      i = (i + 1) % base.length;
+      el.textContent = (base.slice(i) + base.slice(0, i)).slice(0, 12);
+    }, 110);
+  })();
+</script>

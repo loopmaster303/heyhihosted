@@ -38,3 +38,7 @@ test-*.png
 
 # SDD-Workspace (Plan-Ausführung, nicht Teil des Produkts)
 .superpowers/
+
+# Python-Bytecode aus dem Modal-Ordner
+__pycache__/
+*.pyc

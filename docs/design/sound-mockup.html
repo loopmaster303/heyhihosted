@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sound — HeyHi</title>
+<style>
+/* ─── HeyHi design tokens (from src/app/globals.css) ─────────────────── */
+:root {
+  --background: #e8dff8;        /* lavender */
+  --foreground: #0b0a0f;
+  --primary: #7c3aed;           /* deeper purple */
+  --primary-hover: #6d28d9;
+  --primary-fg: #eef2ff;
+  --accent: #ddd0f5;
+  --glass: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(124, 58, 237, 0.18);
+  --muted: #6b6480;
+  --card: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f0a17;
+    --foreground: #f2eefb;
+    --primary: #a78bfa;
+    --primary-hover: #c4b5fd;
+    --primary-fg: #170f27;
+    --accent: #241a36;
+    --glass: rgba(36, 26, 54, 0.6);
+    --glass-border: rgba(167, 139, 250, 0.2);
+    --muted: #a49cbb;
+    --card: #181122;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Topbar (like /create PlaygroundShell header) ───────────────────── */
+.topbar {
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+}
+.crumb { display: flex; align-items: center; gap: 10px; }
+.dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 10px var(--primary);
+}
+.crumb .slash { opacity: 0.4; }
+.crumb .route { opacity: 0.7; }
+.badge {
+  background: var(--accent);
+  color: var(--foreground);
+  font-size: 0.68rem;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-weight: 500;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ─── 3-column layout (sidebar / center / metarail, like /create) ────── */
+.layout {
+  display: grid;
+  grid-template-columns: 264px minmax(0,1fr) 272px;
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar {
+  border-right: 1px solid var(--glass-border);
+  padding: 16px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.group-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.75;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.segmented {
+  display: flex;
+  gap: 2px;
+  background: var(--accent);
+  border-radius: 10px;
+  padding: 2px;
+}
+.segmented button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 7px 6px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.segmented button.active {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+
+.model-select {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 0.84rem;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+/* ─── Center: gallery + prompt bar ───────────────────────────────────── */
+.center {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.gallery {
+  overflow-y: auto;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+  align-content: start;
+  background:
+    radial-gradient(70% 45% at 12% -8%, hsl(267 78% 55% / .14), transparent 62%),
+    radial-gradient(58% 42% at 90% 102%, hsl(325 72% 60% / .09), transparent 60%);
+}
+.track-card {
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color .12s;
+}
+.track-card:hover { border-color: var(--primary); }
+.track-card.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.track-head { display: flex; align-items: center; gap: 10px; }
+.play-btn {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-fg);
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+}
+.track-title { font-size: 0.86rem; font-weight: 600; line-height: 1.25; }
+.waveform { height: 36px; display: flex; align-items: center; gap: 2px; }
+.waveform span {
+  flex: 1;
+  background: var(--accent);
+  border-radius: 1px;
+  min-width: 1px;
+}
+.track-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.chip {
+  background: var(--accent);
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-size: 0.64rem;
+  font-weight: 500;
+}
+.fav {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 0.95rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.fav.active { color: #f59e0b; }
+
+/* ─── Prompt bar (from /create PromptBar pattern) ────────────────────── */
+.promptbar {
+  margin: 0 14px 12px;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.promptbar textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--foreground);
+  resize: none;
+  min-height: 44px;
+  max-height: 140px;
+}
+.promptbar textarea:focus { outline: none; }
+.promptbar textarea::placeholder { color: var(--muted); opacity: .7; }
+.promptbar-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.prompt-tools { font-size: 0.74rem; color: var(--muted); }
+.send-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-fg);
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background .12s;
+}
+.send-btn:hover { background: var(--primary-hover); }
+
+/* ─── Right rail (MetaRail style) ────────────────────────────────────── */
+.metarail {
+  border-left: 1px solid var(--glass-border);
+  padding: 16px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.meta-title { font-size: 1rem; font-weight: 600; }
+.meta-wave { height: 60px; display: flex; align-items: center; gap: 2px; }
+.meta-wave span {
+  flex: 1;
+  background: var(--primary);
+  opacity: .55;
+  border-radius: 1px;
+  min-width: 1px;
+}
+.kv { display: flex; flex-direction: column; gap: 4px; }
+.kv-row { display: flex; justify-content: space-between; font-size: 0.78rem; }
+.kv-row .k { color: var(--muted); }
+.meta-actions { display: flex; gap: 6px; margin-top: 4px; }
+.meta-actions button {
+  flex: 1;
+  background: var(--accent);
+  border: 1px solid var(--glass-border);
+  border-radius: 9px;
+  padding: 7px 6px;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--foreground);
+  cursor: pointer;
+}
+.meta-actions button:hover { border-color: var(--primary); }
+
+/* ─── Mobile ─────────────────────────────────────────────────────────── */
+@media (max-width: 1080px) { .metarail { display: none; } }
+@media (max-width: 760px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="crumb">
+    <span class="dot"></span>
+    <span>heyhi</span>
+    <span class="slash">/</span>
+    <span class="route">sound</span>
+  </div>
+  <span class="badge">ACE-Step 1.5 · Modal</span>
+</header>
+
+<div class="layout">
+
+  <!-- ─── Left: parameter rail (like /create PlaygroundSidebar) ── -->
+  <aside class="sidebar">
+    <div>
+      <span class="group-label">Modell</span>
+      <select class="model-select">
+        <option>ACE-Step 1.5 (Modal)</option>
+      </select>
+    </div>
+    <div>
+      <span class="group-label">Dauer</span>
+      <div class="segmented" id="duration">
+        <button data-v="30">30s</button>
+        <button class="active" data-v="60">60s</button>
+        <button data-v="120">2m</button>
+      </div>
+    </div>
+    <div>
+      <span class="group-label">Stimme</span>
+      <div class="segmented" id="instrumental">
+        <button class="active" data-v="true">Instrumental</button>
+        <button data-v="false">Gesang</button>
+      </div>
+    </div>
+    <div>
+      <span class="group-label">Format</span>
+      <div class="segmented" id="format">
+        <button class="active">MP3</button>
+        <button>WAV</button>
+      </div>
+    </div>
+    <div style="margin-top:auto">
+      <span class="group-label">Status</span>
+      <div style="font-size:0.76rem; color:var(--muted)" id="status">Bereit</div>
+    </div>
+  </aside>
+
+  <!-- ─── Center: track gallery + prompt bar ─────────────────── -->
+  <main class="center">
+    <div class="gallery" id="gallery"></div>
+    <div class="promptbar">
+      <textarea id="prompt" placeholder="Beschreibe den Track — Genre, Stimmung, BPM, Instrumente…"></textarea>
+      <div class="promptbar-foot">
+        <div class="prompt-tools">⌘↵ Generieren</div>
+        <button class="send-btn" id="gen" aria-label="Generieren">↑</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ─── Right: MetaRail (selected track) ───────────────────── -->
+  <aside class="metarail" id="metarail"></aside>
+
+</div>
+
+<script>
+/* Pure mockup — no real API call. In the app this becomes
+   `composeMusic({ model: 'acestep' })` against a new
+   `/api/sound` route backed by a self-hosted Modal endpoint. */
+const seed = [
+  { t: 'Analogue Resonance', dur: '2:00', prompt: 'raw minimalistic acid house, analogue texture, 123 bpm, 909 kicks', tags: ['60s','inst','mp3'], bars: [0.9,0.7,0.8,0.6,0.9,0.5,0.7,0.4,0.8,0.6,0.9,0.3,0.6,0.7,0.5,0.8], sel: true },
+  { t: 'Deep Utility',       dur: '1:00', prompt: 'deep house loop, stripped down, subtle bassline, driven by groove', tags: ['60s','inst','mp3'], bars: [0.5,0.7,0.6,0.8,0.4,0.6,0.5,0.7,0.6,0.5,0.8,0.4,0.7,0.6,0.5,0.6], sel: false },
+  { t: 'Night Drive',        dur: '0:30', prompt: 'synthwave night drive, warm pads, steady pulse, retro feel', tags: ['30s','inst','wav'], bars: [0.8,0.6,0.9,0.5,0.7,0.8,0.4,0.6,0.9,0.7,0.5,0.8,0.6,0.4,0.7,0.6], sel: false },
+];
+
+const gallery = document.getElementById('gallery');
+const metarail = document.getElementById('metarail');
+
+function waveformHTML(bars, cls = '') {
+  return `<div class="waveform ${cls}">${bars.map(h => `<span style="height:${Math.round(h*100)}%"></span>`).join('')}</div>`;
+}
+
+function renderMeta(item) {
+  metarail.innerHTML = `
+    <div>
+      <div class="meta-title">${item.t}</div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:2px">${item.dur} · ACE-Step 1.5</div>
+    </div>
+    ${waveformHTML(item.bars, 'meta-wave')}
+    <div class="kv">
+      <div class="kv-row"><span class="k">Dauer</span><span>${item.dur}</span></div>
+      <div class="kv-row"><span class="k">Modell</span><span>ACE-Step 1.5</span></div>
+      <div class="kv-row"><span class="k">Host</span><span>Modal</span></div>
+    </div>
+    <div>
+      <span class="group-label">Prompt</span>
+      <p style="font-size:0.78rem;color:var(--muted);line-height:1.5">${item.prompt}</p>
+    </div>
+    <div class="chips">${item.tags.map(t => `<span class="chip">${t}</span>`).join('')}</div>
+    <div class="meta-actions">
+      <button>⬇ Laden</button>
+      <button>↻ Nochmal</button>
+      <button>🗑</button>
+    </div>`;
+}
+
+seed.forEach((s) => {
+  const el = document.createElement('div');
+  el.className = 'track-card' + (s.sel ? ' selected' : '');
+  el.innerHTML = `
+    <div class="track-head">
+      <button class="play-btn" aria-label="Play">▶</button>
+      <div style="min-width:0">
+        <div class="track-title">${s.t}</div>
+      </div>
+      <button class="fav" aria-label="Favorit">♡</button>
+    </div>
+    ${waveformHTML(s.bars)}
+    <div class="track-foot">
+      <span>${s.dur}</span>
+      <div class="chips">${s.tags.map(t => `<span class="chip">${t}</span>`).join('')}</div>
+    </div>`;
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.track-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    renderMeta(s);
+  });
+  gallery.appendChild(el);
+  if (s.sel) renderMeta(s);
+});
+
+document.querySelectorAll('.segmented').forEach(seg => {
+  seg.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    seg.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+document.getElementById('gen').addEventListener('click', () => {
+  document.getElementById('status').textContent = 'Generiere… (~20s)';
+});
+</script>
+</body>
+</html>
