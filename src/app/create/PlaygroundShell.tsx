@@ -137,6 +137,16 @@ function failureError(failure: ParsedFailure): Error & { raw?: string; aktion?: 
   return Object.assign(new Error(failure.text), { raw: failure.raw, aktion: failure.aktion });
 }
 
+/**
+ * Ein Fehler, der hier im Browser entsteht und keinen HTTP-Status hat — etwa
+ * eine abgelaufene Reissleine. Er geht denselben Weg wie ein Server-Fehler:
+ * Code rein, Satz raus. Sonst laese der Nutzer unsere Entwicklersprache.
+ */
+function codeError(code: string, ctx: Parameters<typeof describeError>[1] = {}): Error & { aktion?: ErrorDescription['aktion'] } {
+  const described = describeError(code, ctx);
+  return Object.assign(new Error(described?.satz ?? code), { aktion: described?.aktion });
+}
+
 export function PlaygroundShell() {
   useViewportHeight();
   const {
@@ -526,7 +536,7 @@ export function PlaygroundShell() {
         });
         if (!postRes.ok) throw failureError(await parseFailure(postRes, 'Sound-Task fehlgeschlagen'));
         const posted = await postRes.json() as { taskId?: string };
-        if (!posted.taskId) throw new Error('Sound-Task ohne ID');
+        if (!posted.taskId) throw codeError('SOUND_BACKEND_ERROR');
 
         const deadline = Date.now() + SOUND_MAX_POLL_MS;
         let raw: string | null = null;
@@ -549,7 +559,7 @@ export function PlaygroundShell() {
             break;
           }
         }
-        if (raw === null) throw new Error('Sound-Task hat kein Ergebnis geliefert (Timeout)');
+        if (raw === null) throw codeError('SOUND_TIMEOUT');
 
         interface SoundResultEntry {
           file?: string;
@@ -560,7 +570,9 @@ export function PlaygroundShell() {
           const parsed = JSON.parse(raw) as unknown;
           results = Array.isArray(parsed) ? (parsed as SoundResultEntry[]) : [parsed as SoundResultEntry];
         } catch {
-          throw new Error(`Sound-Ergebnis ist kein gueltiges JSON: ${raw.slice(0, 200)}`);
+          // Rohtext haengt als `raw` an der Fehlerkarte, damit die Diagnose
+          // nicht verloren geht — der Satz bleibt trotzdem lesbar.
+          throw Object.assign(codeError('SOUND_BACKEND_ERROR'), { raw: raw.slice(0, 500) });
         }
 
         const savedItems: GalleryItem[] = [];
@@ -592,7 +604,7 @@ export function PlaygroundShell() {
             params: { duration: frozen.duration, batch: frozen.batch, instrumental: frozen.instrumental },
           });
         }
-        if (savedItems.length === 0) throw new Error('Sound-Ergebnis enthielt keine verwendbare Audiodatei');
+        if (savedItems.length === 0) throw codeError('SOUND_NO_AUDIO');
 
         if (selectedRef.current === null) {
           selectedRef.current = savedItems[0];

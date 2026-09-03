@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { handleApiError } from '@/lib/api-error-handler';
+import { ApiError, handleApiError } from '@/lib/api-error-handler';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 /**
@@ -31,14 +31,10 @@ interface SoundTaskResponse {
   error?: string | null;
 }
 
-function requireModalConfig(): NextResponse | null {
+function requireModalConfig(): void {
   if (!MODAL_BASE || !MODAL_KEY) {
-    return NextResponse.json(
-      { error: 'Sound generation is not configured (missing Modal endpoint)' },
-      { status: 503 }
-    );
+    throw new ApiError(503, 'Sound generation is not configured (missing Modal endpoint)', 'SOUND_NOT_CONFIGURED');
   }
-  return null;
 }
 
 function modalHeaders(): Record<string, string> {
@@ -61,17 +57,16 @@ export async function POST(request: NextRequest) {
     const rate = checkRateLimit(request, { name: 'sound', limit: 10, windowMs: 60_000 });
     if (!rate.ok) {
       return NextResponse.json(
-        { error: 'Too many requests' },
+        { error: 'Too many requests', code: 'RATE_LIMITED' },
         { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
       );
     }
 
-    const configError = requireModalConfig();
-    if (configError) return configError;
+    requireModalConfig();
 
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== 'object') {
-      return NextResponse.json({ error: 'Request body must be JSON' }, { status: 400 });
+      throw new ApiError(400, 'Request body must be JSON', 'VALIDATION_ERROR');
     }
 
     const { prompt, lyrics, duration, batch, instrumental } = body as {
@@ -83,21 +78,25 @@ export async function POST(request: NextRequest) {
     };
 
     if (typeof prompt !== 'string' || prompt.trim().length === 0) {
-      return NextResponse.json({ error: 'Prompt (tags) is required' }, { status: 400 });
+      throw new ApiError(400, 'Prompt (tags) is required', 'VALIDATION_ERROR', { field: 'tags' });
     }
     if (prompt.length > MAX_PROMPT_LENGTH) {
-      return NextResponse.json(
-        { error: `Prompt too long (max ${MAX_PROMPT_LENGTH} characters)` },
-        { status: 400 }
+      throw new ApiError(
+        400,
+        `Prompt too long (max ${MAX_PROMPT_LENGTH} characters)`,
+        'SOUND_FIELD_TOO_LONG',
+        { field: 'tags', limit: MAX_PROMPT_LENGTH },
       );
     }
     if (lyrics !== undefined && lyrics !== null && typeof lyrics !== 'string') {
-      return NextResponse.json({ error: 'Lyrics must be a string' }, { status: 400 });
+      throw new ApiError(400, 'Lyrics must be a string', 'VALIDATION_ERROR', { field: 'lyrics' });
     }
     if (typeof lyrics === 'string' && lyrics.length > MAX_LYRICS_LENGTH) {
-      return NextResponse.json(
-        { error: `Lyrics too long (max ${MAX_LYRICS_LENGTH} characters)` },
-        { status: 400 }
+      throw new ApiError(
+        400,
+        `Lyrics too long (max ${MAX_LYRICS_LENGTH} characters)`,
+        'SOUND_FIELD_TOO_LONG',
+        { field: 'lyrics', limit: MAX_LYRICS_LENGTH },
       );
     }
 
@@ -135,9 +134,11 @@ export async function POST(request: NextRequest) {
 
     if (!upstream.ok || payload.error || !payload.data?.task_id) {
       console.error('[Sound] release_task failed:', upstream.status, payload.error);
-      return NextResponse.json(
-        { error: payload.error ?? `Sound backend error (HTTP ${upstream.status})` },
-        { status: upstream.status === 200 ? 502 : upstream.status }
+      // 5xx vom Anbieter ist ein Ausfall, alles andere ein fehlerhafter Vertrag.
+      throw new ApiError(
+        upstream.status === 200 ? 502 : upstream.status,
+        payload.error ?? `Sound backend error (HTTP ${upstream.status})`,
+        upstream.status >= 500 ? 'PROVIDER_UNAVAILABLE' : 'SOUND_BACKEND_ERROR',
       );
     }
 
@@ -156,12 +157,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const configError = requireModalConfig();
-    if (configError) return configError;
+    requireModalConfig();
 
     const taskId = new URL(request.url).searchParams.get('taskId');
     if (!taskId || !/^[a-f0-9-]{10,64}$/i.test(taskId)) {
-      return NextResponse.json({ error: 'Valid taskId required' }, { status: 400 });
+      throw new ApiError(400, 'Valid taskId required', 'VALIDATION_ERROR', { field: 'taskId' });
     }
 
     const upstream = await fetch(`${MODAL_BASE}/query_result`, {
@@ -174,9 +174,10 @@ export async function GET(request: NextRequest) {
 
     if (!upstream.ok || payload.error) {
       console.error('[Sound] query_result failed:', upstream.status, payload.error);
-      return NextResponse.json(
-        { error: payload.error ?? `Sound backend error (HTTP ${upstream.status})` },
-        { status: upstream.status === 200 ? 502 : upstream.status }
+      throw new ApiError(
+        upstream.status === 200 ? 502 : upstream.status,
+        payload.error ?? `Sound backend error (HTTP ${upstream.status})`,
+        upstream.status >= 500 ? 'PROVIDER_UNAVAILABLE' : 'SOUND_BACKEND_ERROR',
       );
     }
 

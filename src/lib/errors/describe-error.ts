@@ -9,6 +9,8 @@ export interface DescribeContext {
   modelLabel?: string;
   field?: string;
   retryAfterSeconds?: number;
+  /** Obergrenze eines Feldes, damit der Satz sie nennen kann statt nur „ungueltig". */
+  limit?: number;
 }
 
 const TABLE: Record<ErrorCode, (ctx: DescribeContext) => ErrorDescription> = {
@@ -107,6 +109,34 @@ const TABLE: Record<ErrorCode, (ctx: DescribeContext) => ErrorDescription> = {
   }),
   PRUNA_UPLOAD_MISSING_URL: () => ({
     satz: 'Für den Upload fehlt die Ziel-URL.',
+  }),
+  // ---- Sound (selbst gehostetes ACE-Step auf Modal) ----
+  // Die Route lief bis 2026-09-03 ganz ohne Codes; der Nutzer las englische
+  // Rohtexte ueber einen Modal-Endpunkt, von dem er nichts wissen kann.
+  SOUND_NOT_CONFIGURED: () => ({
+    satz: 'Die Musikerzeugung ist auf diesem Server nicht eingerichtet. Das liegt nicht an dir — bitte melden.',
+  }),
+  SOUND_BACKEND_ERROR: () => ({
+    satz: 'Der Musik-Server antwortet, aber nicht sinnvoll. Erneut versuchen; bleibt es dabei, bitte melden.',
+    aktion: 'retry',
+  }),
+  SOUND_INVALID_PATH: () => ({
+    satz: 'Diese Audio-Adresse gehoert nicht zu einem Ergebnis. Nichts abgerufen.',
+  }),
+  SOUND_FIELD_TOO_LONG: (ctx) => ({
+    satz: ctx.field === 'lyrics'
+      ? `Die Lyrics sind zu lang${ctx.limit ? ` — höchstens ${ctx.limit} Zeichen` : ''}. Kürze sie.`
+      : `Die Tags sind zu lang${ctx.limit ? ` — höchstens ${ctx.limit} Zeichen` : ''}. ACE-Step arbeitet am besten mit 3 bis 7 Stichworten.`,
+  }),
+  // Der Modal-Container kann kalt starten; das dauert Minuten. Bricht der
+  // Lauf danach immer noch nicht ab, ist er verloren — nicht bloss langsam.
+  SOUND_TIMEOUT: () => ({
+    satz: 'Der Lauf hat kein Ergebnis geliefert. Beim ersten Mal nach einer Pause startet der Musik-Server erst hoch — direkt nochmal versuchen geht meist schneller.',
+    aktion: 'retry',
+  }),
+  SOUND_NO_AUDIO: () => ({
+    satz: 'Der Lauf ist fertig, hat aber keine Audiodatei zurückgegeben. Erneut versuchen — meist hilft ein anderer Seed.',
+    aktion: 'retry',
   }),
   INTERNAL_ERROR: () => ({
     satz: 'Im Dienst ist ein interner Fehler aufgetreten. Erneut versuchen.',
