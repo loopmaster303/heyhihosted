@@ -33,6 +33,20 @@ interface Props {
    * dastehen, nicht als 401 danach.
    */
   keyRequiredHint?: string;
+  /**
+   * Obergrenze des Textfeldes. Der Sound-Modus traegt hier die Tags, und die
+   * Route weist ueber 512 Zeichen mit 400 ab — ein Zaehler, der bis 1000 zaehlt,
+   * gaebe gruenes Licht bis kurz vor den Fehler.
+   */
+  maxChars?: number;
+  /** Was hier hineingehoert. Bei Sound sind es Tags, keine Bildbeschreibung. */
+  placeholder?: string;
+  /**
+   * Zusatz links in der Statuszeile, vor Modell und Provider. Der Sound-Modus
+   * zeigt darin die Tag-Anzahl — die Zahl, die ueber die Qualitaet entscheidet
+   * (ACE-Step: 3 bis 7).
+   */
+  statusPrefix?: string;
 }
 
 const MAX_CHARS = 1000;
@@ -50,6 +64,9 @@ export function PromptBar({
   promptRequired = true,
   irreversibleHint,
   keyRequiredHint,
+  maxChars = MAX_CHARS,
+  placeholder = 'Beschreib, was du sehen willst…',
+  statusPrefix,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const empty = value.trim().length === 0;
@@ -69,7 +86,7 @@ export function PromptBar({
     el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
   }, [value]);
 
-  const status = [modelName, providerName].filter(Boolean) as string[];
+  const status = [statusPrefix, modelName, providerName].filter(Boolean) as string[];
   const canSend = canQueue && (!empty || !promptRequired);
 
   // max() statt env(): auf Geraeten ohne Home-Indicator ist der Inset 0 und
@@ -82,9 +99,9 @@ export function PromptBar({
           ref={ref}
           rows={1}
           value={value}
-          maxLength={MAX_CHARS}
+          maxLength={maxChars}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Beschreib, was du sehen willst…"
+          placeholder={placeholder}
           aria-label="Prompt"
           className="min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/65"
         />
@@ -136,7 +153,7 @@ export function PromptBar({
             </span>
           ))}
         <span className="ml-auto tabular-nums">
-          {value.length} / {MAX_CHARS}
+          {value.length} / {maxChars}
         </span>
       </div>
     </div>

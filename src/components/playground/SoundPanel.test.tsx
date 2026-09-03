@@ -11,9 +11,12 @@ const BASE: SoundState = {
 };
 
 describe('SoundPanel', () => {
-  it('counts comma-separated tags', () => {
+  // Die Tags stehen seit 2026-09-03 in der Sendeleiste, nicht mehr hier. Vorher
+  // gab es das Feld zweimal, mit widersprechenden Grenzen (512 gegen 1000).
+  it('traegt kein Tag-Feld mehr — das lebt in der Sendeleiste', () => {
     render(<SoundPanel value={{ ...BASE, tags: 'synthwave, 120 BPM, hazy' }} onChange={() => {}} />);
-    expect(screen.getByText('3 — Ziel: 3-7')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Sound-Tags')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Sound-Lyrics')).toBeInTheDocument();
   });
 
   it('switches instrumental off when lyrics are entered and back on when cleared', () => {

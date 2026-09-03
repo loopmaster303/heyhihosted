@@ -263,14 +263,32 @@ schon nutzen, übersteht Reloads über `run-store.ts` — kostet aber Umbau an e
 die sonst niemand anfasst. Empfehlung: 202, weil ACE-Step es ohnehin tut und zwei Muster
 für dieselbe Sache teurer sind als der Umbau.
 
-### E-2 — Wo leben Tags und Lyrics?
+### E-2 — Wo leben Tags und Lyrics? *(entschieden 2026-09-03, umgesetzt)*
 
-Heute im `SoundPanel` in der linken Spalte, zusätzlich spiegelt die PromptBar die Tags —
-**dasselbe Feld zweimal sichtbar, mit widersprüchlichen Limits** (512 gegen 1000, und die
-PromptBar zeigt „x / 1000" für ein Feld, das der Server bei 512 abweist). Drei Wege:
-Lyrics in die Mitte über die PromptBar; oder die PromptBar im Sound-Modus ausblenden und
-alles links; oder die PromptBar trägt die Tags und links steht nur Lyrics. In jedem Fall
-muss die Doppelung weg.
+**Tags in die Sendeleiste, Lyrics ins Panel.** Vorher stand das Tag-Feld zweimal —
+im `SoundPanel` und in der PromptBar — mit widersprüchlichen Grenzen (512 gegen 1000)
+und einem Zähler, der bis 1000 zählte, während die Route bei 512 mit 400 abweist.
+
+Die Begründung, damit sie nicht nochmal aufgemacht wird:
+
+- **Tags sind kurz und Pflicht.** `dub techno, deep, analog synth, sub bass, 120 bpm`
+  sind 58 Zeichen; ohne sie antwortet die Route mit 400. Das ist genau das, was eine
+  Sendeleiste trägt. Lyrics sind mehrzeilig und optional — sie verhalten sich wie ein
+  Parameter und gehören zu den anderen.
+- **Enhance sitzt am richtigen Feld.** Der `ACE_STEP_ENHANCEMENT_PROMPT` verdichtet zu
+  Tags, nicht zu Lyrics. Steht das Tag-Feld in der Leiste, steht der Knopf daneben.
+- **Es skaliert auf die Modellwahl.** Die vier Pollinations-Modelle haben keine Lyrics,
+  nur eine Beschreibung. Trägt die Leiste bei Sound das Haupttextfeld, bedeutet sie bei
+  allen fünf Modellen dasselbe: bei ACE-Step die Tags, sonst die Beschreibung. Das Panel
+  trägt jeweils nur, was das gewählte Modell zusätzlich kann.
+
+Die Alternative — Leiste im Sound-Modus ohne Textfeld, nur Aktionen — wäre ein Sonderfall
+gewesen, der nur für ACE-Step gilt und bei den Pollinations-Modellen zurückgebaut werden
+müsste.
+
+Umgesetzt: `PromptBar` nimmt `maxChars`, `placeholder` und `statusPrefix` von außen; im
+Sound-Modus 512, ein Tag-Platzhalter und die Tag-Anzahl mit dem Ziel 3–7 in der
+Statuszeile. Das Tag-Textarea ist aus dem `SoundPanel` entfernt.
 
 ### E-3 — Kostenlage sichtbar machen?
 

@@ -115,3 +115,40 @@ describe('Hinweise vor dem Absenden', () => {
     expect(screen.queryByRole('note')).not.toBeInTheDocument();
   });
 });
+
+// Der Sound-Modus traegt seine Tags in dieser Leiste. Grenze, Platzhalter und
+// Zaehler muessen dann zu Tags passen, nicht zu einer Bildbeschreibung — sonst
+// zeigt der Zaehler gruenes Licht bis kurz vor den 400er der Route.
+describe('Sound-Modus: Tags in der Leiste', () => {
+  const basis = {
+    value: 'synthwave, 120 BPM, hazy',
+    onChange: () => {},
+    onEnhance: () => {},
+    enhancing: false,
+    onSend: () => {},
+  };
+
+  it('nimmt Grenze und Platzhalter von aussen', () => {
+    render(
+      <PromptBar
+        {...basis}
+        maxChars={512}
+        placeholder="synthwave, 120 BPM, analog bass, hazy"
+        statusPrefix="3 Tags · Ziel 3–7"
+      />,
+    );
+    const feld = screen.getByLabelText('Prompt');
+    expect(feld).toHaveAttribute('maxLength', '512');
+    expect(feld).toHaveAttribute('placeholder', 'synthwave, 120 BPM, analog bass, hazy');
+    expect(screen.getByText('24 / 512')).toBeInTheDocument();
+    expect(screen.getByText('3 Tags · Ziel 3–7')).toBeInTheDocument();
+  });
+
+  it('bleibt ohne die Zusaetze bei den Bild-Vorgaben', () => {
+    render(<PromptBar {...basis} />);
+    const feld = screen.getByLabelText('Prompt');
+    expect(feld).toHaveAttribute('maxLength', '1000');
+    expect(feld).toHaveAttribute('placeholder', 'Beschreib, was du sehen willst…');
+    expect(screen.getByText('24 / 1000')).toBeInTheDocument();
+  });
+});

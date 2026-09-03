@@ -7,8 +7,14 @@ import { cn } from '@/lib/utils';
 /**
  * ACE-Step 1.5 ist ein Zwei-Felder-System: Tags (3-7 Stichworte, keine Prosa)
  * steuern Stil und Instrumentierung, Lyrics (optional, mit [verse]/[chorus])
- * tragen den Gesang. Der Sound-Modus nutzt einen eigenen Prompt-Kanal —
- * das Prosa-Promptfeld der Bild-/Video-Modi bleibt unberuehrt.
+ * tragen den Gesang.
+ *
+ * Die **Tags stehen in der Sendeleiste**, nicht hier: sie sind kurz, sie sind
+ * Pflicht (ohne sie antwortet die Route mit 400), und Enhance verdichtet genau
+ * sie — der Knopf gehoert daneben. Bis 2026-09-03 gab es das Tag-Feld zweimal,
+ * hier und in der Leiste, mit widersprechenden Grenzen (512 gegen 1000).
+ *
+ * Hier bleibt, was optional und lang ist: Lyrics, und die Parameter.
  */
 
 const SOUND_SIGNATURE = '▁▂▃▅▆▇▆▅▃▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁';
@@ -44,11 +50,6 @@ export interface SoundPanelProps {
 }
 
 export function SoundPanel({ value, onChange, disabled = false }: SoundPanelProps) {
-  const tagCount = value.tags
-    .split(/[,;]/)
-    .map((t) => t.trim())
-    .filter(Boolean).length;
-
   return (
     <div className="flex flex-col gap-4" data-testid="sound-panel">
       <AsciiSignature
@@ -56,19 +57,6 @@ export function SoundPanel({ value, onChange, disabled = false }: SoundPanelProp
         active={!disabled}
         className="text-[10px] leading-none text-muted-foreground/45"
       />
-
-      <Field label="Tags" hint={`${tagCount} — Ziel: 3-7`}>
-        <textarea
-          value={value.tags}
-          disabled={disabled}
-          onChange={(e) => onChange({ tags: e.target.value })}
-          rows={2}
-          placeholder="synthwave, 120 BPM, analog bass, hazy"
-          aria-label="Sound-Tags"
-          maxLength={512}
-          className="min-h-[56px] w-full resize-y rounded-lg border border-border bg-background/60 px-3 py-2 font-mono text-xs leading-relaxed outline-none placeholder:text-muted-foreground/50 focus:border-primary/55 focus:ring-[3px] focus:ring-primary/15 disabled:opacity-50"
-        />
-      </Field>
 
       <Field label="Lyrics" hint="optional — [verse] / [chorus]">
         <textarea

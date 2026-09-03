@@ -213,6 +213,11 @@ export function PlaygroundShell() {
   // L-K.2 / L-I.3: beides haengt am gewaehlten Modell und muss VOR dem
   // Absenden dastehen, nicht als Fehler danach.
   const istPrunaLauf = currentModel ? isPrunaModel(currentModel.id) : false;
+
+  // ACE-Step arbeitet mit 3 bis 7 Stichworten; mehr verwaessert die
+  // Arrangements. Die Zahl steht deshalb in der Statuszeile, direkt unter dem
+  // Feld, in dem sie entsteht.
+  const tagAnzahl = state.sound.tags.split(/[,;]/).map((s) => s.trim()).filter(Boolean).length;
   const brauchtPollen = !!currentModel
     && currentModel.provider === 'pollinations'
     && currentModel.paidOnly
@@ -902,6 +907,16 @@ export function PlaygroundShell() {
             promptRequired={promptRequired}
             keyRequiredHint={keyRequiredHint}
             irreversibleHint={irreversibleHint}
+            {...(state.mode === 'sound'
+              ? {
+                  // Die Route weist ueber 512 Zeichen mit 400 ab — der Zaehler
+                  // muss dieselbe Grenze zeigen, sonst gibt er gruenes Licht
+                  // bis kurz vor den Fehler.
+                  maxChars: 512,
+                  placeholder: 'synthwave, 120 BPM, analog bass, hazy',
+                  statusPrefix: `${tagAnzahl} Tags · Ziel 3–7`,
+                }
+              : {})}
           />
         </main>
       </div>
