@@ -50,6 +50,10 @@ add new documents there.
 - `PLAN-phase-7-chat-entschlanken.md` — implementation plan for Phase 7: reduce the chat's
   image selection to the key-free rule, move video and Pruna into Create, label the way
   there. Carries operator decisions E7-1 to E7-4. **Executed 2026-08-29.**
+- `HANDOFF-2026-09-03-sound.md` — **latest.** What the Sound review found, the three
+  fixes that shipped (proxy allowlist, error codes, tests), and the first real
+  ACE-Step run that confirmed the allowlist. Names the operator task that blocks
+  Sound live: the Modal env vars are missing on Vercel.
 - `PLAN-sound-modellwahl-2026-09-03.md` — **next up.** Sound's five models under one
   additive rule (self-hosted ACE-Step always; a Pollen key adds the four Pollinations
   music models), per-model parameters, and the two-stage mode switch. Carries the
