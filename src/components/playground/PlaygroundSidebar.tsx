@@ -11,6 +11,8 @@ import { ModelPicker } from './ModelPicker';
 import { ReferenceSlots, uploadPlaygroundReference } from './ReferenceSlots';
 import { ParamControls } from './ParamControls';
 import { schemaForEntry } from '@/lib/playground/param-schema';
+import { SoundPanel } from './SoundPanel';
+import type { SoundState } from '@/hooks/usePlaygroundState';
 
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -34,6 +36,7 @@ export interface PlaygroundSidebarProps {
   onParams: (patch: ParamValues) => void;
   onUploads: (u: string[]) => void;
   onSourceVideo: (v: string | null) => void;
+  onSound?: (p: Partial<SoundState>) => void;
 }
 
 export function PlaygroundSidebarContent({
@@ -47,61 +50,76 @@ export function PlaygroundSidebarContent({
   onParams,
   onUploads,
   onSourceVideo,
+  onSound,
 }: PlaygroundSidebarProps) {
   const schema = currentModel ? schemaForEntry(currentModel) : undefined;
   const showRefs = state.mode === 'i2i' || state.mode === 'i2v';
+  const isSound = state.mode === 'sound';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3.5">
+      {/* Sound haengt an keinem Registry-Modell: Provider, Modell und
+          Parameter-Schema sind dort bedeutungslos. */}
+      {!isSound && (
       <Group label="Provider">
         <ProviderSelect />
       </Group>
+      )}
 
       <Group label="Modus">
         <ModeTabs value={state.mode} onChange={onMode} />
       </Group>
 
-      <Group label="Modell">
-        <ModelPicker
-          entries={entries}
-          mode={state.mode}
-          value={state.modelId}
-          onChange={onModel}
-          loading={loading}
-          fallbackActive={fallbackActive}
+      {!isSound ? (
+        <>
+          <Group label="Modell">
+            <ModelPicker
+              entries={entries}
+              mode={state.mode}
+              value={state.modelId}
+              onChange={onModel}
+              loading={loading}
+              fallbackActive={fallbackActive}
+            />
+          </Group>
+
+          {schema && (
+            <ParamControls
+              schema={schema}
+              values={state.params}
+              onChange={onParams}
+              uploadCount={state.uploads.length}
+            />
+          )}
+
+          {currentModel && showRefs && (
+            <Group label="Referenzen">
+              <ReferenceSlots
+                model={currentModel}
+                schema={schema}
+                uploads={state.uploads}
+                onChange={onUploads}
+              />
+            </Group>
+          )}
+
+          {schema?.sourceVideo && currentModel && (
+            <Group label="Quellvideo">
+              {/* Der Provider kommt vom Modell, nicht vom Provider-Schalter — der
+                  scopet nur die Modellliste. */}
+              <VideoUpload
+                value={state.sourceVideo}
+                onChange={onSourceVideo}
+                provider={currentModel.provider}
+              />
+            </Group>
+          )}
+        </>
+      ) : (
+        <SoundPanel
+          value={state.sound}
+          onChange={onSound ?? (() => {})}
         />
-      </Group>
-
-      {schema && (
-        <ParamControls
-          schema={schema}
-          values={state.params}
-          onChange={onParams}
-          uploadCount={state.uploads.length}
-        />
-      )}
-
-      {currentModel && showRefs && (
-        <Group label="Referenzen">
-          <ReferenceSlots
-            model={currentModel}
-            schema={schema}
-            uploads={state.uploads}
-            onChange={onUploads}
-          />
-        </Group>
-      )}
-
-      {schema?.sourceVideo && currentModel && (
-        <Group label="Quellvideo">
-          {/* Der Provider kommt vom Modell, nicht vom Provider-Schalter — der
-              scopet nur die Modellliste. */}
-          <VideoUpload
-            value={state.sourceVideo}
-            onChange={onSourceVideo}
-            provider={currentModel.provider}
-          />
-        </Group>
       )}
     </div>
   );

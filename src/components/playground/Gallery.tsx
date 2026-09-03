@@ -11,7 +11,7 @@ import { RUN_CONTINUES_NOTICE } from '@/lib/playground/constants';
 export interface GalleryItem {
   id: string;
   url: string;
-  kind: 'image' | 'video';
+  kind: 'image' | 'video' | 'audio';
   prompt: string;
   modelId: string;
   timestamp: number;
@@ -56,7 +56,11 @@ function toItem(a: Asset, created: string[]): GalleryItem | null {
   return {
     id: a.id,
     url,
-    kind: a.contentType?.startsWith('video/') ? 'video' : 'image',
+    kind: a.contentType?.startsWith('video/')
+      ? 'video'
+      : a.contentType?.startsWith('audio/')
+        ? 'audio'
+        : 'image',
     prompt: a.prompt ?? '',
     modelId: a.modelId ?? '',
     timestamp: a.timestamp,
@@ -132,6 +136,30 @@ function RunningCard({ run, onCancel }: { run: GalleryRun; onCancel?: () => void
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Audio-Karte: ein statischer Wellen-Balken als Tragflaeche (CSS, nach der
+ * Modulregel — statisch gehoert in CSS, nicht in ASCII), der Player folgt
+ * beim Klick. `<audio controls>` ist der einzige reliable Player auf allen
+ * Plattformen.
+ */
+function AudioCard({ item }: { item: GalleryItem }) {
+  return (
+    <span className="flex aspect-square w-full flex-col items-center justify-center gap-2 bg-muted/40 p-3">
+      <span aria-hidden="true" className="flex h-10 items-end gap-[2px]">
+        {[3, 6, 10, 7, 4, 8, 12, 9, 5, 3, 7, 11, 8, 4, 6, 9, 5, 3].map((h, i) => (
+          <span
+            key={i}
+            className="w-[3px] rounded-sm bg-primary/60"
+            style={{ height: `${h * 2}px` }}
+          />
+        ))}
+      </span>
+      <span className="text-[10px] font-mono text-muted-foreground">audio</span>
+      <audio src={item.url} controls preload="none" className="w-full" />
+    </span>
   );
 }
 
@@ -367,6 +395,8 @@ export function Gallery({
                     {it.modelId} braucht vermutlich einen Key
                   </span>
                 </span>
+              ) : it.kind === 'audio' ? (
+                <AudioCard item={it} />
               ) : it.kind === 'video' ? (
                 <video
                   src={it.url}

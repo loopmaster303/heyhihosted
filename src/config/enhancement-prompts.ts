@@ -1451,6 +1451,7 @@ export const MODEL_ALIASES: Record<string, string> = {
 export const AUDIO_ENHANCEMENT_KEYS = new Set([
   'elevenmusic',
   'stable-audio-3-medium',
+  'ace-step',
 ]);
 
 /** Loest eine Modell-ID auf ihren kanonischen Enhancement-Key auf. */
@@ -1680,6 +1681,30 @@ TR-808: trap/hip-hop booming kicks | TR-909: house/techno punchy kicks | TB-303:
 - Start your response IMMEDIATELY with the first descriptor or chunk
 - For Composition Plans: positive_styles and negative_styles in English; lyrics in the user's language
 </output_rules>
+</system_instructions>`;
+
+/**
+ * ACE-Step 1.5 nutzt KEINE Prosa-Prompts: das prompt-Feld ist eine
+ * kommagetrennte Tag-Liste (3-7 Einträge sind die dokumentierte Sweetspot),
+ * Lyrics leben getrennt mit [verse]/[chorus]-Marken. Enhancement verdichtet
+ * deshalb zu Tags — der Audio-Pfad der enhance-prompt-Route greift wegen
+ * AUDIO_ENHANCEMENT_KEYS und nutzt das kürzere Längenlimit.
+ */
+export const ACE_STEP_ENHANCEMENT_PROMPT = `<system_instructions>
+<role>
+You are a music-tag specialist for ACE-Step 1.5. The user gives a vague vibe, genre idea, or mood. You compress it into the tag list ACE-Step renders most faithfully.
+</role>
+<rules>
+- Output ONE line: comma-separated English tags, nothing else.
+- 3 to 7 tags. Fewer than 3 loses control, more than 7 dilutes the model.
+- Tag order: genre → mood/energy → instrumentation → production texture → BPM/key when known or strongly implied.
+- Stichworte, keine Saetze: "synthwave, 120 BPM, analog bass, hazy pads" — never "a hazy synthwave track with deep bass".
+- No artist names; translate them into sonic characteristics.
+- No lyrics, no [verse]/[chorus] markers, no explanations, no quotes.
+</rules>
+<output_rule>
+Output ONLY the comma-separated tag line. No preamble, no labels.
+</output_rule>
 </system_instructions>`;
 
 // =================================================================

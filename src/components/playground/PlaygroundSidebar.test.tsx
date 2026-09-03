@@ -64,9 +64,10 @@ function renderSidebar(onSourceVideo = jest.fn()) {
         mode: 't2v',
         modelId: 'vace',
         prompt: '',
-        params: {},
-        uploads: [],
-        sourceVideo: null,
+      params: {},
+      uploads: [],
+      sourceVideo: null,
+      sound: { tags: '', lyrics: '', duration: 30, batch: 4, instrumental: true },
       }}
       entries={[VACE]}
       currentModel={VACE}

@@ -4,6 +4,7 @@ import {
   DEFAULT_ENHANCEMENT_PROMPT,
   ELEVENMUSIC_ENHANCEMENT_PROMPT,
   STABLE_AUDIO_ENHANCEMENT_PROMPT,
+  ACE_STEP_ENHANCEMENT_PROMPT,
   AUDIO_ENHANCEMENT_KEYS,
   canonicalEnhancementKey,
   buildRegistryEnhancementPrompt,
@@ -18,6 +19,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 const AUDIO_PROMPTS: Record<string, string> = {
   elevenmusic: ELEVENMUSIC_ENHANCEMENT_PROMPT,
   'stable-audio-3-medium': STABLE_AUDIO_ENHANCEMENT_PROMPT,
+  'ace-step': ACE_STEP_ENHANCEMENT_PROMPT,
 };
 
 /**

@@ -61,6 +61,33 @@ interface ActiveRun extends QueuedRun {
 }
 
 /**
+ * Sound-Lauf (ACE-Step). Eigener Typ, weil er kein GenerateBody und keine
+ * Modell-Registry-Entry hat: Start und Poll laufen ueber /api/sound, die
+ * Audios kommen aus /api/sound/audio. Eingefrorene Werte tragen den Retry.
+ */
+interface SoundRun {
+  id: string;
+  startedAt: number;
+  status: 'running' | 'failed';
+  message?: string;
+  raw?: string;
+  controller: AbortController;
+  tags: string;
+  lyrics: string;
+  duration: number;
+  batch: number;
+  instrumental: boolean;
+}
+
+const SOUND_MODEL_ID = 'acestep-1.5';
+/**
+ * acestep-turbo rendert 4x30s warm in ~50s; 10 Minuten sind ein grosszuegiges
+ * Timeout fuer kalte Container und lange Stuecke.
+ */
+const SOUND_MAX_POLL_MS = 10 * 60 * 1000;
+const SOUND_POLL_INTERVAL_MS = 2500;
+
+/**
  * Pollinations quittiert Bursts mit 429, und eine Warteschlange waere Zustand,
  * den niemand angefordert hat. Darueber bleibt der Senden-Knopf gesperrt.
  */
@@ -113,7 +140,7 @@ function failureError(failure: ParsedFailure): Error & { raw?: string; aktion?: 
 export function PlaygroundShell() {
   useViewportHeight();
   const {
-    state, setMode, setModelId, setPrompt, setParams, setUploads, setSourceVideo, resetForModel,
+    state, setMode, setModelId, setPrompt, setParams, setUploads, setSourceVideo, setSound, resetForModel,
   } = usePlaygroundState();
   const { entries, loading, fallbackActive } = usePlaygroundModels();
   const { pollenKey } = usePollenKey();
@@ -127,6 +154,7 @@ export function PlaygroundShell() {
   const [galleryKey, setGalleryKey] = useState(0);
   const [error, setError] = useState<string | undefined>();
   const [runs, setRuns] = useState<ActiveRun[]>([]);
+  const [soundRuns, setSoundRuns] = useState<SoundRun[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   // Fluechtig, kein localStorage (E5.2): nach jedem Reload steht der Filter
   // auf der eigenen Herkunft.
@@ -227,6 +255,31 @@ export function PlaygroundShell() {
   }, [currentModel?.id]);
 
   const onEnhance = async () => {
+    // Sound-Enhance verdichtet die Tags (AUDIO_ENHANCEMENT_KEYS-Pfad der
+    // enhance-prompt-Route) und schreibt zurueck ins Tag-Feld.
+    if (state.mode === 'sound') {
+      if (!state.sound.tags.trim()) return;
+      setEnhancing(true);
+      setError(undefined);
+      try {
+        const res = await fetch('/api/enhance-prompt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(pollenKey ? { 'X-Pollen-Key': pollenKey } : {}),
+          },
+          body: JSON.stringify({ prompt: state.sound.tags, modelId: 'ace-step' }),
+        });
+        if (!res.ok) throw new Error((await parseFailure(res, 'Enhance fehlgeschlagen')).text);
+        const data = await res.json();
+        if (data?.enhancedPrompt) setSound({ tags: data.enhancedPrompt });
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setEnhancing(false);
+      }
+      return;
+    }
     if (!state.prompt.trim() || !currentModel) return;
     setEnhancing(true);
     setError(undefined);
@@ -428,7 +481,8 @@ export function PlaygroundShell() {
 
   // Nur laufende Generierungen zaehlen gegen die Grenze; gescheiterte Karten
   // liegen nur noch herum und blockieren nichts.
-  const runningCount = runs.filter((r) => r.status === 'running').length;
+  const runningCount = runs.filter((r) => r.status === 'running').length
+    + soundRuns.filter((r) => r.status === 'running').length;
   const canQueue = runningCount < MAX_CONCURRENT_RUNS;
 
   /** Haengt einen eingefrorenen Lauf an `runs` und startet ihn. */
@@ -444,7 +498,148 @@ export function PlaygroundShell() {
     void runGeneration(run);
   };
 
+  /**
+   * ACE-Step-Lauf: POST startet den Task, der Poll-Loop fragt GET ab, bis das
+   * Ergebnis steht oder abgebrochen wird. Fuer jede Ergebnis-Datei wird der
+   * Blob ueber /api/sound/audio geholt und als lokales Asset gespeichert —
+   * der Modal-Key bleibt serverseitig.
+   */
+  const startSoundRun = (frozen: {
+    tags: string; lyrics: string; duration: number; batch: number; instrumental: boolean;
+  }) => {
+    const run: SoundRun = {
+      id: nextRunId(),
+      startedAt: Date.now(),
+      status: 'running',
+      controller: new AbortController(),
+      ...frozen,
+    };
+    setSoundRuns((rs) => [run, ...rs]);
+    void (async () => {
+      setError(undefined);
+      try {
+        const postRes = await fetch('/api/sound', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(frozen),
+          signal: run.controller.signal,
+        });
+        if (!postRes.ok) throw failureError(await parseFailure(postRes, 'Sound-Task fehlgeschlagen'));
+        const posted = await postRes.json() as { taskId?: string };
+        if (!posted.taskId) throw new Error('Sound-Task ohne ID');
+
+        const deadline = Date.now() + SOUND_MAX_POLL_MS;
+        let raw: string | null = null;
+        while (Date.now() < deadline) {
+          if (run.controller.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+          await new Promise((r) => setTimeout(r, SOUND_POLL_INTERVAL_MS));
+          if (run.controller.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+          const pollRes = await fetch(`/api/sound?taskId=${encodeURIComponent(posted.taskId)}`, {
+            signal: run.controller.signal,
+          });
+          if (!pollRes.ok) throw failureError(await parseFailure(pollRes, 'Sound-Poll fehlgeschlagen'));
+          const pollData = await pollRes.json() as {
+            // Modal liefert ein Array von Task-Objekten (eins pro angefragter ID).
+            data?: Array<{ status?: number; result?: string }>;
+          };
+          // status 1 = fertig; alles andere bleibt in der Schleife.
+          const task = Array.isArray(pollData.data) ? pollData.data[0] : undefined;
+          if (task?.status === 1 && task.result) {
+            raw = task.result;
+            break;
+          }
+        }
+        if (raw === null) throw new Error('Sound-Task hat kein Ergebnis geliefert (Timeout)');
+
+        interface SoundResultEntry {
+          file?: string;
+          prompt?: string;
+        }
+        let results: SoundResultEntry[];
+        try {
+          const parsed = JSON.parse(raw) as unknown;
+          results = Array.isArray(parsed) ? (parsed as SoundResultEntry[]) : [parsed as SoundResultEntry];
+        } catch {
+          throw new Error(`Sound-Ergebnis ist kein gueltiges JSON: ${raw.slice(0, 200)}`);
+        }
+
+        const savedItems: GalleryItem[] = [];
+        for (const entry of results) {
+          if (run.controller.signal.aborted) break;
+          if (!entry.file) continue;
+          // `file` ist ein relativer Pfad am Modal-Endpunkt — der Proxy
+          // kombiniert ihn mit der geheimen Base-URL.
+          const audioUrl = `/api/sound/audio?path=${encodeURIComponent(entry.file)}`;
+          const assetId = await OutputService.saveGeneratedAsset({
+            url: audioUrl,
+            prompt: entry.prompt ?? frozen.tags,
+            modelId: SOUND_MODEL_ID,
+            conversationId: PLAYGROUND_CONVERSATION_ID,
+            isPollinations: false,
+            params: {
+              duration: frozen.duration,
+              batch: frozen.batch,
+              instrumental: frozen.instrumental,
+            },
+          });
+          savedItems.push({
+            id: assetId ?? `${Date.now()}-${savedItems.length}`,
+            url: audioUrl,
+            kind: 'audio',
+            prompt: entry.prompt ?? frozen.tags,
+            modelId: SOUND_MODEL_ID,
+            timestamp: Date.now(),
+            params: { duration: frozen.duration, batch: frozen.batch, instrumental: frozen.instrumental },
+          });
+        }
+        if (savedItems.length === 0) throw new Error('Sound-Ergebnis enthielt keine verwendbare Audiodatei');
+
+        if (selectedRef.current === null) {
+          selectedRef.current = savedItems[0];
+          setSelected(savedItems[0]);
+        }
+        setSoundRuns((rs) => rs.filter((r) => r.id !== run.id));
+        setGalleryKey((k) => k + 1);
+      } catch (e) {
+        if ((e as Error).name === 'AbortError') {
+          setSoundRuns((rs) => rs.filter((r) => r.id !== run.id));
+          return;
+        }
+        const err = e as Error & { raw?: string };
+        setSoundRuns((rs) => rs.map((r) => (
+          r.id === run.id
+            ? { ...r, status: 'failed', message: err.message, raw: err.raw }
+            : r
+        )));
+      }
+    })();
+  };
+
+  const onRetrySoundRun = (id: string) => {
+    const failed = soundRuns.find((r) => r.id === id);
+    if (!failed || !canQueue) return;
+    setSoundRuns((rs) => rs.filter((r) => r.id !== id));
+    startSoundRun(failed);
+  };
+
+  const onCancelSoundRun = (id: string) => {
+    soundRuns.find((r) => r.id === id)?.controller.abort();
+  };
+
+  const onDismissSoundRun = (id: string) => setSoundRuns((rs) => rs.filter((r) => r.id !== id));
+
   const onSend = () => {
+    if (state.mode === 'sound') {
+      if (!state.sound.tags.trim() || !canQueue) return;
+      startSoundRun({
+        tags: state.sound.tags,
+        lyrics: state.sound.instrumental ? '' : state.sound.lyrics,
+        duration: state.sound.duration,
+        batch: state.sound.batch,
+        instrumental: state.sound.instrumental,
+      });
+      return;
+    }
     // p-image-upscale works from the image alone, so an empty prompt is valid
     // there. Anywhere else it still blocks.
     if (!currentModel || !canQueue) return;
@@ -512,6 +707,7 @@ export function PlaygroundShell() {
     onParams: setParams,
     onUploads: setUploads,
     onSourceVideo: setSourceVideo,
+    onSound: setSound,
   };
 
   // "Nochmal": Werte nur in die Eingabe uebernehmen — bewusst KEIN
@@ -634,10 +830,22 @@ export function PlaygroundShell() {
               refreshKey={galleryKey}
               origins={galleryOrigins}
               onItemsLoaded={handleItemsLoaded}
-              runs={runs}
-              onCancelRun={onCancelRun}
-              onRetryRun={onRetryRun}
-              onDismissRun={onDismissRun}
+              runs={[...runs, ...soundRuns.map((r) => ({
+                id: r.id,
+                prompt: r.tags,
+                modelId: SOUND_MODEL_ID,
+                startedAt: r.startedAt,
+                isVideo: false,
+                status: r.status,
+                message: r.message,
+                raw: r.raw,
+              }))]}
+              onCancelRun={(id) => { onCancelRun(id); onCancelSoundRun(id); }}
+              onRetryRun={(id) => {
+                if (soundRuns.some((r) => r.id === id)) onRetrySoundRun(id);
+                else onRetryRun(id);
+              }}
+              onDismissRun={(id) => { onDismissRun(id); onDismissSoundRun(id); }}
               onOpenSettings={() => setSettingsOpen(true)}
               onPickModel={() => setDrawerOpen(true)}
             />
@@ -670,15 +878,15 @@ export function PlaygroundShell() {
           )}
 
           <PromptBar
-            value={state.prompt}
-            onChange={setPrompt}
+            value={state.mode === 'sound' ? state.sound.tags : state.prompt}
+            onChange={state.mode === 'sound' ? (v: string) => setSound({ tags: v }) : setPrompt}
             onEnhance={onEnhance}
             enhancing={enhancing}
             onSend={onSend}
             canQueue={canQueue}
             queueFullHint={`${MAX_CONCURRENT_RUNS} Generierungen laufen bereits — warte auf eine davon.`}
-            modelName={currentModel?.name}
-            providerName={providerMode === 'pruna' ? 'Pruna' : 'Pollinations'}
+            modelName={state.mode === 'sound' ? 'ACE-Step 1.5' : currentModel?.name}
+            providerName={state.mode === 'sound' ? undefined : providerMode === 'pruna' ? 'Pruna' : 'Pollinations'}
             promptRequired={promptRequired}
             keyRequiredHint={keyRequiredHint}
             irreversibleHint={irreversibleHint}

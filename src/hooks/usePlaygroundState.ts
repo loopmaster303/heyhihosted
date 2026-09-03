@@ -2,8 +2,18 @@
 import { useCallback } from 'react';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import type { ParamValues } from '@/lib/playground/param-schema';
+import type { PlaygroundMode } from '@/lib/playground/mode-mapping';
 
-export type PlaygroundMode = 't2i' | 'i2i' | 't2v' | 'i2v';
+export type { PlaygroundMode };
+
+/** Sound-Felder. Lokal fluechtig — kein localStorage-Zwang. */
+export interface SoundState {
+  tags: string;
+  lyrics: string;
+  duration: number;
+  batch: number;
+  instrumental: boolean;
+}
 
 export interface PlaygroundState {
   mode: PlaygroundMode;
@@ -12,7 +22,16 @@ export interface PlaygroundState {
   params: ParamValues;
   uploads: string[];
   sourceVideo: string | null;
+  sound: SoundState;
 }
+
+const DEFAULT_SOUND: SoundState = {
+  tags: '',
+  lyrics: '',
+  duration: 30,
+  batch: 4,
+  instrumental: true,
+};
 
 const DEFAULT_STATE: PlaygroundState = {
   mode: 't2i',
@@ -21,6 +40,7 @@ const DEFAULT_STATE: PlaygroundState = {
   params: {},
   uploads: [],
   sourceVideo: null,
+  sound: DEFAULT_SOUND,
 };
 
 /**
@@ -35,6 +55,7 @@ function withDefaults(stored: PlaygroundState): PlaygroundState {
     ...stored,
     params: stored?.params ?? {},
     uploads: Array.isArray(stored?.uploads) ? stored.uploads : [],
+    sound: { ...DEFAULT_SOUND, ...(stored?.sound ?? {}) },
   };
 }
 
@@ -57,6 +78,7 @@ export function usePlaygroundState() {
     setParams: (params: ParamValues) => patch({ params }),
     setUploads: (uploads: string[]) => patch({ uploads }),
     setSourceVideo: (sourceVideo: string | null) => patch({ sourceVideo }),
+    setSound: (p: Partial<SoundState>) => patch({ sound: { ...state.sound, ...p } }),
     resetForModel: (defaults: Partial<PlaygroundState>) => patch(defaults),
   };
 }

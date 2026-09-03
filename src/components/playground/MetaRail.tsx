@@ -75,11 +75,13 @@ export function MetaRail({ item, className, onLoad, onRerun, onUseAsReference, o
       ) : (
         <>
           <Badge variant="secondary" className="self-start">
-            {item.kind === 'video' ? 'Video' : 'Bild'}
+            {item.kind === 'audio' ? 'Audio' : item.kind === 'video' ? 'Video' : 'Bild'}
           </Badge>
 
           <div className="overflow-hidden rounded-lg border border-border">
-            {item.kind === 'video' ? (
+            {item.kind === 'audio' ? (
+              <audio src={item.url} controls className="block w-full" />
+            ) : item.kind === 'video' ? (
               <video src={item.url} controls className="block h-auto w-full" />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element

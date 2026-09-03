@@ -156,7 +156,7 @@ describe('PlaygroundShell smoke', () => {
     expect(screen.getAllByText('Pollinations').length).toBeGreaterThan(0);
     // Mode tabs
     expect(screen.getByRole('tab', { name: 't2i' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    expect(screen.getAllByRole('tab')).toHaveLength(5);
     // Model picker resolved the dummy entry
     expect(screen.getAllByText('Dummy Flux').length).toBeGreaterThan(0);
     // Prompt bar

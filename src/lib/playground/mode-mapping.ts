@@ -1,4 +1,9 @@
-export type PlaygroundMode = 't2i' | 'i2i' | 't2v' | 'i2v';
+/**
+ * `sound` ist kein modellgetriebener Modus: Er haengt an keinem Eintrag der
+ * Modell-Registry, sondern am selbst gehosteten ACE-Step-Endpunkt. `modesFor`
+ * liefert ihn deshalb nie — er wird nur als fuenfter Tab gesetzt.
+ */
+export type PlaygroundMode = 't2i' | 'i2i' | 't2v' | 'i2v' | 'sound';
 
 export interface ModeCandidate {
   id: string;

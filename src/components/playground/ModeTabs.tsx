@@ -3,11 +3,11 @@
 import { cn } from '@/lib/utils';
 import { PlaygroundMode } from '@/lib/playground/mode-mapping';
 
-const MODES: PlaygroundMode[] = ['t2i', 'i2i', 't2v', 'i2v'];
+const MODES: PlaygroundMode[] = ['t2i', 'i2i', 't2v', 'i2v', 'sound'];
 
 export function ModeTabs({ value, onChange }: { value: PlaygroundMode; onChange: (m: PlaygroundMode) => void }) {
   return (
-    <div role="tablist" className="grid grid-cols-4 gap-0.5 p-0.5 rounded-xl bg-background/60 border border-border">
+    <div role="tablist" className="grid grid-cols-5 gap-0.5 p-0.5 rounded-xl bg-background/60 border border-border">
       {MODES.map((mode) => {
         const isActive = mode === value;
         return (
