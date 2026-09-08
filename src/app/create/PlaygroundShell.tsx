@@ -536,7 +536,17 @@ export function PlaygroundShell() {
         const postRes = await fetch('/api/sound', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(frozen),
+          // Der Body wird Feld fuer Feld gebaut: die Route liest `prompt`,
+          // der eingefrorene Lauf fuehrt dasselbe als `tags`. Das interne
+          // Zustandsobjekt durchzureichen liess jeden Sendeversuch in
+          // 400 VALIDATION_ERROR enden — der Name muss hier stehen.
+          body: JSON.stringify({
+            prompt: frozen.tags,
+            lyrics: frozen.lyrics,
+            duration: frozen.duration,
+            batch: frozen.batch,
+            instrumental: frozen.instrumental,
+          }),
           signal: run.controller.signal,
         });
         if (!postRes.ok) throw failureError(await parseFailure(postRes, 'Sound-Task fehlgeschlagen'));
@@ -589,7 +599,11 @@ export function PlaygroundShell() {
           const audioUrl = `/api/sound/audio?path=${encodeURIComponent(entry.file)}`;
           const assetId = await OutputService.saveGeneratedAsset({
             url: audioUrl,
-            prompt: entry.prompt ?? frozen.tags,
+            // ACE-Steps Planner gibt die Tags als ausformulierte Prosa zurueck
+            // (`entry.prompt`). Gespeichert wird trotzdem die Eingabe des
+            // Nutzers — sonst sucht er spaeter seinen Track und findet einen
+            // fremden Absatz.
+            prompt: frozen.tags,
             modelId: SOUND_MODEL_ID,
             conversationId: PLAYGROUND_CONVERSATION_ID,
             isPollinations: false,
@@ -603,7 +617,7 @@ export function PlaygroundShell() {
             id: assetId ?? `${Date.now()}-${savedItems.length}`,
             url: audioUrl,
             kind: 'audio',
-            prompt: entry.prompt ?? frozen.tags,
+            prompt: frozen.tags,
             modelId: SOUND_MODEL_ID,
             timestamp: Date.now(),
             params: { duration: frozen.duration, batch: frozen.batch, instrumental: frozen.instrumental },

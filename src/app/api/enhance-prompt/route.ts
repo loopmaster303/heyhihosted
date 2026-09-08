@@ -150,6 +150,21 @@ function isLikelySuffixOnlyEnhancement(original: string, enhanced: string): bool
   return false;
 }
 
+/** Die Sound-Route lehnt ueber 512 Zeichen ab; 500 laesst Luft. */
+const AUDIO_MAX_CHARS = 500;
+
+/**
+ * Eine ACE-Step-Tagliste ist mechanisch: kommagetrennte Stichworte, keine
+ * Saetze. Geprueft wird die Form, nicht der Inhalt — ob "dub techno" zur
+ * Eingabe passt, kann hier niemand entscheiden.
+ */
+function isPlausibleTagList(text: string): boolean {
+  const tags = text.split(',').map((t) => t.trim()).filter(Boolean);
+  if (tags.length < 3) return false;
+  if (/[.!?;:]/.test(text)) return false;
+  return tags.every((t) => t.split(/\s+/).length <= 5);
+}
+
 function hasBpm(text: string): boolean {
   // Matches "80 BPM" (ACE-Step/ElevenMusic) and "BPM: 80" / "BPM 80" (Stable Audio).
   return /\b\d{2,3}\s*bpm\b/i.test(text) || /\bbpm\b\s*[:=]?\s*\d{2,3}/i.test(text);
@@ -283,6 +298,10 @@ export async function POST(request: NextRequest) {
     // wirksame Begriffe. Prompts, die das fuer sich beanspruchen, sagen es in
     // einem <quality_terms>-Block; eine dritte Liste braucht es nicht.
     const keepsQualityTerms = baseGuidelines.includes('<quality_terms>');
+    // Drittes Tag nach demselben Muster: Prompts, die eine Tagliste statt
+    // Prosa erzeugen, sagen es selbst. Die Qualitaetspruefung unten braucht
+    // das, weil ihre Prosa-Heuristik jede gute Tagliste verwirft.
+    const producesTagList = baseGuidelines.includes('<tag_list_output>');
 
     const isUnfilteredModel = baseGuidelines.includes('<unfiltered>');
     const noContentRestrictionsGuard = isUnfilteredModel
@@ -308,7 +327,7 @@ export async function POST(request: NextRequest) {
     // Compose models: audio GET URL has a ~2000 char total limit; keep prompt under 500 chars.
     // Image models: Pollinations image GET URL; keep under 1000 chars.
     const lengthGuard = isComposeModel
-      ? 'CRITICAL: Your ENTIRE output must be under 500 characters (not words — characters). Be dense but concise.'
+      ? `CRITICAL: Your ENTIRE output must be under ${AUDIO_MAX_CHARS} characters (not words — characters). Be dense but concise.`
       : 'CRITICAL: Your ENTIRE output must be under 1000 characters (not words — characters). Be dense and descriptive but concise. No filler, no repetition.';
 
     const hasResearchKey = !!(pollenKey || process.env.POLLEN_API_KEY);
@@ -385,9 +404,14 @@ export async function POST(request: NextRequest) {
     if (!isComposeModel && !keepsQualityTerms) cleaned = stripGlossTerms(cleaned);
 
     // Quality gate: if we likely got "prompt + a few tags", rerun with fallback model.
-    const lowQuality =
-      isLikelySuffixOnlyEnhancement(prompt, cleaned) ||
-      (isComposeModel && !hasBpm(cleaned));
+    // Fuer eine Tagliste ist genau das die Aufgabe — sie faellt kuerzer aus als
+    // die Eingabe und baut auf ihr auf. Die Prosa-Heuristik hat deshalb jede
+    // korrekte ACE-Step-Ausgabe verworfen und mit dem schwaecheren Modell neu
+    // gewuerfelt; dessen Ergebnis bekam der Nutzer. Tag-Modelle pruefen die
+    // Form, und ein BPM verlangt niemand von einem Drone.
+    const lowQuality = producesTagList
+      ? !isPlausibleTagList(cleaned)
+      : isLikelySuffixOnlyEnhancement(prompt, cleaned) || (isComposeModel && !hasBpm(cleaned));
 
     if (lowQuality && usedModel !== fallbackEnhancerModelId) {
       try {
@@ -405,6 +429,16 @@ export async function POST(request: NextRequest) {
     // Hard-cap for image models: Pollinations GET URLs break above ~2000 chars total
     if (!isComposeModel && cleaned.length > 1000) {
       cleaned = cleaned.substring(0, 1000).replace(/\s+\S*$/, '');
+    }
+    // Audio hatte gar keine Kappung: das Limit stand nur im Systemprompt und
+    // lag damit im Ermessen des Modells — die Sound-Route antwortet ueber 512
+    // Zeichen mit 400. Eine Tagliste wird an der Tag-Grenze getrennt, sonst
+    // stuende ein halbes Stichwort am Ende.
+    if (isComposeModel && cleaned.length > AUDIO_MAX_CHARS) {
+      const gekappt = cleaned.substring(0, AUDIO_MAX_CHARS);
+      cleaned = producesTagList
+        ? gekappt.replace(/,[^,]*$/, '')
+        : gekappt.replace(/\s+\S*$/, '');
     }
 
     return NextResponse.json({

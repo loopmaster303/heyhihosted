@@ -405,3 +405,93 @@ describe('playground e2e: parallel runs', () => {
     expect(save.mock.calls.map((c) => c[0].prompt).sort()).toEqual(['drei', 'eins']);
   });
 });
+
+/**
+ * Der Sound-Lauf hatte bis 2026-09-03 keinen Test, der Client und Route
+ * zusammen prueft — und genau dort lag der Bruch: die Shell reichte ihr
+ * internes Zustandsobjekt als Body durch (`tags`), die Route liest `prompt`.
+ * Jeder Sendeversuch endete in 400 VALIDATION_ERROR, ohne dass eine
+ * Route-Suite das haette sehen koennen.
+ */
+describe('playground e2e: sound flow', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
+    (useProviderMode as jest.Mock).mockReturnValue({
+      providerMode: 'pollinations', setProviderMode: jest.fn(), prunaAvailable: false,
+    });
+    (usePollenKey as jest.Mock).mockReturnValue({
+      pollenKey: '', isConnected: false, connectManual: jest.fn(), disconnect: jest.fn(),
+      accountInfo: null, refreshAccount: jest.fn(), isLoadingAccount: false,
+    });
+  });
+
+  it('sends the tags under the field name the route reads', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    mockFetchModels();
+    // Antwort ohne Task-Id: der Lauf endet sofort, statt einen Poll-Loop zu
+    // hinterlassen, der in den naechsten Test hineinlaeuft.
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    render(<PlaygroundShell />);
+    await waitFor(() => expect(screen.queryByText('Lädt…')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: 'sound' }));
+    fireEvent.change(screen.getByLabelText('Prompt'), {
+      target: { value: 'dub techno, deep, analog synth' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Senden' }));
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBeGreaterThan(1));
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[1];
+    expect(url).toBe('/api/sound');
+    expect(JSON.parse(init.body)).toMatchObject({
+      prompt: 'dub techno, deep, analog synth',
+      duration: expect.any(Number),
+      batch: expect.any(Number),
+    });
+  });
+
+  /**
+   * ACE-Steps Planner gibt die Tags als ausformulierte Prosa zurueck. Die
+   * wurde gespeichert — wer spaeter seinen Track sucht, fand einen fremden
+   * Absatz statt der Eingabe.
+   */
+  it('saves the tags the user wrote, not the planner prose', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    mockFetchModels();
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ taskId: 'abcdef1234' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [{
+            status: 1,
+            result: JSON.stringify([{
+              file: '/v1/audio?path=%2Ftmp%2Fout.mp3',
+              prompt: 'An instrumental electronic track driven by a deep, resonant synth bass '
+                + 'playing a hypnotic, repeating melodic figure.',
+            }]),
+          }],
+        }),
+      });
+
+    render(<PlaygroundShell />);
+    await waitFor(() => expect(screen.queryByText('Lädt…')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: 'sound' }));
+    fireEvent.change(screen.getByLabelText('Prompt'), {
+      target: { value: 'dub techno, deep, analog synth, sub bass, 120 bpm' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Senden' }));
+
+    // Der Poll-Loop wartet 2,5 s vor der ersten Abfrage.
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1), { timeout: 8000 });
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({
+      prompt: 'dub techno, deep, analog synth, sub bass, 120 bpm',
+      modelId: 'acestep-1.5',
+    }));
+  }, 15000);
+});

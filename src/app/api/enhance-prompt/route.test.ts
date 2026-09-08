@@ -1294,6 +1294,94 @@ describe('/api/enhance-prompt route', () => {
     // Kein Leerzeichen vor Satzzeichen, wo ein Begriff herausfiel.
     expect(enhancedPrompt).not.toMatch(/\s[,.]/);
   });
+
+  /**
+   * ACE-Step will das Gegenteil eines Bild-Prompts: kurze, mechanische Tags,
+   * die auf der Eingabe aufbauen. Die Qualitaetspruefung war auf Prosa geeicht
+   * und hat genau das als "suffix-only" verworfen — jede gute Tagliste loeste
+   * einen zweiten Lauf mit dem schwaecheren Modell aus, und dessen Ergebnis
+   * war das, was der Nutzer bekam.
+   */
+  describe('Tagliste statt Prosa (ACE-Step)', () => {
+    const soundRequest = (prompt: string) =>
+      new Request('http://localhost/api/enhance-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, modelId: 'ace-step' }),
+      });
+
+    const ergebnis = () =>
+      (responseJson.mock.calls.at(-1)?.[0] as { enhancedPrompt: string }).enhancedPrompt;
+
+    it('nimmt eine Tagliste an, die die Eingabe erweitert', async () => {
+      getPollinationsChatCompletionMock.mockResolvedValue({
+        responseText: 'dub techno, deep, analog synth, sub bass, minimal, 120 bpm',
+      });
+
+      await POST(soundRequest('dub techno, deep') as never);
+
+      expect(getPollinationsChatCompletionMock).toHaveBeenCalledTimes(1);
+      expect(ergebnis()).toBe('dub techno, deep, analog synth, sub bass, minimal, 120 bpm');
+    });
+
+    // Verdichten heisst kuerzen. Die Prosa-Regel wertete jedes Ergebnis unter
+    // 70 % der Eingabelaenge als misslungen — bei Tags ist es das Ziel.
+    it('nimmt eine Verdichtung an, die kuerzer ist als die Eingabe', async () => {
+      getPollinationsChatCompletionMock.mockResolvedValue({
+        responseText: 'ambient, synth pads, ethereal, spacious, instrumental',
+      });
+
+      await POST(soundRequest(
+        'mach mir bitte irgendwas ganz ruhiges und weites zum einschlafen, ohne schlagzeug'
+      ) as never);
+
+      expect(getPollinationsChatCompletionMock).toHaveBeenCalledTimes(1);
+      expect(ergebnis()).toBe('ambient, synth pads, ethereal, spacious, instrumental');
+    });
+
+    // Ambient hat kein sinnvolles Tempo. Die BPM-Pflicht galt fuer jedes
+    // Audio-Modell und erzwang auch dort einen zweiten Lauf.
+    it('verlangt kein BPM, wo keins hingehoert', async () => {
+      getPollinationsChatCompletionMock.mockResolvedValue({
+        responseText: 'drone, dark ambient, no drums, cavernous, instrumental',
+      });
+
+      await POST(soundRequest('dunkles drone, kein takt') as never);
+
+      expect(getPollinationsChatCompletionMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Prosa ist der Fehler, den die Pruefung fangen soll — dann ist ein
+    // zweiter Lauf richtig.
+    it('wuerfelt neu, wenn Prosa statt Tags zurueckkommt', async () => {
+      getPollinationsChatCompletionMock.mockResolvedValue({
+        responseText: 'An instrumental electronic track driven by a deep resonant synth bass '
+          + 'playing a hypnotic repeating figure. The mood is meditative and spacious.',
+      });
+
+      await POST(soundRequest('dub techno, deep') as never);
+
+      expect(getPollinationsChatCompletionMock).toHaveBeenCalledTimes(2);
+    });
+
+    // Die Sound-Route lehnt ueber 512 Zeichen mit 400 ab. Der Bild-Pfad hatte
+    // eine Kappung, der Audio-Pfad keine — das Limit stand nur im Systemprompt
+    // und damit im Ermessen des Modells.
+    it('kappt eine zu lange Tagliste an der Tag-Grenze', async () => {
+      const zuLang = Array.from({ length: 60 }, (_, i) => `analog synth ${i}`).join(', ');
+      getPollinationsChatCompletionMock.mockResolvedValue({ responseText: zuLang });
+
+      await POST(soundRequest('irgendwas') as never);
+
+      const out = ergebnis();
+      expect(out.length).toBeLessThanOrEqual(512);
+      expect(out).not.toMatch(/,\s*$/);
+      // Kein Tag darf mitten im Wort abgeschnitten sein.
+      for (const tag of out.split(',').map((t) => t.trim())) {
+        expect(zuLang).toContain(tag);
+      }
+    });
+  });
 });
 
 describe('enhancement prompt integrity (T5, F6)', () => {

@@ -1438,7 +1438,8 @@ export const MODEL_ALIASES: Record<string, string> = {
   'ideogram-v4': 'ideogram-v4-turbo',
   // Audio — die Aliase muessen vor der Audio-Abzweigung aufgeloest werden,
   // sonst bekommt 'stable-audio' den DEFAULT samt Bild-Laengenlimit.
-  // 'ace-step' entfernt: acestep existiert in der Registry nicht mehr.
+  // 'ace-step' braucht keinen Alias: es ist selbst der kanonische Key
+  // (selbst gehostet auf Modal, nicht aus der Pollinations-Registry).
   'compose': 'elevenmusic',
   'stable-audio': 'stable-audio-3-medium',
   'stable-audio-3': 'stable-audio-3-medium',
@@ -1691,14 +1692,20 @@ TR-808: trap/hip-hop booming kicks | TR-909: house/techno punchy kicks | TB-303:
  * AUDIO_ENHANCEMENT_KEYS und nutzt das kürzere Längenlimit.
  */
 export const ACE_STEP_ENHANCEMENT_PROMPT = `<system_instructions>
+<tag_list_output>
 <role>
 You are a music-tag specialist for ACE-Step 1.5. The user gives a vague vibe, genre idea, or mood. You compress it into the tag list ACE-Step renders most faithfully.
 </role>
 <rules>
 - Output ONE line: comma-separated English tags, nothing else.
-- 3 to 7 tags. Fewer than 3 loses control, more than 7 dilutes the model.
-- Tag order: genre → mood/energy → instrumentation → production texture → BPM/key when known or strongly implied.
+- 3 to 7 tags. Fewer than 3 loses control, more than 7 muddies the arrangement.
+- Tag order: genre → tempo → vocal character → key instruments → mood/energy → production texture.
 - Stichworte, keine Saetze: "synthwave, 120 BPM, analog bass, hazy pads" — never "a hazy synthwave track with deep bass".
+- ONE primary genre. A second one only as a subtle influence — never two competing ones ("ambient, metal" produces neither).
+- Vocal character belongs HERE, not in the lyrics field: "female vocal, breathy, alto" or "deep male voice, raspy".
+- Add the tag "instrumental" when the user wants no singing.
+- BPM only when the user names a tempo or the genre implies one. Drone, ambient and free-tempo pieces get none.
+- Keep the tags the user already wrote and build on them. Extend, do not replace.
 - No artist names; translate them into sonic characteristics.
 - No lyrics, no [verse]/[chorus] markers, no explanations, no quotes.
 </rules>
@@ -1708,7 +1715,7 @@ Output ONLY the comma-separated tag line. No preamble, no labels.
 </system_instructions>`;
 
 // =================================================================
-// ACE-STEP 1.5 ENHANCEMENT
+// STABLE AUDIO 3 ENHANCEMENT
 // =================================================================
 export const STABLE_AUDIO_ENHANCEMENT_PROMPT = `<system_instructions>
 <role>
