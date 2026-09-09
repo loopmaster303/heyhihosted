@@ -20,6 +20,14 @@ function parseVisibleTextModelIds(source) {
 
 function parseLocalImageConfig(source) {
   const ids = unique(Array.from(source.matchAll(/id:\s*'([^']+)'/g), (entry) => entry[1]));
+  // Pruna-Modelle werden separat betrieben. Ihr Fehlen bei Pollinations
+  // sagt nichts ueber ihre Verfuegbarkeit bei Pruna aus.
+  const prunaIds = unique(
+    Array.from(
+      source.matchAll(/id:\s*'([^']+)'([\s\S]*?)(?=\bid:|$)/g),
+      (entry) => (/provider:\s*'pruna'/.test(entry[2]) ? entry[1] : null),
+    ),
+  );
   const hiddenIds = unique(
     Array.from(
       source.matchAll(/\{[\s\S]*?id:\s*'([^']+)'[\s\S]*?enabled:\s*(true|false)[\s\S]*?\}/g),
@@ -33,6 +41,7 @@ function parseLocalImageConfig(source) {
 
   return {
     ids,
+    prunaIds,
     hiddenIds,
     aliasMap: Object.fromEntries(aliasEntries),
   };
@@ -57,6 +66,9 @@ function normalizeUpstreamTextModels(responseJson) {
   const entries = Array.isArray(responseJson?.data) ? responseJson.data : [];
 
   return entries
+    // Der taegliche Audit betrachtet den kuratierten Katalog.
+    // Dieser Filter aendert nicht die Modellauswahl im Chat.
+    .filter((entry) => entry?.community !== true)
     .filter((entry) => {
       const outputs = Array.isArray(entry?.output_modalities) ? entry.output_modalities : [];
       const endpoints = Array.isArray(entry?.supported_endpoints) ? entry.supported_endpoints : [];
@@ -78,6 +90,7 @@ function normalizeUpstreamImageModels(responseJson) {
         : [];
 
   return entries
+    .filter((entry) => entry?.community !== true)
     .filter((entry) => {
       const outputs = Array.isArray(entry?.output_modalities) ? entry.output_modalities : [];
       const id = entry?.name || entry?.id;
@@ -89,7 +102,8 @@ function normalizeUpstreamImageModels(responseJson) {
     }));
 }
 
-function computeNamespaceDrift(localNamespace, upstreamModels) {
+function computeNamespaceDrift(localNamespace, upstreamModels, options = {}) {
+  const ignoreLocalIds = new Set(options.ignoreLocalIds || []);
   const localIds = unique(localNamespace?.ids || []);
   const aliasMap = localNamespace?.aliasMap || {};
   const localCoverageTokens = new Set(localIds);
@@ -116,6 +130,7 @@ function computeNamespaceDrift(localNamespace, upstreamModels) {
     .map((entry) => entry.id);
 
   const staleLocal = localIds.filter((localId) => {
+    if (ignoreLocalIds.has(localId)) return false;
     const aliases = localAliasLookup.get(localId) || [];
     const tokens = [localId, ...aliases];
     return !tokens.some((token) => upstreamCoverageTokens.has(token));
@@ -239,7 +254,9 @@ async function main() {
   const upstreamImage = normalizeUpstreamImageModels(upstreamImageResponse);
 
   const textDrift = computeNamespaceDrift(localText, upstreamText);
-  const imageDrift = computeNamespaceDrift(localImage, upstreamImage);
+  const imageDrift = computeNamespaceDrift(localImage, upstreamImage, {
+    ignoreLocalIds: localImage.prunaIds,
+  });
   const visualReadiness = computeVisualReadiness(localImage, upstreamImage, localConfigIds, enhancementPromptIds);
   printShellAssignments(buildShellReport(textDrift, imageDrift, visualReadiness, upstreamText, upstreamImage, true));
 }

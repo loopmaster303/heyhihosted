@@ -108,6 +108,8 @@ describe('pollinations drift report helpers', () => {
       'grok-imagine': 'grok-image',
       'z-image': 'zimage',
     });
+    // Kein provider-Feld = pollinations; prunaIds bleibt hier leer.
+    expect(localImage.prunaIds).toEqual([]);
     expect(upstreamText.map((entry: { id: string }) => entry.id)).toEqual([
       'gemini-fast',
       'perplexity-fast',
@@ -130,6 +132,55 @@ describe('pollinations drift report helpers', () => {
       missingUpstream: ['brand-new-image'],
       staleLocal: ['legacy-image'],
     });
+  });
+
+  test('Pruna-Eintraege sind per Definition nicht stale: kein Pollinations-Registry-Token', () => {
+    const imageConfigSource = `
+      const POLLINATIONS_MODELS = [
+        { id: 'flux', provider: 'pollinations', enabled: true },
+        { id: 'wan-t2v', provider: 'pruna', enabled: true },
+        {
+          id: 'p-video-avatar',
+          name: 'P-Video Avatar',
+          provider: 'pruna',
+          kind: 'video',
+          enabled: true,
+        },
+      ];
+    `;
+    const localImage = parseLocalImageConfig(imageConfigSource);
+    expect(localImage.prunaIds).toEqual(['wan-t2v', 'p-video-avatar']);
+
+    const upstreamImage = normalizeUpstreamImageModels([
+      { name: 'flux', output_modalities: ['image'] },
+    ]);
+    // Ohne ignoreList waeren beide Pruna-IDs "stale" — Dauer-Rauschen.
+    expect(computeNamespaceDrift(localImage, upstreamImage).staleLocal).toEqual([
+      'p-video-avatar',
+      'wan-t2v',
+    ]);
+    expect(
+      computeNamespaceDrift(localImage, upstreamImage, {
+        ignoreLocalIds: localImage.prunaIds,
+      }).staleLocal,
+    ).toEqual([]);
+  });
+
+  test('Community-Modelle der Registry erreichen die Drift-Erwartung nicht', () => {
+    const upstreamText = normalizeUpstreamTextModels({
+      data: [
+        { id: 'gpt-5.4-nano', community: false, output_modalities: ['text'], supported_endpoints: ['/v1/chat/completions'] },
+        { id: 'randomuser/jollygen', community: true, output_modalities: ['text'], supported_endpoints: ['/v1/chat/completions'] },
+        { id: 'no-flag', output_modalities: ['text'], supported_endpoints: ['/v1/chat/completions'] },
+      ],
+    });
+    expect(upstreamText.map((entry: { id: string }) => entry.id)).toEqual(['gpt-5.4-nano', 'no-flag']);
+
+    const upstreamImage = normalizeUpstreamImageModels([
+      { name: 'flux.2-pro', community: false, output_modalities: ['image'] },
+      { name: 'someone/agnes-image', community: true, output_modalities: ['image'] },
+    ]);
+    expect(upstreamImage.map((entry: { id: string }) => entry.id)).toEqual(['flux.2-pro']);
   });
 
   test('classifies hidden local visuals separately from new upstream readiness', () => {
