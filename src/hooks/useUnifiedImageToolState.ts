@@ -18,6 +18,10 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
 import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
 import { uploadFileToPruna } from '@/lib/upload/pruna';
+import {
+    forgetPrunaReferencePreview,
+    rememberPrunaReferencePreview,
+} from '@/lib/upload/pruna-reference-preview';
 import { getClientSessionId } from '@/lib/session';
 import type { UploadedReference } from '@/types';
 import { useProviderMode } from './useProviderMode';
@@ -283,6 +287,9 @@ export function useUnifiedImageToolState() {
                 const next = [...uploadedImages];
                 for (const file of targetFiles) {
                     const url = await uploadFileToPruna(file);
+                    // Pruna liefert nur einen Handle, kein Bild. Die Bytes liegen
+                    // hier, also bleibt die Vorschau lokal beim Handle.
+                    await rememberPrunaReferencePreview(url, file);
                     if (frameSlot) next[frameIndex] = { url };
                     else if (maxImages === 1) next[0] = { url };
                     else if (next.length < maxImages) next.push({ url });
@@ -408,8 +415,11 @@ export function useUnifiedImageToolState() {
 
     // Handle Remove Image
     const handleRemoveImage = useCallback((index: number) => {
+        // Eine entfernte Pruna-Referenz nimmt ihre lokale Vorschau mit.
+        const removed = uploadedImages[index];
+        if (removed?.url) void forgetPrunaReferencePreview(removed.url);
         setUploadedImages(prev => prev.filter((_, i) => i !== index));
-    }, [setUploadedImages]);
+    }, [uploadedImages, setUploadedImages]);
 
     // Handle Remove Source Video
     const handleRemoveSourceVideo = useCallback(() => {
