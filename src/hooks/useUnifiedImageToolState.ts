@@ -86,7 +86,12 @@ export function useUnifiedImageToolState() {
         if (availableModels.includes(DEFAULT_IMAGE_MODEL)) return DEFAULT_IMAGE_MODEL;
         return availableModels[0] || DEFAULT_IMAGE_MODEL;
     }, [availableModels, normalizedDefaultImageModelId]);
-    const [selectedModelId, setSelectedModelId] = useState<string>(initialModelId);
+    // Die Bildauswahl des Chats lebt in ihrem eigenen Schluessel, und der
+    // Standard aus den Einstellungen ist nur der Startwert, solange dort noch
+    // nichts steht (A6). Vorher las der Picker allein `defaultImageModelId` und
+    // schrieb beim Wechsel nichts: Die Wahl war beim naechsten Reload verloren,
+    // obwohl der Chat-Schluessel denselben Wert bereits fuehrt.
+    const [selectedModelId, setSelectedModelId] = useLocalStorageState<string>('chatSelectedImageModel', initialModelId);
     const currentModelConfig = getUnifiedModelConfig(selectedModelId);
 
     // Faellt das gewaehlte Modell aus der Chat-Auswahl — etwa weil der

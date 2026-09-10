@@ -112,6 +112,53 @@ describe('useUnifiedImageToolState provider persistence', () => {
     });
   });
 
+  // A6, Nachtrag aus der Abnahme: Die Wahl im Chat stand nur im Speicher des
+  // Tabs. Der Picker las beim Start allein `defaultImageModelId` und schrieb
+  // beim Wechsel nichts, deshalb stand nach einem Reload wieder der Standard da.
+  it('liest die gespeicherte Chat-Auswahl statt des Standards', async () => {
+    localStorage.setItem('defaultImageModelId', JSON.stringify('flux'));
+    localStorage.setItem('chatSelectedImageModel', JSON.stringify('gpt-image'));
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: false }),
+    } as Response);
+
+    const { result } = renderHook(() => useUnifiedImageToolState());
+
+    await waitFor(() => {
+      expect(result.current.selectedModelId).toBe('gpt-image');
+    });
+  });
+
+  it('schreibt eine Auswahl im Chat in den Chat-Schluessel', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: false }),
+    } as Response);
+
+    const { result } = renderHook(() => useUnifiedImageToolState());
+
+    await waitFor(() => expect(result.current.availableModels.length).toBeGreaterThan(0));
+    await act(async () => { result.current.setSelectedModelId('gpt-image'); });
+
+    await waitFor(() => {
+      expect(result.current.selectedModelId).toBe('gpt-image');
+    });
+    expect(localStorage.getItem('chatSelectedImageModel')).toBe(JSON.stringify('gpt-image'));
+  });
+
+  it('faellt auf den Standard zurueck, wenn die Chat-Auswahl nicht in der Chat-Liste steht', async () => {
+    localStorage.setItem('defaultImageModelId', JSON.stringify('flux'));
+    localStorage.setItem('chatSelectedImageModel', JSON.stringify('p-video'));
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: false }),
+    } as Response);
+
+    const { result } = renderHook(() => useUnifiedImageToolState());
+
+    await waitFor(() => {
+      expect(result.current.selectedModelId).toBe('flux');
+    });
+  });
+
   // T7 (Phase 3, R1): gespeicherte Auswahlen auf entfernte IDs dürfen keine
   // Fehler erzeugen. Die Hydration läuft nach dem Mount, deshalb gilt: die
   // gewählte Modell-ID ist immer in availableModels, und der Normalizer
