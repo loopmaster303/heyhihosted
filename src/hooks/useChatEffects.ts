@@ -69,12 +69,17 @@ export function useChatEffects({
     // Initialize available image models from config
     useEffect(() => {
         setAvailableImageModels(FALLBACK_IMAGE_MODELS);
-        // Ensure selected model is valid
+    }, [setAvailableImageModels]);
+
+    // Ensure selected model is valid
+    // Erst nach der Hydration: vorher steht hier der Startwert aus dem Code und
+    // nicht die gespeicherte Wahl, eine Reparatur traefe den falschen Wert (A6).
+    useEffect(() => {
+        if (!isInitialLoadComplete) return;
         if (!FALLBACK_IMAGE_MODELS.includes(selectedImageModelId)) {
             setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [isInitialLoadComplete, selectedImageModelId, setSelectedImageModelId]);
 
     // Initial restore logic
     useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, UserRoundPen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,14 @@ const PersonalizationSidebarSection: React.FC = () => {
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>('userDisplayName', 'user');
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>('customSystemPrompt', '');
   const [defaultTextModelId, setDefaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
-  const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
+  const [defaultImageModelId, setDefaultImageModelIdState] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
+  // Wie im SettingsPopover: der Chat fuehrt seine Bildauswahl unter einem
+  // eigenen Schluessel, eine Aenderung am Standard zieht sie mit (A6).
+  const [, setChatSelectedImageModel] = useLocalStorageState<string>('chatSelectedImageModel', DEFAULT_IMAGE_MODEL);
+  const setDefaultImageModelId = useCallback((modelId: string) => {
+    setDefaultImageModelIdState(modelId);
+    setChatSelectedImageModel(modelId);
+  }, [setDefaultImageModelIdState, setChatSelectedImageModel]);
 
   // Phase 7: dieselbe Auswahl wie der Chat-Picker. Ein Standardmodell, das
   // der Chat nicht fuehrt, waere ein Versprechen, das der Hook still

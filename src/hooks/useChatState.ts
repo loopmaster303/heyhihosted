@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import type { ChatMessage } from '@/types';
 import { DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
+import { readLocal } from '@/lib/safe-storage';
 import { MigrationService } from '@/lib/services/migration';
 import { useChatPersistence } from './useChatPersistence';
 import { useChatUI } from './useChatUI';
@@ -45,21 +46,43 @@ export function useChatState() {
     const retryLastRequestRef = useRef<(() => Promise<void>) | null>(null);
 
     // Sync persisted active ID with persistence hook
+    // Der Rueckgabewert des Persistence-Hooks aendert sich, sobald Dexie neue
+    // Metadaten liefert. Hinge der Effekt daran, koennte er pro Render ein
+    // weiteres Laden starten (A8). Ausloeser ist deshalb nur die gespeicherte
+    // Kennung, und den aktuellen Stand holt der Effekt aus einer Ref.
+    const activeConversationRef = useRef(persistence.activeConversation);
     useEffect(() => {
-        if (persistedActiveConversationId && !persistence.activeConversation) {
-            persistence.loadConversation(persistedActiveConversationId);
+        activeConversationRef.current = persistence.activeConversation;
+    }, [persistence.activeConversation]);
+
+    const { loadConversation } = persistence;
+    useEffect(() => {
+        if (persistedActiveConversationId && !activeConversationRef.current) {
+            loadConversation(persistedActiveConversationId);
         }
-    }, [persistedActiveConversationId, persistence]);
+    }, [persistedActiveConversationId, loadConversation]);
 
     // Computed values
     const isImageMode = persistence.activeConversation?.isImageMode ?? false;
     const webBrowsingEnabled = persistence.activeConversation?.webBrowsingEnabled ?? false;
     const isComposeMode = persistence.activeConversation?.isComposeMode ?? false;
 
+    // Der Standard darf die Chat-Auswahl nicht ueberschreiben (A6). Er gilt
+    // nur, solange im Chat noch nichts gewaehlt wurde; sobald der Schluessel
+    // dort steht, entscheidet allein die Auswahl.
+    //
+    // Der erste Durchlauf wird uebersprungen: er laeuft, bevor
+    // useLocalStorageState die gespeicherten Werte nachgezogen hat, und wuerde
+    // den Code-Startwert festschreiben.
+    const chatSelectionSeedPending = useRef(true);
     useEffect(() => {
-        if (defaultImageModelId) {
-            setSelectedImageModelId(defaultImageModelId);
+        if (chatSelectionSeedPending.current) {
+            chatSelectionSeedPending.current = false;
+            return;
         }
+        if (readLocal('chatSelectedImageModel') !== null) return;
+        if (!defaultImageModelId) return;
+        setSelectedImageModelId(defaultImageModelId);
     }, [defaultImageModelId, setSelectedImageModelId]);
 
     return {

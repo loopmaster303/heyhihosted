@@ -1,7 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, DatabaseService } from '@/lib/services/database';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { Conversation } from '@/types';
+
+// Ein Literal im Rueckgabewert veraendert bei jedem Render die Identitaet des
+// Hook-Ergebnisses. Ein Effekt, der daran haengt, laeuft dann bei jedem Render
+// erneut (A8). Deshalb ein geteiltes leeres Feld statt eines neuen.
+const EMPTY_CONVERSATIONS: Conversation[] = [];
 
 /**
  * Hook for managing Chat Persistence (IndexedDB / Dexie)
@@ -22,7 +27,7 @@ export function useChatPersistence() {
     []
   );
 
-  const allConversations: Conversation[] = allConversationsLive || [];
+  const allConversations: Conversation[] = allConversationsLive || EMPTY_CONVERSATIONS;
 
   // Local state for the active conversation object (full object with messages)
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
@@ -63,7 +68,9 @@ export function useChatPersistence() {
     }
   }, [activeConversation]);
 
-  return {
+  const isInitialLoadComplete = allConversationsLive !== undefined;
+
+  return useMemo(() => ({
     allConversations,
     activeConversation,
     setActiveConversation,
@@ -71,6 +78,15 @@ export function useChatPersistence() {
     saveConversation,
     updateConversationMetadata,
     deleteConversation,
-    isInitialLoadComplete: allConversationsLive !== undefined
-  };
+    isInitialLoadComplete,
+  }), [
+    allConversations,
+    activeConversation,
+    setActiveConversation,
+    loadConversation,
+    saveConversation,
+    updateConversationMetadata,
+    deleteConversation,
+    isInitialLoadComplete,
+  ]);
 }
