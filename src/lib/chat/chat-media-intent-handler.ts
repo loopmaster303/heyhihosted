@@ -34,8 +34,16 @@ export interface ProcessAssistantMediaIntentsInput {
     options: SaveGeneratedAssetOptions,
   ) => Promise<string | undefined>;
   composeMusic?: (prompt: string) => Promise<string | null>;
-  onError?: (kind: 'image' | 'music' | 'audio-save', message: string) => void;
+  onError?: (kind: MediaIntentErrorKind, message: string) => void;
 }
+
+/**
+ * Die blanke Art heisst: Das Erzeugen ist gescheitert. Die Art mit `-save`
+ * heisst: Das Erzeugen hat geklappt und nur die Ablage ist gescheitert. Die
+ * beiden Faelle brauchen unterschiedliche Meldungen, deshalb sind sie hier
+ * getrennt.
+ */
+export type MediaIntentErrorKind = 'image' | 'image-save' | 'music' | 'audio-save';
 
 export interface ProcessAssistantMediaIntentsResult {
   cleanText: string;
@@ -121,7 +129,7 @@ async function generateImagePart(
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    input.onError?.('audio-save', message);
+    input.onError?.('image-save', message);
   }
 
   return {

@@ -62,6 +62,18 @@ export interface UseChatLogicProps {
 
 const MAX_STORED_CONVERSATIONS = 50;
 
+/**
+ * Fehlerarten der Medien-Marker auf ihre Meldung abbilden. Unbekanntes landet
+ * in der neutralen Meldung mit dem Rohtext, damit ein neu hinzugefuegter Marker
+ * nicht stillschweigend als Musikfehler durchgeht.
+ */
+const MEDIA_INTENT_ERROR_TITLES: Record<string, string | undefined> = {
+  image: 'Bild-Generierung fehlgeschlagen',
+  'image-save': 'Bild erzeugt, aber nicht gespeichert',
+  music: 'Musik-Generierung fehlgeschlagen',
+  'audio-save': 'Musik erzeugt, aber nicht gespeichert',
+};
+
 export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextModelId }: UseChatLogicProps) {
   const { visibleModels: visibleTextModels } = useVisiblePollinationsTextModels();
   // --- State Management (extracted to hook) ---
@@ -422,7 +434,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
           onError: (kind, message) => {
             console.error(`[media-intent] ${kind} generation failed:`, message);
             toast({
-              title: kind === 'image' ? 'Bild-Generierung fehlgeschlagen' : 'Musik-Generierung fehlgeschlagen',
+              title: MEDIA_INTENT_ERROR_TITLES[kind] ?? `Medien-Generierung fehlgeschlagen (${kind})`,
               description: message,
               variant: 'destructive',
             });
