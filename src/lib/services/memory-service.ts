@@ -1,11 +1,31 @@
 import { DatabaseService } from './database';
 import { ChatService } from './chat-service';
 
+/**
+ * Schalter für die Gedächtnis-Extraktion.
+ *
+ * Steht auf false, solange es keinen Lesepfad gibt: Die Extraktion geht an
+ * `mistral` (`src/config/chat-options.ts:109-110`, `isFree: false`), ein
+ * kostenpflichtiges Modell, während das Ergebnis niemand liest —
+ * `DatabaseService.getMemories` (`src/lib/services/database.ts:159-161`) hat
+ * keinen Aufrufer im Produktivcode. Damit kostet der Aufruf Geld ohne Wirkung
+ * (Befund A9, `docs/PLAN-lauf-und-artefakt-2026-09-10.md`, W1 Schritt 5).
+ *
+ * Nichts gelöscht: Funktion und Export bleiben erhalten. W2/W3 schalten die
+ * Extraktion hier wieder ein, sobald sie einen Lesepfad hat.
+ */
+export const MEMORY_EXTRACTION_ENABLED = false;
+
 export const MemoryService = {
   /**
    * Analysiert die letzte Konversation und extrahiert Fakten über den User.
+   *
+   * Stillgelegt, solange `MEMORY_EXTRACTION_ENABLED` false ist (A9): kein
+   * Anbieteraufruf, kein Schreiben in die Datenbank.
    */
   async extractMemories(conversationId: string, messages: any[]) {
+    if (!MEMORY_EXTRACTION_ENABLED) return;
+
     // Nur analysieren, wenn wir mindestens ein Paar (User + AI) haben
     if (messages.length < 2) return;
 
