@@ -33,6 +33,7 @@ import { OutputService } from '@/lib/services/output-service';
 import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
 import { readLocal, writeLocal } from '@/lib/safe-storage';
 import { getStoredPollenKey } from '@/lib/client-pollen-key';
+import { getClientSessionId } from '@/lib/session';
 
 /**
  * Ein abgeschickter Lauf mit allem, was seine Wiederholung braucht. Ohne das
@@ -388,6 +389,11 @@ export function PlaygroundShell() {
         prompt: run.prompt,
         modelId: run.modelId,
         conversationId: PLAYGROUND_CONVERSATION_ID,
+        // Ohne Session-Id verweigert OutputService den Media-Backfill und das
+        // Asset bleibt auf der remoteUrl stehen — genau die URL, die der
+        // Browser ohne Server-Header nicht laden kann. Der Chatpfad gibt die
+        // Id seit jeher mit, Create nicht.
+        sessionId: getClientSessionId(),
         isVideo: kind === 'video',
         isPollinations: mediaUrl.startsWith('http'),
         params: run.params,
