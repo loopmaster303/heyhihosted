@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Menu, Settings, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from '@/components/ui/drawer';
 import { PlaygroundSidebar, PlaygroundSidebarContent } from '@/components/playground/PlaygroundSidebar';
 import { SettingsPopover } from '@/components/settings/SettingsPopover';
 import { PromptBar } from '@/components/playground/PromptBar';
@@ -944,6 +944,13 @@ export function PlaygroundShell() {
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} direction="left">
         <DrawerContent direction="left" className="h-dvh w-[84%] max-w-[310px]">
           <DrawerTitle className="sr-only">Einstellungen und Parameter</DrawerTitle>
+          {/* Radix verlangt zu jedem Dialog-Inhalt eine Beschreibung und warnt
+              sonst im Log. Der Titel allein beschreibt den Inhalt nicht, also
+              steht der Satz fuer Screenreader hier — sichtbar waere er neben
+              den Reglern nur Laerm. */}
+          <DrawerDescription className="sr-only">
+            Einstellungen, Modellwahl und Parameter für diesen Lauf.
+          </DrawerDescription>
           {/* L-E.2: unter md ist hier der einzige Ort fuer den Herkunftsfilter —
               in der Kopfzeile passt er bei 375 px nicht mehr neben Brotkrume
               und Rueckweg. */}
@@ -961,6 +968,9 @@ export function PlaygroundShell() {
       <Drawer open={detailsOpen} onOpenChange={setDetailsOpen} shouldScaleBackground={false}>
         <DrawerContent className="max-h-[85dvh]">
           <DrawerTitle className="sr-only">Generierungs-Details</DrawerTitle>
+          <DrawerDescription className="sr-only">
+            Angaben zum ausgewählten Ergebnis: Modell, Parameter und Aktionen.
+          </DrawerDescription>
           <MetaRail
             className="max-h-[80dvh] border-l-0"
             item={selected}
