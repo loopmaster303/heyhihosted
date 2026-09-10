@@ -1,5 +1,5 @@
 import { ERROR_CODES } from './error-codes';
-import { describeError, describeUnknown } from './describe-error';
+import { describeError } from './describe-error';
 
 test('gibt für jeden bekannten Code einen nicht-leeren deutschen Satz ohne undefined/null', () => {
   for (const code of ERROR_CODES) {
@@ -34,12 +34,6 @@ test('RATE_LIMITED nennt retryAfterSeconds', () => {
 test('VALIDATION_ERROR mit field prompt ergibt „Der Prompt fehlt.“', () => {
   const d = describeError('VALIDATION_ERROR', { field: 'prompt' });
   expect(d!.satz).toBe('Der Prompt fehlt.');
-});
-
-test('describeUnknown nennt den Status und den Rohtext', () => {
-  const d = describeUnknown(502, 'error code: 502');
-  expect(d.satz).toContain('502');
-  expect(d.satz).toContain('error code: 502');
 });
 
 // Live belegt am 2026-09-01: `kontext` antwortet 403 mit "Model 'kontext' is

@@ -150,8 +150,3 @@ export function describeError(code: string | undefined, ctx: DescribeContext): E
   if (!code || !(ERROR_CODES as readonly string[]).includes(code)) return null;
   return TABLE[code as ErrorCode](ctx);
 }
-
-export function describeUnknown(status: number, raw: string): ErrorDescription {
-  const basis = `Der Dienst hat mit ${status} geantwortet und keine Begründung geliefert.`;
-  return { satz: raw ? `${basis} ${raw}` : basis };
-}

@@ -44,7 +44,6 @@ export function useAssetUrl(assetId?: string, initialUrl?: string) {
 
       try {
         const result = await resolveAssetUrl(assetId, {
-          maxRetries: 3,
           downloadMissingBlob: true,
         });
 
