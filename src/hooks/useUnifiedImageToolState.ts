@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/components/LanguageProvider';
 import { getPollenHeaders } from '@/lib/pollen-key';
@@ -115,6 +115,8 @@ export function useUnifiedImageToolState() {
     // Status
     const [isEnhancing, setIsEnhancing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    // Der Zustand ist im selben Tick noch nicht sichtbar, die Ref schon.
+    const isUploadingRef = useRef(false);
 
     // Derived states
     const isGptImage = selectedModelId === 'gpt-image' || selectedModelId === 'gptimage-large';
@@ -233,6 +235,20 @@ export function useUnifiedImageToolState() {
         }
     }, [selectedModelId, maxImages, uploadedImages, currentModelConfig]);
 
+    // Ein Lauf auf einmal: Ohne diese Sperre legen zwei Klicks im selben Tick
+    // zwei Uploads auf denselben Platz, und der zweite ueberschreibt den ersten.
+    const beginUpload = useCallback((): boolean => {
+        if (isUploadingRef.current) return false;
+        isUploadingRef.current = true;
+        setIsUploading(true);
+        return true;
+    }, []);
+
+    const endUpload = useCallback((): void => {
+        isUploadingRef.current = false;
+        setIsUploading(false);
+    }, []);
+
     // Handle File Change (images only)
     const handleFileChange = useCallback(async (
         event: React.ChangeEvent<HTMLInputElement>,
@@ -256,7 +272,7 @@ export function useUnifiedImageToolState() {
         }
 
         if (selectedModelInfo?.provider === 'pruna') {
-            setIsUploading(true);
+            if (!beginUpload()) return;
             try {
                 const targetFiles = frameSlot || maxImages === 1 ? imageFiles.slice(0, 1) : imageFiles;
                 const next = [...uploadedImages];
@@ -270,13 +286,13 @@ export function useUnifiedImageToolState() {
             } catch (err) {
                 toast({ title: 'Upload failed', description: err instanceof Error ? err.message : 'Could not upload image.', variant: 'destructive' });
             } finally {
-                setIsUploading(false);
+                endUpload();
             }
             return;
         }
 
         if (allUploadModels.includes(selectedModelId)) {
-            setIsUploading(true);
+            if (!beginUpload()) return;
 
             if (isSingleSlot && imageFiles.length > 1) {
                 toast({ title: "Limit Reached", description: "Only one reference image allowed for this model.", variant: "destructive" });
@@ -317,7 +333,7 @@ export function useUnifiedImageToolState() {
                 console.error('Upload error:', err);
                 toast({ title: 'Upload failed', description: err.message || 'Could not upload image.', variant: 'destructive' });
             } finally {
-                setIsUploading(false);
+                endUpload();
             }
             return;
         }
@@ -341,7 +357,7 @@ export function useUnifiedImageToolState() {
                 return next.filter(Boolean).slice(0, maxImages);
             });
         }
-    }, [selectedModelId, selectedModelInfo, toast, maxImages, uploadedImages]);
+    }, [selectedModelId, selectedModelInfo, toast, maxImages, uploadedImages, beginUpload, endUpload]);
 
     // Handle Source Video Change (video only)
     const handleSourceVideoFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {

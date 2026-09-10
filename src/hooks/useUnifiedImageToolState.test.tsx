@@ -1,6 +1,15 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useUnifiedImageToolState } from './useUnifiedImageToolState';
 import { getChatImageModelIds } from '@/config/unified-image-models';
+import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
+
+jest.mock('@/lib/upload/pollinations-media', () => {
+  const actual = jest.requireActual('@/lib/upload/pollinations-media');
+  return {
+    ...actual,
+    uploadFileToPollinationsMedia: jest.fn(),
+  };
+});
 
 jest.mock('@/config/unified-image-models', () => {
   const actual = jest.requireActual('@/config/unified-image-models');
@@ -234,5 +243,51 @@ describe('useUnifiedImageToolState provider persistence', () => {
     act(() => result.current.setSelectedModelId('p-video'));
 
     await waitFor(() => expect(result.current.formFields.audio).toBe(false));
+  });
+
+  // A5: Zwei Klicks auf denselben Platz erzeugten zwei Uploads, und der
+  // zweite Lauf ueberschrieb das Ergebnis des ersten.
+  it('verwirft den zweiten Klick, solange der erste Upload laeuft', async () => {
+    localStorage.setItem('heyhi-provider-mode', JSON.stringify('pollinations'));
+    localStorage.setItem('defaultImageModelId', JSON.stringify('gpt-image'));
+    global.fetch = jest.fn().mockResolvedValue({
+      json: async () => ({ prunaAvailable: false }),
+    } as Response);
+
+    let releaseUpload: (media: unknown) => void = () => {};
+    const uploadMock = uploadFileToPollinationsMedia as jest.Mock;
+    uploadMock.mockReset();
+    uploadMock.mockImplementation(
+      () => new Promise((resolve) => { releaseUpload = resolve; }),
+    );
+
+    const { result } = renderHook(() => useUnifiedImageToolState());
+
+    // gpt-image ist das einzige Modell der Chat-Liste mit Referenz-Upload.
+    await act(async () => { result.current.setSelectedModelId('gpt-image'); });
+    await waitFor(() => expect(result.current.selectedModelId).toBe('gpt-image'));
+
+    const file = new File(['pixel'], 'referenz.png', { type: 'image/png' });
+    const event = { target: { files: [file] } } as unknown as Parameters<
+      typeof result.current.handleFileChange
+    >[0];
+
+    let firstUpload: Promise<void> = Promise.resolve();
+    await act(async () => {
+      firstUpload = result.current.handleFileChange(event);
+    });
+
+    await act(async () => {
+      await result.current.handleFileChange(event);
+    });
+
+    expect(uploadMock).toHaveBeenCalledTimes(1);
+
+    releaseUpload({ mediaUrl: 'https://media.example/ref.png', key: 'uploads/ref.png', expiresIn: 3600 });
+    await act(async () => { await firstUpload; });
+
+    // Die Sperre wird wieder freigegeben: sonst bliebe jeder spaetere Upload haengen.
+    await waitFor(() => expect(result.current.uploadedImages).toHaveLength(1));
+    expect(result.current.isUploading).toBe(false);
   });
 });
