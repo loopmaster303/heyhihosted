@@ -1,4 +1,6 @@
 import { ApiError } from '@/lib/api-error-handler';
+import { isBudgetExhaustedError } from '@/lib/pollen-cost-guard';
+import { isContentRejection } from '@/lib/errors/upstream-rejection';
 import {
   validateRemoteMediaFetchUrl,
   validateRemoteMediaUrl,
@@ -25,6 +27,21 @@ export interface FetchAndStoreRemoteMediaOptions {
   apiKey?: string;
   kind?: 'image' | 'video';
   signal?: AbortSignal;
+  /**
+   * Darf der Server-Schluessel einmal weggelassen werden, wenn er kein Budget
+   * hat? Der Aufrufer setzt das, wenn der Schluessel nicht vom Nutzer kam.
+   * Live belegt am 2026-09-10: mit leerem Betreiber-Schluessel antwortet
+   * Pollinations auf jede Medien-URL mit 402, ohne ihn liefert dasselbe freie
+   * Modell ein image/jpeg. Bis dahin lief die Abfrage 120 s in den Timeout,
+   * statt den einen Versuch ohne Schluessel zu machen.
+   */
+  fallbackToAnonymous?: boolean;
+  /**
+   * Anzeigename des Modells, das die Quelle erzeugt. Ein abgelehnter Prompt
+   * ist ein Satz ueber genau dieses Modell — ohne Namen liest der Nutzer nur
+   * "Der Anbieter" und weiss nicht, welches der 82 Modelle gemeint ist.
+   */
+  modelLabel?: string;
 }
 
 function abortError(): ApiError {
@@ -130,7 +147,12 @@ async function fetchWithSafeRedirects(
 export async function fetchAndStoreRemoteMedia(
   options: FetchAndStoreRemoteMediaOptions,
 ): Promise<StoredRemoteMedia> {
-  const { sourceUrl, apiKey, kind, signal } = options;
+  const { sourceUrl, apiKey, kind, signal, fallbackToAnonymous, modelLabel } = options;
+  /**
+   * Der Schluessel, mit dem tatsaechlich abgerufen wird. Er wird genau einmal
+   * fallen gelassen, wenn der Server-Schluessel kein Budget mehr hat.
+   */
+  let abrufKey = apiKey;
 
   if (signal?.aborted) {
     throw abortError();
@@ -158,7 +180,7 @@ export async function fetchAndStoreRemoteMedia(
   try {
     while (Date.now() - startTime < pollTimeout) {
       if (signal?.aborted) throw abortError();
-      const response = await fetchWithSafeRedirects(sourceUrl, apiKey, signal);
+      const response = await fetchWithSafeRedirects(sourceUrl, abrufKey, signal);
       const responseContentType = response.headers.get('content-type');
       const contentLength = Number(response.headers.get('content-length'));
       if (response.ok && Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
@@ -170,6 +192,14 @@ export async function fetchAndStoreRemoteMedia(
         buffer = body;
         contentType = responseContentType;
         break;
+      }
+
+      if (fallbackToAnonymous && abrufKey && isBudgetExhaustedError(response.status, body.toString('utf8'))) {
+        console.warn(
+          `[media-ingest] Server-Schluessel ohne Budget (${response.status}) — neuer Abruf ohne Schluessel`,
+        );
+        abrufKey = undefined;
+        continue;
       }
 
       const observation: MediaPollObservation = {
@@ -191,12 +221,18 @@ export async function fetchAndStoreRemoteMedia(
         console.warn(
           `[media-ingest] ${sourceHost} liefert wiederholt ${observation.status}: ${describePollObservation(observation)}`,
         );
+        // Ein abgelehnter Inhalt ist kein Ausfall. Live belegt am 2026-09-10:
+        // gpt-image antwortet 400 "rejected by the safety system", der Nutzer
+        // las aber "Der Anbieter antwortet gerade nicht ... in ein paar Minuten
+        // erneut versuchen" und haette denselben Prompt endlos wiederholt.
+        const inhaltAbgelehnt = isContentRejection(observation.status, observation.snippet ?? '');
         throw new ApiError(
-          502,
+          inhaltAbgelehnt ? 400 : 502,
           `Media source ${sourceHost} rejected the result: ${describePollObservation(observation)}`,
           // Der Client uebersetzt nur unsere Codes in einen Satz; ohne Code
           // laese der Nutzer den englischen Rohtext mit Body-Auszug.
-          'PROVIDER_UNAVAILABLE',
+          inhaltAbgelehnt ? 'CONTENT_REJECTED' : 'PROVIDER_UNAVAILABLE',
+          inhaltAbgelehnt && modelLabel ? { modelLabel } : undefined,
         );
       }
 

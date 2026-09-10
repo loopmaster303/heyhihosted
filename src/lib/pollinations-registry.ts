@@ -12,7 +12,11 @@
  * dieses Modul liefert nur die typisierte Sicht für `/api/generate`.
  */
 
-import { fetchImageModelsRaw, _clearRegistryCacheForTesting } from '@/lib/pollinations/image-model-registry';
+import {
+  fetchImageModelsRaw,
+  _clearRegistryCacheForTesting,
+  type RegistryFailure,
+} from '@/lib/pollinations/image-model-registry';
 
 export interface RegistryModel {
   name: string;
@@ -28,33 +32,84 @@ export interface RegistryModel {
 
 export { _clearRegistryCacheForTesting };
 
-async function loadRegistry(apiKey?: string): Promise<RegistryModel[]> {
-  const { body, status } = await fetchImageModelsRaw(apiKey);
-  if (status < 200 || status >= 300) throw new Error(`image/models ${status}`);
-  const raw = JSON.parse(body) as RegistryModel[] | { data?: RegistryModel[] };
-  return Array.isArray(raw) ? raw : raw.data ?? [];
+/** Was eine Modellsuche ergeben kann: gefunden, sicher nicht vorhanden, oder nicht beantwortbar. */
+export type RegistryLookup =
+  | { status: 'found'; model: RegistryModel }
+  | { status: 'missing' }
+  | { status: 'unavailable'; reason: RegistryFailure };
+
+type RegistryLoad = { models: RegistryModel[] } | { failure: RegistryFailure };
+
+async function loadRegistry(apiKey?: string): Promise<RegistryLoad> {
+  const { body, status, failure } = await fetchImageModelsRaw(apiKey);
+  if (failure) return { failure };
+  if (status < 200 || status >= 300) return { failure: 'upstream' };
+  let models: RegistryModel[];
+  try {
+    const raw = JSON.parse(body) as RegistryModel[] | { data?: RegistryModel[] };
+    models = Array.isArray(raw) ? raw : raw.data ?? [];
+  } catch {
+    // HTML statt JSON (etwa eine Challenge-Seite) ist keine Aussage ueber
+    // Modelle, sondern ein Ausfall.
+    return { failure: 'parse' };
+  }
+  // Eine leere Liste ist keine Aussage der Art "es gibt keine Modelle" —
+  // sondern eine kaputte Antwort. Sie darf nie zu "Modell unbekannt" werden.
+  if (models.length === 0) return { failure: 'empty' };
+  return { models };
+}
+
+function findModel(models: RegistryModel[], modelId: string): RegistryModel | undefined {
+  return (
+    models.find((m) => m.name === modelId)
+    ?? models.find((m) => m.aliases?.includes(modelId))
+  );
 }
 
 /**
  * Sucht ein Modell in der Registry — unter dem Namen oder einem Anbieter-Alias
- * (z. B. löst `gpt-image` zu `gptimage` auf, `veo-1080p` zu `veo`). Schlägt der
- * Abruf fehl, gilt das Modell als unbekannt — ein Ausfall der Registry darf
- * keine 500er aus einer ohnehin fehlerhaften Anfrage machen.
+ * (z. B. loest `gpt-image` zu `gptimage` auf, `veo-1080p` zu `veo`).
+ *
+ * Gefragt werden zwei Sichten, weil eine allein die Frage nicht beantwortet:
+ * zuerst die Sicht des Aufrufers (sie kennt Freigaben, die der oeffentliche
+ * Katalog nicht kennt), danach der Abruf **ohne** Schluessel. Der ist der
+ * vollstaendige Katalog — die Sicht mit Schluessel ist berechtigungsgefiltert:
+ * ein Schluessel ohne Guthaben sieht in ihr nur die kostenlosen Modelle (live
+ * belegt am 2026-09-10: Betreiber-Schluessel 2 Eintraege, ohne Schluessel 82).
+ *
+ * Genau diese Filterung liess jedes Modell ausserhalb der lokalen Config zu
+ * "Unknown model" werden — auch Modelle, die eine Sekunde vorher noch Bilder
+ * geliefert hatten. `missing` heisst deshalb nur noch: eine Sicht hat
+ * geantwortet und kennt das Modell nicht. Konnte keine Sicht antworten, ist das
+ * Ergebnis `unavailable`; der Aufrufer reicht dann durch, statt zu behaupten,
+ * das Modell gebe es nicht.
  */
-export async function findRegistryModel(
+export async function lookupRegistryModel(
   modelId: string,
   apiKey?: string,
-): Promise<RegistryModel | undefined> {
-  try {
-    const models = await loadRegistry(apiKey);
-    return (
-      models.find((m) => m.name === modelId) ??
-      models.find((m) => m.aliases?.includes(modelId))
-    );
-  } catch (error) {
-    console.warn('[Registry] Lookup failed:', error instanceof Error ? error.message : String(error));
-    return undefined;
+): Promise<RegistryLookup> {
+  const fehlschlaege: RegistryFailure[] = [];
+
+  if (apiKey) {
+    const keyed = await loadRegistry(apiKey);
+    if ('models' in keyed) {
+      const model = findModel(keyed.models, modelId);
+      if (model) return { status: 'found', model };
+    } else {
+      fehlschlaege.push(keyed.failure);
+    }
   }
+
+  const katalog = await loadRegistry(undefined);
+  if ('models' in katalog) {
+    const model = findModel(katalog.models, modelId);
+    if (model) return { status: 'found', model };
+  } else {
+    fehlschlaege.push(katalog.failure);
+  }
+
+  if (fehlschlaege.length > 0) return { status: 'unavailable', reason: fehlschlaege[0] };
+  return { status: 'missing' };
 }
 
 export function registryModelIsVideo(m: RegistryModel): boolean {

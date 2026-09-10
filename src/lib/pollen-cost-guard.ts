@@ -32,6 +32,25 @@ export function hasUserKey(request: Request): boolean {
 }
 
 /**
+ * Ist das der 402 "mein Schluessel ist leer" des Anbieters?
+ *
+ * Live belegt am 2026-09-10: der Betreiber-Schluessel hat 0.0000 Budget.
+ * Damit scheitert **jedes** Modell, auch die 25 freien — denn mit Schluessel
+ * gilt das Budget, ohne Schluessel der anonyme Gratis-Pfad. Ein Aufruf mit
+ * leerem Server-Schluessel ist also streng schlechter als derselbe Aufruf ohne
+ * ihn: `POST /v1/images/generations` antwortet mit Key 402 und ohne Key fuer
+ * freie Modelle 200 (flux lieferte live ein image/jpeg).
+ *
+ * Der Rohtext ist die einzige belastbare Unterscheidung: 402 traegt bei
+ * Pollinations auch "Modell nur fuer zahlende Konten", und ein Modell, das
+ * wirklich einen Schluessel verlangt, soll nicht anonym wiederholt werden.
+ */
+export function isBudgetExhaustedError(status: number, bodyText: string): boolean {
+  if (status !== 402) return false;
+  return /budget too low|insufficient|no budget|not enough (?:pollen|budget)/i.test(bodyText);
+}
+
+/**
  * Text. **Nur `isFree === false` sperrt.**
  *
  * Der Kommentar an `PollinationsModel.isFree` behauptet, ein fehlendes Feld

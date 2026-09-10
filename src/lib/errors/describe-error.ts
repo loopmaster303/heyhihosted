@@ -15,12 +15,24 @@ export interface DescribeContext {
 
 const TABLE: Record<ErrorCode, (ctx: DescribeContext) => ErrorDescription> = {
   MISSING_PRUNA_KEY: (ctx) => ({
-    satz: `**${ctx.modelLabel ?? 'Dieses Modell'}** läuft über Pruna und braucht deinen eigenen Pruna-Schlüssel.`,
+    satz: `${ctx.modelLabel ?? 'Dieses Modell'} läuft über Pruna und braucht deinen eigenen Pruna-Schlüssel.`,
     aktion: 'settings',
   }),
   PRUNA_API_ERROR: (ctx) => ({
-    satz: `**${ctx.modelLabel ?? 'Dieses Modell'}** kennt die Einstellung \`${ctx.field ?? 'unbekannt'}\` nicht. Das ist ein Fehler bei uns, nicht bei dir — bitte melden. Ohne diese Einstellung erneut versuchen.`,
+    // Ohne Feldnamen sagt die Pruna-4xx nichts ueber eine Einstellung — dann
+    // darf der Satz auch keine erfinden.
+    satz: ctx.field
+      ? `${ctx.modelLabel ?? 'Dieses Modell'} kennt die Einstellung „${ctx.field}" nicht. Das ist ein Fehler bei uns, nicht bei dir — bitte melden. Ohne diese Einstellung erneut versuchen.`
+      : 'Pruna hat den Lauf abgelehnt. Der genaue Wortlaut steht in den Details der Karte.',
     aktion: 'retry',
+  }),
+  // Live belegt am 2026-09-10 gegen die Pruna-API: 403 "Forbidden: no more
+  // credit available. Please go to https://dashboard.pruna.ai/ and add more
+  // credit." Ohne eigenen Code las der Nutzer den Unknown-Field-Satz, also
+  // "ein Fehler bei uns" — fuer eine Rechnung, die er selbst begleichen muss.
+  PRUNA_NO_CREDIT: () => ({
+    satz: 'Der verwendete Pruna-Schlüssel hat kein Guthaben mehr. Lade bei Pruna auf oder hinterlege in den Einstellungen einen Schlüssel mit Guthaben.',
+    aktion: 'settings',
   }),
   PRUNA_PREDICTION_FAILED: () => ({
     satz: 'Der Lauf bei Pruna ist fehlgeschlagen. Erneut versuchen.',
@@ -37,13 +49,30 @@ const TABLE: Record<ErrorCode, (ctx: DescribeContext) => ErrorDescription> = {
     satz: 'Dein Pollen-Guthaben reicht für dieses Modell nicht.',
     aktion: 'settings',
   }),
+  // Live belegt am 2026-09-10: der Betreiber-Schluessel hat 0.0000 Budget,
+  // Pollinations antwortet 402. Der Lauf ging ueber unseren Schluessel, also
+  // darf der Satz nicht von "deinem" Guthaben sprechen — der Nutzer sucht
+  // sonst in einem Konto nach einem Problem, das er nicht hat. Der Ausweg
+  // bleibt derselbe: eigener Schluessel.
+  POLLEN_SERVER_BUDGET: (ctx) => ({
+    satz: `Unser Pollen-Schlüssel hat kein Guthaben mehr, deshalb läuft ${ctx.modelLabel ?? 'dieses Modell'} gerade nicht. Mit einem eigenen Pollen-Schlüssel läuft es, sonst ein anderes Modell wählen.`,
+    aktion: 'settings',
+  }),
   // Live belegt am 2026-09-01: `kontext` antwortet 403 "Model 'kontext' is not
   // allowed for this API key". Gemeint ist der Schluessel des Betreibers, nicht
   // der des Nutzers — ohne eigenen Satz las der Nutzer einen englischen
   // Rohtext ueber einen Schluessel, den er gar nicht hat.
   POLLEN_MODEL_NOT_ALLOWED: (ctx) => ({
-    satz: `**${ctx.modelLabel ?? 'Dieses Modell'}** ist auf unserem Schlüssel nicht freigeschaltet. Mit einem eigenen Pollen-Schlüssel läuft es, sonst ein anderes Modell wählen.`,
+    satz: `${ctx.modelLabel ?? 'Dieses Modell'} ist auf unserem Schlüssel nicht freigeschaltet. Mit einem eigenen Pollen-Schlüssel läuft es, sonst ein anderes Modell wählen.`,
     aktion: 'settings',
+  }),
+  // Der Lauf hatte einen eigenen Schluessel des Nutzers. Derselbe 403-Rohtext
+  // ("not allowed for this API key") meint dann SEINEN Schluessel — der alte
+  // Satz haette ihm unseren erklaert und ihm geraten, genau den Schluessel
+  // einzusetzen, mit dem er gerade unterwegs war.
+  POLLEN_MODEL_NOT_ALLOWED_OWN_KEY: (ctx) => ({
+    satz: `Dein Pollen-Schlüssel darf ${ctx.modelLabel ?? 'dieses Modell'} nicht nutzen. Wähle ein anderes Modell oder setze in den Einstellungen einen Schlüssel mit Zugriff auf dieses ein.`,
+    aktion: 'pick-model',
   }),
   // Der Anbieter antwortet gar nicht oder mit 5xx. Nichts davon kann der
   // Nutzer beheben — der einzige sinnvolle Rat ist warten und erneut senden.
@@ -53,9 +82,21 @@ const TABLE: Record<ErrorCode, (ctx: DescribeContext) => ErrorDescription> = {
       : 'Der Anbieter antwortet gerade nicht. Das liegt nicht an deiner Eingabe — in ein paar Minuten erneut versuchen.',
     aktion: 'retry',
   }),
+  // Live belegt am 2026-09-10: ein gpt-image-Modell antwortet 400 "Your request
+  // was rejected by the safety system". Das kam vorher als PROVIDER_UNAVAILABLE
+  // an — also als Ausfall mit dem Rat zu warten, obwohl derselbe Prompt immer
+  // wieder abgelehnt wird. Der einzige Ausweg ist ein anderer Prompt oder ein
+  // anderes Modell, deshalb steht beides im Satz.
+  CONTENT_REJECTED: (ctx) => ({
+    // Der Media-Ingest kennt den Modellnamen nicht (er holt nur die URL ab),
+    // deshalb muss der Satz auch ohne ihn stehen: "undefined hat den Prompt
+    // abgelehnt" waere schlimmer als gar kein Name.
+    satz: `${ctx.modelLabel ? `${ctx.modelLabel} hat` : 'Der Anbieter hat'} den Prompt abgelehnt: sein Sicherheitsfilter hat ihn beanstandet. Ein erneuter Versuch mit demselben Prompt scheitert genauso — ändere den Prompt oder wähle ein anderes Modell.`,
+    aktion: 'pick-model',
+  }),
   UNKNOWN_MODEL: (ctx) => ({
     satz: ctx.modelLabel
-      ? `Das Modell \`${ctx.modelLabel}\` gibt es nicht (mehr).`
+      ? `Das Modell „${ctx.modelLabel}" gibt es nicht (mehr).`
       : 'Das Modell gibt es nicht (mehr).',
     aktion: 'pick-model',
   }),
@@ -63,11 +104,11 @@ const TABLE: Record<ErrorCode, (ctx: DescribeContext) => ErrorDescription> = {
     satz: ctx.field === 'prompt'
       ? 'Der Prompt fehlt.'
       : ctx.field
-        ? `Das Feld \`${ctx.field}\` ist ungültig.`
+        ? `Das Feld „${ctx.field}" ist ungültig.`
         : 'Die Eingabe ist unvollständig oder ungültig.',
   }),
   REFERENCE_NOT_SUPPORTED: (ctx) => ({
-    satz: `**${ctx.modelLabel ?? 'Dieses Modell'}** kann keine Referenzbilder. Entferne das Bild oder wähle ein Modell, das sie nimmt.`,
+    satz: `${ctx.modelLabel ?? 'Dieses Modell'} kann keine Referenzbilder. Entferne das Bild oder wähle ein Modell, das sie nimmt.`,
   }),
   RATE_LIMITED: (ctx) => ({
     satz: ctx.retryAfterSeconds === undefined

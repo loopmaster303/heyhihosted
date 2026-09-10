@@ -1,4 +1,6 @@
 import { ApiError } from '@/lib/api-error-handler';
+import { isBudgetExhaustedError } from '@/lib/pollen-cost-guard';
+import { isContentRejection } from '@/lib/errors/upstream-rejection';
 
 const POLLINATIONS_IMAGE_V1_URL = 'https://gen.pollinations.ai/v1/images/generations';
 
@@ -16,6 +18,15 @@ interface GeneratePollinationsImageInput {
   negative_prompt?: string;
   image?: string | string[];
   apiKey?: string;
+  /**
+   * Kam der Schluessel aus dem Request des Nutzers? Ohne diese Angabe sieht
+   * diese Funktion nur "irgendein Schluessel war da" und kann einen leeren
+   * Betreiber-Topf nicht von einem leeren Nutzer-Topf unterscheiden. Live
+   * belegt am 2026-09-10: der Betreiber-Schluessel hat 0.0000 Budget, der
+   * Nutzer las aber "Dein Pollen-Guthaben reicht fuer dieses Modell nicht." —
+   * ein Satz ueber ein Konto, das er nicht hat.
+   */
+  hasUserKey?: boolean;
 }
 
 interface PollinationsImageV1Response {
@@ -32,15 +43,36 @@ function toImageSize(width?: number, height?: number): string {
   return `${width || 1024}x${height || 1024}`;
 }
 
-export async function generatePollinationsImage(input: GeneratePollinationsImageInput): Promise<string> {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (input.apiKey) {
-    headers['Authorization'] = `Bearer ${input.apiKey}`;
+/**
+ * Status -> Fehlercode. Ohne Code kann der Client nicht uebersetzen und faellt
+ * auf Status plus englischen Rohtext zurueck. Vier Faelle sind live belegt und
+ * tragen deshalb einen:
+ *
+ * - 401 kein/abgelehnter Schluessel. Immer derselbe Rat: eigener Schluessel.
+ * - 402 Guthaben. Wessen Guthaben, entscheidet der benutzte Schluessel: der
+ *   eigene (`POLLEN_INSUFFICIENT`), der des Betreibers
+ *   (`POLLEN_SERVER_BUDGET`) oder gar keins (`POLLEN_KEY_REQUIRED`). Der
+ *   Server-Fall ist unten live belegt und wird vorher einmal anonym versucht.
+ * - 403 Modell nicht erlaubt. Wieder entscheidet der Schluessel: der Rohtext
+ *   ("not allowed for this API key") meint bei einem Betreiber-Lauf unseren
+ *   Schluessel und bei einem BYOP-Lauf den des Nutzers. Zwei Codes, weil der
+ *   Satz sonst dem Nutzer einen fremden Schluessel erklaeren wuerde.
+ * - 5xx der Anbieter ist weg.
+ */
+function codeForStatus(status: number, usedOwnKey: boolean, serverKeyWarLeer: boolean): string | undefined {
+  if (status === 401) return 'POLLEN_KEY_REQUIRED';
+  if (status === 402) {
+    if (usedOwnKey) return 'POLLEN_INSUFFICIENT';
+    return serverKeyWarLeer ? 'POLLEN_SERVER_BUDGET' : 'POLLEN_KEY_REQUIRED';
   }
+  if (status === 403) {
+    return usedOwnKey ? 'POLLEN_MODEL_NOT_ALLOWED_OWN_KEY' : 'POLLEN_MODEL_NOT_ALLOWED';
+  }
+  if (status >= 500) return 'PROVIDER_UNAVAILABLE';
+  return undefined;
+}
 
+export async function generatePollinationsImage(input: GeneratePollinationsImageInput): Promise<string> {
   const payload = {
     model: input.model,
     prompt: input.prompt,
@@ -56,33 +88,44 @@ export async function generatePollinationsImage(input: GeneratePollinationsImage
     response_format: 'url',
   };
 
-  const response = await fetch(POLLINATIONS_IMAGE_V1_URL, {
+  const senden = (apiKey: string | undefined) => fetch(POLLINATIONS_IMAGE_V1_URL, {
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+    },
     body: JSON.stringify(payload),
   });
+
+  let response = await senden(input.apiKey);
+  // Live belegt am 2026-09-10: der Betreiber-Schluessel hat 0.0000 Budget, und
+  // damit scheiterte JEDES Modell — auch die 25 freien, für die der anonyme
+  // Weg offensteht (flux lieferte ohne Schluessel 200 image/jpeg, mit dem
+  // leeren Server-Schluessel 402). Ein Schluessel ohne Budget ist schlechter
+  // als kein Schluessel; deshalb genau einmal ohne ihn fragen. Ein Modell, das
+  // wirklich einen bezahlten Zugang braucht, antwortet dann 401 und bekommt
+  // den ehrlichen Satz "braucht einen Pollen-Schluessel".
+  let serverKeyWarLeer = false;
+  if (!response.ok && input.apiKey && input.hasUserKey !== true) {
+    const rohtext = await response.clone().text().catch(() => '');
+    if (isBudgetExhaustedError(response.status, rohtext)) {
+      serverKeyWarLeer = true;
+      console.warn('[Pollinations] Server-Schluessel ohne Budget — neuer Versuch ohne Schluessel');
+      response = await senden(undefined);
+    }
+  }
 
   const result = await response.json().catch(() => ({})) as PollinationsImageV1Response;
   if (!response.ok) {
     const detail = typeof result.error === 'string'
       ? result.error
       : result.error?.message || 'Unknown Pollinations image generation error';
-    // Ohne Code kann der Client nicht uebersetzen und faellt auf Status plus
-    // Rohtext zurueck. Vier Faelle sind live belegt und tragen deshalb einen:
-    // 401 kein/abgelehnter Schluessel, 402 Pollen aufgebraucht, 403 das Modell
-    // steht nicht auf der Allowlist unseres Server-Keys (der Rohtext spricht
-    // dann von "this API key" und meint nicht den des Nutzers), 5xx der
-    // Anbieter ist weg.
-    const code = response.status === 401
-      ? 'POLLEN_KEY_REQUIRED'
-      : response.status === 402
-        ? 'POLLEN_INSUFFICIENT'
-        : response.status === 403
-          ? 'POLLEN_MODEL_NOT_ALLOWED'
-          : response.status >= 500
-            ? 'PROVIDER_UNAVAILABLE'
-            : undefined;
-    throw new ApiError(response.status, `Pollinations API error: ${detail}`, code, { modelLabel: input.model });
+    const code = codeForStatus(response.status, input.hasUserKey === true, serverKeyWarLeer);
+    // Der Sicherheitsfilter des Anbieters ist kein Ausfall: bei 400 mit
+    // "rejected by the safety system" waere codeForStatus ohne Code, und der
+    // Client zeigte Status plus englischen Rohtext statt eines Rats.
+    const endgueltig = isContentRejection(response.status, detail) ? 'CONTENT_REJECTED' : code;
+    throw new ApiError(response.status, `Pollinations API error: ${detail}`, endgueltig, { modelLabel: input.model });
   }
 
   const firstAsset = result.data?.[0];
