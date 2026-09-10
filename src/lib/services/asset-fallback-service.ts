@@ -27,6 +27,40 @@ const DEFAULT_OPTIONS: Required<FallbackOptions> = {
 };
 
 /**
+ * Merker fuer Hintergrund-Downloads. Dieselbe Galerie rendert ein Asset oft in
+ * mehreren Komponenten gleichzeitig; jede startete ihren eigenen Download, und
+ * bei einer URL ohne CORS-Antwort standen pro Sekunde vier identische
+ * "Load failed"-Fehler im Log. Zusaetzlich wird nur noch geladen, was der
+ * Browser ueberhaupt laden darf: ein Pruna-Ergebnis oder eine fremde URL endet
+ * garantierbar in "TypeError: Load failed".
+ */
+const downloadsInFlight = new Set<string>();
+const lastDownloadAttempt = new Map<string, number>();
+const RETRY_AFTER_MS = 5 * 60 * 1000;
+
+function startBackgroundCache(assetId: string, url: string, contentType: string): void {
+  if (typeof window === 'undefined') return;
+  if (!isAllowedRemoteMediaUrl(url)) return;
+  if (downloadsInFlight.has(assetId)) return;
+
+  const lastAttempt = lastDownloadAttempt.get(assetId);
+  if (lastAttempt !== undefined && Date.now() - lastAttempt < RETRY_AFTER_MS) return;
+
+  lastDownloadAttempt.set(assetId, Date.now());
+  downloadsInFlight.add(assetId);
+  downloadAndCacheAsset(assetId, url, contentType)
+    .catch((error: unknown) => {
+      // Erwarteter Fall bei toten oder geschuetzten URLs: eine Zeile statt
+      // Stacktrace-Rauschen.
+      const reason = error instanceof Error ? error.message : String(error);
+      console.debug(`[AssetFallback] Kein Cache-Download fuer ${assetId}: ${reason}`);
+    })
+    .finally(() => {
+      downloadsInFlight.delete(assetId);
+    });
+}
+
+/**
  * Comprehensive fallback chain for asset URL resolution.
  *
  * Priority order:
@@ -61,9 +95,7 @@ export async function resolveAssetUrl(
   if (asset.remoteUrl && isValidUrl(asset.remoteUrl)) {
     // Optionally download and cache
     if (opts.downloadMissingBlob) {
-      downloadAndCacheAsset(assetId, asset.remoteUrl, asset.contentType).catch(err => {
-        console.warn(`[AssetFallback] Background cache failed for ${assetId}:`, err);
-      });
+      startBackgroundCache(assetId, asset.remoteUrl, asset.contentType);
     }
     return { url: asset.remoteUrl, source: 'remote', needsCleanup: false };
   }
@@ -74,9 +106,7 @@ export async function resolveAssetUrl(
     if (mediaUrl) {
       // Optionally download and cache for offline use
       if (opts.downloadMissingBlob) {
-        downloadAndCacheAsset(assetId, mediaUrl, asset.contentType).catch(err => {
-          console.warn(`[AssetFallback] Background cache failed for ${assetId}:`, err);
-        });
+        startBackgroundCache(assetId, mediaUrl, asset.contentType);
       }
       return { url: mediaUrl, source: 'media', needsCleanup: false };
     }
@@ -115,7 +145,7 @@ async function downloadAndCacheAsset(
   contentType: string
 ): Promise<void> {
   try {
-    console.log(`[AssetFallback] Downloading asset for cache: ${assetId}`);
+    console.debug(`[AssetFallback] Downloading asset for cache: ${assetId}`);
 
     // Only send Pollinations auth headers to Pollinations hosts to avoid
     // leaking the user's key to third-party origins.
