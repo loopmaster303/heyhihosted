@@ -867,6 +867,7 @@ export function PlaygroundShell() {
         <PlaygroundSidebar {...sidebarProps} />
 
         <main className="grid min-h-0 min-w-0 grid-rows-[1fr_auto]">
+          <h1 className="sr-only">hey.hi · Create</h1>
           <div className="grid min-h-0 grid-cols-1 xl:grid-cols-[1fr_296px]">
             <Gallery
               selectedId={selected?.id ?? null}

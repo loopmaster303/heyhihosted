@@ -184,6 +184,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ visualizeToolState, compo
 
     return (
         <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
+            <h1 className="sr-only">hey.hi · Chat</h1>
             <div className="flex-grow overflow-hidden h-full relative">
                 {messages && messages.length > 0 ? (
                     <ErrorBoundary
