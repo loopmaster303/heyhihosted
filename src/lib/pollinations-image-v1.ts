@@ -88,31 +88,28 @@ export async function generatePollinationsImage(input: GeneratePollinationsImage
     response_format: 'url',
   };
 
-  const senden = (apiKey: string | undefined) => fetch(POLLINATIONS_IMAGE_V1_URL, {
+  const response = await fetch(POLLINATIONS_IMAGE_V1_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      ...(input.apiKey ? { Authorization: `Bearer ${input.apiKey}` } : {}),
     },
     body: JSON.stringify(payload),
   });
 
-  let response = await senden(input.apiKey);
-  // Live belegt am 2026-09-10: der Betreiber-Schluessel hat 0.0000 Budget, und
-  // damit scheiterte JEDES Modell — auch die 25 freien, für die der anonyme
-  // Weg offensteht (flux lieferte ohne Schluessel 200 image/jpeg, mit dem
-  // leeren Server-Schluessel 402). Ein Schluessel ohne Budget ist schlechter
-  // als kein Schluessel; deshalb genau einmal ohne ihn fragen. Ein Modell, das
-  // wirklich einen bezahlten Zugang braucht, antwortet dann 401 und bekommt
-  // den ehrlichen Satz "braucht einen Pollen-Schluessel".
+  // Ein leerer Betreiber-Schluessel antwortet hier 402. Frueher folgte darauf
+  // ein zweiter Versuch ohne Schluessel. Der ist seit der Messung vom
+  // 2026-09-10 sinnlos: `POST /v1/images/generations` antwortet ohne
+  // Schluessel mit 401 ("A valid API key is required") — einen anonymen Weg
+  // zur Generierung gibt es nicht mehr. Er verschleierte nur die Ursache, denn
+  // der Nutzer sah am Ende den 401 statt des 402, der wirklich vorlag.
+  //
+  // Die Erkennung bleibt: nur sie unterscheidet "der Topf des Betreibers ist
+  // leer" (POLLEN_SERVER_BUDGET) von "du brauchst einen eigenen Schluessel".
   let serverKeyWarLeer = false;
   if (!response.ok && input.apiKey && input.hasUserKey !== true) {
     const rohtext = await response.clone().text().catch(() => '');
-    if (isBudgetExhaustedError(response.status, rohtext)) {
-      serverKeyWarLeer = true;
-      console.warn('[Pollinations] Server-Schluessel ohne Budget — neuer Versuch ohne Schluessel');
-      response = await senden(undefined);
-    }
+    serverKeyWarLeer = isBudgetExhaustedError(response.status, rohtext);
   }
 
   const result = await response.json().catch(() => ({})) as PollinationsImageV1Response;

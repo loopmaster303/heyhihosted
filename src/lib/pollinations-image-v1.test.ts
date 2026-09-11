@@ -77,30 +77,23 @@ describe('pollinations-image-v1: Status wird zu einem Code', () => {
       .rejects.toMatchObject({ statusCode: 402, code: 'POLLEN_SERVER_BUDGET' });
   });
 
-  // Der eigentliche Fix vom 2026-09-10: der leere Server-Schluessel liess JEDES
-  // Modell scheitern, auch die freien. Ohne Schluessel antwortet der Anbieter
-  // fuer freie Modelle mit 200.
-  it('fragt bei leerem Server-Schluessel genau einmal ohne Schluessel nach', async () => {
-    const erst = new Response(
+  // Gegenprobe zur Messung vom 2026-09-10: ohne Schluessel antwortet
+  // `POST /v1/images/generations` mit 401, es gibt keinen anonymen Weg mehr.
+  // Ein zweiter Versuch ohne Schluessel wuerde den 402, der wirklich vorliegt,
+  // durch einen 401 ersetzen und die Ursache verschleiern. Also genau ein Ruf.
+  it('fragt bei leerem Server-Schluessel nicht anonym nach', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(new Response(
       JSON.stringify({ error: { message: 'API key budget too low. This request costs ~0.0020 pollen, but this key has 0.0000.' } }),
       { status: 402, headers: { 'Content-Type': 'application/json' } },
-    );
-    const dann = new Response(
-      JSON.stringify({ data: [{ url: 'https://example.com/anonym.png' }] }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    );
-    const fetchMock = jest.fn()
-      .mockResolvedValueOnce(erst)
-      .mockResolvedValueOnce(dann);
+    ));
     global.fetch = fetchMock as unknown as typeof fetch;
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const url = await generatePollinationsImage({ ...eingabe, apiKey: 'server-key', hasUserKey: false });
+    await expect(generatePollinationsImage({ ...eingabe, apiKey: 'server-key', hasUserKey: false }))
+      .rejects.toMatchObject({ statusCode: 402, code: 'POLLEN_SERVER_BUDGET' });
 
-    expect(url).toBe('https://example.com/anonym.png');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][1].headers).toHaveProperty('Authorization', 'Bearer server-key');
-    expect(fetchMock.mock.calls[1][1].headers).not.toHaveProperty('Authorization');
   });
 
   // Ein eigener Schluessel des Nutzers wird nicht weggeworfen: sein Guthaben

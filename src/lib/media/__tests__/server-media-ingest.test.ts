@@ -86,7 +86,7 @@ describe('fetchAndStoreRemoteMedia Fehlerdiagnose', () => {
     ) as unknown as typeof fetch;
 
     const promise = fetchAndStoreRemoteMedia({
-      sourceUrl: 'https://image.pollinations.ai/prompt/test',
+      sourceUrl: 'https://media.pollinations.ai/prompt/test',
       kind: 'image',
     });
     const rejection = expect(promise).rejects.toMatchObject({ statusCode: 502 });
@@ -103,7 +103,7 @@ describe('fetchAndStoreRemoteMedia Fehlerdiagnose', () => {
     ) as unknown as typeof fetch;
 
     const promise = fetchAndStoreRemoteMedia({
-      sourceUrl: 'https://image.pollinations.ai/prompt/test',
+      sourceUrl: 'https://media.pollinations.ai/prompt/test',
       kind: 'image',
     });
     const rejection = expect(promise).rejects.toMatchObject({ statusCode: 504 });
@@ -129,7 +129,7 @@ describe('fetchAndStoreRemoteMedia Fehlerdiagnose', () => {
     )) as unknown as typeof fetch;
 
     const promise = fetchAndStoreRemoteMedia({
-      sourceUrl: 'https://image.pollinations.ai/prompt/test',
+      sourceUrl: 'https://media.pollinations.ai/prompt/test',
       kind: 'image',
       // Der Aufrufer kennt das Modell, das Ingest nicht — ohne diesen Namen
       // liest der Nutzer nur "Der Anbieter hat den Prompt abgelehnt."
