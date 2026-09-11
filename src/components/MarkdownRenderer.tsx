@@ -26,7 +26,7 @@ const MarkdownRenderer: FC<MarkdownRendererProps> = ({ content }) => {
 
     return (
         <ReactMarkdown
-            className="prose prose-sm dark:prose-invert max-w-none font-code"
+            className="prose prose-sm dark:prose-invert max-w-none"
             components={{
                 code({ node, className, children, ...props }) {
                     // Destructure ref and other props to avoid passing an incompatible ref to SyntaxHighlighter
@@ -54,7 +54,7 @@ const MarkdownRenderer: FC<MarkdownRendererProps> = ({ content }) => {
                             </SyntaxHighlighter>
                         </div>
                     ) : (
-                        <code className="px-1 py-0.5 rounded bg-muted text-muted-foreground" {...props}>
+                        <code className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono" {...props}>
                             {children}
                         </code>
                     );
@@ -62,7 +62,7 @@ const MarkdownRenderer: FC<MarkdownRendererProps> = ({ content }) => {
                 h1: ({node, ...props}) => <h1 className="text-2xl font-bold" {...props} />,
                 h2: ({node, ...props}) => <h2 className="text-xl font-bold border-b pb-2" {...props} />,
                 h3: ({node, ...props}) => <h3 className="text-lg font-semibold" {...props} />,
-                p: ({node, ...props}) => <p className="leading-7 mb-4" {...props} />,
+                p: ({node, ...props}) => <p className="leading-7 mb-4 whitespace-pre-wrap" {...props} />,
                 ul: ({node, ...props}) => <ul className="list-disc pl-5 my-4" {...props} />,
                 ol: ({node, ...props}) => <ol className="list-decimal pl-5 my-4" {...props} />,
                 li: ({node, ...props}) => <li className="mb-2" {...props} />,
