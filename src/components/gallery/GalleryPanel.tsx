@@ -127,38 +127,50 @@ const GalleryPanelItem = ({
         {asset.starred && (
           <div className="absolute top-1.5 left-1.5 z-10 text-yellow-400 text-[10px] leading-none">★</div>
         )}
-        {url && isVideo ? (
-          <video src={url} muted loop playsInline
-            className="w-full h-auto object-contain cursor-pointer"
-            onClick={onOpen}
-            onMouseOver={(e) => (e.currentTarget as HTMLVideoElement).play()}
-            onMouseOut={(e) => (e.currentTarget as HTMLVideoElement).pause()}
-          />
-        ) : url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt={asset.prompt || "Output item"} loading="lazy" decoding="async"
-            className="w-full h-auto object-contain cursor-pointer" onClick={onOpen}
-          />
-        ) : null}
+        {/* Die Kachel war ein reines Mausziel: onClick hing am <video>/<img>,
+            ohne Rolle, ohne tabIndex, ohne Keydown. Ein echter Knopf bringt
+            Enter und Leertaste mit. Stern-Markierung und Aktionsleiste bleiben
+            Geschwister — ein Knopf im Knopf waere ungueltiges Markup. */}
         {url && (
-          <div className="absolute inset-x-0 bottom-0 px-2 py-2 flex items-center justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/60 via-black/15 to-transparent">
+          <button
+            type="button"
+            onClick={onOpen}
+            aria-label={asset.prompt || "Output item"}
+            className="block w-full"
+          >
+            {isVideo ? (
+              <video src={url} muted loop playsInline
+                className="w-full h-auto object-contain cursor-pointer"
+                onMouseOver={(e) => (e.currentTarget as HTMLVideoElement).play()}
+                onMouseOut={(e) => (e.currentTarget as HTMLVideoElement).pause()}
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={url} alt={asset.prompt || "Output item"} loading="lazy" decoding="async"
+                className="w-full h-auto object-contain cursor-pointer"
+              />
+            )}
+          </button>
+        )}
+        {url && (
+          <div className="absolute inset-x-0 bottom-0 px-2 py-2 flex items-center justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity bg-gradient-to-t from-black/60 via-black/15 to-transparent">
             <Button variant="ghost" size="icon" onClick={() => onToggleStar(asset.id)}
-              className={cn("h-7 w-7 rounded-full bg-black/50 hover:bg-black/70", asset.starred ? "text-red-400" : "text-white")}
+              className={cn("h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 focus-visible:opacity-100", asset.starred ? "text-red-400" : "text-white")}
               title="Like" aria-label="Like">
               <Heart className={cn("h-3.5 w-3.5", asset.starred && "fill-current")} />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => onCopyPrompt(asset.prompt)}
-              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
+              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70 focus-visible:opacity-100"
               title={t('action.copyPrompt')} aria-label={t('action.copyPrompt')}>
               <Copy className="h-3.5 w-3.5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={handleDownload}
-              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
+              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70 focus-visible:opacity-100"
               title={t('action.download')} aria-label={t('action.download')}>
               <Download className="h-3.5 w-3.5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => onDelete(asset.id)}
-              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
+              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70 focus-visible:opacity-100"
               title={t('action.delete')} aria-label={t('action.delete')}>
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
