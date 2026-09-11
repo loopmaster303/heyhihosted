@@ -4,6 +4,7 @@ import React from 'react';
 import { useLanguage } from '@/components/LanguageProvider';
 import { cn } from '@/lib/utils';
 import { AsciiSignature } from '@/components/ascii';
+import { useRovingRadioGroup } from '@/components/a11y/useRovingRadioGroup';
 import type { ToolMode } from '@/hooks/useChatInputLogic';
 
 /**
@@ -92,9 +93,18 @@ interface ModeOptionsProps {
 export const ModeOptions: React.FC<ModeOptionsProps> = ({ activeMode, onSelectMode, canToggleCodeMode = true }) => {
     const { t } = useLanguage();
     const options = MODES.filter(m => m.mode !== 'code' || canToggleCodeMode);
+    const { containerProps, getTabIndex } = useRovingRadioGroup<ToolMode>(
+        options.map(({ mode }) => ({ value: mode })),
+        activeMode,
+    );
 
     return (
-        <div role="radiogroup" aria-label={t('menu.section.mode')} className="flex flex-wrap items-center gap-x-6 gap-y-1">
+        <div
+            role="radiogroup"
+            aria-label={t('menu.section.mode')}
+            className="flex flex-wrap items-center gap-x-6 gap-y-1"
+            {...containerProps}
+        >
             {options.map(({ mode, labelKey, colorVar, signature }) => {
                 const isActive = mode === activeMode;
                 return (
@@ -103,7 +113,7 @@ export const ModeOptions: React.FC<ModeOptionsProps> = ({ activeMode, onSelectMo
                         type="button"
                         role="radio"
                         aria-checked={isActive}
-                        tabIndex={isActive ? 0 : -1}
+                        tabIndex={getTabIndex(mode)}
                         onClick={() => onSelectMode(mode)}
                         className={cn(
                             'relative bg-transparent px-1 py-3 font-mono text-sm transition-colors',

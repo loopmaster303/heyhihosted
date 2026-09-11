@@ -3,6 +3,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/LanguageProvider';
+import { useRovingRadioGroup } from '@/components/a11y/useRovingRadioGroup';
 import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
 import { getDurationOptionsSeconds, getUnifiedModel } from '@/config/unified-image-models';
 import type { UnifiedModelConfig } from '@/config/unified-model-configs';
@@ -68,6 +69,17 @@ export const ImageParamOptions: React.FC<ImageParamOptionsProps> = ({
     : (isVideo ? '16:9' : '1:1');
   const activeDuration = formFields.duration;
 
+  // Zwei Gruppen, zwei Hook-Aufrufe: sie haben getrennte Optionslisten und
+  // duerfen einander den Fokus nicht wegnehmen.
+  const ratioRoving = useRovingRadioGroup<string>(
+    ratios.map(ratio => ({ value: ratio, disabled })),
+    activeRatio,
+  );
+  const durationRoving = useRovingRadioGroup<number>(
+    durations.map(seconds => ({ value: seconds, disabled })),
+    Number(activeDuration),
+  );
+
   const pickRatio = (value: string) => {
     // Bei Pollen-Modellen haengen Breite und Hoehe am Verhaeltnis — sonst
     // stimmt der Chip, aber der Request nicht.
@@ -89,7 +101,12 @@ export const ImageParamOptions: React.FC<ImageParamOptionsProps> = ({
           <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             {t('visualize.aspectRatio')}
           </span>
-          <div role="radiogroup" aria-label={t('visualize.aspectRatio')} className="flex flex-wrap gap-x-5 gap-y-1">
+          <div
+            role="radiogroup"
+            aria-label={t('visualize.aspectRatio')}
+            className="flex flex-wrap gap-x-5 gap-y-1"
+            {...ratioRoving.containerProps}
+          >
             {ratios.map(ratio => {
               const isActive = ratio === activeRatio;
               return (
@@ -98,7 +115,7 @@ export const ImageParamOptions: React.FC<ImageParamOptionsProps> = ({
                   type="button"
                   role="radio"
                   aria-checked={isActive}
-                  tabIndex={isActive ? 0 : -1}
+                  tabIndex={ratioRoving.getTabIndex(ratio)}
                   disabled={disabled}
                   onClick={() => pickRatio(ratio)}
                   className={optionClass(isActive)}
@@ -116,7 +133,12 @@ export const ImageParamOptions: React.FC<ImageParamOptionsProps> = ({
           <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             {t('visualize.duration')}
           </span>
-          <div role="radiogroup" aria-label={t('visualize.duration')} className="flex flex-wrap gap-x-5 gap-y-1">
+          <div
+            role="radiogroup"
+            aria-label={t('visualize.duration')}
+            className="flex flex-wrap gap-x-5 gap-y-1"
+            {...durationRoving.containerProps}
+          >
             {durations.map(seconds => {
               const isActive = Number(activeDuration) === seconds;
               return (
@@ -125,7 +147,7 @@ export const ImageParamOptions: React.FC<ImageParamOptionsProps> = ({
                   type="button"
                   role="radio"
                   aria-checked={isActive}
-                  tabIndex={isActive ? 0 : -1}
+                  tabIndex={durationRoving.getTabIndex(seconds)}
                   disabled={disabled}
                   onClick={() => { onFieldChange('duration', seconds); onAfterSelect?.(); }}
                   className={optionClass(isActive)}
