@@ -17,6 +17,7 @@ import GallerySidebarSection from '@/components/gallery/GallerySidebarSection';
 import PersonalizationSidebarSection from '@/components/sidebar/PersonalizationSidebarSection';
 import PollenAccountSidebarSection from '@/components/sidebar/PollenAccountSidebarSection';
 import PrunaAccountSidebarSection from '@/components/sidebar/PrunaAccountSidebarSection';
+import { FEATURES } from '@/config/features';
 import { useLanguage } from '@/components/LanguageProvider';
 import LanguageToggle from '@/components/LanguageToggle';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -164,7 +165,9 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           />
           <PersonalizationSidebarSection />
           <PollenAccountSidebarSection />
-          <PrunaAccountSidebarSection />
+          {/* Pruna-Konto gehoert ins Create: der Chat generiert Bilder nur ueber
+              den Betreiber-Schluessel (getChatImageModelGroups). */}
+          {FEATURES.chatPrunaProvider && <PrunaAccountSidebarSection />}
 
           <div className="flex-1" />
         </div>
