@@ -66,6 +66,7 @@ function model(overrides: Partial<PlaygroundModelEntry> = {}): PlaygroundModelEn
     supportsAudio: false,
     paidOnly: true,
     community: false,
+    runnableOnKey: true,
     ...overrides,
   };
 }
@@ -298,6 +299,35 @@ describe('uploadPlaygroundReference', () => {
     const [, init] = (global.fetch as jest.Mock).mock.calls[0];
     expect(init.headers['X-Pruna-Key']).toBeUndefined();
     expect(init.headers['X-Pollen-Key']).toBeUndefined();
+  });
+
+  // Live belegt am 2026-09-10: Prunas Dateispeicher antwortet ohne Guthaben mit
+  // 403 "no more credit available". Vorher fehlte das Referenzbild dann
+  // vollstaendig — der Slot blieb leer, die Generierung lief ohne Vorlage.
+  it('weicht bei gescheitertem Pruna-Upload auf media.pollinations.ai aus', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: 'no more credit available' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'abc',
+          url: 'https://media.pollinations.ai/abc',
+          contentType: 'image/png',
+          size: 3,
+        }),
+      });
+
+    await expect(uploadPlaygroundReference(file(), 'pruna')).resolves.toBe(
+      'https://media.pollinations.ai/abc',
+    );
+
+    const calls = (global.fetch as jest.Mock).mock.calls;
+    expect(calls[0][0]).toContain('/api/pruna/upload');
+    expect(calls[1][0]).toBe('/api/media/upload');
   });
 
   it('surfaces the server error message instead of the bare status code', async () => {

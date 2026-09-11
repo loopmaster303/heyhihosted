@@ -5,12 +5,10 @@ import { ImageOff, X } from 'lucide-react';
 import { useReferencePreviews } from '@/hooks/useReferencePreviews';
 import type { PlaygroundModelEntry } from '@/lib/playground/model-source';
 import type { ModelParamSchema } from '@/lib/playground/param-schema';
-import { uploadFileToPruna } from '@/lib/upload/pruna';
-import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
+import { uploadReferenceImage } from '@/lib/upload/reference-upload';
 import {
   forgetPrunaReferencePreview,
   isPrunaReferenceUrl,
-  rememberPrunaReferencePreview,
 } from '@/lib/upload/pruna-reference-preview';
 import { cn } from '@/lib/utils';
 
@@ -23,23 +21,15 @@ import { cn } from '@/lib/utils';
  * Env-Variable und antwortete mit 503, obwohl der Key in den Einstellungen lag.
  *
  * Deshalb keine zweite Implementierung mehr: die Clients kennen Endpunkt,
- * Rohbody (multipart quittieren beide Routen mit 415), Key-Header samt
- * Normalisierung und die Fehlermeldung der Route.
+ * Rohbody, Key-Header samt Normalisierung und die Fehlermeldung der Route.
+ * Seit dem Ausweichpfad auf media.pollinations.ai liegt die Reihenfolge der
+ * beiden Wege in `uploadReferenceImage` und nicht mehr hier.
  */
 export async function uploadPlaygroundReference(
   file: File,
   provider: 'pollinations' | 'pruna'
 ): Promise<string> {
-  if (provider === 'pruna') {
-    const handle = await uploadFileToPruna(file, file.name);
-    // Der Handle ist kein Bild: `urls.get` loest nur Pruna serverseitig auf.
-    // Die Bytes liegen hier im Browser, also legen wir die Vorschau unter genau
-    // diesem Handle ab. Im Generate-Request bleibt trotzdem der Handle stehen.
-    await rememberPrunaReferencePreview(handle, file);
-    return handle;
-  }
-  const { mediaUrl } = await uploadFileToPollinationsMedia(file, file.name, file.type);
-  return mediaUrl;
+  return uploadReferenceImage(file, provider);
 }
 
 function labelFor(model: PlaygroundModelEntry, schema: ModelParamSchema | undefined, i: number): string {
