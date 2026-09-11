@@ -123,6 +123,21 @@ export interface RegistryListing {
 }
 
 /**
+ * Die Sicht des Schluessels **plus** die Freigabe, die sie beschreibt.
+ *
+ * WARUM das Set dazugehoert: die Liste allein ist nur eine Liste. Wer wissen
+ * will, ob ein Modell wirklich laeuft, muss Name UND Alias pruefen — live belegt
+ * am 2026-09-10 liefert der Betreiber-Schluessel
+ * `black-forest-labs/flux.2-klein-4b` mit den Aliasen `flux-klein` und `klein`;
+ * ein Vergleich nur ueber `name` haelt "klein" faelschlich fuer gesperrt und
+ * blendet ein Modell aus, das einwandfrei laeuft.
+ */
+export interface AvailableImageModelsListing extends RegistryListing {
+  /** Namen und Aliase der Schluessel-Sicht, kleingeschrieben. */
+  runnable: ReadonlySet<string>;
+}
+
+/**
  * Beide Sichten der Registry als eine Liste — erst die des Aufrufers, dann der
  * oeffentliche Katalog.
  *
@@ -158,6 +173,60 @@ export async function listLiveImageModels(apiKey?: string): Promise<RegistryList
 
   if (models.length === 0) return { models, failure: failure ?? 'empty' };
   return { models };
+}
+
+/**
+ * Die Sicht des Aufrufers — und nur diese.
+ *
+ * Der Unterschied zu {@link listLiveImageModels} ist der Zweck: dort geht es um
+ * Metadaten ("gibt es dieses Modell ueberhaupt?"), hier um die Frage "kann
+ * dieser Aufrufer es auch bezahlen?". Die Antwort darauf kennt nur der Anbieter,
+ * und er gibt sie selbst: laut Doku (gen.pollinations.ai/openapi.json,
+ * `/image/models`) filtert die Liste bei authentifiziertem Abruf nach den
+ * Rechten des Schluessels und blendet `paid_only` aus, solange kein bezahltes
+ * Guthaben da ist.
+ *
+ * Ein Vereinigen beider Sichten ist deshalb die falsche Antwort fuer eine
+ * Auswahlliste: sie zeigt dann 82 Modelle, von denen der Betreiber-Schluessel
+ * live (2026-09-10) genau 5 bedienen darf. Der Nutzer waehlt ein Modell, das
+ * nicht in seiner Freigabe steht, und bekommt vom Anbieter ein 403
+ * ("Model 'flux' is not allowed for this API key") — ein Fehler, der wie ein
+ * Defekt der App aussieht, aber keiner ist.
+ *
+ * Ohne Schluessel bleibt nur der oeffentliche Katalog; dann ist er die Antwort.
+ */
+export async function listAvailableImageModels(apiKey?: string): Promise<AvailableImageModelsListing> {
+  const antwort = await fetchImageModelsRaw(apiKey);
+  if (antwort.failure || antwort.status < 200 || antwort.status >= 300) {
+    return { models: [], runnable: new Set<string>(), failure: antwort.failure ?? 'upstream' };
+  }
+  const models = parseModels(antwort.body);
+  if (models.length === 0) return { models, runnable: new Set<string>(), failure: 'empty' };
+  return { models, runnable: runnableModelNames(models, !!apiKey) };
+}
+
+/**
+ * Alle Namen und Aliase einer Antwort als Freigabe-Set.
+ *
+ * Ohne Schluessel ist die Antwort der oeffentliche Katalog. Dann zaehlen nur die
+ * nicht kostenpflichtigen Eintraege als nutzbar: `paid_only` verlangt laut
+ * Anbieter ein zahlendes Konto, ein Aufruf ohne Schluessel bekaeme dort ein 402.
+ * Alles als "laeuft" zu markieren waere die alte Luege in neuer Form.
+ */
+function runnableModelNames(models: readonly PollinationsLiveModel[], mitSchluessel: boolean): Set<string> {
+  const namen = new Set<string>();
+  for (const model of models) {
+    if (!mitSchluessel && model.paid_only === true) continue;
+    for (const name of [model.name, ...(model.aliases ?? [])]) {
+      if (name) namen.add(name.toLowerCase());
+    }
+  }
+  return namen;
+}
+
+/** Steht dieses Modell — ueber Name oder Alias — in der Freigabe des Schluessels? */
+export function modelIsRunnable(model: PollinationsLiveModel, runnable: ReadonlySet<string>): boolean {
+  return [model.name, ...(model.aliases ?? [])].some((name) => !!name && runnable.has(name.toLowerCase()));
 }
 
 /**

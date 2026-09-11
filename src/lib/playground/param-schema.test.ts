@@ -131,7 +131,7 @@ describe('schemaForPollinations', () => {
       id: 'flux', name: 'Flux', provider: 'pollinations', kind: 'image',
       supportsReference: false, requiresReference: false, maxImages: 0,
       unmapped: false, supportsEndFrame: false, supportsAudio: false,
-      paidOnly: false, community: false, ...over,
+      paidOnly: false, community: false, runnableOnKey: true, ...over,
     };
   }
   const names = (s: ReturnType<typeof schemaForPollinations>) =>

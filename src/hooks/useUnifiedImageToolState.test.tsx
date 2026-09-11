@@ -97,7 +97,7 @@ describe('useUnifiedImageToolState provider persistence', () => {
     });
   });
 
-  it('falls back from persisted zimage to flux in Pollinations mode', async () => {
+  it('falls back from persisted zimage to klein in Pollinations mode', async () => {
     localStorage.setItem('heyhi-provider-mode', JSON.stringify('pollinations'));
     localStorage.setItem('defaultImageModelId', JSON.stringify('zimage'));
     global.fetch = jest.fn().mockResolvedValue({
@@ -108,7 +108,9 @@ describe('useUnifiedImageToolState provider persistence', () => {
 
     await waitFor(() => {
       expect(result.current.providerMode).toBe('pollinations');
-      expect(result.current.selectedModelId).toBe('flux');
+      // 'zimage' haengt am Pruna-Dispatch und steht nicht in der Chat-Liste —
+      // der Chat faellt auf seinen eigenen Vorgabewert zurueck.
+      expect(result.current.selectedModelId).toBe('klein');
     });
   });
 
@@ -116,8 +118,8 @@ describe('useUnifiedImageToolState provider persistence', () => {
   // Tabs. Der Picker las beim Start allein `defaultImageModelId` und schrieb
   // beim Wechsel nichts, deshalb stand nach einem Reload wieder der Standard da.
   it('liest die gespeicherte Chat-Auswahl statt des Standards', async () => {
-    localStorage.setItem('defaultImageModelId', JSON.stringify('flux'));
-    localStorage.setItem('chatSelectedImageModel', JSON.stringify('gpt-image'));
+    localStorage.setItem('defaultImageModelId', JSON.stringify('z-image'));
+    localStorage.setItem('chatSelectedImageModel', JSON.stringify('gpt-image-2'));
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => ({ prunaAvailable: false }),
     } as Response);
@@ -125,7 +127,7 @@ describe('useUnifiedImageToolState provider persistence', () => {
     const { result } = renderHook(() => useUnifiedImageToolState());
 
     await waitFor(() => {
-      expect(result.current.selectedModelId).toBe('gpt-image');
+      expect(result.current.selectedModelId).toBe('gpt-image-2');
     });
   });
 
@@ -137,16 +139,16 @@ describe('useUnifiedImageToolState provider persistence', () => {
     const { result } = renderHook(() => useUnifiedImageToolState());
 
     await waitFor(() => expect(result.current.availableModels.length).toBeGreaterThan(0));
-    await act(async () => { result.current.setSelectedModelId('gpt-image'); });
+    await act(async () => { result.current.setSelectedModelId('z-image'); });
 
     await waitFor(() => {
-      expect(result.current.selectedModelId).toBe('gpt-image');
+      expect(result.current.selectedModelId).toBe('z-image');
     });
-    expect(localStorage.getItem('chatSelectedImageModel')).toBe(JSON.stringify('gpt-image'));
+    expect(localStorage.getItem('chatSelectedImageModel')).toBe(JSON.stringify('z-image'));
   });
 
   it('faellt auf den Standard zurueck, wenn die Chat-Auswahl nicht in der Chat-Liste steht', async () => {
-    localStorage.setItem('defaultImageModelId', JSON.stringify('flux'));
+    localStorage.setItem('defaultImageModelId', JSON.stringify('z-image'));
     localStorage.setItem('chatSelectedImageModel', JSON.stringify('p-video'));
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => ({ prunaAvailable: false }),
@@ -155,7 +157,7 @@ describe('useUnifiedImageToolState provider persistence', () => {
     const { result } = renderHook(() => useUnifiedImageToolState());
 
     await waitFor(() => {
-      expect(result.current.selectedModelId).toBe('flux');
+      expect(result.current.selectedModelId).toBe('z-image');
     });
   });
 
@@ -208,7 +210,7 @@ describe('useUnifiedImageToolState provider persistence', () => {
 
     await waitFor(() => {
       expect(result.current.prunaAvailable).toBe(true);
-      expect(result.current.selectedModelId).toBe('flux');
+      expect(result.current.selectedModelId).toBe('klein');
     });
 
     act(() => {
@@ -219,7 +221,7 @@ describe('useUnifiedImageToolState provider persistence', () => {
     // dreht das gewaehlte Modell nicht mehr still um.
     await waitFor(() => {
       expect(result.current.providerMode).toBe('pruna');
-      expect(result.current.selectedModelId).toBe('flux');
+      expect(result.current.selectedModelId).toBe('klein');
     });
   });
 
@@ -234,11 +236,11 @@ describe('useUnifiedImageToolState provider persistence', () => {
     const { result } = renderHook(() => useUnifiedImageToolState());
 
     await waitFor(() => {
-      expect([...result.current.availableModels].sort()).toEqual(['flux', 'gpt-image', 'klein']);
+      expect([...result.current.availableModels].sort()).toEqual(['gpt-image-2', 'klein', 'z-image']);
     });
   });
 
-  it('faellt auf flux zurueck, wenn das gespeicherte Standardmodell nicht im Chat gefuehrt wird', async () => {
+  it('faellt auf klein zurueck, wenn das gespeicherte Standardmodell nicht im Chat gefuehrt wird', async () => {
     // Der SettingsPopover im Create schreibt denselben Schluessel und kennt
     // die volle Liste. Der Chat darf daran nicht haengenbleiben.
     localStorage.setItem('defaultImageModelId', JSON.stringify('p-video'));
@@ -249,7 +251,7 @@ describe('useUnifiedImageToolState provider persistence', () => {
     const { result } = renderHook(() => useUnifiedImageToolState());
 
     await waitFor(() => {
-      expect(result.current.selectedModelId).toBe('flux');
+      expect(result.current.selectedModelId).toBe('klein');
     });
   });
 
@@ -296,7 +298,7 @@ describe('useUnifiedImageToolState provider persistence', () => {
   // zweite Lauf ueberschrieb das Ergebnis des ersten.
   it('verwirft den zweiten Klick, solange der erste Upload laeuft', async () => {
     localStorage.setItem('heyhi-provider-mode', JSON.stringify('pollinations'));
-    localStorage.setItem('defaultImageModelId', JSON.stringify('gpt-image'));
+    localStorage.setItem('defaultImageModelId', JSON.stringify('gpt-image-2'));
     global.fetch = jest.fn().mockResolvedValue({
       json: async () => ({ prunaAvailable: false }),
     } as Response);
@@ -310,9 +312,9 @@ describe('useUnifiedImageToolState provider persistence', () => {
 
     const { result } = renderHook(() => useUnifiedImageToolState());
 
-    // gpt-image ist das einzige Modell der Chat-Liste mit Referenz-Upload.
-    await act(async () => { result.current.setSelectedModelId('gpt-image'); });
-    await waitFor(() => expect(result.current.selectedModelId).toBe('gpt-image'));
+    // gpt-image-2 ist das OpenAI-Modell der Chat-Liste mit Referenz-Upload.
+    await act(async () => { result.current.setSelectedModelId('gpt-image-2'); });
+    await waitFor(() => expect(result.current.selectedModelId).toBe('gpt-image-2'));
 
     const file = new File(['pixel'], 'referenz.png', { type: 'image/png' });
     const event = { target: { files: [file] } } as unknown as Parameters<

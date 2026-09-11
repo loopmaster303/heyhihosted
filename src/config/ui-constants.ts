@@ -81,6 +81,7 @@ export const featuredModels = [
 export const imageModelIcons: Record<string, any> = {
     'gpt-image': OpenAIIcon,
     'gptimage-large': OpenAIIcon,
+    'gpt-image-2': OpenAIIcon,
     'dirtberry': PollinationsIcon,
     'seedream': ByteDanceIcon,
     'seedream5': ByteDanceIcon,
@@ -105,6 +106,7 @@ export const imageModelIcons: Record<string, any> = {
     'wan-t2v': WANIcon,
     'wan-i2v': WANIcon,
     'zimage': WANIcon,
+    'z-image': WANIcon,
     'grok-imagine': GrokIcon,
     'grok-video-pro': GrokIcon,
     'p-image': PrunaIcon,

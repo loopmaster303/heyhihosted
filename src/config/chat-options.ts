@@ -614,11 +614,18 @@ export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 // For in-chat image generation
 // NOTE: Only IMAGE models - no video models in chat fallback list
 // Filter out disabled models
-import { getImageModels } from './unified-image-models';
-export const FALLBACK_IMAGE_MODELS = getImageModels().map(m => m.id);
+import { getChatImageModelIds } from './unified-image-models';
+// Nur, was der Server-Schluessel auch bedienen darf: die kostenlosen
+// Pollinations-Bildmodelle der Config. getImageModels() lieferte zuvor
+// zusaetzlich die Pruna-Eintraege (BYOP-only) — im Chat waehlbar, garantiert im
+// Fehler. Pruna gehoert in den Playground, nicht in den Chat.
+export const FALLBACK_IMAGE_MODELS = getChatImageModelIds();
 // 'zimage' war die Vorgabe und haengt am Pruna-Dispatch (BYOP-only) — keylose
-// Nutzer bekamen garantiert 503. 'flux' ist live verifiziert frei (2026-08-28).
-export const DEFAULT_IMAGE_MODEL = 'flux';
+// Nutzer bekamen garantiert 503. Danach war 'flux' die Vorgabe; seit dem
+// Key-Wechsel am 2026-09-10 antwortet es mit 403 ("Model 'flux' is not allowed
+// for this API key"). 'klein' ist live gegen gen.pollinations.ai verifiziert
+// (200, 2026-09-10) und liegt in der Freigabe des Betreiber-Schluessels.
+export const DEFAULT_IMAGE_MODEL = 'klein';
 
 // Code reasoning system prompt used when Code Mode is enabled
 export const CODE_REASONING_SYSTEM_PROMPT = `<system_prompt>

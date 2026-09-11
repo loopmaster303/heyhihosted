@@ -99,6 +99,13 @@ const DUMMY_MODEL = {
   requiresReference: false,
   maxImages: 0,
   unmapped: false,
+  supportsEndFrame: false,
+  supportsAudio: false,
+  paidOnly: false,
+  community: false,
+  // Fixture: die Freigabe des Schluessels ist hier true, damit der Dummy als
+  // freies Modell die Vorgabe der Shell sein kann.
+  runnableOnKey: true,
 };
 
 function mockHooks(overrides: Record<string, unknown> = {}) {

@@ -197,12 +197,19 @@ export function PlaygroundShell() {
   // usePlaygroundModels liefert im Pruna-Modus bereits die gefilterte Liste
   // (PRUNA_HIDDEN_IN_PLAYGROUND) — hier nicht ein zweites Mal filtern.
   const modeEntries = entries.filter((e) => isModelInMode(e, state.mode));
-  // Ohne Key ist ein kostenpflichtiges Modell nicht benutzbar — Pollinations
-  // antwortet mit 401 und das Bild bleibt leer. Als Vorgabe deshalb erst ein
-  // freies wählen; die Auswahl des Nutzers hat weiter Vorrang.
+  // Ohne eigenen Schluessel ist ein kostenpflichtiges Modell nicht benutzbar.
+  // Als Vorgabe deshalb erst ein freies waehlen; die Auswahl des Nutzers hat
+  // weiter Vorrang.
+  // Seit der Auswahlliste stehen darin auch gesperrte Bezahl-Klassiker
+  // (`runnableOnKey: false`, live belegt 2026-09-10). Die duerfen nicht Vorgabe
+  // werden, sonst laeuft der erste Senden-Klick garantiert in den Fehler.
+  // Reihenfolge: Nutzerwahl, freies Modell, lauffaehiges Modell, erst zuletzt
+  // der erste Listeneintrag (Pruna hat nur schluesselpflichtige Eintraege).
   const currentModel =
     modeEntries.find((e) => e.id === state.modelId) ??
-    (pollenKey ? modeEntries[0] : modeEntries.find((e) => !e.paidOnly) ?? modeEntries[0]);
+    modeEntries.find((e) => e.runnableOnKey && !e.paidOnly) ??
+    modeEntries.find((e) => e.runnableOnKey) ??
+    modeEntries[0];
 
   useEffect(() => {
     if (currentModel && state.modelId !== currentModel.id) setModelId(currentModel.id);
@@ -219,9 +226,13 @@ export function PlaygroundShell() {
   // Arrangements. Die Zahl steht deshalb in der Statuszeile, direkt unter dem
   // Feld, in dem sie entsteht.
   const tagAnzahl = state.sound.tags.split(/[,;]/).map((s) => s.trim()).filter(Boolean).length;
+  // Zwei Gruende, warum ein Pollinations-Modell ohne eigenen Schluessel nicht
+  // laeuft: es kostet Geld (`paidOnly`) oder der Betreiber-Schluessel darf es
+  // nicht bedienen (`!runnableOnKey`, live belegt 2026-09-10 fuer die
+  // Bezahl-Klassiker). Beide muessen hier denselben Hinweis ausloesen.
   const brauchtPollen = !!currentModel
     && currentModel.provider === 'pollinations'
-    && currentModel.paidOnly
+    && (currentModel.paidOnly || !currentModel.runnableOnKey)
     && !pollenKey;
   const brauchtPrunaSchluessel = istPrunaLauf && !hatPrunaSchluessel;
 

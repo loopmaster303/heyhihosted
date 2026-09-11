@@ -10,6 +10,7 @@ import {
   type PollinationsLiveModel,
 } from '@/lib/playground/model-source';
 import { UNIFIED_IMAGE_MODELS } from '@/config/unified-image-models';
+import { POLLEN_SERVER_KEY_FREE_IDS } from '@/lib/playground/pollen-model-catalog';
 import { createResourceStore } from '@/lib/client-resource-store';
 
 export interface UsePlaygroundModelsResult {
@@ -41,11 +42,17 @@ const liveModelsStore = createResourceStore<PollinationsLiveModel[]>({
   ttlMs: MODELS_TTL,
 });
 
-/** Ohne Live-Daten bleibt der konfigurierte, kostenlose Bestand. */
+/**
+ * Ohne Live-Daten bleibt der konfigurierte, kostenlose Bestand — und zwar genau
+ * der, den der Betreiber-Schluessel laut Live-Messung (2026-09-10) bedienen
+ * darf. `isFree` allein reicht dafuer nicht: die Config pflegt das Flag gegen
+ * die Registry (isFree ⇔ !paid_only), nicht gegen die Freigabe des Schluessels.
+ */
 function buildFreeFallback(): PlaygroundModelEntry[] {
   return buildPollinationsEntries(
     UNIFIED_IMAGE_MODELS
       .filter((m) => m.provider === 'pollinations' && m.enabled && m.isFree)
+      .filter((m) => POLLEN_SERVER_KEY_FREE_IDS.includes(m.id))
       .map((m) => ({
         name: m.id,
         title: m.name,

@@ -18,10 +18,8 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
 import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
 import { uploadFileToPruna } from '@/lib/upload/pruna';
-import {
-    forgetPrunaReferencePreview,
-    rememberPrunaReferencePreview,
-} from '@/lib/upload/pruna-reference-preview';
+import { uploadReferenceImage } from '@/lib/upload/reference-upload';
+import { forgetPrunaReferencePreview } from '@/lib/upload/pruna-reference-preview';
 import { getClientSessionId } from '@/lib/session';
 import type { UploadedReference } from '@/types';
 import { useProviderMode } from './useProviderMode';
@@ -98,17 +96,34 @@ export function useUnifiedImageToolState() {
     const [selectedModelId, setSelectedModelId] = useLocalStorageState<string>('chatSelectedImageModel', initialModelId);
     const currentModelConfig = getUnifiedModelConfig(selectedModelId);
 
-    // Faellt das gewaehlte Modell aus der Chat-Auswahl — etwa weil der
-    // SettingsPopover im Create einen Standard geschrieben hat, den der Chat
-    // nicht fuehrt — zurueck auf den Vorgabewert statt still ins Leere.
+    // Faellt das gewaehlte Modell aus der Chat-Auswahl — etwa weil eine alte
+    // Wahl im Schluessel steht, die der Chat nicht fuehrt — zurueck auf den
+    // Standard statt still ins Leere. Der Standard aus den Einstellungen gilt,
+    // solange der Chat ihn fuehrt; sonst die Vorgabe des Chats.
+    const fallbackModelId = useMemo(() => {
+        if (availableModels.includes(normalizedDefaultImageModelId)) {
+            return normalizedDefaultImageModelId;
+        }
+        return availableModels.includes(DEFAULT_IMAGE_MODEL)
+            ? DEFAULT_IMAGE_MODEL
+            : availableModels[0];
+    }, [availableModels, normalizedDefaultImageModelId]);
+
+    // Der Standard trifft erst mit der Hydration ein, die erste Korrektur
+    // laeuft also noch blind und schreibt die Vorgabe. Ohne diese Marke ginge
+    // dieser eigene Wert als gueltige Wahl durch, und der nachgereichte
+    // Standard bliebe liegen. Nur der eigene Wert darf darum nachziehen.
+    const autoCorrectedModelRef = useRef<string | null>(null);
+
     useEffect(() => {
         setSelectedModelId(prev => {
-            if (availableModels.includes(prev) || availableModels.length === 0) return prev;
-            return availableModels.includes(DEFAULT_IMAGE_MODEL)
-                ? DEFAULT_IMAGE_MODEL
-                : availableModels[0];
+            if (availableModels.length === 0) return prev;
+            if (autoCorrectedModelRef.current !== prev && availableModels.includes(prev)) return prev;
+            if (prev === fallbackModelId) return prev;
+            autoCorrectedModelRef.current = fallbackModelId;
+            return fallbackModelId;
         });
-    }, [availableModels]);
+    }, [availableModels, fallbackModelId, setSelectedModelId]);
 
     // Form state
     const [prompt, setPrompt] = useState('');
@@ -286,10 +301,10 @@ export function useUnifiedImageToolState() {
                 const targetFiles = frameSlot || maxImages === 1 ? imageFiles.slice(0, 1) : imageFiles;
                 const next = [...uploadedImages];
                 for (const file of targetFiles) {
-                    const url = await uploadFileToPruna(file);
-                    // Pruna liefert nur einen Handle, kein Bild. Die Bytes liegen
-                    // hier, also bleibt die Vorschau lokal beim Handle.
-                    await rememberPrunaReferencePreview(url, file);
+                    // Pruna-Handle, oder die media.pollinations.ai-Adresse, wenn
+                    // Prunas Dateispeicher am Guthaben scheitert. Beides landet
+                    // unveraendert im Generate-Request.
+                    const url = await uploadReferenceImage(file, 'pruna');
                     if (frameSlot) next[frameIndex] = { url };
                     else if (maxImages === 1) next[0] = { url };
                     else if (next.length < maxImages) next.push({ url });

@@ -92,15 +92,27 @@ export function getDefaultDurationSeconds(
 
 const POLLINATIONS_MODELS: UnifiedImageModel[] = [
   // STANDARD Image Models
-  { id: 'flux', name: 'Flux.1 Fast', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: true, enabled: true, description: 'Classic. Fast. Quality!' },
-  { id: 'zimage', name: 'Z-Image Turbo', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: false, enabled: false, byopVisible: true, description: 'ByteDance Z-Image Turbo (Seedream-family)' },
+  // 2026-09-10 live gegen gen.pollinations.ai geprueft: der Betreiber-Schluessel
+  // (POLLEN_API_KEY) bedient genau fuenf Bildmodelle. 'flux' gehoert nicht dazu —
+  // POST /v1/images/generations antwortet mit 403 "Model 'flux' is not allowed
+  // for this API key". Es war der Vorgabewert des Chats und damit der garantierte
+  // Fehler beim ersten Bild. Deaktiviert, fuer BYOP weiter sichtbar: wer einen
+  // eigenen Schluessel mit flux-Freigabe hat, soll es behalten.
+  { id: 'flux', name: 'Flux.1 Fast', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 4, isFree: false, enabled: false, byopVisible: true, description: 'Classic. Fast. Quality! (nicht in der Freigabe des Betreiber-Schluessels)' },
+  { id: 'z-image', name: 'Z-Image Turbo', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: true, enabled: true, description: 'Alibaba Z-Image Turbo — schnell und guenstig, T2I' },
+  { id: 'zimage', name: 'Z-Image Turbo (Pruna)', provider: 'pruna', kind: 'image', category: 'Standard', supportsReference: false, maxImages: 0, isFree: false, enabled: false, byopVisible: true, description: 'ByteDance Z-Image Turbo (Seedream-family)' },
   // Pruna ist BYOP-only (Entscheidung 2026-08-28): kein PRUNA_API_KEY auf Vercel.
   // isFree: true war hier ein falsches Versprechen — ohne eigenen Schluessel
   // antwortet der Pruna-Dispatch mit 503. Die Registry fuehrt zimage zwar als
   // kostenlos (und der Server-Key liefe darauf), aber der Dispatch haengt am
   // Modell, nicht am Schalter; eine Pollinations-Anbindung waere eine
   // Provider-Entscheidung und gehoert nicht in diese Phase.
-  { id: 'gpt-image', name: 'GPT Image 1 Mini', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 16, isFree: true, enabled: true, description: 'OpenAI image generation with reference support' },
+  // Derselbe Live-Beleg wie bei flux: 'gptimage' antwortet mit 403 am
+  // Betreiber-Schluessel (2026-09-10). Sein Nachfolger 'gpt-image-2' ist
+  // freigegeben und uebernimmt die Rolle als OpenAI-Bildmodell mit
+  // Referenz-Unterstuetzung (16 Bilder).
+  { id: 'gpt-image', name: 'GPT Image 1 Mini', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 16, isFree: false, enabled: false, byopVisible: true, description: 'OpenAI image generation with reference support' },
+  { id: 'gpt-image-2', name: 'GPT Image 2', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 16, isFree: true, enabled: true, description: 'OpenAI GPT Image 2 — Referenzbilder, starke Prompt-Treue' },
   { id: 'klein', name: 'Flux.2 Klein 4B', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 10, isFree: true, enabled: true, description: 'FLUX.2 Klein — fast, dense prose prompts, I2I capable' },
   { id: 'kontext', name: 'Flux.1 Kontext', provider: 'pollinations', kind: 'image', category: 'Standard', supportsReference: true, maxImages: 1, isFree: true, enabled: false, description: 'Context-aware frame editing' },
   // kontext ist registry-frei, aber nicht auf der Allowlist des Server-Keys:
@@ -436,8 +448,14 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
 export const UNIFIED_IMAGE_MODELS: UnifiedImageModel[] = POLLINATIONS_MODELS;
 
 const POLLINATIONS_IMAGE_MODEL_ALIASES: Record<string, string> = {
-  'z-image': 'zimage',
-  'z-image-turbo': 'zimage',
+  // 'z-image' zeigt NICHT mehr auf den Pruna-Eintrag 'zimage' (BYOP-only,
+  // enabled:false). Pruna hat live kein Guthaben (403 "no more credit
+  // available", 2026-09-10), eine gespeicherte Z-Image-Auswahl landete damit
+  // garantiert im Fehler. 'z-image' ist jetzt ein eigener Pollinations-Eintrag
+  // und bedient genau das Modell, das der Betreiber-Schluessel freigibt
+  // (tongyi-mai/z-image-turbo, 200 am 2026-09-10). 'zimage' selbst bleibt
+  // unangetastet — an dieser ID haengt der Pruna-Dispatch.
+  'z-image-turbo': 'z-image',
   'grok-image': 'grok-imagine',
   'grok-imagine-video': 'grok-video-pro',
   // Entfernte eigene Eintraege, die in der Registry (oder als deren Alias)
