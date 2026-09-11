@@ -188,7 +188,11 @@ describe('check-security.sh hardening', () => {
     // does not reference the old predictable temp file.
     const source = require('fs').readFileSync(scriptPath, 'utf8');
     expect(source).not.toContain('/tmp/leak_check.txt');
-    expect(source).toContain('LEAK_LINES=');
+    // Die Fundstellen verlassen das Script als LEAK_LOCATIONS (Datei:Zeile,
+    // nie der Match selbst) — so steht der Name auch in der Allowlist von
+    // audit.sh. Frueher hiess die Variable LEAK_LINES; der Test hing an dem
+    // alten Namen und war rot, obwohl die Haertung stand.
+    expect(source).toContain('LEAK_LOCATIONS=');
   });
 
   test('parses full npm audit JSON instead of tail -n 1', () => {
