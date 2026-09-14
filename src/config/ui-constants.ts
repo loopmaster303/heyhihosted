@@ -112,6 +112,7 @@ export const imageModelIcons: Record<string, any> = {
     'p-image': PrunaIcon,
     'p-image-edit': PrunaIcon,
     'p-video': PrunaIcon,
+    'p-video-2': PrunaIcon,
     'p-image-try-on': PrunaIcon,
     'p-image-upscale': PrunaIcon,
     'p-video-avatar': PrunaIcon,

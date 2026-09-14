@@ -65,6 +65,7 @@ export const PRUNA_MODEL_IDS = [
   'p-image',
   'p-image-edit',
   'p-video',
+  'p-video-2',
   'p-image-try-on',
   'p-image-upscale',
   'p-video-avatar',
@@ -508,6 +509,67 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       input.disable_safety_filter = true;
       const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
       return { ...input, ...rest };
+    },
+  },
+
+  // ── P-Video 2 (own mapping, own contract — see docs.api.pruna.ai/guides/models/p-video-2) ──
+  // Eigenstaendig statt Ersatz fuer P-Video: gespeicherte Auswahlen/Wiederholungen des
+  // bestehenden Modells bleiben unveraendert. Anders als P-Video wird hier keine freie
+  // Params-Mischung durchgereicht — nur die dokumentierten Felder verlassen diese Funktion,
+  // damit fremde oder UI-only-Felder (duration_auto, width, height, output_format) nie
+  // upstream landen (Pruna antwortet auf unbekannte Felder mit 400).
+  'p-video-2': {
+    prunaModel: 'p-video-2',
+    mode: 'async',
+    isVideo: true,
+    defaultParams: {
+      aspect_ratio: '16:9',
+      resolution: '720p',
+      fps: 24,
+      duration: 5,
+      save_audio: true,
+      prompt_upsampling: true,
+      draft: false,
+    },
+    buildInput: (f) => {
+      const params = f.params ?? {};
+
+      const input: Record<string, unknown> = {
+        prompt: f.prompt,
+        ...DISABLE_SAFETY_FILTER,
+        resolution: params.resolution === '1080p' ? '1080p' : '720p',
+        fps: Number(params.fps) === 48 ? 48 : 24,
+        draft: typeof params.draft === 'boolean' ? params.draft : false,
+        prompt_upsampling: typeof params.prompt_upsampling === 'boolean' ? params.prompt_upsampling : true,
+      };
+
+      // Ein Referenzbild bestimmt laut Provider-Dokumentation das Seitenverhaeltnis
+      // selbst — dann bleibt aspect_ratio weg statt einen ignorierten Wert zu senden.
+      if (!f.image) {
+        input.aspect_ratio = resolveSupportedAspectRatio(f, IMAGE_ASPECT_RATIOS, '16:9');
+      }
+
+      // duration_auto ist ein reines UI-Feld: bei true bleibt die Dauer auf beiden
+      // Request-Ebenen weg, der Provider bestimmt die Laenge selbst. Sonst hat eine
+      // ausdrueckliche Top-Level-Dauer Vorrang vor einem Params-Duplikat.
+      if (params.duration_auto !== true) {
+        const duration = f.duration !== undefined ? f.duration : params.duration;
+        if (typeof duration === 'number') input.duration = duration;
+      }
+
+      if (f.seed !== undefined) input.seed = f.seed;
+
+      input.save_audio = f.audio !== undefined
+        ? f.audio
+        : (typeof params.save_audio === 'boolean' ? params.save_audio : true);
+
+      if (f.image) {
+        const images = Array.isArray(f.image) ? f.image : [f.image];
+        input.image = images[0];
+        if (images[1]) input.last_frame_image = images[1];
+      }
+
+      return input;
     },
   },
 

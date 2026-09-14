@@ -12,6 +12,7 @@ import {
   getChatImageModelGroups,
   getChatImageModelIds,
   getImageModels,
+  getReferenceMode,
   getUnifiedModel,
   getVisualizeModelGroups,
   resolvePollinationsVisualModelId,
@@ -240,7 +241,7 @@ describe('model invariants', () => {
   });
 
   test('migrated Pruna video configs contain no generic duration input', () => {
-    for (const modelId of ['p-video', 'p-video-avatar', 'p-video-animate', 'p-video-replace', 'wan-fast', 'wan-t2v', 'wan-i2v', 'vace']) {
+    for (const modelId of ['p-video', 'p-video-2', 'p-video-avatar', 'p-video-animate', 'p-video-replace', 'wan-fast', 'wan-t2v', 'wan-i2v', 'vace']) {
       expect(unifiedModelConfigs[modelId].inputs.map(input => input.name)).not.toContain('duration');
     }
   });
@@ -250,9 +251,34 @@ describe('model invariants', () => {
       expect(unifiedModelConfigs[modelId].inputs.map(input => input.name)).not.toContain('aspect_ratio');
     }
 
-    for (const modelId of ['p-video', 'wan-t2v']) {
+    for (const modelId of ['p-video', 'p-video-2', 'wan-t2v']) {
       expect(unifiedModelConfigs[modelId].inputs.map(input => input.name)).toContain('aspect_ratio');
     }
+  });
+
+  test('P-Video 2 is registered as its own BYOP-visible Pruna video model, and P-Video 1 stays untouched', () => {
+    const model = getUnifiedModel('p-video-2');
+    expect(model).toEqual(expect.objectContaining({
+      provider: 'pruna',
+      kind: 'video',
+      enabled: true,
+      isFree: false,
+      byopVisible: true,
+      supportsReference: true,
+      maxImages: 2,
+      supportsEndFrame: true,
+      referenceMode: 'start-end-frame',
+      temporalControl: { mode: 'seconds', min: 1, max: 20, step: 1, defaultSeconds: 5 },
+    }));
+    expect(getReferenceMode(model!)).toBe('start-end-frame');
+    expect(getPrunaModelMapping('p-video-2')).toBeDefined();
+
+    // Keine Migration, kein Default-Wechsel — P-Video 1 bleibt eigenstaendig.
+    expect(getUnifiedModel('p-video')).toEqual(expect.objectContaining({
+      id: 'p-video',
+      enabled: true,
+      temporalControl: { mode: 'seconds', min: 1, max: 20, step: 1, defaultSeconds: 5 },
+    }));
   });
 
   test('every unified Pruna model has an explicit Pruna adapter mapping', () => {

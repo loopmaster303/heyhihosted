@@ -200,6 +200,127 @@ describe('Pruna model mappings', () => {
     }));
   });
 
+  // ── P-Video 2 (own mapping, own contract — P-Video 1 stays untouched) ──
+
+  it('defaults P-Video 2 resolution and fps to the documented values', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({ prompt: 'a still lake at dawn' });
+
+    expect(input).toEqual(expect.objectContaining({ resolution: '720p', fps: 24 }));
+  });
+
+  it.each(['16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '1:1'])(
+    'accepts %s as a P-Video 2 aspect ratio',
+    (ratio) => {
+      const input = getPrunaModelMapping('p-video-2')?.buildInput({
+        prompt: 'seven supported formats',
+        aspectRatio: ratio,
+      });
+      expect(input?.aspect_ratio).toBe(ratio);
+    },
+  );
+
+  it.each([
+    [24, 24],
+    ['24', 24],
+    [48, 48],
+    ['48', 48],
+    [30, 24],
+    ['bogus', 24],
+  ])('normalizes P-Video 2 fps input %s to %s', (raw, expected) => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'fps normalization',
+      params: { fps: raw as string | number },
+    });
+    expect(input?.fps).toBe(expected);
+  });
+
+  it('accepts 1080p as a P-Video 2 resolution', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'high resolution shot',
+      params: { resolution: '1080p' },
+    });
+    expect(input?.resolution).toBe('1080p');
+  });
+
+  it('falls back to the documented 720p default for an unsupported P-Video 2 resolution', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'unsupported resolution',
+      params: { resolution: '4k' },
+    });
+    expect(input?.resolution).toBe('720p');
+  });
+
+  it('maps P-Video 2 start and end frames to distinct documented fields and omits aspect_ratio', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'transition between frames',
+      image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+    });
+
+    expect(input).toEqual(expect.objectContaining({
+      image: 'https://example.com/start.jpg',
+      last_frame_image: 'https://example.com/end.jpg',
+    }));
+    expect(input).not.toHaveProperty('aspect_ratio');
+  });
+
+  it('prefers top-level duration over a params duplicate for P-Video 2', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'explicit duration',
+      duration: 12,
+      params: { duration: 3 },
+    });
+    expect(input?.duration).toBe(12);
+  });
+
+  it('omits duration for P-Video 2 when none is provided', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({ prompt: 'omitted duration' });
+    expect(input).not.toHaveProperty('duration');
+  });
+
+  it('drops duration entirely for P-Video 2 when duration_auto is true, even with a top-level duration', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'auto duration',
+      duration: 8,
+      params: { duration_auto: true, duration: 8 },
+    });
+    expect(input).not.toHaveProperty('duration');
+    expect(input).not.toHaveProperty('duration_auto');
+  });
+
+  it('keeps false booleans and seed 0 for P-Video 2', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'falsy values must survive',
+      seed: 0,
+      params: { draft: false, save_audio: false, prompt_upsampling: false },
+    });
+
+    expect(input).toEqual(expect.objectContaining({
+      seed: 0,
+      draft: false,
+      save_audio: false,
+      prompt_upsampling: false,
+    }));
+  });
+
+  it('drops unsupported params for P-Video 2 instead of forwarding them upstream', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'whitelist only',
+      params: {
+        duration_auto: false,
+        width: 1024,
+        height: 576,
+        output_format: 'mp4',
+        unknown_field: 'nope',
+      } as unknown as Record<string, string | number | boolean>,
+    });
+
+    expect(input).not.toHaveProperty('duration_auto');
+    expect(input).not.toHaveProperty('width');
+    expect(input).not.toHaveProperty('height');
+    expect(input).not.toHaveProperty('output_format');
+    expect(input).not.toHaveProperty('unknown_field');
+  });
+
   it('accepts normal reference image plumbing for VACE', () => {
     const input = getPrunaModelMapping('vace')?.buildInput({
       prompt: 'consistent cast',
