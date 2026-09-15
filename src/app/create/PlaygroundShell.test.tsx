@@ -54,6 +54,17 @@ jest.mock('@/components/ui/slider', () => ({
   Slider: (props: Record<string, unknown>) => <input type="range" {...props} />,
 }));
 
+// P-Video 2's Schema zeigt "Automatische Dauer" als boolesches Feld im
+// Hauptbereich (nicht hinter "Erweitert" versteckt) — anders als bei Flux
+// (dem Dummy-Modell der uebrigen Tests) rendert die Shell damit erstmals
+// einen Switch. Radix + framer-motion sind ESM und werden von jest nicht
+// transformiert, deshalb hier derselbe Stub wie in ParamControls.test.tsx.
+jest.mock('@/components/ui/switch', () => ({
+  Switch: ({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (v: boolean) => void }) => (
+    <input type="checkbox" checked={checked} onChange={(e) => onCheckedChange(e.target.checked)} />
+  ),
+}));
+
 jest.mock('@/components/LanguageProvider', () => ({
   useLanguage: () => ({ t: (k: string) => k, language: 'de', setLanguage: jest.fn() }),
 }));
@@ -89,6 +100,7 @@ import { PlaygroundShell } from './PlaygroundShell';
 import { usePlaygroundModels } from '@/hooks/usePlaygroundModels';
 import { usePollenKey } from '@/hooks/usePollenKey';
 import { useProviderMode } from '@/hooks/useProviderMode';
+import { OutputService } from '@/lib/services/output-service';
 
 const DUMMY_MODEL = {
   id: 'flux',
@@ -105,6 +117,27 @@ const DUMMY_MODEL = {
   community: false,
   // Fixture: die Freigabe des Schluessels ist hier true, damit der Dummy als
   // freies Modell die Vorgabe der Shell sein kann.
+  runnableOnKey: true,
+};
+
+// PlaygroundModelEntry-Fixture fuer P-Video 2, wie sie buildPrunaEntries()
+// (src/lib/playground/model-source.ts) fuer die registrierte Pruna-ID liefert:
+// Video, Start/Ende-Referenz, kostenpflichtig, aber ueber den eigenen
+// Pruna-Schluessel lauffaehig.
+const P_VIDEO_2_MODEL = {
+  id: 'p-video-2',
+  name: 'P-Video 2',
+  provider: 'pruna' as const,
+  kind: 'video' as const,
+  supportsReference: true,
+  requiresReference: false,
+  maxImages: 2,
+  referenceMode: 'start-end-frame' as const,
+  unmapped: false,
+  supportsEndFrame: true,
+  supportsAudio: true,
+  paidOnly: true,
+  community: false,
   runnableOnKey: true,
 };
 
@@ -267,5 +300,132 @@ describe('PlaygroundShell smoke', () => {
 
     // Rail (unsichtbar unter xl) UND Drawer zeigen die Details an.
     expect((await screen.findAllByText('seed 7')).length).toBe(2);
+  });
+});
+
+/**
+ * Aufgabe 4 — Integrierte Abnahme fuer P-Video 2: Modellauswahl, Parameter-
+ * transport (inkl. Auto-Dauer) und Wiederholung mit eingefrorenem Request.
+ * fetch ist hier (anders als in der Smoke-Suite oben) ein echter Spy, weil
+ * der Sendefluss selbst geprüft wird, nicht nur das Rendering.
+ */
+describe('PlaygroundShell generate flow: P-Video 2', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
+    mockHooks({ entries: [DUMMY_MODEL, P_VIDEO_2_MODEL] });
+    (window.matchMedia as jest.Mock).mockImplementation((query: string) => ({
+      matches: query.includes('1280'),
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
+    // L-K.2: ein Pruna-Lauf fragt einmal per window.confirm nach, ob der
+    // Nutzer die Nicht-Abbrechbarkeit akzeptiert. Hier schon bestaetigt, sonst
+    // haengt der Sendefluss am (in jsdom nicht gemockten) Dialog.
+    localStorage.setItem('heyhi_pruna_irreversible_ack', '1');
+  });
+
+  /** t2i (Vorgabe) -> t2v wechseln, wo im Fixture-Katalog nur P-Video 2 steht. */
+  async function selectPVideo2(user: ReturnType<typeof userEvent.setup>) {
+    await waitFor(() => expect(screen.queryByText('Lädt…')).not.toBeInTheDocument());
+    await user.click(screen.getByRole('tab', { name: 't2v' }));
+    await waitFor(() => expect(screen.getAllByText('P-Video 2').length).toBeGreaterThan(0));
+  }
+
+  it('sendet P-Video 2 mit Parametern und speichert das Ergebnis als Video mit Modell-ID', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('asset-p-video-2');
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ videoUrl: 'https://x/out.mp4' }),
+    });
+
+    const user = userEvent.setup();
+    render(<PlaygroundShell />);
+    await selectPVideo2(user);
+
+    // Automatische Dauer an: die feste Dauer verschwindet aus dem Regler und
+    // muss aus BEIDEN Request-Ebenen verschwinden (oberste Ebene und params).
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: '1080p' }));
+    await user.click(screen.getByRole('button', { name: '48 fps' }));
+    await user.type(screen.getByLabelText('Prompt'), 'ein Zeitraffer über der Stadt');
+    await user.click(screen.getByRole('button', { name: 'Senden' }));
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBe(1));
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe('/api/generate');
+    const body = JSON.parse(init.body);
+    expect(body.model).toBe('p-video-2');
+    expect(body.resolution).toBe('1080p');
+    expect(body.duration).toBeUndefined();
+    expect(body.params.duration_auto).toBeUndefined();
+    expect(body.params.duration).toBeUndefined();
+    expect(body.params).toMatchObject({ resolution: '1080p', fps: '48', aspect_ratio: '16:9' });
+
+    // Das gespeicherte Ergebnis traegt die Modell-ID und ist als Video markiert;
+    // die Composer-Parameter (inkl. duration_auto) bleiben fuer "Nochmal" erhalten
+    // — nur der upstream-Request wurde bereinigt, nicht der gesicherte Zustand.
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({
+      url: 'https://x/out.mp4',
+      prompt: 'ein Zeitraffer über der Stadt',
+      modelId: 'p-video-2',
+      isVideo: true,
+      params: expect.objectContaining({ duration_auto: true, resolution: '1080p', fps: '48' }),
+    }));
+  });
+
+  it('Erneut versuchen sendet den eingefrorenen Request — Auto-Dauer bleibt trotz Parameteränderung ausgelassen', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('asset-p-video-2');
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      json: async () => ({ error: 'upstream kaputt' }),
+    });
+
+    const user = userEvent.setup();
+    render(<PlaygroundShell />);
+    await selectPVideo2(user);
+
+    // Erster Versuch mit Auto-Dauer an — schlaegt fehl.
+    await user.click(screen.getByRole('checkbox'));
+    await user.type(screen.getByLabelText('Prompt'), 'ein Zeitraffer über der Stadt');
+    await user.click(screen.getByRole('button', { name: 'Senden' }));
+    await screen.findByRole('button', { name: 'Erneut versuchen' });
+
+    const firstBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(firstBody.duration).toBeUndefined();
+    expect(firstBody.params.duration_auto).toBeUndefined();
+    expect(firstBody.params.duration).toBeUndefined();
+
+    // Der Nutzer aendert den Composer, BEVOR er den Neuversuch anstoesst:
+    // Auto-Dauer wieder aus (feste Dauer waere jetzt Teil eines neuen Sends)
+    // und ein neuer Auflösungswert.
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: '1080p' }));
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ videoUrl: 'https://x/out.mp4' }),
+    });
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBe(2));
+    const retryBody = JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body);
+    // Der Retry ist der eingefrorene erste Request, nicht der veraenderte
+    // Composer-Zustand: identischer Body, weiterhin ohne Dauer-Felder.
+    expect(retryBody).toEqual(firstBody);
+    expect(retryBody.resolution).not.toBe('1080p');
+    expect(retryBody.duration).toBeUndefined();
+    expect(retryBody.params.duration_auto).toBeUndefined();
+    expect(retryBody.params.duration).toBeUndefined();
   });
 });
