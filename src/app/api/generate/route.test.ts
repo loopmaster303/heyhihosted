@@ -1401,4 +1401,171 @@ describe('/api/generate route', () => {
       'test-pruna-key',
     );
   });
+
+  // ── P-Video 2 (Aufgabe 3: Regressionsschutz gegen die Route) ────────────
+  // Mapping/Registrierung stammen aus Aufgabe 1/2; diese Tests prüfen nur den
+  // Route-Vertrag (Dauer-Validierung, BYOP-Fehler, Referenzbilder, 202-Pfad).
+
+  it.each([1, 20])('accepts p-video-2 duration boundary %s seconds', async (duration) => {
+    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: `https://pruna.ai/gen/p-video-2-${duration}` });
+    downloadPrunaResultMock.mockResolvedValueOnce({
+      buffer: Buffer.from('fake-video'),
+      contentType: 'video/mp4',
+    });
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: `https://media.pollinations.ai/p-video-2-${duration}` }),
+    });
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({ prompt: 'duration boundary', model: 'p-video-2', duration }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(generateViaPrunaMock).toHaveBeenCalledWith(
+      'p-video-2',
+      expect.objectContaining({ duration }),
+      expect.any(AbortSignal),
+      'test-pruna-key',
+    );
+  });
+
+  it.each([0, 20.5, 21])('rejects invalid p-video-2 duration %s before Pruna dispatch', async (duration) => {
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({ prompt: 'invalid duration', model: 'p-video-2', duration }),
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatch(/invalid duration.*p-video-2/i);
+    expect(generateViaPrunaMock).not.toHaveBeenCalled();
+  });
+
+  it('accepts p-video-2 without an explicit duration (provider decides length)', async () => {
+    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/p-video-2-auto' });
+    downloadPrunaResultMock.mockResolvedValueOnce({
+      buffer: Buffer.from('fake-video'),
+      contentType: 'video/mp4',
+    });
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'https://media.pollinations.ai/p-video-2-auto' }),
+    });
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({ prompt: 'auto duration', model: 'p-video-2' }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(generateViaPrunaMock).toHaveBeenCalledWith(
+      'p-video-2',
+      expect.objectContaining({ duration: undefined }),
+      expect.any(AbortSignal),
+      'test-pruna-key',
+    );
+  });
+
+  it('returns the existing missing-Pruna-key error for p-video-2 without a Pollinations fallback', async () => {
+    delete (process.env as any).PRUNA_API_KEY;
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({ prompt: 'byop missing', model: 'p-video-2' }),
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string; code?: string };
+
+    expect(response.status).toBe(503);
+    expect(body.error).toMatch(/p-video-2 requires a Pruna key/i);
+    expect(body.code).toBe('MISSING_PRUNA_KEY');
+    expect(generateViaPrunaMock).not.toHaveBeenCalled();
+    expect(generatePollinationsImageMock).not.toHaveBeenCalled();
+    expect(videoUrlMock).not.toHaveBeenCalled();
+  });
+
+  it('forwards start and end frame images to Pruna for p-video-2', async () => {
+    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/p-video-2-frames' });
+    downloadPrunaResultMock.mockResolvedValueOnce({
+      buffer: Buffer.from('fake-video'),
+      contentType: 'video/mp4',
+    });
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'https://media.pollinations.ai/p-video-2-frames' }),
+    });
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({
+        prompt: 'start to end',
+        model: 'p-video-2',
+        image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+      }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(generateViaPrunaMock).toHaveBeenCalledWith(
+      'p-video-2',
+      expect.objectContaining({
+        image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+      }),
+      expect.any(AbortSignal),
+      'test-pruna-key',
+    );
+  });
+
+  it('returns 202 with the p-video-2 model id for a pending Pruna prediction', async () => {
+    generateViaPrunaMock.mockResolvedValueOnce({ predictionId: 'pred-p-video-2-1' });
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({ prompt: 'long run', model: 'p-video-2', duration: 12 }),
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { pending: boolean; predictionId: string; model: string };
+
+    expect(response.status).toBe(202);
+    expect(body).toEqual({ pending: true, predictionId: 'pred-p-video-2-1', model: 'p-video-2' });
+  });
+
+  // Die Route validiert nur die Top-Level-Dauer und reicht `params` unveraendert
+  // weiter — dass der Mapper die Top-Level-Dauer gegenueber einem widerspruechlichen
+  // params.duration bevorzugt, deckt src/lib/pruna/client.test.ts mit echtem Mapping ab.
+  it('forwards a validated top-level duration alongside a conflicting params.duration for p-video-2', async () => {
+    generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/p-video-2-conflict' });
+    downloadPrunaResultMock.mockResolvedValueOnce({
+      buffer: Buffer.from('fake-video'),
+      contentType: 'video/mp4',
+    });
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'https://media.pollinations.ai/p-video-2-conflict' }),
+    });
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({
+        prompt: 'conflicting duration',
+        model: 'p-video-2',
+        duration: 5,
+        params: { duration: 99 },
+      }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(generateViaPrunaMock).toHaveBeenCalledWith(
+      'p-video-2',
+      expect.objectContaining({ duration: 5, params: { duration: 99 } }),
+      expect.any(AbortSignal),
+      'test-pruna-key',
+    );
+  });
 });

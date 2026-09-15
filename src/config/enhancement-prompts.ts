@@ -1436,6 +1436,10 @@ export const MODEL_ALIASES: Record<string, string> = {
   // Ideogram
   'ideogram': 'ideogram-v4-turbo',
   'ideogram-v4': 'ideogram-v4-turbo',
+  // P-Video 2 — eigener Generierungs-Contract (Aufgabe 1/2), aber dieselbe
+  // Motion-Blueprint-Anleitung wie P-Video. Nur die Prompt-Auswahl aliasiert;
+  // die Generierungs-ID 'p-video-2' bleibt in pruna-models.ts unangetastet.
+  'p-video-2': 'p-video',
   // Audio — die Aliase muessen vor der Audio-Abzweigung aufgeloest werden,
   // sonst bekommt 'stable-audio' den DEFAULT samt Bild-Laengenlimit.
   // 'ace-step' braucht keinen Alias: es ist selbst der kanonische Key
