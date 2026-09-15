@@ -165,6 +165,23 @@ describe('model-source', () => {
     expect(e.supportsReference).toBe(true);
   });
 
+  // p-video-2 bekommt dieselben Video-Faehigkeiten wie p-video, bleibt aber
+  // ein eigenstaendiger Eintrag: keine gleichnamige Pollinations-Dopplung,
+  // weil isPrunaModel() den Namen fuer sich beansprucht.
+  it('p-video-2 gets end-frame and audio capabilities, no pollinations duplicate', () => {
+    const entries = buildPrunaEntries();
+    const pv2 = entries.find((m) => m.id === 'p-video-2');
+    expect(pv2).toBeDefined();
+    expect(pv2?.kind).toBe('video');
+    expect(pv2?.supportsEndFrame).toBe(true);
+    expect(pv2?.supportsAudio).toBe(true);
+    expect(pv2?.referenceMode).toBe('start-end-frame');
+    expect(pv2?.maxImages).toBe(2);
+
+    const pollEntries = buildPollinationsEntries([{ name: 'p-video-2', output_modalities: ['video'] }]);
+    expect(pollEntries.map((m) => m.id)).not.toContain('p-video-2');
+  });
+
   it('uses name as id when title is missing', () => {
     const [e] = buildPollinationsEntries([{
       name: 'my-model',

@@ -95,6 +95,33 @@ describe('ParamControls', () => {
     expect(screen.getByText(/5s/i)).toBeInTheDocument();
   });
 
+  it('p-video-2 hides the fixed duration when Automatische Dauer is on', () => {
+    const schema = schemaFor('p-video-2')!;
+    const vals = defaultsFor(schema);
+    const { rerender } = render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
+    expect(screen.getByText('Dauer')).toBeInTheDocument();
+    expect(screen.getByText('Automatische Dauer')).toBeInTheDocument();
+
+    const withAuto: ParamValues = { ...vals, duration_auto: true };
+    rerender(<ParamControls schema={schema} values={withAuto} onChange={() => {}} uploadCount={0} />);
+    expect(screen.queryByText('Dauer')).not.toBeInTheDocument();
+    expect(screen.getByText('Automatische Dauer')).toBeInTheDocument();
+  });
+
+  it('p-video-2 hides the aspect ratio once a reference image is set', () => {
+    const schema = schemaFor('p-video-2')!;
+    const vals = defaultsFor(schema);
+    render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
+    expect(screen.getByText('Seitenverhältnis')).toBeInTheDocument();
+  });
+
+  it('p-video-2 hides the aspect ratio once a reference image is set (with image)', () => {
+    const schema = schemaFor('p-video-2')!;
+    const vals: ParamValues = { ...defaultsFor(schema), image: 'https://x/a.jpg' };
+    render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={1} />);
+    expect(screen.queryByText('Seitenverhältnis')).not.toBeInTheDocument();
+  });
+
   it('emits boolean changes', () => {
     const schema = schemaFor('zimage')!;
     const vals = defaultsFor(schema);

@@ -2,6 +2,7 @@ import { buildGenerateBody, buildGenerateHeaders } from './generate-request';
 
 const modelPruna: any = { id: 'wan-i2v', provider: 'pruna', kind: 'video', supportsReference: true, requiresReference: true, maxImages: 2, referenceMode: 'start-end-frame', unmapped: false, name: 'Wan I2V', supportsEndFrame: true, supportsAudio: false, paidOnly: true };
 const modelPollen: any = { id: 'flux', provider: 'pollinations', kind: 'image', supportsReference: false, requiresReference: false, maxImages: 0, unmapped: false, name: 'Flux', supportsEndFrame: false, supportsAudio: false, paidOnly: false };
+const modelPVideo2: any = { id: 'p-video-2', provider: 'pruna', kind: 'video', supportsReference: true, requiresReference: false, maxImages: 2, referenceMode: 'start-end-frame', unmapped: false, name: 'P-Video 2', supportsEndFrame: true, supportsAudio: true, paidOnly: true };
 
 const baseState: any = { mode: 't2i', modelId: null, prompt: 'hi', params: {}, uploads: [], sourceVideo: null };
 
@@ -55,6 +56,44 @@ describe('buildGenerateBody', () => {
   it('passes sourceVideo when set', () => {
     const withVideo = buildGenerateBody({ ...baseState, sourceVideo: 'https://a/v.mp4' }, modelPruna);
     expect(withVideo.video).toBe('https://a/v.mp4');
+  });
+});
+
+describe('buildGenerateBody for p-video-2', () => {
+  it('transports a fixed duration unchanged and drops the UI-only duration_auto flag from params', () => {
+    const state: any = { ...baseState, params: { duration: 10, duration_auto: false, resolution: '720p' } };
+    const body = buildGenerateBody(state, modelPVideo2);
+    expect(body.duration).toBe(10);
+    expect(body.params).toEqual({ duration: 10, resolution: '720p' });
+  });
+
+  it('removes duration entirely when duration_auto is true, without mutating state.params', () => {
+    const state: any = { ...baseState, params: { duration: 10, duration_auto: true, resolution: '720p' } };
+    const originalParams = state.params;
+    const body = buildGenerateBody(state, modelPVideo2);
+    expect(body.duration).toBeUndefined();
+    expect(body.params).toEqual({ resolution: '720p' });
+    expect(body.params).not.toHaveProperty('duration_auto');
+    expect(body.params).not.toHaveProperty('duration');
+    // Originalzustand bleibt unveraendert — fuer Wiederholung/Bedienelemente.
+    expect(state.params).toBe(originalParams);
+    expect(state.params).toEqual({ duration: 10, duration_auto: true, resolution: '720p' });
+  });
+
+  it('keeps the chosen seconds when switching back to manual', () => {
+    const state: any = { ...baseState, params: { duration: 12, duration_auto: false } };
+    const body = buildGenerateBody(state, modelPVideo2);
+    expect(body.duration).toBe(12);
+    expect(body.params).toEqual({ duration: 12 });
+  });
+
+  it('does not clean params for other models', () => {
+    const body = buildGenerateBody(
+      { ...baseState, params: { duration: 10, duration_auto: true } },
+      modelPruna,
+    );
+    expect(body.params).toEqual({ duration: 10, duration_auto: true });
+    expect(body.duration).toBe(10);
   });
 });
 

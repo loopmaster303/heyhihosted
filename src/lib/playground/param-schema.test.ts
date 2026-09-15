@@ -125,6 +125,70 @@ describe('param-schema', () => {
   });
 });
 
+describe('p-video-2', () => {
+  it('has the same start/end reference roles as p-video', () => {
+    const schema = schemaFor('p-video-2');
+    expect(schema?.images).toEqual({ min: 0, max: 2, roles: ['Start', 'Ende'] });
+  });
+
+  it('offers seconds from 1 to 20, default 5', () => {
+    const schema = schemaFor('p-video-2')!;
+    const duration = schema.groups.flatMap((g) => g.fields).find((f) => f.name === 'duration');
+    expect(duration?.kind).toBe('seconds');
+    if (duration?.kind === 'seconds') {
+      expect(duration.options).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+    }
+    expect(defaultsFor(schema).duration).toBe(5);
+  });
+
+  it('exposes resolution and frame rate as explicit controls', () => {
+    const schema = schemaFor('p-video-2')!;
+    const names = schema.groups.flatMap((g) => g.fields.map((f) => f.name));
+    expect(names).toContain('resolution');
+    expect(names).toContain('fps');
+    const fps = schema.groups.flatMap((g) => g.fields).find((f) => f.name === 'fps');
+    expect(fps?.kind).toBe('enum');
+    if (fps?.kind === 'enum') {
+      expect(fps.options.map((o) => o.value)).toEqual(['24', '48']);
+    }
+    expect(defaultsFor(schema).fps).toBe('24');
+  });
+
+  it('keeps draft, save_audio, prompt_upsampling and seed like p-video', () => {
+    const schema = schemaFor('p-video-2')!;
+    const names = schema.groups.flatMap((g) => g.fields.map((f) => f.name));
+    expect(names).toEqual(expect.arrayContaining(['draft', 'save_audio', 'prompt_upsampling', 'seed']));
+    const d = defaultsFor(schema);
+    expect(d.draft).toBe(false);
+    expect(d.save_audio).toBe(true);
+    expect(d.prompt_upsampling).toBe(true);
+    expect(d.seed).toBe(0);
+  });
+
+  // 'Automatische Dauer' ist ein reines UI-Feld: bei true entfaellt die feste
+  // Dauer, der Provider bestimmt die Laenge selbst.
+  it('duration_auto hides the fixed duration field', () => {
+    const schema = schemaFor('p-video-2')!;
+    const d = defaultsFor(schema);
+    expect(d.duration_auto).toBe(false);
+    expect(visibleFields(schema, d).map((f) => f.name)).toContain('duration');
+
+    const withAuto: ParamValues = { ...d, duration_auto: true };
+    expect(visibleFields(schema, withAuto).map((f) => f.name)).not.toContain('duration');
+  });
+
+  // Ein Referenzbild bestimmt laut Provider-Dokumentation das Seitenverhaeltnis
+  // selbst, wie bei p-video.
+  it('a reference image hides the aspect ratio field', () => {
+    const schema = schemaFor('p-video-2')!;
+    const d = defaultsFor(schema);
+    expect(visibleFields(schema, d).map((f) => f.name)).toContain('aspect_ratio');
+
+    const withImage: ParamValues = { ...d, image: 'https://x/a.jpg' };
+    expect(visibleFields(schema, withImage).map((f) => f.name)).not.toContain('aspect_ratio');
+  });
+});
+
 describe('schemaForPollinations', () => {
   function entry(over: Partial<PlaygroundModelEntry> = {}): PlaygroundModelEntry {
     return {

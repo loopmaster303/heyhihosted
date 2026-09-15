@@ -69,8 +69,8 @@ const PRUNA_REQUIRES_REF: ReadonlySet<string> = new Set([
   'wan-i2v',
 ]);
 
-const PRUNA_SUPPORTS_END_FRAME: ReadonlySet<string> = new Set(['wan-i2v', 'p-video']);
-const PRUNA_SUPPORTS_AUDIO: ReadonlySet<string> = new Set(['p-video']);
+const PRUNA_SUPPORTS_END_FRAME: ReadonlySet<string> = new Set(['wan-i2v', 'p-video', 'p-video-2']);
+const PRUNA_SUPPORTS_AUDIO: ReadonlySet<string> = new Set(['p-video', 'p-video-2']);
 
 export function buildPrunaEntries(): PlaygroundModelEntry[] {
   return PRUNA_MODEL_IDS
