@@ -50,8 +50,17 @@ jest.mock('@/components/ui/popup', () => ({
   ModalPopup: ({ children, open }: { children: React.ReactNode; open?: boolean }) => (open ? <div>{children}</div> : null),
 }));
 
+// value/onValueChange statt value/onChange — der reale Slider ist Radix.
+// Ungefiltert durchgereicht (`{...props}`) landen beide als unbekannte
+// DOM-Attribute auf dem <input> und React beschwert sich doppelt (unbekanntes
+// Event-Handler-Property, dazu ein value ohne onChange). p-video-2 ist das
+// erste Modell in dieser Datei mit einem "seconds"-Feld (Dauer) und damit das
+// erste, das den Slider ueberhaupt rendert — die uebrigen Tests trifft das
+// nicht. Gleiche Uebersetzung wie in ParamControls.test.tsx.
 jest.mock('@/components/ui/slider', () => ({
-  Slider: (props: Record<string, unknown>) => <input type="range" {...props} />,
+  Slider: ({ value, onValueChange }: { value: number[]; onValueChange: (v: number[]) => void }) => (
+    <input type="range" value={value[0]} onChange={(e) => onValueChange([Number(e.target.value)])} />
+  ),
 }));
 
 // P-Video 2's Schema zeigt "Automatische Dauer" als boolesches Feld im
@@ -182,12 +191,19 @@ describe('PlaygroundShell smoke', () => {
     }));
   });
 
-  it('renders without crashing while the model list is loading', () => {
+  it('renders without crashing while the model list is loading', async () => {
     mockHooks({ entries: [], loading: true });
     render(<PlaygroundShell />);
 
     expect(screen.getByText('Lädt…')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Senden' })).toBeDisabled();
+
+    // Gallery laedt unabhaengig vom Modell-Ladezustand per (gemocktem)
+    // db.assets...toArray() nach — ein `await` in ihrem useEffect. Ohne
+    // diesen Abschluss abzuwarten, laeuft dieser (ohnehin schon synchrone)
+    // Test durch, bevor der Microtask feuert, und React meldet ein
+    // State-Update ausserhalb von act() im naechsten Test.
+    expect(await screen.findByText('flux')).toBeInTheDocument();
   });
 
   it('renders every core control once a model is loaded', async () => {
@@ -427,5 +443,10 @@ describe('PlaygroundShell generate flow: P-Video 2', () => {
     expect(retryBody.duration).toBeUndefined();
     expect(retryBody.params.duration_auto).toBeUndefined();
     expect(retryBody.params.duration).toBeUndefined();
+
+    // Der erfolgreiche Retry speichert wie ein Erstversuch. Das hier
+    // abzuwarten haelt den anschliessenden Galerie-Refresh (setGalleryKey)
+    // noch innerhalb des Tests, statt ihn unbeobachtet auslaufen zu lassen.
+    await waitFor(() => expect(OutputService.saveGeneratedAsset).toHaveBeenCalledTimes(1));
   });
 });
