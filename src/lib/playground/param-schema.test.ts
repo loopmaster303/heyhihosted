@@ -22,6 +22,7 @@ describe('param-schema', () => {
   });
 
   it('defaults are within allowed ranges when visible', () => {
+    const offenders: string[] = [];
     for (const id of PLAYGROUND_PRUNA_IDS) {
       const schema = schemaFor(id)!;
       const d = defaultsFor(schema);
@@ -30,27 +31,29 @@ describe('param-schema', () => {
         if (field.default === undefined) continue;
         const val = d[field.name];
         if (val === undefined) {
-          throw new Error(`FAIL: ${id}.${field.name} kind=${field.kind} default=${field.default} keys=${Object.keys(d).join(',')}`);
+          offenders.push(`${id}.${field.name}: default ${field.default} has no value (keys=${Object.keys(d).join(',')})`);
+          continue;
         }
         if (val !== field.default) {
-          throw new Error(`FAIL: ${id}.${field.name} val=${val} !== default=${field.default}`);
+          offenders.push(`${id}.${field.name}: value ${JSON.stringify(val)} !== default ${JSON.stringify(field.default)}`);
+          continue;
         }
         if (field.kind === 'number') {
-          if (typeof val !== 'number') throw new Error(`FAIL: ${id}.${field.name} not number`);
-          if (val < field.min) throw new Error(`FAIL: ${id}.${field.name} ${val} < ${field.min}`);
-          if (val > field.max) throw new Error(`FAIL: ${id}.${field.name} ${val} > ${field.max}`);
+          if (typeof val !== 'number') offenders.push(`${id}.${field.name}: not a number`);
+          else if (val < field.min) offenders.push(`${id}.${field.name}: ${val} < ${field.min}`);
+          else if (val > field.max) offenders.push(`${id}.${field.name}: ${val} > ${field.max}`);
         }
         if (field.kind === 'seconds') {
-          if (typeof val !== 'number') throw new Error(`FAIL: ${id}.${field.name} not number`);
-          if (!field.options.includes(val)) throw new Error(`FAIL: ${id}.${field.name} ${val} not in ${field.options.join(',')}`);
+          if (typeof val !== 'number') offenders.push(`${id}.${field.name}: not a number`);
+          else if (!field.options.includes(val)) offenders.push(`${id}.${field.name}: ${val} not in [${field.options.join(',')}]`);
         }
         if (field.kind === 'enum') {
           const values = field.options.map((o) => o.value);
-          if (!values.includes(val as string)) throw new Error(`FAIL: ${id}.${field.name} ${val} not in ${values.join(',')}`);
+          if (!values.includes(val as string)) offenders.push(`${id}.${field.name}: ${val} not in [${values.join(',')}]`);
         }
       }
     }
-    expect(true).toBe(true);
+    expect(offenders).toEqual([]);
   });
 
   // The visibility-scoped check above skips fields behind a showIf, which is how
