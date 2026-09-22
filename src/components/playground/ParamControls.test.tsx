@@ -115,11 +115,19 @@ describe('ParamControls', () => {
     expect(screen.getByText('Seitenverhältnis')).toBeInTheDocument();
   });
 
-  it('p-video-2 hides the aspect ratio once a reference image is set (with image)', () => {
+  it('p-video-2 hides the aspect ratio once a reference upload exists (runtime state)', () => {
     const schema = schemaFor('p-video-2')!;
-    const vals: ParamValues = { ...defaultsFor(schema), image: 'https://x/a.jpg' };
-    render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={1} />);
+    const vals = defaultsFor(schema);
+    const { rerender } = render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
+    expect(screen.getByText('Seitenverhältnis')).toBeInTheDocument();
+
+    // Referenzbilder liegen in state.uploads (uploadCount), nicht in params.image —
+    // der params-Bag bleibt leer. Der Regler muss trotzdem weichen.
+    rerender(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={1} />);
     expect(screen.queryByText('Seitenverhältnis')).not.toBeInTheDocument();
+
+    rerender(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
+    expect(screen.getByText('Seitenverhältnis')).toBeInTheDocument();
   });
 
   it('emits boolean changes', () => {
