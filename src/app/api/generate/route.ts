@@ -216,17 +216,23 @@ export async function POST(request: Request) {
       );
     }
 
-    if (prunaEligible && duration !== undefined) {
+    // params.duration ist der alternative Traeger fuer p-video-2: der Adapter
+    // faellt darauf zurueck, wenn die Top-Level-Dauer fehlt. Er muss dieselbe
+    // Bereichspruefung passieren wie die Top-Level-Dauer, sonst liefe ein
+    // ungepruefter Wert an den Provider.
+    const effectiveDuration = duration ?? (typeof params?.duration === 'number' ? params.duration : undefined);
+
+    if (prunaEligible && effectiveDuration !== undefined) {
       const temporalControl = modelInfo?.temporalControl;
 
       if (temporalControl?.mode === 'seconds') {
-        const stepsFromMinimum = (duration - temporalControl.min) / temporalControl.step;
+        const stepsFromMinimum = (effectiveDuration - temporalControl.min) / temporalControl.step;
         const isStepAligned = Math.abs(stepsFromMinimum - Math.round(stepsFromMinimum)) < 1e-9;
-        const isAllowedOption = !temporalControl.options || temporalControl.options.includes(duration);
+        const isAllowedOption = !temporalControl.options || temporalControl.options.includes(effectiveDuration);
 
         if (
-          duration < temporalControl.min
-          || duration > temporalControl.max
+          effectiveDuration < temporalControl.min
+          || effectiveDuration > temporalControl.max
           || !isStepAligned
           || !isAllowedOption
         ) {
@@ -237,7 +243,7 @@ export async function POST(request: Request) {
           );
         }
       } else if (temporalControl?.mode === 'frame-backed-seconds') {
-        if (!temporalControl.secondOptions.includes(duration)) {
+        if (!temporalControl.secondOptions.includes(effectiveDuration)) {
           throw new ApiError(
             400,
             `Invalid duration for ${canonicalModelId}: expected one of ${temporalControl.secondOptions.join(', ')} seconds`,

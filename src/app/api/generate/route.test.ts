@@ -1069,6 +1069,25 @@ describe('/api/generate route', () => {
     expect(generateViaPrunaMock).not.toHaveBeenCalled();
   });
 
+  it('rejects p-video-2 params.duration outside range before Pruna dispatch', async () => {
+    // params.duration ist der alternative Traeger: ohne Top-Level-Dauer liefe
+    // der Wert sonst ungeprueft durch den Adapter an den Provider.
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({
+        prompt: 'params duration bypass',
+        model: 'p-video-2',
+        params: { duration: 99 },
+      }),
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatch(/invalid duration.*p-video-2/i);
+    expect(generateViaPrunaMock).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['wan-t2v', 5],
     ['wan-t2v', 6],
@@ -1535,9 +1554,10 @@ describe('/api/generate route', () => {
     expect(body).toEqual({ pending: true, predictionId: 'pred-p-video-2-1', model: 'p-video-2' });
   });
 
-  // Die Route validiert nur die Top-Level-Dauer und reicht `params` unveraendert
-  // weiter — dass der Mapper die Top-Level-Dauer gegenueber einem widerspruechlichen
-  // params.duration bevorzugt, deckt src/lib/pruna/client.test.ts mit echtem Mapping ab.
+  // Die Route validiert die effektive Dauer: Top-Level-Dauer, sonst
+  // params.duration. Der Mapper bevorzugt die Top-Level-Dauer gegenueber einem
+  // widerspruechlichen params.duration — das deckt src/lib/pruna/client.test.ts
+  // mit echtem Mapping ab.
   it('forwards a validated top-level duration alongside a conflicting params.duration for p-video-2', async () => {
     generateViaPrunaMock.mockResolvedValueOnce({ generationUrl: 'https://pruna.ai/gen/p-video-2-conflict' });
     downloadPrunaResultMock.mockResolvedValueOnce({
