@@ -391,6 +391,20 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
   },
+  'p-video-2-pro': {
+    id: 'p-video-2-pro',
+    name: 'P-Video 2 Pro',
+    outputType: 'video',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'aspect_ratio', default: '16:9' },
+      { name: 'resolution', default: '768p' },
+      { name: 'mode', default: 'speed' },
+      { name: 'prompt_upsampler', default: 'turbo' },
+      { name: 'seed' },
+      { name: 'output_format', default: 'mp4', hidden: true },
+    ],
+  },
   'grok-imagine': {
     id: 'grok-imagine',
     name: 'Grok Imagine',

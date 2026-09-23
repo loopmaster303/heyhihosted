@@ -20,6 +20,7 @@ import {
 } from '@/config/unified-image-models';
 import { unifiedModelConfigs } from '@/config/unified-model-configs';
 import { getPrunaModelMapping } from '@/config/pruna-models';
+import { imageModelIcons } from '@/config/ui-constants';
 
   test('visual reference limits match enabled upstream model capabilities', () => {
     expect(getUnifiedModel('gpt-image')).toEqual(expect.objectContaining({ maxImages: 16 }));
@@ -279,6 +280,58 @@ describe('model invariants', () => {
       enabled: true,
       temporalControl: { mode: 'seconds', min: 1, max: 20, step: 1, defaultSeconds: 5 },
     }));
+  });
+
+  test('P-Video 2 Pro is an enabled BYOP-visible start/end Pruna video model', () => {
+    const model = getUnifiedModel('p-video-2-pro');
+    expect(model).toEqual(expect.objectContaining({
+      id: 'p-video-2-pro',
+      name: 'P-Video 2 Pro',
+      provider: 'pruna',
+      kind: 'video',
+      enabled: true,
+      isFree: false,
+      byopVisible: true,
+      supportsReference: true,
+      maxImages: 2,
+      supportsAudio: true,
+      supportsEndFrame: true,
+      referenceMode: 'start-end-frame',
+      temporalControl: { mode: 'seconds', min: 5, max: 15, step: 1, defaultSeconds: 5 },
+    }));
+    expect(getReferenceMode(model!)).toBe('start-end-frame');
+    expect(getPrunaModelMapping('p-video-2-pro')).toEqual(expect.objectContaining({
+      prunaModel: 'p-video-2-pro',
+      mode: 'async',
+      isVideo: true,
+    }));
+    expect(imageModelIcons['p-video-2-pro']).toBeDefined();
+  });
+
+  test('P-Video 2 Pro has a dedicated config without an audio input', () => {
+    expect(unifiedModelConfigs['p-video-2-pro']).toEqual(expect.objectContaining({
+      id: 'p-video-2-pro',
+      name: 'P-Video 2 Pro',
+      outputType: 'video',
+    }));
+
+    const inputNames = unifiedModelConfigs['p-video-2-pro'].inputs.map(input => input.name);
+    expect(inputNames).toEqual(expect.arrayContaining([
+      'prompt',
+      'aspect_ratio',
+      'resolution',
+      'mode',
+      'prompt_upsampler',
+      'seed',
+    ]));
+    expect(inputNames).not.toEqual(expect.arrayContaining([
+      'audio',
+      'fps',
+      'draft',
+      'save_audio',
+      'duration_auto',
+      'prompt_upsampling',
+    ]));
   });
 
   test('every unified Pruna model has an explicit Pruna adapter mapping', () => {

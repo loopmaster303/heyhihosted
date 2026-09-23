@@ -66,6 +66,7 @@ export const PRUNA_MODEL_IDS = [
   'p-image-edit',
   'p-video',
   'p-video-2',
+  'p-video-2-pro',
   'p-image-try-on',
   'p-image-upscale',
   'p-video-avatar',
@@ -81,6 +82,10 @@ const P_IMAGE_ASPECT_RATIOS = new Set([...IMAGE_ASPECT_RATIOS, 'custom']);
 const QWEN_EDIT_ASPECT_RATIOS = new Set([...IMAGE_ASPECT_RATIOS, 'match_input_image']);
 const WAN_VIDEO_ASPECT_RATIOS = new Set(['16:9', '9:16']);
 const WAN_IMAGE_SMALL_ASPECT_RATIOS = new Set([...IMAGE_ASPECT_RATIOS, '21:9']);
+const P_VIDEO_2_PRO_ASPECT_RATIOS = IMAGE_ASPECT_RATIOS;
+const P_VIDEO_2_PRO_RESOLUTIONS = new Set(['480p', '768p']);
+const P_VIDEO_2_PRO_MODES = new Set(['speed', 'quality', 'cost']);
+const P_VIDEO_2_PRO_PROMPT_UPSAMPLERS = new Set(['off', 'turbo', 'max']);
 const WAN_IMAGE_SMALL_MIN_DIMENSION = 256;
 const WAN_IMAGE_SMALL_MAX_DIMENSION = 896;
 const P_IMAGE_MIN_DIMENSION = 256;
@@ -569,6 +574,62 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         if (images[1]) input.last_frame_image = images[1];
       }
 
+      return input;
+    },
+  },
+
+  // ── P-Video 2 Pro (own mapping, own contract — see docs.api.pruna.ai/guides/models/p-video-2-pro) ──
+  // Pro has fixed 24 fps generated audio and no safety/audio/fps controls.
+  // Keep this allowlist separate from P-Video 2: its `mode` is an input value,
+  // while the mapping's `mode` remains the async transport selector.
+  'p-video-2-pro': {
+    prunaModel: 'p-video-2-pro',
+    mode: 'async',
+    isVideo: true,
+    defaultParams: {
+      duration: 5,
+      resolution: '768p',
+      mode: 'speed',
+      prompt_upsampler: 'turbo',
+      aspect_ratio: '16:9',
+    },
+    buildInput: (f) => {
+      const params = f.params ?? {};
+      const images = Array.isArray(f.image) ? f.image : (f.image ? [f.image] : []);
+      const duration = f.duration ?? params.duration ?? 5;
+      const resolution = typeof params.resolution === 'string' && P_VIDEO_2_PRO_RESOLUTIONS.has(params.resolution)
+        ? params.resolution
+        : '768p';
+      const mode = typeof params.mode === 'string' && P_VIDEO_2_PRO_MODES.has(params.mode)
+        ? params.mode
+        : 'speed';
+      const promptUpsampler = typeof params.prompt_upsampler === 'string' && P_VIDEO_2_PRO_PROMPT_UPSAMPLERS.has(params.prompt_upsampler)
+        ? params.prompt_upsampler
+        : 'turbo';
+      const aspectRatio = allowedAspectRatio(
+        f.aspectRatio ?? (typeof params.aspect_ratio === 'string' ? params.aspect_ratio : undefined),
+        P_VIDEO_2_PRO_ASPECT_RATIOS,
+        '16:9',
+      );
+
+      const input: Record<string, unknown> = {
+        prompt: f.prompt,
+        duration,
+        resolution,
+        mode,
+        prompt_upsampler: promptUpsampler,
+      };
+
+      // Reference frames define the provider's image area; do not send an
+      // aspect ratio alongside them. An empty array is text-to-video.
+      if (images.length === 0) {
+        input.aspect_ratio = aspectRatio;
+      } else {
+        input.image = images[0];
+        if (images[1]) input.last_frame_image = images[1];
+      }
+
+      if (f.seed !== undefined) input.seed = f.seed;
       return input;
     },
   },
