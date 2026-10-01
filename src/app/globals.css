@@ -345,9 +345,12 @@ html, body {
 
 /* Kleine Knoepfe, volle Trefferflaeche: am Touchgeraet waechst die Flaeche
    unsichtbar auf 44 px, ohne dass der Knopf groesser aussieht. */
-@media (pointer: coarse) {
-  .touch-hit { position: relative; }
-  .touch-hit::after { content: ''; position: absolute; inset: -4px; }
+@layer components {
+  /* In der Komponenten-Ebene, damit `absolute`/`fixed` am Knopf gewinnen. */
+  @media (pointer: coarse) {
+    .touch-hit { position: relative; }
+    .touch-hit::after { content: ''; position: absolute; inset: -4px; }
+  }
 }
 
 /*
@@ -410,4 +413,81 @@ html, body {
 @keyframes composer-sweep { to { rotate: 360deg; } }
 @media (prefers-reduced-motion: reduce) {
   .composer-sweep::before { animation: none; }
+}
+
+/*
+ * Panels — die Optik der frueheren Seitenleiste (AppSidebar, bis 2026-10-01):
+ * durchscheinendes Glas statt Flaeche, ein Hintergrund, der nur leicht
+ * verschwimmt statt schwarz zu werden, Abschnittskoepfe in Versalien,
+ * ruhige lila Glasknoepfe, runde Felder. Das Verhalten (Sheet, Adresse,
+ * Zurueck, Wischen) bleibt das der Huelle.
+ */
+@layer components {
+  .panel-overlay {
+    background: rgba(255, 255, 255, 0.05);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+  :root:not(.dark) .panel-overlay { background: rgba(60, 30, 110, 0.06); }
+
+  .panel-glass {
+    background: hsl(var(--sidebar-background) / 0.85);
+    -webkit-backdrop-filter: blur(40px) saturate(1.2);
+    backdrop-filter: blur(40px) saturate(1.2);
+    border-color: hsl(var(--sidebar-border) / 0.5);
+    box-shadow: var(--glass-shadow), 0 24px 64px -24px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Abschnittskopf: klein, Versalien, gesperrt, mit Zeichen davor. */
+  .panel-heading {
+    @apply flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70;
+  }
+  .panel-heading > svg { @apply h-3.5 w-3.5 shrink-0; }
+
+  .panel-label {
+    @apply flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  /* Ein Eintrag in einer Liste: Pille mit unsichtbarem Rand, aktiv lila. */
+  .panel-item {
+    @apply rounded-xl border border-transparent transition-colors duration-fast;
+  }
+  .panel-item:hover { @apply bg-primary/5; }
+  .panel-item[aria-current='true'] { @apply border-primary/20 bg-primary/10 shadow-sm; }
+
+  /* Die Hauptaktion eines Panels: lila Glas, kein Vollton. */
+  .panel-action {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/15 text-xs font-medium text-foreground shadow-glow-primary transition-colors duration-fast hover:bg-primary/25;
+  }
+  .panel-action:focus-visible { @apply outline-none ring-2 ring-ring; }
+
+  /* Nebenaktion: nur Rand. */
+  .panel-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-border/60 text-xs text-foreground/80 transition-colors duration-fast hover:border-primary/30 hover:bg-primary/5 hover:text-foreground disabled:opacity-40;
+  }
+  .panel-ghost:focus-visible { @apply outline-none ring-2 ring-ring; }
+
+  /* Eine Gruppe von Feldern, die zusammengehoeren (ein Konto). */
+  .panel-card { @apply rounded-2xl border border-primary/10 bg-primary/5; }
+
+  /* Felder: rund, dunkler Grund, lila Rand im Fokus. */
+  .panel-field {
+    @apply h-9 w-full rounded-full border border-border/60 bg-background/50 px-4 text-sm text-foreground transition-colors duration-fast placeholder:text-muted-foreground/60;
+  }
+  .panel-field:focus-visible { @apply border-primary/50 outline-none ring-1 ring-primary/30; }
+  textarea.panel-field { @apply h-auto rounded-2xl py-2.5; }
+  /* Auswahl: eigener Pfeil mit Abstand — der native klebt sonst am runden Rand. */
+  select.panel-field {
+    appearance: none;
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b8597' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+  }
+  @media (pointer: coarse) {
+    /* Touch: 44 px hoch und 16 px Schrift, sonst zoomt iOS beim Fokus. */
+    .panel-field { height: 2.75rem; font-size: 16px; }
+    textarea.panel-field { height: auto; }
+    .panel-action, .panel-ghost { min-height: 2.75rem; }
+  }
 }

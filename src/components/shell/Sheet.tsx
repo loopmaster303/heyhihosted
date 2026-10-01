@@ -17,6 +17,8 @@ interface SheetProps {
    */
   side: SheetSide;
   title: string;
+  /** Zeichen vor dem Titel, wie in den Abschnittskoepfen der alten Seitenleiste. */
+  icon?: React.ReactNode;
   description?: string;
   /** Zusaetzliche Knoepfe in der Kopfzeile, links vom Schliessen. */
   headerActions?: React.ReactNode;
@@ -38,6 +40,7 @@ export function Sheet({
   onOpenChange,
   side,
   title,
+  icon,
   description,
   headerActions,
   children,
@@ -52,30 +55,32 @@ export function Sheet({
   return (
     <Vaul.Root open={open} onOpenChange={onOpenChange} direction={direction} shouldScaleBackground={false}>
       <Vaul.Portal>
-        <Vaul.Overlay className="fixed inset-0 z-40 bg-black/40" />
+        <Vaul.Overlay className="panel-overlay fixed inset-0 z-40" />
         <Vaul.Content
           className={cn(
-            'fixed z-50 flex flex-col bg-popover text-popover-foreground outline-none',
-            'shadow-[0_12px_48px_-12px_rgba(0,0,0,0.45)]',
-            direction === 'left' && 'inset-y-0 left-0 w-[min(88vw,22rem)] border-r border-border pt-[env(safe-area-inset-top)]',
-            direction === 'right' && 'inset-y-0 right-0 w-[min(92vw,28rem)] border-l border-border pt-[env(safe-area-inset-top)]',
-            isBottom && 'inset-x-0 bottom-0 max-h-[88dvh] rounded-t-3xl border-t border-border pb-[env(safe-area-inset-bottom)]',
+            'panel-glass fixed z-50 flex flex-col text-foreground outline-none',
+            direction === 'left' && 'inset-y-0 left-0 w-[min(90vw,20rem)] border-r pt-[env(safe-area-inset-top)] md:w-72',
+            direction === 'right' && 'inset-y-0 right-0 w-[min(92vw,26rem)] border-l pt-[env(safe-area-inset-top)]',
+            isBottom && 'inset-x-0 bottom-0 max-h-[88dvh] rounded-t-[28px] border-t pb-[env(safe-area-inset-bottom)]',
             className,
           )}
         >
-          {isBottom && <Vaul.Handle className="mx-auto mt-3 !h-1.5 !w-12 shrink-0 !bg-muted-foreground/30" />}
-          <header className="flex shrink-0 items-center gap-2 px-4 pb-2 pt-3">
-            <Vaul.Title className="flex-1 truncate text-base font-semibold">{title}</Vaul.Title>
+          {isBottom && <Vaul.Handle className="mx-auto mt-3 !h-1 !w-10 shrink-0 !bg-muted-foreground/30" />}
+          <header className="flex shrink-0 items-center gap-2 px-4 pb-3 pt-4">
+            <Vaul.Title className="panel-heading min-w-0 flex-1 truncate">
+              {icon}
+              <span className="truncate">{title}</span>
+            </Vaul.Title>
             {headerActions}
             <Vaul.Close
-              className="press grid h-11 w-11 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="press touch-hit grid h-8 w-8 place-items-center rounded-full text-muted-foreground/70 transition-colors duration-fast hover:bg-primary/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={closeLabel}
             >
-              <X className="h-5 w-5" aria-hidden="true" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </Vaul.Close>
           </header>
           {description ? (
-            <Vaul.Description className="px-4 pb-2 text-sm text-muted-foreground">{description}</Vaul.Description>
+            <Vaul.Description className="px-4 pb-2 text-xs text-muted-foreground">{description}</Vaul.Description>
           ) : (
             <Vaul.Description className="sr-only">{title}</Vaul.Description>
           )}

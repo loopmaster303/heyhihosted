@@ -2,7 +2,7 @@
 
 import React, { useId, useMemo, useState } from 'react';
 import { useTheme } from 'next-themes';
-import { LogOut, Zap } from 'lucide-react';
+import { Bot, KeyRound, LogOut, Palette, Settings2, UserPen, Volume2, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet } from './Sheet';
 import { usePollenKey } from '@/hooks/usePollenKey';
@@ -115,8 +115,8 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   const c = COPY[language === 'en' ? 'en' : 'de'];
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} side="right" title={c.title}>
-      <div className="flex flex-col gap-7 pb-6">
+    <Sheet open={open} onOpenChange={onOpenChange} side="right" title={c.title} icon={<Settings2 aria-hidden="true" />}>
+      <div className="flex flex-col gap-6 pb-6">
         <AccountsSection c={c} />
         <PersonSection c={c} />
         <ModelsSection c={c} />
@@ -127,24 +127,24 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-4" aria-label={title}>
-      <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{title}</h3>
+    <section className="flex flex-col gap-3" aria-label={title}>
+      <h3 className="panel-heading px-1">{icon}{title}</h3>
       {children}
     </section>
   );
 }
 
-const fieldClass = 'h-11 w-full rounded-xl border border-input bg-background px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm';
+const fieldClass = 'panel-field';
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: (id: string) => React.ReactNode }) {
   const id = useId();
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium">{label}</label>
+      <label htmlFor={id} className="panel-label px-1">{label}</label>
       {children(id)}
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      {hint && <p className="px-1 text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   );
 }
@@ -178,10 +178,10 @@ function AccountsSection({ c }: { c: Copy }) {
       : pollen.isConnected ? c.connected : c.notConnected;
 
   return (
-    <Section title={c.accounts}>
-      <div className="flex flex-col gap-3 rounded-2xl bg-muted/40 p-4">
+    <Section title={c.accounts} icon={<KeyRound aria-hidden="true" />}>
+      <div className="panel-card flex flex-col gap-2.5 p-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Pollinations</span>
+          <span className="text-xs font-semibold">Pollinations</span>
           <StatusDot tone={pollenTone} />
           <span className="text-xs text-muted-foreground" role="status">{pollenLabel}</span>
         </div>
@@ -192,14 +192,14 @@ function AccountsSection({ c }: { c: Copy }) {
                 {c.balance}: <span className="font-mono tabular-nums">{pollen.accountInfo.balance.toLocaleString()}</span> Pollen
               </p>
             )}
-            <button type="button" onClick={pollen.disconnect} className="press inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <button type="button" onClick={pollen.disconnect} className="panel-ghost press h-9">
               <LogOut className="h-4 w-4" aria-hidden="true" />
               {c.disconnect}
             </button>
           </>
         ) : (
           <>
-            <button type="button" onClick={pollen.connectOAuth} className="press inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover">
+            <button type="button" onClick={pollen.connectOAuth} className="panel-action press h-9">
               <Zap className="h-4 w-4" aria-hidden="true" />
               {c.connectOAuth}
             </button>
@@ -222,23 +222,23 @@ function AccountsSection({ c }: { c: Copy }) {
                 autoComplete="off"
                 className={cn(fieldClass, 'font-mono')}
               />
-              <button type="submit" disabled={!pollenInput.trim()} className="press h-11 shrink-0 rounded-xl border border-border px-4 text-sm hover:bg-muted disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <button type="submit" disabled={!pollenInput.trim()} className="panel-ghost press h-9 shrink-0 px-4">
                 {c.connect}
               </button>
             </form>
           </>
         )}
-        <p className="text-xs text-muted-foreground">{c.pollenHint}</p>
+        <p className="text-[11px] text-muted-foreground">{c.pollenHint}</p>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl bg-muted/40 p-4">
+      <div className="panel-card flex flex-col gap-2.5 p-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Pruna</span>
+          <span className="text-xs font-semibold">Pruna</span>
           <StatusDot tone={pruna.isConnected ? 'ok' : 'warn'} />
           <span className="text-xs text-muted-foreground" role="status">{pruna.isConnected ? c.connected : c.notConnected}</span>
         </div>
         {pruna.isConnected ? (
-          <button type="button" onClick={pruna.disconnect} className="press inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={pruna.disconnect} className="panel-ghost press h-9">
             <LogOut className="h-4 w-4" aria-hidden="true" />
             {c.disconnect}
           </button>
@@ -263,14 +263,14 @@ function AccountsSection({ c }: { c: Copy }) {
                 autoComplete="off"
                 className={cn(fieldClass, 'font-mono')}
               />
-              <button type="submit" disabled={!prunaInput.trim()} className="press h-11 shrink-0 rounded-xl border border-border px-4 text-sm hover:bg-muted disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <button type="submit" disabled={!prunaInput.trim()} className="panel-ghost press h-9 shrink-0 px-4">
                 {c.connect}
               </button>
             </div>
             {prunaInvalid && <p className="text-xs text-destructive" role="alert">{c.invalid}</p>}
           </form>
         )}
-        <p className="text-xs text-muted-foreground">{c.prunaHint}</p>
+        <p className="text-[11px] text-muted-foreground">{c.prunaHint}</p>
       </div>
     </Section>
   );
@@ -283,7 +283,7 @@ function PersonSection({ c }: { c: Copy }) {
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>('customSystemPrompt', '');
 
   return (
-    <Section title={c.person}>
+    <Section title={c.person} icon={<UserPen aria-hidden="true" />}>
       <Field label={c.name}>
         {(id) => <input id={id} value={name} onChange={(e) => setName(e.target.value)} autoComplete="nickname" className={fieldClass} />}
       </Field>
@@ -308,7 +308,7 @@ function PersonSection({ c }: { c: Copy }) {
             value={customSystemPrompt}
             onChange={(e) => setCustomSystemPrompt(e.target.value)}
             rows={3}
-            className={cn(fieldClass, 'h-auto min-h-[5.5rem] resize-y py-2.5')}
+            className={cn(fieldClass, 'min-h-[5.5rem] resize-y')}
           />
         )}
       </Field>
@@ -325,7 +325,7 @@ function ModelsSection({ c }: { c: Copy }) {
   const communityId = useId();
 
   return (
-    <Section title={c.models}>
+    <Section title={c.models} icon={<Bot aria-hidden="true" />}>
       <Field label={c.textModel}>
         {(id) => (
           <select id={id} value={defaultTextModelId} onChange={(e) => setDefaultTextModelId(e.target.value)} className={cn(fieldClass, 'font-mono')}>
@@ -346,8 +346,8 @@ function ModelsSection({ c }: { c: Copy }) {
       </Field>
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <label htmlFor={communityId} className="text-sm font-medium">{c.community}</label>
-          <p className="text-xs text-muted-foreground">{c.communityHint}</p>
+          <label htmlFor={communityId} className="panel-label">{c.community}</label>
+          <p className="text-[11px] text-muted-foreground">{c.communityHint}</p>
         </div>
         <input
           id={communityId}
@@ -366,7 +366,7 @@ function ModelsSection({ c }: { c: Copy }) {
 function VoiceSection({ c }: { c: Copy }) {
   const { selectedVoice, selectedTtsSpeed, handleVoiceChange, handleTtsSpeedChange } = useChatModes();
   return (
-    <Section title={c.voice}>
+    <Section title={c.voice} icon={<Volume2 aria-hidden="true" />}>
       <Field label={c.voiceName}>
         {(id) => (
           <select id={id} value={selectedVoice} onChange={(e) => handleVoiceChange(e.target.value)} className={fieldClass}>
@@ -393,7 +393,7 @@ function LookSection({ c }: { c: Copy }) {
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
   return (
-    <Section title={c.look}>
+    <Section title={c.look} icon={<Palette aria-hidden="true" />}>
       <Field label={c.theme}>
         {(id) => (
           <select id={id} value={theme ?? 'system'} onChange={(e) => setTheme(e.target.value)} className={fieldClass}>

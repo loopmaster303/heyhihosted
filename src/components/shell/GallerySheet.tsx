@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Image as ImageIcon } from 'lucide-react';
 import { Sheet } from './Sheet';
 import { useShell } from './ShellContext';
 import { GalleryPanel } from '@/components/gallery/GalleryPanel';
@@ -37,7 +38,7 @@ export function GallerySheet({ open, onOpenChange }: GallerySheetProps) {
   const gallery = useGalleryAssets(origins);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} side="right" title={t('shell.gallery')} bodyClassName="px-0 pb-0">
+    <Sheet open={open} onOpenChange={onOpenChange} side="right" title={t('shell.gallery')} icon={<ImageIcon aria-hidden="true" />} bodyClassName="px-0 pb-0">
       <GalleryPanel
         assets={gallery.assets}
         totalAssetCount={gallery.totalInScope}

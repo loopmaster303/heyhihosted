@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { MessageSquarePlus, Trash2 } from 'lucide-react';
+import { History, Info, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet } from './Sheet';
 import { useShell } from './ShellContext';
@@ -36,20 +36,27 @@ export function HistorySheet({ open, onOpenChange }: HistorySheetProps) {
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} side="left" title={t('shell.history')} bodyClassName="px-2">
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      side="left"
+      title={t('shell.history')}
+      icon={<History aria-hidden="true" />}
+      bodyClassName="px-3"
+    >
       <button
         type="button"
         onClick={() => { startNewChat(); finish(); }}
-        className="press mb-3 flex h-11 w-full items-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover"
+        className="panel-action press mb-5 h-9 w-full"
       >
-        <MessageSquarePlus className="h-4 w-4" aria-hidden="true" />
+        <Plus className="h-4 w-4" aria-hidden="true" />
         {t('shell.newChat')}
       </button>
 
       {conversations.length === 0 ? (
-        <p className="px-2 py-6 text-sm text-muted-foreground">{t('chat.noHistory')}</p>
+        <p className="px-2 py-4 text-xs text-muted-foreground">{t('chat.noHistory')}</p>
       ) : (
-        <ul className="flex flex-col gap-0.5" aria-label={t('shell.history')}>
+        <ul className="flex flex-col gap-1" aria-label={t('shell.history')}>
           {conversations.map((conv) => {
             const isActive = activeConversation?.id === conv.id;
             return (
@@ -58,14 +65,15 @@ export function HistorySheet({ open, onOpenChange }: HistorySheetProps) {
                   type="button"
                   onClick={() => { void selectChat(conv.id); finish(); }}
                   aria-current={isActive ? 'true' : undefined}
-                  className={cn(
-                    'flex min-h-11 flex-1 items-center gap-3 rounded-xl px-3 py-2 pr-12 text-left text-sm transition-colors duration-fast',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    isActive ? 'bg-primary/12 text-foreground' : 'text-foreground/85 hover:bg-muted',
-                  )}
+                  className="panel-item flex min-h-11 flex-1 flex-col justify-center px-3 py-2 pr-11 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <span className="min-w-0 flex-1 truncate">{conv.title}</span>
-                  <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  <span className={cn(
+                    'w-full truncate text-xs font-medium',
+                    isActive ? 'text-primary' : 'text-foreground/80 group-hover:text-foreground',
+                  )}>
+                    {conv.title}
+                  </span>
+                  <span className="mt-0.5 font-mono text-[10px] tabular-nums text-muted-foreground/60">
                     {relativeTime(conv.updatedAt, t)}
                   </span>
                 </button>
@@ -73,9 +81,9 @@ export function HistorySheet({ open, onOpenChange }: HistorySheetProps) {
                   type="button"
                   onClick={() => deleteChat(conv.id)}
                   aria-label={`${t('action.delete')}: ${conv.title}`}
-                  className="reveal-on-hover absolute right-1 grid h-10 w-10 place-items-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="reveal-on-hover touch-hit absolute right-1.5 grid h-8 w-8 place-items-center rounded-lg text-muted-foreground/50 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </li>
             );
@@ -83,8 +91,12 @@ export function HistorySheet({ open, onOpenChange }: HistorySheetProps) {
         </ul>
       )}
 
-      <div className="mt-6 border-t border-border px-2 pt-3">
-        <Link href="/about" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+      <div className="mt-6 border-t border-sidebar-border/50 pt-3">
+        <Link
+          href="/about"
+          className="panel-item flex h-9 items-center gap-2 px-3 text-xs text-foreground/75 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Info className="h-4 w-4" aria-hidden="true" />
           {t('shell.about')}
         </Link>
       </div>
