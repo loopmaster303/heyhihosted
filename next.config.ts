@@ -1,7 +1,5 @@
 import type { NextConfig } from 'next';
 
-const CREATE_HOST = 'create.hey-hi.cloud';
-
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -31,36 +29,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
-  // Zwei unabhängige Umleitungen:
-  //
-  // 1. Der alte Routenpfad. Create liegt seit 2026-08-29 unter '/create';
-  //    '/playground' war die Adresse davor und steht in Lesezeichen und in
-  //    geteilten Links. permanent: false, damit eine spätere Korrektur nicht
-  //    in fremden Browser-Caches festhängt.
-  //
-  // 2. create.hey-hi.cloud -> chat.hey-hi.cloud/create. Ein Redirect statt eines
-  //    Rewrites, damit Chat und Create denselben Browser-Ursprung teilen (IndexedDB /
-  //    localStorage sind pro Ursprung getrennt). Reihenfolge zählt: '/' muss vor
-  //    '/:path*' stehen. Greift nur unter dem echten Host — localhost und
-  //    Preview-Deployments bleiben unberührt. Die Domain existiert heute nicht
-  //    (NXDOMAIN, geprüft 2026-08-29); die Regeln liegen bereit, falls sie kommt.
+  // Der alte Routenpfad. Create liegt seit 2026-08-29 unter '/create';
+  // '/playground' steht noch in Lesezeichen und geteilten Links. permanent: false,
+  // damit eine spätere Korrektur nicht in fremden Browser-Caches festhängt.
   async redirects() {
     return [
       {
         source: '/playground',
         destination: '/create',
-        permanent: false,
-      },
-      {
-        source: '/',
-        has: [{ type: 'host', value: CREATE_HOST }],
-        destination: 'https://chat.hey-hi.cloud/create',
-        permanent: false,
-      },
-      {
-        source: '/:path*',
-        has: [{ type: 'host', value: CREATE_HOST }],
-        destination: 'https://chat.hey-hi.cloud/:path*',
         permanent: false,
       },
     ];

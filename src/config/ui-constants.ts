@@ -23,8 +23,8 @@ import ElevenLabsIcon from '../assets/icons-models/elevenlabsfarbe.png';
 import AceStepIcon from '../assets/icons-models/acestepfarbe.png';
 import StabilityIcon from '../assets/icons-models/stabilityfarbe.png';
 
-import AmazonNovaIcon from '../assets/icons-models/Amazon Nova.png';
-import StepAIIcon from '../assets/icons-models/Step AI logo.png';
+import AmazonNovaIcon from '../assets/icons-models/amazon-nova.png';
+import StepAIIcon from '../assets/icons-models/step-ai.png';
 
 // Model Icon Mapping (LLM)
 export const modelIcons: Record<string, any> = {
