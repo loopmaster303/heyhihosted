@@ -4,6 +4,8 @@ import { SlidersHorizontal, X } from 'lucide-react';
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { PlaygroundSidebar, PlaygroundSidebarContent } from '@/components/playground/PlaygroundSidebar';
 import { useShell } from '@/components/shell/ShellContext';
+import { toast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { PromptBar } from '@/components/playground/PromptBar';
 import { Gallery, type GalleryItem, type GalleryRun } from '@/components/playground/Gallery';
 import { MetaRail } from '@/components/playground/MetaRail';
@@ -164,6 +166,24 @@ export function PlaygroundShell() {
   const [enhancing, setEnhancing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const openSettings = () => shell.openPanel('settings');
+  // Ein Lauf, der endet, waehrend du im Chat bist, meldet sich (E13). Der Ref
+  // traegt den aktuellen Raum in die laufenden async-Laeufe — deren Closure
+  // stammt aus dem Render, in dem sie gestartet wurden.
+  const spaceRef = useRef(shell.space);
+  useEffect(() => {
+    spaceRef.current = shell.space;
+  }, [shell.space]);
+  const announceIfAway = (title: string) => {
+    if (spaceRef.current === 'create') return;
+    toast({
+      title,
+      action: (
+        <ToastAction altText="Create öffnen" onClick={() => shell.goToSpace('create')}>
+          Ansehen
+        </ToastAction>
+      ),
+    });
+  };
   const [selected, setSelected] = useState<GalleryItem | null>(null);
   const [galleryKey, setGalleryKey] = useState(0);
   const [error, setError] = useState<string | undefined>();
@@ -424,6 +444,7 @@ export function PlaygroundShell() {
       }
       setRuns((rs) => rs.filter((r) => r.id !== run.id));
       setGalleryKey((k) => k + 1);
+      announceIfAway(kind === 'video' ? 'Video fertig' : 'Bild fertig');
       // Der Ladelauf der Galerie baut aus dem gespeicherten Blob eine eigene
       // URL (Kontext 'playground-gallery'). Ohne diese Freigabe haelt jeder
       // Pruna-Lauf ohne Pollen-Token seinen Blob bis zum Reload im Speicher —
@@ -462,6 +483,7 @@ export function PlaygroundShell() {
       return;
     }
     const err = e as Error & { raw?: string; aktion?: ErrorDescription['aktion'] };
+    announceIfAway('Ein Lauf in Create ist gescheitert');
     setRuns((rs) => rs.map((r) => (
       r.id === run.id
         ? { ...r, status: 'failed', message: err.message, raw: err.raw, aktion: err.aktion }
@@ -635,12 +657,14 @@ export function PlaygroundShell() {
         }
         setSoundRuns((rs) => rs.filter((r) => r.id !== run.id));
         setGalleryKey((k) => k + 1);
+        announceIfAway('Sound fertig');
       } catch (e) {
         if ((e as Error).name === 'AbortError') {
           setSoundRuns((rs) => rs.filter((r) => r.id !== run.id));
           return;
         }
         const err = e as Error & { raw?: string };
+        announceIfAway('Ein Lauf in Create ist gescheitert');
         setSoundRuns((rs) => rs.map((r) => (
           r.id === run.id
             ? { ...r, status: 'failed', message: err.message, raw: err.raw }
@@ -828,7 +852,7 @@ export function PlaygroundShell() {
       <div className="grid min-h-0 grid-cols-1 md:grid-cols-[300px_1fr]">
         <PlaygroundSidebar {...sidebarProps} />
 
-        <main className="grid min-h-0 min-w-0 grid-rows-[1fr_auto]">
+        <section aria-label="Ergebnisse und Eingabe" className="grid min-h-0 min-w-0 grid-rows-[1fr_auto]">
           <div className="grid min-h-0 grid-cols-1 xl:grid-cols-[1fr_296px]">
             <Gallery
               selectedId={selected?.id ?? null}
@@ -911,7 +935,7 @@ export function PlaygroundShell() {
                 }
               : {})}
           />
-        </main>
+        </section>
       </div>
 
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} direction="left">

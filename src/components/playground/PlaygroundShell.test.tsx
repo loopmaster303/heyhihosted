@@ -59,6 +59,25 @@ jest.mock('@/hooks/useProviderMode', () => ({ useProviderMode: jest.fn() }));
 jest.mock('@/hooks/useHasPollenKey', () => ({ useHasPollenKey: () => true }));
 jest.mock('@/hooks/useHasPrunaKey', () => ({ useHasPrunaKey: () => false }));
 
+// Der Erzeugungsweg fuer den Fertig-Hinweis: eine fertige JSON-Antwort, ein
+// gespeichertes Asset, ein beobachtbarer Toast.
+jest.mock('@/lib/generation/request-generation', () => ({
+  requestGeneration: jest.fn(async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => 'application/json' },
+    json: async () => ({ imageUrl: 'https://x/neu.png' }),
+  })),
+  pollPrediction: jest.fn(),
+}));
+jest.mock('@/lib/services/output-service', () => ({
+  OutputService: { saveGeneratedAsset: jest.fn(async () => 'neu-1') },
+}));
+jest.mock('@/hooks/use-toast', () => ({ toast: jest.fn() }));
+jest.mock('@/components/ui/toast', () => ({
+  ToastAction: ({ children }: { children: React.ReactNode }) => <button type="button">{children}</button>,
+}));
+
 jest.mock('@/lib/services/database', () => {
   const rows = [
     { id: 'g1', remoteUrl: 'https://x/g.png', prompt: 'gallery item', modelId: 'flux', conversationId: '__playground__', timestamp: 1, contentType: 'image/png', params: { seed: 7 } },
@@ -85,6 +104,7 @@ import { ShellContext } from '@/components/shell/ShellContext';
 import { usePlaygroundModels } from '@/hooks/usePlaygroundModels';
 import { usePollenKey } from '@/hooks/usePollenKey';
 import { useProviderMode } from '@/hooks/useProviderMode';
+import { toast } from '@/hooks/use-toast';
 
 const DUMMY_MODEL = {
   id: 'flux',
@@ -269,5 +289,51 @@ describe('PlaygroundShell smoke', () => {
 
     // Rail (unsichtbar unter xl) UND Drawer zeigen die Details an.
     expect((await screen.findAllByText('seed 7')).length).toBe(2);
+  });
+
+  function shellIn(space: 'chat' | 'create') {
+    return {
+      space,
+      goToSpace: jest.fn(),
+      panel: null,
+      openPanel: jest.fn(),
+      closePanel: jest.fn(),
+      createHandoff: null,
+      handoffToCreate: jest.fn(),
+      consumeHandoff: jest.fn(),
+      openLightbox: jest.fn(),
+    };
+  }
+
+  async function sendOnePrompt() {
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getAllByText('Dummy Flux').length).toBeGreaterThan(0));
+    await user.type(screen.getByLabelText('Prompt'), 'ein roter Fuchs');
+    await user.click(screen.getByRole('button', { name: 'Senden' }));
+  }
+
+  it('announces a finished run while you are in the chat (E13)', async () => {
+    render(
+      <ShellContext.Provider value={shellIn('chat')}>
+        <PlaygroundShell />
+      </ShellContext.Provider>,
+    );
+    await sendOnePrompt();
+
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Bild fertig' })));
+  });
+
+  it('stays quiet when the run finishes in front of you', async () => {
+    render(
+      <ShellContext.Provider value={shellIn('create')}>
+        <PlaygroundShell />
+      </ShellContext.Provider>,
+    );
+    await sendOnePrompt();
+
+    // Das Ergebnis ist gespeichert — erst dann waere ein Hinweis gefallen.
+    const { OutputService } = jest.requireMock('@/lib/services/output-service');
+    await waitFor(() => expect(OutputService.saveGeneratedAsset).toHaveBeenCalled());
+    expect(toast).not.toHaveBeenCalled();
   });
 });

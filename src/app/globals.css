@@ -230,11 +230,11 @@ h6 {
   }
 
   .glass-button {
-    @apply bg-primary/15 hover:bg-primary/25 backdrop-blur-xl text-foreground border border-glass-border shadow-sm transition-all duration-300;
+    @apply bg-primary/15 hover:bg-primary/25 backdrop-blur-xl text-foreground border border-glass-border shadow-sm transition-colors duration-med ease-out;
   }
 
   .glass-input {
-    @apply bg-glass-background/50 backdrop-blur-2xl border border-glass-border focus:ring-1 focus:ring-primary/30 transition-all duration-300;
+    @apply bg-glass-background/50 backdrop-blur-2xl border border-glass-border focus:ring-1 focus:ring-primary/30 transition-[border-color,box-shadow] duration-med ease-out;
   }
 
 
