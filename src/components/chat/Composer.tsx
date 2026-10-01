@@ -43,12 +43,12 @@ export function Composer({ autoFocus = false }: { autoFocus?: boolean }) {
   const busy = isAiResponding || isRecording || isTranscribing;
   const canSend = !busy && (!!chatInputValue.trim() || !!uploadedPreview);
 
-  // Die Textzeile waechst mit, bis 12 Zeilen.
+  // Die Textzeile waechst mit, bis etwa 9 Zeilen.
   useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(Math.max(el.scrollHeight, 44), 260)}px`;
+    el.style.height = `${Math.min(Math.max(el.scrollHeight, 42), 240)}px`;
   }, [chatInputValue]);
 
   const closeTray = useCallback((returnFocus = false) => {
@@ -108,11 +108,10 @@ export function Composer({ autoFocus = false }: { autoFocus?: boolean }) {
     <form
       ref={rootRef}
       onSubmit={(e) => { e.preventDefault(); submit(); }}
-      className={cn(
-        'relative w-full rounded-[28px] border border-border bg-card/90 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl',
-        'transition-[border-color,box-shadow] duration-med ease-out focus-within:border-primary/50 focus-within:shadow-[0_8px_32px_-12px_hsl(var(--primary)/0.35)]',
-      )}
+      className="composer-glass relative w-full rounded-[26px]"
     >
+      <div aria-hidden="true" className="composer-sweep" />
+
       {/* Ablage: klappt ueber der Textzeile auf (grid 0fr → 1fr animiert die Hoehe). */}
       <div
         className={cn(
@@ -121,12 +120,12 @@ export function Composer({ autoFocus = false }: { autoFocus?: boolean }) {
         )}
       >
         <div className="min-h-0 overflow-hidden" inert={!tray}>
-          <div id="composer-tray" role="region" aria-label={tray ? trayLabel(tray, t) : undefined} className="max-h-[45dvh] overflow-y-auto overscroll-contain px-3 pt-3">
+          <div id="composer-tray" role="region" aria-label={tray ? trayLabel(tray, t) : undefined} className="max-h-[45dvh] overflow-y-auto overscroll-contain px-2.5 pt-2.5">
             {tray === 'attach' && (
-              <div className="grid grid-cols-3 gap-2 pb-1">
-                <TrayAction icon={<ImagePlus className="h-5 w-5" />} label={t('chat.image')} onClick={() => imageInputRef.current?.click()} />
-                <TrayAction icon={<FileText className="h-5 w-5" />} label={t('chat.document')} onClick={() => docInputRef.current?.click()} />
-                <TrayAction icon={<Camera className="h-5 w-5" />} label={t('chat.camera')} onClick={() => { closeTray(); openCamera(); }} />
+              <div className="grid grid-cols-3 gap-1.5 pb-0.5">
+                <TrayAction icon={<ImagePlus className="h-4 w-4" />} label={t('chat.image')} onClick={() => imageInputRef.current?.click()} />
+                <TrayAction icon={<FileText className="h-4 w-4" />} label={t('chat.document')} onClick={() => docInputRef.current?.click()} />
+                <TrayAction icon={<Camera className="h-4 w-4" />} label={t('chat.camera')} onClick={() => { closeTray(); openCamera(); }} />
               </div>
             )}
             {tray === 'model' && (
@@ -136,7 +135,7 @@ export function Composer({ autoFocus = false }: { autoFocus?: boolean }) {
               />
             )}
             {tray === 'depth' && (
-              <div className="pb-1">
+              <div className="pb-0.5">
                 <ResearchDepthBadges
                   selectedModelId={selectedModelId}
                   onModelChange={(id) => { handleModelChange(id); closeTray(true); }}
@@ -180,47 +179,52 @@ export function Composer({ autoFocus = false }: { autoFocus?: boolean }) {
         autoFocus={autoFocus}
         enterKeyHint="send"
         disabled={isRecording || isTranscribing}
-        className="block w-full resize-none bg-transparent px-5 pb-1 pt-4 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-60"
+        className="relative z-[2] block w-full resize-none bg-transparent px-[18px] pb-1 pt-3.5 text-base leading-6 text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:opacity-60"
       />
 
-      <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5 pt-1">
-        <div className="flex min-w-0 items-center gap-1">
+      <div className="relative z-[2] flex items-center justify-between gap-1.5 px-2.5 pb-2.5">
+        <div className="flex min-w-0 items-center gap-0.5">
           <BarButton
             label={t('menu.section.upload')}
             expanded={tray === 'attach'}
             onClick={(e) => toggleTray('attach', e.currentTarget)}
             disabled={busy}
           >
-            <Plus className={cn('h-5 w-5 transition-transform duration-med ease-out', tray === 'attach' && 'rotate-45')} />
+            <Plus className={cn('h-4 w-4 transition-transform duration-med ease-out', tray === 'attach' && 'rotate-45')} />
           </BarButton>
           <ToggleChip
             label={t('composer.research')}
             pressed={webBrowsingEnabled}
             onClick={() => toggleWebBrowsing()}
-            icon={<Globe className="h-4 w-4" />}
+            icon={<Globe className="h-3.5 w-3.5" />}
           />
           <ToggleChip
             label={t('composer.code')}
             pressed={isCodeMode}
             onClick={() => toggleCodeMode()}
-            icon={<CodeXml className="h-4 w-4" />}
+            icon={<CodeXml className="h-3.5 w-3.5" />}
           />
           <button
             type="button"
             onClick={(e) => toggleTray(webBrowsingEnabled ? 'depth' : 'model', e.currentTarget)}
             aria-expanded={tray === 'model' || tray === 'depth'}
             aria-controls="composer-tray"
-            className="press flex h-11 min-w-0 items-center gap-1.5 rounded-full px-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={cn(
+              'press touch-hit flex h-9 min-w-0 items-center gap-1.5 rounded-full px-2.5 font-mono text-xs text-foreground/65',
+              'transition-colors duration-fast hover:bg-primary/10 hover:text-foreground',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              (tray === 'model' || tray === 'depth') && 'bg-primary/10 text-foreground',
+            )}
           >
             {webBrowsingEnabled ? (
-              <span className="truncate font-mono">{t(researchDepthLabelKey(depth))}</span>
+              <span className="truncate">{t(researchDepthLabelKey(depth))}</span>
             ) : (
               <>
-                <ModelLogo modelId={selectedModelId} />
-                <span className="hidden max-w-[9rem] truncate font-mono sm:inline">{modelName}</span>
+                <ModelLogo modelId={selectedModelId} className="h-4 w-4" />
+                <span className="max-w-[7.5rem] truncate sm:max-w-[14rem]">{modelName}</span>
               </>
             )}
-            <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" aria-hidden="true" />
+            <ChevronDown className="h-3 w-3 shrink-0 opacity-50" aria-hidden="true" />
             <span className="sr-only">{webBrowsingEnabled ? t('research.depth') : t('modelSelector.select')}</span>
           </button>
         </div>
@@ -234,20 +238,25 @@ export function Composer({ autoFocus = false }: { autoFocus?: boolean }) {
             className={isRecording ? 'text-destructive' : undefined}
           >
             {isTranscribing
-              ? <Loader2 className="h-5 w-5 animate-spin" />
-              : isRecording ? <Square className="h-4 w-4 fill-current" /> : <AudioWaveform className="h-5 w-5" />}
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : isRecording ? <Square className="h-3.5 w-3.5 fill-current" /> : <AudioWaveform className="h-4 w-4" />}
           </BarButton>
+          {/* Senden steht immer an seinem Platz — ruhig, solange es nichts zu
+              senden gibt, leuchtend, sobald etwas da ist. Nichts springt. */}
           <button
             type="submit"
             disabled={!canSend}
             aria-label={t('chat.send')}
             className={cn(
-              'press grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground transition-[opacity,transform] duration-fast ease-out',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card',
-              'disabled:opacity-30',
+              'press touch-hit grid h-9 w-9 shrink-0 place-items-center rounded-full border',
+              'transition-[background-color,border-color,box-shadow,color] duration-fast ease-out',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              canSend
+                ? 'border-primary/60 bg-primary text-primary-foreground shadow-[0_0_18px_-4px_hsl(var(--primary)/0.7)] hover:brightness-110'
+                : 'border-foreground/10 bg-transparent text-foreground/35',
             )}
           >
-            {isAiResponding ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+            {isAiResponding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
           </button>
         </div>
       </div>
@@ -284,8 +293,10 @@ function BarButton({ label, onClick, children, disabled, expanded, pressed, clas
       aria-controls={expanded !== undefined ? 'composer-tray' : undefined}
       aria-pressed={pressed}
       className={cn(
-        'press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground',
+        'press touch-hit grid h-9 w-9 shrink-0 place-items-center rounded-full text-foreground/60',
+        'transition-colors duration-fast hover:bg-primary/10 hover:text-foreground',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40',
+        expanded && 'bg-primary/10 text-foreground',
         className,
       )}
     >
@@ -294,6 +305,7 @@ function BarButton({ label, onClick, children, disabled, expanded, pressed, clas
   );
 }
 
+/** Ein Schalter im Mono-Ton der Leiste. Am Telefon nur das Zeichen. */
 function ToggleChip({ label, pressed, onClick, icon }: {
   label: string;
   pressed: boolean;
@@ -308,9 +320,12 @@ function ToggleChip({ label, pressed, onClick, icon }: {
       aria-label={label}
       title={label}
       className={cn(
-        'press flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm transition-colors duration-fast',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        pressed ? 'bg-primary/15 text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+        'press touch-hit flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full font-mono text-xs',
+        'w-9 sm:w-auto sm:px-2.5',
+        'transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        pressed
+          ? 'bg-primary/15 text-foreground ring-1 ring-inset ring-primary/35 [&>svg]:text-primary'
+          : 'text-foreground/60 hover:bg-primary/10 hover:text-foreground',
       )}
     >
       {icon}
@@ -324,7 +339,7 @@ function TrayAction({ icon, label, onClick }: { icon: React.ReactNode; label: st
     <button
       type="button"
       onClick={onClick}
-      className="press flex h-20 flex-col items-center justify-center gap-1.5 rounded-2xl bg-muted/50 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="press flex h-16 flex-col items-center justify-center gap-1 rounded-2xl bg-primary/[0.06] font-mono text-xs text-foreground/80 transition-colors duration-fast hover:bg-primary/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {icon}
       {label}

@@ -66,6 +66,7 @@ function ChatHero() {
  * darueber — ein Zustand, kein Seitenwechsel.
  */
 export function ChatSpace() {
+  const { t } = useLanguage();
   const conversation = useChatConversation();
   const composer = useChatComposer();
   const media = useChatMedia();
@@ -128,6 +129,9 @@ export function ChatSpace() {
       >
         <div className="mx-auto w-full max-w-3xl">
           <Composer />
+          <p className="mt-2 hidden text-center text-[11px] text-muted-foreground/70 lg:block">
+            {t('chat.disclaimer')}
+          </p>
         </div>
       </motion.div>
 

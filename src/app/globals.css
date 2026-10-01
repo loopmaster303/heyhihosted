@@ -342,3 +342,72 @@ html, body {
   .press:active { transform: scale(.97); }
 }
 .press { transition: transform var(--motion-fast) var(--ease-out); }
+
+/* Kleine Knoepfe, volle Trefferflaeche: am Touchgeraet waechst die Flaeche
+   unsichtbar auf 44 px, ohne dass der Knopf groesser aussieht. */
+@media (pointer: coarse) {
+  .touch-hit { position: relative; }
+  .touch-hit::after { content: ''; position: absolute; inset: -4px; }
+}
+
+/*
+ * Die Eingabe als Glas — die Optik der fruehern Prompt-Leiste (unified-input):
+ * ein lila Hauch von oben links ueber halbtransparentem Grund, starke
+ * Unschaerfe, eine Lichtkante oben, ein tiefer weicher Schatten. Im Fokus
+ * leuchtet der Rand, und ein Lichtstreif laeuft einmal in sechs Sekunden um.
+ */
+.composer-glass {
+  --composer-edge: inset 0 1px 0 0 rgba(179, 136, 255, 0.07), inset 0 -1px 0 0 rgba(0, 0, 0, 0.1);
+  --composer-drop: 0 8px 32px -8px rgba(0, 0, 0, 0.4), 0 2px 8px -2px rgba(0, 0, 0, 0.2);
+  border: 1px solid hsl(var(--primary) / 0.3);
+  background:
+    linear-gradient(169deg, rgba(179, 136, 255, 0.09) 0%, rgba(179, 136, 255, 0.025) 40%, rgba(179, 136, 255, 0) 70%),
+    rgba(var(--glass-bg-rgb), 0.55);
+  -webkit-backdrop-filter: blur(40px) saturate(1.3);
+  backdrop-filter: blur(40px) saturate(1.3);
+  box-shadow: var(--composer-edge), var(--composer-drop);
+  transition:
+    border-color var(--motion-med) var(--ease-out),
+    box-shadow var(--motion-med) var(--ease-out);
+}
+:root:not(.dark) .composer-glass {
+  --composer-edge: inset 0 1px 0 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 0 rgba(120, 80, 200, 0.06);
+  --composer-drop: 0 8px 32px -10px rgba(90, 50, 160, 0.22), 0 2px 8px -2px rgba(90, 50, 160, 0.08);
+}
+.composer-glass:hover { border-color: hsl(var(--primary) / 0.5); }
+.composer-glass:focus-within {
+  border-color: hsl(var(--primary) / 0.6);
+  box-shadow: var(--composer-edge), var(--composer-drop), 0 0 24px -6px hsl(var(--primary) / 0.45);
+}
+
+/* Der Lichtstreif: ein konischer Verlauf, auf den Rand maskiert. */
+.composer-sweep {
+  pointer-events: none;
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  padding: 1.5px;
+  opacity: 0;
+  transition: opacity var(--motion-slow) var(--ease-out);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box exclude, linear-gradient(#fff 0 0);
+}
+.composer-sweep::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 120%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: conic-gradient(from 0deg, transparent 0deg, hsl(var(--primary) / 0.85) 40deg, transparent 80deg);
+  animation: composer-sweep 6s linear infinite;
+}
+.composer-glass:focus-within .composer-sweep { opacity: 1; }
+@keyframes composer-sweep { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) {
+  .composer-sweep::before { animation: none; }
+}

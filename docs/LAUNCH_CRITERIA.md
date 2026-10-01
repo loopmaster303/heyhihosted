@@ -505,8 +505,9 @@ mindestens 24 × 24 px.
 Prüfweg: Bei 375 px Breite mit Touch-Emulation die Bedienelemente beider Räume und der drei
 Sheets ausmessen; dazu am Desktop die Nachrichtenaktionen.
 Herkunft: E14
-Status: offen — Hülle, Composer und Sheets sind auf 44 px gebaut, Create unter `md` seit
-Phase 6. Nicht systematisch gemessen.
+Status: offen — Hülle und Sheets sind auf 44 px gebaut, Create unter `md` seit Phase 6. Die
+Composer-Knöpfe sind sichtbar 36 px, am Touchgerät wächst ihre Trefferfläche unsichtbar
+auf 44 px (`.touch-hit`). Nicht systematisch gemessen.
 
 **L-N.4 — Kontrast**
 Kriterium: Text erreicht 4,5 : 1, große Schrift und Bedienelemente 3 : 1 — in beiden Themes,
