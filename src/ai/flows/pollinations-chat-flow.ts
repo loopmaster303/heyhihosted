@@ -120,7 +120,7 @@ export async function getPollinationsChatCompletion(
         model: target.name === 'legacy' ? mapModelForLegacy(payload.model) : payload.model,
       };
 
-      // Use httpsPost (Node.js https module) to bypass Next.js fetch patching
+      // httpsPost: fetch mit Zeitlimit (lib/https-post.ts)
       const httpResp = await httpsPost(
         target.url,
         headers,
