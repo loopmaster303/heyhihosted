@@ -9,6 +9,7 @@ import { useShell } from './ShellContext';
 import { useChatConversation } from '@/components/ChatProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { toDate } from '@/utils/chatHelpers';
+import { QuickToggles } from './QuickToggles';
 
 function relativeTime(value: string | Date | undefined, t: (key: string) => string): string {
   if (!value) return '';
@@ -42,6 +43,7 @@ export function HistorySheet({ open, onOpenChange }: HistorySheetProps) {
       side="left"
       title={t('shell.history')}
       icon={<History aria-hidden="true" />}
+      headerActions={<QuickToggles />}
       bodyClassName="px-3"
     >
       <button
