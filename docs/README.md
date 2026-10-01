@@ -18,10 +18,11 @@ add new documents there.
 
 ## Start Here
 
-- `PLAN-entschlackung-2026-10-01.md` — **proposal, not executed.** Full teardown of the
+- `PLAN-entschlackung-2026-10-01.md` — **proposal, not executed.** Part A: full teardown of the
   repo: dead code, ballast, duplicated model truth, docs. Keeps the Create workspace
   (with the local Video-2-Pro worktree state) untouched as **Playground Meck**; phase E0
-  — pushing that worktree — blocks everything else. Open decisions E-1 to E-5.
+  — pushing that worktree — blocks everything else. Part B (E9–E14): Create back into the chat shell — one surface, one sheet primitive,
+  motion tokens, native-app behaviour, WCAG 2.2 AA. Open decisions E-1 to E-8.
 - `FAHRPLAN-create.md` — **the active plan.** Ten phases toward the publicly shareable version, with the user's binding decisions on domain, gallery and music.
 - `PLAN-audit-patch-2026-08-29.md` — the audit findings from phases 0–3, cut into
   subagent-sized packages. **Executed on 2026-08-29** — see the two handoffs below.

@@ -1,4 +1,7 @@
-# PLAN — Entschlackung (2026-10-01)
+# PLAN — Entschlackung und eine Fläche (2026-10-01)
+
+**Teil A** (E0–E8): Entschlackung. **Teil B** (E9–E14): Create zurück in den Chat, eine
+Fläche, nativ und zugänglich.
 
 **Status:** Vorschlag. Nichts davon ist umgesetzt. Nach AGENTS.md wartet dieser Plan auf ein
 ausdrückliches „leg los“, und zwar je Phase.
@@ -41,8 +44,9 @@ Video und Sound, alle Modelle, Referenz-Slots, parallele Läufe, Reload-Fortsetz
 
 ### 1.2 Schutzregel für alle Phasen
 
-Diese Pfade gehören zum Playground Meck. Die Entschlackung **ändert dort keinen Funktionsumfang**,
-sie darf nur Importe umbiegen (in E6):
+Diese Pfade gehören zum Playground Meck. Die Entschlackung **ändert dort keinen Funktionsumfang**.
+Sie darf nur Importe umbiegen (E6), und Teil B darf den Playground in die gemeinsame Hülle
+umziehen und seine Panels auf den gemeinsamen Baustein stellen (E9, E10):
 
 | Bereich | Pfade |
 |---|---|
@@ -211,18 +215,19 @@ nicht. Diese Prüfung ist der erste Schritt von E7.
 ## 4. Zielbild
 
 ```
-heyhi
-├── Chat (/)                Text, Stimme, Research, ein Inline-Bild über [IMAGE_GEN]
-│                           mit festem freien Modell → „im Playground öffnen“
-├── Playground Meck         unverändert: Bild, Video (inkl. Video 2 Pro), Sound,
-│   (/create)               alle Modelle, Galerie
-└── Über (/about)           (→ E-4)
+heyhi — eine Hülle, eine Fläche (Teil B)
+├── Raum „Chat“   (/)        Text, Stimme, Research, ein Inline-Bild über [IMAGE_GEN]
+│                            → „in Create weiterarbeiten“
+├── Raum „Create“ (/create)  Playground Meck, Funktionsumfang unverändert: Bild,
+│                            Video (inkl. Video 2 Pro), Sound, alle Modelle
+├── Sheets                   Verlauf · Galerie · Einstellungen, ein Baustein
+└── Über (/about)            (→ E-4)
 
 src/config/models/          eine Karte je Modell, alle Ableitungen daraus
 docs/                       ≈ 6 lebende Dokumente + ein Archiv
 ```
 
-Leitsatz: **Ein Modell, eine Karte. Eine Funktion, ein Raum. Ein Dokument, eine Wahrheit.**
+Leitsatz: **Ein Modell, eine Karte. Eine Fläche, zwei Räume. Ein Dokument, eine Wahrheit.**
 
 ---
 
@@ -429,7 +434,7 @@ Die Zeilenzahlen sind aus `wc` je Datei hochgerechnet, nicht gemessen. Die Phase
 
 | | Frage | Empfehlung |
 |---|---|---|
-| **E-1** | Heißt die Oberfläche „Playground Meck“ (z. B. Route `/meck`, `/create` und `/playground` leiten weiter) oder bleibt „Create“ der Produktname und „Meck“ nur der Name des gesicherten Stands? | Produktname nicht ändern, bevor die Launch-Kriterien durch sind (L-A.* hängen an „Create“). „Playground Meck“ als Branch/Tag-Name. |
+| **E-1** | Heißt die Oberfläche „Playground Meck“ (z. B. Route `/meck`, `/create` und `/playground` leiten weiter) oder bleibt „Create“ der Produktname und „Meck“ nur der Name des gesicherten Stands? | Produktname nicht ändern, bevor die Launch-Kriterien durch sind (L-A.* hängen an „Create“). „Playground Meck“ als Branch/Tag-Name. Nach Teil B ist Create ein Raum der gemeinsamen Hülle. |
 | **E-2** | Visualize im Chat: A (nur `[IMAGE_GEN]` + „im Playground öffnen“) oder B (bleibt)? | **A**, weil seit Phase 7 der Chat ohnehin nur freie Bildmodelle anbietet |
 | **E-3** | `[MUSIC_GEN]` entfernen oder auf Sound umleiten? | Entfernen. Musik ist schlüsselpflichtig bzw. Modal-gebunden und gehört in den Playground. |
 | **E-4** | About-Seite und Englisch behalten? | Englisch behalten (kostet wenig); About auf eine Komponente eindampfen |
@@ -464,4 +469,191 @@ E0 (Betreiber) ─► E1 ─► E2 ─► E3 ─► E5 ─► E7
 
 E1–E3 und E5 sind risikoarm und lassen sich in einer Sitzung abarbeiten. E4 und E6 bekommen je
 eine eigene. E7 kann vorgezogen werden, wenn der Sound-Plan zuerst dran ist, weil er dessen
-Blocker löst.
+Blocker löst. Teil B (E9–E14) setzt auf E3–E5 auf; die Reihenfolge steht in B.8.
+
+---
+
+# Teil B — Eine Fläche: Create zurück in den Chat, nativ, einfach, zugänglich
+
+**Auftrag (2026-10-01):** „Create zurück zum Chat, alles mehr nativ wirkend, mit schöneren
+Animationen und Panels, ein sinnvolleres Verhalten der Web-App. Simplify und accessify. Alles
+soll wirken wie eine Fläche oder wenige.“
+
+**Vorher/Nachher zum Anfassen:** das Artefakt [„heyhi · Eine Fläche“](https://claude.ai/artifact/3WYwBLJ2db5gpPw4Hmzna1)
+(privat, nur für den Betreiber sichtbar). Eine bedienbare Attrappe, die beide Verhalten nebeneinanderstellt.
+
+**Einfach gesagt:** Heute sind Chat und Create zwei Apps, die sich eine Adresse teilen. Wer
+zurück zum Chat will, lädt die Seite neu, und jedes Panel öffnet und schließt sich anders.
+Nachher gibt es eine Hülle mit zwei Räumen und einer Art Panel, und alles bewegt sich gleich.
+
+## B.1 Befund: Verhalten heute (im Code belegt)
+
+| Thema | Heute | Beleg |
+|---|---|---|
+| Chat ↔ Create | Zwei Hüllen. `← chat` ist ein einfacher `<a href="/unified">` und lädt die Seite **vollständig neu**; der Chat liest seinen Zustand neu aus IndexedDB. Hin geht es per `router.push('/create')`, aber in eine fremde Hülle mit eigener Kopfzeile, eigenen Einstellungen und eigener Galerie. | `PlaygroundShell.tsx:814`, `AppSidebar.tsx:122` |
+| Seitenleiste | `if (!isExpanded) return null`: Sie gleitet herein und verschwindet schlagartig. Kein `Esc`, kein Fokusfang, kein `role="dialog"`. | `AppSidebar.tsx:80–88` |
+| Panel-Systeme | **Fünf:** vaul (`ui/drawer`, nur Create), `UnifiedMobileDrawer` (eigene Schublade im Chat), `ui/popup.tsx` (eigenes Popup für die Einstellungen), Radix `AlertDialog`, zwei handgebaute Lightboxen (`MessageBubble`, alte `/gallery`) auf `z-[9999]` ohne `Esc` | `grep fixed inset-0`, `createPortal` |
+| Galerie | Zwei Implementierungen: `GalleryPanel` (Popover neben der Seitenleiste, `z-[80]`/`z-[100]`) und `playground/Gallery` | |
+| Einstellungen | Drei Orte: Abschnitt in der Seitenleiste, `SettingsPopover` im Create und `/settings`, eine Seite, die nur auf den Umzug hinweist | |
+| Ebenen | Neun z-Index-Stufen: 10, 40, 50, 60, 70, 80, 99, 100, 9999 | `grep z-` |
+| Bewegung | 31 × `transition-all`, 38 × `backdrop-blur`, Kopfzeile mit `duration-700`-Größensprung. Reduzierte Bewegung respektieren nur 6 Dateien. | |
+| Bedienbarkeit | 12 Aktionen nur bei `group-hover:opacity-100`, für Tastatur und Touch-first unsichtbar. Viele Knöpfe mit `title` als einzigem Hinweis. Kein Skip-Link. | |
+| Native Hülle | Kein Web-Manifest, keine `theme-color`, kein `viewport`-Export, Safe-Area an genau einer Stelle. Der Telefon-Tastaturfix `--vvh` lebt nur im Create. Vom Homescreen öffnet sich ein Browser-Tab. | `src/app/layout.tsx`, `public/` |
+
+## B.2 Zielbild „Eine Fläche“
+
+- **Eine Hülle** (`AppShell`) mit Kopfzeile, Raumumschalter `Chat | Create`, Galerie- und
+  Einstellungsknopf. Sie bleibt beim Wechsel stehen, nur der Inhalt gleitet.
+- **Zwei Räume**, beide in derselben React-Hülle gemountet. Der inaktive Raum ist `inert` und
+  ausgeblendet, damit **laufende Create-Läufe (AbortController, Polling) beim Wechsel nicht
+  sterben**. Die Adressen bleiben `/` und `/create`, und der Zurück-Knopf des Browsers wechselt
+  den Raum.
+- **Ein Panel-Baustein** (`Sheet`): Verlauf von links, Galerie und Einstellungen von rechts, auf
+  dem Telefon von unten mit Griff. Dazu eine `Lightbox` auf demselben Unterbau.
+- **Eine Galerie, ein Einstellungsort.** Die Galerie ist ein Sheet mit Herkunftsfilter, das
+  Create-Raster nutzt dieselben Kacheln. Alle Einstellungen, also Schlüssel, Antwortstil,
+  Stimme, Theme, Sprache und Bewegung, stehen in einem Sheet.
+- **Brücken statt Sprünge:** An jedem Chat-Bild steht „In Create weiterarbeiten“. Das wechselt
+  den Raum, übernimmt Prompt und Modell und markiert das Bild in der Galerie.
+
+## B.3 Phasen
+
+### E9 — Eine Hülle *(setzt E5 voraus)*
+
+- Route-Gruppe `src/app/(app)/layout.tsx` mit `AppShell`. Die Seiten `/` und `/create` rendern
+  nur noch den Raum.
+- Gemeinsame Provider in die Hülle: Theme, Sprache, Schlüssel (`usePollenKey`, `usePrunaKey`),
+  Asset-Pool und Sheet-Manager. **`ChatProvider` bleibt im Chat-Raum, der Create-Zustand bleibt
+  im Create-Raum.** Die CLAUDE.md-Regel „Create-State nicht in den ChatProvider“ gilt weiter;
+  geteilt wird nur, was beide heute schon getrennt halten (Schlüssel, Assets, Theme).
+- Beide Räume bleiben gemountet, der inaktive bekommt `inert` + `hidden`. Den Raum bestimmt der
+  Pfadname, nicht eigener Zustand.
+- `← chat`-Anker, `PlaygroundSidebar`-Kopfzeile und die Chat-Kopfzeile werden zu **einer**
+  Kopfzeile. `OriginFilter` wandert ins Galerie-Sheet.
+- Entwurf je Raum bleibt erhalten (Chat-Eingabe und Create-Prompt sind getrennte Entwürfe, die
+  beim Wechsel nicht verloren gehen).
+
+**Risiko:** mittel bis hoch. Der Meck-Gate aus 1.2 gilt, dazu ein neuer Test: Ein laufender
+Create-Lauf überlebt zwei Raumwechsel. Das ist die Stelle, an der das Zusammenlegen am leichtesten
+kaputtgeht.
+
+### E10 — Ein Panel-Baustein
+
+- `Sheet` auf **vaul** (ist schon Abhängigkeit und kann links, rechts und unten) oder auf Radix
+  Dialog. Entschieden wird nach einem Spike, Kriterium ist die Telefon-Wischgeste (→ **E-6**).
+- Verhalten, einmal gebaut und überall gleich: Ein- **und** Ausgangsbewegung, `Esc` schließt das
+  oberste Sheet, Fokus geht hinein und zurück an den Auslöser, Hintergrund `inert`. Der
+  **Zurück-Knopf schließt das Sheet**, über einen History-Eintrag beim Öffnen, sonst springt
+  „Zurück“ auf dem Telefon aus der App.
+- Ersetzt: `AppSidebar`-Overlay, `GalleryPanel`-Popover, `UnifiedMobileDrawer`, `ui/popup.tsx`
+  und `SettingsPopover`-Hülle, beide Lightboxen. `AlertDialog` bleibt für Bestätigungen.
+- z-Index auf vier benannte Ebenen: Inhalt, Kopfzeile, Sheet, Toast.
+
+**Schätzung:** −600 bis −900 Zeilen (vier eigene Overlay-Implementierungen fallen weg).
+
+### E11 — Bewegung mit System
+
+- **Bewegungs-Tokens** in `tailwind.config.ts`: drei Dauern (160 / 280 / 420 ms) und zwei
+  Kurven (`out` = `cubic-bezier(.2,.8,.2,1)` für Eintritte, `in-out` für Raumwechsel).
+  Animiert werden nur `transform` und `opacity`.
+- Die 31 `transition-all` durch gezielte Eigenschaften ersetzen. `backdrop-blur` nur noch auf
+  Kopfzeile und Sheets, nicht auf 38 Flächen; das ist auf Mittelklasse-Telefonen der größte
+  Ruckelfaktor.
+- Raumwechsel: horizontales Gleiten des Inhalts, die Hülle steht. Als Fortschritt die View
+  Transitions API, wo der Browser sie hat, sonst framer-motion. **Ob Next 16 / React 19.2 das
+  ohne experimentelles Flag tragen, ist ungeprüft** und Teil des Spikes.
+- Reduzierte Bewegung **global**: `MotionConfig reducedMotion="user"` an der Wurzel plus eine
+  CSS-Regel, die Dauern auf ein kurzes Überblenden setzt. Dann muss keine Komponente mehr
+  selbst fragen.
+- Der Kopfzeilen-Größensprung (`duration-700`) entfällt.
+
+### E12 — Nativ wirken
+
+- `src/app/manifest.ts` (Name, Icons, `display: standalone`, `theme_color`), `viewport`-Export
+  mit `themeColor` je Theme und `viewportFit: 'cover'`, `appleWebApp` in den Metadaten.
+- Safe-Area-Abstände an Kopfzeile, Eingabe und Bottom-Sheets.
+- `--vvh` aus dem Create für die ganze Hülle. Die Chat-Eingabe bleibt dann über der Tastatur,
+  wie es Phase 6 für Create gelöst hat.
+- `overscroll-behavior: none` auf der Hülle (kein Gummiband-Scrollen der ganzen App),
+  `-webkit-tap-highlight-color: transparent`, Eingaben ≥ 16 px (iOS zoomt sonst).
+- Touch-Feedback: kurzes `scale(.97)` beim Drücken statt Hover-Effekten auf Touch-Geräten
+  (`@media (hover: none)`).
+- **Kein Service Worker in diesem Schritt.** Offline-Fähigkeit wäre ein eigenes Projekt, und ein
+  falsch cachender Worker ist schwerer loszuwerden als gar keiner.
+
+### E13 — Verhalten, das man erwartet
+
+- Ein Einstellungsort (Sheet), eine Galerie (Sheet + Create-Raster aus denselben Kacheln).
+- Die Adresse spiegelt den Zustand: `/` und `/create`, offene Unterhaltung als Parameter. Der
+  Zurück-Knopf schließt erst Sheets, dann wechselt er den Raum.
+- Aktionen an Kacheln und Nachrichten sind auf Touch immer sichtbar, am Desktop bei Hover
+  **und** `focus-within`.
+- Tastatur: `Esc` schließt, `⌘/Ctrl + K` öffnet den Verlauf. Mehr Kürzel nicht; jedes weitere
+  muss sich seinen Platz verdienen.
+- Toasts für Ergebnisse, die außerhalb des Blickfelds landen („Bild fertig, in Create“).
+
+### E14 — Zugänglich
+
+- Ziel **WCAG 2.2 AA**, festgehalten als neuer Abschnitt in `LAUNCH_CRITERIA.md`, damit es ein
+  Gate ist und kein Vorsatz.
+- Landmarken (`header`, `nav`, `main`), Skip-Link zur Eingabe, eine `h1` je Raum.
+- `jest-axe` für Hülle, Sheets, Chat-Eingabe und Create-Seitenleiste; ein axe-Fehler macht den
+  Test rot.
+- Jede `outline-none`-Stelle (20) bekommt einen sichtbaren `focus-visible`-Ersatz.
+- Knöpfe nur mit `title` bekommen `aria-label`. Status von Läufen und Antworten über die
+  vorhandenen `aria-live`-Regionen (12) **vereinheitlicht**, nicht vermehrt.
+- Kontrast der `muted`-Tokens in beiden Themes gegen 4,5 : 1 prüfen. Das helle Theme ist
+  laut Kommentar AA-geprüft, das dunkle nicht belegt.
+- Trefferflächen überall ≥ 44 px, nicht nur im Create unter `md`.
+
+## B.4 Was Teil B nicht anfasst
+
+- Den Funktionsumfang des Playground Meck. Er zieht in die Hülle um, ändert aber nicht, was er
+  kann.
+- Datenhaltung, Schlüssel, 202-Protokoll, Fehlercodes.
+- Die Schriftregel (Plex Sans für Gesprochenes, Mono für Maschinelles) und die Farbwelt. „Nativ“
+  heißt Verhalten und Bewegung, nicht neues Branding.
+
+## B.5 Erwarteter Effekt
+
+| | Vorher | Nachher |
+|---|---|---|
+| Routen / App-Hüllen | 7 / 2 | 3 / 1 |
+| Panel- und Overlay-Systeme | 5 | 1 (+ `AlertDialog`) |
+| z-Index-Ebenen | 9 | 4 |
+| Einstellungsorte | 3 | 1 |
+| Galerie-Implementierungen | 2 | 1 |
+| Wechsel Create → Chat | Neuladen, Eingabe weg | Gleiten, ≈ 400 ms, Eingabe bleibt |
+| Dateien mit reduzierter Bewegung | 6 | global |
+
+## B.6 Offene Entscheidungen
+
+| | Frage | Empfehlung |
+|---|---|---|
+| **E-6** | Sheet auf vaul oder Radix Dialog? | vaul, wenn der Spike die Wischgeste auf iOS sauber zeigt; vaul ist schon da |
+| **E-7** | Raumumschalter `Chat \| Create` in der Kopfzeile oder als Tab-Leiste unten auf dem Telefon? | Kopfzeile. Zwei Räume rechtfertigen keine Tab-Leiste, und unten sitzt die Eingabe. |
+| **E-8** | Sound als dritter Raum oder Modus in Create? | Modus in Create, wie heute. Ein dritter Raum wäre wieder eine Fläche mehr. |
+
+## B.7 Reality Check
+
+- **Bricht das Zusammenlegen den Meck?** Das größte Risiko ist das Unmounten beim Raumwechsel.
+  Deshalb bleiben beide Räume gemountet, und ein Test sichert, dass ein Lauf zwei Wechsel
+  überlebt.
+- **Wird der Chat schwerer?** Ja, beim ersten Laden kommt Create mit. Gegenmittel: Den
+  Create-Raum lazy laden (`next/dynamic`), sobald er zum ersten Mal betreten wird, und danach
+  gemountet lassen.
+- **Spaghetti-Gefahr:** Ein gemeinsamer Zustand für alles wäre der falsche Weg. Die Hülle teilt
+  nur, was heute schon global ist; jeder Raum behält seinen eigenen Zustand.
+- **Ungeprüft:** View Transitions unter Next 16 (Spike in E11), vaul-Wischgeste auf iOS
+  (Spike in E10).
+
+## B.8 Reihenfolge mit Teil A
+
+```
+E0 ─► E1 ─► E2 ─► E3 ─► E5 ─► E9 ─► E10 ─► E11 ─► E12 ─► E13 ─► E14
+                    └─ E-2 ─► E4 ─┘           (E6 und E7 unabhängig dazwischen)
+```
+
+E5 (Routen) kommt vor E9, weil die Hülle auf den bereinigten Routen aufsetzt. E4 sollte vor E9
+fertig sein, sonst zieht Visualize als dritter Bildweg mit in die neue Hülle. E14 läuft als
+Gate ab E10 mit: Jeder neue Baustein bekommt seinen axe-Test, wenn er entsteht.
