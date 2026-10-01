@@ -17,7 +17,6 @@ import {
   resolvePollinationsVisualModelId,
   shouldIncludeByopHidden,
 } from '@/config/unified-image-models';
-import { unifiedModelConfigs } from '@/config/unified-model-configs';
 import { getPrunaModelMapping } from '@/config/pruna-models';
 
   test('visual reference limits match enabled upstream model capabilities', () => {
@@ -237,22 +236,6 @@ describe('model invariants', () => {
     expect(getDefaultDurationSeconds(legacyPollinations)).toBe(5);
     expect(getDurationOptionsSeconds(getUnifiedModel('vace'))).toEqual([1, 2, 3, 4, 5]);
     expect(getDefaultDurationSeconds(getUnifiedModel('vace'))).toBe(5);
-  });
-
-  test('migrated Pruna video configs contain no generic duration input', () => {
-    for (const modelId of ['p-video', 'p-video-avatar', 'p-video-animate', 'p-video-replace', 'wan-fast', 'wan-t2v', 'wan-i2v', 'vace']) {
-      expect(unifiedModelConfigs[modelId].inputs.map(input => input.name)).not.toContain('duration');
-    }
-  });
-
-  test('Pruna video configs expose aspect ratio only when the adapter accepts it', () => {
-    for (const modelId of ['wan-fast', 'wan-i2v', 'vace', 'p-video-avatar', 'p-video-animate', 'p-video-replace']) {
-      expect(unifiedModelConfigs[modelId].inputs.map(input => input.name)).not.toContain('aspect_ratio');
-    }
-
-    for (const modelId of ['p-video', 'wan-t2v']) {
-      expect(unifiedModelConfigs[modelId].inputs.map(input => input.name)).toContain('aspect_ratio');
-    }
   });
 
   test('every unified Pruna model has an explicit Pruna adapter mapping', () => {

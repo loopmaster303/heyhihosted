@@ -63,7 +63,7 @@ export function OfflineIndicator() {
             className={cn(
                 "fixed bottom-4 left-1/2 -translate-x-1/2 z-50",
                 "flex items-center gap-2 px-4 py-2 rounded-full",
-                "text-sm font-medium shadow-lg transition-all duration-300",
+                "text-sm font-medium shadow-lg transition-[opacity,transform] duration-med ease-out",
                 isOnline
                     ? "bg-green-500/90 text-white"
                     : "bg-red-500/90 text-white animate-pulse"

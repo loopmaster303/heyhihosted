@@ -1,12 +1,10 @@
-import type { GenerationRecord,
+import type {
   ApiChatMessage,
   ChatMessage,
-  ChatMessageContentPart,
   Conversation,
-  UploadedReference,
 } from '@/types';
-import type { GenerateImageOptions } from '@/lib/services/chat-service';
 import type { ToastActionElement } from '@/components/ui/toast';
+import type { AssistantMediaHooks } from './chat-send-orchestrator';
 
 interface SendOptionsLike {
   isRegeneration?: boolean;
@@ -24,7 +22,6 @@ interface BuildSendFailureStateInput {
 interface BuildFinalConversationStateInput {
   finalMessages: ChatMessage[];
   finalTitle: string;
-  isImagePrompt: boolean;
   createTimestamp: () => string;
 }
 
@@ -52,28 +49,17 @@ interface RequestCapabilitiesLike {
     name: string;
     vision?: boolean;
   };
-  isImageModeIntent: boolean;
   isCodeMode: boolean;
 }
 
-interface SendImageConfig {
-  formFields: Record<string, unknown>;
-  uploadedImages: UploadedReference[];
-  sourceVideo?: UploadedReference | null;
-  selectedModelId: string;
-}
-
 interface SendMessageOptionsLike extends SendOptionsLike {
-  isImageModeIntent?: boolean;
   messagesForApi?: ChatMessage[];
-  imageConfig?: SendImageConfig;
 }
 
 interface ExecuteChatSendCoordinatorInput {
   conversation: Conversation;
   messageText: string;
   chatInputValue: string;
-  selectedImageModelId: string;
   language: string;
   customSystemPrompt?: string;
   userDisplayName?: string;
@@ -83,7 +69,6 @@ interface ExecuteChatSendCoordinatorInput {
   resolveRequestCapabilities: (input: {
     selectedModelId?: string;
     hasUploadedFile: boolean;
-    isImageModeIntent?: boolean;
     isCodeMode?: boolean;
   }) => RequestCapabilitiesLike;
   buildChatSystemPrompt: (input: {
@@ -119,31 +104,8 @@ interface ExecuteChatSendCoordinatorInput {
     }, onStream?: (delta: string) => void) => Promise<string>;
     onConversationMessagesUpdate: (messages: ChatMessage[]) => void;
     historyForApiRecent?: ApiChatMessage[];
-    postProcessMarkers?: (
-      rawText: string,
-    ) => Promise<{ cleanText: string; extraParts: ChatMessageContentPart[] }>;
+    media?: AssistantMediaHooks;
   }) => Promise<{ assistantMessage: ChatMessage; finalMessages: ChatMessage[] }>;
-  runImageGenerationFlow: (input: {
-    generation?: GenerationRecord;
-    imageParams: GenerateImageOptions;
-    selectedImageModelId: string;
-    conversationId: string;
-    sessionId: string;
-    prompt: string;
-    isVideo: boolean;
-    generateImage: (options: GenerateImageOptions) => Promise<string>;
-    saveGeneratedAsset: (input: {
-      url: string;
-      prompt: string;
-      modelId: string;
-      conversationId: string;
-      sessionId: string;
-      isVideo: boolean;
-      isPollinations: boolean;
-    }) => Promise<string | undefined>;
-    createMessageId: () => string;
-    createTimestamp: () => string;
-  }) => Promise<{ imageUrl: string; generatedAssetId?: string; aiMessage: ChatMessage }>;
   shouldUpdateTitleAfterSend: typeof shouldUpdateTitleAfterSend;
   updateConversationTitle: (conversationId: string, messagesForTitleGen: ChatMessage[]) => Promise<string>;
   buildSendFailureState: typeof buildSendFailureState;
@@ -164,18 +126,6 @@ interface ExecuteChatSendCoordinatorInput {
     conversationId: string;
   }) => Promise<unknown>;
   uploadFileToPollinationsMediaUrl: (file: File, fileName: string, contentType: string, options: { sessionId: string; folder: string }) => Promise<string>;
-  resolveReferenceUrls: (references: UploadedReference[]) => Promise<string[]>;
-  getUnifiedModel: (modelId: string) => { kind?: string } | undefined;
-  generateImage: (options: GenerateImageOptions) => Promise<string>;
-  saveGeneratedAsset: (input: {
-    url: string;
-    prompt: string;
-    modelId: string;
-    conversationId: string;
-    sessionId: string;
-    isVideo: boolean;
-    isPollinations: boolean;
-  }) => Promise<string | undefined>;
   createId: () => string;
   createTimestamp: () => string;
   getSessionId: () => string;
@@ -187,9 +137,7 @@ interface ExecuteChatSendCoordinatorInput {
     webBrowsingEnabled?: boolean;
     skipSmartRouter?: boolean;
   }, onStream?: (delta: string) => void) => Promise<string>;
-  postProcessMarkers?: (
-    rawText: string,
-  ) => Promise<{ cleanText: string; extraParts: ChatMessageContentPart[] }>;
+  media?: AssistantMediaHooks;
 }
 
 export function shouldUpdateTitleAfterSend(
@@ -238,7 +186,7 @@ export function buildFinalConversationState(input: BuildFinalConversationStateIn
       uploadedFile: null,
       uploadedFilePreview: null,
     },
-    shouldExtractMemories: input.finalMessages.length >= 2 && !input.isImagePrompt,
+    shouldExtractMemories: input.finalMessages.length >= 2,
   };
 }
 
@@ -250,10 +198,8 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
   const requestCapabilities = input.resolveRequestCapabilities({
     selectedModelId: selectedModelIdRaw,
     hasUploadedFile: !!activeConversation.uploadedFile,
-    isImageModeIntent: input.options.isImageModeIntent,
     isCodeMode: activeConversation.isCodeMode,
   });
-  const isImagePrompt = requestCapabilities.isImageModeIntent;
   const isFileUpload = requestCapabilities.requiresVisionModel;
   const currentModel = requestCapabilities.selectedModel;
 
@@ -278,12 +224,12 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
     if (fallbackModel) {
       // currentModel already holds the fallback; name the originally requested model.
       input.toast({
-        title: 'Model Switched',
-        description: `Model '${requestCapabilities.requestedModel.name}' doesn't support images. Using '${fallbackModel.name}' for this request.`,
+        title: 'Modell gewechselt',
+        description: `${requestCapabilities.requestedModel.name} kann keine Bilder lesen. Diese Anfrage beantwortet ${fallbackModel.name}.`,
         variant: 'default',
       });
     } else {
-      input.toast({ title: 'Model Incompatibility', description: 'No available models support images.', variant: 'destructive' });
+      input.toast({ title: 'Kein passendes Modell', description: 'Gerade kann kein verfügbares Modell Bilder lesen.', variant: 'destructive' });
       input.setIsAiResponding(false);
       return;
     }
@@ -296,7 +242,6 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
 
   if (isFileUpload && activeConversation.uploadedFile) {
     try {
-      input.toast({ title: 'Processing image...', description: 'Saving locally and preparing for AI.' });
       uploadedAssetId = input.createId();
       await input.saveUploadedAsset({
         id: uploadedAssetId,
@@ -315,7 +260,7 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
       });
     } catch (error) {
       input.onError(error);
-      input.toast({ title: 'Vision Error', description: 'Could not prepare image for AI.', variant: 'destructive' });
+      input.toast({ title: 'Bild nicht lesbar', description: 'Das Bild konnte nicht für die Antwort vorbereitet werden.', variant: 'destructive' });
       input.setIsAiResponding(false);
       return;
     }
@@ -323,11 +268,10 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
 
   if (!input.options.isRegeneration) {
     const textContent = userInputText;
-    let userMessageContent: string | ChatMessageContentPart[] = textContent;
-    const hasStudioImages = !!input.options.imageConfig && input.options.imageConfig.uploadedImages.length > 0;
+    let userMessageContent: ChatMessage['content'] = textContent;
 
-    if (isFileUpload || hasStudioImages) {
-      const contentParts: ChatMessageContentPart[] = [];
+    if (isFileUpload) {
+      const contentParts: Exclude<ChatMessage['content'], string> = [];
       let labelText = 'Vision Context:\n';
 
       if (isFileUpload && (activeConversation.uploadedFilePreview || uploadedAssetId)) {
@@ -342,20 +286,6 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
           },
         });
         labelText += '- IMAGE_0: Current Upload\n';
-      }
-
-      if (hasStudioImages) {
-        input.options.imageConfig?.uploadedImages.forEach((ref, index) => {
-          contentParts.push({
-            type: 'image_url',
-            image_url: {
-              url: ref.url,
-              altText: `Studio Image ${index + 1}`,
-              isUploaded: true,
-            },
-          });
-          labelText += `- IMAGE_${index + 1}: Reference Image\n`;
-        });
       }
 
       contentParts.unshift({ type: 'text', text: `${labelText}\n${textContent || 'Analyze these images.'}` });
@@ -390,56 +320,7 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
   let finalTitle = activeConversation.title;
 
   try {
-    if (isImagePrompt && userInputText) {
-      const imageConfig = input.options.imageConfig;
-      const imageModelId = imageConfig?.selectedModelId || input.selectedImageModelId;
-      const modelInfo = input.getUnifiedModel(imageModelId);
-      const resolvedReferenceUrls = imageConfig ? await input.resolveReferenceUrls(imageConfig.uploadedImages) : [];
-      const imageParams: GenerateImageOptions = {
-        prompt: userInputText.trim(),
-        modelId: imageModelId,
-      };
-
-      if (imageConfig) {
-        const { formFields, sourceVideo } = imageConfig;
-        if (resolvedReferenceUrls.length > 0) imageParams.image = resolvedReferenceUrls;
-        if (sourceVideo?.url) imageParams.video = sourceVideo.url;
-        if (modelInfo?.kind === 'video' || formFields.duration) {
-          if (typeof formFields.aspect_ratio === 'string') imageParams.aspect_ratio = formFields.aspect_ratio;
-          if (formFields.duration !== undefined && formFields.duration !== null) imageParams.duration = Number(formFields.duration);
-          if (typeof formFields.audio === 'boolean') imageParams.audio = formFields.audio;
-        } else {
-          imageParams.width = typeof formFields.width === 'number' ? formFields.width : 1024;
-          imageParams.height = typeof formFields.height === 'number' ? formFields.height : 1024;
-        }
-      }
-
-      const imageFlowResult = await input.runImageGenerationFlow({
-        imageParams,
-        selectedImageModelId: imageModelId,
-        generation: {
-          prompt: userInputText.trim(),
-          modelId: imageModelId,
-          aspectRatio: typeof imageConfig?.formFields.aspect_ratio === 'string'
-            ? imageConfig.formFields.aspect_ratio
-            : undefined,
-          duration: imageParams.duration,
-          audio: imageParams.audio,
-          references: imageConfig?.uploadedImages,
-          sourceVideo: imageConfig?.sourceVideo ?? null,
-        },
-        conversationId: convId,
-        sessionId: input.getSessionId(),
-        prompt: userInputText,
-        isVideo: modelInfo?.kind === 'video',
-        generateImage: input.generateImage,
-        saveGeneratedAsset: input.saveGeneratedAsset,
-        createMessageId: input.createId,
-        createTimestamp: input.createTimestamp,
-      });
-      input.toast({ title: 'Generation started', description: `Creating image with ${imageModelId}...`, duration: 3000 });
-      finalMessages = [...updatedMessagesForState, imageFlowResult.aiMessage];
-    } else {
+    {
       const systemPromptForRequest = input.buildSystemPromptForRequest({
         effectiveSystemPrompt,
         isCodeMode: requestCapabilities.isCodeMode,
@@ -459,7 +340,7 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
           finalMessages = messagesForConversation;
           input.setActiveConversation((prev) => (prev ? { ...prev, messages: messagesForConversation } : null));
         },
-        postProcessMarkers: input.postProcessMarkers,
+        media: input.media,
       });
       finalMessages = textFlowResult.finalMessages;
     }
@@ -489,7 +370,6 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
     const { finalConversationState, shouldExtractMemories } = input.buildFinalConversationState({
       finalMessages,
       finalTitle,
-      isImagePrompt,
       createTimestamp: input.createTimestamp,
     });
     if (shouldExtractMemories) {

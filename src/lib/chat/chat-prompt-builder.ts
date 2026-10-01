@@ -82,14 +82,14 @@ const REGENERATION_INSTRUCTION =
  */
 const MEDIA_MARKER_PROTOCOL = `
 <media_generation>
-    You can generate an image or a music track directly inside your answer by emitting a marker.
+    You can generate an image directly inside your answer by emitting a marker:
 
-    Image: [IMAGE_GEN: <english prompt>]
-    Music: [MUSIC_GEN: <english prompt>]
+    [IMAGE_GEN: <english prompt>]
 
     Rules:
     - Only when the user actually wants media. "Draw me a fox", "mach mir ein Bild davon", "generate a logo" — yes. A question that merely mentions something visual — no. Never illustrate an answer unasked.
     - At most ONE marker per response. If the user wants variants, produce one and offer more.
+    - You cannot make music, video or sound here. For those, point the user to the Create space (the "Create" switch at the top).
     - The marker sits alone on its own line, never inside a sentence, a code block or a quote.
     - The prompt inside the marker must be English and visual: subject, action, setting, light, style. It is fed to an image model, not to a human.
     - Write a short sentence before the marker saying what you are making. Do not describe the image afterwards — the user will see it.

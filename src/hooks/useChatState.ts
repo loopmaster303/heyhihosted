@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import type { ChatMessage } from '@/types';
 import { DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
+import { resolveChatImageModelId } from '@/lib/chat/chat-image-model';
 import { MigrationService } from '@/lib/services/migration';
 import { useChatPersistence } from './useChatPersistence';
 import { useChatUI } from './useChatUI';
@@ -29,17 +30,18 @@ export function useChatState() {
     // Global Settings (that still live in localStorage for now)
     const [persistedActiveConversationId, setPersistedActiveConversationId] = useLocalStorageState<string | null>('activeConversationId', null);
     const [defaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
-    const [selectedImageModelId, setSelectedImageModelId] = useLocalStorageState<string>('chatSelectedImageModel', defaultImageModelId);
+    // Ein Bild im Chat malt immer ein freies Modell; die Einstellung waehlt nur,
+    // welches.
+    const chatImageModelId = resolveChatImageModelId(defaultImageModelId);
 
     // Local-only logic (Ephemeral)
     const [chatInputValue, setChatInputValue] = useState('');
     const [lastUserMessageId, setLastUserMessageId] = useState<string | null>(null);
-    const [availableImageModels, setAvailableImageModels] = useState<string[]>([]);
 
     // Retry State
     const [lastFailedRequest, setLastFailedRequest] = useState<{
         messageText: string;
-        options?: { isImageModeIntent?: boolean; isRegeneration?: boolean; messagesForApi?: ChatMessage[] };
+        options?: { isRegeneration?: boolean; messagesForApi?: ChatMessage[] };
         timestamp: number;
     } | null>(null);
     const retryLastRequestRef = useRef<(() => Promise<void>) | null>(null);
@@ -52,15 +54,7 @@ export function useChatState() {
     }, [persistedActiveConversationId, persistence]);
 
     // Computed values
-    const isImageMode = persistence.activeConversation?.isImageMode ?? false;
     const webBrowsingEnabled = persistence.activeConversation?.webBrowsingEnabled ?? false;
-    const isComposeMode = persistence.activeConversation?.isComposeMode ?? false;
-
-    useEffect(() => {
-        if (defaultImageModelId) {
-            setSelectedImageModelId(defaultImageModelId);
-        }
-    }, [defaultImageModelId, setSelectedImageModelId]);
 
     return {
         // Persistence
@@ -79,10 +73,7 @@ export function useChatState() {
         setChatInputValue,
         lastUserMessageId,
         setLastUserMessageId,
-        availableImageModels,
-        setAvailableImageModels,
-        selectedImageModelId,
-        setSelectedImageModelId,
+        chatImageModelId,
 
         // Error handling
         lastFailedRequest,
@@ -90,8 +81,6 @@ export function useChatState() {
         retryLastRequestRef,
 
         // Computed
-        isImageMode,
-        isComposeMode,
         webBrowsingEnabled,
     };
 }

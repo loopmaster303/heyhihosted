@@ -53,7 +53,7 @@ describe('chat send coordinator', () => {
     });
   });
 
-  it('builds final conversation state and skips memory extraction for image prompts', () => {
+  it('builds final conversation state and extracts memories once a pair exists', () => {
     const finalMessages: ChatMessage[] = [
       { id: 'u1', role: 'user', content: 'hello', timestamp: '2026-01-01T00:00:00.000Z' },
       { id: 'a1', role: 'assistant', content: 'hi', timestamp: '2026-01-01T00:00:01.000Z' },
@@ -62,7 +62,6 @@ describe('chat send coordinator', () => {
     const result = buildFinalConversationState({
       finalMessages,
       finalTitle: 'Done',
-      isImagePrompt: true,
       createTimestamp: () => '2026-01-01T00:00:03.000Z',
     });
 
@@ -73,6 +72,6 @@ describe('chat send coordinator', () => {
       uploadedFile: null,
       uploadedFilePreview: null,
     });
-    expect(result.shouldExtractMemories).toBe(false);
+    expect(result.shouldExtractMemories).toBe(true);
   });
 });

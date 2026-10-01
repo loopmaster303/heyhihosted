@@ -17,6 +17,17 @@ describe('next.config redirects', () => {
     expect(redirects[0]).not.toHaveProperty('has');
   });
 
+  it('sends every retired address into the one shell', async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+    const bySource = Object.fromEntries(redirects.map((r) => [r.source, r.destination]));
+    expect(bySource).toMatchObject({
+      '/unified': '/',
+      '/chat': '/',
+      '/gallery': '/?panel=gallery',
+      '/settings': '/?panel=settings',
+    });
+  });
+
   it('carries no host-bound rules — Chat und Create teilen einen Ursprung', async () => {
     const redirects = (await nextConfig.redirects?.()) ?? [];
     expect(redirects.every((r) => !('has' in r))).toBe(true);

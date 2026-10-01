@@ -161,17 +161,6 @@
   }
 }
 
-/* Mode activation flash */
-@keyframes flash-fade {
-  0% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  @keyframes flash-fade {
-    0%, 100% { opacity: 0; }
-  }
-}
 
 /* Global type scale: keep mobile readable, avoid oversized desktop UI */
 html {
@@ -191,10 +180,6 @@ html {
 }
 
 @layer utilities {
-  .text-glow {
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4),
-      0 0 16px rgba(255, 255, 255, 0.2);
-  }
 
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -207,26 +192,8 @@ html {
     /* Firefox */
   }
 
-  .filter-neutral {
-    filter: invert(50%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%)
-      contrast(100%);
-    opacity: 0.6;
-  }
 
-  .filter-purple {
-    /* Generated with https://codepen.io/sosuke/pen/Pjoqqp */
-    /* Target color: #8b5cf6 (purple-500) */
-    filter: invert(47%) sepia(87%) saturate(1437%) hue-rotate(228deg)
-      brightness(97%) contrast(96%);
-  }
 
-  .bg-radial-gradient-fog {
-    background-image: radial-gradient(
-      ellipse at center,
-      rgba(0, 0, 0, 0.85) 20%,
-      rgba(0, 0, 0, 0) 70%
-    );
-  }
 
   /* Typewriter cursor animation */
   @keyframes blink {
@@ -241,42 +208,6 @@ html {
     }
   }
 
-  /* Decrypted text smooth rendering */
-  .decrypted-text {
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Decrypted text hover effect */
-  .decrypted-text-hoverable {
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-  }
-
-  .decrypted-text-hoverable:hover {
-    transform: scale(1.02);
-    text-shadow: 0 0 20px rgba(179, 136, 255, 0.3);
-  }
-
-  .decrypted-text-hoverable::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 50%;
-    transform: translateX(-50%) scaleX(0);
-    width: 60%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(179, 136, 255, 0.6), transparent);
-    transition: transform 0.3s ease;
-  }
-
-  .decrypted-text-hoverable:hover::after {
-    transform: translateX(-50%) scaleX(1);
-  }
 }
 
 /* Specific font weights */
@@ -291,68 +222,6 @@ h6 {
   font-weight: 700;
 }
 
-/* Activation feedback: one-time ring that ebbs away — replaces the old infinite pulse glows */
-@keyframes activate-flash {
-  0% {
-    box-shadow: 0 0 0 0 hsl(var(--ring) / 0.45);
-  }
-
-  100% {
-    box-shadow: 0 0 0 14px hsl(var(--ring) / 0);
-  }
-}
-
-.activate-flash {
-  animation: activate-flash 0.5s ease-out 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .activate-flash {
-    animation: none;
-  }
-}
-
-/* Rotierender Licht-Sweep fuer den Fokus-Ring der Prompt-Bar */
-@keyframes border-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-border-spin {
-  animation: border-spin 6s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-border-spin {
-    animation: none;
-  }
-}
-
-/* Inline-Moduswechsel: Optionen loesen sich aus dem Verb auf */
-@keyframes mode-option-in {
-  from {
-    opacity: 0;
-    filter: blur(6px);
-    transform: translateY(3px);
-  }
-
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: none;
-  }
-}
-
-.mode-option-in {
-  animation: mode-option-in 350ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mode-option-in {
-    animation: none;
-  }
-}
 
 /* Glass & Material Utilities */
 @layer utilities {
@@ -368,38 +237,7 @@ h6 {
     @apply bg-glass-background/50 backdrop-blur-2xl border border-glass-border focus:ring-1 focus:ring-primary/30 transition-all duration-300;
   }
 
-  .frosted-ice {
-    @apply bg-white/80 dark:bg-zinc-950/80 backdrop-blur-[32px] border border-white/20 dark:border-white/10 shadow-glass;
-  }
 
-  .glass-popover {
-    @apply bg-glass-background/80 backdrop-blur-2xl border border-glass-border shadow-glass-heavy rounded-xl;
-  }
-
-  .bg-noise {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
-  }
-
-  /* === Way of Code: AI Bubble Glow === */
-  .message-bubble-ai {
-    position: relative;
-    filter: url(#noise-border);
-  }
-  .message-bubble-ai::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(circle at 30% 50%, hsl(var(--primary) / 0.05), transparent 70%);
-    mix-blend-mode: screen;
-    pointer-events: none;
-    z-index: 0;
-  }
-  /* Toned-down in light mode — screen blend is too intense on white */
-  .light .message-bubble-ai::before {
-    mix-blend-mode: normal;
-    opacity: 0.03;
-  }
 
 }
 
@@ -428,3 +266,79 @@ h6 {
 *::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* === Eine Flaeche: Bewegung, Huelle, Raeume === */
+
+/* Drei Dauern fuer die ganze App (tailwind: duration-fast/med/slow). */
+:root {
+  --motion-fast: 160ms;
+  --motion-med: 280ms;
+  --motion-slow: 420ms;
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+}
+
+/*
+ * Reduzierte Bewegung an EINER Stelle: Bewegung wird zu einem kurzen
+ * Ueberblenden. Keine Komponente muss mehr selbst fragen. Endlosanimationen
+ * stehen still — ein Ladezustand bleibt sichtbar, er bewegt sich nur nicht.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 1ms;
+    --motion-med: 120ms;
+    --motion-slow: 120ms;
+  }
+  *, *::before, *::after {
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Die Huelle gummibandet nicht als Ganzes; nur ihre Scroll-Flaechen scrollen. */
+html, body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Zwei Raeume derselben Huelle. Der inaktive bleibt gemountet (laufende
+   Create-Laeufe ueberleben den Wechsel), ist aber unsichtbar und `inert`. */
+.space {
+  position: absolute;
+  inset: 0;
+  transition:
+    transform var(--motion-slow) var(--ease-out),
+    opacity var(--motion-med) var(--ease-out),
+    visibility 0s linear 0s;
+}
+.space[data-active='false'] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform var(--motion-slow) var(--ease-out),
+    opacity var(--motion-med) var(--ease-out),
+    visibility 0s linear var(--motion-slow);
+}
+.space[data-space='chat'][data-active='false'] { transform: translateX(-4%); }
+.space[data-space='create'][data-active='false'] { transform: translateX(4%); }
+
+/* Aktionen an Medien und Nachrichten: auf Touch immer sichtbar, am Desktop
+   bei Hover UND bei Tastaturfokus — nie nur beim Ueberfahren. */
+.reveal-on-hover {
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+.group:hover .reveal-on-hover,
+.group:focus-within .reveal-on-hover {
+  opacity: 1;
+}
+@media (hover: none) {
+  .reveal-on-hover { opacity: 1; }
+}
+
+/* Druck-Feedback auf Touch statt Hover-Effekten. */
+@media (hover: none) {
+  .press:active { transform: scale(.97); }
+}
+.press { transition: transform var(--motion-fast) var(--ease-out); }

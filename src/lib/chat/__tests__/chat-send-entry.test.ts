@@ -1,4 +1,4 @@
-import type { ChatMessage, Conversation, UploadedReference } from '@/types';
+import type { ChatMessage, Conversation } from '@/types';
 
 import { executeChatSendCoordinator } from '../chat-send-coordinator';
 
@@ -24,7 +24,6 @@ describe('chat send entry coordinator', () => {
       conversation,
       messageText: 'hello',
       chatInputValue: 'hello',
-      selectedImageModelId: 'nanobanana',
       language: 'en',
       customSystemPrompt: '',
       userDisplayName: 'John',
@@ -37,7 +36,6 @@ describe('chat send entry coordinator', () => {
         requestedModel: { id: 'claude-fast', name: 'Claude', vision: false } as any,
         requiresVisionModel: false,
         didFallbackToVisionModel: false,
-        isImageModeIntent: false,
         isCodeMode: false,
       }),
       buildChatSystemPrompt: () => 'prompt',
@@ -49,9 +47,6 @@ describe('chat send entry coordinator', () => {
         assistantMessage: { id: 'a1', role: 'assistant', content: 'hi', timestamp: '2026-01-01T00:00:01.000Z', toolType: 'long language loops' },
         finalMessages: [...updatedMessagesForState, { id: 'a1', role: 'assistant', content: 'hi', timestamp: '2026-01-01T00:00:01.000Z', toolType: 'long language loops' }],
       }),
-      runImageGenerationFlow: async () => {
-        throw new Error('should not run image flow');
-      },
       shouldUpdateTitleAfterSend: () => true,
       updateConversationTitle: async () => 'Renamed Chat',
       buildSendFailureState: () => {
@@ -79,10 +74,6 @@ describe('chat send entry coordinator', () => {
       extractMemories: async () => {},
       saveUploadedAsset: async () => {},
       uploadFileToPollinationsMediaUrl: async () => '',
-      resolveReferenceUrls: async (refs: UploadedReference[]) => refs.map((ref) => ref.url),
-      getUnifiedModel: () => undefined,
-      generateImage: async () => '',
-      saveGeneratedAsset: async () => undefined,
       createId: () => 'generated-id',
       createTimestamp: () => '2026-01-01T00:00:03.000Z',
       getSessionId: () => 'session-1',

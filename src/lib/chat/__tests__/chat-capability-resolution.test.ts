@@ -19,35 +19,21 @@ describe('chat capability resolution', () => {
     expect(resolveEffectiveTextModel('openai')).toBe('deepseek');
   });
 
-  it('keeps compose and visualize mutually exclusive when compose wins', () => {
+  it('carries only code and web flags — image and compose modes are gone', () => {
     expect(
-      normalizeChatModeState({
-        isImageMode: true,
-        isComposeMode: true,
-        isCodeMode: false,
-        webBrowsingEnabled: false,
-      })
-    ).toEqual({
-      isImageMode: false,
-      isComposeMode: true,
-      isCodeMode: false,
-      webBrowsingEnabled: false,
-    });
+      normalizeChatModeState({ isCodeMode: true, webBrowsingEnabled: false })
+    ).toEqual({ isCodeMode: true, webBrowsingEnabled: false });
   });
 
   it('preserves code and web flags when starting a new chat', () => {
     expect(
       resolveStartNewChatState({
         initialModelId: 'claude-fast',
-        isImageMode: false,
-        isComposeMode: false,
         isCodeMode: true,
         webBrowsingEnabled: true,
       })
     ).toEqual({
       selectedModelId: 'claude-fast',
-      isImageMode: false,
-      isComposeMode: false,
       isCodeMode: true,
       webBrowsingEnabled: true,
     });
@@ -58,7 +44,6 @@ describe('chat capability resolution', () => {
       resolveRequestCapabilities({
         selectedModelId: 'deepseek',
         hasUploadedFile: true,
-        isImageModeIntent: false,
       })
     ).toMatchObject({
       selectedModelId: 'claude-fast',
@@ -71,7 +56,6 @@ describe('chat capability resolution', () => {
     const resolution = resolveRequestCapabilities({
       selectedModelId: 'deepseek',
       hasUploadedFile: true,
-      isImageModeIntent: false,
     });
 
     expect(resolution.requestedModel.id).toBe('deepseek');
@@ -82,24 +66,18 @@ describe('chat capability resolution', () => {
     const resolution = resolveRequestCapabilities({
       selectedModelId: 'openai',
       hasUploadedFile: false,
-      isImageModeIntent: false,
     });
 
     expect(VISIBLE_POLLINATIONS_MODEL_IDS).toContain(resolution.selectedModelId);
   });
 
-  it('does not force code mode during visualize requests', () => {
+  it('passes code mode through', () => {
     expect(
       resolveRequestCapabilities({
         selectedModelId: 'qwen-coder',
         hasUploadedFile: false,
-        isImageModeIntent: true,
         isCodeMode: true,
       })
-    ).toMatchObject({
-      isImageModeIntent: true,
-      isCodeMode: false,
-      requiresVisionModel: false,
-    });
+    ).toMatchObject({ isCodeMode: true, requiresVisionModel: false });
   });
 });

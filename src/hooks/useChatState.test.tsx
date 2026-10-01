@@ -41,9 +41,8 @@ describe('useChatState', () => {
     const { result } = renderHook(() => useChatState());
 
     expect(result.current.chatInputValue).toBe('');
-    expect(result.current.isImageMode).toBe(false);
-    expect(result.current.isComposeMode).toBe(false);
     expect(result.current.webBrowsingEnabled).toBe(false);
+    expect(result.current.chatImageModelId).toBe('flux');
     expect(result.current.lastFailedRequest).toBeNull();
   });
 
@@ -56,17 +55,13 @@ describe('useChatState', () => {
     expect(result.current.chatInputValue).toBe('Hallo Welt');
   });
 
-  it('derives mode flags from the active conversation', () => {
+  it('derives the research flag from the active conversation', () => {
     mockActiveConversation = {
       id: 'conv-1',
-      isImageMode: true,
-      isComposeMode: true,
       webBrowsingEnabled: true,
     } as unknown as Conversation;
 
     const { result } = renderHook(() => useChatState());
-    expect(result.current.isImageMode).toBe(true);
-    expect(result.current.isComposeMode).toBe(true);
     expect(result.current.webBrowsingEnabled).toBe(true);
   });
 

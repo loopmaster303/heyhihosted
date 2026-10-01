@@ -35,7 +35,6 @@ describe('chat request pipeline', () => {
     const requestCapabilities = resolveRequestCapabilities({
       selectedModelId: 'deepseek',
       hasUploadedFile: true,
-      isImageModeIntent: false,
       isCodeMode: false,
     });
 

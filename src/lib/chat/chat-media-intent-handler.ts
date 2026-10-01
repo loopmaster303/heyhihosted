@@ -1,166 +1,143 @@
 /**
  * chat-media-intent-handler
  * -------------------------
- * Bridges the output of `parseMediaIntents` with the existing image and
- * music generation services. Given a raw assistant string, this module:
+ * Ein Bild im Chat entsteht in zwei Schritten, damit die Antwort nicht auf das
+ * Bild warten muss:
  *
- *   1. Re-parses the text for `[IMAGE_GEN: ...]` and `[MUSIC_GEN: ...]` markers.
- *   2. Triggers image generation for every `image` marker, persists the
- *      resulting asset via `OutputService.saveGeneratedAsset`, and produces
- *      an `image_url` content part.
- *   3. Triggers music composition for every `music` marker by calling the
- *      existing `/api/compose` endpoint, and produces an `audio_url` content
- *      part.
- *   4. Returns the cleaned text plus all generated content parts so the
- *      caller can attach them to the assistant message.
+ *   1. `prepareAssistantMedia` — sofort, synchron: sauberer Text plus ein
+ *      Bildteil im Zustand `pending`. Der Platzhalter haelt ab hier den Platz.
+ *   2. `resolveImagePart` — asynchron: erzeugt das Bild, speichert es im
+ *      Asset-Pool und liefert denselben Teil fertig oder mit Fehler zurueck.
  *
- * Failures are isolated: a single broken marker does not abort the rest of
- * the batch. Errors are reported via the optional `onError` callback.
+ * Ein Fehler wirft nie: er wird zum Teil mit `status: 'error'` und bleibt am
+ * Ort des Bildes stehen — dort, wo der Nutzer es erwartet hat.
  */
 
-import type { ChatMessageContentPart } from '@/types';
+import type { ChatImagePayload, ChatMessage, ChatMessageContentPart } from '@/types';
 import type { GenerateImageOptions } from '@/lib/services/chat-service';
 import type { SaveGeneratedAssetOptions } from '@/lib/services/output-service';
 import { isPollinationsHostedModel } from '@/config/unified-image-models';
-import { parseMediaIntents, type MediaIntent } from './chat-media-intent';
+import { parseMediaIntents } from './chat-media-intent';
 
-export interface ProcessAssistantMediaIntentsInput {
-  rawText: string;
-  conversationId: string;
-  sessionId: string;
-  selectedImageModelId: string;
-  generateImage: (options: GenerateImageOptions) => Promise<string>;
-  saveGeneratedAsset: (
-    options: SaveGeneratedAssetOptions,
-  ) => Promise<string | undefined>;
-  composeMusic?: (prompt: string) => Promise<string | null>;
-  onError?: (kind: 'image' | 'music' | 'audio-save', message: string) => void;
-}
-
-export interface ProcessAssistantMediaIntentsResult {
-  cleanText: string;
-  extraParts: ChatMessageContentPart[];
-}
-
-const EMPTY_RESULT: ProcessAssistantMediaIntentsResult = {
-  cleanText: '',
-  extraParts: [],
-};
+/** Der Chat erzeugt quadratisch. Wer ein anderes Format will, geht in Create. */
+export const CHAT_IMAGE_SIZE = { width: 1024, height: 1024 } as const;
 
 /**
- * Deckelung gegen Mehrfach-Emission ("hier drei Varianten") — pro Art, nicht
- * insgesamt: ein Bild und dazu ein Musikstueck ist eine sinnvolle Antwort,
- * drei Bilder auf einmal sind es nicht.
+ * Deckelung gegen Mehrfach-Emission ("hier drei Varianten"). Sie gehoert in den
+ * Code und nicht nur in den System-Prompt: sie darf nicht davon abhaengen, dass
+ * sich das Modell an die Anweisung haelt.
  */
-const MAX_MARKERS_PER_KIND = 1;
+const MAX_IMAGES_PER_ANSWER = 1;
 
-export async function processAssistantMediaIntents(
-  input: ProcessAssistantMediaIntentsInput,
-): Promise<ProcessAssistantMediaIntentsResult> {
-  if (!input || typeof input.rawText !== 'string' || input.rawText.length === 0) {
-    return EMPTY_RESULT;
-  }
-
-  const { markers, cleanText } = parseMediaIntents(input.rawText);
-  if (markers.length === 0) {
-    return { cleanText, extraParts: [] };
-  }
-
-  const extraParts: ChatMessageContentPart[] = [];
-
-  // Die Deckelung gehoert hierher und nicht nur in den System-Prompt: sie darf
-  // nicht davon abhaengen, dass sich das Modell an die Anweisung haelt.
-  const usedPerKind = new Map<MediaIntent['kind'], number>();
-  const capped = markers.filter((marker) => {
-    const used = usedPerKind.get(marker.kind) ?? 0;
-    if (used >= MAX_MARKERS_PER_KIND) return false;
-    usedPerKind.set(marker.kind, used + 1);
-    return true;
-  });
-
-  for (const marker of capped) {
-    try {
-      if (marker.kind === 'image') {
-        const part = await generateImagePart(marker, input);
-        if (part) extraParts.push(part);
-      } else {
-        const part = await generateMusicPart(marker, input);
-        if (part) extraParts.push(part);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      input.onError?.(marker.kind === 'image' ? 'image' : 'music', message);
-    }
-  }
-
-  return { cleanText, extraParts };
+export interface PreparedAssistantMedia {
+  cleanText: string;
+  pendingParts: ChatMessageContentPart[];
 }
 
-async function generateImagePart(
-  marker: MediaIntent,
-  input: ProcessAssistantMediaIntentsInput,
-): Promise<ChatMessageContentPart | null> {
-  const imageParams: GenerateImageOptions = {
-    prompt: marker.prompt,
-    modelId: input.selectedImageModelId,
-  };
+export function prepareAssistantMedia(rawText: string, imageModelId: string): PreparedAssistantMedia {
+  const { cleanText, markers } = parseMediaIntents(rawText);
+  const pendingParts: ChatMessageContentPart[] = markers
+    .slice(0, MAX_IMAGES_PER_ANSWER)
+    .map((marker) => ({
+      type: 'image_url',
+      image_url: {
+        url: '',
+        isGenerated: true,
+        status: 'pending',
+        prompt: marker.prompt,
+        modelId: imageModelId,
+        altText: marker.prompt,
+      },
+    }));
+  return { cleanText, pendingParts };
+}
 
-  const imageUrl = await input.generateImage(imageParams);
-  if (!imageUrl) return null;
+export interface ResolveImagePartDeps {
+  conversationId: string;
+  sessionId: string;
+  generateImage: (options: GenerateImageOptions) => Promise<string>;
+  saveGeneratedAsset: (options: SaveGeneratedAssetOptions) => Promise<string | undefined>;
+}
 
-  let generatedAssetId: string | undefined;
+/** Ein Teil, der ein noch nicht fertiges oder gescheitertes Bild traegt. */
+export function isUnresolvedImagePart(part: ChatMessageContentPart): part is { type: 'image_url'; image_url: ChatImagePayload } {
+  return part.type === 'image_url' && (part.image_url.status === 'pending' || part.image_url.status === 'error');
+}
+
+function describeImageError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return message.trim() || 'Das Bild konnte nicht erzeugt werden.';
+}
+
+export async function resolveImagePart(
+  part: ChatMessageContentPart,
+  deps: ResolveImagePartDeps,
+): Promise<ChatMessageContentPart> {
+  if (part.type !== 'image_url') return part;
+  const payload = part.image_url;
+  const prompt = payload.prompt ?? '';
+  const modelId = payload.modelId ?? '';
+
   try {
-    generatedAssetId = await input.saveGeneratedAsset({
-      url: imageUrl,
-      prompt: marker.prompt,
-      modelId: input.selectedImageModelId,
-      conversationId: input.conversationId,
-      sessionId: input.sessionId,
-      isVideo: false,
-      isPollinations: isPollinationsHostedModel(input.selectedImageModelId),
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    input.onError?.('audio-save', message);
-  }
+    const url = await deps.generateImage({ prompt, modelId, ...CHAT_IMAGE_SIZE });
+    if (!url) throw new Error('Das Bild kam leer zurück.');
 
+    let assetId: string | undefined;
+    try {
+      assetId = await deps.saveGeneratedAsset({
+        url,
+        prompt,
+        modelId,
+        conversationId: deps.conversationId,
+        sessionId: deps.sessionId,
+        isVideo: false,
+        isPollinations: isPollinationsHostedModel(modelId),
+      });
+    } catch {
+      // Das Bild ist da, nur der lokale Speicher hat versagt. Zeigen statt
+      // verwerfen — es fehlt dann nur in der Galerie.
+    }
+
+    return {
+      type: 'image_url',
+      image_url: {
+        url,
+        isGenerated: true,
+        prompt,
+        modelId,
+        altText: payload.altText ?? prompt,
+        metadata: assetId ? { assetId } : undefined,
+      },
+    };
+  } catch (error) {
+    return {
+      type: 'image_url',
+      image_url: { ...payload, url: '', status: 'error', error: describeImageError(error) },
+    };
+  }
+}
+
+/**
+ * Ein `pending`-Teil ohne laufende Erzeugung — nach einem Reload liegt er so in
+ * IndexedDB. Er wird als abgebrochen gelesen, nie als ewiger Platzhalter.
+ */
+export function markPendingAsInterrupted(part: ChatMessageContentPart): ChatMessageContentPart {
+  if (part.type !== 'image_url' || part.image_url.status !== 'pending') return part;
   return {
     type: 'image_url',
-    image_url: {
-      url: imageUrl,
-      altText: `Generated image (${input.selectedImageModelId})`,
-      isGenerated: true,
-      metadata: generatedAssetId ? { assetId: generatedAssetId } : undefined,
-    },
+    image_url: { ...part.image_url, status: 'error', error: 'Die Erzeugung wurde unterbrochen.' },
   };
 }
 
-async function generateMusicPart(
-  marker: MediaIntent,
-  input: ProcessAssistantMediaIntentsInput,
-): Promise<ChatMessageContentPart | null> {
-  if (!input.composeMusic) {
-    input.onError?.(
-      'music',
-      'Music composition is unavailable in this context; skipping marker.',
-    );
-    return null;
-  }
-
-  const audioUrl = await input.composeMusic(marker.prompt);
-  if (!audioUrl) return null;
-
-  return {
-    type: 'audio_url',
-    audio_url: {
-      url: audioUrl,
-      altText: `Generated music: ${marker.prompt}`,
-      isGenerated: true,
-    },
-  };
+/** Wendet `markPendingAsInterrupted` auf alle Nachrichten einer geladenen Unterhaltung an. */
+export function interruptPendingMedia<T extends { messages: ChatMessage[] }>(conversation: T): T {
+  let changed = false;
+  const messages = conversation.messages.map((message) => {
+    if (typeof message.content === 'string') return message;
+    const parts = message.content.map(markPendingAsInterrupted);
+    if (parts.every((part, i) => part === (message.content as ChatMessageContentPart[])[i])) return message;
+    changed = true;
+    return { ...message, content: parts };
+  });
+  return changed ? { ...conversation, messages } : conversation;
 }
-
-export const __testing = {
-  generateImagePart,
-  generateMusicPart,
-};

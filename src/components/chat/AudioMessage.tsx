@@ -86,7 +86,7 @@ export const AudioMessage: React.FC<AudioMessageProps> = ({
 
   return (
     <div className={cn(
-      "group w-full max-w-sm flex items-center gap-3 px-4 py-3 rounded-2xl backdrop-blur-md transition-all duration-300",
+      "group w-full max-w-sm flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors duration-med",
       isPlaying
         ? "bg-purple-500/10 shadow-[inset_0_0_30px_rgba(168,85,247,0.12)]"
         : "bg-glass-background/20 hover:bg-glass-background/30",
@@ -100,7 +100,7 @@ export const AudioMessage: React.FC<AudioMessageProps> = ({
         onClick={togglePlay}
         aria-label={isPlaying ? 'Pause' : 'Play'}
         className={cn(
-          "flex-none w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300",
+          "flex-none w-10 h-10 flex items-center justify-center rounded-full transition-[background-color,transform] duration-med",
           isPlaying
             ? "bg-purple-500/20 text-purple-400 shadow-[0_0_16px_rgba(168,85,247,0.35)]"
             : "bg-primary/10 text-primary hover:bg-primary/20"
@@ -139,7 +139,7 @@ export const AudioMessage: React.FC<AudioMessageProps> = ({
           {/* Thumb */}
           <div
             className={cn(
-              "absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-150",
+              "absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-sm transition-[left] duration-fast",
               "opacity-0 group-hover:opacity-100 group-hover/bar:opacity-100",
               isPlaying && "opacity-100"
             )}

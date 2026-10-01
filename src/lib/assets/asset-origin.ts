@@ -17,7 +17,7 @@ export const ALL_ORIGINS: readonly AssetOrigin[] = ['chat', 'create', 'compose']
  * unumkehrbare Operation an einem Speicher ohne Kopie (Entscheidung E5.1).
  *
  * ACHTUNG: 'compose' ist eine Zuordnung per Ausschluss, keine Aussage der
- * Daten. Compose speichert ohne conversationId (useComposeMusicState.ts);
+ * Daten. Compose speicherte ohne conversationId;
  * Altbestand aus frueheren Versionen kann ebenfalls hier landen. Wer eine
  * belastbare Compose-Herkunft braucht, muss beim Speichern aktiv taggen —
  * das gehoert zu Phase 8, nicht hierher.

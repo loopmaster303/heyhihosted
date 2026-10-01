@@ -21,10 +21,6 @@ jest.mock('@/components/ui/button', () => ({
   ),
 }));
 
-jest.mock('@/components/ui/popup', () => ({
-  ModalPopup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
 jest.mock('@/components/LanguageProvider', () => ({
   useLanguage: () => ({
     t: (key: string) => key,

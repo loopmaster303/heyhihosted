@@ -1,13 +1,12 @@
-
 "use client";
 
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
-import type { ChatMessage, GenerationRecord } from '@/types';
-import MessageBubble from './MessageBubble';
+import type { ChatMessage } from '@/types';
+import MessageBubble, { type MessageMediaHandlers } from './MessageBubble';
 import { cn } from '@/lib/utils';
 
-interface ChatViewProps {
+interface ChatViewProps extends MessageMediaHandlers {
   messages: ChatMessage[];
   isAiResponding: boolean;
   onPlayAudio: (text: string, messageId: string) => void;
@@ -15,7 +14,6 @@ interface ChatViewProps {
   isTtsLoadingForId: string | null;
   onCopyToClipboard: (text: string) => void;
   onRegenerate: () => void;
-  onRerunGeneration?: (generation: GenerationRecord) => void;
   className?: string;
 }
 
@@ -27,64 +25,46 @@ const ChatView: React.FC<ChatViewProps> = ({
   isTtsLoadingForId,
   onCopyToClipboard,
   onRegenerate,
-  onRerunGeneration,
+  onRetryMedia,
+  onZoomImage,
+  onOpenInCreate,
   className,
 }) => {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
-  const animatedAssistantMessagesRef = useRef<Set<string>>(new Set());
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (messages.length > 0) {
-      // Small delay to ensure DOM is ready
-      requestAnimationFrame(() => {
-        virtuosoRef.current?.scrollToIndex({
-          index: messages.length - 1,
-          behavior: 'smooth',
-          align: 'end',
-        });
+    if (messages.length === 0) return;
+    requestAnimationFrame(() => {
+      virtuosoRef.current?.scrollToIndex({
+        index: messages.length - 1,
+        behavior: 'smooth',
+        align: 'end',
       });
-    }
+    });
   }, [messages.length, isAiResponding]);
 
-  const isLastMessageForRegeneration = useCallback((index: number) => {
-    if (messages[index].role !== 'assistant') return false;
-    const lastAssistantMessageIndex = messages.slice().reverse().findIndex(m => m.role === 'assistant');
-    if (lastAssistantMessageIndex === -1) return false;
-    const actualLastIndex = messages.length - 1 - lastAssistantMessageIndex;
-    return index === actualLastIndex;
+  const lastAssistantIndex = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i].role === 'assistant') return i;
+    }
+    return -1;
   }, [messages]);
 
-  // Prepare messages with loading indicator if needed
   const displayMessages = useMemo(() => {
-    const msgs = [...messages];
-    const showLoadingBubble = isAiResponding && messages.length > 0 && messages[messages.length - 1]?.role === 'user';
-    if (showLoadingBubble) {
-      msgs.push({
-        id: 'loading',
-        role: 'assistant',
-        content: '',
-        timestamp: new Date().toISOString(),
-      });
-    }
-    return msgs;
+    const showLoadingBubble = isAiResponding && messages[messages.length - 1]?.role === 'user';
+    if (!showLoadingBubble) return messages;
+    return [...messages, {
+      id: 'loading',
+      role: 'assistant' as const,
+      content: '',
+      timestamp: new Date().toISOString(),
+    }];
   }, [messages, isAiResponding]);
 
   const itemContent = useCallback((index: number) => {
     const msg = displayMessages[index];
-    const isLoadingMessage = msg.id === 'loading';
-    const isLast = index === displayMessages.length - 1;
-
-    // Only animate if this is a genuinely new message being generated
-    const shouldAnimate =
-      msg.role === 'assistant' &&
-      !isLoadingMessage &&
-      isLast &&
-      !animatedAssistantMessagesRef.current.has(msg.id) &&
-      isAiResponding;
-
     return (
-      <div className="px-0 py-1">
+      <div className="mx-auto w-full max-w-3xl px-4">
         <MessageBubble
           message={msg}
           onPlayAudio={onPlayAudio}
@@ -93,31 +73,32 @@ const ChatView: React.FC<ChatViewProps> = ({
           isAnyAudioActive={playingMessageId !== null || isTtsLoadingForId !== null}
           onCopy={onCopyToClipboard}
           onRegenerate={onRegenerate}
-          onRerunGeneration={onRerunGeneration}
-          isLastMessage={!isLoadingMessage && isLastMessageForRegeneration(index)}
-          isAiResponding={isAiResponding && isLast}
-          shouldAnimate={shouldAnimate}
-          onTypewriterComplete={(id) => animatedAssistantMessagesRef.current.add(id)}
+          isLastMessage={index === lastAssistantIndex && !isAiResponding}
+          onRetryMedia={onRetryMedia}
+          onZoomImage={onZoomImage}
+          onOpenInCreate={onOpenInCreate}
         />
       </div>
     );
-  }, [displayMessages, isAiResponding, onPlayAudio, playingMessageId, isTtsLoadingForId, onCopyToClipboard, onRegenerate, onRerunGeneration, isLastMessageForRegeneration]);
+  }, [displayMessages, onPlayAudio, playingMessageId, isTtsLoadingForId, onCopyToClipboard, onRegenerate, lastAssistantIndex, isAiResponding, onRetryMedia, onZoomImage, onOpenInCreate]);
 
   if (displayMessages.length === 0) {
-    return <div className={cn("w-full h-full", className)} />;
+    return <div className={cn('h-full w-full', className)} />;
   }
 
   return (
-    <div className={cn("w-full h-full flex flex-col bg-transparent", className)}>
+    <div className={cn('flex h-full w-full flex-col', className)}>
       <Virtuoso
         ref={virtuosoRef}
         data={displayMessages}
         itemContent={itemContent}
         followOutput="smooth"
         initialTopMostItemIndex={Math.max(0, displayMessages.length - 1)}
-        className="flex-grow no-scrollbar py-4"
+        className="flex-grow overscroll-contain py-4"
         style={{ height: '100%' }}
         overscan={200}
+        role="log"
+        aria-label="Unterhaltung"
       />
     </div>
   );

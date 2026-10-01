@@ -29,16 +29,17 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
-  // Der alte Routenpfad. Create liegt seit 2026-08-29 unter '/create';
-  // '/playground' steht noch in Lesezeichen und geteilten Links. permanent: false,
-  // damit eine spätere Korrektur nicht in fremden Browser-Caches festhängt.
+  // Alte Adressen aus Lesezeichen und geteilten Links. Chat und Create sind
+  // Raeume einer Huelle (`/`, `/create`); Galerie und Einstellungen sind
+  // Sheets darin und werden per ?panel= direkt geoeffnet. permanent: false,
+  // damit eine spaetere Korrektur nicht in fremden Browser-Caches festhaengt.
   async redirects() {
     return [
-      {
-        source: '/playground',
-        destination: '/create',
-        permanent: false,
-      },
+      { source: '/playground', destination: '/create', permanent: false },
+      { source: '/unified', destination: '/', permanent: false },
+      { source: '/chat', destination: '/', permanent: false },
+      { source: '/gallery', destination: '/?panel=gallery', permanent: false },
+      { source: '/settings', destination: '/?panel=settings', permanent: false },
     ];
   },
   // Dev-only: reaching the dev server over a Tailscale or LAN address instead of

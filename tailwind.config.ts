@@ -96,7 +96,24 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      // Bewegung hat drei Dauern und zwei Kurven — mehr nicht. `out` fuer alles,
+      // was hereinkommt; `in-out` fuer Raumwechsel. Animiert werden nur
+      // transform, opacity und filter. Reduzierte Bewegung kuerzt die Dauern
+      // global (globals.css), keine Komponente muss selbst fragen.
+      transitionDuration: {
+        fast: 'var(--motion-fast)',
+        med: 'var(--motion-med)',
+        slow: 'var(--motion-slow)',
+      },
+      transitionTimingFunction: {
+        out: 'cubic-bezier(.2,.8,.2,1)',
+        'in-out': 'cubic-bezier(.65,0,.35,1)',
+      },
       keyframes: {
+        rise: {
+          from: { opacity: '0', transform: 'translateY(6px)' },
+          to: { opacity: '1', transform: 'none' },
+        },
         'accordion-down': {
           from: {
             height: '0',
@@ -115,6 +132,7 @@ export default {
         },
       },
       animation: {
+        rise: 'rise var(--motion-med) cubic-bezier(.2,.8,.2,1) both',
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },

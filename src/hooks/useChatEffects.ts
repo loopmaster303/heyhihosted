@@ -6,26 +6,19 @@
 import { useEffect } from 'react';
 import { toDate } from '@/utils/chatHelpers';
 import type { Conversation } from '@/types';
-import { FALLBACK_IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
 import { DatabaseService } from '@/lib/services/database';
+import { interruptPendingMedia } from '@/lib/chat/chat-media-intent-handler';
 
 interface UseChatEffectsProps {
     // State
-    isHistoryPanelOpen: boolean;
-    isAdvancedPanelOpen: boolean;
     isInitialLoadComplete: boolean;
     allConversations: Conversation[];
     activeConversation: Conversation | null;
     persistedActiveConversationId: string | null;
-    selectedImageModelId: string;
 
     // Setters
-    setIsHistoryPanelOpen: (open: boolean) => void;
-    setIsAdvancedPanelOpen: (open: boolean) => void;
     setActiveConversation: React.Dispatch<React.SetStateAction<Conversation | null>>;
     setPersistedActiveConversationId: (id: string | null) => void;
-    setAvailableImageModels: (models: string[]) => void;
-    setSelectedImageModelId: (modelId: string) => void;
 
     // Actions
     startNewChat: () => Conversation | undefined;
@@ -36,46 +29,18 @@ interface UseChatEffectsProps {
 }
 
 export function useChatEffects({
-    isHistoryPanelOpen,
-    isAdvancedPanelOpen,
     isInitialLoadComplete,
     allConversations,
     activeConversation,
     persistedActiveConversationId,
-    selectedImageModelId,
-    setIsHistoryPanelOpen,
-    setIsAdvancedPanelOpen,
     setActiveConversation,
     setPersistedActiveConversationId,
-    setAvailableImageModels,
-    setSelectedImageModelId,
     startNewChat,
     retryLastRequest,
     retryLastRequestRef,
     saveConversation,
     deleteConversation,
 }: UseChatEffectsProps) {
-    // ESC Key handler for all panels
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key !== 'Escape') return;
-            if (isHistoryPanelOpen) setIsHistoryPanelOpen(false);
-            if (isAdvancedPanelOpen) setIsAdvancedPanelOpen(false);
-        };
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, [isHistoryPanelOpen, isAdvancedPanelOpen, setIsHistoryPanelOpen, setIsAdvancedPanelOpen]);
-
-    // Initialize available image models from config
-    useEffect(() => {
-        setAvailableImageModels(FALLBACK_IMAGE_MODELS);
-        // Ensure selected model is valid
-        if (!FALLBACK_IMAGE_MODELS.includes(selectedImageModelId)) {
-            setSelectedImageModelId(DEFAULT_IMAGE_MODEL);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
     // Initial restore logic
     useEffect(() => {
         if (!isInitialLoadComplete || activeConversation) return;
@@ -93,10 +58,10 @@ export function useChatEffects({
             }
 
             if (conversationToRestore) {
-                setActiveConversation(conversationToRestore);
+                setActiveConversation(interruptPendingMedia(conversationToRestore));
             } else if (allConversations.length > 0) {
                 const full = await DatabaseService.getFullConversation(allConversations[0].id);
-                setActiveConversation(full as any);
+                setActiveConversation(full ? interruptPendingMedia(full as Conversation) : (full as any));
             } else {
                 startNewChat();
             }

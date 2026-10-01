@@ -58,7 +58,7 @@ export const ResearchDepthBadges: React.FC<ResearchDepthBadgesProps> = ({
                         disabled={disabled}
                         onClick={() => onModelChange(RESEARCH_DEPTH_MODELS[depth])}
                         className={cn(
-                            "flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-medium transition-all disabled:opacity-40",
+                            "flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-medium transition-colors disabled:opacity-40",
                             isActive
                                 ? "border-transparent"
                                 : "border-border/30 text-foreground/80 hover:text-foreground hover:shadow-sm",
