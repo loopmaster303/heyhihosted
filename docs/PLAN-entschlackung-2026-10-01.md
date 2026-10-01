@@ -1,10 +1,11 @@
 # PLAN — Entschlackung und eine Fläche (2026-10-01)
 
-**Teil A** (E0–E8): Entschlackung. **Teil B** (E9–E14): Create zurück in den Chat, eine
-Fläche, nativ und zugänglich.
+**Teil A** (E0–E8): Entschlackung. **Teil B** (E9–E15): Create zurück in den Chat, eine
+Fläche, nativ und zugänglich, und ein Bild im Chat, das sichtbar entsteht.
 
-**Status:** Vorschlag. Nichts davon ist umgesetzt. Nach AGENTS.md wartet dieser Plan auf ein
-ausdrückliches „leg los“, und zwar je Phase.
+**Status:** Vorschlag. Die Richtung hat der Betreiber am 2026-10-01 gutgeheißen. Umgesetzt ist
+nichts: Nach AGENTS.md wartet jede Phase auf ein ausdrückliches „leg los“, und vor allem anderen
+steht E0.
 **Ausgangsbasis:** `main` @ `a61feed`. `tsc --noEmit` grün, **974 Tests in 124 Suiten grün**
 (gemessen am 2026-10-01).
 **Werkzeuge der Bestandsaufnahme:** `knip@5` (tote Dateien, Exporte, Abhängigkeiten), ein
@@ -477,7 +478,9 @@ Blocker löst. Teil B (E9–E14) setzt auf E3–E5 auf; die Reihenfolge steht in
 
 **Auftrag (2026-10-01):** „Create zurück zum Chat, alles mehr nativ wirkend, mit schöneren
 Animationen und Panels, ein sinnvolleres Verhalten der Web-App. Simplify und accessify. Alles
-soll wirken wie eine Fläche oder wenige.“
+soll wirken wie eine Fläche oder wenige.“ Dazu, zum Bild im Chat: kein riesiger Block mit dem
+Prompt drumherum. Das Bild soll mit einem pulsierenden ASCII-Effekt entstehen und dann für sich
+stehen, ohne Rahmen.
 
 **Vorher/Nachher zum Anfassen:** das Artefakt [„heyhi · Eine Fläche“](https://claude.ai/artifact/3WYwBLJ2db5gpPw4Hmzna1)
 (privat, nur für den Betreiber sichtbar). Eine bedienbare Attrappe, die beide Verhalten nebeneinanderstellt.
@@ -499,6 +502,7 @@ Nachher gibt es eine Hülle mit zwei Räumen und einer Art Panel, und alles bewe
 | Bewegung | 31 × `transition-all`, 38 × `backdrop-blur`, Kopfzeile mit `duration-700`-Größensprung. Reduzierte Bewegung respektieren nur 6 Dateien. | |
 | Bedienbarkeit | 12 Aktionen nur bei `group-hover:opacity-100`, für Tastatur und Touch-first unsichtbar. Viele Knöpfe mit `title` als einzigem Hinweis. Kein Skip-Link. | |
 | Native Hülle | Kein Web-Manifest, keine `theme-color`, kein `viewport`-Export, Safe-Area an genau einer Stelle. Der Telefon-Tastaturfix `--vvh` lebt nur im Create. Vom Homescreen öffnet sich ein Browser-Tab. | `src/app/layout.tsx`, `public/` |
+| Bild im Chat | Solange das Bild entsteht, zeigt die Antwort den **Rohtext-Marker** `[IMAGE_GEN: …]` mit dem englischen Prompt. Der JSON-Pfad meldet den vollen Rohtext einmal als Stream, und den sauberen Text setzt der Ablauf erst, wenn das Bild fertig ist. Dann sitzt das Bild **in** der Textblase, mit eigenem Rahmen, Lade-Kringel und hartem Sprung. Einen Platzhalter, der den Platz hält, gibt es nicht. Im Code belegt, live nicht angesehen. | `chat-service.ts:105`, `chat-send-orchestrator.ts:114–134`, `MessageBubble.tsx:106, :524–530` |
 
 ## B.2 Zielbild „Eine Fläche“
 
@@ -606,6 +610,50 @@ kaputtgeht.
   laut Kommentar AA-geprüft, das dunkle nicht belegt.
 - Trefferflächen überall ≥ 44 px, nicht nur im Create unter `md`.
 
+### E15 — Ein Bild entsteht sichtbar *(braucht nur E4)*
+
+So, wie es die Attrappe im Modus „Nachher“ abspielt:
+
+1. **Der Marker ist nie sichtbar.** Sobald die Antwort da ist, steht der saubere Text
+   (`parseMediaIntents().cleanText`) in der Nachricht. Der Ablauf wird zweistufig: Text und ein
+   Bildteil im Zustand `pending` sofort setzen, nach der Erzeugung denselben Teil auf `ready`
+   oder `error` umstellen. Heute wartet `runTextChatCompletionFlow` mit dem Ersetzen, bis das
+   Bild fertig ist. Auch der Zwischenstand im Stream-Pfad bekommt `cleanText`; ein noch offener
+   Marker (`[IMAGE_GEN: …` ohne `]`) bleibt bis zum Ende ausgeblendet, damit echtes Streaming
+   später nichts aufdeckt.
+2. **Bild und Text sind getrennte Blöcke.** `MessageBubble` rendert Bildteile unter der
+   Textblase, ohne Rahmen, Glas und Schatten; nur der Eckenradius bleibt. Der Prompt steht nicht
+   mehr um das Bild herum, sondern in der Großansicht und im `alt`-Text.
+3. **Platzhalter `GenerationField`:** ein ASCII-Feld in genau der Zielgröße (Seitenverhältnis
+   aus der Anfrage, sonst 1 : 1). Es pulsiert, solange der Lauf läuft, darunter steht in Mono
+   `flux · erzeugt · 0:03`. Eingefärbt wird es im Markenverlauf Violett → Pink → Blau. **Die
+   Farben des echten Bildes kennt vorher niemand**; die Attrappe nimmt der Einfachheit halber
+   die Farben ihres Beispielbilds. Gebaut auf `useAsciiFrames` (`src/components/ascii/`), das
+   reduzierte Bewegung und Hintergrund-Tabs schon richtig behandelt: Bei reduzierter Bewegung
+   steht das Feld still, der Zähler läuft weiter.
+4. **Übergang:** Das Bild wird vorgeladen und mit `img.decode()` dekodiert, bevor es erscheint.
+   Dann blendet das Feld aus, und das Bild löst sich aus der Unschärfe (`blur` → scharf,
+   `opacity` 0 → 1, ≈ 500 ms, Kurve `out`). Kein Sprung, weil der Platz seit dem Platzhalter
+   reserviert ist.
+5. **Aktionen liegen auf dem Bild:** vergrößern, herunterladen, „In Create weiterarbeiten“. Am
+   Desktop bei Hover und `focus-within`, auf Touch immer sichtbar. Ein großer Knopf unter dem
+   Bild entfällt; `GenerationControlStrip` geht ohnehin mit E4.
+6. **Fehler bleiben am Ort.** Das Feld friert ein und wird zur Fehlerkarte mit dem Satz aus
+   `describe-error` und „Erneut versuchen“. Heute kommt stattdessen ein roter Toast
+   (`onError` in `ChatProvider.tsx`).
+7. **Zugänglich:** Der Platzhalter ist `role="img"` mit `aria-busy`; eine `aria-live`-Meldung
+   sagt „Bild wird erzeugt“ und „Bild fertig“. Das ASCII-Feld selbst ist `aria-hidden`.
+8. **Reload während der Erzeugung:** Ein `pending`-Teil ohne laufenden Lauf erscheint beim
+   Laden als „abgebrochen“ mit „Erneut versuchen“, nie als ewiger Platzhalter. Keine
+   Dexie-Migration, der Teil ist JSON in der Nachricht.
+
+**Tests:** Der erste gesetzte Zustand enthält keinen Marker mehr; der Bildteil steht außerhalb
+der Blase; `pending` → `ready` und `pending` → `error`; bei reduzierter Bewegung ist das Feld
+statisch.
+**Schätzung:** +200 bis +300 Zeilen für Feld, Platzhalter und den zweistufigen Ablauf; dafür
+fallen Rahmen und Kringel aus `ChatImageCard`. **Risiko:** gering bis mittel, weil
+`runTextChatCompletionFlow` sich ändert. Es hat Tests, die das absichern.
+
 ## B.4 Was Teil B nicht anfasst
 
 - Den Funktionsumfang des Playground Meck. Er zieht in die Hülle um, ändert aber nicht, was er
@@ -625,6 +673,7 @@ kaputtgeht.
 | Galerie-Implementierungen | 2 | 1 |
 | Wechsel Create → Chat | Neuladen, Eingabe weg | Gleiten, ≈ 400 ms, Eingabe bleibt |
 | Dateien mit reduzierter Bewegung | 6 | global |
+| Bild im Chat | Rohtext-Marker, Bild in der Blase mit Rahmen, Sprung | ASCII-Puls in Zielgröße, dann rahmenlos, kein Sprung |
 
 ## B.6 Offene Entscheidungen
 
@@ -633,6 +682,7 @@ kaputtgeht.
 | **E-6** | Sheet auf vaul oder Radix Dialog? | vaul, wenn der Spike die Wischgeste auf iOS sauber zeigt; vaul ist schon da |
 | **E-7** | Raumumschalter `Chat \| Create` in der Kopfzeile oder als Tab-Leiste unten auf dem Telefon? | Kopfzeile. Zwei Räume rechtfertigen keine Tab-Leiste, und unten sitzt die Eingabe. |
 | **E-8** | Sound als dritter Raum oder Modus in Create? | Modus in Create, wie heute. Ein dritter Raum wäre wieder eine Fläche mehr. |
+| **E-9** | Dasselbe ASCII-Feld auch für laufende Karten in Create, statt `AsciiSpinner`? | Ja. Eine Bildsprache für „entsteht gerade“ in beiden Räumen. Das ändert nicht, was der Playground kann. |
 
 ## B.7 Reality Check
 
@@ -644,6 +694,8 @@ kaputtgeht.
   gemountet lassen.
 - **Spaghetti-Gefahr:** Ein gemeinsamer Zustand für alles wäre der falsche Weg. Die Hülle teilt
   nur, was heute schon global ist; jeder Raum behält seinen eigenen Zustand.
+- **Ewiger Platzhalter?** Ein `pending`-Bildteil überlebt einen Reload als Daten. Deshalb liest
+  die Ansicht `pending` ohne laufenden Lauf als „abgebrochen“ (E15, Punkt 8).
 - **Ungeprüft:** View Transitions unter Next 16 (Spike in E11), vaul-Wischgeste auf iOS
   (Spike in E10).
 
@@ -651,8 +703,12 @@ kaputtgeht.
 
 ```
 E0 ─► E1 ─► E2 ─► E3 ─► E5 ─► E9 ─► E10 ─► E11 ─► E12 ─► E13 ─► E14
-                    └─ E-2 ─► E4 ─┘           (E6 und E7 unabhängig dazwischen)
+                    └─ E-2 ─► E4 ─┤           (E6 und E7 unabhängig dazwischen)
+                                  └─► E15
 ```
+
+E15 hängt nur an E4, weil es danach im Chat nur noch einen Bildweg gibt. Es kann deshalb vor
+der Hülle kommen und ist der sichtbarste Gewinn pro Aufwand.
 
 E5 (Routen) kommt vor E9, weil die Hülle auf den bereinigten Routen aufsetzt. E4 sollte vor E9
 fertig sein, sonst zieht Visualize als dritter Bildweg mit in die neue Hülle. E14 läuft als
