@@ -20,7 +20,7 @@ Abhängigkeit, kein neuer Dienst.
 
 **Tech Stack:** Next.js 16 App Router, React 19, Jest + Testing Library, Zod, `safe-storage`.
 
-**Spec:** [`LAUNCH_CRITERIA.md`](LAUNCH_CRITERIA.md) (L-C.1–C.4, L-K.2, L-I.3 — Statusquelle),
+**Spec:** [`LAUNCH_CRITERIA.md`](../../LAUNCH_CRITERIA.md) (L-C.1–C.4, L-K.2, L-I.3 — Statusquelle),
 [`FAHRPLAN-create.md`](FAHRPLAN-create.md) Abschnitt Phase 4,
 [`HANDOFF-2026-08-28-phase-3.md`](HANDOFF-2026-08-28-phase-3.md) Abschnitte 3 und 6,
 [`HANDOFF-2026-08-29-audit-review.md`](HANDOFF-2026-08-29-audit-review.md) Abschnitt 6.

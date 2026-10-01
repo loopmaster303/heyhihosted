@@ -3,9 +3,27 @@
 **Teil A** (E0–E8): Entschlackung. **Teil B** (E9–E15): Create zurück in den Chat, eine
 Fläche, nativ und zugänglich, und ein Bild im Chat, das sichtbar entsteht.
 
-**Status:** Vorschlag. Die Richtung hat der Betreiber am 2026-10-01 gutgeheißen. Umgesetzt ist
-nichts: Nach AGENTS.md wartet jede Phase auf ein ausdrückliches „leg los“, und vor allem anderen
-steht E0.
+**Status (2026-10-01, abends):** Als **eigenständige Variante** auf dem Branch
+`claude/pensive-ramanujan-j2l7in` umgesetzt — auf ausdrückliches „go“ des Betreibers, die offenen
+Entscheidungen nach den Empfehlungen dieses Plans. `main` ist unberührt. Einzelheiten, Prüfung
+und Fallstricke: [`HANDOFF-2026-10-01-eine-flaeche.md`](HANDOFF-2026-10-01-eine-flaeche.md).
+
+| Phase | Stand in der Variante |
+|---|---|
+| E0 Playground Meck sichern | **offen** — Betreiber. Der Video-2-Pro-Stand ist nicht in der Variante. |
+| E1 Ballast | erledigt (`b8975c5`) |
+| E2 Doku | erledigt — ein Archiv, 49 → 11 Dokumente oben, `CLAUDE.md` 25 → 10 KB |
+| E3 Compose aus dem Chat | erledigt (`8d06736`); `/api/compose` bleibt für den Sound-Plan |
+| E4 Visualize aus dem Chat | erledigt (`8d06736`), E-2 = A |
+| E5 Routen und Shell | erledigt (`8d06736`), als Routengruppe `(app)` statt `(chat)` |
+| E6 Ein Modell, eine Karte | **nicht begonnen** — größtes Risiko, eigener Durchgang |
+| E7 Server-HTTP | erledigt (`221d5aa`), Header unter Next 16.3 geprüft |
+| E8 Kleinkram | **nicht begonnen** (Deko-Doppel, About) |
+| E9–E12 Hülle, Sheet, Bewegung, nativ | erledigt (`8d06736`), E-6 = vaul, E-7 = Kopfzeile |
+| E13 Verhalten | erledigt bis auf **die offene Unterhaltung als Adressparameter** |
+| E14 Zugänglich | Gerüst erledigt; Gate-Bereich N in `LAUNCH_CRITERIA.md`, dort teils offen |
+| E15 Bild entsteht sichtbar | erledigt (`8d06736`) |
+| E-9 ASCII-Feld auch in Create | **nicht begonnen** — Create zeigt weiter `AsciiSpinner` |
 **Ausgangsbasis:** `main` @ `a61feed`. `tsc --noEmit` grün, **974 Tests in 124 Suiten grün**
 (gemessen am 2026-10-01).
 **Werkzeuge der Bestandsaufnahme:** `knip@5` (tote Dateien, Exporte, Abhängigkeiten), ein

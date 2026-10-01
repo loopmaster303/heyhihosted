@@ -2,7 +2,7 @@
 
 **Datum:** 2026-08-27
 **Phase im Fahrplan:** [`docs/FAHRPLAN-create.md`](FAHRPLAN-create.md), Phase 2 (P1, P2, P3, P4)
-**Status dieses Dokuments:** Blueprint + Reality Check nach [`AGENTS.md`](../AGENTS.md).
+**Status dieses Dokuments:** Blueprint + Reality Check nach [`AGENTS.md`](../../../AGENTS.md).
 **Kein Code geschrieben, nichts committet.** Phase 4 (Ausführung) startet erst nach
 ausdrücklicher Freigabe und nach Beantwortung der Rückfragen in Abschnitt 4.
 

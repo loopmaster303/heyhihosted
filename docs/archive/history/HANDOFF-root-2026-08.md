@@ -23,12 +23,12 @@ Seit August 2026 enthält `main` auch das **Create** (`/create`, bis 2026-08-29 
 > sind in **sechzehn thematische Commits** überführt, gepusht und live verifiziert.
 > `git status` ist leer. Jeder Commit wurde einzeln in einem eigenen Worktree geprüft und
 > ist für sich grün. Details, Werkzeuge und die Befunde je Phase:
-> [`docs/HANDOFF-2026-08-28-phase-0.md`](docs/HANDOFF-2026-08-28-phase-0.md).
+> [`docs/HANDOFF-2026-08-28-phase-0.md`](../2026-08-create-fahrplan/HANDOFF-2026-08-28-phase-0.md).
 
 - **HEAD = `fcb1124`** (Phase 2), synchron mit `origin/main`. Kein offener Arbeitsbaum mehr.
-- **Aktiver Plan:** [`docs/FAHRPLAN-create.md`](docs/FAHRPLAN-create.md) — zehn Phasen zur öffentlich verlinkbaren Version.
-- **Orientierung je Phase:** [`docs/HANDOFF-2026-08-27-fahrplan.md`](docs/HANDOFF-2026-08-27-fahrplan.md) — Zuordnung des Arbeitsbaums nach Herkunft, Wegweiser und Fallstricke pro Phase.
-- **Letzte Sitzung mit Code:** [`docs/HANDOFF-2026-08-28-phase-3.md`](docs/HANDOFF-2026-08-28-phase-3.md) — Modellwahrheit gegen die Live-Registry, 849 Tests grün, lint/tsc/build sauber, gegen Live und Dev-Server verifiziert.
+- **Aktiver Plan:** [`docs/FAHRPLAN-create.md`](../2026-08-create-fahrplan/FAHRPLAN-create.md) — zehn Phasen zur öffentlich verlinkbaren Version.
+- **Orientierung je Phase:** [`docs/HANDOFF-2026-08-27-fahrplan.md`](../2026-08-create-fahrplan/HANDOFF-2026-08-27-fahrplan.md) — Zuordnung des Arbeitsbaums nach Herkunft, Wegweiser und Fallstricke pro Phase.
+- **Letzte Sitzung mit Code:** [`docs/HANDOFF-2026-08-28-phase-3.md`](../2026-08-create-fahrplan/HANDOFF-2026-08-28-phase-3.md) — Modellwahrheit gegen die Live-Registry, 849 Tests grün, lint/tsc/build sauber, gegen Live und Dev-Server verifiziert.
 - **Live-Deploy:** `chat.hey-hi.cloud` und `chat.hey-hi.cloud/create` zeigen den Stand
   `aa3eac4`. Live geprüft: Chat antwortet, `flux` erzeugt ein echtes Bild, die
   Intent-Erkennung emittiert ihren Marker, `/api/pruna/status` ist erreichbar.
@@ -66,10 +66,10 @@ Weiteres ausgeblendet).
 
 - **2026-08-26** — Pruna-Payload-Korrekturen, Umstellung auf Client-Polling (`202`-Protokoll,
   `/api/pruna/status`), VACE ausgeblendet, Pollen-Key-Feld repariert. Details im
-  [Sitzungs-Handoff](docs/HANDOFF-2026-08-26-pruna-video.md). Uncommitted.
+  [Sitzungs-Handoff](../2026-08-create-fahrplan/HANDOFF-2026-08-26-pruna-video.md). Uncommitted.
 - **2026-08-27** — Analyse und Planung, kein Code: Fahrplan in zehn Phasen, Registry-Drift
   aufgedeckt, Entscheidungen zu Domain, Galerie und Musik festgehalten. Details im
-  [Fahrplan-Handoff](docs/HANDOFF-2026-08-27-fahrplan.md).
+  [Fahrplan-Handoff](../2026-08-create-fahrplan/HANDOFF-2026-08-27-fahrplan.md).
 - Dazwischen liegt eine **ältere, undokumentierte Sitzung** (Chat-Input-Umbau,
   Settings-Umzug, ASCII-Komponenten, Rate-Limit, Features-Flag), deren Absicht nirgends
   festgehalten ist. Ihre Dateien sind in Abschnitt 5.1 des Fahrplan-Handoffs aufgelistet.
@@ -92,7 +92,7 @@ Weiteres ausgeblendet).
 
 ## Nächste Schritte
 
-Priorisiert im [Fahrplan](docs/FAHRPLAN-create.md). **Phase 0–3 sind erledigt**, der Weg
+Priorisiert im [Fahrplan](../2026-08-create-fahrplan/FAHRPLAN-create.md). **Phase 0–3 sind erledigt**, der Weg
 beginnt bei Phase 4. Kurzfassung:
 
 ```
@@ -123,9 +123,9 @@ Weiterhin offen, außerhalb des Fahrplans:
 ## Für den nächsten Agenten
 
 1. Dieses Handoff lesen.
-2. [`docs/HANDOFF-2026-08-28-phase-0.md`](docs/HANDOFF-2026-08-28-phase-0.md) lesen — was
+2. [`docs/HANDOFF-2026-08-28-phase-0.md`](../2026-08-create-fahrplan/HANDOFF-2026-08-28-phase-0.md) lesen — was
    Phase 0 hinterlässt, welche Befunde in welche Phase gehören, und was aus ihr offen blieb.
-3. [`docs/HANDOFF-2026-08-27-fahrplan.md`](docs/HANDOFF-2026-08-27-fahrplan.md) für Fundort
+3. [`docs/HANDOFF-2026-08-27-fahrplan.md`](../2026-08-create-fahrplan/HANDOFF-2026-08-27-fahrplan.md) für Fundort
    und Fallstricke je Phase. **Achtung:** seine Zuordnung des Arbeitsbaums (Abschnitt 5.1)
    ist historisch — der Baum ist aufgelöst, und die Zuordnung war unvollständig; das
    Phase-0-Handoff nennt die fünf fehlenden Gruppen.

@@ -44,7 +44,7 @@ POST https://chat.hey-hi.cloud/api/generate  {"model":"qwen-image","prompt":"a r
 → 503 {"error":"Model qwen-image requires PRUNA_API_KEY which is not set"}
 ```
 
-`qwen-image` steht in [`unified-image-models.ts:103`](../src/config/unified-image-models.ts)
+`qwen-image` steht in [`unified-image-models.ts:103`](../../../src/config/unified-image-models.ts)
 als `provider: 'pruna', isFree: true, enabled: true`. Die Oberfläche bietet es als
 kostenlos an, der Dispatch schickt es zu Pruna, und ohne Pruna-Schlüssel endet es in einer
 Meldung über eine **Server-Umgebungsvariable**, die den Nutzer nichts angeht.
@@ -79,7 +79,7 @@ Zwei Dinge daran:
    `gen.pollinations.ai/account/balance` antwortet damit `200` mit Kontostand. Es sind also
    zwei verschiedene Schlüssel, und der in Produktion kann den Kontostand nicht lesen.
 2. **`connectOAuth` fordert die falsche Berechtigung an.**
-   [`usePollenKey.ts`](../src/hooks/usePollenKey.ts) setzt
+   [`usePollenKey.ts`](../../../src/hooks/usePollenKey.ts) setzt
    `permissions=profile,balance,usage`. Pollinations verlangt in der Fehlermeldung
    `account:usage`. Das ist der wahrscheinlichste Grund, warum auch der Schlüssel **im
    Browser des Nutzers** 403 bekommt. → Verifikationsschritt V1 unten.
@@ -92,7 +92,7 @@ Zwei Dinge daran:
 
 `gen.pollinations.ai` antwortet mit
 `{"success":false,"error":{"message":"…","code":"…"},"status":403}`.
-[`/api/pollen/account/route.ts:31`](../src/app/api/pollen/account/route.ts) reicht
+[`/api/pollen/account/route.ts:31`](../../../src/app/api/pollen/account/route.ts) reicht
 `data?.error` unverändert weiter — also ein **Objekt**.
 
 Die beiden Leser erwarten einen String:
@@ -106,7 +106,7 @@ Meldung — sie ist da und wird auf dem Weg weggeworfen.
 
 ### Befund C — Die verstrichene Zeit gibt es schon (Altlast 5, teilweise erledigt)
 
-`RunningCard` in [`Gallery.tsx:72`](../src/components/playground/Gallery.tsx) zählt seit
+`RunningCard` in [`Gallery.tsx:72`](../../../src/components/playground/Gallery.tsx) zählt seit
 `startedAt` und zeigt `{secs} s`, dazu bei Videos „Video kann mehrere Minuten dauern". Das
 steht bereits in `HEAD`, nicht nur im Arbeitsbaum.
 
@@ -143,20 +143,20 @@ Spalte „gewünscht" ist der vorgeschlagene Wortlaut — Wortwahl ist Rückfrag
 
 | # | Fehlerfall | Heutige Anzeige | Gewünschte Anzeige | Fundort |
 |---|---|---|---|---|
-| 1 | Pruna-Modell ohne Pruna-Schlüssel | `Model qwen-image requires PRUNA_API_KEY which is not set` (503) | „**Qwen Image** läuft über Pruna und braucht deinen eigenen Pruna-Schlüssel. Einstellungen öffnen ▸" | [`generate/route.ts:240`](../src/app/api/generate/route.ts) · Code `MISSING_PRUNA_KEY` |
-| 2 | Pruna lehnt ein Feld ab | `Pruna API error (400): {"message":"property input validation failed: additional properties forbidden, found voellig_unbekanntes_feld"}` | „**Wan T2V** kennt die Einstellung `voellig_unbekanntes_feld` nicht. Das ist ein Fehler bei uns, nicht bei dir — bitte melden. Ohne diese Einstellung erneut versuchen ▸" | [`pruna/client.ts:89`](../src/lib/pruna/client.ts) · Code `PRUNA_API_ERROR` |
-| 3 | Pollinations-Modell ohne gültigen Schlüssel | `Pollinations API error: A valid API key is required. Get one at https://enter.pollinations.ai/keys` (401) | „Dieses Modell braucht einen Pollen-Schlüssel. Pollen verbinden ▸" | [`pollinations-image-v1.ts:70`](../src/lib/pollinations-image-v1.ts) → **kein Code gesetzt** |
+| 1 | Pruna-Modell ohne Pruna-Schlüssel | `Model qwen-image requires PRUNA_API_KEY which is not set` (503) | „**Qwen Image** läuft über Pruna und braucht deinen eigenen Pruna-Schlüssel. Einstellungen öffnen ▸" | [`generate/route.ts:240`](../../../src/app/api/generate/route.ts) · Code `MISSING_PRUNA_KEY` |
+| 2 | Pruna lehnt ein Feld ab | `Pruna API error (400): {"message":"property input validation failed: additional properties forbidden, found voellig_unbekanntes_feld"}` | „**Wan T2V** kennt die Einstellung `voellig_unbekanntes_feld` nicht. Das ist ein Fehler bei uns, nicht bei dir — bitte melden. Ohne diese Einstellung erneut versuchen ▸" | [`pruna/client.ts:89`](../../../src/lib/pruna/client.ts) · Code `PRUNA_API_ERROR` |
+| 3 | Pollinations-Modell ohne gültigen Schlüssel | `Pollinations API error: A valid API key is required. Get one at https://enter.pollinations.ai/keys` (401) | „Dieses Modell braucht einen Pollen-Schlüssel. Pollen verbinden ▸" | [`pollinations-image-v1.ts:70`](../../../src/lib/pollinations-image-v1.ts) → **kein Code gesetzt** |
 | 4 | Pollen aufgebraucht (402) | ungeprüft — vermutlich `Pollinations API error: <upstream>` | „Dein Pollen-Guthaben reicht für dieses Modell nicht. Kontostand ansehen ▸ oder ein freies Modell wählen." | s. o., neuer Code `POLLEN_INSUFFICIENT` |
-| 5 | Kontostand nicht abrufbar (403) | Lampe bleibt grün · Konsole: Objekt statt Satz · UI: nichts | „Schlüssel hinterlegt, Kontostand nicht abrufbar: dem Schlüssel fehlt `account:usage`. Erzeugen funktioniert trotzdem." | [`pollen/account/route.ts:31`](../src/app/api/pollen/account/route.ts) + [`usePollenKey.ts`](../src/hooks/usePollenKey.ts) |
+| 5 | Kontostand nicht abrufbar (403) | Lampe bleibt grün · Konsole: Objekt statt Satz · UI: nichts | „Schlüssel hinterlegt, Kontostand nicht abrufbar: dem Schlüssel fehlt `account:usage`. Erzeugen funktioniert trotzdem." | [`pollen/account/route.ts:31`](../../../src/app/api/pollen/account/route.ts) + [`usePollenKey.ts`](../../../src/hooks/usePollenKey.ts) |
 | 6 | Schlüssel abgelaufen/falsch (401) | Lampe bleibt grün, stiller Konsolen-Log | „Dein Pollen-Schlüssel wird abgelehnt. Neu verbinden ▸" | wie 5 |
-| 7 | Unbekanntes Modell | `Unknown or unavailable Pollinations image/video model: gibt-es-nicht` (400) | „Das Modell **gibt-es-nicht** gibt es nicht mehr. Wähle ein anderes ▸" (Auswahl öffnet sich) | [`generate/route.ts:110`](../src/app/api/generate/route.ts) |
-| 8 | Leerer / ungültiger Request | `Invalid request data` (400, `VALIDATION_ERROR`) — Zod-Detail wird verworfen | „Der Prompt fehlt." bzw. das konkrete Feld | [`api-error-handler.ts:validateRequest`](../src/lib/api-error-handler.ts) |
-| 9 | Referenzbild auf Modell ohne Support | `Model flux does not support reference images` (400) | „**Flux** kann keine Referenzbilder. Entferne das Bild oder wähle ein Modell, das es kann ▸" | [`generate/route.ts:124`](../src/app/api/generate/route.ts) |
-| 10 | Zu viele Anfragen | `Too many requests` (429) — `Retry-After` wird nicht gelesen | „Zu viele Anfragen. Es geht in **34 s** weiter." (Zähler) | [`generate/route.ts:62`](../src/app/api/generate/route.ts) |
-| 11 | Upload: multipart | `Send the file as a raw request body, not multipart/form-data` (415) | „Der Upload ist fehlgeschlagen. Bitte erneut versuchen." + technische Zeile im Detail (Nutzer kann das nicht auslösen — es ist unser Bug) | [`media/upload/route.ts`](../src/app/api/media/upload/route.ts) |
+| 7 | Unbekanntes Modell | `Unknown or unavailable Pollinations image/video model: gibt-es-nicht` (400) | „Das Modell **gibt-es-nicht** gibt es nicht mehr. Wähle ein anderes ▸" (Auswahl öffnet sich) | [`generate/route.ts:110`](../../../src/app/api/generate/route.ts) |
+| 8 | Leerer / ungültiger Request | `Invalid request data` (400, `VALIDATION_ERROR`) — Zod-Detail wird verworfen | „Der Prompt fehlt." bzw. das konkrete Feld | [`api-error-handler.ts:validateRequest`](../../../src/lib/api-error-handler.ts) |
+| 9 | Referenzbild auf Modell ohne Support | `Model flux does not support reference images` (400) | „**Flux** kann keine Referenzbilder. Entferne das Bild oder wähle ein Modell, das es kann ▸" | [`generate/route.ts:124`](../../../src/app/api/generate/route.ts) |
+| 10 | Zu viele Anfragen | `Too many requests` (429) — `Retry-After` wird nicht gelesen | „Zu viele Anfragen. Es geht in **34 s** weiter." (Zähler) | [`generate/route.ts:62`](../../../src/app/api/generate/route.ts) |
+| 11 | Upload: multipart | `Send the file as a raw request body, not multipart/form-data` (415) | „Der Upload ist fehlgeschlagen. Bitte erneut versuchen." + technische Zeile im Detail (Nutzer kann das nicht auslösen — es ist unser Bug) | [`media/upload/route.ts`](../../../src/app/api/media/upload/route.ts) |
 | 12 | Upload: SVG / aktiver Typ | `This content type is not allowed for media uploads` (415) | „**SVG** wird nicht angenommen. Nimm PNG, JPG oder WebP." | wie 11 |
 | 13 | Antwort ohne JSON-Body | `Generierung fehlgeschlagen (502)` — Text `error code: 502` geht verloren | „Der Dienst hat mit **502** geantwortet und keine Begründung geliefert. Erneut versuchen ▸" + roher Text im Detail | `messageFrom()` in [`PlaygroundShell.tsx:63`](../src/app/playground/PlaygroundShell.tsx) |
-| 14 | Lauf über 30 min abgebrochen | `Generierung nach 30 Minuten abgebrochen` | „Der Lauf läuft seit 30 Minuten ohne Ergebnis und wurde aufgegeben. Bei Pruna kann er weiterlaufen und trotzdem abgerechnet werden." | [`request-generation.ts:56`](../src/lib/generation/request-generation.ts) |
+| 14 | Lauf über 30 min abgebrochen | `Generierung nach 30 Minuten abgebrochen` | „Der Lauf läuft seit 30 Minuten ohne Ergebnis und wurde aufgegeben. Bei Pruna kann er weiterlaufen und trotzdem abgerechnet werden." | [`request-generation.ts:56`](../../../src/lib/generation/request-generation.ts) |
 
 ### Wie die Übersetzung technisch aussieht
 
@@ -194,17 +194,17 @@ Stattdessen:
 | Datei | Änderung | Warum |
 |---|---|---|
 | [`src/app/playground/PlaygroundShell.tsx`](../src/app/playground/PlaygroundShell.tsx) | `messageFrom()` → `readErrorResponse()` + `describeError()`; Fehler tragen Satz **und** Rohtext | Das Gerüst steht (`setError` Z. 89, Anzeige Z. 439, `status:'failed'` Z. 259). Nur der Inhalt ändert sich, keine Struktur. |
-| [`src/components/playground/Gallery.tsx`](../src/components/playground/Gallery.tsx) | `FailedCard`: `line-clamp-3` weg, Handlungs-Link, aufklappbares Detail · `RunningCard`: `m:ss` statt `700 s`, Erwartungsgröße bei Video | `line-clamp-3` ist die Stelle, an der die Pruna-Meldung heute abgeschnitten wird (F3). Der Zähler existiert schon (Befund C). |
-| [`src/app/api/pollen/account/route.ts`](../src/app/api/pollen/account/route.ts) | Upstream-`error` **auspacken**, immer als String weitergeben; Statusklasse mitschicken | Befund B. Ohne das ist jede weitere Arbeit an der Lampe wirkungslos. |
-| [`src/hooks/usePollenKey.ts`](../src/hooks/usePollenKey.ts) | Dritter Zustand `keyStatus`; `connectOAuth`-Berechtigungen prüfen und ggf. korrigieren | Altlast 3 und Befund A. Der 403 darf nicht als Trennung gedeutet werden. |
+| [`src/components/playground/Gallery.tsx`](../../../src/components/playground/Gallery.tsx) | `FailedCard`: `line-clamp-3` weg, Handlungs-Link, aufklappbares Detail · `RunningCard`: `m:ss` statt `700 s`, Erwartungsgröße bei Video | `line-clamp-3` ist die Stelle, an der die Pruna-Meldung heute abgeschnitten wird (F3). Der Zähler existiert schon (Befund C). |
+| [`src/app/api/pollen/account/route.ts`](../../../src/app/api/pollen/account/route.ts) | Upstream-`error` **auspacken**, immer als String weitergeben; Statusklasse mitschicken | Befund B. Ohne das ist jede weitere Arbeit an der Lampe wirkungslos. |
+| [`src/hooks/usePollenKey.ts`](../../../src/hooks/usePollenKey.ts) | Dritter Zustand `keyStatus`; `connectOAuth`-Berechtigungen prüfen und ggf. korrigieren | Altlast 3 und Befund A. Der 403 darf nicht als Trennung gedeutet werden. |
 | [`src/components/settings/SettingsPopover.tsx`](../src/components/settings/SettingsPopover.tsx) | Lampe liest `keyStatus` statt `isConnected`; Grund im Klartext daneben | Z. 105/116: heute zwei Farben aus `!!pollenKey`. |
-| [`src/lib/pollinations-image-v1.ts`](../src/lib/pollinations-image-v1.ts) | `ApiError` bekommt Codes: 401 → `POLLEN_KEY_REQUIRED`, 402 → `POLLEN_INSUFFICIENT` | Zeilen 3 und 4 der Tabelle haben heute keinen Code und sind darum nicht übersetzbar. |
-| [`src/app/api/generate/route.ts`](../src/app/api/generate/route.ts) | Codes für Zeilen 7, 9, 10; Wortlaut von `MISSING_PRUNA_KEY` von „PRUNA_API_KEY is not set" auf die Nutzersicht drehen | Der heutige Satz beschreibt eine Server-Umgebungsvariable. Der Nutzer hat keine. |
-| [`src/lib/api-error-handler.ts`](../src/lib/api-error-handler.ts) | `validateRequest` gibt das erste Zod-Feld mit; `handleApiError` bleibt maskierend | Zeile 8. Die Maskierung generischer `Error` ist **Absicht** (kein Stack nach außen) und bleibt — sie ist keine Fehlerquelle, weil die relevanten Pfade `ApiError` werfen. |
-| [`src/lib/generation/request-generation.ts`](../src/lib/generation/request-generation.ts) | Lauf beim Dispatch merken, beim Ergebnis löschen; Wiederaufnahme-Einstieg; Abbruchmeldung nach Zeile 14 | Laufstabilität. |
-| [`src/lib/pruna/client.ts`](../src/lib/pruna/client.ts) | Feldname aus `additional properties forbidden, found <feld>` herausziehen und als `details.field` mitgeben | Zeile 2. Der Feldname ist die einzige verwertbare Information in der Meldung; heute steckt er in doppelt geschachteltem JSON in einem String. |
-| [`vercel.json`](../vercel.json) | `maxDuration` für `src/app/api/**` | Altlast 7. |
-| [`CLAUDE.md`](../CLAUDE.md) | Abschnitt „Long runs answer 202" gegen den Code prüfen; Laufwiederaufnahme und die neue Fehlerkonvention ergänzen | Altlast 6 ist seit dem 2026-08-27 im Wesentlichen erledigt; hier bleibt Nachziehen. |
+| [`src/lib/pollinations-image-v1.ts`](../../../src/lib/pollinations-image-v1.ts) | `ApiError` bekommt Codes: 401 → `POLLEN_KEY_REQUIRED`, 402 → `POLLEN_INSUFFICIENT` | Zeilen 3 und 4 der Tabelle haben heute keinen Code und sind darum nicht übersetzbar. |
+| [`src/app/api/generate/route.ts`](../../../src/app/api/generate/route.ts) | Codes für Zeilen 7, 9, 10; Wortlaut von `MISSING_PRUNA_KEY` von „PRUNA_API_KEY is not set" auf die Nutzersicht drehen | Der heutige Satz beschreibt eine Server-Umgebungsvariable. Der Nutzer hat keine. |
+| [`src/lib/api-error-handler.ts`](../../../src/lib/api-error-handler.ts) | `validateRequest` gibt das erste Zod-Feld mit; `handleApiError` bleibt maskierend | Zeile 8. Die Maskierung generischer `Error` ist **Absicht** (kein Stack nach außen) und bleibt — sie ist keine Fehlerquelle, weil die relevanten Pfade `ApiError` werfen. |
+| [`src/lib/generation/request-generation.ts`](../../../src/lib/generation/request-generation.ts) | Lauf beim Dispatch merken, beim Ergebnis löschen; Wiederaufnahme-Einstieg; Abbruchmeldung nach Zeile 14 | Laufstabilität. |
+| [`src/lib/pruna/client.ts`](../../../src/lib/pruna/client.ts) | Feldname aus `additional properties forbidden, found <feld>` herausziehen und als `details.field` mitgeben | Zeile 2. Der Feldname ist die einzige verwertbare Information in der Meldung; heute steckt er in doppelt geschachteltem JSON in einem String. |
+| [`vercel.json`](../../../vercel.json) | `maxDuration` für `src/app/api/**` | Altlast 7. |
+| [`CLAUDE.md`](../../../CLAUDE.md) | Abschnitt „Long runs answer 202" gegen den Code prüfen; Laufwiederaufnahme und die neue Fehlerkonvention ergänzen | Altlast 6 ist seit dem 2026-08-27 im Wesentlichen erledigt; hier bleibt Nachziehen. |
 
 ### Ausdrücklich nicht angefasst
 
@@ -256,7 +256,7 @@ Lauf weg. Bei Pruna läuft er weiter und wird abgerechnet — der Nutzer sieht n
 1. Beim `202` wird ein Eintrag geschrieben:
    `{ runId, predictionId, model, prompt, params, isVideo, aspectRatio, startedAt }` unter
    einem Schlüssel in `localStorage`, über
-   [`safe-storage.ts`](../src/lib/safe-storage.ts) — der Wrapper ist Safari-gehärtet und
+   [`safe-storage.ts`](../../../src/lib/safe-storage.ts) — der Wrapper ist Safari-gehärtet und
    wirft nie, was hier zählt, weil der Schreibvorgang mitten in einem Generierungspfad liegt.
 2. Ergebnis, Fehler oder Abbruch löschen den Eintrag.
 3. `PlaygroundShell` liest die Liste beim Mount, legt für jeden Eintrag eine `ActiveRun`-Karte

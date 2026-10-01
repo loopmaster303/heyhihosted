@@ -30,13 +30,13 @@ neuer Zustand im `PlaygroundShell`.
 Differenz stammt aus den beiden Testdateien, die `ffefb04` hinzugefügt hat. Für diesen
 Plan gilt 111/854 als Untergrenze.
 **Grundlage:** [`FAHRPLAN-create.md`](FAHRPLAN-create.md) Phase 6,
-[`LAUNCH_CRITERIA.md`](LAUNCH_CRITERIA.md) Bereich E, `CLAUDE.md` Abschnitt
+[`LAUNCH_CRITERIA.md`](../../LAUNCH_CRITERIA.md) Bereich E, `CLAUDE.md` Abschnitt
 „Create — read before touching `/create`", [`HANDOFF-2026-08-29-audit-review.md`](HANDOFF-2026-08-29-audit-review.md)
 Abschnitt 6, plus eine eigene Prüfung jeder Datei unter `src/app/create/` und
 `src/components/playground/` gegen HEAD `625523c`.
 **Art:** Plan. Kein Produktivcode in der Planungssitzung geschrieben.
 
-**Fertig-Kriterien sind L-E.1 und L-E.2 aus [`LAUNCH_CRITERIA.md`](LAUNCH_CRITERIA.md),
+**Fertig-Kriterien sind L-E.1 und L-E.2 aus [`LAUNCH_CRITERIA.md`](../../LAUNCH_CRITERIA.md),
 nicht der Fahrplan-Text.** `LAUNCH_CRITERIA.md` ist die Statusquelle dieses Repos.
 
 ---
@@ -44,7 +44,7 @@ nicht der Fahrplan-Text.** `LAUNCH_CRITERIA.md` ist die Statusquelle dieses Repo
 ## 0. Vorbedingung — vor dem ersten Paket prüfen
 
 > **Phase 4 und Phase 5 sind nicht gebaut.** Sie fassen dieselben zwei Dateien an, die
-> dieser Plan umbaut: [`src/components/playground/Gallery.tsx`](../src/components/playground/Gallery.tsx)
+> dieser Plan umbaut: [`src/components/playground/Gallery.tsx`](../../../src/components/playground/Gallery.tsx)
 > und [`src/app/create/PlaygroundShell.tsx`](../src/app/create/PlaygroundShell.tsx).
 
 Beleg, gezogen am 2026-08-29:
@@ -123,7 +123,7 @@ nicht mehr gibt. Erster Punkt dort:
 | Parameter als Schublade | [`PlaygroundShell.tsx:478-483`](../src/app/create/PlaygroundShell.tsx) — `<Drawer direction="left">` mit `PlaygroundSidebarContent` |
 | Detailleiste als Schublade | [`PlaygroundShell.tsx:486-503`](../src/app/create/PlaygroundShell.tsx) — Bottom-`Drawer` mit `MetaRail`, `max-h-[85dvh]` |
 | Nur auf klein | [`PlaygroundShell.tsx:411`](../src/app/create/PlaygroundShell.tsx) — Menüknopf `className="md:hidden"` |
-| Feste Spalte ab md | [`PlaygroundSidebar.tsx:176`](../src/components/playground/PlaygroundSidebar.tsx) — `hidden … md:flex` |
+| Feste Spalte ab md | [`PlaygroundSidebar.tsx:176`](../../../src/components/playground/PlaygroundSidebar.tsx) — `hidden … md:flex` |
 | Rail ab xl, sonst Drawer | [`PlaygroundShell.tsx:94`](../src/app/create/PlaygroundShell.tsx) `useMediaQuery('(min-width: 1280px)')`, [`:436`](../src/app/create/PlaygroundShell.tsx) `hidden … xl:block` |
 
 **Die Phase ist damit kleiner als ihr Text — aber nicht leer.** Was tatsächlich fehlt,
@@ -132,13 +132,13 @@ gemessen am Code, nicht an der Vermutung:
 | # | Befund | Beleg |
 |---|---|---|
 | 1 | Kein `visualViewport`-Code im ganzen Repo | `grep -rn "visualViewport" src/` → 0 Treffer |
-| 2 | Kein `viewport`-Export, damit kein `viewport-fit=cover` | [`layout.tsx:10-19`](../src/app/layout.tsx) hat nur `metadata`; [`create/page.tsx`](../src/app/create/page.tsx) nur `metadata` |
+| 2 | Kein `viewport`-Export, damit kein `viewport-fit=cover` | [`layout.tsx:10-19`](../../../src/app/layout.tsx) hat nur `metadata`; [`create/page.tsx`](../src/app/create/page.tsx) nur `metadata` |
 | 3 | Kein `safe-area-inset` / `env()` irgendwo | `grep -rn "safe-area" src/` → 0; `grep -n "env(" src/app/globals.css` → 0 |
-| 4 | Textarea wächst auf `window.innerHeight * 0.45` | [`PromptBar.tsx:46`](../src/components/playground/PromptBar.tsx) — 365 px auf einem 812-px-Gerät, unabhängig davon, wie viel davon die Tastatur verdeckt |
-| 5 | Galerie kippt zwischen 375 und 390 px von einer auf zwei Spalten | [`Gallery.tsx:238`](../src/components/playground/Gallery.tsx) `minmax(168px, 1fr)`, `gap-3` = 12 px, `p-4` = 2 × 16 px. Bei 375 px: 343 px innen, zwei Spalten bräuchten 348 |
+| 4 | Textarea wächst auf `window.innerHeight * 0.45` | [`PromptBar.tsx:46`](../../../src/components/playground/PromptBar.tsx) — 365 px auf einem 812-px-Gerät, unabhängig davon, wie viel davon die Tastatur verdeckt |
+| 5 | Galerie kippt zwischen 375 und 390 px von einer auf zwei Spalten | [`Gallery.tsx:238`](../../../src/components/playground/Gallery.tsx) `minmax(168px, 1fr)`, `gap-3` = 12 px, `p-4` = 2 × 16 px. Bei 375 px: 343 px innen, zwei Spalten bräuchten 348 |
 | 6 | Trefferflächen zwischen 20 px und 36 px | siehe Tabelle in Abschnitt 3.4 |
-| 7 | Der Grund für „Nicht mehr warten" steht in einem `title` | [`Gallery.tsx:96`](../src/components/playground/Gallery.tsx) — auf dem Telefon gibt es kein Hover |
-| 8 | `DrawerContent` vergibt Bottom-Sheet-Klassen an alle Richtungen | [`ui/drawer.tsx:46`](../src/components/ui/drawer.tsx) — `fixed inset-x-0 bottom-0 mt-24 rounded-t-3xl`, plus der mittige Griff in [`:51`](../src/components/ui/drawer.tsx); der linke Drawer erbt sie |
+| 7 | Der Grund für „Nicht mehr warten" steht in einem `title` | [`Gallery.tsx:96`](../../../src/components/playground/Gallery.tsx) — auf dem Telefon gibt es kein Hover |
+| 8 | `DrawerContent` vergibt Bottom-Sheet-Klassen an alle Richtungen | [`ui/drawer.tsx:46`](../../../src/components/ui/drawer.tsx) — `fixed inset-x-0 bottom-0 mt-24 rounded-t-3xl`, plus der mittige Griff in [`:51`](../../../src/components/ui/drawer.tsx); der linke Drawer erbt sie |
 | 9 | L-E.2 ist nie gemessen worden | `LAUNCH_CRITERIA.md`, L-E.2, `Status: offen` |
 
 Befund 7 stammt wörtlich aus [`HANDOFF-2026-08-29-audit-review.md`](HANDOFF-2026-08-29-audit-review.md),
@@ -223,7 +223,7 @@ darin [`:421`](../src/app/create/PlaygroundShell.tsx) `grid-rows-[1fr_auto]` mit
 Android Chrome den **visual** viewport; `dvh` folgt dem **layout** viewport und bleibt
 gleich groß. Das Grid behält also seine Höhe und schiebt seine untere Zeile unter die
 Tastatur. Weil der einzige Scrollbereich innen liegt
-([`Gallery.tsx:226`](../src/components/playground/Gallery.tsx) `overflow-y-auto`), kann
+([`Gallery.tsx:226`](../../../src/components/playground/Gallery.tsx) `overflow-y-auto`), kann
 der Browser sie auch nicht in Sicht scrollen. Das verletzt L-E.1 wörtlich: „kein
 Bedienelement bleibt unerreichbar oder von der Tastatur verdeckt."
 
@@ -267,19 +267,19 @@ Gemessener Ist-Stand gegen `625523c`:
 
 | Element | heute | Datei:Zeile |
 |---|---|---|
-| Referenz entfernen | **20 px** (`h-5 w-5`) | [`ReferenceSlots.tsx:132`](../src/components/playground/ReferenceSlots.tsx) |
-| Fehlkarte verwerfen | **24 px** (`h-6 w-6`) | [`Gallery.tsx:140`](../src/components/playground/Gallery.tsx) |
-| „Nicht mehr warten" | ~24 px (`py-1`, `text-[10.5px]`) | [`Gallery.tsx:93-100`](../src/components/playground/Gallery.tsx) |
-| „Erneut versuchen" | ~24 px (`py-1`, `text-[10.5px]`) | [`Gallery.tsx:126-133`](../src/components/playground/Gallery.tsx) |
-| Zahlenfeld | 32 px (`h-8`) | [`ParamControls.tsx:99`](../src/components/playground/ParamControls.tsx) |
-| Enum-Auswähler | 32 px (`h-8`) | [`ParamControls.tsx:119`](../src/components/playground/ParamControls.tsx) |
-| Textfeld einzeilig | 32 px (`h-8`) | [`ParamControls.tsx:176`](../src/components/playground/ParamControls.tsx) |
-| Key-Feld / „Verbinden" | 32 px (`h-8`) | [`ProviderSelect.tsx:114,116`](../src/components/playground/ProviderSelect.tsx) |
-| Video hochladen | 32 px (`h-8`) | [`PlaygroundSidebar.tsx:140`](../src/components/playground/PlaygroundSidebar.tsx) |
-| Modus-Reiter | ~33 px (`py-2`, `text-xs`) | [`ModeTabs.tsx:21`](../src/components/playground/ModeTabs.tsx) |
-| MetaRail-Knöpfe | 36 px (`size="sm"`) | [`MetaRail.tsx:113,117,124`](../src/components/playground/MetaRail.tsx) |
-| Modell-Auswähler | ~40 px (`h-auto py-2.5`) | [`ModelPicker.tsx:78`](../src/components/playground/ModelPicker.tsx) |
-| Kopfzeile / Senden | 40 px (`size="icon"` / `h-10`) | [`ui/button.tsx:26-27`](../src/components/ui/button.tsx) |
+| Referenz entfernen | **20 px** (`h-5 w-5`) | [`ReferenceSlots.tsx:132`](../../../src/components/playground/ReferenceSlots.tsx) |
+| Fehlkarte verwerfen | **24 px** (`h-6 w-6`) | [`Gallery.tsx:140`](../../../src/components/playground/Gallery.tsx) |
+| „Nicht mehr warten" | ~24 px (`py-1`, `text-[10.5px]`) | [`Gallery.tsx:93-100`](../../../src/components/playground/Gallery.tsx) |
+| „Erneut versuchen" | ~24 px (`py-1`, `text-[10.5px]`) | [`Gallery.tsx:126-133`](../../../src/components/playground/Gallery.tsx) |
+| Zahlenfeld | 32 px (`h-8`) | [`ParamControls.tsx:99`](../../../src/components/playground/ParamControls.tsx) |
+| Enum-Auswähler | 32 px (`h-8`) | [`ParamControls.tsx:119`](../../../src/components/playground/ParamControls.tsx) |
+| Textfeld einzeilig | 32 px (`h-8`) | [`ParamControls.tsx:176`](../../../src/components/playground/ParamControls.tsx) |
+| Key-Feld / „Verbinden" | 32 px (`h-8`) | [`ProviderSelect.tsx:114,116`](../../../src/components/playground/ProviderSelect.tsx) |
+| Video hochladen | 32 px (`h-8`) | [`PlaygroundSidebar.tsx:140`](../../../src/components/playground/PlaygroundSidebar.tsx) |
+| Modus-Reiter | ~33 px (`py-2`, `text-xs`) | [`ModeTabs.tsx:21`](../../../src/components/playground/ModeTabs.tsx) |
+| MetaRail-Knöpfe | 36 px (`size="sm"`) | [`MetaRail.tsx:113,117,124`](../../../src/components/playground/MetaRail.tsx) |
+| Modell-Auswähler | ~40 px (`h-auto py-2.5`) | [`ModelPicker.tsx:78`](../../../src/components/playground/ModelPicker.tsx) |
+| Kopfzeile / Senden | 40 px (`size="icon"` / `h-10`) | [`ui/button.tsx:26-27`](../../../src/components/ui/button.tsx) |
 
 **Die Regel, die ein Worker anwendet — zwei Fälle, keine Abwägung:**
 
@@ -681,7 +681,7 @@ Der zweite steht auf **0**. `Gallery.test.tsx` grün, `lint` sauber.
 **Voraussetzung:** keine. Läuft parallel.
 
 **Befund:** Der Entfernen-Knopf ist 20 px groß und sitzt auf dem Vorschaubild
-([`ReferenceSlots.tsx:128-135`](../src/components/playground/ReferenceSlots.tsx)). Regel
+([`ReferenceSlots.tsx:128-135`](../../../src/components/playground/ReferenceSlots.tsx)). Regel
 Fall B aus 3.4 gilt: er darf nicht wachsen, also unsichtbare Trefferfläche.
 
 **Datei:** `src/components/playground/ReferenceSlots.tsx:128-135`
@@ -780,7 +780,7 @@ sauber.
 **Befund, wörtlich aus [`HANDOFF-2026-08-29-audit-review.md`](HANDOFF-2026-08-29-audit-review.md)
 Abschnitt 3:** „‚Der Lauf läuft beim Anbieter weiter und wird berechnet' ist ein Tooltip;
 auf dem Telefon gibt es kein Hover." Der Satz steht heute in
-[`Gallery.tsx:96`](../src/components/playground/Gallery.tsx) als `title`-Attribut.
+[`Gallery.tsx:96`](../../../src/components/playground/Gallery.tsx) als `title`-Attribut.
 
 **Warum als Konstante:** L-K.2 (Phase 4) verlangt denselben Satz als Dauerzeile an der
 Sendeleiste, *bevor* ein Pruna-Lauf startet. Zwei Orte, ein Satz — er wird deshalb einmal
@@ -882,7 +882,7 @@ zweite findet die Konstante in beiden Dateien. Der neue Test ist grün, die best
 
 **Voraussetzung:** keine. Läuft parallel.
 
-**Befund:** [`ui/drawer.tsx:46`](../src/components/ui/drawer.tsx) vergibt
+**Befund:** [`ui/drawer.tsx:46`](../../../src/components/ui/drawer.tsx) vergibt
 `fixed inset-x-0 bottom-0 mt-24 rounded-t-3xl` an **jeden** `DrawerContent`, und Zeile 51
 setzt einen mittigen Zieh-Griff. Der linke Drawer in
 [`PlaygroundShell.tsx:478`](../src/app/create/PlaygroundShell.tsx) (`direction="left"`)

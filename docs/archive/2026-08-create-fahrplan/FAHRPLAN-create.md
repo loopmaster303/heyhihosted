@@ -306,7 +306,7 @@ Ursprüngliche Aufzählung:
 
 **Fertig, wenn:** Für jeden bekannten Fehlerfall existiert eine Meldung, die ohne Konsole
 verständlich ist · ein Reload während eines Videolaufs verliert den Lauf nicht ·
-**L-K.2, L-K.3 und L-I.3 aus [`LAUNCH_CRITERIA.md`](LAUNCH_CRITERIA.md) stehen auf
+**L-K.2, L-K.3 und L-I.3 aus [`LAUNCH_CRITERIA.md`](../../LAUNCH_CRITERIA.md) stehen auf
 erledigt** — der Hinweis vor einem nicht abbrechbaren Pruna-Lauf, die ehrliche
 Abbruch-Beschriftung und die vor dem Absenden erkennbare Schlüsselpflicht bei Video.
 Diese drei sind der Phase am 2026-08-29 zugeordnet worden und gehören seither zu ihrem

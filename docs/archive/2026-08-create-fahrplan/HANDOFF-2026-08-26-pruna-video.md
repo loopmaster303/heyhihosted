@@ -70,10 +70,10 @@ und denselben Schlüssel `pollenApiKey`.
 ## Was geändert wurde
 
 ### Pruna-Payloads
-- [`src/config/pruna-models.ts`](../src/config/pruna-models.ts) — `wan-i2v` verwirft
+- [`src/config/pruna-models.ts`](../../../src/config/pruna-models.ts) — `wan-i2v` verwirft
   `aspect_ratio` und `optimize_prompt` aus dem `params`-Bag; `vace` sendet kein
   Safety-Feld mehr; neues `vaceFramesFor()` rechnet Sekunden in die erlaubten 1–81 Frames
-- [`src/lib/playground/param-schema.ts`](../src/lib/playground/param-schema.ts) — die
+- [`src/lib/playground/param-schema.ts`](../../../src/lib/playground/param-schema.ts) — die
   zwei toten `wan-i2v`-Regler entfernt; `vace` bekam die echten `speed_mode`-Werte,
   `frame_num` max 81 und einen Sekunden- statt eines Frames-Reglers
 
@@ -81,21 +81,21 @@ und denselben Schlüssel `pollenApiKey`.
 Kein Request wartet mehr auf ein Video. `/api/generate` antwortet auf alles, was nicht
 sofort fertig ist, mit `202 { pending, predictionId, model }`; der Browser pollt.
 
-- [`src/lib/pruna/client.ts`](../src/lib/pruna/client.ts) — `generateViaPruna` endet
+- [`src/lib/pruna/client.ts`](../../../src/lib/pruna/client.ts) — `generateViaPruna` endet
   bei der Lauf-Id (Rückgabetyp `PrunaDispatchResult`, Wächter `isPendingPrediction`);
   neues `fetchPrunaPredictionStatus()` als **eine** Abfrage; das server-seitige
   `pollPrediction` ist gelöscht. Die Prediction-Id wird gegen
   `/^[A-Za-z0-9_-]{1,128}$/` geprüft, bevor sie in eine URL geht
-- [`src/lib/pruna/deliver.ts`](../src/lib/pruna/deliver.ts) **(neu)** — Download +
+- [`src/lib/pruna/deliver.ts`](../../../src/lib/pruna/deliver.ts) **(neu)** — Download +
   Media-Upload, geteilt von beiden Routen, damit die Antwortform identisch bleibt
-- [`src/app/api/pruna/status/route.ts`](../src/app/api/pruna/status/route.ts) **(neu)** —
+- [`src/app/api/pruna/status/route.ts`](../../../src/app/api/pruna/status/route.ts) **(neu)** —
   `GET ?id=&model=`, antwortet 202 solange gerechnet wird, sonst exakt wie `/api/generate`
-- [`src/lib/generation/request-generation.ts`](../src/lib/generation/request-generation.ts)
+- [`src/lib/generation/request-generation.ts`](../../../src/lib/generation/request-generation.ts)
   **(neu)** — hält das Warten im Tab (3 s Intervall, 30 min Reißleine, abbruchfähig) und
   gibt dieselbe `Response` zurück, die der Aufrufer vorher direkt bekam
-- [`src/app/api/generate/route.ts`](../src/app/api/generate/route.ts),
+- [`src/app/api/generate/route.ts`](../../../src/app/api/generate/route.ts),
   [`PlaygroundShell.tsx`](../src/app/playground/PlaygroundShell.tsx),
-  [`chat-service.ts`](../src/lib/services/chat-service.ts) — nutzen die neuen Bausteine;
+  [`chat-service.ts`](../../../src/lib/services/chat-service.ts) — nutzen die neuen Bausteine;
   bei den Konsumenten war es ein Zeilentausch `fetch` → `requestGeneration`
 
 **Live verifiziert** (Dev-Server, echter wan-t2v-Lauf):
@@ -109,10 +109,10 @@ GET  /api/pruna/status?…    -> 200 {"videoUrl":"https://media.pollinations.ai/
 Auf Wunsch des Nutzers **nicht** gelöscht, nur abgeschaltet — Mapping, Schema und
 Enhancement-Prompt liegen unberührt weiter.
 
-- [`src/config/unified-image-models.ts`](../src/config/unified-image-models.ts) —
+- [`src/config/unified-image-models.ts`](../../../src/config/unified-image-models.ts) —
   `enabled: false` **und** `byopVisible: false`; ohne das zweite holt ein Pruna-Schlüssel
   das Modell in Visualize wieder hervor (`isVisibleVisualModel`)
-- [`src/lib/playground/model-source.ts`](../src/lib/playground/model-source.ts) —
+- [`src/lib/playground/model-source.ts`](../../../src/lib/playground/model-source.ts) —
   **allgemeiner Bug:** `buildPrunaEntries()` hat `enabled` nie gelesen und hätte jedes in
   der Registry abgeschaltete Pruna-Modell weiter angezeigt. Filtert jetzt danach
 
@@ -122,7 +122,7 @@ Nebeneffekt, so gewollt: `resolvePollinationsVisualModelId` kennt `vace` nicht m
 ### Pollen-Key
 - [`src/components/settings/SettingsPopover.tsx`](../src/components/settings/SettingsPopover.tsx) —
   `pollenInput` liest synchron `getStoredPollenKey()`, wie das Pruna-Feld daneben
-- [`src/hooks/usePollenKey.ts`](../src/hooks/usePollenKey.ts) — bei einem Fehler wird
+- [`src/hooks/usePollenKey.ts`](../../../src/hooks/usePollenKey.ts) — bei einem Fehler wird
   die Begründung von Pollinations mitgeloggt statt nur der Status
 
 ---

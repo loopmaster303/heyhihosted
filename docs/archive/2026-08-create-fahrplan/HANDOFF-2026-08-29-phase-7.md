@@ -18,7 +18,7 @@ lagen zwei Tage nur lokal — beides in Abschnitt 5 als Befund festgehalten.
 ### Die Regel statt einer Liste
 
 Der Kern ist `getChatImageModelGroups()` in
-[`unified-image-models.ts`](../src/config/unified-image-models.ts). Sie führt **keine
+[`unified-image-models.ts`](../../../src/config/unified-image-models.ts). Sie führt **keine
 kuratierte Modell-Liste**, sondern ein Prädikat:
 
 ```

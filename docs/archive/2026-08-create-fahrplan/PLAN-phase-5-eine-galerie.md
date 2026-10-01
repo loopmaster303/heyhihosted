@@ -5,7 +5,7 @@
 **Ausgangsstand der Tests:** **109 Suiten, 852 Tests grün** — selbst gezogen am 2026-08-29
 mit `CI=1 npm test`. Die Zahl darf in keinem Paket sinken.
 **Deckt ab:** P5 und P6 aus [`FAHRPLAN-create.md`](FAHRPLAN-create.md)
-**Fertig-Kriterien:** L-D.1 – L-D.3 aus [`LAUNCH_CRITERIA.md`](LAUNCH_CRITERIA.md) — das
+**Fertig-Kriterien:** L-D.1 – L-D.3 aus [`LAUNCH_CRITERIA.md`](../../LAUNCH_CRITERIA.md) — das
 Gate-Dokument ist die Statusquelle, nicht der Fahrplan-Text.
 **Art:** Plan. Kein Produktivcode in der Planungssitzung geschrieben. Ausführung in einer
 eigenen Sitzung, nach Freigabe des Betreibers.
@@ -88,7 +88,7 @@ in der Spalte `assets.conversationId` bereits gespeicherter Nutzerdaten.
 | **F14** | Die Wahrheitsdokumente stimmen | Fahrplan-Satz „/gallery zeigt weiterhin alles" ist korrigiert; L-D.1–L-D.3 auf „erledigt"; `CLAUDE.md` kennt `assetOrigin()` | Fahrplan-Konvention |
 
 **F1 ist vermutlich schon heute erfüllt** — beide Speicherpfade (`remoteUrl` und `blob`)
-werden von `toItem()` in [`Gallery.tsx:44-60`](../src/components/playground/Gallery.tsx)
+werden von `toItem()` in [`Gallery.tsx:44-60`](../../../src/components/playground/Gallery.tsx)
 nach einem Reload wieder aufgelöst. Es ist deshalb ein **Verifikationsschritt, keine
 Bauaufgabe**. Der eine bekannte Randfall steht als Befund B6.
 
@@ -183,7 +183,7 @@ bei der Ausführung nicht mehr gibt.
 
 **Der Fahrplan behauptet es. Der Code sagt zweierlei anderes.**
 
-Erstens: [`useGalleryAssets.ts:12-14`](../src/hooks/useGalleryAssets.ts) schließt
+Erstens: [`useGalleryAssets.ts:12-14`](../../../src/hooks/useGalleryAssets.ts) schließt
 Create-Assets **ausdrücklich** aus — der Kommentar sagt `must not contaminate`. Der Filter
 gilt für Vault, Sidebar-Galerie und `GalleryPanel` gleichermaßen.
 
@@ -193,7 +193,7 @@ export function isGalleryAsset(a: Asset): boolean {
 }
 ```
 
-Zweitens: Dieselbe Funktion gated in [Zeile 49](../src/hooks/useGalleryAssets.ts)
+Zweitens: Dieselbe Funktion gated in [Zeile 49](../../../src/hooks/useGalleryAssets.ts)
 `clearAllAssets` — **Create-Assets überleben heute ein „alles löschen".**
 
 ```ts
@@ -233,7 +233,7 @@ grep -rn "caches\.open\|indexedDB\.open\|new Dexie\|\.stores(" src/
 # nur src/lib/services/database.ts:61 und :68
 ```
 
-Der Blob ist ein **Feld dieser Zeile** ([`database.ts:35-48`](../src/lib/services/database.ts)):
+Der Blob ist ein **Feld dieser Zeile** ([`database.ts:35-48`](../../../src/lib/services/database.ts)):
 
 ```ts
 export interface Asset {
@@ -252,8 +252,8 @@ Alt-Waisen ist gegenstandslos: es kann keine geben.
 
 | # | Ort | Was passiert |
 |---|---|---|
-| **L1** | [`PlaygroundShell.tsx:220`](../src/app/create/PlaygroundShell.tsx) | Der Pruna-Byte-Pfad erzeugt `BlobManager.createURL(blob, 'playground')` und gibt sie **nie** frei. `cleanupOld()` überspringt sie, weil [`blob-manager.ts:131`](../src/lib/blob-manager.ts) bei `refCount > 0` per `continue` aussteigt. Jeder Pruna-Lauf ohne Pollen-Token hält seinen Blob **bis zum Reload** im RAM. |
-| **L2** | [`Gallery.tsx:176-207`](../src/components/playground/Gallery.tsx) | `ownedUrls` hält die URLs des letzten Ladelaufs. Wird ein Asset gelöscht, bleibt seine URL bis zum nächsten `refreshKey` oder Unmount registriert. |
+| **L1** | [`PlaygroundShell.tsx:220`](../src/app/create/PlaygroundShell.tsx) | Der Pruna-Byte-Pfad erzeugt `BlobManager.createURL(blob, 'playground')` und gibt sie **nie** frei. `cleanupOld()` überspringt sie, weil [`blob-manager.ts:131`](../../../src/lib/blob-manager.ts) bei `refCount > 0` per `continue` aussteigt. Jeder Pruna-Lauf ohne Pollen-Token hält seinen Blob **bis zum Reload** im RAM. |
+| **L2** | [`Gallery.tsx:176-207`](../../../src/components/playground/Gallery.tsx) | `ownedUrls` hält die URLs des letzten Ladelaufs. Wird ein Asset gelöscht, bleibt seine URL bis zum nächsten `refreshKey` oder Unmount registriert. |
 
 **Das strukturelle Argument des Betreibers bleibt richtig, mit anderer Begründung:**
 Einzel- und Massenlöschen laufen heute über zwei getrennte Queries
@@ -263,7 +263,7 @@ auseinander. Ein gemeinsamer **Auswahlpfad** gehört in den Plan.
 
 ### B4 — `.limit(50)` — und `clearAllAssets` löscht heute mehr, als die Ansicht zeigt
 
-[`useGalleryAssets.ts:34`](../src/hooks/useGalleryAssets.ts) limitiert auf 50.
+[`useGalleryAssets.ts:34`](../../../src/hooks/useGalleryAssets.ts) limitiert auf 50.
 
 **Entwarnung für den Chat:** Dexie limitiert **nach** dem Filter. Solange der
 Herkunftsfilter je Oberfläche auf der eigenen Herkunft steht, bekommt der Chat weiterhin
@@ -297,9 +297,9 @@ OutputService.saveGeneratedAsset({
 
 **Verifiziert, dass das die einzige Quelle von `undefined` ist:** Chat-Assets tragen
 immer eine — `conversationId: string` (nicht optional) in
-[`chat-send-orchestrator.ts:10`](../src/lib/chat/chat-send-orchestrator.ts), und Uploads
+[`chat-send-orchestrator.ts:10`](../../../src/lib/chat/chat-send-orchestrator.ts), und Uploads
 bekommen `conversationId: convId` in
-[`chat-send-coordinator.ts:307`](../src/lib/chat/chat-send-coordinator.ts).
+[`chat-send-coordinator.ts:307`](../../../src/lib/chat/chat-send-coordinator.ts).
 
 **Grenze der Aussage, die im Code stehen muss:** `undefined → 'compose'` ist eine
 **Zuordnung per Ausschluss**, keine Aussage der Daten. Altbestand aus früheren Versionen
@@ -308,7 +308,7 @@ Taggen beim Speichern gehört zu Phase 8 (Musik), nicht hierher.
 
 ### B6 — Randfall zu F1: ein Ergebnis kann verschwinden, das die Karte gezeigt hat
 
-[`output-service.ts:104-107`](../src/lib/services/output-service.ts) verwirft Blobs unter
+[`output-service.ts:104-107`](../../../src/lib/services/output-service.ts) verwirft Blobs unter
 `SMALL_BLOB_SKIP_BYTES` und gibt `undefined` zurück. In `PlaygroundShell` fällt der
 `GalleryItem` dann auf `id: ${Date.now()}` zurück und ist im Store **nicht** vorhanden —
 nach einem Reload ist er weg, obwohl die Karte da war. Bekannt, **nicht** Umfang dieses
@@ -323,7 +323,7 @@ die Art Lücke, die Paket **U3** fangen soll.
 
 ### B8 — Zwei Test-Mocks hängen an der heutigen Query-Form
 
-[`Gallery.test.tsx:20-31`](../src/components/playground/Gallery.test.tsx) und
+[`Gallery.test.tsx:20-31`](../../../src/components/playground/Gallery.test.tsx) und
 [`PlaygroundShell.test.tsx:76`](../src/app/create/PlaygroundShell.test.tsx) mocken
 `db.assets.where(col).equals(val).reverse().sortBy()` und antworten nur auf
 `col === 'conversationId' && val === '__playground__'`. Stellt Paket **W1** die Query auf
@@ -349,22 +349,22 @@ werden.
 
 | Datei | Änderung | Warum |
 |---|---|---|
-| [`src/hooks/useGalleryAssets.ts`](../src/hooks/useGalleryAssets.ts) | `isGalleryAsset` entfällt · Hook nimmt `origins` · zweite Query für die echte Anzahl · `deleteAsset`/`clearAllAssets` über den gemeinsamen Pfad | Befunde B1, B3, B4. Das ist der Kern der Phase. |
-| [`src/hooks/useGalleryAssets.test.ts`](../src/hooks/useGalleryAssets.test.ts) | Die vier `isGalleryAsset`-Tests werden zu `assetOrigin`-Tests und wandern in die neue Testdatei; hier bleibt der Hook-Vertrag | Der Test in Zeile 27 prüft heute ausdrücklich, dass Create-Assets ein „alles löschen" überleben — genau das kehrt sich um. |
-| [`src/components/playground/Gallery.tsx`](../src/components/playground/Gallery.tsx) | Query von `where().equals()` auf `orderBy().filter()` · `origins`-Prop · `onDelete` · id→URL-Zuordnung für die Freigabe | Befunde B1, B3 (L2), B8 |
-| [`src/components/playground/Gallery.test.tsx`](../src/components/playground/Gallery.test.tsx) | Mock auf die neue Query-Form | Befund B8 |
-| [`src/components/playground/MetaRail.tsx`](../src/components/playground/MetaRail.tsx) | Vierte Aktion „Löschen", optionales `onDelete` | Fahrplan P5: „Löschen im Create fehlt." |
-| [`src/components/playground/MetaRail.test.tsx`](../src/components/playground/MetaRail.test.tsx) | Test für die neue Aktion | s. o. |
+| [`src/hooks/useGalleryAssets.ts`](../../../src/hooks/useGalleryAssets.ts) | `isGalleryAsset` entfällt · Hook nimmt `origins` · zweite Query für die echte Anzahl · `deleteAsset`/`clearAllAssets` über den gemeinsamen Pfad | Befunde B1, B3, B4. Das ist der Kern der Phase. |
+| [`src/hooks/useGalleryAssets.test.ts`](../../../src/hooks/useGalleryAssets.test.ts) | Die vier `isGalleryAsset`-Tests werden zu `assetOrigin`-Tests und wandern in die neue Testdatei; hier bleibt der Hook-Vertrag | Der Test in Zeile 27 prüft heute ausdrücklich, dass Create-Assets ein „alles löschen" überleben — genau das kehrt sich um. |
+| [`src/components/playground/Gallery.tsx`](../../../src/components/playground/Gallery.tsx) | Query von `where().equals()` auf `orderBy().filter()` · `origins`-Prop · `onDelete` · id→URL-Zuordnung für die Freigabe | Befunde B1, B3 (L2), B8 |
+| [`src/components/playground/Gallery.test.tsx`](../../../src/components/playground/Gallery.test.tsx) | Mock auf die neue Query-Form | Befund B8 |
+| [`src/components/playground/MetaRail.tsx`](../../../src/components/playground/MetaRail.tsx) | Vierte Aktion „Löschen", optionales `onDelete` | Fahrplan P5: „Löschen im Create fehlt." |
+| [`src/components/playground/MetaRail.test.tsx`](../../../src/components/playground/MetaRail.test.tsx) | Test für die neue Aktion | s. o. |
 | [`src/app/create/PlaygroundShell.tsx`](../src/app/create/PlaygroundShell.tsx) | Filterzustand · Löschpfad an **beide** `MetaRail`-Stellen · Object-URL-Freigabe nach dem Speichern | Befunde B3 (L1), B7 |
 | [`src/app/create/PlaygroundShell.test.tsx`](../src/app/create/PlaygroundShell.test.tsx) | Mock auf die neue Query-Form | Befund B8 |
-| [`src/components/gallery/GalleryPanel.tsx`](../src/components/gallery/GalleryPanel.tsx) | `OriginFilter` im Kopf · Bestätigungstext mit Anzahl und Herkunft | E5.3, F11 |
+| [`src/components/gallery/GalleryPanel.tsx`](../../../src/components/gallery/GalleryPanel.tsx) | `OriginFilter` im Kopf · Bestätigungstext mit Anzahl und Herkunft | E5.3, F11 |
 | [`src/components/layout/AppLayout.tsx`](../src/components/layout/AppLayout.tsx) | Filterzustand · `totalAssetCount` aus der ehrlichen Query | Befund B4 |
 | [`src/app/gallery/page.tsx`](../src/app/gallery/page.tsx) | „Vault leeren"-Knopf **entfernen**, sonst nichts | E5.5 |
-| [`src/config/translations.ts`](../src/config/translations.ts) | Neue Schlüssel DE/EN für Filter und Bestätigung · `gallery.clearConfirm` wird parametrisiert | F11 |
+| [`src/config/translations.ts`](../../../src/config/translations.ts) | Neue Schlüssel DE/EN für Filter und Bestätigung · `gallery.clearConfirm` wird parametrisiert | F11 |
 | [`docs/FAHRPLAN-create.md`](FAHRPLAN-create.md) | Phase 5 auf erledigt · der Satz „/gallery zeigt weiterhin alles" korrigiert | F14, Befund B1 |
-| [`docs/LAUNCH_CRITERIA.md`](LAUNCH_CRITERIA.md) | L-D.1 – L-D.3 auf erledigt, mit Datum | F14 |
-| [`CLAUDE.md`](../CLAUDE.md) | Abschnitt „Asset Persistence": `assetOrigin()` als einzige Interpretation, der gemeinsame Löschpfad, der Filter als flüchtig | F14 |
-| [`docs/README.md`](README.md) | Eine Zeile unter „Start Here" für diesen Plan | Auftrag |
+| [`docs/LAUNCH_CRITERIA.md`](../../LAUNCH_CRITERIA.md) | L-D.1 – L-D.3 auf erledigt, mit Datum | F14 |
+| [`CLAUDE.md`](../../../CLAUDE.md) | Abschnitt „Asset Persistence": `assetOrigin()` als einzige Interpretation, der gemeinsame Löschpfad, der Filter als flüchtig | F14 |
+| [`docs/README.md`](../../README.md) | Eine Zeile unter „Start Here" für diesen Plan | Auftrag |
 
 ### Ausdrücklich **nicht** angefasst
 
@@ -744,7 +744,7 @@ genau einer Datei · `useGalleryAssets(['chat'])` liefert keine Create-Assets ·
 
 ### W1 — Create-Galerie auf den Bereich umstellen *(Worker)*
 
-**Befund:** [`Gallery.tsx:184-188`](../src/components/playground/Gallery.tsx) fragt heute
+**Befund:** [`Gallery.tsx:184-188`](../../../src/components/playground/Gallery.tsx) fragt heute
 per Index `where('conversationId').equals(PLAYGROUND_CONVERSATION_ID)` — eine Query, die
 Chat-Assets **strukturell** nicht liefern kann. Ohne diese Umstellung ist F2
 unmöglich. Befund B8: zwei Test-Mocks hängen an genau dieser Query-Form.
@@ -786,7 +786,7 @@ interface Props {
 
 und in der Destrukturierung `origins,` ergänzen.
 
-3. Die Query in [Zeile 184-188](../src/components/playground/Gallery.tsx) ersetzen:
+3. Die Query in [Zeile 184-188](../../../src/components/playground/Gallery.tsx) ersetzen:
 
 ```ts
 // alt
@@ -1479,7 +1479,7 @@ grep -c "onDelete={deleteItem}" src/app/create/PlaygroundShell.tsx
 
 **Befund B3 (L1):** [`PlaygroundShell.tsx:220`](../src/app/create/PlaygroundShell.tsx)
 erzeugt beim Pruna-Byte-Pfad eine Object-URL und gibt sie nie frei. `cleanupOld()`
-überspringt sie, weil [`blob-manager.ts:131`](../src/lib/blob-manager.ts) bei
+überspringt sie, weil [`blob-manager.ts:131`](../../../src/lib/blob-manager.ts) bei
 `refCount > 0` per `continue` aussteigt. Sie überlebt bis zum Reload.
 
 **Warum nicht einfach sofort freigeben:** Die URL wird nach dem Speichern noch für den
@@ -1769,7 +1769,7 @@ können bis U3 offenbleiben.
 *Vom Betreiber selbst aufgeworfen, ausdrücklich nicht von mir zu entscheiden.*
 
 Heute ist die Sternmarkierung eine reine Sortierhilfe
-([`useGalleryAssets.ts:17-21`](../src/hooks/useGalleryAssets.ts) — `sortStarredFirst`) und
+([`useGalleryAssets.ts:17-21`](../../../src/hooks/useGalleryAssets.ts) — `sortStarredFirst`) und
 schützt nichts. Drei Lesarten:
 
 | | Bedeutung | Preis |

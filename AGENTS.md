@@ -21,7 +21,7 @@ This document defines the strict workflow and principles for all AI Agents worki
 - **Comparison:** Compare the Blueprint with the _existing_ codebase.
 - **Inquiry:**
   - "Does this lead to spaghetti code?"
-  - "Am I breaking existing hooks (e.g., `useChatState`, `useUnifiedImageToolState`)?"
+  - "Am I breaking existing hooks (e.g., `useChatState`, `usePanelState`)?"
   - "Is there a simpler, more idiomatic way?"
 - **Mitigation:** If uncertainties are found, report them and adjust the Blueprint. **Avoid "Verschlimmbesserung" (making it worse while trying to improve it).**
 
@@ -46,17 +46,9 @@ This document defines the strict workflow and principles for all AI Agents worki
 - **Plan Validation (Always Stated):** Explicitly validate the Blueprint in the response (Phase 3) even if the user did not ask.
 - **Explain Twice + Why:** Provide a normal explanation and then a simpler explanation; always state the rationale ("why") for the chosen plan/changes and the key context used.
 
-## 3. Project Status (August 2026)
+## 3. Project Status
 
-- **Phase 1 (Asset & Gallery Deep-Sync):** Complete. Centralized `OutputService.saveGeneratedAsset()`, global `BlobManager`, `AssetFallbackService` with retry.
-- **Phase 2 (Code-Hygiene & Legacy):** Complete. Legacy model refs removed, streaming deferred (JSON responses via `/api/chat/completion`), ChatView evaluated.
-- **Phase 3 (Security & Performance):** Long-term. Web Crypto API encryption planned. Upload size limits and content-type policy landed (`src/lib/upload/`).
-- **Phase 4 (Playground Merge):** Complete. The former `heyhihosted-playground` worktree has been merged into `main` as the `/create` route. Live at `https://chat.hey-hi.cloud/create`; the product name is **Create**. The route moved from `/playground` to `/create` on 2026-08-29; the old path still redirects.
-- **Upload Pipeline:** Unified via Pollinations Media Storage (`/api/media/upload`, `/api/media/ingest`). Raw bodies only — multipart is rejected. Reference images use `resolveReferenceUrls()`; Pruna models upload via `/api/pruna/upload`.
-- **Smart Router:** Auto-detects search intent (German + English) → routes to `perplexity-fast`. Deep Research picks from the visible capable models via `getPreferredDeepResearchModel()`.
-- **Compose Mode:** Music via `/api/compose` (`useComposeMusicState`) with model-specific prompt enhancement — ACE-Step 1.5 (free tier), ElevenMusic v2 and Stable Audio 3 Medium (key required).
-- **Create Mode:** Dedicated full-screen generation workspace at `/create`. Supports Pollinations + Pruna providers, t2i/i2i/t2v/i2v modes, reference uploads, aspect-ratio controls, generation progress, and result details.
-- **Providers:** Pollinations plus Pruna. See `CLAUDE.md` for the provider-switch rules before touching Visualize or Playground.
+Not kept here. [CLAUDE.md](CLAUDE.md) holds the runtime truth, [docs/LAUNCH_CRITERIA.md](docs/LAUNCH_CRITERIA.md) the release status, [docs/README.md](docs/README.md) the map of active plans and the latest handoff. A status list in this file drifted within weeks — read those instead.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

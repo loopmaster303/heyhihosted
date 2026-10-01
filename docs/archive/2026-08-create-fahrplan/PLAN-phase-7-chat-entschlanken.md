@@ -20,7 +20,7 @@ Testing Library.
 **Grundlage:** Kein separates Spec-Dokument. Dieser Plan setzt um:
 
 - [`FAHRPLAN-create.md`](FAHRPLAN-create.md), Abschnitt „Phase 7"
-- [`LAUNCH_CRITERIA.md`](LAUNCH_CRITERIA.md), **L-F.1** und **L-I.2**
+- [`LAUNCH_CRITERIA.md`](../../LAUNCH_CRITERIA.md), **L-F.1** und **L-I.2**
 - Vier Betreiberentscheidungen aus dem Brainstorming dieser Sitzung (siehe unten)
 
 **Ausgangsstand:** HEAD `625523c`, 109 Suiten / 852 Tests grün,

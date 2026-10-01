@@ -16,7 +16,7 @@ Bereits behoben in dieser Session:
 1. **„Free für alle"** — Server-Env `POLLEN_API_KEY`, nur serverseitig, `resolvePollenKey()`-Fallback.
    Schaltet die `enabled: true`-Modelle frei.
 2. **Eigener Key** — `connectManual()` → `localStorage['pollenApiKey']` → Header `X-Pollen-Key`.
-3. **Pollinations Connect (OAuth)** — [usePollenKey.ts:140](../src/hooks/usePollenKey.ts) →
+3. **Pollinations Connect (OAuth)** — [usePollenKey.ts:140](../../../src/hooks/usePollenKey.ts) →
    `enter.pollinations.ai/authorize?permissions=profile,balance,usage&expiry=30`, Key kommt im
    URL-Fragment zurück (nie an Server, sofort aus URL entfernt — sauber). Gleicher Speicher wie (2).
 
@@ -27,7 +27,7 @@ ohne eigenen Key nur Free-Auswahl, mit Key/Connect zusätzlich der BYOP-Block.
 
 ## P0 — Security: API-Key leakt in zurückgegebene URL (beide Key-Quellen)
 
-**Datei:** [src/lib/pollinations-sdk.ts:73-75,111-113](../src/lib/pollinations-sdk.ts) + [src/app/api/generate/route.ts:135](../src/app/api/generate/route.ts)
+**Datei:** [src/lib/pollinations-sdk.ts:73-75,111-113](../../../src/lib/pollinations-sdk.ts) + [src/app/api/generate/route.ts:135](../../../src/app/api/generate/route.ts)
 
 Der GET-Pfad hängt den API-Key als Query-Param an: `...?...&key=<KEY>`.
 Dieser Pfad wird genutzt für **alle Videos** und **alle I2I-Bildgenerierungen** (Referenzbild).
@@ -68,7 +68,7 @@ Bei Reaktivierung würde BYOP still fehlschlagen (kein Key durchgereicht, lautlo
 
 ## P2 — Key-Prefix-Logging
 
-**Datei:** [src/app/api/generate/route.ts:62](../src/app/api/generate/route.ts)
+**Datei:** [src/app/api/generate/route.ts:62](../../../src/app/api/generate/route.ts)
 
 `console.log(... '| key prefix:', apiKey?.slice(0, 6))` loggt die ersten 6 Zeichen des Keys.
 Auf Vercel landen `console.log` in den Function-Logs. Prefix raus oder auf reines
@@ -81,7 +81,7 @@ Auf Vercel landen `console.log` in den Function-Logs. Prefix raus oder auf reine
 - `pollinations-image-v1.ts` → POST `/v1/images/generations` (OpenAI-kompatibel, Bearer) — Text→Bild ohne Ref.
 - `pollinations-sdk.ts` → GET `/image/{prompt}?...` — Video + I2I.
 
-Begründung steht im Code (v1-POST akzeptiert keine Referenzbilder, [route.ts:111](../src/app/api/generate/route.ts)).
+Begründung steht im Code (v1-POST akzeptiert keine Referenzbilder, [route.ts:111](../../../src/app/api/generate/route.ts)).
 Tragfähig, aber die Verzweigung ist implizit und der GET-Pfad ist genau der mit dem Key-Leak (P0).
 Nach P0-Fix prüfen, ob ein einheitlicher authentifizierter Pfad möglich ist.
 
@@ -89,7 +89,7 @@ Nach P0-Fix prüfen, ob ein einheitlicher authentifizierter Pfad möglich ist.
 
 ## P3 — Param-Naming `aspectRatio` verifizieren
 
-**Datei:** [src/lib/pollinations-sdk.ts:57,96](../src/lib/pollinations-sdk.ts)
+**Datei:** [src/lib/pollinations-sdk.ts:57,96](../../../src/lib/pollinations-sdk.ts)
 
 Gesendet wird `aspectRatio` (camelCase). Viele Pollinations-Params sind snake_case
 (`negative_prompt`). Live gegen die API gegenprüfen, ob `aspect_ratio` erwartet wird —
