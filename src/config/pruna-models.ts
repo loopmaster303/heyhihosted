@@ -152,6 +152,26 @@ function allowedAspectRatio(value: string | undefined, allowed: Set<string>, fal
   return value && allowed.has(value) ? value : fallback;
 }
 
+function booleanOr(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function allowedParam(value: unknown, allowed: Set<string>, fallback: string): string {
+  return typeof value === 'string' ? allowedAspectRatio(value, allowed, fallback) : fallback;
+}
+
+function referenceFrames(image: string | string[] | undefined): string[] {
+  if (!image) return [];
+  return Array.isArray(image) ? image : [image];
+}
+
+/** Start- und optionales Endbild; ohne Referenz bleibt das Input unberuehrt. */
+function applyStartEndFrames(input: Record<string, unknown>, frames: string[]): void {
+  if (frames.length === 0) return;
+  input.image = frames[0];
+  if (frames[1]) input.last_frame_image = frames[1];
+}
+
 function resolveSupportedAspectRatio(
   f: PrunaFieldInput,
   allowed: Set<string>,
@@ -538,14 +558,16 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     },
     buildInput: (f) => {
       const params = f.params ?? {};
+      const frames = referenceFrames(f.image);
 
       const input: Record<string, unknown> = {
         prompt: f.prompt,
         ...DISABLE_SAFETY_FILTER,
         resolution: params.resolution === '1080p' ? '1080p' : '720p',
         fps: Number(params.fps) === 48 ? 48 : 24,
-        draft: typeof params.draft === 'boolean' ? params.draft : false,
-        prompt_upsampling: typeof params.prompt_upsampling === 'boolean' ? params.prompt_upsampling : true,
+        draft: booleanOr(params.draft, false),
+        prompt_upsampling: booleanOr(params.prompt_upsampling, true),
+        save_audio: f.audio ?? booleanOr(params.save_audio, true),
       };
 
       // Ein Referenzbild bestimmt laut Provider-Dokumentation das Seitenverhaeltnis
@@ -557,23 +579,11 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       // duration_auto ist ein reines UI-Feld: bei true bleibt die Dauer auf beiden
       // Request-Ebenen weg, der Provider bestimmt die Laenge selbst. Sonst hat eine
       // ausdrueckliche Top-Level-Dauer Vorrang vor einem Params-Duplikat.
-      if (params.duration_auto !== true) {
-        const duration = f.duration !== undefined ? f.duration : params.duration;
-        if (typeof duration === 'number') input.duration = duration;
-      }
+      const duration = params.duration_auto === true ? undefined : (f.duration ?? params.duration);
+      if (typeof duration === 'number') input.duration = duration;
 
       if (f.seed !== undefined) input.seed = f.seed;
-
-      input.save_audio = f.audio !== undefined
-        ? f.audio
-        : (typeof params.save_audio === 'boolean' ? params.save_audio : true);
-
-      if (f.image) {
-        const images = Array.isArray(f.image) ? f.image : [f.image];
-        input.image = images[0];
-        if (images[1]) input.last_frame_image = images[1];
-      }
-
+      applyStartEndFrames(input, frames);
       return input;
     },
   },
@@ -595,41 +605,24 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
     },
     buildInput: (f) => {
       const params = f.params ?? {};
-      const images = Array.isArray(f.image) ? f.image : (f.image ? [f.image] : []);
-      const duration = f.duration ?? params.duration ?? 5;
-      const resolution = typeof params.resolution === 'string' && P_VIDEO_2_PRO_RESOLUTIONS.has(params.resolution)
-        ? params.resolution
-        : '768p';
-      const mode = typeof params.mode === 'string' && P_VIDEO_2_PRO_MODES.has(params.mode)
-        ? params.mode
-        : 'speed';
-      const promptUpsampler = typeof params.prompt_upsampler === 'string' && P_VIDEO_2_PRO_PROMPT_UPSAMPLERS.has(params.prompt_upsampler)
-        ? params.prompt_upsampler
-        : 'turbo';
-      const aspectRatio = allowedAspectRatio(
-        f.aspectRatio ?? (typeof params.aspect_ratio === 'string' ? params.aspect_ratio : undefined),
-        P_VIDEO_2_PRO_ASPECT_RATIOS,
-        '16:9',
-      );
+      const frames = referenceFrames(f.image);
 
       const input: Record<string, unknown> = {
         prompt: f.prompt,
-        duration,
-        resolution,
-        mode,
-        prompt_upsampler: promptUpsampler,
+        duration: f.duration ?? params.duration ?? 5,
+        resolution: allowedParam(params.resolution, P_VIDEO_2_PRO_RESOLUTIONS, '768p'),
+        mode: allowedParam(params.mode, P_VIDEO_2_PRO_MODES, 'speed'),
+        prompt_upsampler: allowedParam(params.prompt_upsampler, P_VIDEO_2_PRO_PROMPT_UPSAMPLERS, 'turbo'),
       };
 
       // Reference frames define the provider's image area; do not send an
       // aspect ratio alongside them. An empty array is text-to-video.
-      if (images.length === 0) {
-        input.aspect_ratio = aspectRatio;
-      } else {
-        input.image = images[0];
-        if (images[1]) input.last_frame_image = images[1];
+      if (frames.length === 0) {
+        input.aspect_ratio = allowedParam(f.aspectRatio ?? params.aspect_ratio, P_VIDEO_2_PRO_ASPECT_RATIOS, '16:9');
       }
 
       if (f.seed !== undefined) input.seed = f.seed;
+      applyStartEndFrames(input, frames);
       return input;
     },
   },

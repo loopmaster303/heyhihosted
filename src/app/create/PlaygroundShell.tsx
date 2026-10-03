@@ -148,6 +148,18 @@ function codeError(code: string, ctx: Parameters<typeof describeError>[1] = {}):
   return Object.assign(new Error(described?.satz ?? code), { aktion: described?.aktion });
 }
 
+/** Die gespeicherte Modellwahl aus usePlaygroundState, bevor der Hook sie hydriert. */
+function readPersistedModelId(): string | null {
+  const raw = readLocal('playgroundState');
+  if (!raw) return null;
+  try {
+    const stored = JSON.parse(raw) as { modelId?: unknown };
+    return typeof stored.modelId === 'string' ? stored.modelId : null;
+  } catch {
+    return null;
+  }
+}
+
 export function PlaygroundShell() {
   useViewportHeight();
   const {
@@ -216,16 +228,7 @@ export function PlaygroundShell() {
   // would overwrite a persisted selection before the hook can publish it.
   // Only defer when the persisted model is present in this provider catalog;
   // an unavailable model must still take the normal fallback path.
-  const persistedModelId = (() => {
-    const raw = readLocal('playgroundState');
-    if (!raw) return null;
-    try {
-      const stored = JSON.parse(raw) as { modelId?: unknown };
-      return typeof stored.modelId === 'string' ? stored.modelId : null;
-    } catch {
-      return null;
-    }
-  })();
+  const persistedModelId = readPersistedModelId();
   const waitingForStateHydration = loading || (
     state.modelId === null
     && persistedModelId !== null
