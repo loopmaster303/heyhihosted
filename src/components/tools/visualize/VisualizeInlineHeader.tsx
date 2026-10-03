@@ -133,7 +133,7 @@ export const VisualizeInlineHeader: React.FC<VisualizeInlineHeaderProps> = ({
         className
       )}
     >
-      {/* Model selector only — mode identity is handled by VisualCorner */}
+      {/* Model selector only */}
       {showModel && <div className={badgeClass}>
         <Select value={selectedModelId} onValueChange={onModelChange} disabled={disabled}>
           <SelectTrigger className={cn(triggerClass, "min-w-[80px]")}>

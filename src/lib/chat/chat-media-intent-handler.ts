@@ -167,8 +167,3 @@ async function generateMusicPart(
     },
   };
 }
-
-export const __testing = {
-  generateImagePart,
-  generateMusicPart,
-};

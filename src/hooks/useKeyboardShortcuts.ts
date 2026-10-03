@@ -54,5 +54,3 @@ export function useKeyboardShortcuts({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleKeyDown]);
 }
-
-export default useKeyboardShortcuts;

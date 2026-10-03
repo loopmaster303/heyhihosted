@@ -148,15 +148,6 @@ export async function httpsFetchBinary(
   return { status: res.status, buffer: res.buffer, contentType: res.contentType };
 }
 
-export async function httpsFetchBinaryPost(
-  url: string,
-  headers: Record<string, string> = {},
-  body: string
-): Promise<{ status: number; buffer: Buffer; contentType: string }> {
-  const res = await runNodeProxy('POST', url, headers, body);
-  return { status: res.status, buffer: res.buffer, contentType: res.contentType };
-}
-
 export async function httpsPostStream(
   url: string,
   headers: Record<string, string>,

@@ -115,6 +115,12 @@ export async function POST(request: Request) {
       if (!model) {
         throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`, 'UNKNOWN_MODEL', { modelLabel: 'unbekannt' });
       }
+      // Ein abgeschaltetes Pruna-Modell (z. B. vace) gehoert nicht in den
+      // Registry-Zweig: Pollinations kennt es nicht, und bei blinder Registry
+      // ginge es ungeprueft an den falschen Anbieter.
+      if (getUnifiedModel(model)?.provider === 'pruna') {
+        throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`, 'UNKNOWN_MODEL', { modelLabel: model });
+      }
       const lookup = await lookupRegistryModel(model, apiKey);
       if (lookup.status === 'found') {
         liveModel = lookup.model;
