@@ -61,7 +61,7 @@ Model lists drift daily (35/39 → 28/42 → 32/45 within 48 hours). The check i
 
 - `node scripts/check-model-registry.mjs` pulls all three registry endpoints live and diffs them against the led model ids. Exit 1 = drift.
 - `node scripts/check-model-registry.mjs --update-snapshot` refreshes `src/config/__fixtures__/registry-snapshot.json` — the offline fixture the tests T1–T3 run against. Refresh it deliberately, with the diff reviewed; never let a script write config silently.
-- A weekly GitHub Action runs the check and fails visibly on drift.
+- There is no GitHub Actions run (removed 2026-10-03, the operator does not want Actions): the check runs by hand, on a machine with network access to Pollinations.
 - Rule: **a registry finding never silently rewrites the config.** Whether a model is offered is a product decision; the registry only reports facts. The registry is **key-scoped** — its response differs per API key, and the server key's allowlist (not `paid_only`) decides what keyless users can actually run.
 
 **The two views, measured 2026-09-10** (details and numbers in [docs/POLLINATIONS-API-2026-09-10.md](/Users/johnmeckel/heyhihosted/docs/POLLINATIONS-API-2026-09-10.md)):

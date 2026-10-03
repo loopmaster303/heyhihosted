@@ -3,8 +3,8 @@
  * Modellwahrheit: Repo-Listen gegen die Live-Pollinations-Registry prüfen.
  *
  * Zieht alle drei Registry-Endpunkte, vergleicht sie mit den im Repo
- * geführten Modell-IDs und meldet jede Abweichung. Exit 1 bei Drift —
- * der wöchentliche GitHub-Action-Lauf nutzt das als Meldung.
+ * geführten Modell-IDs und meldet jede Abweichung. Exit 1 bei Drift.
+ * Läuft von Hand (kein GitHub-Actions-Lauf mehr, seit 2026-10-03).
  *
  * Optionen:
  *   --update-snapshot   schreibt die Ziehung nach

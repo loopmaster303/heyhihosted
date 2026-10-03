@@ -45,8 +45,8 @@ Seit August 2026 enthält `main` auch das **Create** (`/create`, bis 2026-08-29 
 
 Die Modell-Listen sind seit dem 2026-08-28 gegen die Live-Registry geprüft
 (`scripts/check-model-registry.mjs`, Snapshot `src/config/__fixtures__/registry-snapshot.json`,
-Tests in `registry-truth.test.ts` / `registry-consistency.test.ts`, wöchentlicher
-GitHub-Action-Lauf). Ein Registry-Befund wandert nie still in die Config — Angebotsfragen
+Tests in `registry-truth.test.ts` / `registry-consistency.test.ts`; der Check läuft
+von Hand, GitHub Actions gibt es seit 2026-10-03 nicht mehr). Ein Registry-Befund wandert nie still in die Config — Angebotsfragen
 sind Produktentscheidungen. Details: `CLAUDE.md`, Abschnitt „Modellwahrheit prüfen".
 Wichtig: die Registry ist **key-scoped** — die Server-Key-Allowlist entscheidet, was
 keylose Nutzer wirklich erreichen (deshalb sind `kontext`/`gptimage-large` bis auf
