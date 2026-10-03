@@ -389,25 +389,9 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     description: 'Wan Pro 1080p — start and end frame', supportsAudio: true, supportsEndFrame: true,
     durationRange: { options: [5, 10, 15] },
   },
-  {
-    id: 'nova-reel',
-    name: 'Nova Reel',
-    provider: 'pollinations',
-    kind: 'video',
-    category: 'Advanced',
-    supportsReference: true,
-    maxImages: 1,
-    isFree: false,
-    enabled: false,
-    description: 'Nova Reel — long-form video (up to 120s)',
-    supportsAudio: false,
-    durationRange: { options: [6, 12, 18, 24, 30] },
-  },
-  // nova-reel ist registry-frei, bleibt aber aus: live geprueft 2026-08-28 —
-  // ein 6s-Lauf brach nach 125s mit 524 ab, bevor das Ergebnis da war. Der
-  // Dispatch laeuft synchron; das 202-Protokoll deckt nur Pruna ab. Damit ist
-  // das Modell ohne weitere Arbeit (Phase 4) nicht anbietbar, auch wenn die
-  // Registry es als kostenlos fuehrt.
+  // nova-reel entfernt 2026-10-03: steht nicht mehr in der Live-Registry
+  // (weder als Name noch als Alias). Es war ohnehin aus (524 nach 125 s,
+  // synchroner Dispatch).
   {
     id: 'wan-t2v',
     name: 'Wan T2V',

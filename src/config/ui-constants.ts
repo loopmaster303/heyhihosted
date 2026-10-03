@@ -132,7 +132,6 @@ export const imageModelIcons: Record<string, any> = {
     'wan-pro': WANIcon,
     'wan-pro-1080p': WANIcon,
     'veo': GoogleIcon,
-    'nova-reel': AmazonNovaIcon,
     'acestep': AceStepIcon,
     'ace-step': AceStepIcon,
     'stable-audio-3-medium': StabilityIcon,

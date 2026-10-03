@@ -49,7 +49,7 @@ Regeln und Fallstricke, gegen den Code geprüft am 2026-10-01. Geschichte steht 
 ## Modellwahrheit
 
 - [unified-image-models.ts](src/config/unified-image-models.ts) ist die einzige Quelle für Bild/Video. Flags: `enabled` (sichtbar), `isFree` (ohne Schlüssel), `byopVisible` (mit eigenem Schlüssel). **Listen nicht in Prosa wiederholen.**
-- `node scripts/check-model-registry.mjs` meldet Drift (Exit 1), wöchentlich auch als Action; `--update-snapshot` erneuert die Test-Fixture — nur mit geprüftem Diff.
+- `node scripts/check-model-registry.mjs` meldet Drift (Exit 1), wird manuell ausgeführt; `--update-snapshot` erneuert die Test-Fixture — nur mit geprüftem Diff.
 - **Ein Registry-Befund schreibt die Config nie still um.** Die Registry ist schlüsselabhängig; was Nutzer ohne Schlüssel bekommen, entscheidet die Allowlist des Server-Schlüssels, nicht `paid_only`.
 
 ## Prompt-Verbesserung
