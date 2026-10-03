@@ -43,6 +43,7 @@ jest.mock('@/components/ui/drawer', () => ({
   Drawer: ({ children, open }: { children: React.ReactNode; open?: boolean }) => (open ? <div>{children}</div> : null),
   DrawerContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DrawerTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+  DrawerDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
 }));
 
 jest.mock('@/components/ui/popup', () => ({
@@ -98,6 +99,13 @@ const DUMMY_MODEL = {
   requiresReference: false,
   maxImages: 0,
   unmapped: false,
+  supportsEndFrame: false,
+  supportsAudio: false,
+  paidOnly: false,
+  community: false,
+  // Fixture: die Freigabe des Schluessels ist hier true, damit der Dummy als
+  // freies Modell die Vorgabe der Shell sein kann.
+  runnableOnKey: true,
 };
 
 function mockHooks(overrides: Record<string, unknown> = {}) {

@@ -28,6 +28,19 @@ const fitWithin = (ratio: number, maxWidth: number, maxHeight: number) => {
   return { width: Math.round(maxHeight * safeRatio), height: maxHeight };
 };
 
+/**
+ * Conservative Markdown detection: take the Markdown path only when the text
+ * actually contains Markdown syntax (fenced/inline code, headings, lists,
+ * blockquotes, bold). A lone "*" in flowing text (e.g. "2 * 3") stays plain.
+ */
+const looksLikeMarkdown = (text: string): boolean =>
+  /```/.test(text) ||
+  /^\s{0,3}#{1,6}\s/m.test(text) ||
+  /^\s{0,3}(?:[-*+]|\d{1,9}[.)])\s+\S/m.test(text) ||
+  /^\s{0,3}>/m.test(text) ||
+  /\*\*(?=\S)[^*]*?\*\*/.test(text) ||
+  /`[^`\n]+`/.test(text);
+
 interface ChatImageCardProps {
   url: string;
   altText: string;
@@ -413,8 +426,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         );
       }
 
-      // If content contains fenced code blocks, render via Markdown for nicer code display
-      if (/```/.test(content)) {
+      // Render via Markdown when the text contains Markdown syntax: nicer code
+      // display and no literal "*"/"**" left in lists, headings or emphasis.
+      if (looksLikeMarkdown(content)) {
         return <MarkdownRenderer content={content} />;
       }
 
@@ -534,14 +548,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         </div>
 
         {isAssistant && message.id !== 'loading' && !isMediaOnly && (
-          <div className="mt-2 flex items-center gap-0.5 transition-all duration-200 md:mt-0 md:max-h-0 md:overflow-hidden md:opacity-0 md:pointer-events-none md:group-hover:mt-2 md:group-hover:max-h-8 md:group-hover:opacity-100 md:group-hover:pointer-events-auto">
+          <div className="mt-2 flex items-center gap-0.5 transition-all duration-200 md:mt-0 md:max-h-0 md:overflow-hidden md:opacity-0 md:pointer-events-none md:group-hover:mt-2 md:group-hover:max-h-8 md:group-hover:opacity-100 md:group-hover:pointer-events-auto md:group-focus-within:mt-2 md:group-focus-within:max-h-8 md:group-focus-within:opacity-100 md:group-focus-within:pointer-events-auto">
             {hasAudioContent && onPlayAudio && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handlePlayClick}
                 className={cn(
-                  "h-7 w-7 text-foreground/80 hover:text-foreground",
+                  "h-7 w-7 text-foreground/80 hover:text-foreground focus-visible:opacity-100",
                   isPlaying && "text-blue-500 hover:text-blue-600"
                 )}
                 aria-label={isPlaying ? t('action.stopAudio') : t('action.playAudio')}
@@ -561,7 +575,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={onRegenerate}
-                className="h-7 w-7 text-foreground/80 hover:text-foreground"
+                className="h-7 w-7 text-foreground/80 hover:text-foreground focus-visible:opacity-100"
                 aria-label={t('action.regenerate')}
               >
                 <RefreshCw className="h-4 w-4" />
@@ -572,7 +586,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={handleCopyClick}
-                className="h-7 w-7 text-foreground/80 hover:text-foreground"
+                className="h-7 w-7 text-foreground/80 hover:text-foreground focus-visible:opacity-100"
                 aria-label={t('action.copy')}
               >
                 <Copy className="h-4 w-4" />

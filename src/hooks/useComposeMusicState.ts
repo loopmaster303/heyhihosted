@@ -74,6 +74,10 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
   }, [availableDurations]);
 
   const generateMusic = useCallback(async (prompt: string): Promise<string | null> => {
+    // Ein zweiter Aufruf waehrend eines laufenden Auftrags wuerde einen zweiten
+    // Lauf auf denselben Ergebnisplatz legen.
+    if (isGenerating) return null;
+
     if (!prompt.trim()) {
       setError('Prompt is required');
       return null;
@@ -119,7 +123,7 @@ export function useComposeMusicState(): ComposeMusicState & ComposeMusicActions 
     } finally {
       setIsGenerating(false);
     }
-  }, [duration, instrumental, selectedModel, toast, t]);
+  }, [duration, instrumental, selectedModel, toast, t, isGenerating]);
 
   const enhancePrompt = useCallback(async (prompt: string): Promise<string | null> => {
     if (!prompt.trim() || isEnhancing) return null;

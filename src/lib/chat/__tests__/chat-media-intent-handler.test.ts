@@ -161,7 +161,7 @@ describe('processAssistantMediaIntents', () => {
     });
     const onError = jest.fn();
     const result = await processAssistantMediaIntents({ ...input, onError });
-    expect(onError).toHaveBeenCalledWith('audio-save', 'db offline');
+    expect(onError).toHaveBeenCalledWith('image-save', 'db offline');
     expect(result.extraParts).toHaveLength(2);
     const imagePart = result.extraParts.find((p) => p.type === 'image_url');
     expect(imagePart).toMatchObject({

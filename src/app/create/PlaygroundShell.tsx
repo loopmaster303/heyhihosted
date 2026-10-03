@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Menu, Settings, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from '@/components/ui/drawer';
 import { PlaygroundSidebar, PlaygroundSidebarContent } from '@/components/playground/PlaygroundSidebar';
 import { SettingsPopover } from '@/components/settings/SettingsPopover';
 import { PromptBar } from '@/components/playground/PromptBar';
@@ -33,6 +33,7 @@ import { OutputService } from '@/lib/services/output-service';
 import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
 import { readLocal, writeLocal } from '@/lib/safe-storage';
 import { getStoredPollenKey } from '@/lib/client-pollen-key';
+import { getClientSessionId } from '@/lib/session';
 
 /**
  * Ein abgeschickter Lauf mit allem, was seine Wiederholung braucht. Ohne das
@@ -196,12 +197,19 @@ export function PlaygroundShell() {
   // usePlaygroundModels liefert im Pruna-Modus bereits die gefilterte Liste
   // (PRUNA_HIDDEN_IN_PLAYGROUND) — hier nicht ein zweites Mal filtern.
   const modeEntries = entries.filter((e) => isModelInMode(e, state.mode));
-  // Ohne Key ist ein kostenpflichtiges Modell nicht benutzbar — Pollinations
-  // antwortet mit 401 und das Bild bleibt leer. Als Vorgabe deshalb erst ein
-  // freies wählen; die Auswahl des Nutzers hat weiter Vorrang.
+  // Ohne eigenen Schluessel ist ein kostenpflichtiges Modell nicht benutzbar.
+  // Als Vorgabe deshalb erst ein freies waehlen; die Auswahl des Nutzers hat
+  // weiter Vorrang.
+  // Seit der Auswahlliste stehen darin auch gesperrte Bezahl-Klassiker
+  // (`runnableOnKey: false`, live belegt 2026-09-10). Die duerfen nicht Vorgabe
+  // werden, sonst laeuft der erste Senden-Klick garantiert in den Fehler.
+  // Reihenfolge: Nutzerwahl, freies Modell, lauffaehiges Modell, erst zuletzt
+  // der erste Listeneintrag (Pruna hat nur schluesselpflichtige Eintraege).
   const currentModel =
     modeEntries.find((e) => e.id === state.modelId) ??
-    (pollenKey ? modeEntries[0] : modeEntries.find((e) => !e.paidOnly) ?? modeEntries[0]);
+    modeEntries.find((e) => e.runnableOnKey && !e.paidOnly) ??
+    modeEntries.find((e) => e.runnableOnKey) ??
+    modeEntries[0];
 
   useEffect(() => {
     if (currentModel && state.modelId !== currentModel.id) setModelId(currentModel.id);
@@ -218,9 +226,13 @@ export function PlaygroundShell() {
   // Arrangements. Die Zahl steht deshalb in der Statuszeile, direkt unter dem
   // Feld, in dem sie entsteht.
   const tagAnzahl = state.sound.tags.split(/[,;]/).map((s) => s.trim()).filter(Boolean).length;
+  // Zwei Gruende, warum ein Pollinations-Modell ohne eigenen Schluessel nicht
+  // laeuft: es kostet Geld (`paidOnly`) oder der Betreiber-Schluessel darf es
+  // nicht bedienen (`!runnableOnKey`, live belegt 2026-09-10 fuer die
+  // Bezahl-Klassiker). Beide muessen hier denselben Hinweis ausloesen.
   const brauchtPollen = !!currentModel
     && currentModel.provider === 'pollinations'
-    && currentModel.paidOnly
+    && (currentModel.paidOnly || !currentModel.runnableOnKey)
     && !pollenKey;
   const brauchtPrunaSchluessel = istPrunaLauf && !hatPrunaSchluessel;
 
@@ -388,6 +400,11 @@ export function PlaygroundShell() {
         prompt: run.prompt,
         modelId: run.modelId,
         conversationId: PLAYGROUND_CONVERSATION_ID,
+        // Ohne Session-Id verweigert OutputService den Media-Backfill und das
+        // Asset bleibt auf der remoteUrl stehen — genau die URL, die der
+        // Browser ohne Server-Header nicht laden kann. Der Chatpfad gibt die
+        // Id seit jeher mit, Create nicht.
+        sessionId: getClientSessionId(),
         isVideo: kind === 'video',
         isPollinations: mediaUrl.startsWith('http'),
         params: run.params,
@@ -536,7 +553,17 @@ export function PlaygroundShell() {
         const postRes = await fetch('/api/sound', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(frozen),
+          // Der Body wird Feld fuer Feld gebaut: die Route liest `prompt`,
+          // der eingefrorene Lauf fuehrt dasselbe als `tags`. Das interne
+          // Zustandsobjekt durchzureichen liess jeden Sendeversuch in
+          // 400 VALIDATION_ERROR enden — der Name muss hier stehen.
+          body: JSON.stringify({
+            prompt: frozen.tags,
+            lyrics: frozen.lyrics,
+            duration: frozen.duration,
+            batch: frozen.batch,
+            instrumental: frozen.instrumental,
+          }),
           signal: run.controller.signal,
         });
         if (!postRes.ok) throw failureError(await parseFailure(postRes, 'Sound-Task fehlgeschlagen'));
@@ -589,7 +616,11 @@ export function PlaygroundShell() {
           const audioUrl = `/api/sound/audio?path=${encodeURIComponent(entry.file)}`;
           const assetId = await OutputService.saveGeneratedAsset({
             url: audioUrl,
-            prompt: entry.prompt ?? frozen.tags,
+            // ACE-Steps Planner gibt die Tags als ausformulierte Prosa zurueck
+            // (`entry.prompt`). Gespeichert wird trotzdem die Eingabe des
+            // Nutzers — sonst sucht er spaeter seinen Track und findet einen
+            // fremden Absatz.
+            prompt: frozen.tags,
             modelId: SOUND_MODEL_ID,
             conversationId: PLAYGROUND_CONVERSATION_ID,
             isPollinations: false,
@@ -603,7 +634,7 @@ export function PlaygroundShell() {
             id: assetId ?? `${Date.now()}-${savedItems.length}`,
             url: audioUrl,
             kind: 'audio',
-            prompt: entry.prompt ?? frozen.tags,
+            prompt: frozen.tags,
             modelId: SOUND_MODEL_ID,
             timestamp: Date.now(),
             params: { duration: frozen.duration, batch: frozen.batch, instrumental: frozen.instrumental },
@@ -836,6 +867,7 @@ export function PlaygroundShell() {
         <PlaygroundSidebar {...sidebarProps} />
 
         <main className="grid min-h-0 min-w-0 grid-rows-[1fr_auto]">
+          <h1 className="sr-only">hey.hi · Create</h1>
           <div className="grid min-h-0 grid-cols-1 xl:grid-cols-[1fr_296px]">
             <Gallery
               selectedId={selected?.id ?? null}
@@ -924,6 +956,13 @@ export function PlaygroundShell() {
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} direction="left">
         <DrawerContent direction="left" className="h-dvh w-[84%] max-w-[310px]">
           <DrawerTitle className="sr-only">Einstellungen und Parameter</DrawerTitle>
+          {/* Radix verlangt zu jedem Dialog-Inhalt eine Beschreibung und warnt
+              sonst im Log. Der Titel allein beschreibt den Inhalt nicht, also
+              steht der Satz fuer Screenreader hier — sichtbar waere er neben
+              den Reglern nur Laerm. */}
+          <DrawerDescription className="sr-only">
+            Einstellungen, Modellwahl und Parameter für diesen Lauf.
+          </DrawerDescription>
           {/* L-E.2: unter md ist hier der einzige Ort fuer den Herkunftsfilter —
               in der Kopfzeile passt er bei 375 px nicht mehr neben Brotkrume
               und Rueckweg. */}
@@ -941,6 +980,9 @@ export function PlaygroundShell() {
       <Drawer open={detailsOpen} onOpenChange={setDetailsOpen} shouldScaleBackground={false}>
         <DrawerContent className="max-h-[85dvh]">
           <DrawerTitle className="sr-only">Generierungs-Details</DrawerTitle>
+          <DrawerDescription className="sr-only">
+            Angaben zum ausgewählten Ergebnis: Modell, Parameter und Aktionen.
+          </DrawerDescription>
           <MetaRail
             className="max-h-[80dvh] border-l-0"
             item={selected}

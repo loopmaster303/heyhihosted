@@ -17,6 +17,7 @@ import GallerySidebarSection from '@/components/gallery/GallerySidebarSection';
 import PersonalizationSidebarSection from '@/components/sidebar/PersonalizationSidebarSection';
 import PollenAccountSidebarSection from '@/components/sidebar/PollenAccountSidebarSection';
 import PrunaAccountSidebarSection from '@/components/sidebar/PrunaAccountSidebarSection';
+import { FEATURES } from '@/config/features';
 import { useLanguage } from '@/components/LanguageProvider';
 import LanguageToggle from '@/components/LanguageToggle';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -147,8 +148,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                       <p className={cn("text-xs font-medium truncate mb-0.5", activeConversation?.id === conv.id ? "text-primary" : "text-foreground/80 group-hover:text-foreground")}>{conv.title}</p>
                       <p className="text-[10px] text-muted-foreground/60">{formatTime(conv.updatedAt)}</p>
                     </button>
-                    <div className="flex opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" onClick={() => onDeleteChat?.(conv.id)} aria-label={t('action.delete')} className="h-7 w-7 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg">
+                    <div className="flex opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" onClick={() => onDeleteChat?.(conv.id)} aria-label={t('action.delete')} className="h-7 w-7 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg focus-visible:opacity-100">
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -164,7 +165,9 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           />
           <PersonalizationSidebarSection />
           <PollenAccountSidebarSection />
-          <PrunaAccountSidebarSection />
+          {/* Pruna-Konto gehoert ins Create: der Chat generiert Bilder nur ueber
+              den Betreiber-Schluessel (getChatImageModelGroups). */}
+          {FEATURES.chatPrunaProvider && <PrunaAccountSidebarSection />}
 
           <div className="flex-1" />
         </div>

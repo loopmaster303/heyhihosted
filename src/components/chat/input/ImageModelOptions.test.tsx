@@ -23,31 +23,31 @@ describe('ImageModelOptions', () => {
 
   it('zeigt genau die schluesselfreien Bildmodelle', async () => {
     const onModelChange = jest.fn();
-    render(<ImageModelOptions selectedModelId="flux" onModelChange={onModelChange} />);
+    render(<ImageModelOptions selectedModelId="klein" onModelChange={onModelChange} />);
 
     const options = screen
       .getAllByRole('button')
       .filter((el) => el.hasAttribute('aria-pressed'))
       .map((el) => el.textContent);
     expect(options).toHaveLength(3);
-    expect(options.join(' ')).toMatch(/Flux/);
     expect(options.join(' ')).toMatch(/GPT Image/);
     expect(options.join(' ')).toMatch(/Klein/);
+    expect(options.join(' ')).toMatch(/Z-Image/);
 
-    const active = screen.getByRole('button', { name: 'Flux.1 Fast' });
+    const active = screen.getByRole('button', { name: 'Flux.2 Klein 4B' });
     expect(active).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'GPT Image 1 Mini' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'GPT Image 2' })).toHaveAttribute(
       'aria-pressed',
       'false',
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Flux.2 Klein 4B' }));
-    expect(onModelChange).toHaveBeenCalledWith('klein');
+    await userEvent.click(screen.getByRole('button', { name: 'Z-Image Turbo' }));
+    expect(onModelChange).toHaveBeenCalledWith('z-image');
   });
 
   it('deaktiviert die Modellauswahl, wenn disabled gesetzt ist', async () => {
     const onModelChange = jest.fn();
-    render(<ImageModelOptions selectedModelId="flux" onModelChange={onModelChange} disabled />);
+    render(<ImageModelOptions selectedModelId="klein" onModelChange={onModelChange} disabled />);
 
     const buttons = screen
       .getAllByRole('button')
@@ -62,7 +62,7 @@ describe('ImageModelOptions', () => {
   });
 
   it('zeigt kein Video- und kein Pruna-Modell', () => {
-    render(<ImageModelOptions selectedModelId="flux" onModelChange={jest.fn()} />);
+    render(<ImageModelOptions selectedModelId="klein" onModelChange={jest.fn()} />);
 
     // E7-2 / E7-3: strukturell abwesend, nicht bloss ausgegraut.
     const body = screen.getByRole('group').textContent ?? '';
@@ -74,7 +74,7 @@ describe('ImageModelOptions', () => {
   });
 
   it('benennt den Weg ins Create und fuehrt dorthin', () => {
-    render(<ImageModelOptions selectedModelId="flux" onModelChange={jest.fn()} />);
+    render(<ImageModelOptions selectedModelId="klein" onModelChange={jest.fn()} />);
 
     // L-F.1: der Verweis ist als Beschriftung vorhanden und fuehrt dorthin.
     const link = screen.getByRole('button', { name: 'modelSelector.allModelsInCreate' });

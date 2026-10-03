@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/components/LanguageProvider';
 import { getPollenHeaders } from '@/lib/pollen-key';
@@ -18,6 +18,8 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { DEFAULT_IMAGE_MODEL } from '@/config/chat-options';
 import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
 import { uploadFileToPruna } from '@/lib/upload/pruna';
+import { uploadReferenceImage } from '@/lib/upload/reference-upload';
+import { forgetPrunaReferencePreview } from '@/lib/upload/pruna-reference-preview';
 import { getClientSessionId } from '@/lib/session';
 import type { UploadedReference } from '@/types';
 import { useProviderMode } from './useProviderMode';
@@ -86,20 +88,42 @@ export function useUnifiedImageToolState() {
         if (availableModels.includes(DEFAULT_IMAGE_MODEL)) return DEFAULT_IMAGE_MODEL;
         return availableModels[0] || DEFAULT_IMAGE_MODEL;
     }, [availableModels, normalizedDefaultImageModelId]);
-    const [selectedModelId, setSelectedModelId] = useState<string>(initialModelId);
+    // Die Bildauswahl des Chats lebt in ihrem eigenen Schluessel, und der
+    // Standard aus den Einstellungen ist nur der Startwert, solange dort noch
+    // nichts steht (A6). Vorher las der Picker allein `defaultImageModelId` und
+    // schrieb beim Wechsel nichts: Die Wahl war beim naechsten Reload verloren,
+    // obwohl der Chat-Schluessel denselben Wert bereits fuehrt.
+    const [selectedModelId, setSelectedModelId] = useLocalStorageState<string>('chatSelectedImageModel', initialModelId);
     const currentModelConfig = getUnifiedModelConfig(selectedModelId);
 
-    // Faellt das gewaehlte Modell aus der Chat-Auswahl — etwa weil der
-    // SettingsPopover im Create einen Standard geschrieben hat, den der Chat
-    // nicht fuehrt — zurueck auf den Vorgabewert statt still ins Leere.
+    // Faellt das gewaehlte Modell aus der Chat-Auswahl — etwa weil eine alte
+    // Wahl im Schluessel steht, die der Chat nicht fuehrt — zurueck auf den
+    // Standard statt still ins Leere. Der Standard aus den Einstellungen gilt,
+    // solange der Chat ihn fuehrt; sonst die Vorgabe des Chats.
+    const fallbackModelId = useMemo(() => {
+        if (availableModels.includes(normalizedDefaultImageModelId)) {
+            return normalizedDefaultImageModelId;
+        }
+        return availableModels.includes(DEFAULT_IMAGE_MODEL)
+            ? DEFAULT_IMAGE_MODEL
+            : availableModels[0];
+    }, [availableModels, normalizedDefaultImageModelId]);
+
+    // Der Standard trifft erst mit der Hydration ein, die erste Korrektur
+    // laeuft also noch blind und schreibt die Vorgabe. Ohne diese Marke ginge
+    // dieser eigene Wert als gueltige Wahl durch, und der nachgereichte
+    // Standard bliebe liegen. Nur der eigene Wert darf darum nachziehen.
+    const autoCorrectedModelRef = useRef<string | null>(null);
+
     useEffect(() => {
         setSelectedModelId(prev => {
-            if (availableModels.includes(prev) || availableModels.length === 0) return prev;
-            return availableModels.includes(DEFAULT_IMAGE_MODEL)
-                ? DEFAULT_IMAGE_MODEL
-                : availableModels[0];
+            if (availableModels.length === 0) return prev;
+            if (autoCorrectedModelRef.current !== prev && availableModels.includes(prev)) return prev;
+            if (prev === fallbackModelId) return prev;
+            autoCorrectedModelRef.current = fallbackModelId;
+            return fallbackModelId;
         });
-    }, [availableModels]);
+    }, [availableModels, fallbackModelId, setSelectedModelId]);
 
     // Form state
     const [prompt, setPrompt] = useState('');
@@ -115,6 +139,8 @@ export function useUnifiedImageToolState() {
     // Status
     const [isEnhancing, setIsEnhancing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    // Der Zustand ist im selben Tick noch nicht sichtbar, die Ref schon.
+    const isUploadingRef = useRef(false);
 
     // Derived states
     const isGptImage = selectedModelId === 'gpt-image' || selectedModelId === 'gptimage-large';
@@ -233,6 +259,20 @@ export function useUnifiedImageToolState() {
         }
     }, [selectedModelId, maxImages, uploadedImages, currentModelConfig]);
 
+    // Ein Lauf auf einmal: Ohne diese Sperre legen zwei Klicks im selben Tick
+    // zwei Uploads auf denselben Platz, und der zweite ueberschreibt den ersten.
+    const beginUpload = useCallback((): boolean => {
+        if (isUploadingRef.current) return false;
+        isUploadingRef.current = true;
+        setIsUploading(true);
+        return true;
+    }, []);
+
+    const endUpload = useCallback((): void => {
+        isUploadingRef.current = false;
+        setIsUploading(false);
+    }, []);
+
     // Handle File Change (images only)
     const handleFileChange = useCallback(async (
         event: React.ChangeEvent<HTMLInputElement>,
@@ -256,12 +296,15 @@ export function useUnifiedImageToolState() {
         }
 
         if (selectedModelInfo?.provider === 'pruna') {
-            setIsUploading(true);
+            if (!beginUpload()) return;
             try {
                 const targetFiles = frameSlot || maxImages === 1 ? imageFiles.slice(0, 1) : imageFiles;
                 const next = [...uploadedImages];
                 for (const file of targetFiles) {
-                    const url = await uploadFileToPruna(file);
+                    // Pruna-Handle, oder die media.pollinations.ai-Adresse, wenn
+                    // Prunas Dateispeicher am Guthaben scheitert. Beides landet
+                    // unveraendert im Generate-Request.
+                    const url = await uploadReferenceImage(file, 'pruna');
                     if (frameSlot) next[frameIndex] = { url };
                     else if (maxImages === 1) next[0] = { url };
                     else if (next.length < maxImages) next.push({ url });
@@ -270,13 +313,13 @@ export function useUnifiedImageToolState() {
             } catch (err) {
                 toast({ title: 'Upload failed', description: err instanceof Error ? err.message : 'Could not upload image.', variant: 'destructive' });
             } finally {
-                setIsUploading(false);
+                endUpload();
             }
             return;
         }
 
         if (allUploadModels.includes(selectedModelId)) {
-            setIsUploading(true);
+            if (!beginUpload()) return;
 
             if (isSingleSlot && imageFiles.length > 1) {
                 toast({ title: "Limit Reached", description: "Only one reference image allowed for this model.", variant: "destructive" });
@@ -317,7 +360,7 @@ export function useUnifiedImageToolState() {
                 console.error('Upload error:', err);
                 toast({ title: 'Upload failed', description: err.message || 'Could not upload image.', variant: 'destructive' });
             } finally {
-                setIsUploading(false);
+                endUpload();
             }
             return;
         }
@@ -341,7 +384,7 @@ export function useUnifiedImageToolState() {
                 return next.filter(Boolean).slice(0, maxImages);
             });
         }
-    }, [selectedModelId, selectedModelInfo, toast, maxImages, uploadedImages]);
+    }, [selectedModelId, selectedModelInfo, toast, maxImages, uploadedImages, beginUpload, endUpload]);
 
     // Handle Source Video Change (video only)
     const handleSourceVideoFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -387,8 +430,11 @@ export function useUnifiedImageToolState() {
 
     // Handle Remove Image
     const handleRemoveImage = useCallback((index: number) => {
+        // Eine entfernte Pruna-Referenz nimmt ihre lokale Vorschau mit.
+        const removed = uploadedImages[index];
+        if (removed?.url) void forgetPrunaReferencePreview(removed.url);
         setUploadedImages(prev => prev.filter((_, i) => i !== index));
-    }, [setUploadedImages]);
+    }, [uploadedImages, setUploadedImages]);
 
     // Handle Remove Source Video
     const handleRemoveSourceVideo = useCallback(() => {

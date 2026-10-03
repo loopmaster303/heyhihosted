@@ -48,9 +48,21 @@ describe('visualModelIsPaid', () => {
     }
   });
 
+  // Live belegt am 2026-09-10 am Betreiber-Schluessel: frei sind genau
+  // z-image, gpt-image-2 und klein. Die alten drei galten nur, solange die
+  // Config sie als isFree fuehrte — 'flux' und 'gpt-image' antworten live mit
+  // 403 ("Model 'flux' is not allowed for this API key") und stehen seit der
+  // Umstellung auf isFree: false. Sie gehoeren hier deshalb nicht mehr durch:
+  // die Sperre liefert die uebersetzte Meldung statt eines nackten 403.
   it('laesst die drei freien Bildmodelle durch', () => {
-    for (const id of ['flux', 'gpt-image', 'klein']) {
+    for (const id of ['z-image', 'gpt-image-2', 'klein']) {
       expect(visualModelIsPaid(id)).toBe(false);
+    }
+  });
+
+  it('sperrt flux und gpt-image, die der Betreiber-Schluessel nicht bedienen darf', () => {
+    for (const id of ['flux', 'gpt-image']) {
+      expect(visualModelIsPaid(id)).toBe(true);
     }
   });
 
@@ -64,7 +76,7 @@ describe('visualModelIsPaid', () => {
 
 describe('assertKeyForPaidModel', () => {
   it('laesst ein freies Modell ohne Schluessel durch', () => {
-    expect(() => assertKeyForPaidModel(ohneKey(), 'flux', false)).not.toThrow();
+    expect(() => assertKeyForPaidModel(ohneKey(), 'klein', false)).not.toThrow();
   });
 
   it('laesst ein kostenpflichtiges Modell MIT eigenem Schluessel durch', () => {

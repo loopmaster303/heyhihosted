@@ -26,9 +26,23 @@ written, the plan can go; git history keeps it.
 - `PLAN-phase-6-create-telefon.md` — executed in code; kept because it holds the operator
   checklist for L-E.1 / L-E.2 (real devices), which `LAUNCH_CRITERIA.md` links.
 
+### Audit und Pläne vom 2026-09-10/11
+
+Teilweise umgesetzt (a11y, Fehlervertrag, Ressourcen-Store, Modellfreigabe sind auf `main`);
+was offen ist, steht im jeweiligen Plan.
+
+- `DEEP_AUDIT_2026-09-10.md` — read-only Audit, Grundlage der Pläne A–D.
+- `PLAN-uebersicht-p1-p3-2026-09-10.md` — Reihenfolge und Register der Pläne A–D.
+- `PLAN-lauf-und-artefakt-2026-09-10.md` (A), `PLAN-bedienbarkeit-2026-09-10.md` (B),
+  `PLAN-maschinenvertrag-2026-09-10.md` (C), `PLAN-fundament-2026-09-10.md` (D).
+- `PLAN-modellkuration-2026-09-10.md`, `PLAN-llm-kuration-2026-09-11.md` — Bild- und Textmodell-Kuration.
+- `POLLINATIONS-API-2026-09-10.md` — **Referenz:** die gemessene Pollinations-API.
+
 ## Handoffs
 
-- `HANDOFF-2026-09-03-sound.md` — **latest.** What the Sound review found, the three fixes that
+- `HANDOFF-2026-10-03-ausmisten.md` — **neuester.** Das Ausmisten vom 2026-10-03, der Stand aller
+  offenen Branches und PRs und was der nächste Agent zuerst tun sollte.
+- `HANDOFF-2026-09-03-sound.md` — What the Sound review found, the three fixes that
   shipped, and the operator task that blocks Sound live (Modal env vars on Vercel).
 - `HANDOFF-2026-09-01-phase-4-durchlauf.md` — Phase 4 finished: the remaining error sentences,
   key requirement and non-cancellable Pruna run stated before sending.

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { VisualizeReferenceBadges } from './VisualizeReferenceBadges';
 
 jest.mock('lucide-react', () => new Proxy({}, {
@@ -8,6 +8,15 @@ jest.mock('lucide-react', () => new Proxy({}, {
     Icon.displayName = String(prop);
     return Icon;
   },
+}));
+
+// Ohne Eintrag im Vorschau-Cache (jsdom hat kein IndexedDB) bleibt nur der
+// Platzhalter — genau der Fall, den dieser Test beschreibt.
+jest.mock('@/lib/upload/pruna-reference-preview', () => ({
+  ...jest.requireActual('@/lib/upload/pruna-reference-preview'),
+  getPrunaReferencePreviews: jest.fn(async () => new Map()),
+  rememberPrunaReferencePreview: jest.fn(async () => {}),
+  forgetPrunaReferencePreview: jest.fn(async () => {}),
 }));
 
 describe('VisualizeReferenceBadges', () => {
@@ -129,5 +138,26 @@ describe('VisualizeReferenceBadges', () => {
     );
     expect(screen.getByText('Startbild')).toBeInTheDocument();
     expect(screen.queryByText('Endbild')).toBeNull();
+  });
+
+  // Pruna-Referenzen sind Handles ohne Bildadresse: `<img src={handle}>` blieb
+  // leer, das Badge zeigte nur einen leeren Kasten.
+  it('shows a placeholder instead of a broken thumbnail for a Pruna handle', async () => {
+    const { container } = render(
+      <VisualizeReferenceBadges
+        uploadedImages={[{ url: 'https://api.pruna.ai/v1/files/NTNlZjczNmEtNzM1Mi00NTliLWIzZWYtMDc3ZWM1NzM3YTQ4.jpeg' }]}
+        maxImages={3}
+        supportsReference
+        onRemove={jest.fn()}
+        onUploadClick={jest.fn()}
+        selectedModelId="qwen-image-edit-plus"
+      />
+    );
+
+    await act(async () => {});
+
+    expect(screen.getByText('Vorschau fehlt')).toBeInTheDocument();
+    expect(container.querySelector('img')).toBeNull();
+    expect(screen.getByText('1/3')).toBeInTheDocument();
   });
 });

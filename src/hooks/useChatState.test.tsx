@@ -78,6 +78,41 @@ describe('useChatState', () => {
     expect(loadConversationMock).toHaveBeenCalledWith('conv-42');
   });
 
+  // A8: Der Effekt hing am Rueckgabeobjekt des Persistence-Hooks und konnte
+  // deshalb pro Render ein weiteres Laden starten.
+  it('laedt die gespeicherte Unterhaltung genau einmal, auch bei weiteren Renders', async () => {
+    localStorage.setItem('activeConversationId', JSON.stringify('conv-42'));
+    const { rerender } = renderHook(() => useChatState());
+
+    await act(async () => {});
+    rerender();
+    await act(async () => {});
+
+    expect(loadConversationMock).toHaveBeenCalledTimes(1);
+  });
+
+  // A6: Der Standard ueberschrieb die Chat-Auswahl, weil der Effekt auch auf
+  // die Hydration aus dem localStorage reagierte.
+  it('behaelt die im Chat gewaehlte Bildmodellwahl gegenueber dem Standard', async () => {
+    localStorage.setItem('defaultImageModelId', JSON.stringify('gpt-image'));
+    localStorage.setItem('chatSelectedImageModel', JSON.stringify('klein'));
+
+    const { result } = renderHook(() => useChatState());
+    await act(async () => {});
+
+    expect(result.current.selectedImageModelId).toBe('klein');
+    expect(JSON.parse(localStorage.getItem('chatSelectedImageModel') ?? '""')).toBe('klein');
+  });
+
+  it('uebernimmt den Standard, solange im Chat nichts gewaehlt wurde', async () => {
+    localStorage.setItem('defaultImageModelId', JSON.stringify('gpt-image'));
+
+    const { result } = renderHook(() => useChatState());
+    await act(async () => {});
+
+    expect(result.current.selectedImageModelId).toBe('gpt-image');
+  });
+
   it('runs the migration service once on mount', async () => {
     renderHook(() => useChatState());
     await act(async () => {});

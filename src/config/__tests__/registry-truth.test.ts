@@ -98,8 +98,12 @@ describe('registry truth (F2/F3): kostenlos heißt kostenlos', () => {
       const live = findEntry(imageModels, model.id);
       if (!live) continue; // Existenz prüft F1
       if (model.isFree === true) {
-        expect(`image/${model.id}: live paid_only=${live.paid_only}`).toBe(
-          `image/${model.id}: live paid_only=${undefined}`,
+        // Der Schnappschuss schreibt `paid_only` mal aus (false) und laesst es
+        // mal weg (undefined) — beides heisst nicht bezahlt. Die Gegenrichtung
+        // unten normalisiert genauso (`!== true`). Ohne diese Normalisierung
+        // prueft der Test die Schreibweise des Snapshots statt den Preis.
+        expect(`image/${model.id}: live paid_only=${live.paid_only ?? false}`).toBe(
+          `image/${model.id}: live paid_only=false`,
         );
       }
       if (live.paid_only !== true && (model.enabled ?? true) && model.isFree !== true) {

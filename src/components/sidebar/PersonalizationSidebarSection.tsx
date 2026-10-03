@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, UserRoundPen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { useChatConversation, useChatModes } from '@/components/ChatProvider';
 import { Mic, MessageSquare, Lock } from 'lucide-react';
 import { useVisiblePollinationsTextModels } from '@/hooks/useVisiblePollinationsTextModels';
 import { useProviderMode } from '@/hooks/useProviderMode';
+import { FEATURES } from '@/config/features';
 import { TTS_SPEED_PRESETS } from '@/lib/chat/audio-settings';
 
 const PersonalizationSidebarSection: React.FC = () => {
@@ -30,7 +31,14 @@ const PersonalizationSidebarSection: React.FC = () => {
   const [userDisplayName, setUserDisplayName] = useLocalStorageState<string>('userDisplayName', 'user');
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>('customSystemPrompt', '');
   const [defaultTextModelId, setDefaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID);
-  const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
+  const [defaultImageModelId, setDefaultImageModelIdState] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL);
+  // Wie im SettingsPopover: der Chat fuehrt seine Bildauswahl unter einem
+  // eigenen Schluessel, eine Aenderung am Standard zieht sie mit (A6).
+  const [, setChatSelectedImageModel] = useLocalStorageState<string>('chatSelectedImageModel', DEFAULT_IMAGE_MODEL);
+  const setDefaultImageModelId = useCallback((modelId: string) => {
+    setDefaultImageModelIdState(modelId);
+    setChatSelectedImageModel(modelId);
+  }, [setDefaultImageModelIdState, setChatSelectedImageModel]);
 
   // Phase 7: dieselbe Auswahl wie der Chat-Picker. Ein Standardmodell, das
   // der Chat nicht fuehrt, waere ein Versprechen, das der Hook still
@@ -168,47 +176,54 @@ const PersonalizationSidebarSection: React.FC = () => {
             </Select>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-              {labels.provider}
-            </label>
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-border/30 px-3 py-2">
-              <button
-                type="button"
-                onClick={() => setProviderMode('pollinations')}
-                className={cn(
-                  "text-xs font-semibold transition-opacity",
-                  providerMode === 'pollinations' ? "text-foreground" : "text-muted-foreground hover:opacity-70"
-                )}
-              >
-                Pollinations
-              </button>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="sidebar-provider-mode-switch"
-                  checked={providerMode === 'pruna'}
-                  onCheckedChange={(checked) => setProviderMode(checked ? 'pruna' : 'pollinations')}
-                  disabled={!prunaAvailable}
-                  title={prunaAvailable ? '' : labels.providerHint}
-                  className="data-[state=checked]:bg-primary"
-                />
+          {/* Pruna lebt im Create. Der Chat fuehrt in seiner Bildauswahl nur
+              Pollinations-Modelle und leitet den Provider aus dem Modell ab —
+              dieser Schalter hat hier nie etwas geschaltet, nur eine Herkunft
+              behauptet, die der Dispatch nicht kennt. Flag statt Loeschung:
+              Flip auf true holt ihn zurueck. */}
+          {FEATURES.chatPrunaProvider && (
+            <div className="space-y-1">
+              <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                {labels.provider}
+              </label>
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-border/30 px-3 py-2">
                 <button
                   type="button"
-                  onClick={() => prunaAvailable && setProviderMode('pruna')}
-                  disabled={!prunaAvailable}
-                  title={prunaAvailable ? '' : labels.providerHint}
+                  onClick={() => setProviderMode('pollinations')}
                   className={cn(
-                    "flex items-center gap-1 text-xs font-semibold transition-opacity",
-                    providerMode === 'pruna' ? "text-foreground" : "text-muted-foreground hover:opacity-70",
-                    !prunaAvailable && "opacity-40 cursor-not-allowed"
+                    "text-xs font-semibold transition-opacity",
+                    providerMode === 'pollinations' ? "text-foreground" : "text-muted-foreground hover:opacity-70"
                   )}
                 >
-                  Pruna
-                  {!prunaAvailable && <Lock className="h-3 w-3" />}
+                  Pollinations
                 </button>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="sidebar-provider-mode-switch"
+                    checked={providerMode === 'pruna'}
+                    onCheckedChange={(checked) => setProviderMode(checked ? 'pruna' : 'pollinations')}
+                    disabled={!prunaAvailable}
+                    title={prunaAvailable ? '' : labels.providerHint}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => prunaAvailable && setProviderMode('pruna')}
+                    disabled={!prunaAvailable}
+                    title={prunaAvailable ? '' : labels.providerHint}
+                    className={cn(
+                      "flex items-center gap-1 text-xs font-semibold transition-opacity",
+                      providerMode === 'pruna' ? "text-foreground" : "text-muted-foreground hover:opacity-70",
+                      !prunaAvailable && "opacity-40 cursor-not-allowed"
+                    )}
+                  >
+                    Pruna
+                    {!prunaAvailable && <Lock className="h-3 w-3" />}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-1">
             <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">

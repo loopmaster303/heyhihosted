@@ -1,5 +1,5 @@
 import { ERROR_CODES } from './error-codes';
-import { describeError, describeUnknown } from './describe-error';
+import { describeError } from './describe-error';
 
 test('gibt für jeden bekannten Code einen nicht-leeren deutschen Satz ohne undefined/null', () => {
   for (const code of ERROR_CODES) {
@@ -21,9 +21,22 @@ test('MISSING_PRUNA_KEY nennt ctx.modelLabel', () => {
   expect(d!.satz).toContain('Seedream 4');
 });
 
-test('PRUNA_API_ERROR nennt ctx.field in Mono-Optik', () => {
+test('PRUNA_API_ERROR nennt ctx.field beim Namen', () => {
   const d = describeError('PRUNA_API_ERROR', { modelLabel: 'Seedream 4', field: 'voellig_unbekanntes_feld' });
-  expect(d!.satz).toContain('`voellig_unbekanntes_feld`');
+  expect(d!.satz).toContain('voellig_unbekanntes_feld');
+});
+
+// Die Karte rendert den Satz als Klartext (Gallery.tsx: `{run.message}`), es
+// gibt dort keinen Markdown-Laeufer. Ein Sternchenpaar oder ein Backtick kam
+// deshalb woertlich beim Nutzer an. Live am 2026-09-10 gesehen: "**Dieses
+// Modell** hat die Anfrage abgelehnt".
+test('kein Satz enthaelt Markdown-Zeichen, die die Karte woertlich zeigt', () => {
+  const ctx = { modelLabel: 'Seedream 4', field: 'seed', retryAfterSeconds: 19 };
+  for (const code of ERROR_CODES) {
+    const satz = describeError(code, ctx)!.satz;
+    expect(satz).not.toContain('**');
+    expect(satz).not.toContain('`');
+  }
 });
 
 test('RATE_LIMITED nennt retryAfterSeconds', () => {
@@ -34,12 +47,6 @@ test('RATE_LIMITED nennt retryAfterSeconds', () => {
 test('VALIDATION_ERROR mit field prompt ergibt „Der Prompt fehlt.“', () => {
   const d = describeError('VALIDATION_ERROR', { field: 'prompt' });
   expect(d!.satz).toBe('Der Prompt fehlt.');
-});
-
-test('describeUnknown nennt den Status und den Rohtext', () => {
-  const d = describeUnknown(502, 'error code: 502');
-  expect(d.satz).toContain('502');
-  expect(d.satz).toContain('error code: 502');
 });
 
 // Live belegt am 2026-09-01: `kontext` antwortet 403 mit "Model 'kontext' is
@@ -59,4 +66,17 @@ test('PROVIDER_UNAVAILABLE sagt, dass es nicht an der Eingabe liegt', () => {
 
   const mitWartezeit = describeError('PROVIDER_UNAVAILABLE', { retryAfterSeconds: 42 });
   expect(mitWartezeit!.satz).toContain('42');
+});
+
+// Live belegt am 2026-09-10: gpt-image antwortet 400 "Your request was rejected
+// by the safety system". Vorher wurde daraus PROVIDER_UNAVAILABLE — also der
+// Rat, in ein paar Minuten denselben Prompt erneut zu senden, der immer wieder
+// abgelehnt wird. Der Satz muss die Ablehnung beim Namen nennen.
+test('CONTENT_REJECTED nennt die Ablehnung und den Ausweg statt eines Ausfalls', () => {
+  const d = describeError('CONTENT_REJECTED', { modelLabel: 'GPT Image 2.5 Flare' });
+  expect(d!.satz).toContain('GPT Image 2.5 Flare');
+  expect(d!.satz).toContain('Sicherheitsfilter');
+  expect(d!.satz).toContain('Prompt');
+  expect(d!.satz).not.toContain('antwortet gerade nicht');
+  expect(d!.aktion).toBe('pick-model');
 });

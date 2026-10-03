@@ -57,31 +57,40 @@ const GalleryItem = ({
             ★
           </div>
         )}
-        {isVideo ? (
-            <video 
-                src={url} 
-                className="w-full h-auto object-cover cursor-pointer"
-                muted
-                loop
-                onMouseOver={(e) => (e.currentTarget as HTMLVideoElement).play()}
-                onMouseOut={(e) => (e.currentTarget as HTMLVideoElement).pause()}
-                onClick={() => onSelect(url, 'video')}
-            />
-        ) : (
-            <Image
-                src={url}
-                alt={asset.prompt || "AI Art"}
-                width={1600}
-                height={1600}
-                unoptimized
-                className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-700 cursor-pointer"
-                loading="lazy"
-                onClick={() => onSelect(url, 'image')}
-            />
-        )}
+        {/* Die Kachel war ein reines Mausziel: onClick hing am <video>/<img>,
+            ohne Rolle, ohne tabIndex, ohne Keydown. Ein echter Knopf bringt
+            Enter und Leertaste mit. Die Aktionsknoepfe im Overlay bleiben
+            Geschwister — ein Knopf im Knopf waere ungueltiges Markup. */}
+        <button
+            type="button"
+            onClick={() => onSelect(url, isVideo ? 'video' : 'image')}
+            aria-label={asset.prompt || (isVideo ? 'Video öffnen' : 'Bild öffnen')}
+            className="block w-full"
+        >
+            {isVideo ? (
+                <video 
+                    src={url} 
+                    className="w-full h-auto object-cover cursor-pointer"
+                    muted
+                    loop
+                    onMouseOver={(e) => (e.currentTarget as HTMLVideoElement).play()}
+                    onMouseOut={(e) => (e.currentTarget as HTMLVideoElement).pause()}
+                />
+            ) : (
+                <Image
+                    src={url}
+                    alt={asset.prompt || "AI Art"}
+                    width={1600}
+                    height={1600}
+                    unoptimized
+                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-700 cursor-pointer"
+                    loading="lazy"
+                />
+            )}
+        </button>
         
         {/* Hover Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-4 pointer-events-none group-hover:pointer-events-auto">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-4 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
             <p className="text-xs text-white/90 line-clamp-3 font-medium mb-1 font-mono leading-relaxed">
                 {asset.prompt}
             </p>
@@ -94,7 +103,7 @@ const GalleryItem = ({
                     <Button
                         size="icon"
                         className={cn(
-                          "h-7 w-7 rounded-full bg-white/10 border-0 backdrop-blur-sm",
+                          "h-7 w-7 rounded-full bg-white/10 border-0 backdrop-blur-sm focus-visible:opacity-100",
                           asset.starred ? "text-red-400 hover:bg-white/20" : "text-white hover:bg-primary hover:text-white"
                         )}
                         onClick={(e) => { e.stopPropagation(); onToggleStar(asset.id); }}
@@ -103,7 +112,7 @@ const GalleryItem = ({
                     </Button>
                     <Button 
                         size="icon" 
-                        className="h-7 w-7 rounded-full bg-white/10 hover:bg-primary hover:text-white border-0 text-white backdrop-blur-sm"
+                        className="h-7 w-7 rounded-full bg-white/10 hover:bg-primary hover:text-white border-0 text-white backdrop-blur-sm focus-visible:opacity-100"
                         onClick={(e) => {
                             e.stopPropagation();
                             const link = document.createElement('a');
@@ -116,7 +125,7 @@ const GalleryItem = ({
                     </Button>
                     <Button 
                         size="icon" 
-                        className="h-7 w-7 rounded-full bg-white/10 hover:bg-primary hover:text-white border-0 text-white backdrop-blur-sm"
+                        className="h-7 w-7 rounded-full bg-white/10 hover:bg-primary hover:text-white border-0 text-white backdrop-blur-sm focus-visible:opacity-100"
                         onClick={() => onSelect(url, isVideo ? 'video' : 'image')}
                     >
                         <Maximize2 className="h-3.5 w-3.5" />

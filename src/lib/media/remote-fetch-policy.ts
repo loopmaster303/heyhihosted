@@ -1,8 +1,11 @@
 const ALLOWED_REMOTE_MEDIA_HOSTS = new Set([
   'media.pollinations.ai',
   'gen.pollinations.ai',
-  'image.pollinations.ai',
 ]);
+
+// Die Legacy-Hosts image.pollinations.ai und text.pollinations.ai fehlen hier
+// bewusst: Generierung laeuft ausschliesslich ueber gen.pollinations.ai, Medien
+// ueber media.pollinations.ai. Der Key darf nur an diese beiden gehen.
 
 const IPV4_PARTS_PATTERN = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 

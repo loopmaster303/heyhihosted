@@ -7,6 +7,7 @@ import type { GenerationRecord,
 } from '@/types';
 import type { GenerateImageOptions } from '@/lib/services/chat-service';
 import type { ToastActionElement } from '@/components/ui/toast';
+import { MEMORY_EXTRACTION_ENABLED } from '@/lib/services/memory-service';
 
 interface SendOptionsLike {
   isRegeneration?: boolean;
@@ -492,7 +493,11 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
       isImagePrompt,
       createTimestamp: input.createTimestamp,
     });
-    if (shouldExtractMemories) {
+    // Stillgelegt (A9, MEMORY_EXTRACTION_ENABLED): Die Extraktion schreibt ein
+    // kostenpflichtiges Modell an, ohne dass ein Lesepfad existiert. Der Aufruf
+    // entfällt, die Sendekette läuft unverändert weiter; W2/W3 schalten die
+    // Konstante um.
+    if (MEMORY_EXTRACTION_ENABLED && shouldExtractMemories) {
       void input.extractMemories(convId, finalMessages).catch(input.onError);
     }
     input.setActiveConversation((prev) => (prev ? { ...prev, ...finalConversationState } : null));

@@ -1,7 +1,9 @@
 import React from 'react';
-import { X, Loader2, ImagePlus, Video } from 'lucide-react';
+import { X, Loader2, ImagePlus, ImageOff, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { VideoBadge } from '@/components/tools/visualize/VideoBadge';
+import { useReferencePreviews } from '@/hooks/useReferencePreviews';
+import { isPrunaReferenceUrl } from '@/lib/upload/pruna-reference-preview';
 import type { UploadedReference } from '@/types';
 
 interface VisualizeReferenceBadgesProps {
@@ -41,6 +43,13 @@ export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> =
   isVideoModel = false,
   supportsEndFrame = false,
 }) => {
+  // Pruna-Referenzen sind Handles ohne abrufbare Bildadresse: `urls.get` loest
+  // nur Pruna auf. Die Vorschau liegt lokal, der Hook laeuft darum vor dem
+  // fruehen Return — Haken duerfen nicht hinter einer Bedingung stehen.
+  const previews = useReferencePreviews(uploadedImages.map((image) => image.url));
+  const previewSrc = (image: UploadedReference): string | undefined =>
+    previews[image.url] ?? (isPrunaReferenceUrl(image.url) ? undefined : image.url);
+
   if (!supportsReference && !requiresSourceVideo) return null;
 
   return (
@@ -77,8 +86,15 @@ export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> =
                   <span className="text-[10px] font-semibold text-foreground/70">{slot.label}</span>
                   {image ? (
                     <div className="relative h-6 w-6 overflow-hidden rounded-md bg-muted/20">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={image.url} alt={slot.label} className="h-full w-full object-cover" />
+                      {previewSrc(image) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={previewSrc(image)} alt={slot.label} className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="grid h-full w-full place-items-center text-muted-foreground">
+                          <ImageOff className="h-3.5 w-3.5" aria-hidden="true" />
+                          <span className="sr-only">Vorschau fehlt</span>
+                        </span>
+                      )}
                       <button type="button" onClick={() => onRemove(slot.index)} className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-white" aria-label={`${slot.label} entfernen`}>
                         <X className="h-2.5 w-2.5" />
                       </button>
@@ -128,8 +144,15 @@ export const VisualizeReferenceBadges: React.FC<VisualizeReferenceBadgesProps> =
           key={`${img.key || img.url}-${index}`}
           className="relative h-6 w-6 rounded-md border border-border/40 overflow-hidden bg-muted/20"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={img.url} alt={`Reference ${index + 1}`} className="h-full w-full object-cover" />
+          {previewSrc(img) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={previewSrc(img)} alt={`Reference ${index + 1}`} className="h-full w-full object-cover" />
+          ) : (
+            <span className="grid h-full w-full place-items-center text-muted-foreground">
+              <ImageOff className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="sr-only">Vorschau fehlt</span>
+            </span>
+          )}
           <button
             type="button"
             onClick={() => onRemove(index)}

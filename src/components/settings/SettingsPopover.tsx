@@ -49,7 +49,15 @@ export function SettingsPopover({ open, onClose, voice }: {
   const [responseStyle, setResponseStyle] = useLocalStorageState<string>('responseStyleName', 'Basic')
   const [customSystemPrompt, setCustomSystemPrompt] = useLocalStorageState<string>('customSystemPrompt', '')
   const [defaultTextModelId, setDefaultTextModelId] = useLocalStorageState<string>('defaultTextModelId', DEFAULT_POLLINATIONS_MODEL_ID)
-  const [defaultImageModelId, setDefaultImageModelId] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL)
+  const [defaultImageModelId, setDefaultImageModelIdState] = useLocalStorageState<string>('defaultImageModelId', DEFAULT_IMAGE_MODEL)
+  // Der Chat fuehrt seine Bildauswahl unter einem eigenen Schluessel. Wird der
+  // Standard hier geaendert, ist das die neue Auswahl — sonst bliebe der Chat
+  // auf dem alten Modell stehen (A6).
+  const [, setChatSelectedImageModel] = useLocalStorageState<string>('chatSelectedImageModel', DEFAULT_IMAGE_MODEL)
+  const setDefaultImageModelId = React.useCallback((modelId: string) => {
+    setDefaultImageModelIdState(modelId)
+    setChatSelectedImageModel(modelId)
+  }, [setDefaultImageModelIdState, setChatSelectedImageModel])
   const imageModels = React.useMemo(
     () => getModelsByProvider(providerMode, {
       includeByopHidden: shouldIncludeByopHidden(providerMode, { prunaAvailable, hasPollenKey }),

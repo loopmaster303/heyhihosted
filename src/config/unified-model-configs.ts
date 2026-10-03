@@ -38,6 +38,22 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
       { name: 'output_format', default: 'jpg', hidden: true },
     ],
   },
+  // 2026-09-10: Die Freigabe des Betreiber-Schluessels bedient diese beiden
+  // Modelle (live gegen gen.pollinations.ai geprueft). Damit stehen sie in der
+  // Chat-Auswahl (getChatImageModelIds) — und was dort waehlbar ist, braucht
+  // einen Regler-Eintrag: ImageModelOptions filtert ueber
+  // `unifiedModelConfigs[m.id]`, ohne Eintrag waere das Modell unsichtbar.
+  'gpt-image-2': {
+    id: 'gpt-image-2',
+    name: 'GPT Image 2',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
   'flux': {
     id: 'flux',
     name: 'Flux.1 Fast',
@@ -328,6 +344,19 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     inputs: [
       { name: 'prompt', isPrompt: true },
       { name: 'aspect_ratio', default: '1:1' },
+      { name: 'width', default: 1024 },
+      { name: 'height', default: 1024 },
+      { name: 'seed' },
+      { name: 'output_format', default: 'jpg', hidden: true },
+    ],
+  },
+  // Z-Image Turbo, Pollinations-Freigabe — gleiche Form wie der Pruna-Zwilling
+  // 'zimage' oben, siehe Begruendung beim gpt-image-2-Eintrag.
+  'z-image': {
+    id: 'z-image',
+    name: 'Z-Image Turbo',
+    inputs: [
+      { name: 'prompt', isPrompt: true },
       { name: 'width', default: 1024 },
       { name: 'height', default: 1024 },
       { name: 'seed' },

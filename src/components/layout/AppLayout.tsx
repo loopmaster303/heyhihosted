@@ -156,6 +156,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 
   return (
     <div className="relative flex min-h-[100dvh] h-[100dvh] flex-col bg-background text-foreground overflow-hidden">
+      {/* Erstes fokussierbares Element der Seite: wer mit der Tastatur kommt,
+          ueberspringt damit Topbar und Seitenleiste. Ziel ist das vorhandene
+          <main> — keine zweite Landmarke. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:shadow-lg"
+      >
+        Zum Inhalt springen
+      </a>
       
       {/* MINIMAL TOPBAR - Chat Mode Only */}
       {appState === 'chat' && (
@@ -190,7 +199,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           onGalleryToggle={setGalleryPanelOpen}
         />
 
-        <main className="flex-1 overflow-y-auto transition-all duration-300 relative bg-background w-full">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto transition-all duration-300 relative bg-background w-full">
           {/* ASCII Header - NUR in Landing View */}
           {appState === 'landing' && (
             <div
