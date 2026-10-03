@@ -44,4 +44,4 @@ if [ "$OLDEST_DAYS" -gt "$MAX_AGE_DAYS" ]; then
 fi
 [ -z "$WARN" ] && exit 0
 
-printf '{"systemMessage":"⚠ Arbeitsbaum: %s Vor neuer Arbeit sortieren und in thematische Commits ueberfuehren — nicht als Block committen. Vorbild: docs/HANDOFF-2026-08-28-phase-0.md"}\n' "$WARN"
+printf '{"systemMessage":"⚠ Arbeitsbaum: %s Vor neuer Arbeit sortieren und in thematische Commits ueberfuehren — nicht als Block committen."}\n' "$WARN"

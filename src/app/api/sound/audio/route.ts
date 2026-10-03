@@ -16,8 +16,8 @@ const MODAL_KEY = process.env.MODAL_ACESTEP_KEY ?? '';
  * Bis 2026-09-03 stand hier nur `startsWith('/')`. Damit war JEDER
  * GET-Endpunkt des ACE-Step-Servers oeffentlich erreichbar — authentifiziert
  * mit dem Schluessel des Betreibers, den der Aufrufer nie zu sehen bekommt.
- * Ein Proxy, der einen fremden Schluessel traegt, braucht eine Allowlist;
- * `remote-fetch-policy.ts` macht dasselbe fuer `/api/proxy-image`.
+ * Ein Proxy, der einen fremden Schluessel traegt, braucht eine Allowlist,
+ * wie `remote-fetch-policy.ts` sie fuer serverseitige Medienabrufe fuehrt.
  *
  * ACE-Step liefert Ergebnisse als `/v1/audio?path=…` (siehe
  * modal-acestep/README.md). Nur dieses Praefix wird durchgelassen.

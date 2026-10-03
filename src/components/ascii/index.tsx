@@ -38,30 +38,7 @@ export const AsciiSpinner: React.FC<GlyphProps> = ({ className, label, active = 
   );
 };
 
-const WAVE_BASE = '▁▂▃▄▅▆▇▆▅▄▃▂';
-
-/**
- * Lange Laeufe ohne Prozentwert — Bildgenerierung, Recherche. Zeigt, dass
- * etwas fliesst, nicht wie weit. Genau deshalb nie durch einen Balken
- * ersetzen, dessen Fuellstand geraten waere.
- */
-export const AsciiWave: React.FC<GlyphProps & { width?: number }> = ({
-  className,
-  label,
-  active = true,
-  width = 12,
-}) => {
-  const frame = useAsciiFrames(WAVE_BASE.length, 110, active);
-  const shifted = (WAVE_BASE.slice(frame) + WAVE_BASE.slice(0, frame)).slice(0, width);
-  return (
-    <span className={cn('inline-flex items-center gap-2', className)}>
-      <span aria-hidden="true" className="font-mono tracking-tight">{shifted}</span>
-      {label && <span aria-live="polite">{label}</span>}
-    </span>
-  );
-};
-
-/** Nur wenn ein echter Prozentwert existiert. Sonst die Welle. */
+/** Nur wenn ein echter Prozentwert existiert. */
 export const AsciiProgress: React.FC<{ value: number; className?: string; width?: number }> = ({
   value,
   className,
@@ -76,18 +53,6 @@ export const AsciiProgress: React.FC<{ value: number; className?: string; width?
         <span className="opacity-40">{'░'.repeat(width - filled)}</span>
       </span>
       <span aria-live="polite">{clamped}%</span>
-    </span>
-  );
-};
-
-const MARKER = ['▸', '▹', '▸', '▸'];
-
-/** Aktive Zeile in einer Auswahl. Der Pfeil atmet, statt dass eine Flaeche leuchtet. */
-export const AsciiMarker: React.FC<GlyphProps> = ({ className, active = true }) => {
-  const frame = useAsciiFrames(MARKER.length, 420, active);
-  return (
-    <span aria-hidden="true" className={cn('font-mono', className)}>
-      {active ? MARKER[frame] : MARKER[0]}
     </span>
   );
 };

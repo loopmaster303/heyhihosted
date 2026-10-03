@@ -53,9 +53,6 @@ export const ASPECT_TO_PIXELS: Record<string, { width: number; height: number }>
   '21:9': { width: 1536, height: 640 },
 };
 
-/** Videomodelle kennen nur diese beiden. */
-export const VIDEO_ASPECT_RATIOS = ['16:9', '9:16'] as const;
-
 export function durationOptionsFor(modelId: string): number[] {
   return DURATION_OPTIONS[modelId] ?? [];
 }
