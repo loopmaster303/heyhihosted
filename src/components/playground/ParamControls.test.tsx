@@ -38,7 +38,7 @@ jest.mock('@/components/ui/dropdown-menu', () => ({
   ),
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuItem: ({ children, onSelect }: { children: React.ReactNode; onSelect?: () => void }) => (
-    <div role="menuitem" tabIndex={-1} onClick={onSelect}>{children}</div>
+    <button type="button" role="menuitem" onClick={onSelect}>{children}</button>
   ),
 }));
 

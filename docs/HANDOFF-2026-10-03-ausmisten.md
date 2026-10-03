@@ -2,6 +2,8 @@
 
 **Für:** den nächsten lokalen Agenten. **Stand:** `main` nach dem Merge von PR #18.
 
+> Fortsetzung: [Konsolidierung](HANDOFF-2026-10-03-konsolidierung.md). Die unten genannten offenen Branch-Stände sind dort zusammengeführt.
+
 ## In drei Sätzen
 
 PR #18 hat toten Code, zwei Radix-Pakete, drei API-Routen ohne Aufrufer, Repo-Ballast und rund

@@ -554,6 +554,8 @@ export function PlaygroundShell() {
         }
       })();
     });
+    // Resume stored runs once per mount; handlers capture that recovery snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Nur laufende Generierungen zaehlen gegen die Grenze; gescheiterte Karten

@@ -86,6 +86,8 @@ export const AsciiDone: React.FC<GlyphProps> = ({ className, label }) => {
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) {
+      // Browser motion preference is available after mount; render the static final glyph.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStep(DONE.length - 1);
       return;
     }

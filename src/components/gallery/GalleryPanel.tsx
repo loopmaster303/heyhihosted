@@ -131,6 +131,8 @@ const GalleryPanelItem = ({
           <video src={url} muted loop playsInline
             className="w-full h-auto object-contain cursor-pointer"
             onClick={onOpen}
+            role="button" tabIndex={0} aria-label={asset.prompt || "Output item"}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
             onMouseOver={(e) => (e.currentTarget as HTMLVideoElement).play()}
             onMouseOut={(e) => (e.currentTarget as HTMLVideoElement).pause()}
           />
@@ -138,6 +140,8 @@ const GalleryPanelItem = ({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt={asset.prompt || "Output item"} loading="lazy" decoding="async"
             className="w-full h-auto object-contain cursor-pointer" onClick={onOpen}
+            role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
           />
         ) : null}
         {url && (

@@ -96,4 +96,4 @@ _Created with energy by [Loopmaster](https://github.com/johnmeckel) (John Meckel
 
 ## Ecosystem
 
-hey.hi is Level 2 ("use") of the heyhi ecosystem; the canonical level model lives in `~/heyhi/LEVELS.md`. The 2026-06-01 reorg plan is archived under [`docs/archive/plans/`](docs/archive/plans/2026-06-01-heyhi-ecosystem-reorg-plan.md).
+hey.hi is Level 2 ("use") of the heyhi ecosystem; the canonical level model lives in `~/heyhi/LEVELS.md`. The historical reorganization plan remains available in Git history.

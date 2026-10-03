@@ -17,6 +17,8 @@ function useLocalStorageState<T>(
     try {
       storedRaw = localStorage.getItem(key);
       if (storedRaw) {
+        // Hydrate browser storage after mount to preserve identical server/client markup.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setValueState(JSON.parse(storedRaw));
       }
     } catch (error) {
