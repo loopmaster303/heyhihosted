@@ -1283,6 +1283,9 @@ describe('/api/generate route', () => {
   // VACE ist in der Registry abgeschaltet (ein Lauf dauert 6-12 Minuten). Die
   // Route darf es deshalb gar nicht erst an Pruna weiterreichen.
   it('rejects the disabled vace model instead of dispatching it', async () => {
+    // Ohne Stub fragt die Route die echte Registry ab — offline wird daraus ein
+    // Registry-Ausfall statt der Ablehnung, die dieser Test prueft.
+    stubModelRegistry();
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },

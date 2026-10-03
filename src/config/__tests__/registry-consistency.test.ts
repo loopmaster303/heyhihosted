@@ -49,8 +49,8 @@ describe('registry consistency (F5): die Register passen zusammen', () => {
     expect(orphans).toEqual([]);
   });
 
-  test('keine Leiche einer entfernten ID (Phase 3: ltx-2, grok-video, veo-1080p, pollinations-wan-fast)', () => {
-    const removed = ['ltx-2', 'grok-video', 'veo-1080p', 'pollinations-wan-fast'];
+  test('keine Leiche einer entfernten ID (Phase 3: ltx-2, grok-video, veo-1080p, pollinations-wan-fast; 2026-10-03: nova-reel)', () => {
+    const removed = ['ltx-2', 'grok-video', 'veo-1080p', 'pollinations-wan-fast', 'nova-reel'];
     for (const id of removed) {
       expect(unifiedModelConfigs[id]).toBeUndefined();
       expect(imageModelIcons[id]).toBeUndefined();

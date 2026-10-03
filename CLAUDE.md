@@ -50,7 +50,7 @@ Marked free and enabled in the config (verified live 2026-08-28): `flux`, `gpt-i
 
 Key-gated and BYOP-visible: the `p-*` Pruna family (`p-image`, `p-image-edit`, `p-image-try-on`, `p-image-upscale`, `p-video`, `p-video-avatar`, `p-video-animate`, `p-video-replace`), `p-image-ideogram`, `p-flux-klein`, plus `qwen-image-edit-plus`, `wan-t2v`, `wan-i2v`, `vace`, and the former "free" Pruna models `zimage`, `qwen-image`, `wan-image-small` (Pruna is BYOP-only — `isFree: true` on a Pruna model was a false promise).
 
-Removed on 2026-08-28 (registry truth): `ltx-2`, `grok-video`, `pollinations-wan-fast` (do not exist upstream), `veo-1080p` (alias of `veo` — internal alias kept for saved selections). `nova-reel` stays disabled: registry-free but a 6 s run timed out after 125 s behind the synchronous dispatch (524) — it needs the async protocol first.
+Removed on 2026-08-28 (registry truth): `ltx-2`, `grok-video`, `pollinations-wan-fast` (do not exist upstream), `veo-1080p` (alias of `veo` — internal alias kept for saved selections). `nova-reel` removed on 2026-10-03: it is gone from the live registry (it was disabled anyway — a 6 s run timed out after 125 s behind the synchronous dispatch).
 
 Everything else in the file is `enabled: false` and waiting on upstream availability. Check the config rather than trusting a list in prose.
 

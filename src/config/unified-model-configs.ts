@@ -279,7 +279,7 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     ],
   },
   // Die vier fehlenden Regler-Eintraege ergaenzt (Phase 3, T4/F5):
-  // p-image-ideogram, p-flux-klein, seedance-pro, nova-reel.
+  // p-image-ideogram, p-flux-klein, seedance-pro (nova-reel 2026-10-03 entfernt).
   'p-image-ideogram': {
     id: 'p-image-ideogram', name: 'P-Image Ideogram', outputType: 'image',
     inputs: [
@@ -299,14 +299,6 @@ export const unifiedModelConfigs: Record<string, UnifiedModelConfig> = {
     inputs: [
       { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
       { name: 'duration', default: 5 }, { name: 'audio', default: true }, { name: 'seed' },
-      { name: 'output_format', default: 'mp4', hidden: true },
-    ],
-  },
-  'nova-reel': {
-    id: 'nova-reel', name: 'Nova Reel', outputType: 'video',
-    inputs: [
-      { name: 'prompt', isPrompt: true }, { name: 'aspect_ratio', default: '16:9' },
-      { name: 'duration', default: 6 }, { name: 'seed' },
       { name: 'output_format', default: 'mp4', hidden: true },
     ],
   },
