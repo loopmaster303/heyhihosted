@@ -11,19 +11,19 @@ describe('https-post — schlichter fetch statt Kindprozess', () => {
     const fetchMock = jest.fn(async () => new Response('{"ok":true}', { status: 201 }));
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    const res = await httpsPost('https://gen.pollinations.ai/v1/chat', { Authorization: 'Bearer sk_x', 'Content-Type': 'application/json' }, '{"a":1}');
+    const res = await httpsPost('https://gen.pollinations.ai/v1/chat', { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' }, '{"a":1}');
 
     expect(res).toEqual({ status: 201, body: '{"ok":true}' });
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(String(url)).toBe('https://gen.pollinations.ai/v1/chat');
-    expect(init).toMatchObject({ method: 'POST', body: '{"a":1}', headers: { Authorization: 'Bearer sk_x', 'Content-Type': 'application/json' } });
+    expect(init).toMatchObject({ method: 'POST', body: '{"a":1}', headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' } });
   });
 
   it('refuses any host other than Pollinations before calling fetch', async () => {
     const fetchMock = jest.fn();
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    await expect(httpsPost('https://evil.example/v1/chat', { Authorization: 'Bearer sk_x' }, '{}')).rejects.toThrow('not allowed');
+    await expect(httpsPost('https://evil.example/v1/chat', { Authorization: 'Bearer test-token' }, '{}')).rejects.toThrow('not allowed');
     await expect(httpsPostStream('http://gen.pollinations.ai/v1/chat', {}, '{}')).rejects.toThrow('not allowed');
     expect(fetchMock).not.toHaveBeenCalled();
   });
