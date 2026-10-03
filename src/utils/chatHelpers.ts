@@ -3,7 +3,6 @@
  * Extracted from ChatProvider for better organization
  */
 
-import type { ChatMessage } from '@/types';
 
 /**
  * Helper to ensure dates are handled correctly
@@ -96,16 +95,3 @@ export const processSseStream = async (
         reader.releaseLock();
     }
 };
-
-/**
- * Extract text from a ChatMessage
- */
-export const extractTextFromMessage = (message: ChatMessage): string => {
-    if (typeof message.content === 'string') return message.content;
-    if (Array.isArray(message.content)) {
-        const textPart = message.content.find(p => p.type === 'text');
-        return textPart?.text || '';
-    }
-    return '';
-};
-

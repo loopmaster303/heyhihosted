@@ -83,5 +83,3 @@ export function OfflineIndicator() {
         </div>
     );
 }
-
-export default OfflineIndicator;

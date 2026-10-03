@@ -480,10 +480,6 @@ export function resolvePollinationsVisualModelId(modelId?: string): string | und
   return model.id;
 }
 
-export function isKnownPollinationsVisualModelId(modelId?: string): boolean {
-  return !!resolvePollinationsVisualModelId(modelId);
-}
-
 export function toPollinationsVisualApiModelId(modelId: string): string {
   switch (modelId) {
     case 'zimage':
@@ -551,36 +547,6 @@ export function getVisualizeModelGroups(
   }).filter((group) => group.models.length > 0);
 }
 
-export function getVisualizeModelGroupsForProvider(
-  provider: ImageProvider,
-  options: VisualModelVisibilityOptions = {},
-): Array<VisualizeModelGroup & { models: UnifiedImageModel[] }> {
-  const visibleModels = UNIFIED_IMAGE_MODELS.filter(
-    (model) => model.provider === provider && isVisibleVisualModel(model, options)
-  );
-
-  return VISUALIZE_GROUP_DEFINITIONS.map((group) => {
-    const models = visibleModels.filter((model) => {
-      if (model.kind !== group.kind) {
-        return false;
-      }
-
-      const isFree = model.isFree === true;
-      if (group.key.endsWith('-free')) {
-        return isFree;
-      }
-
-      return !isFree;
-    });
-
-    return {
-      ...group,
-      modelIds: models.map((model) => model.id),
-      models,
-    };
-  }).filter((group) => group.models.length > 0);
-}
-
 export function getUnifiedModel(modelId: string): UnifiedImageModel | undefined {
   return UNIFIED_IMAGE_MODELS.find(m => m.id === modelId);
 }
@@ -606,32 +572,8 @@ export function getModelsByProvider(provider: ImageProvider, options: VisualMode
   return UNIFIED_IMAGE_MODELS.filter(m => m.provider === provider && isVisibleVisualModel(m, options));
 }
 
-export function getModelsByKind(kind: ImageKind, options: VisualModelVisibilityOptions = {}): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m => m.kind === kind && isVisibleVisualModel(m, options));
-}
-
 export function getImageModels(options: VisualModelVisibilityOptions = {}): UnifiedImageModel[] {
   return UNIFIED_IMAGE_MODELS.filter(m => m.kind === 'image' && isVisibleVisualModel(m, options));
-}
-
-export function getFreeModels(): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m => m.isFree === true && (m.enabled ?? true));
-}
-
-export function getStandardModels(kind?: ImageKind): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m =>
-    m.category === 'Standard' &&
-    (m.enabled ?? true) &&
-    (kind ? m.kind === kind : true)
-  );
-}
-
-export function getAdvancedModels(kind?: ImageKind): UnifiedImageModel[] {
-  return UNIFIED_IMAGE_MODELS.filter(m =>
-    m.category === 'Advanced' &&
-    (m.enabled ?? true) &&
-    (kind ? m.kind === kind : true)
-  );
 }
 
 /**

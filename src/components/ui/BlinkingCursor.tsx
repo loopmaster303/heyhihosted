@@ -25,11 +25,3 @@ export const BlinkingCursor: React.FC<BlinkingCursorProps> = ({
     </span>
   );
 };
-
-// CSS Animation (to be added to globals.css)
-export const cursorAnimationCSS = `
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-`;

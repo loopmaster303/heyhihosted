@@ -1,123 +1,77 @@
 # Docs Map
 
-This directory keeps only active product and runtime documentation at the top level.
+This directory keeps only active product and runtime documentation, flat in `docs/`.
 
 ## Naming
-
-Active documents live **flat in `docs/`** with a clear prefix:
 
 | Prefix | Meaning |
 |---|---|
 | `FAHRPLAN-*` | the active multi-phase plan |
-| `PLAN-phase-N-*` | implementation plan for one phase |
+| `PLAN-*` | implementation plan for one phase or feature |
 | `HANDOFF-<date>-*` | what one session did and left behind |
-| `PROMPTS-*` | ready-to-copy session starters |
 
-`docs/plans/`, `docs/handoffs/` and `docs/superpowers/` hold **older material only**. Do not
-add new documents there.
+Do not create subfolders for plans or handoffs. When a plan is executed and its handoff is
+written, the plan can go; git history keeps it.
 
 ## Start Here
 
-- `FAHRPLAN-create.md` — **the active plan.** Ten phases toward the publicly shareable version, with the user's binding decisions on domain, gallery and music.
-- `PLAN-audit-patch-2026-08-29.md` — the audit findings from phases 0–3, cut into
-  subagent-sized packages. **Executed on 2026-08-29** — see the two handoffs below.
-- `PLAN-phase-5-eine-galerie.md` — implementation plan for Phase 5: one asset pool for
-  chat and Create, `PLAYGROUND_CONVERSATION_ID` turned from a separator into an origin
-  tag, a per-surface origin filter, and deletion that also frees the object URL. Carries
-  the reality check that corrects two false Fahrplan claims (`/gallery` never showed
-  everything, and it is already deprecated).
-- `PLAN-phase-4-5-koordiniert-2026-08-29.md` — **read before touching Phase 4 or 5.**
-  Two sessions worked the same working tree in parallel on 2026-08-29; this plan
-  inventories what each left behind (Phase 4: the `src/lib/errors/` module, unwired;
-  Phase 5: package U1, verified), fixes the true test ledger (869 green, not 852), and
-  orders both phases into one session so the shared files (`Gallery.tsx`,
-  `PlaygroundShell.tsx`) are never edited concurrently. **Not yet executed.**
-- `PLAN-phase-4-fehlerklarheit.md` — implementation plan for Phase 4: every error path
-  ends in one German sentence saying what happened and what to do next, plus run
-  stability (`maxDuration`, readable elapsed time, reload-surviving video runs). Carries
-  live findings from 2026-08-27 that correct its own legacy list, and open operator
-  questions R1–R5. **Partially executed** — see the coordination plan above for the
-  exact state. Note: four of its paths still read `src/app/playground/…` and must be
-  read as `src/app/create/…`.
-- `PLAN-phase-6-create-telefon.md` — implementation plan for Phase 6: Create on the phone.
-  Corrects the Fahrplan — both drawers already exist; what is missing is the send bar under
-  an open keyboard (`--vvh` instead of `dvh`), touch targets, the two-column gallery, and
-  the cancel notice that today only lives in a `title`. Carries the four patterns Phase 8
-  inherits, plus an operator checklist for L-E.1 (needs two real devices). **Executed
-  2026-08-29** — code complete (`5e3bdf1`, `cbf3011`); the L-E.1 device checklist and the
-  L-E.2 browser measurement are **operator tasks** (browser tests are run by the
-  operator, not by an agent).
-- `PLAN-phase-7-chat-entschlanken.md` — implementation plan for Phase 7: reduce the chat's
-  image selection to the key-free rule, move video and Pruna into Create, label the way
-  there. Carries operator decisions E7-1 to E7-4. **Executed 2026-08-29.**
-- `HANDOFF-2026-09-03-sound.md` — **latest.** What the Sound review found, the three
-  fixes that shipped (proxy allowlist, error codes, tests), and the first real
-  ACE-Step run that confirmed the allowlist. Names the operator task that blocks
-  Sound live: the Modal env vars are missing on Vercel.
-- `PLAN-sound-modellwahl-2026-09-03.md` — **next up.** Sound's five models under one
-  additive rule (self-hosted ACE-Step always; a Pollen key adds the four Pollinations
-  music models), per-model parameters, and the two-stage mode switch. Carries the
-  verified blocker: the 30 s proxy timeout that makes the Pollinations models
-  unfinishable.
-- `LAUNCH_CRITERIA.md` — **the release gate.** What must work before the address may be shared publicly; per-criterion status, operator decisions recorded 2026-08-28.
-- `HANDOFF-2026-08-28-phase-0.md` — **start here.** What Phase 0 delivered (99 files into
-  sixteen commits, `f880389..aa3eac4`), how it was done, the per-phase findings it
-  surfaced, and what it left open.
-- `HANDOFF-2026-08-28-phase-1.md` — what Phase 1 delivered: `LAUNCH_CRITERIA.md` as the
-  release gate (29 gate criteria, one conditional criterion, accepted risks, non-goals),
-  built on the operator decisions of 2026-08-28.
-- `HANDOFF-2026-08-28-phase-2.md` — what Phase 2 delivered: product name **Create**,
-  the `create.hey-hi.cloud` redirect (Variante B), the chat back-link, and the open
-  Dashboard steps V1–V3.
-- `HANDOFF-2026-08-28-phase-3.md` — what Phase 3 delivered: model truth verified against
-  the live registry (with the key-scoped registry finding), the registry check script +
-  snapshot + weekly Action, corrected defaults, and the dead model ids removed.
-- `HANDOFF-2026-09-01-phase-4-durchlauf.md` — **latest.** Phase 4 finished: the two
-  error cases that had no sentence (403 allowlist, 5xx provider outage), the key
-  requirement and the non-cancellable Pruna run stated before sending, and twelve
-  criteria that were met but never recorded.
-- `HANDOFF-2026-08-29-phase-7.md` — what Phase 7 delivered: the chat's image picker
-  reduced to a rule (free + Pollinations + image) instead of a curated list, both
-  consumers on one source, the labelled way into Create. Written after the fact.
-- `HANDOFF-2026-08-29-audit-patch.md` — what the audit patch delivered: the working tree
-  sorted into five thematic commits, ten worker packages (subagent-driven, GLM-5.3-Flash
-  workers), and the three operator decisions E1–E3 written into the gate document.
-- `HANDOFF-2026-08-29-audit-review.md` — the independent re-check of that patch: every
-  number reproduced, plus three gaps *between* the packages found and fixed. Carries the
-  lesson for the next multi-package plan.
-- `HANDOFF-2026-08-27-fahrplan.md` — orientation for anyone picking up a phase: working-tree breakdown by origin (**historical** — the tree is committed, and that breakdown was missing five groups; see the Phase 0 handoff), per-phase entry points and pitfalls, and what was deliberately left unchecked.
-- `HANDOFF-2026-08-26-pruna-video.md` — last session that touched code: Pruna payload fixes, the 202 client-polling protocol, VACE switched off.
-- `PROMPTS-phasen.md` — one self-contained session starter per phase (0–9), for writing the implementation plans.
+- `FAHRPLAN-create.md` — **the active plan.** Ten phases toward the publicly shareable version,
+  with the user's binding decisions on domain, gallery and music.
+- `LAUNCH_CRITERIA.md` — **the release gate** and the status of record.
+- `PLAN-sound-modellwahl-2026-09-03.md` — **next up.** Sound's five models under one additive
+  rule, per-model parameters, and the two-stage mode switch. Carries the verified blocker: the
+  30 s proxy timeout that makes the Pollinations models unfinishable.
+- `PLAN-phase-8-bis-ende-2026-08-29.md` — the remaining phases 8–9.
+- `PLAN-compose-musik-2026-08-29.md` — the music/Sound plan the Sound work builds on.
+- `PLAN-phase-6-create-telefon.md` — executed in code; kept because it holds the operator
+  checklist for L-E.1 / L-E.2 (real devices), which `LAUNCH_CRITERIA.md` links.
+
+### Audit und Pläne vom 2026-09-10/11
+
+Teilweise umgesetzt (a11y, Fehlervertrag, Ressourcen-Store, Modellfreigabe sind auf `main`);
+was offen ist, steht im jeweiligen Plan.
+
+- `DEEP_AUDIT_2026-09-10.md` — read-only Audit, Grundlage der Pläne A–D.
+- `PLAN-uebersicht-p1-p3-2026-09-10.md` — Reihenfolge und Register der Pläne A–D.
+- `PLAN-lauf-und-artefakt-2026-09-10.md` (A), `PLAN-bedienbarkeit-2026-09-10.md` (B),
+  `PLAN-maschinenvertrag-2026-09-10.md` (C), `PLAN-fundament-2026-09-10.md` (D).
+- `PLAN-modellkuration-2026-09-10.md`, `PLAN-llm-kuration-2026-09-11.md` — Bild- und Textmodell-Kuration.
+- `POLLINATIONS-API-2026-09-10.md` — **Referenz:** die gemessene Pollinations-API.
+
+## Handoffs
+
+- `HANDOFF-2026-10-03-ausmisten.md` — **neuester.** Das Ausmisten vom 2026-10-03, der Stand aller
+  offenen Branches und PRs und was der nächste Agent zuerst tun sollte.
+- `HANDOFF-2026-09-03-sound.md` — What the Sound review found, the three fixes that
+  shipped, and the operator task that blocks Sound live (Modal env vars on Vercel).
+- `HANDOFF-2026-09-01-phase-4-durchlauf.md` — Phase 4 finished: the remaining error sentences,
+  key requirement and non-cancellable Pruna run stated before sending.
+- `HANDOFF-2026-08-28-phase-3.md` — model truth verified against the live registry, the registry
+  check script + snapshot + weekly Action.
+- `HANDOFF-2026-08-27-fahrplan.md` — per-phase entry points and pitfalls (its working-tree
+  breakdown is historical).
 
 > Model lists are verified against the live registry via `scripts/check-model-registry.mjs`
-> (snapshot + tests + weekly Action, 2026-08-28). Registry findings never silently rewrite
-> the config — see `CLAUDE.md`, section "Modellwahrheit prüfen".
-> Check the live registry for model questions. Reconciling is Phase 3 of the active plan.
+> (snapshot + tests + weekly Action). Registry findings never silently rewrite the config — see
+> `CLAUDE.md`, section "Modellwahrheit prüfen".
 
 ## Current Truth
 
-- `PRODUCT_AUDIT_2026-04-21.md` — current product/runtime audit baseline (covers product drift, tech debt, UX/a11y)
-- `PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md` — current follow-up with Now/Next/Later backlog
-- `superpowers/handoffs/2026-08-12-playground-merge-main-handoff.md` — Playground merge into main (completed)
-- `superpowers/plans/2026-08-12-merge-playground-into-main.md` — Playground merge plan (completed)
+- `PRODUCT_AUDIT_2026-04-21.md` — product/runtime audit baseline (product drift, tech debt, UX/a11y)
+- `PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md` — follow-up with Now/Next/Later backlog
 - `PRODUCT_IDENTITY.md` — product language and identity
 - `architecture-view.md` — architecture and data-flow overview
-- `COMPONENT_STATE_BEHAVIOR.md` — current state and tool behavior
+- `COMPONENT_STATE_BEHAVIOR.md` — app state, routes, tool behavior (includes Create)
 - `streaming-status.md` — chat transport reality
 
 ## Focused Technical Docs
 
 - `asset-fallback-service.md`
 - `blob-manager.md`
-- `codexgallery.md`
-- `UX_AUDIT_AND_ROADMAP.md`
-- `COMPONENT_STATE_BEHAVIOR.md` — app state, routes, tool behavior (includes Create since 2026-08-12)
 
-## Archive
+## History
 
-Historical audits, completed phase summaries, and implementation plans live under:
-
-- `docs/archive/audits/`
-- `docs/archive/history/`
-- `docs/archive/plans/`
-- `docs/plans/`, `docs/handoffs/`, `docs/superpowers/` — older plans, handoffs and specs; kept for reference, not extended
+Executed phase plans (0–7), their handoffs, older audits and the former `archive/`, `plans/`,
+`handoffs/` and `superpowers/` folders were removed in the cleanup of 2026-10-03. They remain in
+git history: `git log --diff-filter=D --name-only -- docs/` lists them, and
+`git show <commit>^:<path>` restores any single file.

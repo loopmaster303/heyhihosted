@@ -68,7 +68,7 @@ export const ComposeInlineHeader: React.FC<ComposeInlineHeaderProps> = ({
         className
       )}
     >
-      {/* Model selector only — mode identity is handled by VisualCorner */}
+      {/* Model selector only */}
       {showModel && <div className={badgeClass}>
         <Select
           value={selectedModel}
