@@ -15,30 +15,33 @@
 ### The "Assistant Computer" Terminal
 A specialized header that provides real-time system status in a typewriter/CRT style. It reinforces the identity of the platform as a sophisticated machine service.
 
-### Unified Chat & Vision
-Interactions with LLMs (Claude, GPT, Gemini, Grok, Deepseek, Mistral, Kimi, Qwen) with full multimodal support. Includes the **Integrated Visualize Module** for on-the-fly image and video generation within the chat context.
+### One Surface
+Chat and Create are two spaces in one shell. Switching never reloads and never loses state; history, gallery and settings are sheets on top of whichever space is in front.
+
+### Chat & Vision
+Interactions with LLMs (Claude, Gemini, DeepSeek, Mistral, Kimi, Qwen and more) with multimodal input. When an answer calls for an image, the assistant draws one: it grows out of a pulsing ASCII field and then stands on its own, frameless — one tap takes it into Create.
 
 ### Create
-A dedicated, full-screen generation workspace at `/create` on the same origin as the chat, so gallery and keys stay shared. A separate `create.hey-hi.cloud` was dropped on 2026-08-29: a second hostname is a second browser origin, which would split IndexedDB and localStorage. Users can switch between Pollinations and Pruna providers, pick text-to-image / image-to-image / text-to-video / image-to-video modes, upload reference images, adjust parameters, and inspect generation details with download / retry / reuse actions.
+The full generation workspace at `/create`, the second space of the shell, on the same origin as the chat, so gallery and keys stay shared. A separate `create.hey-hi.cloud` was dropped on 2026-08-29: a second hostname is a second browser origin, which would split IndexedDB and localStorage. Users can switch between Pollinations and Pruna providers, pick text-to-image / image-to-image / text-to-video / image-to-video / sound modes, upload reference images, adjust parameters, and inspect generation details with download / retry / reuse actions.
 
-### Compose Mode
-Music composing with **Eleven Music** (`model=elevenmusic`) via **Pollinations** (`/api/compose`) with VibeCraft prompt enhancement. Users describe a vibe, the system enhances the prompt, and generates a track.
+### Sound
+Music lives in Create's sound mode (ACE-Step on a self-hosted endpoint). The chat does not compose; the Pollinations music models are key-gated and wait on the sound plan.
 
-### Code Questions
-Programming questions work directly in the normal chat flow. The app still has an internal code-focused system prompt, but there is no dedicated visible Code tool in the UI.
+### Code
+A **Code** switch on the composer turns on the code-focused response mode for the conversation.
 
-### Deep Research
-Toggle web browsing for real-time search and source analysis via Sonar models (Sonar / Sonar Reasoning).
+### Research
+A **Research** switch on the composer turns on live web search and source analysis via Sonar models.
 
 ## 3. Technology Stack
 
 ### Frontend
 - **Framework**: Next.js 16 (App Router, Turbopack), TypeScript.
-- **UI**: Tailwind CSS (Glassmorphism), Framer Motion, Radix UI / Shadcn.
+- **UI**: Tailwind CSS with motion tokens, Framer Motion, Radix UI / Shadcn, vaul sheets.
 
 ### AI Infrastructure & Connectivity
 - **Primary Provider**: [Pollinations.ai](https://pollinations.ai) — Chat, image, and video generation (free tier + authenticated Pollen API).
-- **Music**: Eleven Music (`model=elevenmusic`) via Pollinations (`/api/compose`).
+- **Music**: ACE-Step 1.5 on a self-hosted endpoint (`/api/sound`); `/api/compose` stays for the Pollinations music models.
 - **Voice I/O**: STT + TTS via Pollinations (OpenAI-compatible audio endpoints).
 - **Transport**: Direct Pollinations HTTPS calls for chat; lightweight URL shim for image/video generation.
 

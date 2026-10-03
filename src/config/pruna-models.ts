@@ -65,6 +65,8 @@ export const PRUNA_MODEL_IDS = [
   'p-image',
   'p-image-edit',
   'p-video',
+  'p-video-2',
+  'p-video-2-pro',
   'p-image-try-on',
   'p-image-upscale',
   'p-video-avatar',
@@ -80,6 +82,11 @@ const P_IMAGE_ASPECT_RATIOS = new Set([...IMAGE_ASPECT_RATIOS, 'custom']);
 const QWEN_EDIT_ASPECT_RATIOS = new Set([...IMAGE_ASPECT_RATIOS, 'match_input_image']);
 const WAN_VIDEO_ASPECT_RATIOS = new Set(['16:9', '9:16']);
 const WAN_IMAGE_SMALL_ASPECT_RATIOS = new Set([...IMAGE_ASPECT_RATIOS, '21:9']);
+const P_VIDEO_2_RESOLUTIONS = new Set(['720p', '1080p']);
+const P_VIDEO_2_PRO_ASPECT_RATIOS = IMAGE_ASPECT_RATIOS;
+const P_VIDEO_2_PRO_RESOLUTIONS = new Set(['480p', '768p']);
+const P_VIDEO_2_PRO_MODES = new Set(['speed', 'quality', 'cost']);
+const P_VIDEO_2_PRO_PROMPT_UPSAMPLERS = new Set(['off', 'turbo', 'max']);
 const WAN_IMAGE_SMALL_MIN_DIMENSION = 256;
 const WAN_IMAGE_SMALL_MAX_DIMENSION = 896;
 const P_IMAGE_MIN_DIMENSION = 256;
@@ -144,6 +151,38 @@ function normalizePImageCustomSize(width?: number, height?: number): { width: nu
 
 function allowedAspectRatio(value: string | undefined, allowed: Set<string>, fallback: string): string {
   return value && allowed.has(value) ? value : fallback;
+}
+
+function booleanOr(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function allowedParam(value: unknown, allowed: Set<string>, fallback: string): string {
+  return typeof value === 'string' ? allowedAspectRatio(value, allowed, fallback) : fallback;
+}
+
+function referenceFrames(image: string | string[] | undefined): string[] {
+  if (!image) return [];
+  return Array.isArray(image) ? image : [image];
+}
+
+/** Start- und optionales Endbild; ohne Referenz bleibt das Input unberuehrt. */
+function applyStartEndFrames(input: Record<string, unknown>, frames: string[]): void {
+  if (frames.length === 0) return;
+  input.image = frames[0];
+  if (frames[1]) input.last_frame_image = frames[1];
+}
+
+/**
+ * duration_auto ist ein reines UI-Feld: bei true bleibt die Dauer auf beiden
+ * Request-Ebenen weg, der Provider bestimmt die Laenge selbst. Sonst hat eine
+ * ausdrueckliche Top-Level-Dauer Vorrang vor einem Params-Duplikat.
+ */
+function pVideo2Duration(f: PrunaFieldInput): number | undefined {
+  const params = f.params ?? {};
+  if (params.duration_auto === true) return undefined;
+  const duration = f.duration ?? params.duration;
+  return typeof duration === 'number' ? duration : undefined;
 }
 
 function resolveSupportedAspectRatio(
@@ -508,6 +547,93 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       input.disable_safety_filter = true;
       const { aspect_ratio: _dropAR, width: _dropW, height: _dropH, ...rest } = f.params ?? {};
       return { ...input, ...rest };
+    },
+  },
+
+  // ── P-Video 2 (own mapping, own contract — see docs.api.pruna.ai/guides/models/p-video-2) ──
+  // Eigenstaendig statt Ersatz fuer P-Video: gespeicherte Auswahlen/Wiederholungen des
+  // bestehenden Modells bleiben unveraendert. Anders als P-Video wird hier keine freie
+  // Params-Mischung durchgereicht — nur die dokumentierten Felder verlassen diese Funktion,
+  // damit fremde oder UI-only-Felder (duration_auto, width, height, output_format) nie
+  // upstream landen (Pruna antwortet auf unbekannte Felder mit 400).
+  'p-video-2': {
+    prunaModel: 'p-video-2',
+    mode: 'async',
+    isVideo: true,
+    defaultParams: {
+      aspect_ratio: '16:9',
+      resolution: '720p',
+      fps: 24,
+      duration: 5,
+      save_audio: true,
+      prompt_upsampling: true,
+      draft: false,
+    },
+    buildInput: (f) => {
+      const params = f.params ?? {};
+      const frames = referenceFrames(f.image);
+
+      const input: Record<string, unknown> = {
+        prompt: f.prompt,
+        ...DISABLE_SAFETY_FILTER,
+        resolution: allowedParam(params.resolution, P_VIDEO_2_RESOLUTIONS, '720p'),
+        fps: Number(params.fps) === 48 ? 48 : 24,
+        draft: booleanOr(params.draft, false),
+        prompt_upsampling: booleanOr(params.prompt_upsampling, true),
+        save_audio: f.audio ?? booleanOr(params.save_audio, true),
+      };
+
+      // Ein Referenzbild bestimmt laut Provider-Dokumentation das Seitenverhaeltnis
+      // selbst — dann bleibt aspect_ratio weg statt einen ignorierten Wert zu senden.
+      if (!f.image) {
+        input.aspect_ratio = resolveSupportedAspectRatio(f, IMAGE_ASPECT_RATIOS, '16:9');
+      }
+
+      const duration = pVideo2Duration(f);
+      if (duration !== undefined) input.duration = duration;
+
+      if (f.seed !== undefined) input.seed = f.seed;
+      applyStartEndFrames(input, frames);
+      return input;
+    },
+  },
+
+  // ── P-Video 2 Pro (own mapping, own contract — see docs.api.pruna.ai/guides/models/p-video-2-pro) ──
+  // Pro has fixed 24 fps generated audio and no safety/audio/fps controls.
+  // Keep this allowlist separate from P-Video 2: its `mode` is an input value,
+  // while the mapping's `mode` remains the async transport selector.
+  'p-video-2-pro': {
+    prunaModel: 'p-video-2-pro',
+    mode: 'async',
+    isVideo: true,
+    defaultParams: {
+      duration: 5,
+      resolution: '768p',
+      mode: 'speed',
+      prompt_upsampler: 'turbo',
+      aspect_ratio: '16:9',
+    },
+    buildInput: (f) => {
+      const params = f.params ?? {};
+      const frames = referenceFrames(f.image);
+
+      const input: Record<string, unknown> = {
+        prompt: f.prompt,
+        duration: f.duration ?? params.duration ?? 5,
+        resolution: allowedParam(params.resolution, P_VIDEO_2_PRO_RESOLUTIONS, '768p'),
+        mode: allowedParam(params.mode, P_VIDEO_2_PRO_MODES, 'speed'),
+        prompt_upsampler: allowedParam(params.prompt_upsampler, P_VIDEO_2_PRO_PROMPT_UPSAMPLERS, 'turbo'),
+      };
+
+      // Reference frames define the provider's image area; do not send an
+      // aspect ratio alongside them. An empty array is text-to-video.
+      if (frames.length === 0) {
+        input.aspect_ratio = allowedParam(f.aspectRatio ?? params.aspect_ratio, P_VIDEO_2_PRO_ASPECT_RATIOS, '16:9');
+      }
+
+      if (f.seed !== undefined) input.seed = f.seed;
+      applyStartEndFrames(input, frames);
+      return input;
     },
   },
 

@@ -1,21 +1,44 @@
 /* eslint-disable @next/next/no-page-custom-font */
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { LanguageProvider } from '@/components/LanguageProvider';
 
-
 export const metadata: Metadata = {
-  title: 'HeyHi · local-first AI workspace',
-  description: 'Just say</hey.hi> to run multiple AI. Privacy-first multi-model chat, image and music generation. Your data stays in your browser.',
-  keywords: ['local-first AI workspace', 'privacy-first multi-model chat', 'terminal-grade AI interface'],
+  title: 'hey.hi · local-first AI workspace',
+  description: 'Chat und Create in einer Fläche: Text, Stimme, Bild, Video und Sound über viele Modelle. Deine Daten bleiben in deinem Browser.',
+  keywords: ['local-first AI workspace', 'privacy-first multi-model chat', 'AI image and video generation'],
+  applicationName: 'hey.hi',
   icons: {
-    icon: '/favicon.ico?v=3',
-    shortcut: '/favicon.ico?v=3',
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
     apple: '/apple-touch-icon.png',
   },
+  appleWebApp: {
+    capable: true,
+    title: 'hey.hi',
+    statusBarStyle: 'black-translucent',
+  },
+  formatDetection: { telephone: false },
+};
+
+/**
+ * `viewport-fit=cover` laesst die App bis unter Notch und Home-Indikator
+ * reichen; Kopfzeile, Eingabe und Sheets halten mit env(safe-area-inset-*)
+ * Abstand. Die Statusleiste nimmt die Farbe des Themas an.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#e9dff8' },
+    { media: '(prefers-color-scheme: dark)', color: '#0c0a10' },
+  ],
 };
 
 export default function RootLayout({
@@ -29,10 +52,6 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Code&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <link rel="icon" href="/favicon.ico?v=3" />
-        <link rel="shortcut icon" href="/favicon.ico?v=3" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon-precomposed.png" />
       </head>
       <body className="font-body antialiased">
         <ThemeProvider
@@ -42,15 +61,6 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            {/* SVG filter defs — Way of Code noise-border for AI bubbles */}
-            <svg aria-hidden="true" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
-              <defs>
-                <filter id="noise-border">
-                  <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="2" />
-                  <feDisplacementMap in="SourceGraphic" scale="2" />
-                </filter>
-              </defs>
-            </svg>
             {children}
             <Toaster />
           </LanguageProvider>

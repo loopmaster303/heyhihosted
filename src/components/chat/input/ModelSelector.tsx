@@ -86,7 +86,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                 alt=""
                                 fill
                                 sizes="16px"
-                                className="object-contain grayscale-[0.5] group-hover:grayscale-0 transition-all"
+                                className="object-contain grayscale-[0.5] group-hover:grayscale-0 transition-[filter]"
                             />
                         </div>
                     )}
@@ -163,7 +163,7 @@ export const ModelSelectorPanel: React.FC<ModelSelectorPanelProps> = ({
                 onClick={() => (isLocked ? setLockedHint(model.id) : onModelChange(model.id))}
                 aria-disabled={isLocked}
                 className={cn(
-                    "flex items-center gap-3 p-2.5 rounded-lg text-left transition-all duration-200 border",
+                    "flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors duration-fast border",
                     isSelected
                         ? "bg-primary/10 border-primary/30 shadow-sm"
                         : "hover:bg-muted/50 border-transparent hover:border-border/50",

@@ -60,8 +60,6 @@ const asset: Asset = {
 const renderPanel = (origins: readonly ('chat' | 'compose' | 'create')[] | undefined) =>
   render(
     <GalleryPanel
-      isOpen
-      onClose={() => {}}
       assets={[asset]}
       totalAssetCount={7}
       origins={origins}

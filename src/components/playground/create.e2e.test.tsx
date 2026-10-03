@@ -1,0 +1,494 @@
+/**
+ * E2E-style integration test for the Playground generate flow:
+ * model list → model select → prompt → send → asset save under the sentinel.
+ *
+ * fetch is a jest spy, Dexie is bypassed via the database module mock, and the
+ * ESM-only ui packages (lucide, Radix, vaul, framer) are stubbed because jest
+ * does not transform node_modules.
+ */
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+
+jest.mock('lucide-react', () => new Proxy({}, {
+  get: (_target, prop) => {
+    const Icon = (iconProps: React.SVGProps<SVGSVGElement>) => <svg data-icon={String(prop)} {...iconProps} />;
+    Icon.displayName = String(prop);
+    return Icon;
+  },
+}));
+
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button {...props}>{children}</button>
+  ),
+}));
+
+jest.mock('@/components/ui/badge', () => ({
+  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+}));
+
+jest.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  DropdownMenuItem: ({ children, onSelect, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { onSelect?: () => void }) => (
+    <button onClick={onSelect} {...props}>{children}</button>
+  ),
+}));
+
+jest.mock('@/components/ui/drawer', () => ({
+  Drawer: ({ children, open }: { children: React.ReactNode; open?: boolean }) => (open ? <div>{children}</div> : null),
+  DrawerContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DrawerTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+  DrawerDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
+}));
+
+jest.mock('@/components/ui/slider', () => ({
+  Slider: (props: Record<string, unknown>) => <input type="range" {...props} />,
+}));
+
+jest.mock('@/components/LanguageProvider', () => ({
+  useLanguage: () => ({ t: (k: string) => k, language: 'de', setLanguage: jest.fn() }),
+}));
+
+jest.mock('@/hooks/useProviderMode', () => ({ useProviderMode: jest.fn() }));
+jest.mock('@/hooks/usePollenKey', () => ({ usePollenKey: jest.fn() }));
+jest.mock('@/hooks/useHasPollenKey', () => ({ useHasPollenKey: () => true }));
+jest.mock('@/hooks/useHasPrunaKey', () => ({ useHasPrunaKey: () => false }));
+
+jest.mock('@/lib/services/database', () => ({
+  db: {
+    assets: {
+      orderBy: () => ({
+        reverse: () => ({
+          filter: () => ({
+            limit: () => ({
+              toArray: async () => [],
+            }),
+          }),
+        }),
+      }),
+    },
+  },
+}));
+
+import { PlaygroundShell } from './PlaygroundShell';
+import { OutputService } from '@/lib/services/output-service';
+import { useProviderMode } from '@/hooks/useProviderMode';
+import { usePollenKey } from '@/hooks/usePollenKey';
+import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
+
+const MODELS = [
+  { id: 'flux', outputModalities: ['image'], inputModalities: ['text'], name: 'Flux' },
+  { id: 'wan-i2v', outputModalities: ['video'], inputModalities: ['text', 'image'], name: 'Wan I2V' },
+];
+
+function mockFetchModels() {
+  (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => MODELS });
+}
+
+async function typePromptAndSend(prompt: string) {
+  // Wait for the model list rather than a specific label: the display name is
+  // resolved from the local config, so it need not match the live id.
+  await waitFor(() => expect(screen.queryByText('Lädt…')).not.toBeInTheDocument());
+  fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: prompt } });
+  fireEvent.click(screen.getByRole('button', { name: 'Senden' }));
+}
+
+describe('playground e2e: generate flow', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
+    (useProviderMode as jest.Mock).mockReturnValue({
+      providerMode: 'pollinations', setProviderMode: jest.fn(), prunaAvailable: false,
+    });
+    (usePollenKey as jest.Mock).mockReturnValue({
+      pollenKey: '', isConnected: false, connectManual: jest.fn(), disconnect: jest.fn(),
+      accountInfo: null, refreshAccount: jest.fn(), isLoadingAccount: false,
+    });
+  });
+
+  it('generates and saves the asset under the playground sentinel', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    mockFetchModels();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ imageUrl: 'https://x/out.png' }),
+    });
+
+    render(<PlaygroundShell />);
+    await typePromptAndSend('ein roter Fuchs');
+
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://x/out.png',
+        prompt: 'ein roter Fuchs',
+        conversationId: PLAYGROUND_CONVERSATION_ID,
+        isVideo: false,
+        params: expect.any(Object),
+      })
+    );
+  });
+
+  it('shows a pending card in the gallery while the request is in flight', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    mockFetchModels();
+    let resolveGenerate: ((v: unknown) => void) | undefined;
+    (global.fetch as jest.Mock).mockImplementationOnce(
+      () => new Promise((res) => { resolveGenerate = res; }),
+    );
+
+    render(<PlaygroundShell />);
+    await typePromptAndSend('ein roter Fuchs');
+
+    // Solange die Route nicht antwortet, steht die Lade-Karte in der Galerie
+    const status = await screen.findByRole('status');
+    expect(status).toHaveTextContent('Generiere');
+    expect(status).toHaveTextContent(/flux/i);
+
+    resolveGenerate?.({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ imageUrl: 'https://x/out.png' }),
+    });
+
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+  });
+
+  // params werden nach localStorage geschrieben; der Modellwechsel-Effekt hat
+  // sie beim Mount mit den Schema-Defaults ueberschrieben.
+  it('sends the params stored for this model instead of the schema defaults', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    localStorage.setItem('playgroundState', JSON.stringify({
+      mode: 't2i',
+      modelId: 'Flux',
+      prompt: '',
+      params: { aspect_ratio: '16:9' },
+      uploads: [],
+      sourceVideo: null,
+    }));
+    mockFetchModels();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ imageUrl: 'https://x/out.png' }),
+    });
+
+    render(<PlaygroundShell />);
+    await typePromptAndSend('ein roter Fuchs');
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBe(2));
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body);
+    expect(body.aspectRatio).toBe('16:9');
+  });
+
+  it('drops stored params that the current schema no longer knows', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    localStorage.setItem('playgroundState', JSON.stringify({
+      mode: 't2i',
+      modelId: 'Flux',
+      prompt: '',
+      params: { aspect_ratio: '16:9', long_gone_field: 'x' },
+      uploads: [],
+      sourceVideo: null,
+    }));
+    mockFetchModels();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ imageUrl: 'https://x/out.png' }),
+    });
+
+    render(<PlaygroundShell />);
+    await typePromptAndSend('ein roter Fuchs');
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBe(2));
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body);
+    expect(body.params).toEqual({ aspect_ratio: '16:9' });
+  });
+
+  it('surfaces an error and saves nothing when the response carries no media url', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    mockFetchModels();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({}),
+    });
+
+    render(<PlaygroundShell />);
+    await typePromptAndSend('ein roter Fuchs');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('generate response missing videoUrl/imageUrl');
+    // Die Fehler-Karte bietet den direkten Neuversuch an
+    expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  // "Erneut versuchen" schickte den aktuellen Composer-Zustand, nicht den Lauf,
+  // der gescheitert war.
+  it('retries the failed run, not whatever the composer holds now', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    mockFetchModels();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      json: async () => ({ error: 'upstream kaputt' }),
+    });
+
+    render(<PlaygroundShell />);
+    await typePromptAndSend('ein roter Fuchs');
+    await screen.findByRole('button', { name: 'Erneut versuchen' });
+
+    // Der Nutzer tippt weiter, bevor er den Neuversuch anstoesst.
+    fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'etwas ganz anderes' } });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ imageUrl: 'https://x/out.png' }),
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBe(3));
+    const retryBody = JSON.parse((global.fetch as jest.Mock).mock.calls[2][1].body);
+    expect(retryBody.prompt).toBe('ein roter Fuchs');
+  });
+});
+
+/**
+ * Bis zu MAX_CONCURRENT_RUNS Laeufe duerfen gleichzeitig fliegen, ohne dass die
+ * Leiste sperrt. Die Registry liefert `name` als id und `title` als Anzeigename.
+ */
+describe('playground e2e: parallel runs', () => {
+  const PARALLEL_MODELS = [
+    { name: 'flux', title: 'Flux', outputModalities: ['image'], inputModalities: ['text'] },
+    { name: 'gpt-image', title: 'Zweitmodell', outputModalities: ['image'], inputModalities: ['text'] },
+  ];
+
+  /** Ein fetch, der nie von selbst antwortet — der Test loest ihn aus. */
+  function hangingFetch() {
+    const resolvers: Array<(v: unknown) => void> = [];
+    (global.fetch as jest.Mock).mockImplementation(
+      () => new Promise((res) => { resolvers.push(res); }),
+    );
+    return resolvers;
+  }
+
+  const imageResponse = (url: string) => ({
+    ok: true,
+    headers: { get: () => 'application/json' },
+    json: async () => ({ imageUrl: url }),
+  });
+
+  beforeEach(() => {
+    localStorage.clear();
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
+    (useProviderMode as jest.Mock).mockReturnValue({
+      providerMode: 'pollinations', setProviderMode: jest.fn(), prunaAvailable: false,
+    });
+    (usePollenKey as jest.Mock).mockReturnValue({
+      pollenKey: '', isConnected: false, connectManual: jest.fn(), disconnect: jest.fn(),
+      accountInfo: null, refreshAccount: jest.fn(), isLoadingAccount: false,
+    });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => PARALLEL_MODELS });
+  });
+
+  async function readyToSend() {
+    await waitFor(() => expect(screen.queryByText('Lädt…')).not.toBeInTheDocument());
+  }
+
+  function send(prompt: string) {
+    fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: prompt } });
+    fireEvent.click(screen.getByRole('button', { name: 'Senden' }));
+  }
+
+  it('runs two sends at once and saves both assets', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    render(<PlaygroundShell />);
+    await readyToSend();
+
+    const resolvers = hangingFetch();
+    send('erster Fuchs');
+    send('zweiter Fuchs');
+
+    // Beide Requests sind raus, beide Karten stehen — ohne dass der Erste fertig ist.
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+    expect(await screen.findAllByRole('status')).toHaveLength(2);
+
+    resolvers[0](imageResponse('https://x/a.png'));
+    resolvers[1](imageResponse('https://x/b.png'));
+
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(save.mock.calls.map((c) => c[0].prompt).sort())
+      .toEqual(['erster Fuchs', 'zweiter Fuchs']);
+  });
+
+  it('keeps each run on the model it was started with', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    render(<PlaygroundShell />);
+    await readyToSend();
+
+    const resolvers = hangingFetch();
+    send('lauf auf flux');
+    // Modellwechsel mitten im ersten Lauf — der Dropdown-Mock rendert die
+    // Eintraege ohne Oeffnen.
+    fireEvent.click(screen.getByRole('button', { name: 'Zweitmodell' }));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /Zweitmodell/ }).length).toBeGreaterThan(1));
+    send('lauf auf modell b');
+
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+    resolvers[0](imageResponse('https://x/a.png'));
+    resolvers[1](imageResponse('https://x/b.png'));
+
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    const byPrompt = Object.fromEntries(save.mock.calls.map((c) => [c[0].prompt, c[0].modelId]));
+    expect(byPrompt['lauf auf flux']).toBe('flux');
+    expect(byPrompt['lauf auf modell b']).toBe('gpt-image');
+  });
+
+  it('blocks the fourth send while three runs are in flight', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    render(<PlaygroundShell />);
+    await readyToSend();
+
+    const resolvers = hangingFetch();
+    send('eins');
+    send('zwei');
+    send('drei');
+    await waitFor(() => expect(resolvers).toHaveLength(3));
+
+    const sendButton = screen.getByRole('button', { name: 'Senden' });
+    expect(sendButton).toBeDisabled();
+    fireEvent.click(sendButton);
+    expect(resolvers).toHaveLength(3);
+  });
+
+  it('cancels only the run that was asked for', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    render(<PlaygroundShell />);
+    await readyToSend();
+
+    // Der Abbruch muss bei diesem fetch als AbortError ankommen, sonst kippt der
+    // Lauf in "fehlgeschlagen" statt zu verschwinden.
+    const resolvers: Array<(v: unknown) => void> = [];
+    (global.fetch as jest.Mock).mockImplementation((_url, init) => new Promise((res, rej) => {
+      resolvers.push(res);
+      init.signal.addEventListener('abort', () => {
+        const err = new Error('aborted');
+        err.name = 'AbortError';
+        rej(err);
+      });
+    }));
+
+    send('eins');
+    send('zwei');
+    send('drei');
+    await waitFor(() => expect(screen.getAllByRole('status')).toHaveLength(3));
+
+    // Karten stehen neueste-zuerst: Index 1 ist "zwei".
+    fireEvent.click(screen.getAllByRole('button', { name: 'Nicht mehr warten' })[1]);
+    await waitFor(() => expect(screen.getAllByRole('status')).toHaveLength(2));
+
+    resolvers[0](imageResponse('https://x/a.png'));
+    resolvers[2](imageResponse('https://x/c.png'));
+
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(save.mock.calls.map((c) => c[0].prompt).sort()).toEqual(['drei', 'eins']);
+  });
+});
+
+/**
+ * Der Sound-Lauf hatte bis 2026-09-03 keinen Test, der Client und Route
+ * zusammen prueft — und genau dort lag der Bruch: die Shell reichte ihr
+ * internes Zustandsobjekt als Body durch (`tags`), die Route liest `prompt`.
+ * Jeder Sendeversuch endete in 400 VALIDATION_ERROR, ohne dass eine
+ * Route-Suite das haette sehen koennen.
+ */
+describe('playground e2e: sound flow', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
+    (useProviderMode as jest.Mock).mockReturnValue({
+      providerMode: 'pollinations', setProviderMode: jest.fn(), prunaAvailable: false,
+    });
+    (usePollenKey as jest.Mock).mockReturnValue({
+      pollenKey: '', isConnected: false, connectManual: jest.fn(), disconnect: jest.fn(),
+      accountInfo: null, refreshAccount: jest.fn(), isLoadingAccount: false,
+    });
+  });
+
+  it('sends the tags under the field name the route reads', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    mockFetchModels();
+    // Antwort ohne Task-Id: der Lauf endet sofort, statt einen Poll-Loop zu
+    // hinterlassen, der in den naechsten Test hineinlaeuft.
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    render(<PlaygroundShell />);
+    await waitFor(() => expect(screen.queryByText('Lädt…')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: 'sound' }));
+    fireEvent.change(screen.getByLabelText('Prompt'), {
+      target: { value: 'dub techno, deep, analog synth' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Senden' }));
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBeGreaterThan(1));
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[1];
+    expect(url).toBe('/api/sound');
+    expect(JSON.parse(init.body)).toMatchObject({
+      prompt: 'dub techno, deep, analog synth',
+      duration: expect.any(Number),
+      batch: expect.any(Number),
+    });
+  });
+
+  /**
+   * ACE-Steps Planner gibt die Tags als ausformulierte Prosa zurueck. Die
+   * wurde gespeichert — wer spaeter seinen Track sucht, fand einen fremden
+   * Absatz statt der Eingabe.
+   */
+  it('saves the tags the user wrote, not the planner prose', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('mock-asset-id');
+    mockFetchModels();
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ taskId: 'abcdef1234' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [{
+            status: 1,
+            result: JSON.stringify([{
+              file: '/v1/audio?path=%2Ftmp%2Fout.mp3',
+              prompt: 'An instrumental electronic track driven by a deep, resonant synth bass '
+                + 'playing a hypnotic, repeating melodic figure.',
+            }]),
+          }],
+        }),
+      });
+
+    render(<PlaygroundShell />);
+    await waitFor(() => expect(screen.queryByText('Lädt…')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: 'sound' }));
+    fireEvent.change(screen.getByLabelText('Prompt'), {
+      target: { value: 'dub techno, deep, analog synth, sub bass, 120 bpm' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Senden' }));
+
+    // Der Poll-Loop wartet 2,5 s vor der ersten Abfrage.
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1), { timeout: 8000 });
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({
+      prompt: 'dub techno, deep, analog synth, sub bass, 120 bpm',
+      modelId: 'acestep-1.5',
+    }));
+  }, 15000);
+});

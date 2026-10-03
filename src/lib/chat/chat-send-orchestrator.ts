@@ -1,34 +1,14 @@
-import type { ApiChatMessage, GenerationRecord, ChatMessage, ChatMessageContentPart } from '@/types';
-import type { GenerateImageOptions } from '@/lib/services/chat-service';
-import { isPollinationsHostedModel } from '@/config/unified-image-models';
+import type { ApiChatMessage, ChatMessage, ChatMessageContentPart } from '@/types';
+import { stripMarkersForDisplay } from './chat-media-intent';
 
-interface RunImageGenerationFlowInput {
-  imageParams: GenerateImageOptions;
-  selectedImageModelId: string;
-  /** Was dieser Lauf verwendet hat — wandert an das Ergebnis, nicht in die Leiste. */
-  generation?: GenerationRecord;
-  conversationId: string;
-  sessionId: string;
-  prompt: string;
-  isVideo: boolean;
-  generateImage: (options: GenerateImageOptions) => Promise<string>;
-  saveGeneratedAsset: (input: {
-    url: string;
-    prompt: string;
-    modelId: string;
-    conversationId: string;
-    sessionId: string;
-    isVideo: boolean;
-    isPollinations: boolean;
-  }) => Promise<string | undefined>;
-  createMessageId: () => string;
-  createTimestamp: () => string;
-}
-
-interface RunImageGenerationFlowResult {
-  imageUrl: string;
-  generatedAssetId?: string;
-  aiMessage: ChatMessage;
+/**
+ * Die zwei Schritte eines Bildes in der Antwort (siehe chat-media-intent-handler):
+ * `prepare` laeuft sofort und liefert sauberen Text plus Platzhalter, `resolve`
+ * erzeugt danach jedes Bild und gibt den fertigen (oder gescheiterten) Teil zurueck.
+ */
+export interface AssistantMediaHooks {
+  prepare: (rawText: string) => { cleanText: string; pendingParts: ChatMessageContentPart[] };
+  resolve: (part: ChatMessageContentPart) => Promise<ChatMessageContentPart>;
 }
 
 interface RunTextChatCompletionFlowInput {
@@ -51,15 +31,7 @@ interface RunTextChatCompletionFlowInput {
   ) => Promise<string>;
   onConversationMessagesUpdate: (messages: ChatMessage[]) => void;
   historyForApiRecent?: ApiChatMessage[];
-  /**
-   * Optional hook called after the assistant stream completes. Receives the
-   * raw streamed text and returns a cleaned version plus any extra content
-   * parts (e.g. generated images / audio) that should be attached to the
-   * final assistant message.
-   */
-  postProcessMarkers?: (
-    rawText: string,
-  ) => Promise<{ cleanText: string; extraParts: ChatMessageContentPart[] }>;
+  media?: AssistantMediaHooks;
 }
 
 interface RunTextChatCompletionFlowResult {
@@ -83,6 +55,11 @@ export async function runTextChatCompletionFlow(
   let finalMessages = [...input.updatedMessagesForState, baseAssistantMessage];
   input.onConversationMessagesUpdate(finalMessages);
 
+  const publish = (message: ChatMessage) => {
+    finalMessages = [...input.updatedMessagesForState, message];
+    input.onConversationMessagesUpdate(finalMessages);
+  };
+
   let streamedContent = '';
   const completion = await input.sendChatCompletion(
     {
@@ -94,13 +71,9 @@ export async function runTextChatCompletionFlow(
     },
     (delta: string) => {
       streamedContent = delta;
-      const updatedAssistantMessage: ChatMessage = {
-        ...baseAssistantMessage,
-        content: streamedContent,
-        isStreaming: true,
-      };
-      finalMessages = [...input.updatedMessagesForState, updatedAssistantMessage];
-      input.onConversationMessagesUpdate(finalMessages);
+      // Schon der Zwischenstand zeigt keinen Marker: ein Bild-Prompt ist eine
+      // Anweisung an das Bildmodell, kein Text fuer den Menschen.
+      publish({ ...baseAssistantMessage, content: stripMarkersForDisplay(streamedContent), isStreaming: true });
     },
   );
 
@@ -111,92 +84,32 @@ export async function runTextChatCompletionFlow(
   }
 
   const trimmed = streamedContent.trim() || "Sorry, I couldn't get a response.";
-  const markerResult = input.postProcessMarkers
-    ? await input.postProcessMarkers(trimmed).catch((err) => {
-        console.error('[runTextChatCompletionFlow] postProcessMarkers failed:', err);
-        return null;
-      })
-    : null;
+  const prepared = input.media
+    ? input.media.prepare(trimmed)
+    : { cleanText: stripMarkersForDisplay(trimmed), pendingParts: [] };
 
-  const baseContent = markerResult ? markerResult.cleanText : trimmed;
-  const assistantMessage: ChatMessage = {
+  const withParts = (parts: ChatMessageContentPart[]): ChatMessage => ({
     ...baseAssistantMessage,
-    content: markerResult && markerResult.extraParts.length > 0
-      ? [
-          { type: 'text', text: baseContent },
-          ...markerResult.extraParts,
-        ]
-      : baseContent,
+    content: parts.length > 0 ? [{ type: 'text', text: prepared.cleanText }, ...parts] : prepared.cleanText,
     // The placeholder was stamped before the request went out; the finished
     // reply should carry the time it actually arrived.
     timestamp: input.createTimestamp(),
     isStreaming: false,
-  };
+  });
 
-  finalMessages = [...input.updatedMessagesForState, assistantMessage];
-  input.onConversationMessagesUpdate(finalMessages);
+  // Schritt 1: Text sofort, Bild als Platzhalter.
+  let assistantMessage = withParts(prepared.pendingParts);
+  publish(assistantMessage);
+
+  // Schritt 2: jedes Bild an seinem Platz einsetzen.
+  if (input.media && prepared.pendingParts.length > 0) {
+    const resolved = await Promise.all(prepared.pendingParts.map((part) => input.media!.resolve(part)));
+    assistantMessage = { ...withParts(resolved), timestamp: assistantMessage.timestamp };
+    publish(assistantMessage);
+  }
 
   return {
     assistantMessage,
     finalMessages,
-  };
-}
-
-export async function runImageGenerationFlow(
-  input: RunImageGenerationFlowInput,
-): Promise<RunImageGenerationFlowResult> {
-  const imageUrl = await input.generateImage(input.imageParams);
-
-  let generatedAssetId: string | undefined;
-  if (imageUrl) {
-    generatedAssetId = await input.saveGeneratedAsset({
-      url: imageUrl,
-      prompt: input.prompt,
-      modelId: input.selectedImageModelId,
-      conversationId: input.conversationId,
-      sessionId: input.sessionId,
-      isVideo: input.isVideo,
-      isPollinations: isPollinationsHostedModel(input.selectedImageModelId),
-    });
-  }
-
-  const metadata = (generatedAssetId || input.generation)
-    ? { assetId: generatedAssetId ?? null, generation: input.generation }
-    : undefined;
-
-  const aiMessage: ChatMessage = {
-    id: input.createMessageId(),
-    role: 'assistant',
-    content: input.isVideo
-      ? [
-          {
-            type: 'video_url',
-            video_url: {
-              url: imageUrl,
-              altText: `Generated video (${input.selectedImageModelId})`,
-              isGenerated: true,
-              metadata,
-            },
-          },
-        ]
-      : [
-          {
-            type: 'image_url',
-            image_url: {
-              url: imageUrl,
-              altText: `Generated image (${input.selectedImageModelId})`,
-              isGenerated: true,
-              metadata,
-            },
-          },
-        ],
-    timestamp: input.createTimestamp(),
-    toolType: 'long language loops',
-  };
-
-  return {
-    imageUrl,
-    generatedAssetId,
-    aiMessage,
   };
 }

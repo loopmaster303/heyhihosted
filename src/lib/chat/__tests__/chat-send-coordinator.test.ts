@@ -56,7 +56,7 @@ describe('chat send coordinator', () => {
     });
   });
 
-  it('builds final conversation state and skips memory extraction for image prompts', () => {
+  it('builds final conversation state and extracts memories once a pair exists', () => {
     const finalMessages: ChatMessage[] = [
       { id: 'u1', role: 'user', content: 'hello', timestamp: '2026-01-01T00:00:00.000Z' },
       { id: 'a1', role: 'assistant', content: 'hi', timestamp: '2026-01-01T00:00:01.000Z' },
@@ -65,7 +65,6 @@ describe('chat send coordinator', () => {
     const result = buildFinalConversationState({
       finalMessages,
       finalTitle: 'Done',
-      isImagePrompt: true,
       createTimestamp: () => '2026-01-01T00:00:03.000Z',
     });
 
@@ -76,7 +75,7 @@ describe('chat send coordinator', () => {
       uploadedFile: null,
       uploadedFilePreview: null,
     });
-    expect(result.shouldExtractMemories).toBe(false);
+    expect(result.shouldExtractMemories).toBe(true);
   });
 
   it('laesst die Gedaechtnis-Extraktion aus, solange die Konstante stillgelegt ist', async () => {
@@ -102,7 +101,6 @@ describe('chat send coordinator', () => {
       conversation,
       messageText: 'hello',
       chatInputValue: 'hello',
-      selectedImageModelId: 'nanobanana',
       language: 'de',
       customSystemPrompt: '',
       userDisplayName: 'John',
@@ -133,9 +131,6 @@ describe('chat send coordinator', () => {
         };
         return { assistantMessage, finalMessages: [...updatedMessagesForState, assistantMessage] };
       },
-      runImageGenerationFlow: async () => {
-        throw new Error('should not run image flow');
-      },
       shouldUpdateTitleAfterSend,
       updateConversationTitle: async () => 'Renamed Chat',
       buildSendFailureState,
@@ -154,10 +149,6 @@ describe('chat send coordinator', () => {
       extractMemories,
       saveUploadedAsset: async () => {},
       uploadFileToPollinationsMediaUrl: async () => '',
-      resolveReferenceUrls: async () => [],
-      getUnifiedModel: () => undefined,
-      generateImage: async () => '',
-      saveGeneratedAsset: async () => undefined,
       createId: () => 'generated-id',
       createTimestamp: () => '2026-01-01T00:00:03.000Z',
       getSessionId: () => 'session-1',
@@ -171,7 +162,6 @@ describe('chat send coordinator', () => {
         { id: 'a1', role: 'assistant', content: 'hi', timestamp: '2026-01-01T00:00:01.000Z' },
       ],
       finalTitle: 'New Chat',
-      isImagePrompt: false,
       createTimestamp: () => '2026-01-01T00:00:03.000Z',
     });
     expect(decision.shouldExtractMemories).toBe(true);

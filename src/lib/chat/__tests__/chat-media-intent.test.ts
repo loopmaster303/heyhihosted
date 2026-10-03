@@ -1,4 +1,4 @@
-import { parseMediaIntents } from '../chat-media-intent';
+import { parseMediaIntents, stripMarkersForDisplay } from '../chat-media-intent';
 
 describe('parseMediaIntents', () => {
   it('returns empty result for empty input', () => {
@@ -19,20 +19,17 @@ describe('parseMediaIntents', () => {
     expect(result.cleanText).toBe('Here you go:');
   });
 
-  it('extracts a single MUSIC_GEN marker', () => {
+  it('cuts a retired MUSIC_GEN marker without turning it into an intent', () => {
     const text = '[MUSIC_GEN: lofi hip hop, rainy night]';
     const result = parseMediaIntents(text);
-    expect(result.markers).toHaveLength(1);
-    expect(result.markers[0].kind).toBe('music');
-    expect(result.markers[0].prompt).toBe('lofi hip hop, rainy night');
+    expect(result.markers).toEqual([]);
     expect(result.cleanText).toBe('');
   });
 
-  it('extracts both marker types in source order', () => {
+  it('keeps image intents in source order next to a retired music marker', () => {
     const text = '[IMAGE_GEN: sunset] then [MUSIC_GEN: chillwave]';
     const result = parseMediaIntents(text);
-    expect(result.markers.map((m) => m.kind)).toEqual(['image', 'music']);
-    expect(result.markers.map((m) => m.prompt)).toEqual(['sunset', 'chillwave']);
+    expect(result.markers.map((m) => m.prompt)).toEqual(['sunset']);
     expect(result.cleanText).toBe('then');
   });
 
@@ -50,7 +47,7 @@ describe('parseMediaIntents', () => {
   });
 
   it('handles markers at start, middle and end of text', () => {
-    const text = '[IMAGE_GEN: cat] middle [MUSIC_GEN: synth] end';
+    const text = '[IMAGE_GEN: cat] middle [IMAGE_GEN: synth] end';
     const result = parseMediaIntents(text);
     expect(result.markers).toHaveLength(2);
     expect(result.markers[0].index).toBe(0);
@@ -167,5 +164,24 @@ describe('parseMediaIntents', () => {
       expect(result.cleanText).toContain('[IMAGE_GEN: example]');
       expect(result.cleanText).not.toContain('a red fox in fog');
     });
+  });
+});
+
+describe('stripMarkersForDisplay', () => {
+  it('hides complete markers while an answer is shown', () => {
+    expect(stripMarkersForDisplay('Hier dein Fuchs.\n[IMAGE_GEN: a red fox]')).toBe('Hier dein Fuchs.');
+  });
+
+  it('hides a marker that is still being written', () => {
+    expect(stripMarkersForDisplay('Hier dein Fuchs.\n[IMAGE_GEN: a red f')).toBe('Hier dein Fuchs.');
+    expect(stripMarkersForDisplay('Hier dein Fuchs.\n[IMAGE_')).toBe('Hier dein Fuchs.');
+  });
+
+  it('leaves ordinary brackets alone', () => {
+    expect(stripMarkersForDisplay('Siehe [Quelle 1] und [2]')).toBe('Siehe [Quelle 1] und [2]');
+  });
+
+  it('keeps markers inside code visible', () => {
+    expect(stripMarkersForDisplay('Syntax: `[IMAGE_GEN: x]`')).toBe('Syntax: `[IMAGE_GEN: x]`');
   });
 });

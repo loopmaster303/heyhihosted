@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
-import DecryptedText from '@/components/ui/DecryptedText';
 import { BlinkingCursor } from '@/components/ui/BlinkingCursor';
 import { useLanguage } from '@/components/LanguageProvider';
 
@@ -46,13 +45,7 @@ export default function AboutHero() {
         </p>
 
         <h1 className="mt-4 text-3xl md:text-4xl font-code text-foreground leading-tight max-w-3xl">
-          <DecryptedText
-            text={t('about.hero.title')}
-            speed={45}
-            sequential={false}
-            revealDirection="start"
-            animateOn="mount"
-          />
+          {t('about.hero.title')}
         </h1>
 
         <p className="mt-4 max-w-2xl text-sm md:text-base text-muted-foreground leading-relaxed">

@@ -1,8 +1,6 @@
 /**
- * Guard for the create-host redirect in next.config.ts. The hyphen typo
- * (create.heyhi.cloud) fails silently — the rule simply never matches and the
- * page answers, just wrong. Only noticeable at the live deploy by hand, so the
- * exact spelling is asserted here.
+ * Alte Adressen stehen in Lesezeichen und geteilten Links. Ein Tippfehler im
+ * Ziel faellt erst am Live-Deploy auf, deshalb steht jede Umleitung hier fest.
  */
 import nextConfig from './next.config';
 
@@ -19,21 +17,19 @@ describe('next.config redirects', () => {
     expect(redirects[0]).not.toHaveProperty('has');
   });
 
-  it('redirects the create host onto the shared chat origin — hyphen included', async () => {
+  it('sends every retired address into the one shell', async () => {
     const redirects = (await nextConfig.redirects?.()) ?? [];
+    const bySource = Object.fromEntries(redirects.map((r) => [r.source, r.destination]));
+    expect(bySource).toMatchObject({
+      '/unified': '/',
+      '/chat': '/',
+      '/gallery': '/?panel=gallery',
+      '/settings': '/?panel=settings',
+    });
+  });
 
-    expect(redirects).toHaveLength(3);
-    expect(redirects[1]).toMatchObject({
-      source: '/',
-      has: [{ type: 'host', value: 'create.hey-hi.cloud' }],
-      destination: 'https://chat.hey-hi.cloud/create',
-      permanent: false,
-    });
-    expect(redirects[2]).toMatchObject({
-      source: '/:path*',
-      has: [{ type: 'host', value: 'create.hey-hi.cloud' }],
-      destination: 'https://chat.hey-hi.cloud/:path*',
-      permanent: false,
-    });
+  it('carries no host-bound rules — Chat und Create teilen einen Ursprung', async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+    expect(redirects.every((r) => !('has' in r))).toBe(true);
   });
 });

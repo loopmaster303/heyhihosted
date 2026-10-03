@@ -1,286 +1,112 @@
 # CLAUDE.md
 
-**Ecosystem:** democrabs — "The crab snaps with everyone but it's yours"
+**Ökosystem:** democrabs — "The crab snaps with everyone but it's yours". Dieses Repo ist Level 2 („Benutzen"), kanonisch in `~/heyhi/LEVELS.md`.
 
-Assistant guidance for Claude working in this repository. Architecture last verified against the code on 2026-08-12. **Model lists verified against the live registry on 2026-08-28** — see "Modellwahrheit prüfen" below for how to keep them that way.
+Regeln und Fallstricke, gegen den Code geprüft am 2026-10-01. Geschichte steht in den Handoffs.
 
-## Start Here
+## Einstieg
 
-1. Read [AGENTS.md](/Users/johnmeckel/heyhihosted/AGENTS.md) first. It is the workflow constitution for this repo.
-2. Treat [README.md](/Users/johnmeckel/heyhihosted/README.md), [docs/PRODUCT_AUDIT_2026-04-21.md](/Users/johnmeckel/heyhihosted/docs/PRODUCT_AUDIT_2026-04-21.md), and [docs/PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md](/Users/johnmeckel/heyhihosted/docs/PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md) as the current product/runtime truth.
-3. Use [docs/README.md](/Users/johnmeckel/heyhihosted/docs/README.md) as the docs map for active vs archived material.
-4. Prefer updating one canonical truth document instead of duplicating architecture notes in multiple places.
-5. The Pollinations API is documented by measurement, not memory: [docs/POLLINATIONS-API-2026-09-10.md](/Users/johnmeckel/heyhihosted/docs/POLLINATIONS-API-2026-09-10.md) is the endpoint/model truth (OpenAPI v0.3.0). **There is no `image.pollinations.ai` and no `text.pollinations.ai`** — generation is `gen.pollinations.ai`, media storage is `media.pollinations.ai`, and nothing else exists.
-6. **Newest handoff: [docs/HANDOFF-2026-10-03-ausmisten.md](docs/HANDOFF-2026-10-03-ausmisten.md)** — cleanup state, the open branches (PR #17, the "Eine Fläche" UI variant) and what to do first.
-7. Active plan: [docs/FAHRPLAN-create.md](/Users/johnmeckel/heyhihosted/docs/FAHRPLAN-create.md) — ten phases toward the publicly shareable version. **Phases 0–7 are done** (2026-08-28 – 2026-09-01). Phase 6 is partial (the phone measurements L-E.1/L-E.2 are the operator's), and two verification steps in Phase 4/5 need the operator's own key rather than code. Read [docs/LAUNCH_CRITERIA.md](docs/LAUNCH_CRITERIA.md) — it is the release gate and the status of record; the Fahrplan describes the way there, not the state. The latest phase handoff is [docs/HANDOFF-2026-08-28-phase-3.md](/Users/johnmeckel/heyhihosted/docs/HANDOFF-2026-08-28-phase-3.md) — it carries the per-phase findings. [docs/HANDOFF-2026-08-27-fahrplan.md](/Users/johnmeckel/heyhihosted/docs/HANDOFF-2026-08-27-fahrplan.md) still gives entry points and pitfalls per phase, but its working-tree breakdown is historical.
+1. [AGENTS.md](AGENTS.md) — Arbeitsweise.
+2. [docs/README.md](docs/README.md) — Karte: was aktiv ist, was Archiv.
+3. [docs/LAUNCH_CRITERIA.md](docs/LAUNCH_CRITERIA.md) — Release-Gate und Status of record.
+4. [docs/PLAN-entschlackung-2026-10-01.md](docs/PLAN-entschlackung-2026-10-01.md) und der letzte Handoff [docs/HANDOFF-2026-10-01-eine-flaeche.md](docs/HANDOFF-2026-10-01-eine-flaeche.md) — was diese Variante umgebaut hat und was offen ist.
 
-## Project Snapshot
+## Produkt
 
-**hey.hi** is a local-first AI workspace built on Next.js 16, Pollinations.ai and Pruna AI.
+**hey.hi** ist ein local-first KI-Arbeitsplatz auf Next.js 16, Pollinations.ai und Pruna AI. Zwei Räume in **einer** Hülle: **Chat** (`/`) und **Create** (`/create`); `/about` steht allein. Alte Adressen leiten um (`next.config.ts`).
 
-- Unified app shell with `landing` and `chat` states at `/unified` (root `/` redirects into the same shell)
-- Visible user modes: `standard`, `visualize`, `compose`, `research`
-- Dedicated **Create** workspace at `/create` for full-screen image/video generation (product name **Create**; the route path stays `/create`)
-- Code mode exists as an internal response-mode flag (`Conversation.isCodeMode`), not as a separate visible tool
-- Standard chat can generate media inline: the assistant emits `[IMAGE_GEN: …]` / `[MUSIC_GEN: …]`, taught by `MEDIA_MARKER_PROTOCOL` in [chat-prompt-builder.ts](/Users/johnmeckel/heyhihosted/src/lib/chat/chat-prompt-builder.ts). The parser skips markers inside code blocks and the handler caps at one per kind — neither guarantee may depend on the model obeying the prompt
-- Generated media lives in Pollinations Media Storage or (for Pruna without Pollen token) as IndexedDB blobs; conversations, memories, settings, and output metadata live locally in IndexedDB / localStorage
-- The product surface calls the generated-media area **Output**; Create calls the same area **Gallery**
+## Hülle — vor Änderungen an `src/components/shell/` lesen
 
-## Current Runtime Truth
+- `src/app/(app)/layout.tsx` rendert `AppShell`; die Seiten geben `null` zurück und tragen nur Metadaten. **Keinen Inhalt in eine Seite legen** — ein Raumwechsel würde ihn neu mounten.
+- Beide Räume bleiben gemountet, der inaktive bekommt `inert`. Create lädt beim ersten Besuch (`next/dynamic`) und bleibt stehen — Unterhaltung und laufende Läufe überleben jeden Wechsel.
+- Das offene Sheet steht in der Adresse (`?panel=history|gallery|settings`). `usePanelState` nutzt `history.pushState`/`back`/`replaceState`: Zurück schließt ein Sheet, Sheet-zu-Sheet ersetzt den Eintrag.
+- **Ein** Sheet-Primitiv: [Sheet.tsx](src/components/shell/Sheet.tsx) auf vaul. Am Telefon wird `side="right"` zur Bottom-Sheet. Kein neues Dialog-/Popover-Gerüst für Panels.
+- `useShell()` außerhalb der Hülle ist ein No-op (Tests, `/about`).
+- Chat → Create: `handoffToCreate({prompt, modelId})`, Create liest einmal und ruft `consumeHandoff`. **Create-State gehört nie in den ChatProvider.**
+- Höhe aus `--vvh` (`useViewportHeight`), nicht aus `dvh` — die Tastatur verkleinert den visual viewport. Abstände zu Notch/Home-Indikator über `env(safe-area-inset-*)`.
+- z-Ebenen: 10 Inhalt · 40 Overlay · 50 Sheet/Dialog · 60 Popper · 70 Toast.
 
-### Visible text models
-Governed manually by `VISIBLE_POLLINATIONS_MODEL_IDS` in [src/config/chat-options.ts](/Users/johnmeckel/heyhihosted/src/config/chat-options.ts):
+## Chat
 
-`claude-fast`, `gemini-fast`, `gemini-search`, `deepseek`, `nova-fast`, `mistral`, `perplexity-fast`, `perplexity-reasoning`, `kimi`, `glm`, `minimax`, `qwen-coder`
+- Sichtbare Textmodelle: `VISIBLE_POLLINATIONS_MODEL_IDS` in [chat-options.ts](src/config/chat-options.ts). Default `deepseek` (frei). `isFree: false` heißt Schlüssel nötig — der Picker zeigt POLLEN und verweigert ohne Schlüssel. Achtung: `gemini` (bezahlt) ist nicht `gemini-fast`.
+- Modi sind zwei Schalter am Composer: **Recherche** (`webBrowsingEnabled`) und **Code** (`isCodeMode`). Visualize und Compose gibt es im Chat nicht mehr.
+- Bilder entstehen im Chat **nur** über `[IMAGE_GEN: …]` (`MEDIA_MARKER_PROTOCOL` in [chat-prompt-builder.ts](src/lib/chat/chat-prompt-builder.ts)). Zwei Schritte in [chat-media-intent-handler.ts](src/lib/chat/chat-media-intent-handler.ts):
+  1. `prepareAssistantMedia` — sauberer Text plus ein `pending`-Bildteil, sofort.
+  2. `resolveImagePart` — erzeugen, speichern; wirft nie, liefert im Fehlerfall einen `error`-Teil.
+- Garantien, die **nicht** davon abhängen, dass das Modell gehorcht: höchstens ein Bild pro Antwort, Marker in Code-Blöcken zählen nicht, `[MUSIC_GEN]` wird still geschnitten, der Marker ist nie sichtbar — auch nicht beim Streamen (`stripMarkersForDisplay`). Ein `pending`-Teil beim Laden gilt als unterbrochen (`interruptPendingMedia`).
+- Bildmodell im Chat: eine Regel, `getChatImageModelGroups()` — Pollinations, Bild, `isFree`, `enabled`. Kein Optionsparameter, wächst mit keinem Schlüssel, folgt keinem Provider-Schalter. Wahl in den Einstellungen; `resolveChatImageModelId` fällt auf `flux` zurück. Wer die Auswahl ändern will, ändert die Regel, nicht die Registry.
+- Der Systemprompt in `chat-options.ts` („Burn the Corpos", Filter-Umgehung, eingefrorene Modellnamen) ändert sich nur auf ausdrücklichen Auftrag.
 
-Key-gated (`isFree: false`, live `paid_only` as of 2026-08-28): `claude-fast`, `gemini-fast`, `gemini-search`, `mistral`. The rest run without a key. The default for new users is `deepseek` (`DEFAULT_POLLINATIONS_MODEL_ID`) — a free model; the picker shows a POLLEN badge and refuses selection without a key.
+## Create
 
-Careful: the `gemini` id is Gemini 3 Flash (paid) and is *not* the same as the visible `gemini-fast`.
+- [PlaygroundShell.tsx](src/components/playground/PlaygroundShell.tsx), lokaler React-State. Modi `t2i`, `i2i`, `t2v`, `i2v`, `sound` (ACE-Step über `/api/sound`).
+- Bis zu 3 Läufe parallel, je ein `ActiveRun` mit eigenem `AbortController`. „Erneut versuchen" wiederholt den Lauf, nicht den Composer-Stand.
+- **Der Provider-Schalter scopet nur die Modellliste** (`useProviderMode` in `usePlaygroundModels`, `PlaygroundShell`, `ProviderSelect`). Den Dispatch entscheidet das **gewählte Modell**: `/api/generate` verzweigt auf `isPrunaModel()`, Uploads auf `selectedModelInfo.provider`. Die Namensgleichheit von `p-*` in beiden Registries wird bewusst ignoriert.
+- Referenzbilder: `referenceMode` + `maxImages` (`getReferenceMode()`); `/api/generate` lehnt Abweichungen mit 400 ab.
+- Lange Läufe antworten `202 {pending, predictionId, model}`, der Browser pollt über [request-generation.ts](src/lib/generation/request-generation.ts) (3 s, 30 min Reißleine). [run-store.ts](src/lib/generation/run-store.ts) hält den Lauf über einen Reload, **ohne neu zu dispatchen**.
+- Pruna lehnt jedes unbekannte Feld ab (400). Schemas aus `docs.api.pruna.ai/guides/models/<model>`, nicht raten. Kein Cancel: jeder gültige Payload kostet — Validierung mit `https://invalid.invalid/x.jpg` prüfen.
 
-### Visible image/video models
+## Modellwahrheit
 
-[src/config/unified-image-models.ts](/Users/johnmeckel/heyhihosted/src/config/unified-image-models.ts) is the single source of truth. Do not restate the full registry elsewhere — it drifts. Three flags decide visibility:
+- [unified-image-models.ts](src/config/unified-image-models.ts) ist die einzige Quelle für Bild/Video. Flags: `enabled` (sichtbar), `isFree` (ohne Schlüssel), `byopVisible` (mit eigenem Schlüssel). **Listen nicht in Prosa wiederholen.**
+- `node scripts/check-model-registry.mjs` meldet Drift (Exit 1), wird manuell ausgeführt; `--update-snapshot` erneuert die Test-Fixture — nur mit geprüftem Diff.
+- **Ein Registry-Befund schreibt die Config nie still um.** Die Registry ist schlüsselabhängig; was Nutzer ohne Schlüssel bekommen, entscheidet die Allowlist des Server-Schlüssels, nicht `paid_only`.
 
-| Flag | Meaning |
-|---|---|
-| `enabled` | shows up at all |
-| `isFree` | usable without a key |
-| `byopVisible` | surfaces once the user brings their own key |
+## Prompt-Verbesserung
 
-Marked free and enabled in the config (verified live 2026-08-28): `flux`, `gpt-image` (alias of `gptimage`), `klein`. `kontext` and `gptimage-large` are registry-free but **not on the server key's allowlist** (live 403) — they stay `enabled: false` until the operator extends the allowlist, then get re-enabled.
+`selectGuidelines()` in `/api/enhance-prompt`, Reihenfolge zählt: Alias (`canonicalEnhancementKey`, die **einzige** Tabelle, [enhancement-prompts.ts](src/config/enhancement-prompts.ts)) → Audio → handgeschrieben → aus Registry-Metadaten → Default. Scheitert nie an der Registry. Die Tags `<unfiltered>` (Guard) und `<quality_terms>` (kein `stripGlossTerms`) steuern die Route — durch keine Liste ersetzen.
 
-Key-gated and BYOP-visible: the `p-*` Pruna family (`p-image`, `p-image-edit`, `p-image-try-on`, `p-image-upscale`, `p-video`, `p-video-avatar`, `p-video-animate`, `p-video-replace`), `p-image-ideogram`, `p-flux-klein`, plus `qwen-image-edit-plus`, `wan-t2v`, `wan-i2v`, `vace`, and the former "free" Pruna models `zimage`, `qwen-image`, `wan-image-small` (Pruna is BYOP-only — `isFree: true` on a Pruna model was a false promise).
+## Schlüssel (BYOP)
 
-Removed on 2026-08-28 (registry truth): `ltx-2`, `grok-video`, `pollinations-wan-fast` (do not exist upstream), `veo-1080p` (alias of `veo` — internal alias kept for saved selections). `nova-reel` stays disabled: registry-free but a 6 s run timed out after 125 s behind the synchronous dispatch (524) — it needs the async protocol first.
-
-Everything else in the file is `enabled: false` and waiting on upstream availability. Check the config rather than trusting a list in prose.
-
-**Der Chat ist die Ausnahme.** Seit Phase 7 liest die Bildauswahl im Chat `getChatImageModelGroups()` — eine Regel ohne Optionsparameter: Pollinations, Bild, `isFree`, `enabled`. Sie wächst mit keinem Schlüssel und folgt dem Provider-Schalter nicht. Video und Pruna leben im Create. Wer die Chat-Auswahl ändern will, ändert die Regel, nicht die Registry.
-
-### Modellwahrheit prüfen
-Model lists drift daily (35/39 → 28/42 → 32/45 within 48 hours). The check is tooling, not memory:
-
-- `node scripts/check-model-registry.mjs` pulls all three registry endpoints live and diffs them against the led model ids. Exit 1 = drift.
-- `node scripts/check-model-registry.mjs --update-snapshot` refreshes `src/config/__fixtures__/registry-snapshot.json` — the offline fixture the tests T1–T3 run against. Refresh it deliberately, with the diff reviewed; never let a script write config silently.
-- A weekly GitHub Action runs the check and fails visibly on drift.
-- Rule: **a registry finding never silently rewrites the config.** Whether a model is offered is a product decision; the registry only reports facts. The registry is **key-scoped** — its response differs per API key, and the server key's allowlist (not `paid_only`) decides what keyless users can actually run.
-
-**The two views, measured 2026-09-10** (details and numbers in [docs/POLLINATIONS-API-2026-09-10.md](/Users/johnmeckel/heyhihosted/docs/POLLINATIONS-API-2026-09-10.md)):
-
-| View | Image models | Video models |
-|---|---|---|
-| operator key (`sk_`, our `POLLEN_API_KEY`) | **5** (`tongyi-mai/z-image-turbo`, `lykon/dreamshaper-8-lcm`, `openai/gpt-image-2`, `black-forest-labs/flux.2-klein-4b`, `black-forest-labs/flux.1-kontext-pro`) | **0** |
-| no key (catalogue view) | 83 | 19 |
-
-Consequences that were wrong in this repo before: **there is no anonymous fallback** (401, not a second chance), `paid_only: false` does **not** mean the operator key may run it (`flux.1-schnell` carries `paid_only: false` and answers **403**), and **video does not exist for the operator key at all** — it needs BYOP (`pk_` + Connect User Wallets) or the user's own key. A timeout is **retryable**: repeat the identical request (same endpoint, body, query, seed) and the API returns the in-flight or cached result, billed once — a 504 is never a final state.
-
-### Reference images
-`referenceMode` (`multi-image` | `start-frame` | `start-end-frame`) plus `maxImages` describe what a model accepts; `getReferenceMode()` derives it. `/api/generate` validates the request against both and rejects mismatches with a 400, so UI and API cannot drift apart.
-
-## Create — read before touching `/create`
-
-The `/create` route (`src/app/create/page.tsx`) — product name **Create** — is a standalone generation workspace, not a chat tool. It reuses the same model registry and generation API as Visualize but has its own shell and state:
-
-- **Shell:** `PlaygroundShell` (`src/app/create/PlaygroundShell.tsx`) owns the three-column layout (sidebar params, main canvas, detail rail).
-- **State:** Local React state in `PlaygroundShell`; no ChatProvider involvement.
-- **API:** `/api/generate` for all image/video generation; `/api/media/upload` or `/api/pruna/upload` for reference images depending on `selectedModelInfo.provider`.
-- **Modes:** `t2i`, `i2i`, `t2v`, `i2v` — driven by `ModeTabs` and validated by `/api/generate`.
-- **Progress:** Up to 3 generations run in parallel. Each is an `ActiveRun` in `PlaygroundShell` with its own `AbortController` and renders its own card in the gallery — running (with a per-card cancel) or failed (with retry/dismiss). The run itself is the retry context, so a retry repeats what was sent, not what the composer holds now. The send button only locks at the concurrency limit and names the reason.
-- **Details:** Selecting a result opens `MetaRail` with prompt, parameters, seed, and actions: download, retry, use as reference.
-- **Provider switch:** Same semantics as Visualize — it only scopes the model list. The selected model decides the actual provider dispatch.
-- **Telefon:** Die Shell bezieht ihre Höhe aus `--vvh` (`useViewportHeight`), nicht aus `dvh` — die Tastatur verkleinert den visual viewport, `dvh` folgt ihm nicht. Trefferflächen unter `md` sind 44 px. Parameter kommen als linke Schublade, Details als Bottom-Drawer. Phase 8 folgt demselben Muster.
-
-Do not wire Create state into ChatProvider. Keep it self-contained.
-
-## Provider Semantics — read before touching Visualize
-
-There are two providers, Pollinations and Pruna, and a user-facing switch. **The switch only scopes the model list** — in Create. It is not a global mode. Seit 2026-09-10 liegt die Oberflaeche des Schalters auch nur noch dort (`ProviderSelect`, `SettingsPopover`): im Chat haengen Schalter und Pruna-Konto-Sektion an `FEATURES.chatPrunaProvider` (`false`), weil die Chat-Bildauswahl Pollinations-only ist und der Dispatch ohnehin am Modell haengt:
-
-- `useProviderMode` is read in five modules, all of them model-picking UI: [useUnifiedImageToolState.ts](/Users/johnmeckel/heyhihosted/src/hooks/useUnifiedImageToolState.ts) and `PersonalizationSidebarSection` (nur bei `FEATURES.chatPrunaProvider`, samt Pruna-Konto-Sektion) for Visualize, plus [usePlaygroundModels.ts](/Users/johnmeckel/heyhihosted/src/hooks/usePlaygroundModels.ts), `PlaygroundShell` and `ProviderSelect` for Create. It filters the model list and picks the default model. (`VisualizeInlineHeader` and `VisualizeInputContainer` receive the value as props rather than reading the hook.) Seit Phase 7 gilt: `useUnifiedImageToolState` liest `useProviderMode` weiterhin (Durchreichung und Dispatch), **scopet damit aber nicht mehr die Chat-Modellliste** — die Chat-Bildauswahl ist providerunabhängig (`getChatImageModelGroups()`).
-
-- The actual dispatch depends on the **selected model**, never on the switch: `/api/generate` branches on `isPrunaModel(canonicalModelId)`, and reference uploads branch on `selectedModelInfo.provider`.
-- `p-image`, `p-image-edit` and `p-video` now also appear in the Pollinations registry (paid, aliased `pruna-*`). The name overlap is **deliberately ignored**: the repo claims the ids for the Pruna dispatch (BYOP key), and `buildPollinationsEntries` filters `isPrunaModel()` so the Create never lists a duplicate. Routing them through Pollinations instead is a provider-architecture decision that stays open.
-- Chat, TTS, STT, compose and prompt enhancement always run through Pollinations and never receive a Pruna key.
-- Prompt enhancement is `/api/enhance-prompt` and is provider-independent. The `enhance` field on `/api/generate` is a Pollinations image-API parameter — Pruna has no such field.
-
-## Prompt Enhancement — how a model gets its guidelines
-
-`selectGuidelines()` in `/api/enhance-prompt` resolves in this order, and the order matters:
-
-1. `canonicalEnhancementKey(modelId)` — [enhancement-prompts.ts](/Users/johnmeckel/heyhihosted/src/config/enhancement-prompts.ts) holds the **only** alias table. There used to be a second one in the route; every change landed in exactly one of them. Alias resolution runs *before* the audio branch, otherwise `stable-audio` falls through to the default plus the image length limit.
-2. Audio keys (`AUDIO_ENHANCEMENT_KEYS`) → their own exported prompt, 500-char limit.
-3. A hand-written entry in `ENHANCEMENT_PROMPTS` → used as is.
-4. Otherwise `buildRegistryEnhancementPrompt()` from the live registry metadata (`findLiveImageModel`). This covers the ~31 registry models with no hand-written prompt.
-5. Registry unreachable → `DEFAULT_ENHANCEMENT_PROMPT`. Enhancement must never fail on this.
-
-Two prompt tags steer the route and keep themselves in sync — do not replace either with a list:
-
-| Tag in the prompt | Effect |
-|---|---|
-| `<unfiltered>` | attaches the no-content-restrictions guard. Without it (gptimage, nanobanana*, qwen-image, music) the guard stays off. |
-| `<quality_terms>` | exempts the model from `stripGlossTerms`. Only qwen-image claims it — there the terms are documented as effective. |
-
-Keep it that way. Widening the switch beyond model selection is a regression.
-
-## BYOP Keys
-
-Two independent user-supplied keys, both in `localStorage`, both sent as request headers, both falling back to a server env var:
-
-| Key | Storage | Header | Server resolver |
+| Schlüssel | Speicher | Header | Server |
 |---|---|---|---|
 | Pollen | `pollenApiKey` | `X-Pollen-Key` | `resolvePollenKey` |
 | Pruna | `prunaApiKey` | `X-Pruna-Key` | `resolvePrunaKey` |
 
-Format validation lives in `pollen-key-validation.ts` / `pruna-key-validation.ts`. Note what this does *not* do: it validates key **shape**, not validity — the upstream service is the real gate. Do not treat the presence of a key as authentication.
+Validierung prüft die **Form**, nicht die Gültigkeit — ein Schlüssel ist keine Authentifizierung. Chat, Stimme und Prompt-Verbesserung laufen immer über Pollinations, nie mit Pruna-Schlüssel. Web Storage ist XSS-anfällig: akzeptiert.
 
-The keys remain XSS-sensitive because they sit in web storage. Documented, accepted, unresolved.
+## Assets
 
-## Asset Persistence
+- Wohin ein Asset geht, entscheidet `isPollinationsHostedModel()`: Pollinations → `remoteUrl` plus Media-Ingest; Pruna ohne Pollen-Schlüssel → Blob in IndexedDB.
+- Object-URLs nur über `BlobManager`, nie `URL.createObjectURL` direkt. Eine Blob-URL als `remoteUrl` ist nach dem Reload tot.
+- Ein Pool `db.assets` für alle Räume. `assetOrigin()` ([asset-origin.ts](src/lib/assets/asset-origin.ts)) ist die **einzige** Stelle, die `conversationId` als Herkunft liest (`'__playground__'` → create, keine → compose, sonst chat). Der Herkunftsfilter der Galerie ist flüchtig und springt beim Öffnen auf den aktuellen Raum. Löschen nur über [delete-assets.ts](src/lib/assets/delete-assets.ts).
 
-Where a generated asset ends up depends on the model's provider, via `isPollinationsHostedModel()`:
+## Fehler
 
-- **Pollinations models** → saved with `remoteUrl`, then backfilled through Pollinations Media ingest.
-- **Pruna models without a Pollen token** → `/api/generate` returns raw media, the client wraps it in a blob URL via `BlobManager` (context `generate`), and `OutputService` stores the actual blob in IndexedDB.
+`ApiError` trägt einen `code` aus [error-codes.ts](src/lib/errors/error-codes.ts); der Client übersetzt **nur über `code`** ([describe-error.ts](src/lib/errors/describe-error.ts)), nie über Status oder Text. Der Fallback zeigt Status plus Rohtext. Ein Code ohne Satz macht `describe-error.test.ts` rot.
 
-Never use `URL.createObjectURL` directly — go through `BlobManager` so the URL is revoked on unload. Never hardcode `isPollinations`; a blob URL stored as a `remoteUrl` is dead after a reload.
+## Server-HTTP und Uploads
 
-### Herkunft: ein Pool, drei Tags (seit Phase 5)
+- [https-post.ts](src/lib/https-post.ts) ist `fetch` mit Zeitlimit je Aufrufer (30 s Standard, `LONG_RUNNING_TIMEOUT_MS` 290 s). Unter Next 16.3 geprüft: `Authorization` und `X-Pollen-Key` kommen an. Keinen Kindprozess zurückholen.
+- `readBodyWithLimit()` statt `arrayBuffer()`. `isActiveContentType()` lehnt html/svg/js/xml ab. `/api/media/upload` nimmt nur rohe Bodies (Multipart → 415).
+- **Nie einen Upload-`fetch` von Hand schreiben** — `uploadFileToPruna` / `uploadFileToPollinationsMedia` in [src/lib/upload/](src/lib/upload) besitzen Endpunkt, Body, Schlüssel-Header und Fehlertext.
+- Server-Abrufe fremder Medien nur über die Allowlist in `remote-fetch-policy.ts`.
 
-Chat und Create schreiben in denselben `db.assets`-Store und lesen ihn beide.
-`assetOrigin()` in [src/lib/assets/asset-origin.ts](/Users/johnmeckel/heyhihosted/src/lib/assets/asset-origin.ts) ist
-der **einzige** Ort, an dem `assets.conversationId` als Herkunft gelesen wird:
-`'__playground__'` → `create`, keine `conversationId` → `compose`, sonst → `chat`.
-`PLAYGROUND_CONVERSATION_ID` bleibt der Sentinel in gespeicherten Nutzerdaten — der
-Bezeichner wird nicht umbenannt, nur seine Rolle hat sich geändert. Kein Dexie 5,
-keine Migration.
+## Bewegung und Zugang
 
-`compose` ist eine Zuordnung per Ausschluss, keine Aussage der Daten: Compose
-speichert ohne `conversationId`, Altbestand kann ebenfalls dort landen.
-
-Der Herkunftsfilter je Oberfläche ist **flüchtig** — kein `localStorage`. Nach jedem
-Reload steht er auf der eigenen Herkunft; L-D.1 und L-D.3 stützen sich darauf.
-
-Löschen läuft über **eine** Auswahlfunktion in
-[src/lib/assets/delete-assets.ts](/Users/johnmeckel/heyhihosted/src/lib/assets/delete-assets.ts). Einzellöschen wirkt
-global, „alles löschen" nur auf den aktiven Filterbereich. Der Blob ist ein Feld der
-Asset-Zeile — es gibt keinen zweiten Speicher und damit keine verwaisten Blobs. Was
-freigegeben werden muss, ist die **Object-URL**: beim Löschen sofort, im
-Generierungspfad nach dem Speichern.
-
-### Long runs answer 202, the browser polls (since 2026-08-26)
-
-No request waits for a video any more. Anything not immediately finished comes back as
-`202 { pending, predictionId, model }` and the browser takes over:
-
-- `generateViaPruna` in [src/lib/pruna/client.ts](/Users/johnmeckel/heyhihosted/src/lib/pruna/client.ts) ends at the run id; the server-side `pollPrediction` is gone.
-- [`/api/pruna/status`](/Users/johnmeckel/heyhihosted/src/app/api/pruna/status/route.ts) — `GET ?id=&model=`, answers 202 while computing, otherwise exactly like `/api/generate`.
-- [src/lib/pruna/deliver.ts](/Users/johnmeckel/heyhihosted/src/lib/pruna/deliver.ts) — download plus media upload, shared by both routes so the response shape stays identical.
-- [src/lib/generation/request-generation.ts](/Users/johnmeckel/heyhihosted/src/lib/generation/request-generation.ts) — holds the wait in the tab (3 s interval, 30 min cutoff, abortable) and returns the same `Response` the caller used to get directly. Callers use it in place of `fetch`.
-
-Why: VACE runs 348–700 s measured, the old server poll limit was 180 s and Vercel's default
-function limit is 300 s — it could never structurally complete. Since Phase 4 a reload no
-longer loses the run — see "Läufe überleben einen Reload" below.
-
-**Pruna rejects any unknown input field** with `400 additional properties forbidden, found <field>`.
-Model schemas at `docs.api.pruna.ai/guides/models/<model>` proved reliable; guessing did not.
-Pruna has **no cancel endpoint**, so every valid payload starts a billable run — to exercise
-validation without paying, send an unreachable media URL (`https://invalid.invalid/x.jpg`).
-
-### Fehler: Code → Satz, nie Statusraten (since 2026-08-29)
-
-Der Server bleibt die Instanz, die sagt, was passiert ist: `ApiError` trägt einen `code` aus
-[src/lib/errors/error-codes.ts](/Users/johnmeckel/heyhihosted/src/lib/errors/error-codes.ts)
-und — wo es eine gibt — strukturierte `details` (`field`, `modelLabel`). Der Client
-übersetzt **nur über `code`**:
-[src/lib/errors/describe-error.ts](/Users/johnmeckel/heyhihosted/src/lib/errors/describe-error.ts)
-mappt Code → Satz + Handlung (`settings` / `retry` / `pick-model`); kein Status- oder
-Textmuster-Matching, das gehört an den Anbieter-Code. Der Fallback verschweigt nichts:
-Status plus Rohtext, nie "Ein Fehler ist aufgetreten". Der Rohtext geht nie verloren — er
-hängt als aufklappbares "Details" an der Fehlerkarte. [src/lib/errors/read-error-response.ts](/Users/johnmeckel/heyhihosted/src/lib/errors/read-error-response.ts)
-liest alle drei live belegten Formen (`{error: string}`, `{error: {message, code}}`,
-Nicht-JSON) plus `Retry-After` und `details`. Wer einen Code ohne Satz einführt, macht
-einen Test rot — genau dagegen ist `describe-error.test.ts` da.
-
-### Läufe überleben einen Reload (since 2026-08-29)
-
-Ein 202-Lauf schreibt beim Dispatch einen Eintrag in
-[src/lib/generation/run-store.ts](/Users/johnmeckel/heyhihosted/src/lib/generation/run-store.ts)
-(localStorage über `safe-storage`): predictionId, Modell, Prompt, Parameter und der
-eingefrorene Request-Body. Ergebnis, Fehler und Abbruch löschen den Eintrag — nur ein
-Reload lässt ihn liegen, und genau dafür ist er da. Der PlaygroundShell-Mount liest die
-Liste, hängt wieder laufende Karten an (mit dem ursprünglichen `startedAt`, damit der
-Zähler stimmt) und fragt über `pollPrediction` weiter, **ohne neu zu dispatchen**. Einträge
-älter als die 30-Minuten-Reißleine werden beim Lesen verworfen, nicht wiederaufgenommen.
-"Erneut versuchen" wiederholt den gespeicherten Lauf (R2 = a), nicht den Composer-Stand.
-Pollinations-Läufe laufen im Request und haben keine Lauf-Id — ein Reload verliert sie
-weiterhin, richtig so, sie dauern Sekunden.
-
-## Upload Hardening
-
-- `readBodyWithLimit()` streams a request or response body and aborts at the limit. Use it instead of `arrayBuffer()`, which buffers before the size can be checked.
-- `isActiveContentType()` rejects payloads that would execute when served back from media storage (html, svg, js, xml). Images, video, audio and the composer's document types stay allowed — note that this also means **SVG uploads are rejected**.
-- `/api/media/upload` accepts raw bodies only; multipart returns 415 because `formData()` cannot be size-limited.
-- **Never hand-roll an upload `fetch`.** Go through `uploadFileToPruna` / `uploadFileToPollinationsMedia` in [src/lib/upload/](/Users/johnmeckel/heyhihosted/src/lib/upload). They own the endpoint, the raw body, the BYOP key header *and* its normalisation, and the route's error message. The Playground once had its own copy that got everything right except the key header — every Pruna reference upload answered 503 while the key sat in settings, and the source-video slot sent multipart to a route that answers 415.
-- `remote-fetch-policy.ts` allowlists the three Pollinations hosts that server-side media fetches may reach.
-
-## Important Files
-
-- [src/app/unified/page.tsx](/Users/johnmeckel/heyhihosted/src/app/unified/page.tsx): top-level unified shell
-- [src/components/ChatProvider.tsx](/Users/johnmeckel/heyhihosted/src/components/ChatProvider.tsx): state orchestration
-- [src/hooks/useChatState.ts](/Users/johnmeckel/heyhihosted/src/hooks/useChatState.ts): persistence-oriented base state
-- [src/config/chat-options.ts](/Users/johnmeckel/heyhihosted/src/config/chat-options.ts): text-model truth, response styles, system prompts, compose models
-- [src/config/unified-image-models.ts](/Users/johnmeckel/heyhihosted/src/config/unified-image-models.ts): visible image/video model truth
-- [src/config/pruna-models.ts](/Users/johnmeckel/heyhihosted/src/config/pruna-models.ts): Pruna model mapping and field shapes
-- [src/lib/services/output-service.ts](/Users/johnmeckel/heyhihosted/src/lib/services/output-service.ts): output persistence adapter
-- [src/lib/blob-manager.ts](/Users/johnmeckel/heyhihosted/src/lib/blob-manager.ts): ref-counted blob URL registry
-- [src/lib/upload/](/Users/johnmeckel/heyhihosted/src/lib/upload): upload limits, content-type policy, media/Pruna upload clients
-
-## Commands
-
-```bash
-npm run dev
-npm run build
-npm run lint
-npm run typecheck
-npm test
-```
-
-For focused tests, prefer:
-
-```bash
-CI=1 npm test -- --runInBand path/to/test.ts
-```
-
-## Open Questions
-
-- **Server-key allowlist decides the free tier.** The Pollinations registry is key-scoped: the response differs per API key, and the operator server key currently allows only a subset of the registry-free models (live 2026-08-28: `kontext`, `gptimage-large` → 403). Widening the allowlist at enter.pollinations.ai re-enables those config entries; until then they stay hidden.
-- **`zimage` works free via Pollinations but is claimed by the Pruna dispatch.** A provider decision (like the `p-*` question above) could route it to Pollinations and restore it as a free model. Not done here — dispatch hangs on the model, not the switch.
-- **TTS is a registry blind spot.** `/api/tts` runs on server-key `tts-1`/`elevenlabs`; the `/audio/models` registry does not list `tts-1`, yet the endpoint works (verified live 2026-08-28). Free for users, paid by the operator — fine today, but not represented by the registry check.
-- **Deploy truth resolved for this domain.** `chat.hey-hi.cloud` is served by Vercel (connected GitHub project, auto-deploy from `main`), with **Cloudflare as proxy in front** (`server: cloudflare` in every response — DNS entries live in Cloudflare, not Vercel). `create.hey-hi.cloud` does **not** exist (NXDOMAIN, checked 2026-08-29) and is not planned: a second hostname is a second browser origin, which would split IndexedDB and localStorage. `next.config.ts` still carries the `CREATE_HOST` redirect rules — dormant, ready if the decision ever flips.
-- Search/research routing is delegated through a single strategy path; `WebContextService` is an optional helper invoked only when `shouldFetchWebContext` is set, not the default delegated path.
-- The system prompt in `chat-options.ts` still contains "Burn the Corpos" and filter-evasion passages. Editorial hardening only on explicit instruction. It also still names removed video models (`ltx-2`, `grok-video`) in its formatting guidance — model names in the system prompt are frozen for this repo; changing them needs an explicit mandate.
+- Tokens `--motion-fast/med/slow` (160/280/420 ms), Kurve `ease-out` = `cubic-bezier(.2,.8,.2,1)`. Animiert werden nur `transform`, `opacity`, `filter`. Kein `transition-all`. `prefers-reduced-motion` greift global und über `MotionConfig reducedMotion="user"`.
+- `reveal-on-hover`: sichtbar bei Hover **und** Fokus, am Touchgerät immer. Trefferflächen: Touch ≥ 44 px, Zeiger ≥ 24 px.
+- Komponententests prüfen mit jest-axe (`toHaveNoViolations`). Skip-Link führt zu `#composer-input`.
 
 ## Schriftregel
 
-Zwei Familien, seit dem Umbau 2026-08-22 (vorher war alles Monospace):
+`font-body` (IBM Plex Sans) für Gesprochenes, `font-mono` für Maschinelles (Modell-IDs, Seeds, Zustände, Zeiten, Code) — **explizit** setzen. Kein globales `lowercase` im Chat.
 
-| | |
-|---|---|
-| **Proportional** (`font-body`, IBM Plex Sans) | Gesprochenes: Chat-Antworten, Erklaerungen, Fehlermeldungen, Beschriftungen |
-| **Monospace** (`font-mono`, Code) | Maschinelles: Werte, Modell-IDs, Seeds, Zustaende, Zeitangaben, Code |
+## Befehle
 
-`body` traegt Proportional — Maschinelles muss **explizit** ausgezeichnet werden.
-`code`, `pre`, `kbd`, `samp` sind global in [globals.css](/Users/johnmeckel/heyhihosted/src/app/globals.css) gesichert, weil sie vorher nur monospace waren, als es die ganze App war; ohne die Regel fielen Code-Bloecke still auf Proportional zurueck.
+```bash
+npm run dev | build | lint | typecheck | test
+CI=1 npm test -- --runInBand path/to/test.ts
+```
 
-Kein globales `lowercase` im Chat: dort steht deutscher Fliesstext, Substantive bleiben gross. Das democrabs-Onboarding fuehrt `font-mono lowercase` durchgehend — das ist dort richtig und hier nicht.
+## Offene Fragen
 
-## Cleanup Rules
+- **Freie Stufe = Allowlist des Server-Schlüssels.** `kontext`, `gptimage-large` antworten 403, bis der Betreiber sie freischaltet.
+- **`zimage`** liefe frei über Pollinations, gehört aber dem Pruna-Dispatch — Provider-Entscheidung, offen.
+- **TTS** (`tts-1`) fehlt in der Registry, läuft aber mit Server-Schlüssel.
+- **Deploy:** `chat.hey-hi.cloud` auf Vercel (Auto-Deploy von `main`) hinter Cloudflare. Keine eigene Create-Domain — eine zweite Origin teilt IndexedDB.
+- **Playground Meck:** der Video-2-Pro-Stand liegt nur im lokalen Worktree des Betreibers (E0), nicht in dieser Variante.
 
-- Do not invent new truth docs when an existing active doc can be updated.
-- Do not restate the model registry in prose — link to the config instead.
-- Avoid model-name marketing copy unless it is clearly tied to the current visible registry.
-- Treat `README.md`, `CLAUDE.md`, and `GEMINI.md` as synchronized adapters over the same runtime truth.
+## Doku-Regeln
 
-## Ökosystem (kanonisch: ~/heyhi/LEVELS.md, Stand 2026-07-05)
-Dieses Repo ist **Level 2 („Benutzen")**. Level 1 = JUSTSAY (justsaywow ⊕ justsayhi), Level 3 = democrabs (Hermes/NUC/WhatsApp). Querschichten: heyhiblog (Haltung), meinbild (Schutz). heyhicreator eingefroren.
-Der Reorg-Plan 2026-06-01 ist historisch (nur noch in der Git-Historie) — sein Level-Modell ist durch LEVELS.md abgelöst.
+Ein kanonisches Dokument aktualisieren, kein neues anlegen. Registry nie in Prosa. `README.md`, `GEMINI.md` und `AGENTS.md` verweisen hierher, sie wiederholen nicht.

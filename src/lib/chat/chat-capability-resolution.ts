@@ -7,8 +7,6 @@ import {
 } from '@/config/chat-options';
 
 export interface ChatModeState {
-  isImageMode?: boolean;
-  isComposeMode?: boolean;
   isCodeMode?: boolean;
   webBrowsingEnabled?: boolean;
 }
@@ -20,7 +18,6 @@ export interface StartNewChatOptions extends ChatModeState {
 export interface RequestCapabilityInput {
   selectedModelId?: string;
   hasUploadedFile: boolean;
-  isImageModeIntent?: boolean;
   isCodeMode?: boolean;
 }
 
@@ -36,7 +33,6 @@ export interface RequestCapabilityResolution {
   requiresVisionModel: boolean;
   didFallbackToVisionModel: boolean;
   fallbackModel?: PollinationsModel;
-  isImageModeIntent: boolean;
   isCodeMode: boolean;
 }
 
@@ -47,20 +43,10 @@ export function resolveEffectiveTextModel(modelId?: string, visibleModels?: Poll
 }
 
 export function normalizeChatModeState(state: ChatModeState): Required<ChatModeState> {
-  const normalized: Required<ChatModeState> = {
-    isImageMode: !!state.isImageMode,
-    isComposeMode: !!state.isComposeMode,
+  return {
     isCodeMode: !!state.isCodeMode,
     webBrowsingEnabled: !!state.webBrowsingEnabled,
   };
-
-  if (normalized.isComposeMode) {
-    normalized.isImageMode = false;
-  } else if (normalized.isImageMode) {
-    normalized.isComposeMode = false;
-  }
-
-  return normalized;
 }
 
 export function resolveStartNewChatState(
@@ -88,8 +74,7 @@ export function resolveRequestCapabilities(
     || findVisiblePollinationsModelById(requestedModelId)
     || AVAILABLE_POLLINATIONS_MODELS[0];
 
-  const isImageModeIntent = !!input.isImageModeIntent;
-  const requiresVisionModel = input.hasUploadedFile && !isImageModeIntent;
+  const requiresVisionModel = input.hasUploadedFile;
 
   let selectedModel = requestedModel;
   let fallbackModel: PollinationsModel | undefined;
@@ -110,7 +95,6 @@ export function resolveRequestCapabilities(
     requiresVisionModel,
     didFallbackToVisionModel,
     fallbackModel,
-    isImageModeIntent,
-    isCodeMode: !!input.isCodeMode && !isImageModeIntent,
+    isCodeMode: !!input.isCodeMode,
   };
 }

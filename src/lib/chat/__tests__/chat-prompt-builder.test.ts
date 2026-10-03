@@ -86,7 +86,8 @@ describe('chat prompt builder', () => {
     });
 
     expect(prompt).toContain('[IMAGE_GEN:');
-    expect(prompt).toContain('[MUSIC_GEN:');
+    expect(prompt).not.toContain('[MUSIC_GEN:');
+    expect(prompt).toContain('Create');
     expect(prompt).toContain('At most ONE marker per response');
     expect(prompt).toContain('own line');
     expect(prompt).toContain('Never illustrate an answer unasked');

@@ -27,6 +27,8 @@ export function useAssetUrl(assetId?: string, initialUrl?: string) {
       }
 
       activeUrlRef.current = { url: initialUrl || null, needsCleanup: false };
+      // Synchronize a changed external asset binding and release the prior blob.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUrl(initialUrl || null);
       setNeedsCleanup(false);
       setIsLoading(false);

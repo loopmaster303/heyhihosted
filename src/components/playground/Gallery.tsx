@@ -383,7 +383,7 @@ export function Gallery({
               onClick={() => onSelect(it)}
               aria-current={selected ? true : undefined}
               className={cn(
-                'group relative block w-full overflow-hidden rounded-xl border transition-all hover:-translate-y-0.5',
+                'group relative block w-full overflow-hidden rounded-xl border transition-[transform,border-color] duration-fast ease-out hover:-translate-y-0.5',
                 selected ? 'border-primary ring-1 ring-primary' : 'border-border hover:border-primary/55'
               )}
             >

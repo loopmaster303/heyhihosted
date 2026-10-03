@@ -41,9 +41,8 @@ describe('useChatState', () => {
     const { result } = renderHook(() => useChatState());
 
     expect(result.current.chatInputValue).toBe('');
-    expect(result.current.isImageMode).toBe(false);
-    expect(result.current.isComposeMode).toBe(false);
     expect(result.current.webBrowsingEnabled).toBe(false);
+    expect(result.current.chatImageModelId).toBe('klein');
     expect(result.current.lastFailedRequest).toBeNull();
   });
 
@@ -56,17 +55,13 @@ describe('useChatState', () => {
     expect(result.current.chatInputValue).toBe('Hallo Welt');
   });
 
-  it('derives mode flags from the active conversation', () => {
+  it('derives the research flag from the active conversation', () => {
     mockActiveConversation = {
       id: 'conv-1',
-      isImageMode: true,
-      isComposeMode: true,
       webBrowsingEnabled: true,
     } as unknown as Conversation;
 
     const { result } = renderHook(() => useChatState());
-    expect(result.current.isImageMode).toBe(true);
-    expect(result.current.isComposeMode).toBe(true);
     expect(result.current.webBrowsingEnabled).toBe(true);
   });
 
@@ -91,26 +86,11 @@ describe('useChatState', () => {
     expect(loadConversationMock).toHaveBeenCalledTimes(1);
   });
 
-  // A6: Der Standard ueberschrieb die Chat-Auswahl, weil der Effekt auch auf
-  // die Hydration aus dem localStorage reagierte.
-  it('behaelt die im Chat gewaehlte Bildmodellwahl gegenueber dem Standard', async () => {
-    localStorage.setItem('defaultImageModelId', JSON.stringify('gpt-image'));
-    localStorage.setItem('chatSelectedImageModel', JSON.stringify('klein'));
-
+  it('uses the configured free image model in the shared chat', async () => {
+    localStorage.setItem('defaultImageModelId', JSON.stringify('z-image'));
     const { result } = renderHook(() => useChatState());
     await act(async () => {});
-
-    expect(result.current.selectedImageModelId).toBe('klein');
-    expect(JSON.parse(localStorage.getItem('chatSelectedImageModel') ?? '""')).toBe('klein');
-  });
-
-  it('uebernimmt den Standard, solange im Chat nichts gewaehlt wurde', async () => {
-    localStorage.setItem('defaultImageModelId', JSON.stringify('gpt-image'));
-
-    const { result } = renderHook(() => useChatState());
-    await act(async () => {});
-
-    expect(result.current.selectedImageModelId).toBe('gpt-image');
+    expect(result.current.chatImageModelId).toBe('z-image');
   });
 
   it('runs the migration service once on mount', async () => {

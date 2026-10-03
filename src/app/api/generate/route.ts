@@ -10,6 +10,7 @@ import { fetchAndStoreRemoteMedia } from '@/lib/media/server-media-ingest';
 import {
   getUnifiedModel,
   getReferenceMode,
+  type TemporalControl,
   resolvePollinationsVisualModelId,
   toPollinationsVisualApiModelId,
 } from '@/config/unified-image-models';
@@ -54,6 +55,77 @@ const ImageGenerationSchema = z.object({
   quality: z.enum(['low', 'medium', 'high', 'hd']).optional(),
   params: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
 });
+
+/**
+ * params.duration ist der alternative Traeger fuer p-video-2: der Adapter
+ * faellt darauf zurueck, wenn die Top-Level-Dauer fehlt. Er muss dieselbe
+ * Bereichspruefung passieren wie die Top-Level-Dauer, sonst liefe ein
+ * ungepruefter Wert an den Provider.
+ *
+ * P-Video 2 Pro accepts duration in its params bag when the request comes
+ * from Create. A malformed params-only value must not silently turn into
+ * the adapter's default; an explicitly valid top-level duration wins over
+ * any duplicate params value and is validated by assertDurationAllowed.
+ */
+function resolveEffectiveDuration(
+  canonicalModelId: string,
+  duration: number | undefined,
+  params: Record<string, unknown> | undefined,
+): number | undefined {
+  if (duration !== undefined) return duration;
+  const paramsDuration = params?.duration;
+  if (typeof paramsDuration === 'number') return paramsDuration;
+  if (canonicalModelId === 'p-video-2-pro' && paramsDuration !== undefined) {
+    throw new ApiError(
+      400,
+      `Invalid duration for ${canonicalModelId}: expected a numeric duration`,
+      'INVALID_DURATION',
+    );
+  }
+  return undefined;
+}
+
+function isSecondsDurationAllowed(
+  duration: number,
+  control: Extract<TemporalControl, { mode: 'seconds' }>,
+): boolean {
+  const stepsFromMinimum = (duration - control.min) / control.step;
+  const isStepAligned = Math.abs(stepsFromMinimum - Math.round(stepsFromMinimum)) < 1e-9;
+  const isAllowedOption = !control.options || control.options.includes(duration);
+  return duration >= control.min && duration <= control.max && isStepAligned && isAllowedOption;
+}
+
+function assertDurationAllowed(
+  canonicalModelId: string,
+  duration: number,
+  temporalControl: TemporalControl | undefined,
+): void {
+  if (!temporalControl) return;
+
+  if (temporalControl.mode === 'seconds') {
+    if (isSecondsDurationAllowed(duration, temporalControl)) return;
+    throw new ApiError(
+      400,
+      `Invalid duration for ${canonicalModelId}: expected ${temporalControl.min}-${temporalControl.max} seconds in steps of ${temporalControl.step}`,
+      'INVALID_DURATION',
+    );
+  }
+
+  if (temporalControl.mode === 'frame-backed-seconds') {
+    if (temporalControl.secondOptions.includes(duration)) return;
+    throw new ApiError(
+      400,
+      `Invalid duration for ${canonicalModelId}: expected one of ${temporalControl.secondOptions.join(', ')} seconds`,
+      'INVALID_DURATION',
+    );
+  }
+
+  throw new ApiError(
+    400,
+    `Model ${canonicalModelId} does not accept a duration; its length is controlled by the source input or provider`,
+    'INVALID_DURATION',
+  );
+}
 
 export async function POST(request: Request) {
   try {
@@ -222,41 +294,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (prunaEligible && duration !== undefined) {
-      const temporalControl = modelInfo?.temporalControl;
-
-      if (temporalControl?.mode === 'seconds') {
-        const stepsFromMinimum = (duration - temporalControl.min) / temporalControl.step;
-        const isStepAligned = Math.abs(stepsFromMinimum - Math.round(stepsFromMinimum)) < 1e-9;
-        const isAllowedOption = !temporalControl.options || temporalControl.options.includes(duration);
-
-        if (
-          duration < temporalControl.min
-          || duration > temporalControl.max
-          || !isStepAligned
-          || !isAllowedOption
-        ) {
-          throw new ApiError(
-            400,
-            `Invalid duration for ${canonicalModelId}: expected ${temporalControl.min}-${temporalControl.max} seconds in steps of ${temporalControl.step}`,
-            'INVALID_DURATION',
-          );
-        }
-      } else if (temporalControl?.mode === 'frame-backed-seconds') {
-        if (!temporalControl.secondOptions.includes(duration)) {
-          throw new ApiError(
-            400,
-            `Invalid duration for ${canonicalModelId}: expected one of ${temporalControl.secondOptions.join(', ')} seconds`,
-            'INVALID_DURATION',
-          );
-        }
-      } else if (temporalControl) {
-        throw new ApiError(
-          400,
-          `Model ${canonicalModelId} does not accept a duration; its length is controlled by the source input or provider`,
-          'INVALID_DURATION',
-        );
-      }
+    const effectiveDuration = resolveEffectiveDuration(canonicalModelId, duration, params);
+    if (prunaEligible && effectiveDuration !== undefined) {
+      assertDurationAllowed(canonicalModelId, effectiveDuration, modelInfo?.temporalControl);
     }
 
     if (prunaEligible && hasPrunaKey) {

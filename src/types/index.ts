@@ -1,29 +1,34 @@
 
 
-/**
- * Was ein Lauf tatsaechlich verwendet hat. Haengt am Ergebnis, damit der
- * Kontrollstreifen unter der Karte einen Neulauf mit genau diesen Werten
- * ausloesen kann — die Leiste kennt sie zu dem Zeitpunkt laengst nicht mehr.
- */
-export interface GenerationRecord {
-  prompt: string;
-  modelId: string;
-  aspectRatio?: string;
-  duration?: number;
-  audio?: boolean;
-  /** Referenzen des Laufs — ohne sie wuerde ein Neulauf etwas anderes erzeugen */
-  references?: UploadedReference[];
-  sourceVideo?: UploadedReference | null;
-}
-
 export interface GeneratedMediaMetadata {
   assetId: string | null;
-  generation?: GenerationRecord;
+}
+
+/**
+ * Ein Bild im Chat durchlaeuft drei Zustaende. `pending` steht, sobald die
+ * Antwort da ist — der Platzhalter haelt den Platz, waehrend das Bild entsteht.
+ * Fehlt `status`, ist das Bild fertig (so sieht auch jeder Altbestand aus).
+ */
+export type ChatImageStatus = 'pending' | 'error';
+
+export interface ChatImagePayload {
+  url: string;
+  altText?: string;
+  isGenerated?: boolean;
+  isUploaded?: boolean;
+  remoteUrl?: string;
+  metadata?: GeneratedMediaMetadata;
+  status?: ChatImageStatus;
+  /** Der Prompt, aus dem das Bild entsteht — fuer Grossansicht und Neuversuch. */
+  prompt?: string;
+  modelId?: string;
+  /** Der Satz, der beim Scheitern am Bild steht. */
+  error?: string;
 }
 
 export type ChatMessageContentPart =
   | { type: 'text'; text: string }
-  | { type: 'image_url'; image_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; remoteUrl?: string; metadata?: GeneratedMediaMetadata } }
+  | { type: 'image_url'; image_url: ChatImagePayload }
   | { type: 'video_url'; video_url: { url: string; altText?: string; isGenerated?: boolean; isUploaded?: boolean; metadata?: GeneratedMediaMetadata } }
   | { type: 'audio_url'; audio_url: { url: string; altText?: string; isGenerated?: boolean; duration?: number; metadata?: GeneratedMediaMetadata } };
 

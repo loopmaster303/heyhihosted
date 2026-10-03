@@ -40,3 +40,7 @@ if (!crypto.randomUUID) {
     },
   });
 }
+
+// Barrierefreiheit als Gate (E14): `expect(await axe(container)).toHaveNoViolations()`.
+import { toHaveNoViolations } from 'jest-axe';
+expect.extend(toHaveNoViolations);

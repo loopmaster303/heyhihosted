@@ -161,17 +161,6 @@
   }
 }
 
-/* Mode activation flash */
-@keyframes flash-fade {
-  0% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  @keyframes flash-fade {
-    0%, 100% { opacity: 0; }
-  }
-}
 
 /* Global type scale: keep mobile readable, avoid oversized desktop UI */
 html {
@@ -191,10 +180,6 @@ html {
 }
 
 @layer utilities {
-  .text-glow {
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4),
-      0 0 16px rgba(255, 255, 255, 0.2);
-  }
 
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -207,26 +192,8 @@ html {
     /* Firefox */
   }
 
-  .filter-neutral {
-    filter: invert(50%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%)
-      contrast(100%);
-    opacity: 0.6;
-  }
 
-  .filter-purple {
-    /* Generated with https://codepen.io/sosuke/pen/Pjoqqp */
-    /* Target color: #8b5cf6 (purple-500) */
-    filter: invert(47%) sepia(87%) saturate(1437%) hue-rotate(228deg)
-      brightness(97%) contrast(96%);
-  }
 
-  .bg-radial-gradient-fog {
-    background-image: radial-gradient(
-      ellipse at center,
-      rgba(0, 0, 0, 0.85) 20%,
-      rgba(0, 0, 0, 0) 70%
-    );
-  }
 
   /* Typewriter cursor animation */
   @keyframes blink {
@@ -241,42 +208,6 @@ html {
     }
   }
 
-  /* Decrypted text smooth rendering */
-  .decrypted-text {
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Decrypted text hover effect */
-  .decrypted-text-hoverable {
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-  }
-
-  .decrypted-text-hoverable:hover {
-    transform: scale(1.02);
-    text-shadow: 0 0 20px rgba(179, 136, 255, 0.3);
-  }
-
-  .decrypted-text-hoverable::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 50%;
-    transform: translateX(-50%) scaleX(0);
-    width: 60%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(179, 136, 255, 0.6), transparent);
-    transition: transform 0.3s ease;
-  }
-
-  .decrypted-text-hoverable:hover::after {
-    transform: translateX(-50%) scaleX(1);
-  }
 }
 
 /* Specific font weights */
@@ -291,68 +222,6 @@ h6 {
   font-weight: 700;
 }
 
-/* Activation feedback: one-time ring that ebbs away — replaces the old infinite pulse glows */
-@keyframes activate-flash {
-  0% {
-    box-shadow: 0 0 0 0 hsl(var(--ring) / 0.45);
-  }
-
-  100% {
-    box-shadow: 0 0 0 14px hsl(var(--ring) / 0);
-  }
-}
-
-.activate-flash {
-  animation: activate-flash 0.5s ease-out 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .activate-flash {
-    animation: none;
-  }
-}
-
-/* Rotierender Licht-Sweep fuer den Fokus-Ring der Prompt-Bar */
-@keyframes border-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-border-spin {
-  animation: border-spin 6s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-border-spin {
-    animation: none;
-  }
-}
-
-/* Inline-Moduswechsel: Optionen loesen sich aus dem Verb auf */
-@keyframes mode-option-in {
-  from {
-    opacity: 0;
-    filter: blur(6px);
-    transform: translateY(3px);
-  }
-
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: none;
-  }
-}
-
-.mode-option-in {
-  animation: mode-option-in 350ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mode-option-in {
-    animation: none;
-  }
-}
 
 /* Glass & Material Utilities */
 @layer utilities {
@@ -361,45 +230,14 @@ h6 {
   }
 
   .glass-button {
-    @apply bg-primary/15 hover:bg-primary/25 backdrop-blur-xl text-foreground border border-glass-border shadow-sm transition-all duration-300;
+    @apply bg-primary/15 hover:bg-primary/25 backdrop-blur-xl text-foreground border border-glass-border shadow-sm transition-colors duration-med ease-out;
   }
 
   .glass-input {
-    @apply bg-glass-background/50 backdrop-blur-2xl border border-glass-border focus:ring-1 focus:ring-primary/30 transition-all duration-300;
+    @apply bg-glass-background/50 backdrop-blur-2xl border border-glass-border focus:ring-1 focus:ring-primary/30 transition-[border-color,box-shadow] duration-med ease-out;
   }
 
-  .frosted-ice {
-    @apply bg-white/80 dark:bg-zinc-950/80 backdrop-blur-[32px] border border-white/20 dark:border-white/10 shadow-glass;
-  }
 
-  .glass-popover {
-    @apply bg-glass-background/80 backdrop-blur-2xl border border-glass-border shadow-glass-heavy rounded-xl;
-  }
-
-  .bg-noise {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
-  }
-
-  /* === Way of Code: AI Bubble Glow === */
-  .message-bubble-ai {
-    position: relative;
-    filter: url(#noise-border);
-  }
-  .message-bubble-ai::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(circle at 30% 50%, hsl(var(--primary) / 0.05), transparent 70%);
-    mix-blend-mode: screen;
-    pointer-events: none;
-    z-index: 0;
-  }
-  /* Toned-down in light mode — screen blend is too intense on white */
-  .light .message-bubble-ai::before {
-    mix-blend-mode: normal;
-    opacity: 0.03;
-  }
 
 }
 
@@ -427,4 +265,229 @@ h6 {
 
 *::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* === Eine Flaeche: Bewegung, Huelle, Raeume === */
+
+/* Drei Dauern fuer die ganze App (tailwind: duration-fast/med/slow). */
+:root {
+  --motion-fast: 160ms;
+  --motion-med: 280ms;
+  --motion-slow: 420ms;
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+}
+
+/*
+ * Reduzierte Bewegung an EINER Stelle: Bewegung wird zu einem kurzen
+ * Ueberblenden. Keine Komponente muss mehr selbst fragen. Endlosanimationen
+ * stehen still — ein Ladezustand bleibt sichtbar, er bewegt sich nur nicht.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 1ms;
+    --motion-med: 120ms;
+    --motion-slow: 120ms;
+  }
+  *, *::before, *::after {
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Die Huelle gummibandet nicht als Ganzes; nur ihre Scroll-Flaechen scrollen. */
+html, body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Zwei Raeume derselben Huelle. Der inaktive bleibt gemountet (laufende
+   Create-Laeufe ueberleben den Wechsel), ist aber unsichtbar und `inert`. */
+.space {
+  position: absolute;
+  inset: 0;
+  transition:
+    transform var(--motion-slow) var(--ease-out),
+    opacity var(--motion-med) var(--ease-out),
+    visibility 0s linear 0s;
+}
+.space[data-active='false'] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform var(--motion-slow) var(--ease-out),
+    opacity var(--motion-med) var(--ease-out),
+    visibility 0s linear var(--motion-slow);
+}
+.space[data-space='chat'][data-active='false'] { transform: translateX(-4%); }
+.space[data-space='create'][data-active='false'] { transform: translateX(4%); }
+
+/* Aktionen an Medien und Nachrichten: auf Touch immer sichtbar, am Desktop
+   bei Hover UND bei Tastaturfokus — nie nur beim Ueberfahren. */
+.reveal-on-hover {
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+.group:hover .reveal-on-hover,
+.group:focus-within .reveal-on-hover {
+  opacity: 1;
+}
+@media (hover: none) {
+  .reveal-on-hover { opacity: 1; }
+}
+
+/* Druck-Feedback auf Touch statt Hover-Effekten. */
+@media (hover: none) {
+  .press:active { transform: scale(.97); }
+}
+.press { transition: transform var(--motion-fast) var(--ease-out); }
+
+/* Kleine Knoepfe, volle Trefferflaeche: am Touchgeraet waechst die Flaeche
+   unsichtbar auf 44 px, ohne dass der Knopf groesser aussieht. */
+@layer components {
+  /* In der Komponenten-Ebene, damit `absolute`/`fixed` am Knopf gewinnen. */
+  @media (pointer: coarse) {
+    .touch-hit { position: relative; }
+    .touch-hit::after { content: ''; position: absolute; inset: -4px; }
+  }
+}
+
+/*
+ * Die Eingabe als Glas — die Optik der fruehern Prompt-Leiste (unified-input):
+ * ein lila Hauch von oben links ueber halbtransparentem Grund, starke
+ * Unschaerfe, eine Lichtkante oben, ein tiefer weicher Schatten. Im Fokus
+ * leuchtet der Rand, und ein Lichtstreif laeuft einmal in sechs Sekunden um.
+ */
+.composer-glass {
+  --composer-edge: inset 0 1px 0 0 rgba(179, 136, 255, 0.07), inset 0 -1px 0 0 rgba(0, 0, 0, 0.1);
+  --composer-drop: 0 8px 32px -8px rgba(0, 0, 0, 0.4), 0 2px 8px -2px rgba(0, 0, 0, 0.2);
+  border: 1px solid hsl(var(--primary) / 0.3);
+  background:
+    linear-gradient(169deg, rgba(179, 136, 255, 0.09) 0%, rgba(179, 136, 255, 0.025) 40%, rgba(179, 136, 255, 0) 70%),
+    rgba(var(--glass-bg-rgb), 0.55);
+  -webkit-backdrop-filter: blur(40px) saturate(1.3);
+  backdrop-filter: blur(40px) saturate(1.3);
+  box-shadow: var(--composer-edge), var(--composer-drop);
+  transition:
+    border-color var(--motion-med) var(--ease-out),
+    box-shadow var(--motion-med) var(--ease-out);
+}
+:root:not(.dark) .composer-glass {
+  --composer-edge: inset 0 1px 0 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 0 rgba(120, 80, 200, 0.06);
+  --composer-drop: 0 8px 32px -10px rgba(90, 50, 160, 0.22), 0 2px 8px -2px rgba(90, 50, 160, 0.08);
+}
+.composer-glass:hover { border-color: hsl(var(--primary) / 0.5); }
+.composer-glass:focus-within {
+  border-color: hsl(var(--primary) / 0.6);
+  box-shadow: var(--composer-edge), var(--composer-drop), 0 0 24px -6px hsl(var(--primary) / 0.45);
+}
+
+/* Der Lichtstreif: ein konischer Verlauf, auf den Rand maskiert. */
+.composer-sweep {
+  pointer-events: none;
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  padding: 1.5px;
+  opacity: 0;
+  transition: opacity var(--motion-slow) var(--ease-out);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box exclude, linear-gradient(#fff 0 0);
+}
+.composer-sweep::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 120%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: conic-gradient(from 0deg, transparent 0deg, hsl(var(--primary) / 0.85) 40deg, transparent 80deg);
+  animation: composer-sweep 6s linear infinite;
+}
+.composer-glass:focus-within .composer-sweep { opacity: 1; }
+@keyframes composer-sweep { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) {
+  .composer-sweep::before { animation: none; }
+}
+
+/*
+ * Panels — die Optik der frueheren Seitenleiste (AppSidebar, bis 2026-10-01):
+ * durchscheinendes Glas statt Flaeche, ein Hintergrund, der nur leicht
+ * verschwimmt statt schwarz zu werden, Abschnittskoepfe in Versalien,
+ * ruhige lila Glasknoepfe, runde Felder. Das Verhalten (Sheet, Adresse,
+ * Zurueck, Wischen) bleibt das der Huelle.
+ */
+@layer components {
+  .panel-overlay {
+    background: rgba(255, 255, 255, 0.05);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+  :root:not(.dark) .panel-overlay { background: rgba(60, 30, 110, 0.06); }
+
+  .panel-glass {
+    background: hsl(var(--sidebar-background) / 0.85);
+    -webkit-backdrop-filter: blur(40px) saturate(1.2);
+    backdrop-filter: blur(40px) saturate(1.2);
+    border-color: hsl(var(--sidebar-border) / 0.5);
+    box-shadow: var(--glass-shadow), 0 24px 64px -24px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Abschnittskopf: klein, Versalien, gesperrt, mit Zeichen davor. */
+  .panel-heading {
+    @apply flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70;
+  }
+  .panel-heading > svg { @apply h-3.5 w-3.5 shrink-0; }
+
+  .panel-label {
+    @apply flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  /* Ein Eintrag in einer Liste: Pille mit unsichtbarem Rand, aktiv lila. */
+  .panel-item {
+    @apply rounded-xl border border-transparent transition-colors duration-fast;
+  }
+  .panel-item:hover { @apply bg-primary/5; }
+  .panel-item[aria-current='true'] { @apply border-primary/20 bg-primary/10 shadow-sm; }
+
+  /* Die Hauptaktion eines Panels: lila Glas, kein Vollton. */
+  .panel-action {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/15 text-xs font-medium text-foreground shadow-glow-primary transition-colors duration-fast hover:bg-primary/25;
+  }
+  .panel-action:focus-visible { @apply outline-none ring-2 ring-ring; }
+
+  /* Nebenaktion: nur Rand. */
+  .panel-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-border/60 text-xs text-foreground/80 transition-colors duration-fast hover:border-primary/30 hover:bg-primary/5 hover:text-foreground disabled:opacity-40;
+  }
+  .panel-ghost:focus-visible { @apply outline-none ring-2 ring-ring; }
+
+  /* Eine Gruppe von Feldern, die zusammengehoeren (ein Konto). */
+  .panel-card { @apply rounded-2xl border border-primary/10 bg-primary/5; }
+
+  /* Felder: rund, dunkler Grund, lila Rand im Fokus. */
+  .panel-field {
+    @apply h-9 w-full rounded-full border border-border/60 bg-background/50 px-4 text-sm text-foreground transition-colors duration-fast placeholder:text-muted-foreground/60;
+  }
+  .panel-field:focus-visible { @apply border-primary/50 outline-none ring-1 ring-primary/30; }
+  textarea.panel-field { @apply h-auto rounded-2xl py-2.5; }
+  /* Auswahl: eigener Pfeil mit Abstand — der native klebt sonst am runden Rand. */
+  select.panel-field {
+    appearance: none;
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b8597' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+  }
+  @media (pointer: coarse) {
+    /* Touch: 44 px hoch und 16 px Schrift, sonst zoomt iOS beim Fokus. */
+    .panel-field { height: 2.75rem; font-size: 16px; }
+    textarea.panel-field { height: auto; }
+    .panel-action, .panel-ghost { min-height: 2.75rem; }
+  }
 }

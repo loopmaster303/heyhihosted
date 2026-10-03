@@ -37,20 +37,14 @@ export interface ComposeModelOption {
 // Kein Text→Audio-Modell ist kostenlos (Registry 2026-08-28) — der alte
 // Ace-Step-Eintrag mit isFree: true war ein falsches Versprechen; `acestep`
 // existiert in der Registry nicht mehr. Die Route lehnt es ab (Phase 3).
-// Die vollständige Ausrottung samt neuer Musik-UI bleibt Phase 8.
+// Die Liste bleibt fuer /api/compose und den Registry-Check; die Chat-UI fuer
+// Musik ist entfernt — Sound lebt in Create.
 const KEYED_DURATION_STEPS = [30, 60, 120, 180, 240, 300];
 
 export const AVAILABLE_COMPOSE_MODELS: ComposeModelOption[] = [
   { id: 'elevenmusic', name: 'ElevenMusic v2', isFree: false, freeDurations: [], keyedDurations: KEYED_DURATION_STEPS },
   { id: 'stable-audio-3-medium', name: 'Stable Audio 3 Medium', isFree: false, freeDurations: [], keyedDurations: KEYED_DURATION_STEPS },
 ];
-
-/** Duration steps (seconds) available for a compose model given the current key state. */
-export function getComposeDurations(modelId: string, hasKey: boolean): number[] {
-  const model = AVAILABLE_COMPOSE_MODELS.find((m) => m.id === modelId);
-  if (!model) return hasKey ? KEYED_DURATION_STEPS : [30, 60];
-  return hasKey ? model.keyedDurations : model.freeDurations;
-}
 
 // Pollinations Models - New simplified structure
 const ALL_POLLINATIONS_MODELS: PollinationsModel[] = [
@@ -611,20 +605,8 @@ export const AVAILABLE_TTS_VOICES: VoiceOption[] = [
 export const DEFAULT_POLLINATIONS_MODEL_ID = 'deepseek';
 export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
-// For in-chat image generation
-// NOTE: Only IMAGE models - no video models in chat fallback list
-// Filter out disabled models
-import { getChatImageModelIds } from './unified-image-models';
-// Nur, was der Server-Schluessel auch bedienen darf: die kostenlosen
-// Pollinations-Bildmodelle der Config. getImageModels() lieferte zuvor
-// zusaetzlich die Pruna-Eintraege (BYOP-only) — im Chat waehlbar, garantiert im
-// Fehler. Pruna gehoert in den Playground, nicht in den Chat.
-export const FALLBACK_IMAGE_MODELS = getChatImageModelIds();
 // 'zimage' war die Vorgabe und haengt am Pruna-Dispatch (BYOP-only) — keylose
-// Nutzer bekamen garantiert 503. Danach war 'flux' die Vorgabe; seit dem
-// Key-Wechsel am 2026-09-10 antwortet es mit 403 ("Model 'flux' is not allowed
-// for this API key"). 'klein' ist live gegen gen.pollinations.ai verifiziert
-// (200, 2026-09-10) und liegt in der Freigabe des Betreiber-Schluessels.
+// Nutzer bekamen garantiert 503. 'flux' ist live verifiziert frei (2026-08-28).
 export const DEFAULT_IMAGE_MODEL = 'klein';
 
 // Code reasoning system prompt used when Code Mode is enabled

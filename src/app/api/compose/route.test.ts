@@ -7,6 +7,7 @@ jest.mock('@/lib/resolve-pollen-key', () => ({
 
 jest.mock('@/lib/https-post', () => ({
   httpsFetchBinary: (...args: unknown[]) => httpsFetchBinaryMock(...args),
+  LONG_RUNNING_TIMEOUT_MS: 290_000,
 }));
 
 describe('/api/compose route', () => {
@@ -106,7 +107,10 @@ describe('/api/compose route', () => {
     expect(httpsFetchBinaryMock).toHaveBeenCalledWith(
       expect.stringContaining('duration=300'),
       expect.objectContaining({ Authorization: 'Bearer sk_test_key' }),
+      // Musik bekommt ihr eigenes, langes Zeitlimit — 30 s reichten nie.
+      expect.any(Number),
     );
+    expect(httpsFetchBinaryMock.mock.calls[0][2]).toBeGreaterThan(30_000);
   });
 
   it('rejects suno as an unknown model with 400', async () => {

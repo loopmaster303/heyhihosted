@@ -1,19 +1,14 @@
 import { useState } from 'react';
 
 /**
- * Hook for managing Chat UI state (Toggles, Panels, Dialogs)
+ * Laeuft gerade eine Antwort? Panels und Sheets gehoeren der Huelle
+ * (AppShell), nicht dem Chat-Zustand.
  */
 export function useChatUI() {
   const [isAiResponding, setIsAiResponding] = useState(false);
-  const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
-  const [isAdvancedPanelOpen, setIsAdvancedPanelOpen] = useState(false);
 
   return {
     isAiResponding,
     setIsAiResponding,
-    isHistoryPanelOpen,
-    setIsHistoryPanelOpen,
-    isAdvancedPanelOpen,
-    setIsAdvancedPanelOpen,
   };
 }

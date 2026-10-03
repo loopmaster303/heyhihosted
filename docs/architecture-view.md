@@ -37,44 +37,34 @@ graph TB
 
 ## Component Architecture
 
+One persistent layout, two spaces, sheets on top. Routes only decide which space is in front.
+
 ```mermaid
 graph TD
-    subgraph "Layout Components"
-        AppLayout[AppLayout]
-        Sidebar[AppSidebar]
-        Theme[ThemeProvider]
-        Lang[LanguageProvider]
+    subgraph "Routes (src/app)"
+        Root["/ (Chat)"]
+        Create["/create"]
+        About["/about (standalone)"]
     end
-    
-    subgraph "Page Routes"
-        Home[/]
-        Chat[/chat]
-        Create[/create]
-        Settings[/settings]
-        About[/about]
-        Output/Gallery[/gallery]
+
+    subgraph "AppShell — src/app/(app)/layout.tsx"
+        Header[Header: SpaceSwitch, ⌘K, Verlauf, Galerie, Einstellungen]
+        ChatSpace[ChatSpace + ChatProvider]
+        CreateSpace[PlaygroundShell — lazy, stays mounted]
+        Sheets["Sheets via ?panel= : History, Gallery, Settings"]
+        Lightbox[Lightbox]
     end
-    
-    subgraph "Feature Components"
-        Landing[LandingView]
-        Chat[ChatInterface]
-        Playground[PlaygroundShell]
-        Personalization[PersonalizationTool]
-        OutputGrid[GalleryGrid]
-    end
-    
-    subgraph "Integrated Tools"
-        ImageTool[UnifiedImageTool Logic]
-        PlaygroundTool[Playground Generation Logic]
-    end
-    
-    Home --> Landing
-    Home --> Chat
-    Landing -.-> ImageTool
-    Chat -.-> ImageTool
-    Settings --> Personalization
-    Output --> OutputGrid
+
+    Root --> ChatSpace
+    Create --> CreateSpace
+    Header --> Sheets
+    ChatSpace -. "handoffToCreate(prompt, model)" .-> CreateSpace
+    ChatSpace --> Lightbox
+    Sheets --> Gallery[GalleryPanel — one asset pool, origin filter]
 ```
+
+The inactive space gets `inert`; both keep their state across switches. Create state never
+enters `ChatProvider`.
 
 ## Data Flow Architecture
 
@@ -87,20 +77,22 @@ sequenceDiagram
     participant ExternalAPI
     participant IndexedDB
     
-    User->>UI: Send Message / Generate Media
+    User->>UI: Send Message
     UI->>ChatProvider: sendMessage()
     ChatProvider->>API: POST /api/chat/completion
     API->>ExternalAPI: User-selected model (plus optional injected web context)
     ExternalAPI-->>API: Response (JSON)
     API-->>ChatProvider: Return JSON response (non-streaming)
-    ChatProvider->>IndexedDB: Save Conversation (Conversations Table)
-    ChatProvider->>IndexedDB: Save Message (Messages Table)
-    ChatProvider-->>UI: Update State
-    UI-->>User: Display Response
+    ChatProvider-->>UI: Clean text + pending image part (marker never shown)
+    ChatProvider->>API: POST /api/generate (only if the answer carried [IMAGE_GEN])
+    API-->>ChatProvider: Image URL or error
+    ChatProvider->>IndexedDB: Save asset, conversation, messages
+    ChatProvider-->>UI: Image part ready / error
+    UI-->>User: ASCII field resolves into the frameless image
 
     Note over User, IndexedDB: Playground flow (self-contained)
     User->>PlaygroundUI: Select model, prompt, references
-    PlaygroundUI->>API: POST /api/generate
+    PlaygroundUI->>API: POST /api/generate (202 + browser polling for long runs)
     API->>ExternalAPI: Pollinations or Pruna generation
     ExternalAPI-->>API: Media result / error
     API-->>PlaygroundUI: Return media URL or error

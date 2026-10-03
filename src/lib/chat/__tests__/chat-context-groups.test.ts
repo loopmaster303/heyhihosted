@@ -1,11 +1,6 @@
 import {
   buildChatContextGroups,
   buildChatContextGroupsWithOverrides,
-  getChatComposerSlice,
-  getChatConversationSlice,
-  getChatMediaSlice,
-  getChatModesSlice,
-  getChatPanelsSlice,
   mergeChatContextGroups,
 } from '../chat-context-groups';
 
@@ -16,10 +11,6 @@ describe('chat context groups', () => {
       allConversations: 'all',
       isAiResponding: 'responding',
       setIsAiResponding: 'set-responding',
-      isImageMode: 'image',
-      isComposeMode: 'compose',
-      isHistoryPanelOpen: 'history',
-      isAdvancedPanelOpen: 'advanced',
       playingMessageId: 'playing',
       isTtsLoadingForId: 'tts',
       chatInputValue: 'input',
@@ -30,32 +21,26 @@ describe('chat context groups', () => {
       isRecording: 'recording',
       isTranscribing: 'transcribing',
       isCameraOpen: 'camera',
-      availableImageModels: 'image-models',
-      selectedImageModelId: 'selected-image-model',
+      chatImageModelId: 'chat-image-model',
       selectChat: 'selectChat',
       startNewChat: 'startNewChat',
       deleteChat: 'deleteChat',
       sendMessage: 'sendMessage',
-      toggleImageMode: 'toggleImageMode',
-      toggleComposeMode: 'toggleComposeMode',
       handleFileSelect: 'handleFileSelect',
       clearUploadedImage: 'clearUploadedImage',
       handleModelChange: 'handleModelChange',
       handleStyleChange: 'handleStyleChange',
       handleVoiceChange: 'handleVoiceChange',
       handleTtsSpeedChange: 'handleTtsSpeedChange',
-      handleImageModelChange: 'handleImageModelChange',
-      toggleHistoryPanel: 'toggleHistoryPanel',
-      closeHistoryPanel: 'closeHistoryPanel',
-      toggleAdvancedPanel: 'toggleAdvancedPanel',
-      closeAdvancedPanel: 'closeAdvancedPanel',
       toggleWebBrowsing: 'toggleWebBrowsing',
+      toggleCodeMode: 'toggleCodeMode',
       webBrowsingEnabled: 'webBrowsingEnabled',
       handlePlayAudio: 'handlePlayAudio',
       setChatInputValue: 'setChatInputValue',
       handleCopyToClipboard: 'handleCopyToClipboard',
       regenerateLastResponse: 'regenerateLastResponse',
       retryLastRequest: 'retryLastRequest',
+      retryMediaPart: 'retryMediaPart',
       startRecording: 'startRecording',
       stopRecording: 'stopRecording',
       openCamera: 'openCamera',
@@ -69,13 +54,11 @@ describe('chat context groups', () => {
     expect(groups.conversation.activeConversation).toBe('active');
     expect(groups.composer.sendMessage).toBe('sendMessage');
     expect(groups.modes.toggleWebBrowsing).toBe('toggleWebBrowsing');
+    expect(groups.modes.chatImageModelId).toBe('chat-image-model');
     expect(groups.media.handleFileSelect).toBe('handleFileSelect');
-    expect(groups.panels.toggleHistoryPanel).toBe('toggleHistoryPanel');
-    expect(getChatComposerSlice(groups)).toEqual(groups.composer);
-    expect(getChatConversationSlice(groups)).toEqual(groups.conversation);
-    expect(getChatModesSlice(groups)).toEqual(groups.modes);
-    expect(getChatMediaSlice(groups)).toEqual(groups.media);
-    expect(getChatPanelsSlice(groups)).toEqual(groups.panels);
+    expect(groups.media.retryMediaPart).toBe('retryMediaPart');
+    // Panels gehoeren der Huelle, nicht dem Chat-Zustand.
+    expect(groups).not.toHaveProperty('panels');
 
     expect(mergeChatContextGroups(groups)).toEqual(chatLogic);
     expect(

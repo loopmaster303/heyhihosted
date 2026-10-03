@@ -15,6 +15,8 @@ const config: Config = {
   moduleNameMapper: {
     // Handle module aliases (this will be automatically configured for you soon)
     '^@/(.*)$': '<rootDir>/src/$1',
+    // ESM-only; siehe src/test/lucide-mock.tsx
+    '^lucide-react$': '<rootDir>/src/test/lucide-mock.tsx',
   },
   // Automatically clear mock calls, instances, contexts and results before every test
   clearMocks: true,

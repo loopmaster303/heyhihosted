@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, DatabaseService } from '@/lib/services/database';
 import { useState, useCallback, useMemo } from 'react';
 import type { Conversation } from '@/types';
+import { interruptPendingMedia } from '@/lib/chat/chat-media-intent-handler';
 
 // Ein Literal im Rueckgabewert veraendert bei jedem Render die Identitaet des
 // Hook-Ergebnisses. Ein Effekt, der daran haengt, laeuft dann bei jedem Render
@@ -36,7 +37,9 @@ export function useChatPersistence() {
    * Load a full conversation including its messages
    */
   const loadConversation = useCallback(async (id: string) => {
-    const fullConv = await DatabaseService.getFullConversation(id);
+    const stored = await DatabaseService.getFullConversation(id);
+    // Ein Bild, das beim Speichern noch entstand, entsteht jetzt nicht mehr.
+    const fullConv = stored ? interruptPendingMedia(stored) : stored;
     setActiveConversation(fullConv);
     return fullConv;
   }, []);

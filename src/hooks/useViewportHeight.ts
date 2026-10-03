@@ -16,7 +16,7 @@ import { useEffect } from 'react';
  *
  * `offsetTop` bleibt bewusst unbeachtet: ob iOS den sichtbaren Bereich bei
  * offener Tastatur zusaetzlich verschiebt, ist ohne echtes Geraet nicht zu
- * entscheiden. Siehe docs/PLAN-phase-6-create-telefon.md, Abschnitt 8.
+ * entscheiden. Siehe docs/archive/2026-08-create-fahrplan/PLAN-phase-6-create-telefon.md, Abschnitt 8.
  */
 export function useViewportHeight(): void {
   useEffect(() => {

@@ -1,0 +1,994 @@
+"use client";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { SlidersHorizontal, X } from 'lucide-react';
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
+import { PlaygroundSidebar, PlaygroundSidebarContent } from '@/components/playground/PlaygroundSidebar';
+import { useShell } from '@/components/shell/ShellContext';
+import { toast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
+import { PromptBar } from '@/components/playground/PromptBar';
+import { Gallery, type GalleryItem, type GalleryRun } from '@/components/playground/Gallery';
+import { MetaRail } from '@/components/playground/MetaRail';
+import { usePlaygroundState } from '@/hooks/usePlaygroundState';
+import { usePlaygroundModels } from '@/hooks/usePlaygroundModels';
+import { usePollenKey } from '@/hooks/usePollenKey';
+import { useProviderMode } from '@/hooks/useProviderMode';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { buildGenerateBody, buildGenerateHeaders, type GenerateBody } from '@/lib/playground/generate-request';
+import { requestGeneration, pollPrediction } from '@/lib/generation/request-generation';
+import { readStoredRuns, removeStoredRun, type StoredRun } from '@/lib/generation/run-store';
+import { readErrorResponse } from '@/lib/errors/read-error-response';
+import { describeError, type ErrorDescription } from '@/lib/errors/describe-error';
+import { deleteAssetById } from '@/lib/assets/delete-assets';
+import type { AssetOrigin } from '@/lib/assets/asset-origin';
+import { OriginFilter } from '@/components/gallery/OriginFilter';
+import { isModelInMode } from '@/lib/playground/mode-mapping';
+import { getDefaultDurationSeconds, getUnifiedModel } from '@/config/unified-image-models';
+import { isPrunaModel } from '@/config/pruna-models';
+import { useHasPrunaKey } from '@/hooks/useHasPrunaKey';
+import { schemaForEntry, defaultsFor, visibleFields, type ParamValues } from '@/lib/playground/param-schema';
+import { getAspectRatioPresetsForModel } from '@/config/image-aspect-ratio-presets';
+import { BlobManager } from '@/lib/blob-manager';
+import { OutputService } from '@/lib/services/output-service';
+import { PLAYGROUND_CONVERSATION_ID } from '@/lib/playground/constants';
+import { readLocal, writeLocal } from '@/lib/safe-storage';
+import { getStoredPollenKey } from '@/lib/client-pollen-key';
+
+/**
+ * Ein abgeschickter Lauf mit allem, was seine Wiederholung braucht. Ohne das
+ * schickte "Erneut versuchen" den inzwischen veraenderten Composer-Zustand.
+ */
+interface QueuedRun {
+  body: GenerateBody;
+  prompt: string;
+  params: ParamValues;
+  modelId: string;
+  isVideo: boolean;
+  aspectRatio?: string;
+}
+
+/**
+ * Ein Lauf im Flug oder gescheitert. Der Run *ist* der Retry-Kontext — daher
+ * kein separater Merker fuer den letzten Fehlschlag. Der AbortController haengt
+ * am einzelnen Lauf, damit ein Abbruch die anderen nicht mitreisst.
+ */
+interface ActiveRun extends QueuedRun {
+  id: string;
+  startedAt: number;
+  status: 'running' | 'failed';
+  message?: string;
+  controller: AbortController;
+}
+
+/**
+ * Sound-Lauf (ACE-Step). Eigener Typ, weil er kein GenerateBody und keine
+ * Modell-Registry-Entry hat: Start und Poll laufen ueber /api/sound, die
+ * Audios kommen aus /api/sound/audio. Eingefrorene Werte tragen den Retry.
+ */
+interface SoundRun {
+  id: string;
+  startedAt: number;
+  status: 'running' | 'failed';
+  message?: string;
+  raw?: string;
+  controller: AbortController;
+  tags: string;
+  lyrics: string;
+  duration: number;
+  batch: number;
+  instrumental: boolean;
+}
+
+const SOUND_MODEL_ID = 'acestep-1.5';
+/**
+ * acestep-turbo rendert 4x30s warm in ~50s; 10 Minuten sind ein grosszuegiges
+ * Timeout fuer kalte Container und lange Stuecke.
+ */
+const SOUND_MAX_POLL_MS = 10 * 60 * 1000;
+const SOUND_POLL_INTERVAL_MS = 2500;
+
+/**
+ * Pollinations quittiert Bursts mit 429, und eine Warteschlange waere Zustand,
+ * den niemand angefordert hat. Darueber bleibt der Senden-Knopf gesperrt.
+ */
+const MAX_CONCURRENT_RUNS = 3;
+
+/**
+ * L-K.2: Merker, dass der Nutzer die Nicht-Abbrechbarkeit von Pruna einmal
+ * bestaetigt hat. Pro Browser, nicht pro Sitzung — die Bestaetigung soll
+ * nicht bei jedem Reload wiederkommen.
+ */
+const PRUNA_ACK_KEY = 'heyhi_pruna_irreversible_ack';
+
+let runCounter = 0;
+const nextRunId = () => `run-${++runCounter}`;
+
+/**
+ * Die Route antwortet mit allen drei live belegten Formen: {error: string},
+ * {error: {message, code}} und Nicht-JSON (Kante). Der Client uebersetzt NUR
+ * ueber unsere eigenen Codes (describe-error.ts); alles andere bleibt
+ * ungeschoent bei Status plus Rohtext — der Rohtext wandert als Detail an die
+ * Karte, er wird nie weggeworfen (F2, F4).
+ */
+interface ParsedFailure {
+  text: string;
+  /** Roher Antwortkoerper, wenn er mehr sagt als der uebersetzte Satz. */
+  raw?: string;
+  aktion?: ErrorDescription['aktion'];
+}
+
+async function parseFailure(res: Response, fallback: string): Promise<ParsedFailure> {
+  const parsed = await readErrorResponse(res);
+  const described = describeError(parsed.code, {
+    modelLabel: parsed.modelLabel,
+    field: parsed.field,
+    retryAfterSeconds: parsed.retryAfterSeconds,
+  });
+  if (described) {
+    const raw = parsed.raw && parsed.raw !== parsed.message ? parsed.raw : undefined;
+    return { text: described.satz, raw, aktion: described.aktion };
+  }
+  const basis = parsed.message || fallback;
+  const raw = parsed.raw && parsed.raw !== basis ? parsed.raw : undefined;
+  return { text: `${basis} (${parsed.status})`, raw };
+}
+
+function failureError(failure: ParsedFailure): Error & { raw?: string; aktion?: ErrorDescription['aktion'] } {
+  return Object.assign(new Error(failure.text), { raw: failure.raw, aktion: failure.aktion });
+}
+
+/**
+ * Ein Fehler, der hier im Browser entsteht und keinen HTTP-Status hat — etwa
+ * eine abgelaufene Reissleine. Er geht denselben Weg wie ein Server-Fehler:
+ * Code rein, Satz raus. Sonst laese der Nutzer unsere Entwicklersprache.
+ */
+function codeError(code: string, ctx: Parameters<typeof describeError>[1] = {}): Error & { aktion?: ErrorDescription['aktion'] } {
+  const described = describeError(code, ctx);
+  return Object.assign(new Error(described?.satz ?? code), { aktion: described?.aktion });
+}
+
+/**
+ * Create — ein Raum der Huelle (components/shell/AppShell). Die Kopfzeile mit
+ * Raumwechsel, Galerie und Einstellungen gehoert der Huelle; hier steht nur,
+ * was Create selbst ist. Der Zustand bleibt lokal und erreicht den ChatProvider
+ * nie (CLAUDE.md, "Create").
+ */
+export function PlaygroundShell() {
+  const shell = useShell();
+  const {
+    state, setMode, setModelId, setPrompt, setParams, setUploads, setSourceVideo, setSound, resetForModel,
+  } = usePlaygroundState();
+  const { entries, loading, fallbackActive } = usePlaygroundModels();
+  const { pollenKey } = usePollenKey();
+  const hatPrunaSchluessel = useHasPrunaKey();
+  const { providerMode } = useProviderMode();
+
+  const [enhancing, setEnhancing] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const openSettings = () => shell.openPanel('settings');
+  // Ein Lauf, der endet, waehrend du im Chat bist, meldet sich (E13). Der Ref
+  // traegt den aktuellen Raum in die laufenden async-Laeufe — deren Closure
+  // stammt aus dem Render, in dem sie gestartet wurden.
+  const spaceRef = useRef(shell.space);
+  useEffect(() => {
+    spaceRef.current = shell.space;
+  }, [shell.space]);
+  const announceIfAway = (title: string) => {
+    if (spaceRef.current === 'create') return;
+    toast({
+      title,
+      action: (
+        <ToastAction altText="Create öffnen" onClick={() => shell.goToSpace('create')}>
+          Ansehen
+        </ToastAction>
+      ),
+    });
+  };
+  const [selected, setSelected] = useState<GalleryItem | null>(null);
+  const [galleryKey, setGalleryKey] = useState(0);
+  const [error, setError] = useState<string | undefined>();
+  const [runs, setRuns] = useState<ActiveRun[]>([]);
+  const [soundRuns, setSoundRuns] = useState<SoundRun[]>([]);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  // Fluechtig, kein localStorage (E5.2): nach jedem Reload steht der Filter
+  // auf der eigenen Herkunft.
+  const [galleryOrigins, setGalleryOrigins] =
+    useState<readonly AssetOrigin[] | undefined>(['create']);
+  // Gleiche 1280px-Grenze wie die Rail (xl) — darunter wandern die Details
+  // bei Auswahl in den Bottom-Drawer.
+  const isWide = useMediaQuery('(min-width: 1280px)');
+
+  // Parameter, die ein "Nochmal" ueber einen Modellwechsel hinweg retten soll.
+  const rerunParamsRef = useRef<ParamValues | null>(null);
+  // Ob der Modellwechsel-Effekt schon einmal gelaufen ist. Nur beim ersten Mal
+  // darf ein gespeicherter Zustand die Schema-Defaults schlagen.
+  const hydratedRef = useRef(false);
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
+  // Bei mehreren parallelen Laeufen wuerde jeder Abschluss die Detailansicht
+  // umspringen lassen. Ein Ergebnis waehlt sich deshalb nur selbst aus, wenn
+  // gerade nichts anderes ausgewaehlt ist — der State-Wert im Closure ist zum
+  // Zeitpunkt des Abschlusses veraltet, darum der Ref.
+  const selectedRef = useRef<GalleryItem | null>(null);
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
+  // W5/E5.6: Die vom Generierungspfad erzeugte Object-URL wird freigegeben,
+  // sobald der Galerie-Ladelauf eine eigene aus dem gespeicherten Blob gebaut
+  // hat. Bis dahin zeigt die Detailansicht noch auf sie — der Tausch passiert
+  // in handleItemsLoaded, direkt vor der Freigabe.
+  const pendingUrlSwapRef = useRef<{ id: string; url: string } | null>(null);
+
+  // usePlaygroundModels liefert im Pruna-Modus bereits die gefilterte Liste
+  // (PRUNA_HIDDEN_IN_PLAYGROUND) — hier nicht ein zweites Mal filtern.
+  const modeEntries = entries.filter((e) => isModelInMode(e, state.mode));
+  // Ohne Key ist ein kostenpflichtiges Modell nicht benutzbar — Pollinations
+  // antwortet mit 401 und das Bild bleibt leer. Als Vorgabe deshalb erst ein
+  // freies wählen; die Auswahl des Nutzers hat weiter Vorrang.
+  const currentModel =
+    modeEntries.find((e) => e.id === state.modelId) ??
+    (pollenKey ? modeEntries[0] : modeEntries.find((e) => !e.paidOnly) ?? modeEntries[0]);
+
+  // usePlaygroundState hydrates localStorage in an effect. On that first
+  // render `modelId` is still null, so choosing the first available entry here
+  // would overwrite a persisted selection before the hook can publish it.
+  // Only defer when the persisted model is present in this provider catalog;
+  // an unavailable model must still take the normal fallback path.
+  const persistedModelId = (() => {
+    const raw = readLocal('playgroundState');
+    if (!raw) return null;
+    try {
+      const stored = JSON.parse(raw) as { modelId?: unknown };
+      return typeof stored.modelId === 'string' ? stored.modelId : null;
+    } catch {
+      return null;
+    }
+  })();
+  const waitingForStateHydration = loading || (
+    state.modelId === null
+    && persistedModelId !== null
+    && entries.some((entry) => entry.id === persistedModelId)
+  );
+
+  useEffect(() => {
+    if (waitingForStateHydration) return;
+    if (currentModel && state.modelId !== currentModel.id) setModelId(currentModel.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentModel?.id, waitingForStateHydration]);
+
+  const currentSchema = currentModel ? schemaForEntry(currentModel) : undefined;
+
+  // L-K.2 / L-I.3: beides haengt am gewaehlten Modell und muss VOR dem
+  // Absenden dastehen, nicht als Fehler danach.
+  const istPrunaLauf = currentModel ? isPrunaModel(currentModel.id) : false;
+
+  // ACE-Step arbeitet mit 3 bis 7 Stichworten; mehr verwaessert die
+  // Arrangements. Die Zahl steht deshalb in der Statuszeile, direkt unter dem
+  // Feld, in dem sie entsteht.
+  const tagAnzahl = state.sound.tags.split(/[,;]/).map((s) => s.trim()).filter(Boolean).length;
+  const brauchtPollen = !!currentModel
+    && currentModel.provider === 'pollinations'
+    && currentModel.paidOnly
+    && !pollenKey;
+  const brauchtPrunaSchluessel = istPrunaLauf && !hatPrunaSchluessel;
+
+  const keyRequiredHint = brauchtPrunaSchluessel
+    ? `${currentModel?.name ?? 'Dieses Modell'} läuft über Pruna und braucht deinen eigenen Pruna-Schlüssel — in den Einstellungen hinterlegen.`
+    : brauchtPollen
+      ? `${currentModel?.name ?? 'Dieses Modell'} braucht einen Pollen-Schlüssel — in den Einstellungen hinterlegen.${currentModel?.kind === 'video' ? ' Für Video gibt es kein kostenloses Modell.' : ''}`
+      : undefined;
+
+  // Pruna hat keinen Cancel-Endpunkt: jeder gueltige Payload startet einen
+  // abrechenbaren Lauf. "Nicht mehr warten" beendet nur das Warten hier.
+  const irreversibleHint = istPrunaLauf
+    ? 'Ein gestarteter Pruna-Lauf lässt sich nicht abbrechen und wird abgerechnet — auch wenn du hier aufhörst zu warten.'
+    : undefined;
+
+  useEffect(() => {
+    if (!currentModel || waitingForStateHydration) return;
+    // Bei "Nochmal" mit Modellwechsel liegen hier die uebernommenen
+    // Parameter statt der Schema-Defaults.
+    const override = rerunParamsRef.current;
+    rerunParamsRef.current = null;
+    const prev = stateRef.current;
+    const schema = schemaForEntry(currentModel);
+    const defaults = defaultsFor(schema);
+
+    // Erster Lauf nach dem Mount: der aus dem localStorage geladene Zustand
+    // gehoert zu genau diesem Modell und wird nicht mit Defaults ueberschrieben
+    // — sonst waere das Persistieren von params wirkungslos. Uebernommen wird
+    // nur, was das heutige Schema noch kennt; alles andere faellt weg.
+    let restored: ParamValues | undefined;
+    if (!hydratedRef.current) {
+      hydratedRef.current = true;
+      if (!override && prev.modelId === currentModel.id && Object.keys(prev.params).length > 0) {
+        const known = new Set(visibleFields(schema, prev.params).map((f) => f.name));
+        restored = {
+          ...defaults,
+          ...Object.fromEntries(Object.entries(prev.params).filter(([k]) => known.has(k))),
+        };
+      }
+    }
+
+    resetForModel({
+      params: override ?? restored ?? defaults,
+      uploads: prev.uploads.slice(0, currentModel.maxImages),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentModel?.id, waitingForStateHydration]);
+
+  // "In Create weiterarbeiten" aus dem Chat: Prompt und, wenn Create es fuehrt,
+  // das Modell uebernehmen. Bild-Modus, kein Auto-Senden — erst anpassen.
+  const handoff = shell.createHandoff;
+  useEffect(() => {
+    if (!handoff) return;
+    shell.consumeHandoff(handoff.id);
+    if (state.mode !== 't2i') setMode('t2i');
+    setPrompt(handoff.prompt);
+    if (handoff.modelId && entries.some((e) => e.id === handoff.modelId && isModelInMode(e, 't2i'))) {
+      setModelId(handoff.modelId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handoff?.id, entries.length]);
+
+  const onEnhance = async () => {
+    // Sound-Enhance verdichtet die Tags (AUDIO_ENHANCEMENT_KEYS-Pfad der
+    // enhance-prompt-Route) und schreibt zurueck ins Tag-Feld.
+    if (state.mode === 'sound') {
+      if (!state.sound.tags.trim()) return;
+      setEnhancing(true);
+      setError(undefined);
+      try {
+        const res = await fetch('/api/enhance-prompt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(pollenKey ? { 'X-Pollen-Key': pollenKey } : {}),
+          },
+          body: JSON.stringify({ prompt: state.sound.tags, modelId: 'ace-step' }),
+        });
+        if (!res.ok) throw new Error((await parseFailure(res, 'Enhance fehlgeschlagen')).text);
+        const data = await res.json();
+        if (data?.enhancedPrompt) setSound({ tags: data.enhancedPrompt });
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setEnhancing(false);
+      }
+      return;
+    }
+    if (!state.prompt.trim() || !currentModel) return;
+    setEnhancing(true);
+    setError(undefined);
+    try {
+      const res = await fetch('/api/enhance-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Die Route zieht den Key aus dem Header; ohne ihn entfällt die
+          // Web-Recherche und der Aufruf läuft auf dem freien Kontingent.
+          ...(pollenKey ? { 'X-Pollen-Key': pollenKey } : {}),
+        },
+        // modelId ist Pflicht — die Route antwortet sonst mit 400 — und wählt
+        // die modellspezifischen Richtlinien aus.
+        body: JSON.stringify({ prompt: state.prompt, modelId: currentModel.id }),
+      });
+      if (!res.ok) throw new Error((await parseFailure(res, 'Enhance fehlgeschlagen')).text);
+      const data = await res.json();
+      if (data?.enhancedPrompt) setPrompt(data.enhancedPrompt);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setEnhancing(false);
+    }
+  };
+
+  const promptRequired = currentSchema?.promptRequired ?? true;
+
+  /**
+   * Startet einen bereits eingefrorenen Lauf. Der Run haengt zu diesem
+   * Zeitpunkt schon in `runs` — diese Funktion verwaltet nur noch sein Ende.
+   */
+  const runGeneration = async (run: ActiveRun) => {
+    setError(undefined);
+    const { body, prompt: sentPrompt, params: sentParams } = run;
+    const prunaKey = readLocal('prunaApiKey') ?? undefined;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...buildGenerateHeaders(pollenKey || undefined, prunaKey || undefined),
+    };
+    try {
+      // Lange Pruna-Laeufe warten nicht im Request — requestGeneration haelt
+      // die Statusabfrage im Browser, bis das Ergebnis da ist. Der context
+      // schreibt den Lauf in den run-store, damit ein Reload ihn wiederaufnimmt.
+      const res = await requestGeneration(body, {
+        headers,
+        signal: run.controller.signal,
+        context: {
+          runId: run.id,
+          prompt: sentPrompt,
+          params: sentParams,
+          isVideo: run.isVideo,
+          aspectRatio: run.aspectRatio,
+        },
+      });
+      if (!res.ok) throw failureError(await parseFailure(res, 'Generierung fehlgeschlagen'));
+      await consumeFinishedResponse(res, run);
+    } catch (e) {
+      handleRunFailure(run, e);
+    }
+  };
+
+  /** Nimmt eine fertige Response an: speichern, auswählen, Galerie auffrischen. */
+  const consumeFinishedResponse = async (res: Response, run: ActiveRun) => {
+    let ownedBlobUrl: string | null = null;
+    try {
+      const ct = res.headers.get('content-type') ?? '';
+      let mediaUrl: string;
+      let kind: 'image' | 'video';
+      if (ct.startsWith('application/json')) {
+        const data = await res.json();
+        const candidate = data.videoUrl ?? data.imageUrl;
+        if (typeof candidate !== 'string' || !candidate) {
+          throw new Error('generate response missing videoUrl/imageUrl');
+        }
+        mediaUrl = candidate;
+        kind = data.videoUrl ? 'video' : 'image';
+      } else {
+        const blob = await res.blob();
+        mediaUrl = BlobManager.createURL(blob, 'playground');
+        ownedBlobUrl = mediaUrl;
+        kind = ct.startsWith('video/') ? 'video' : 'image';
+      }
+      // Die Route liefert bei beiden Providern eine bereits persistierte
+      // Media-Storage-URL — die darf direkt als remoteUrl gespeichert werden.
+      // Der Blob-Pfad (isPollinations: false) speichert OHNE remoteUrl, und
+      // solche Assets zeigt die Galerie schlicht nicht — darum durften Pruna-
+      // Ergebnisse nie erscheinen. Nur der blob:-Fallback bleibt lokal.
+      const assetId = await OutputService.saveGeneratedAsset({
+        url: mediaUrl,
+        prompt: run.prompt,
+        modelId: run.modelId,
+        conversationId: PLAYGROUND_CONVERSATION_ID,
+        isVideo: kind === 'video',
+        isPollinations: mediaUrl.startsWith('http'),
+        params: run.params,
+      });
+      // Echte Asset-ID, damit die Selektion den Galerie-Reload ueberlebt.
+      const item: GalleryItem = {
+        id: assetId ?? `${Date.now()}`, url: mediaUrl, kind,
+        prompt: run.prompt, modelId: run.modelId, timestamp: Date.now(),
+        params: run.params,
+      };
+      // Der Effekt schreibt den Ref erst nach dem Render — zwei im selben Tick
+      // fertige Laeufe saehen sonst beide "nichts ausgewaehlt".
+      if (selectedRef.current === null) {
+        selectedRef.current = item;
+        setSelected(item);
+      }
+      setRuns((rs) => rs.filter((r) => r.id !== run.id));
+      setGalleryKey((k) => k + 1);
+      announceIfAway(kind === 'video' ? 'Video fertig' : 'Bild fertig');
+      // Der Ladelauf der Galerie baut aus dem gespeicherten Blob eine eigene
+      // URL (Kontext 'playground-gallery'). Ohne diese Freigabe haelt jeder
+      // Pruna-Lauf ohne Pollen-Token seinen Blob bis zum Reload im Speicher —
+      // cleanupOld() ueberspringt ihn, weil sein refCount > 0 ist. Ohne
+      // gespeichertes Asset (B6, Blob unter SMALL_BLOB_SKIP_BYTES) gibt es
+      // keine eigene URL — dann bleibt sie stehen, sonst zeigt die
+      // Detailansicht ins Leere.
+      if (ownedBlobUrl && assetId) {
+        pendingUrlSwapRef.current = { id: assetId, url: ownedBlobUrl };
+      }
+    } catch (e) {
+      // Ein Fehler nach dem createURL darf die URL nicht leaken.
+      if (ownedBlobUrl) BlobManager.releaseURL(ownedBlobUrl);
+      throw e;
+    }
+  };
+
+  // W5: Nach dem Ladelauf zeigt die Auswahl auf die frische URL, und die
+  // URL aus dem Generierungspfad wird freigegeben (F8).
+  const handleItemsLoaded = useCallback((items: GalleryItem[]) => {
+    const swap = pendingUrlSwapRef.current;
+    if (!swap) return;
+    pendingUrlSwapRef.current = null;
+    const fresh = items.find((i) => i.id === swap.id);
+    if (fresh && selectedRef.current?.id === swap.id && selectedRef.current.url === swap.url) {
+      selectedRef.current = { ...selectedRef.current, url: fresh.url };
+      setSelected(selectedRef.current);
+    }
+    BlobManager.releaseURL(swap.url);
+  }, []);
+
+  /** Gescheiterte Laeufe bleiben als Karte liegen — mit Satz, Rohtext und Handlung. */
+  const handleRunFailure = (run: ActiveRun, e: unknown) => {
+    if ((e as Error).name === 'AbortError') {
+      setRuns((rs) => rs.filter((r) => r.id !== run.id));
+      return;
+    }
+    const err = e as Error & { raw?: string; aktion?: ErrorDescription['aktion'] };
+    announceIfAway('Ein Lauf in Create ist gescheitert');
+    setRuns((rs) => rs.map((r) => (
+      r.id === run.id
+        ? { ...r, status: 'failed', message: err.message, raw: err.raw, aktion: err.aktion }
+        : r
+    )));
+  };
+
+  // Wiederaufnahme nach einem Reload (L3): der run-store haelt die Laeufe, die
+  // kein Ende erlebt haben. Sie werden NICHT neu dispatcht — nur weitergefragt.
+  useEffect(() => {
+    const stored = readStoredRuns();
+    if (stored.length === 0) return;
+    // Bewusst aus dem Storage gelesen, nicht aus dem Hook-State: der ist beim
+    // ersten Effektlauf noch null.
+    const prunaKey = readLocal('prunaApiKey') ?? undefined;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...buildGenerateHeaders(getStoredPollenKey() ?? undefined, prunaKey),
+    };
+    stored.forEach((entry: StoredRun) => {
+      const run: ActiveRun = {
+        body: entry.body as GenerateBody,
+        prompt: entry.prompt,
+        params: entry.params as ParamValues,
+        modelId: entry.model,
+        isVideo: entry.isVideo,
+        aspectRatio: entry.aspectRatio,
+        id: nextRunId(),
+        startedAt: entry.startedAt,
+        status: 'running',
+        controller: new AbortController(),
+      };
+      setRuns((rs) => [run, ...rs]);
+      void (async () => {
+        try {
+          const res = await pollPrediction(entry.predictionId, entry.model, {
+            headers,
+            signal: run.controller.signal,
+          });
+          if (!res.ok) throw failureError(await parseFailure(res, 'Generierung fehlgeschlagen'));
+          await consumeFinishedResponse(res, run);
+        } catch (e) {
+          handleRunFailure(run, e);
+        } finally {
+          removeStoredRun(entry.runId);
+        }
+      })();
+    });
+    // Resume stored runs once per mount; handlers capture that recovery snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Nur laufende Generierungen zaehlen gegen die Grenze; gescheiterte Karten
+  // liegen nur noch herum und blockieren nichts.
+  const runningCount = runs.filter((r) => r.status === 'running').length
+    + soundRuns.filter((r) => r.status === 'running').length;
+  const canQueue = runningCount < MAX_CONCURRENT_RUNS;
+
+  /** Haengt einen eingefrorenen Lauf an `runs` und startet ihn. */
+  const startRun = (queued: QueuedRun) => {
+    const run: ActiveRun = {
+      ...queued,
+      id: nextRunId(),
+      startedAt: Date.now(),
+      status: 'running',
+      controller: new AbortController(),
+    };
+    setRuns((rs) => [run, ...rs]);
+    void runGeneration(run);
+  };
+
+  /**
+   * ACE-Step-Lauf: POST startet den Task, der Poll-Loop fragt GET ab, bis das
+   * Ergebnis steht oder abgebrochen wird. Fuer jede Ergebnis-Datei wird der
+   * Blob ueber /api/sound/audio geholt und als lokales Asset gespeichert —
+   * der Modal-Key bleibt serverseitig.
+   */
+  const startSoundRun = (frozen: {
+    tags: string; lyrics: string; duration: number; batch: number; instrumental: boolean;
+  }) => {
+    const run: SoundRun = {
+      id: nextRunId(),
+      startedAt: Date.now(),
+      status: 'running',
+      controller: new AbortController(),
+      ...frozen,
+    };
+    setSoundRuns((rs) => [run, ...rs]);
+    void (async () => {
+      setError(undefined);
+      try {
+        const postRes = await fetch('/api/sound', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: frozen.tags, lyrics: frozen.lyrics, duration: frozen.duration, batch: frozen.batch, instrumental: frozen.instrumental }),
+          signal: run.controller.signal,
+        });
+        if (!postRes.ok) throw failureError(await parseFailure(postRes, 'Sound-Task fehlgeschlagen'));
+        const posted = await postRes.json() as { taskId?: string };
+        if (!posted.taskId) throw codeError('SOUND_BACKEND_ERROR');
+
+        const deadline = Date.now() + SOUND_MAX_POLL_MS;
+        let raw: string | null = null;
+        while (Date.now() < deadline) {
+          if (run.controller.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+          await new Promise((r) => setTimeout(r, SOUND_POLL_INTERVAL_MS));
+          if (run.controller.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+          const pollRes = await fetch(`/api/sound?taskId=${encodeURIComponent(posted.taskId)}`, {
+            signal: run.controller.signal,
+          });
+          if (!pollRes.ok) throw failureError(await parseFailure(pollRes, 'Sound-Poll fehlgeschlagen'));
+          const pollData = await pollRes.json() as {
+            // Modal liefert ein Array von Task-Objekten (eins pro angefragter ID).
+            data?: Array<{ status?: number; result?: string }>;
+          };
+          // status 1 = fertig; alles andere bleibt in der Schleife.
+          const task = Array.isArray(pollData.data) ? pollData.data[0] : undefined;
+          if (task?.status === 1 && task.result) {
+            raw = task.result;
+            break;
+          }
+        }
+        if (raw === null) throw codeError('SOUND_TIMEOUT');
+
+        interface SoundResultEntry {
+          file?: string;
+          prompt?: string;
+        }
+        let results: SoundResultEntry[];
+        try {
+          const parsed = JSON.parse(raw) as unknown;
+          results = Array.isArray(parsed) ? (parsed as SoundResultEntry[]) : [parsed as SoundResultEntry];
+        } catch {
+          // Rohtext haengt als `raw` an der Fehlerkarte, damit die Diagnose
+          // nicht verloren geht — der Satz bleibt trotzdem lesbar.
+          throw Object.assign(codeError('SOUND_BACKEND_ERROR'), { raw: raw.slice(0, 500) });
+        }
+
+        const savedItems: GalleryItem[] = [];
+        for (const entry of results) {
+          if (run.controller.signal.aborted) break;
+          if (!entry.file) continue;
+          // `file` ist ein relativer Pfad am Modal-Endpunkt — der Proxy
+          // kombiniert ihn mit der geheimen Base-URL.
+          const audioUrl = `/api/sound/audio?path=${encodeURIComponent(entry.file)}`;
+          const assetId = await OutputService.saveGeneratedAsset({
+            url: audioUrl,
+            prompt: frozen.tags,
+            modelId: SOUND_MODEL_ID,
+            conversationId: PLAYGROUND_CONVERSATION_ID,
+            isPollinations: false,
+            params: {
+              duration: frozen.duration,
+              batch: frozen.batch,
+              instrumental: frozen.instrumental,
+            },
+          });
+          savedItems.push({
+            id: assetId ?? `${Date.now()}-${savedItems.length}`,
+            url: audioUrl,
+            kind: 'audio',
+            prompt: frozen.tags,
+            modelId: SOUND_MODEL_ID,
+            timestamp: Date.now(),
+            params: { duration: frozen.duration, batch: frozen.batch, instrumental: frozen.instrumental },
+          });
+        }
+        if (savedItems.length === 0) throw codeError('SOUND_NO_AUDIO');
+
+        if (selectedRef.current === null) {
+          selectedRef.current = savedItems[0];
+          setSelected(savedItems[0]);
+        }
+        setSoundRuns((rs) => rs.filter((r) => r.id !== run.id));
+        setGalleryKey((k) => k + 1);
+        announceIfAway('Sound fertig');
+      } catch (e) {
+        if ((e as Error).name === 'AbortError') {
+          setSoundRuns((rs) => rs.filter((r) => r.id !== run.id));
+          return;
+        }
+        const err = e as Error & { raw?: string };
+        announceIfAway('Ein Lauf in Create ist gescheitert');
+        setSoundRuns((rs) => rs.map((r) => (
+          r.id === run.id
+            ? { ...r, status: 'failed', message: err.message, raw: err.raw }
+            : r
+        )));
+      }
+    })();
+  };
+
+  const onRetrySoundRun = (id: string) => {
+    const failed = soundRuns.find((r) => r.id === id);
+    if (!failed || !canQueue) return;
+    setSoundRuns((rs) => rs.filter((r) => r.id !== id));
+    startSoundRun(failed);
+  };
+
+  const onCancelSoundRun = (id: string) => {
+    soundRuns.find((r) => r.id === id)?.controller.abort();
+  };
+
+  const onDismissSoundRun = (id: string) => setSoundRuns((rs) => rs.filter((r) => r.id !== id));
+
+  const onSend = () => {
+    if (state.mode === 'sound') {
+      if (!state.sound.tags.trim() || !canQueue) return;
+      startSoundRun({
+        tags: state.sound.tags,
+        lyrics: state.sound.instrumental ? '' : state.sound.lyrics,
+        duration: state.sound.duration,
+        batch: state.sound.batch,
+        instrumental: state.sound.instrumental,
+      });
+      return;
+    }
+    // p-image-upscale works from the image alone, so an empty prompt is valid
+    // there. Anywhere else it still blocks.
+    if (!currentModel || !canQueue) return;
+    if (promptRequired && !state.prompt.trim()) return;
+    // L-K.2, zweite Haelfte: einmal pro Browser bestaetigen, dass ein
+    // Pruna-Lauf nicht abbrechbar ist. Nicht bei jedem Lauf — dann klickt man
+    // es weg, ohne es zu lesen. Die Dauerzeile an der Leiste bleibt danach
+    // stehen und traegt den Satz weiter.
+    if (istPrunaLauf && !readLocal(PRUNA_ACK_KEY)) {
+      const bestaetigt = window.confirm(
+        'Pruna kann einen gestarteten Lauf nicht abbrechen. Er wird abgerechnet, '
+        + 'auch wenn du hier aufhoerst zu warten oder die Seite schliesst.\n\n'
+        + 'Das wird einmal gefragt. Fortfahren?'
+      );
+      if (!bestaetigt) return;
+      writeLocal(PRUNA_ACK_KEY, '1');
+    }
+    // Eingefrorene Werte fuer diesen Lauf — der Composer darf sich waehrend
+    // der Generierung aendern, ohne den laufenden Request zu verfaelschen.
+    startRun({
+      body: buildGenerateBody(state, currentModel, currentSchema),
+      prompt: state.prompt,
+      params: state.params,
+      modelId: currentModel.id,
+      isVideo: state.mode === 't2v' || state.mode === 'i2v',
+      aspectRatio: typeof state.params?.aspect_ratio === 'string' ? state.params.aspect_ratio : undefined,
+    });
+  };
+
+  // Der gescheiterte Lauf traegt seinen Kontext selbst — wiederholt wird genau
+  // er, nicht das, was inzwischen im Composer steht.
+  const onRetryRun = (id: string) => {
+    const failed = runs.find((r) => r.id === id);
+    if (!failed || !canQueue) return;
+    setRuns((rs) => rs.filter((r) => r.id !== id));
+    startRun(failed);
+  };
+
+  const onCancelRun = (id: string) => {
+    runs.find((r) => r.id === id)?.controller.abort();
+  };
+
+  const onDismissRun = (id: string) => setRuns((rs) => rs.filter((r) => r.id !== id));
+
+  /**
+   * Einzelloeschen wirkt global (E5.3): auf genau das Objekt, das der Nutzer
+   * vor sich hat — egal in welcher Oberflaeche es erzeugt wurde.
+   */
+  const deleteItem = async (item: GalleryItem) => {
+    await deleteAssetById(item.id);
+    // Sofort freigeben statt auf den naechsten Ladelauf zu warten (F7).
+    if (item.url.startsWith('blob:')) BlobManager.releaseURL(item.url);
+    if (selectedRef.current?.id === item.id) {
+      selectedRef.current = null;
+      setSelected(null);
+    }
+    setDetailsOpen(false);
+    setGalleryKey((k) => k + 1);
+  };
+
+  const sidebarProps = {
+    state, entries, currentModel, loading, fallbackActive,
+    onMode: setMode,
+    onModel: setModelId,
+    onParams: setParams,
+    onUploads: setUploads,
+    onSourceVideo: setSourceVideo,
+    onSound: setSound,
+  };
+
+  // "Nochmal": Werte nur in die Eingabe uebernehmen — bewusst KEIN
+  // Auto-Senden, damit vor dem erneuten Generieren angepasst werden kann.
+  const loadIntoComposer = (item: GalleryItem) => {
+    setPrompt(item.prompt);
+    if (item.modelId === currentModel?.id) {
+      if (item.params) setParams(item.params);
+      return;
+    }
+    // Der Modellwechsel-Effekt wuerde Parameter sonst auf Defaults
+    // zuruecksetzen — er bekommt die uebernommenen Werte als Override.
+    rerunParamsRef.current = item.params ?? null;
+    setModelId(item.modelId);
+  };
+
+  /**
+   * ReferenceSlots zeigt nur `min(gefuellt + 1, maxImages)` Plaetze. Ungeprueft
+   * angehaengte Uploads waeren darueber hinaus unsichtbar und nicht mehr zu
+   * entfernen, gingen aber trotzdem mit und liessen die Route mit 400 antworten.
+   * Blob-URLs existieren nur im Browser — der Server koennte sie nicht abrufen.
+   */
+  const adoptAsReference = (item: GalleryItem) => {
+    if (!currentModel?.supportsReference || currentModel.maxImages === 0) {
+      setError(`${currentModel?.name ?? 'Dieses Modell'} nimmt keine Referenzbilder.`);
+      return;
+    }
+    if (item.url.startsWith('blob:')) {
+      setError('Dieses Ergebnis liegt nur lokal vor und lässt sich nicht als Referenz verwenden.');
+      return;
+    }
+    if (state.uploads.length >= currentModel.maxImages) {
+      setError(
+        `${currentModel.name} nimmt höchstens ${currentModel.maxImages} `
+        + `Referenzbild${currentModel.maxImages === 1 ? '' : 'er'}.`,
+      );
+      return;
+    }
+    setError(undefined);
+    setUploads([...state.uploads, item.url]);
+  };
+
+  // Direkter Download per Blob; verweigert CORS/Netzwerk das, wenigstens
+  // im neuen Tab oeffnen statt still zu scheitern.
+  const downloadItem = async (item: GalleryItem) => {
+    try {
+      const res = await fetch(item.url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = BlobManager.createURL(blob, 'playground-download');
+      const a = document.createElement('a');
+      const ext = item.kind === 'video' ? 'mp4' : blob.type.split('/')[1] || 'jpg';
+      a.href = objectUrl;
+      a.download = `heyhi-${item.modelId || 'output'}-${item.timestamp}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Der Download laeuft asynchron an: sofortiges Widerrufen bricht ihn in
+      // Safari und Firefox ab. Die Freigabe wartet deshalb.
+      setTimeout(() => BlobManager.releaseURL(objectUrl), 60_000);
+    } catch {
+      window.open(item.url, '_blank', 'noopener');
+    }
+  };
+
+  return (
+    <div className="relative isolate grid h-full grid-rows-[auto_1fr] bg-background bg-[radial-gradient(78%_52%_at_10%_-6%,hsl(var(--primary)/0.16),transparent_64%),radial-gradient(62%_48%_at_92%_104%,hsl(325_72%_60%/0.10),transparent_62%)] text-foreground">
+      {/* Schmale Werkzeugleiste. Raumwechsel, Galerie und Einstellungen stehen
+          in der Kopfzeile der Huelle; hier bleibt nur, was Create gehoert. */}
+      <div className="flex items-center justify-between gap-2 border-b border-border/60 px-3">
+        <OriginFilter value={galleryOrigins} onChange={setGalleryOrigins} />
+        <button
+          type="button"
+          aria-label="Modell und Parameter"
+          onClick={() => setDrawerOpen(true)}
+          className="press inline-flex h-11 items-center gap-2 rounded-full px-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
+        >
+          <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+          <span>Parameter</span>
+        </button>
+      </div>
+
+      <div className="grid min-h-0 grid-cols-1 md:grid-cols-[300px_1fr]">
+        <PlaygroundSidebar {...sidebarProps} />
+
+        <section aria-label="Ergebnisse und Eingabe" className="grid min-h-0 min-w-0 grid-rows-[1fr_auto]">
+          <div className="grid min-h-0 grid-cols-1 xl:grid-cols-[1fr_296px]">
+            <Gallery
+              selectedId={selected?.id ?? null}
+              onSelect={(item) => {
+                setSelected(item);
+                // Unter xl gibt es keine Rail — Details gehen als Bottom-Drawer auf.
+                if (!isWide) setDetailsOpen(true);
+              }}
+              refreshKey={galleryKey}
+              origins={galleryOrigins}
+              onItemsLoaded={handleItemsLoaded}
+              runs={[...runs, ...soundRuns.map((r) => ({
+                id: r.id,
+                prompt: r.tags,
+                modelId: SOUND_MODEL_ID,
+                startedAt: r.startedAt,
+                isVideo: false,
+                status: r.status,
+                message: r.message,
+                raw: r.raw,
+              }))]}
+              onCancelRun={(id) => { onCancelRun(id); onCancelSoundRun(id); }}
+              onRetryRun={(id) => {
+                if (soundRuns.some((r) => r.id === id)) onRetrySoundRun(id);
+                else onRetryRun(id);
+              }}
+              onDismissRun={(id) => { onDismissRun(id); onDismissSoundRun(id); }}
+              onOpenSettings={openSettings}
+              onPickModel={() => setDrawerOpen(true)}
+            />
+            <div className="hidden min-h-0 xl:block">
+              <MetaRail
+                item={selected}
+                onLoad={downloadItem}
+                onRerun={loadIntoComposer}
+                onUseAsReference={adoptAsReference}
+                onDelete={deleteItem}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div
+              role="alert"
+              className="mx-4 mb-1 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
+              <span className="flex-1">{error}</span>
+              <button
+                type="button"
+                aria-label="Meldung schließen"
+                onClick={() => setError(undefined)}
+                className="shrink-0 opacity-70 hover:opacity-100"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
+          <PromptBar
+            value={state.mode === 'sound' ? state.sound.tags : state.prompt}
+            onChange={state.mode === 'sound' ? (v: string) => setSound({ tags: v }) : setPrompt}
+            onEnhance={onEnhance}
+            enhancing={enhancing}
+            onSend={onSend}
+            canQueue={canQueue}
+            queueFullHint={`${MAX_CONCURRENT_RUNS} Generierungen laufen bereits — warte auf eine davon.`}
+            modelName={state.mode === 'sound' ? 'ACE-Step 1.5' : currentModel?.name}
+            providerName={state.mode === 'sound' ? undefined : providerMode === 'pruna' ? 'Pruna' : 'Pollinations'}
+            promptRequired={promptRequired}
+            keyRequiredHint={keyRequiredHint}
+            irreversibleHint={irreversibleHint}
+            {...(state.mode === 'sound'
+              ? {
+                  // Die Route weist ueber 512 Zeichen mit 400 ab — der Zaehler
+                  // muss dieselbe Grenze zeigen, sonst gibt er gruenes Licht
+                  // bis kurz vor den Fehler.
+                  maxChars: 512,
+                  placeholder: 'synthwave, 120 BPM, analog bass, hazy',
+                  statusPrefix: `${tagAnzahl} Tags · Ziel 3–7`,
+                }
+              : {})}
+          />
+        </section>
+      </div>
+
+      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} direction="left">
+        <DrawerContent direction="left" className="h-dvh w-[84%] max-w-[310px]">
+          <DrawerTitle className="sr-only">Modell und Parameter</DrawerTitle>
+          <PlaygroundSidebarContent {...sidebarProps} />
+        </DrawerContent>
+      </Drawer>
+
+      {/* Details fuer schmale Viewports — auf dem Desktop uebernimmt die Rail. */}
+      <Drawer open={detailsOpen} onOpenChange={setDetailsOpen} shouldScaleBackground={false}>
+        <DrawerContent className="max-h-[85dvh]">
+          <DrawerTitle className="sr-only">Generierungs-Details</DrawerTitle>
+          <MetaRail
+            className="max-h-[80dvh] border-l-0"
+            item={selected}
+            onLoad={downloadItem}
+            onRerun={(item) => {
+              loadIntoComposer(item);
+              setDetailsOpen(false);
+            }}
+            onUseAsReference={(item) => {
+              adoptAsReference(item);
+              setDetailsOpen(false);
+            }}
+            onDelete={deleteItem}
+          />
+        </DrawerContent>
+      </Drawer>
+    </div>
+  );
+}

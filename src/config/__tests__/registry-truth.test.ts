@@ -3,8 +3,8 @@
  *
  * Der Schnappschuss wird von `scripts/check-model-registry.mjs --update-snapshot`
  * erzeugt und trägt sein Ziehungsdatum in `fetchedAt`. Die Tests laufen offline;
- * ob die Live-Registry inzwischen weitergezogen ist, zeigt der wöchentliche
- * GitHub-Action-Lauf des Skripts (Frage 3, Entscheidung B).
+ * ob die Live-Registry inzwischen weitergezogen ist, zeigt ein Lauf des
+ * Skripts von Hand (der GitHub-Action-Lauf ist seit 2026-10-03 entfernt).
  *
  * F1: Kein geführtes Modell ist "unbekannt" — jede Pollinations-ID muss in
  *     der Registry als `name` oder `alias` existieren, jede Pruna-ID ein

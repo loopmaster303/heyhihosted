@@ -23,8 +23,8 @@ import ElevenLabsIcon from '../assets/icons-models/elevenlabsfarbe.png';
 import AceStepIcon from '../assets/icons-models/acestepfarbe.png';
 import StabilityIcon from '../assets/icons-models/stabilityfarbe.png';
 
-import AmazonNovaIcon from '../assets/icons-models/Amazon Nova.png';
-import StepAIIcon from '../assets/icons-models/Step AI logo.png';
+import AmazonNovaIcon from '../assets/icons-models/amazon-nova.png';
+import StepAIIcon from '../assets/icons-models/step-ai.png';
 
 // Model Icon Mapping (LLM)
 export const modelIcons: Record<string, any> = {
@@ -112,6 +112,8 @@ export const imageModelIcons: Record<string, any> = {
     'p-image': PrunaIcon,
     'p-image-edit': PrunaIcon,
     'p-video': PrunaIcon,
+    'p-video-2': PrunaIcon,
+    'p-video-2-pro': PrunaIcon,
     'p-image-try-on': PrunaIcon,
     'p-image-upscale': PrunaIcon,
     'p-video-avatar': PrunaIcon,
@@ -130,7 +132,6 @@ export const imageModelIcons: Record<string, any> = {
     'wan-pro': WANIcon,
     'wan-pro-1080p': WANIcon,
     'veo': GoogleIcon,
-    'nova-reel': AmazonNovaIcon,
     'acestep': AceStepIcon,
     'ace-step': AceStepIcon,
     'stable-audio-3-medium': StabilityIcon,

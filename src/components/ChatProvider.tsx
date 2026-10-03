@@ -6,18 +6,9 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useLanguage } from './LanguageProvider';
 import { generateUUID } from '@/lib/uuid';
 
-import type { ChatMessage, Conversation, ChatMessageContentPart, ApiChatMessage, ImageHistoryItem, UploadedReference } from '@/types';
-import type {
-  PollinationsChatCompletionResponse,
-  ImageGenerationResponse,
-  TitleGenerationResponse,
-  ApiErrorResponse,
-} from '@/types/api';
-import { isApiErrorResponse, isPollinationsChatResponse } from '@/types/api';
-import { AVAILABLE_POLLINATIONS_MODELS, DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
-import { getUnifiedModel } from '@/config/unified-image-models';
+import type { ChatMessage, Conversation, ApiChatMessage, ChatMessageContentPart } from '@/types';
+import { DEFAULT_POLLINATIONS_MODEL_ID, DEFAULT_RESPONSE_STYLE_NAME, AVAILABLE_RESPONSE_STYLES } from '@/config/chat-options';
 import {
-  normalizeChatModeState,
   resolveEffectiveTextModel,
   resolveRequestCapabilities,
   resolveStartNewChatState,
@@ -35,11 +26,9 @@ import {
   shouldUpdateTitleAfterSend,
 } from '@/lib/chat/chat-send-coordinator';
 import { buildChatContextGroups, buildChatContextGroupsWithOverrides, mergeChatContextGroups } from '@/lib/chat/chat-context-groups';
-import { runImageGenerationFlow, runTextChatCompletionFlow } from '@/lib/chat/chat-send-orchestrator';
-import { processAssistantMediaIntents } from '@/lib/chat/chat-media-intent-handler';
-import { composeMusic } from '@/lib/media/compose-music';
+import { runTextChatCompletionFlow, type AssistantMediaHooks } from '@/lib/chat/chat-send-orchestrator';
+import { prepareAssistantMedia, resolveImagePart } from '@/lib/chat/chat-media-intent-handler';
 
-// Import extracted hooks and helpers
 import { useChatState } from '@/hooks/useChatState';
 import { useChatAudio } from '@/hooks/useChatAudio';
 import { useChatRecording } from '@/hooks/useChatRecording';
@@ -51,7 +40,6 @@ import { DatabaseService } from '@/lib/services/database';
 import { OutputService } from '@/lib/services/output-service';
 import { uploadFileToPollinationsMediaUrl } from '@/lib/upload/pollinations-media';
 import { getClientSessionId } from '@/lib/session';
-import { resolveReferenceUrls } from '@/lib/upload/reference-utils';
 import { toDate } from '@/utils/chatHelpers';
 
 export interface UseChatLogicProps {
@@ -62,21 +50,14 @@ export interface UseChatLogicProps {
 
 const MAX_STORED_CONVERSATIONS = 50;
 
-/**
- * Fehlerarten der Medien-Marker auf ihre Meldung abbilden. Unbekanntes landet
- * in der neutralen Meldung mit dem Rohtext, damit ein neu hinzugefuegter Marker
- * nicht stillschweigend als Musikfehler durchgeht.
- */
-const MEDIA_INTENT_ERROR_TITLES: Record<string, string | undefined> = {
-  image: 'Bild-Generierung fehlgeschlagen',
-  'image-save': 'Bild erzeugt, aber nicht gespeichert',
-  music: 'Musik-Generierung fehlgeschlagen',
-  'audio-save': 'Musik erzeugt, aber nicht gespeichert',
-};
+export interface StartNewChatInput {
+  initialModelId?: string;
+  isCodeMode?: boolean;
+  webBrowsingEnabled?: boolean;
+}
 
 export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextModelId }: UseChatLogicProps) {
   const { visibleModels: visibleTextModels } = useVisiblePollinationsTextModels();
-  // --- State Management (extracted to hook) ---
   const state = useChatState();
   const {
     allConversations,
@@ -90,10 +71,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     isInitialLoadComplete,
     isAiResponding,
     setIsAiResponding,
-    isHistoryPanelOpen,
-    setIsHistoryPanelOpen,
-    isAdvancedPanelOpen,
-    setIsAdvancedPanelOpen,
     chatInputValue,
     setChatInputValue,
     playingMessageId,
@@ -115,15 +92,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     setIsCameraOpen,
     lastUserMessageId,
     setLastUserMessageId,
-    availableImageModels,
-    setAvailableImageModels,
-    selectedImageModelId,
-    setSelectedImageModelId,
+    chatImageModelId,
     lastFailedRequest,
     setLastFailedRequest,
     retryLastRequestRef,
-    isImageMode,
-    isComposeMode,
     webBrowsingEnabled,
   } = state;
 
@@ -147,7 +119,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     }
   }, [activeConversation, setActiveConversation, visibleTextModels]);
 
-  // --- Audio Hook ---
   const { handlePlayAudio } = useChatAudio({
     playingMessageId,
     setPlayingMessageId,
@@ -158,7 +129,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     selectedTtsSpeed,
   });
 
-  // --- Recording Hook ---
   const { startRecording, stopRecording } = useChatRecording({
     isRecording,
     setIsRecording,
@@ -169,8 +139,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     setChatInputValue,
     language,
   });
-
-  // --- Helper Functions / Callbacks (defined early for dependencies) ---
 
   const dataURItoFile = useCallback((dataURI: string, filename: string): File => {
     const arr = dataURI.split(',');
@@ -184,16 +152,16 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     return new File([u8arr], filename, { type: mime });
   }, []);
 
-  const handleFileSelect = useCallback((fileOrDataUri: File | string | null, fileType: string | null) => {
-    if (!activeConversation) return; 
+  const handleFileSelect = useCallback((fileOrDataUri: File | string | null, _fileType?: string | null) => {
+    if (!activeConversation) return;
     if (fileOrDataUri) {
       if (typeof fileOrDataUri === 'string') {
         const file = dataURItoFile(fileOrDataUri, `capture-${Date.now()}.jpg`);
-        setActiveConversation((prev: Conversation | null) => prev ? { ...prev, isImageMode: false, uploadedFile: file, uploadedFilePreview: fileOrDataUri } : null);
+        setActiveConversation((prev: Conversation | null) => prev ? { ...prev, uploadedFile: file, uploadedFilePreview: fileOrDataUri } : null);
       } else {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setActiveConversation((prev: Conversation | null) => prev ? { ...prev, isImageMode: false, uploadedFile: fileOrDataUri, uploadedFilePreview: reader.result as string } : null);
+          setActiveConversation((prev: Conversation | null) => prev ? { ...prev, uploadedFile: fileOrDataUri, uploadedFilePreview: reader.result as string } : null);
         };
         reader.readAsDataURL(fileOrDataUri);
       }
@@ -207,48 +175,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       setActiveConversation((prev: Conversation | null) => prev ? { ...prev, uploadedFile: null, uploadedFilePreview: null } : null);
     }
   }, [activeConversation, setActiveConversation]);
-
-  const closeHistoryPanel = useCallback(() => setIsHistoryPanelOpen(false), [setIsHistoryPanelOpen]);
-  const closeAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(false), [setIsAdvancedPanelOpen]);
-
-  const toggleImageMode = useCallback((forcedState?: boolean, modelId?: string) => {
-    if (!activeConversation) return;
-    const newImageModeState = forcedState !== undefined ? forcedState : !(activeConversation.isImageMode ?? false);
-    const normalizedModes = normalizeChatModeState({
-      isImageMode: newImageModeState,
-      isComposeMode: activeConversation.isComposeMode,
-      isCodeMode: activeConversation.isCodeMode,
-      webBrowsingEnabled: activeConversation.webBrowsingEnabled,
-    });
-    setActiveConversation((prev: Conversation | null) => prev ? {
-      ...prev,
-      ...normalizedModes,
-    } : prev);
-    if (newImageModeState) {
-      handleFileSelect(null, null);
-      if (modelId) {
-        setSelectedImageModelId(modelId);
-      }
-    }
-  }, [activeConversation, handleFileSelect, setActiveConversation, setSelectedImageModelId]);
-
-  const toggleComposeMode = useCallback((forcedState?: boolean) => {
-    if (!activeConversation) return;
-    const newComposeModeState = forcedState !== undefined ? forcedState : !(activeConversation.isComposeMode ?? false);
-    const normalizedModes = normalizeChatModeState({
-      isImageMode: activeConversation.isImageMode,
-      isComposeMode: newComposeModeState,
-      isCodeMode: activeConversation.isCodeMode,
-      webBrowsingEnabled: activeConversation.webBrowsingEnabled,
-    });
-    setActiveConversation((prev: Conversation | null) => prev ? {
-      ...prev,
-      ...normalizedModes,
-    } : prev);
-    if (newComposeModeState) {
-      handleFileSelect(null, null);
-    }
-  }, [activeConversation, handleFileSelect, setActiveConversation]);
 
   const updateConversationTitle = useCallback(async (conversationId: string, messagesForTitleGen: ChatMessage[]): Promise<string> => {
     const convToUpdate = allConversations.find(c => c.id === conversationId) ?? activeConversation;
@@ -265,34 +191,26 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       return convToUpdate.title;
     }
 
-    const fallbackFromUser = (() => {
-      const firstUser = messagesForTitleGen.find((msg: ChatMessage) => msg.role === 'user');
-      if (!firstUser) return '';
-      if (typeof firstUser.content === 'string') return firstUser.content.split(/\s+/).slice(0, 6).join(' ');
-      const textPart = firstUser.content.find(p => p.type === 'text');
-      return textPart?.text?.split(/\s+/).slice(0, 6).join(' ') || '';
-    })();
+    const extractText = (msg?: ChatMessage) => {
+      if (!msg) return '';
+      if (typeof msg.content === 'string') return msg.content;
+      const textPart = msg.content.find(p => p.type === 'text');
+      return textPart && textPart.type === 'text' ? textPart.text : '';
+    };
+
+    const fallbackFromUser = extractText(messagesForTitleGen.find((msg) => msg.role === 'user'))
+      .split(/\s+/).slice(0, 6).join(' ');
 
     if (messagesForTitleGen.length >= 1 && isDefaultTitle) {
-      const firstUserMessage = messagesForTitleGen.find((msg: ChatMessage) => msg.role === 'user');
-      const firstAssistantMessage = messagesForTitleGen.find((msg: ChatMessage) => msg.role === 'assistant');
-
-      const extractText = (msg?: ChatMessage) => {
-        if (!msg) return '';
-        if (typeof msg.content === 'string') return msg.content;
-        const textPart = msg.content.find(p => p.type === 'text');
-        return textPart?.text || '';
-      };
-
-      const userText = extractText(firstUserMessage).trim();
-      const assistantText = extractText(firstAssistantMessage).trim();
+      const userText = extractText(messagesForTitleGen.find((msg) => msg.role === 'user')).trim();
+      const assistantText = extractText(messagesForTitleGen.find((msg) => msg.role === 'assistant')).trim();
 
       const isErrorResponse = assistantText && (
         assistantText.includes("couldn't get a response") ||
         assistantText.includes("error occurred") ||
         assistantText.includes("Sorry") ||
         assistantText.includes("failed") ||
-        assistantText.length < 10 
+        assistantText.length < 10
       );
 
       let contextForTitle = userText;
@@ -308,18 +226,10 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       if (contextForTitle) {
         try {
           const messagesForTitleApi: ApiChatMessage[] = [];
+          if (userText) messagesForTitleApi.push({ role: 'user', content: userText });
+          if (assistantText) messagesForTitleApi.push({ role: 'assistant', content: assistantText });
 
-          if (userText) {
-            messagesForTitleApi.push({ role: 'user', content: userText });
-          }
-          if (assistantText) {
-            messagesForTitleApi.push({ role: 'assistant', content: assistantText });
-          }
-
-          const finalTitle = await ChatService.generateTitle(
-            messagesForTitleApi
-          );
-
+          const finalTitle = await ChatService.generateTitle(messagesForTitleApi);
           const titleToSet = finalTitle && finalTitle.toLowerCase() !== 'chat' && finalTitle.length > 2
             ? finalTitle
             : (fallbackFromUser || "Chat");
@@ -348,18 +258,25 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     return convToUpdate.title;
   }, [allConversations, activeConversation, setActiveConversation, t]);
 
+  /**
+   * Die Bild-Hooks fuer eine Unterhaltung: der Marker wird sofort zum
+   * Platzhalter, das Bild entsteht danach an genau dieser Stelle.
+   */
+  const buildMediaHooks = useCallback((conversationId: string): AssistantMediaHooks => ({
+    prepare: (rawText) => prepareAssistantMedia(rawText, chatImageModelId),
+    resolve: (part) => resolveImagePart(part, {
+      conversationId,
+      sessionId: getClientSessionId(),
+      generateImage: ChatService.generateImage,
+      saveGeneratedAsset: OutputService.saveGeneratedAsset,
+    }),
+  }), [chatImageModelId]);
+
   const sendMessage = useCallback(async (
     messageText: string,
     options: {
-      isImageModeIntent?: boolean;
       isRegeneration?: boolean;
       messagesForApi?: ChatMessage[];
-      imageConfig?: {
-        formFields: Record<string, any>;
-        uploadedImages: UploadedReference[];
-        sourceVideo?: UploadedReference | null;
-        selectedModelId: string;
-      };
     } = {}
   ) => {
     if (!activeConversation || activeConversation.toolType !== 'long language loops') return;
@@ -367,7 +284,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       conversation: activeConversation,
       messageText,
       chatInputValue,
-      selectedImageModelId,
       language,
       customSystemPrompt,
       userDisplayName,
@@ -381,7 +297,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       normalizeRecentMessagesForApi,
       buildSystemPromptForRequest,
       runTextChatCompletionFlow,
-      runImageGenerationFlow,
       shouldUpdateTitleAfterSend,
       updateConversationTitle,
       buildSendFailureState,
@@ -395,7 +310,7 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       getRetryAction: () => (
         <button
           onClick={() => retryLastRequestRef.current?.()}
-          className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Erneut versuchen
         </button>
@@ -403,10 +318,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       extractMemories: MemoryService.extractMemories,
       saveUploadedAsset: DatabaseService.saveAsset,
       uploadFileToPollinationsMediaUrl,
-      resolveReferenceUrls,
-      getUnifiedModel,
-      generateImage: ChatService.generateImage,
-      saveGeneratedAsset: OutputService.saveGeneratedAsset,
       createId: generateUUID,
       createTimestamp: () => new Date().toISOString(),
       getSessionId: getClientSessionId,
@@ -414,35 +325,44 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
         console.error('Chat API Error:', error);
       },
       sendChatCompletion: ChatService.sendChatCompletion,
-      postProcessMarkers: async (rawText) => {
-        if (!activeConversation) return { cleanText: rawText, extraParts: [] };
-        return processAssistantMediaIntents({
-          rawText,
-          conversationId: activeConversation.id,
-          sessionId: getClientSessionId(),
-          selectedImageModelId,
-          generateImage: ChatService.generateImage,
-          saveGeneratedAsset: OutputService.saveGeneratedAsset,
-          composeMusic: async (prompt: string) => {
-            try {
-              return await composeMusic({ prompt, model: 'acestep' });
-            } catch (err) {
-              console.error('[media-intent] composeMusic failed:', err);
-              return null;
-            }
-          },
-          onError: (kind, message) => {
-            console.error(`[media-intent] ${kind} generation failed:`, message);
-            toast({
-              title: MEDIA_INTENT_ERROR_TITLES[kind] ?? `Medien-Generierung fehlgeschlagen (${kind})`,
-              description: message,
-              variant: 'destructive',
-            });
-          },
-        });
-      },
+      media: buildMediaHooks(activeConversation.id),
     });
-  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, selectedImageModelId, language, retryLastRequestRef, setChatInputValue, setIsAiResponding, setLastFailedRequest, t, visibleTextModels]);
+  }, [activeConversation, customSystemPrompt, userDisplayName, toast, chatInputValue, updateConversationTitle, setActiveConversation, setLastUserMessageId, language, retryLastRequestRef, setChatInputValue, setIsAiResponding, setLastFailedRequest, t, visibleTextModels, buildMediaHooks]);
+
+  /**
+   * Ein gescheitertes oder unterbrochenes Bild an Ort und Stelle neu erzeugen —
+   * mit seinem eigenen Prompt, nicht mit dem, was gerade in der Eingabe steht.
+   */
+  const retryMediaPart = useCallback(async (messageId: string, partIndex: number) => {
+    if (!activeConversation) return;
+    const conversationId = activeConversation.id;
+    const message = activeConversation.messages.find((m) => m.id === messageId);
+    if (!message || typeof message.content === 'string') return;
+    const part = message.content[partIndex];
+    if (!part || part.type !== 'image_url') return;
+
+    const setPart = (next: ChatMessageContentPart) => {
+      setActiveConversation((prev) => {
+        if (!prev || prev.id !== conversationId) return prev;
+        return {
+          ...prev,
+          messages: prev.messages.map((m) => {
+            if (m.id !== messageId || typeof m.content === 'string') return m;
+            const content = [...m.content];
+            content[partIndex] = next;
+            return { ...m, content };
+          }),
+        };
+      });
+    };
+
+    const pending: ChatMessageContentPart = {
+      type: 'image_url',
+      image_url: { ...part.image_url, url: '', status: 'pending', error: undefined, modelId: part.image_url.modelId ?? chatImageModelId },
+    };
+    setPart(pending);
+    setPart(await buildMediaHooks(conversationId).resolve(pending));
+  }, [activeConversation, buildMediaHooks, chatImageModelId, setActiveConversation]);
 
   const selectChat = useCallback(async (conversationId: string | null) => {
     if (conversationId === null) {
@@ -450,59 +370,31 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       return;
     }
     await loadConversation(conversationId);
-    setLastUserMessageId(null); 
+    setLastUserMessageId(null);
   }, [loadConversation, setActiveConversation, setLastUserMessageId]);
 
-  const startNewChat = useCallback((initialOptionsOrModelId?: string | {
-    initialModelId?: string;
-    isImageMode?: boolean;
-    isComposeMode?: boolean;
-    isCodeMode?: boolean;
-    webBrowsingEnabled?: boolean;
-  }) => {
-    // Parse arguments
-    let initialModelId: string | undefined;
-    let initialImageMode = false;
-    let initialComposeMode = false;
-    let initialCodeMode = false;
-    let initialWebBrowsing = false;
-
-    if (typeof initialOptionsOrModelId === 'string') {
-        initialModelId = initialOptionsOrModelId;
-    } else if (typeof initialOptionsOrModelId === 'object') {
-        initialModelId = initialOptionsOrModelId.initialModelId;
-        initialImageMode = !!initialOptionsOrModelId.isImageMode;
-        initialComposeMode = !!initialOptionsOrModelId.isComposeMode;
-        initialCodeMode = !!initialOptionsOrModelId.isCodeMode;
-        initialWebBrowsing = !!initialOptionsOrModelId.webBrowsingEnabled;
-    }
+  const startNewChat = useCallback((initialOptionsOrModelId?: string | StartNewChatInput) => {
+    const options: StartNewChatInput = typeof initialOptionsOrModelId === 'string'
+      ? { initialModelId: initialOptionsOrModelId }
+      : (initialOptionsOrModelId ?? {});
 
     if (activeConversation && activeConversation.messages.length === 0) {
-      if (initialModelId) {
-        setActiveConversation((prev: Conversation | null) => prev ? { 
-            ...prev, 
-            ...resolveStartNewChatState({
-              initialModelId,
-              isImageMode: initialImageMode || prev.isImageMode,
-              isComposeMode: initialComposeMode,
-              isCodeMode: initialCodeMode || prev.isCodeMode,
-              webBrowsingEnabled: initialWebBrowsing || prev.webBrowsingEnabled,
-            }, defaultTextModelId, visibleTextModels),
+      if (options.initialModelId) {
+        setActiveConversation((prev: Conversation | null) => prev ? {
+          ...prev,
+          ...resolveStartNewChatState({
+            initialModelId: options.initialModelId,
+            isCodeMode: options.isCodeMode || prev.isCodeMode,
+            webBrowsingEnabled: options.webBrowsingEnabled || prev.webBrowsingEnabled,
+          }, defaultTextModelId, visibleTextModels),
         } : null);
       }
       return;
     }
 
-    const newConversationId = generateUUID();
-    const resolvedState = resolveStartNewChatState({
-      initialModelId,
-      isImageMode: initialImageMode,
-      isComposeMode: initialComposeMode,
-      isCodeMode: initialCodeMode,
-      webBrowsingEnabled: initialWebBrowsing,
-    }, defaultTextModelId, visibleTextModels);
+    const resolvedState = resolveStartNewChatState(options, defaultTextModelId, visibleTextModels);
     const newConversationData: Conversation = {
-      id: newConversationId,
+      id: generateUUID(),
       title: t('nav.newConversation'),
       messages: [],
       createdAt: new Date().toISOString(),
@@ -521,46 +413,29 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     }
 
     setActiveConversation(newConversationData);
-    setLastUserMessageId(null); 
+    setLastUserMessageId(null);
 
     return newConversationData;
   }, [allConversations, defaultTextModelId, deleteConversation, setActiveConversation, setLastUserMessageId, activeConversation, t, visibleTextModels]);
 
-    const deleteChat = useCallback((conversationId: string) => {
+  const deleteChat = useCallback((conversationId: string) => {
+    const wasActive = activeConversation?.id === conversationId;
+    deleteConversation(conversationId);
 
-      const wasActive = activeConversation?.id === conversationId;
+    if (wasActive) {
+      const nextChat = allConversations
+        .filter(c => c.id !== conversationId && c.toolType === 'long language loops')
+        .sort((a, b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime())[0] ?? null;
 
-  
-
-      deleteConversation(conversationId);
-
-  
-
-      if (wasActive) {
-
-        const nextChat = allConversations.filter(c => c.id !== conversationId && c.toolType === 'long language loops')
-
-          .sort((a, b) => toDate(b.updatedAt).getTime() - toDate(a.updatedAt).getTime())[0] ?? null;
-
-  
-
-        if (nextChat) {
-
-          selectChat(nextChat.id);
-
-        } else {
-
-          startNewChat();
-
-        }
-
+      if (nextChat) {
+        selectChat(nextChat.id);
+      } else {
+        startNewChat();
       }
+    }
 
-      toast({ title: "Chat Deleted" });
-
-    }, [activeConversation?.id, allConversations, selectChat, deleteConversation, toast, startNewChat]);
-
-  
+    toast({ title: 'Unterhaltung gelöscht' });
+  }, [activeConversation?.id, allConversations, selectChat, deleteConversation, toast, startNewChat]);
 
   const handleModelChange = useCallback((modelId: string) => {
     if (activeConversation) {
@@ -568,10 +443,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       setActiveConversation((prev: Conversation | null) => prev ? { ...prev, selectedModelId: safeModelId } : null);
     }
   }, [activeConversation, setActiveConversation, visibleTextModels]);
-
-  const handleImageModelChange = useCallback((modelId: string) => {
-    setSelectedImageModelId(modelId);
-  }, [setSelectedImageModelId]);
 
   const handleStyleChange = useCallback((styleName: string) => {
     if (activeConversation) {
@@ -587,8 +458,6 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     setSelectedTtsSpeed(speed);
   }, [setSelectedTtsSpeed]);
 
-  const toggleHistoryPanel = useCallback(() => setIsHistoryPanelOpen(prev => !prev), [setIsHistoryPanelOpen]);
-  const toggleAdvancedPanel = useCallback(() => setIsAdvancedPanelOpen(prev => !prev), [setIsAdvancedPanelOpen]);
   const toggleWebBrowsing = useCallback((forcedState?: boolean) => {
     setActiveConversation((prev: Conversation | null) => prev ? {
       ...prev,
@@ -596,13 +465,20 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     } : prev);
   }, [setActiveConversation]);
 
+  const toggleCodeMode = useCallback((forcedState?: boolean) => {
+    setActiveConversation((prev: Conversation | null) => prev ? {
+      ...prev,
+      isCodeMode: forcedState !== undefined ? forcedState : !(prev.isCodeMode ?? false)
+    } : prev);
+  }, [setActiveConversation]);
+
   const handleCopyToClipboard = useCallback((text: string) => {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
-      toast({ title: "Copied to Clipboard" });
+      toast({ title: 'Kopiert' });
     }).catch(err => {
       console.error("Failed to copy text: ", err);
-      toast({ title: "Copy Failed", variant: "destructive" });
+      toast({ title: 'Kopieren hat nicht geklappt', variant: "destructive" });
     });
   }, [toast]);
 
@@ -614,29 +490,20 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
       .reverse()
       .find(({ message }) => message.role === 'assistant')?.index ?? -1;
 
-    if (lastAssistantIndex === -1) {
-      toast({
-        title: "Action Not Available",
-        description: "There is no assistant response to regenerate yet.",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (lastAssistantIndex === -1) return;
 
     const messagesForRegeneration = activeConversation.messages.slice(0, lastAssistantIndex);
-
-    await sendMessage("", { 
+    await sendMessage("", {
       isRegeneration: true,
       messagesForApi: messagesForRegeneration
     });
-
-  }, [isAiResponding, activeConversation, sendMessage, toast]);
+  }, [isAiResponding, activeConversation, sendMessage]);
 
   const retryLastRequest = useCallback(async () => {
     if (!lastFailedRequest) return;
 
     const requestToRetry = { ...lastFailedRequest };
-    setLastFailedRequest(null); 
+    setLastFailedRequest(null);
 
     if (!requestToRetry.options?.isRegeneration && requestToRetry.messageText) {
       setChatInputValue(requestToRetry.messageText);
@@ -648,21 +515,13 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
   const openCamera = useCallback(() => setIsCameraOpen(true), [setIsCameraOpen]);
   const closeCamera = useCallback(() => setIsCameraOpen(false), [setIsCameraOpen]);
 
-  // --- Effects Hook ---
   useChatEffects({
-    isHistoryPanelOpen,
-    isAdvancedPanelOpen,
     isInitialLoadComplete,
     allConversations,
     activeConversation,
     persistedActiveConversationId,
-    selectedImageModelId,
-    setIsHistoryPanelOpen,
-    setIsAdvancedPanelOpen,
     setActiveConversation,
     setPersistedActiveConversationId,
-    setAvailableImageModels,
-    setSelectedImageModelId,
     startNewChat,
     retryLastRequest,
     retryLastRequestRef,
@@ -670,43 +529,35 @@ export function useChatLogic({ userDisplayName, customSystemPrompt, defaultTextM
     deleteConversation,
   });
 
-
-  // --- Return Value ---
   return {
     activeConversation, allConversations,
-    isAiResponding, setIsAiResponding, isImageMode, isComposeMode,
-    isHistoryPanelOpen, isAdvancedPanelOpen,
+    isAiResponding, setIsAiResponding,
     playingMessageId, isTtsLoadingForId, chatInputValue,
     selectedVoice, selectedTtsSpeed,
     isInitialLoadComplete,
-    lastUserMessageId, 
+    lastUserMessageId,
     isRecording, isTranscribing,
     isCameraOpen,
-    availableImageModels, selectedImageModelId,
+    chatImageModelId,
     selectChat, startNewChat, deleteChat, sendMessage,
-    toggleImageMode,
-    toggleComposeMode,
     handleFileSelect, clearUploadedImage, handleModelChange, handleStyleChange,
-    handleVoiceChange, handleTtsSpeedChange, handleImageModelChange,
-    toggleHistoryPanel, closeHistoryPanel,
-    toggleAdvancedPanel, closeAdvancedPanel,
-    toggleWebBrowsing, webBrowsingEnabled,
+    handleVoiceChange, handleTtsSpeedChange,
+    toggleWebBrowsing, toggleCodeMode, webBrowsingEnabled,
     handlePlayAudio,
     setChatInputValue,
     handleCopyToClipboard,
-    regenerateLastResponse, 
+    regenerateLastResponse,
     retryLastRequest,
+    retryMediaPart,
     startRecording, stopRecording,
     openCamera, closeCamera,
     toDate,
     setActiveConversation,
-
   };
 }
 
 
-interface ChatContextValue extends ReturnType<typeof useChatLogic> {
-}
+type ChatContextValue = ReturnType<typeof useChatLogic>;
 
 type ChatContextGroups = ReturnType<typeof buildChatContextGroups<ChatContextValue>>;
 
@@ -714,7 +565,6 @@ const ConversationContext = createContext<ChatContextGroups['conversation'] | un
 const ComposerContext = createContext<ChatContextGroups['composer'] | undefined>(undefined);
 const ModesContext = createContext<ChatContextGroups['modes'] | undefined>(undefined);
 const MediaContext = createContext<ChatContextGroups['media'] | undefined>(undefined);
-const PanelsContext = createContext<ChatContextGroups['panels'] | undefined>(undefined);
 
 function useRequiredChatContext<T>(context: React.Context<T | undefined>, hookName: string): T {
   const value = useContext(context);
@@ -749,7 +599,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     chatLogic.setChatInputValue(value);
   }, [chatLogic]);
 
-  const chatContextGroups = buildChatContextGroupsWithOverrides(chatLogic as ChatContextValue, {
+  const chatContextGroups = buildChatContextGroupsWithOverrides(chatLogic, {
     composer: {
       setChatInputValue: setChatInputValueWrapper,
     },
@@ -760,9 +610,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       <ComposerContext.Provider value={chatContextGroups.composer}>
         <ModesContext.Provider value={chatContextGroups.modes}>
           <MediaContext.Provider value={chatContextGroups.media}>
-            <PanelsContext.Provider value={chatContextGroups.panels}>
-              {children}
-            </PanelsContext.Provider>
+            {children}
           </MediaContext.Provider>
         </ModesContext.Provider>
       </ComposerContext.Provider>
@@ -775,9 +623,8 @@ export const useChat = (): ChatContextValue => {
   const composer = useRequiredChatContext(ComposerContext, 'useChat');
   const modes = useRequiredChatContext(ModesContext, 'useChat');
   const media = useRequiredChatContext(MediaContext, 'useChat');
-  const panels = useRequiredChatContext(PanelsContext, 'useChat');
 
-  return mergeChatContextGroups({ conversation, composer, modes, media, panels }) as ChatContextValue;
+  return mergeChatContextGroups({ conversation, composer, modes, media }) as ChatContextValue;
 };
 
 export const useChatConversation = () => useRequiredChatContext(ConversationContext, 'useChatConversation');
@@ -787,5 +634,3 @@ export const useChatComposer = () => useRequiredChatContext(ComposerContext, 'us
 export const useChatModes = () => useRequiredChatContext(ModesContext, 'useChatModes');
 
 export const useChatMedia = () => useRequiredChatContext(MediaContext, 'useChatMedia');
-
-export const useChatPanels = () => useRequiredChatContext(PanelsContext, 'useChatPanels');

@@ -71,7 +71,7 @@ const TrackItem = ({
         <p className="text-xs font-mono text-foreground/80 truncate">{title}</p>
         <p className="text-[10px] text-muted-foreground/60 font-mono">{asset.modelId || 'elevenmusic'}</p>
       </div>
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex gap-1 reveal-on-hover">
         <Button variant="ghost" size="icon" onClick={() => onCopyPrompt(asset.prompt)}
           className="h-6 w-6 rounded text-muted-foreground hover:text-foreground"
           title={t('action.copyPrompt')} aria-label={t('action.copyPrompt')}>
@@ -127,50 +127,42 @@ const GalleryPanelItem = ({
         {asset.starred && (
           <div className="absolute top-1.5 left-1.5 z-10 text-yellow-400 text-[10px] leading-none">★</div>
         )}
-        {/* Die Kachel war ein reines Mausziel: onClick hing am <video>/<img>,
-            ohne Rolle, ohne tabIndex, ohne Keydown. Ein echter Knopf bringt
-            Enter und Leertaste mit. Stern-Markierung und Aktionsleiste bleiben
-            Geschwister — ein Knopf im Knopf waere ungueltiges Markup. */}
-        {url && (
-          <button
-            type="button"
+        {url && isVideo ? (
+          <video src={url} muted loop playsInline
+            className="w-full h-auto object-contain cursor-pointer"
             onClick={onOpen}
-            aria-label={asset.prompt || "Output item"}
-            className="block w-full"
-          >
-            {isVideo ? (
-              <video src={url} muted loop playsInline
-                className="w-full h-auto object-contain cursor-pointer"
-                onMouseOver={(e) => (e.currentTarget as HTMLVideoElement).play()}
-                onMouseOut={(e) => (e.currentTarget as HTMLVideoElement).pause()}
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={url} alt={asset.prompt || "Output item"} loading="lazy" decoding="async"
-                className="w-full h-auto object-contain cursor-pointer"
-              />
-            )}
-          </button>
-        )}
+            role="button" tabIndex={0} aria-label={asset.prompt || "Output item"}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
+            onMouseOver={(e) => (e.currentTarget as HTMLVideoElement).play()}
+            onMouseOut={(e) => (e.currentTarget as HTMLVideoElement).pause()}
+          />
+        ) : url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt={asset.prompt || "Output item"} loading="lazy" decoding="async"
+            className="w-full h-auto object-contain cursor-pointer" onClick={onOpen}
+            role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
+          />
+        ) : null}
         {url && (
-          <div className="absolute inset-x-0 bottom-0 px-2 py-2 flex items-center justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity bg-gradient-to-t from-black/60 via-black/15 to-transparent">
+          <div className="absolute inset-x-0 bottom-0 px-2 py-2 flex items-center justify-end gap-2 reveal-on-hover bg-gradient-to-t from-black/60 via-black/15 to-transparent">
             <Button variant="ghost" size="icon" onClick={() => onToggleStar(asset.id)}
-              className={cn("h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 focus-visible:opacity-100", asset.starred ? "text-red-400" : "text-white")}
+              className={cn("h-7 w-7 rounded-full bg-black/50 hover:bg-black/70", asset.starred ? "text-red-400" : "text-white")}
               title="Like" aria-label="Like">
               <Heart className={cn("h-3.5 w-3.5", asset.starred && "fill-current")} />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => onCopyPrompt(asset.prompt)}
-              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70 focus-visible:opacity-100"
+              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
               title={t('action.copyPrompt')} aria-label={t('action.copyPrompt')}>
               <Copy className="h-3.5 w-3.5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={handleDownload}
-              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70 focus-visible:opacity-100"
+              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
               title={t('action.download')} aria-label={t('action.download')}>
               <Download className="h-3.5 w-3.5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => onDelete(asset.id)}
-              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70 focus-visible:opacity-100"
+              className="h-7 w-7 rounded-full bg-black/50 text-white hover:bg-black/70"
               title={t('action.delete')} aria-label={t('action.delete')}>
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -325,9 +317,11 @@ const GalleryDetailContent = ({
 
 // ─── Gallery Panel ─────────────────────────────────────────────────────────────
 
+/**
+ * Der Inhalt des Galerie-Sheets. Container, Schliessen und Esc gehoeren dem
+ * Sheet (components/shell/Sheet) — hier steht nur, was die Galerie selbst ist.
+ */
 export interface GalleryPanelProps {
-  isOpen: boolean;
-  onClose: () => void;
   assets: Asset[];
   totalAssetCount: number;
   /** Sichtbarer Herkunftsbereich (E5.2: fluechtig, Vorgabe eigene Herkunft). */
@@ -338,13 +332,9 @@ export interface GalleryPanelProps {
   /** F2: waehrend eines Massenloeschens (done, total), sonst null. */
   clearProgress?: { done: number; total: number } | null;
   onToggleStar: (id: string) => void;
-  /** When true, renders as a fixed popover-style panel positioned to the right of the sidebar (using --sidebar-width var). */
-  embedded?: boolean;
 }
 
 export const GalleryPanel: React.FC<GalleryPanelProps> = ({
-  isOpen,
-  onClose,
   assets,
   totalAssetCount,
   origins,
@@ -353,7 +343,6 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
   onClearAll,
   clearProgress,
   onToggleStar,
-  embedded = false,
 }) => {
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -372,17 +361,17 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     [assets]
   );
 
-  // Keyboard navigation in detail view
+  // Pfeiltasten blaettern in der Detailansicht. Esc schliesst das Sheet —
+  // zurueck zum Raster fuehrt der Knopf in der Detailansicht.
   useEffect(() => {
-    if (!isOpen || view !== 'detail') return;
+    if (view !== 'detail') return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft')  setSelectedIndex(i => Math.max(0, i - 1));
       if (e.key === 'ArrowRight') setSelectedIndex(i => Math.min(imageAssets.length - 1, i + 1));
-      if (e.key === 'Escape')     setView('grid');
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, view, imageAssets.length]);
+  }, [view, imageAssets.length]);
 
   const handleDownload = useCallback((url: string, filename: string) => {
     try {
@@ -426,21 +415,11 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
     setDensity(prev => cycle[(cycle.indexOf(prev) + 1) % cycle.length]);
   };
 
-  if (!isOpen) return null;
-
   const selectedAsset = view === 'detail' ? imageAssets[selectedIndex] : null;
 
-  // On mobile (<640px) the sidebar is a 90vw overlay, so the sidebar-relative
-  // positioning below would collapse the panel to a ~22px sliver. Below `sm` we
-  // pin the panel to the viewport edges instead; from `sm` up it sits next to
-  // the real (fixed-width) sidebar.
-  const containerClass = embedded
-    ? "fixed z-[80] top-16 bottom-4 border border-border bg-popover/90 backdrop-blur-xl shadow-glass-heavy overflow-hidden flex flex-col rounded-2xl left-4 right-4 w-auto max-w-none sm:left-[var(--sidebar-width)] sm:right-auto sm:w-[520px] sm:max-w-[calc(100vw-var(--sidebar-width)-2rem)]"
-    : "fixed z-[100] top-16 max-h-[80vh] rounded-2xl left-4 right-4 w-auto sm:left-[calc(var(--sidebar-width,20rem)+8px)] sm:right-auto sm:w-[520px]";
-
   return (
-    <div className={containerClass}>
-      <div className="relative flex flex-col h-full overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="relative flex h-full min-h-0 flex-col">
 
         {view === 'grid' ? (
           <>
@@ -472,11 +451,6 @@ export const GalleryPanel: React.FC<GalleryPanelProps> = ({
                   className="h-7 w-7 rounded-full hover:bg-muted/30 text-muted-foreground hover:text-foreground"
                   title="Dichte ändern" aria-label="Dichte ändern">
                   <LayoutGrid className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={onClose}
-                  className="h-7 w-7 rounded-full hover:bg-muted/30"
-                  aria-label={t('gallery.closePanel')}>
-                  <X className="h-4 w-4" />
                 </Button>
               </div>
             </div>

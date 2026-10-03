@@ -14,19 +14,15 @@ To democratize artificial intelligence by creating a high-performance "Local-Fir
 
 ## Key Features
 
-- **Multimodal Chat**: Discuss ideas with Claude, GPT, Gemini, Deepseek, Mistral, and more. Vision support on compatible models.
-- **Generative Media**: Create images and videos instantly via Pollinations API — both inline in chat and in the dedicated **Create** workspace at `/create`.
-- **Create**: Full-screen generation workspace with provider switch (Pollinations / Pruna), mode tabs (text-to-image, image-to-image, text-to-video, image-to-video), reference uploads, parameter controls, generation progress, and a detail panel with download / retry / reuse.
-- **Compose Mode**: Music generation via **Pollinations** (`/api/compose`) — **ACE-Step 1.5** free up to 1 minute, plus **ElevenMusic v2** and **Stable Audio 3 Medium** with a Pollinations key.
-- **Code Questions**: Ask directly in chat; responses already use the normal code formatting you expect.
-- **Deep Research**: Toggle web browsing for real-time search and source analysis (Sonar / Sonar Reasoning).
-- **Smart Router**: Auto-detects search intent (German + English) and routes to the right model.
-- **Voice I/O**: Speech-to-text and text-to-speech via Pollinations (OpenAI-compatible endpoints).
-- **Prompt Enhancement**: AI-powered prompt optimization for image and music generation.
-- **Local-First Output**: Chats, memories, and generated assets stay in your browser (IndexedDB metadata plus Pollinations media storage for generated media).
-- **Output Panel / Gallery**: Quick overlay and full view for browsing generated images, videos, and tracks.
-- **CRT Terminal Identity**: A specialized UI inspired by terminal aesthetics with real-time system feedback.
-- **No-Auth Architecture**: Instant utility. No sign-up, no logins.
+- **One surface**: Chat and Create live in one shell. Switching keeps both alive — the conversation and running generations survive every switch. History, gallery and settings open as sheets on top, not as separate pages; the browser's Back button closes them.
+- **Multimodal Chat**: Discuss ideas with Claude, Gemini, DeepSeek, Mistral, and more. Vision support on compatible models. Two switches on the composer: **Research** (live web search and sources) and **Code**.
+- **Images in the conversation**: Ask for an image and the assistant draws one. It grows out of a pulsing ASCII field and then stands on its own, frameless — one tap takes it into Create with prompt and model prefilled.
+- **Create**: Full-screen workspace at `/create` — provider switch (Pollinations / Pruna), text-to-image, image-to-image, text-to-video, image-to-video and sound, reference uploads, up to three parallel runs, and a detail panel with download / retry / reuse. Long video runs survive a reload.
+- **Voice I/O**: Speech-to-text and text-to-speech via Pollinations.
+- **Prompt Enhancement**: Model-aware prompt optimization for image, video and music.
+- **Local-First**: Chats, memories, settings and the gallery live in your browser (IndexedDB), generated media in Pollinations Media Storage.
+- **Native feel**: Installable as a web app, safe-area aware, keyboard-aware on phones, reduced motion respected, WCAG 2.2 AA as the gate.
+- **No-Auth Architecture**: No sign-up, no logins.
 
 ## Available Models
 
@@ -40,43 +36,27 @@ The list above is the canonical visible registry in [`src/config/chat-options.ts
 
 ### Image & Video Generation
 
-Visualize offers **two providers**, switchable in the config sidebar:
+**In the chat**, images come from one free Pollinations model, chosen in settings (default Flux). The chat's choice follows one rule — free, Pollinations, image — and never grows with a key.
 
-- **Pollinations** — the default. A free tier (usable without a key) plus more models that unlock with a Pollinations key.
-- **Pruna** — the `p-*` image/video family plus a few ByteDance/Wan models (`zimage`, `qwen-image`, `wan-image-small`, …). Pruna is **BYOP-only**: every run needs your own **Pruna** key, added in the sidebar.
+**In Create**, two providers, switchable at the top of the parameter panel:
 
-The switch scopes the visualize model list only. Everything else — chat, compose, voice, prompt enhancement — always runs through Pollinations.
+- **Pollinations** — the default. A free tier plus more models that unlock with a Pollinations key.
+- **Pruna** — the `p-*` image/video family and a few ByteDance/Wan models. Pruna is **BYOP-only**: every run needs your own Pruna key.
 
-Per-model tiers (free · key-required · hidden) are governed by the `isFree` / `enabled` / `byopVisible` flags in [`src/config/unified-image-models.ts`](src/config/unified-image-models.ts) — **that file is the single source of truth**.
+The switch only scopes the model list; the selected model decides where a run goes. Chat, voice and prompt enhancement always run through Pollinations.
 
-Free without a key (verified against the live registry on 2026-08-28): Flux.1 Fast (`flux`), Flux.2 Klein (`klein`), GPT Image 1 Mini (`gpt-image`). Key-gated models surface with a badge and unlock once you add a key. `kontext` and `gptimage-large` are registry-free but not yet on the operator key's allowlist — they stay hidden until then.
+Per-model tiers (free · key-required · hidden) are governed by the `isFree` / `enabled` / `byopVisible` flags in [`src/config/unified-image-models.ts`](src/config/unified-image-models.ts) — **that file is the single source of truth**. `node scripts/check-model-registry.mjs` checks it against the live registry.
 
-Advanced image models (Seedream, Nano Banana family, Grok Imagine Pro, WAN 2.7) and the remaining video models require a key.
+### Sound
 
-### Compose (Music)
-
-> **⚠ Compose is currently switched off** (`FEATURES.compose = false` in
-> [`src/config/features.ts`](src/config/features.ts)). **Every** Pollinations text→audio
-> model is key-gated — there is no free music tier. Music moves into Create behind the
-> Pollen wall — Phase 8 of [the active plan](docs/FAHRPLAN-create.md).
-
-Offered by the live registry, all requiring a Pollinations key:
-
-| Model | Access | Note |
-| ----- | ------ | ---- |
-| **ElevenMusic** (`elevenmusic`) | Pollinations key | music from a prompt or reference track |
-| **Stable Audio 3 Large** (`stable-audio-3-large`) | Pollinations key | priced per generation |
-| **Stable Audio 3 Medium** (`stable-audio-3-medium`) | Pollinations key | long-form stereo |
-| **Lyria 3 Clip** (`lyria-3-clip`) | Pollinations key | 30 s, vocals or instrumental — not yet wired up |
-
-The former free entry **ACE-Step 1.5** (`acestep`) has been removed from the model lists — it no longer exists in the registry.
+Create's **sound** mode runs ACE-Step 1.5 on a self-hosted endpoint (`/api/sound`). The Pollinations music models are all key-gated; wiring them into Create is the open [sound plan](docs/PLAN-sound-modellwahl-2026-09-03.md).
 
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router, Turbopack)
 - **Language**: TypeScript (strict mode)
-- **Styling**: Tailwind CSS (Glassmorphism & CRT effects)
-- **UI Components**: Radix UI / Shadcn
+- **Styling**: Tailwind CSS with motion tokens (`--motion-fast/med/slow`)
+- **UI Components**: Radix UI / Shadcn, vaul sheets, framer-motion
 - **Storage**: IndexedDB (via Dexie.js) + Pollinations Media Storage (content-addressed)
 - **AI Transport**: Direct Pollinations HTTPS calls + lightweight SDK shim for image/video URLs
 - **AI Providers**: Pollinations.ai (chat, image, video, audio) + Pruna AI (image/video, bring your own key)
@@ -114,7 +94,6 @@ npm test             # Jest tests
 
 _Created with energy by [Loopmaster](https://github.com/johnmeckel) (John Meckel)_
 
-## Reorg & GODSPACE (Master Plan 2026-06-01)
-Master Plan: historisch, abgelöst durch `~/heyhi/LEVELS.md` (der alte Plan liegt nur noch in der Git-Historie).
-New names: sayhi (ex-heyhiblogheyhiworld, L1 arts/roleplay), heyhiblog (ex-heyhi-ai-or-goodbye, content layer), democrabs (ex-buergerbuddy, "The crab snaps with everyone but it's yours"), heyhireset (GODSPACE central).
-Levels: L1 sayhi, L2 heyhihosted (this), L3 advanced (future). Cross-links via the central heyhi.html in heyhireset.
+## Ecosystem
+
+hey.hi is Level 2 ("use") of the heyhi ecosystem; the canonical level model lives in `~/heyhi/LEVELS.md`. The historical reorganization plan remains available in Git history.

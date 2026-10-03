@@ -9,11 +9,19 @@ nur, falls der ASCII-Flow gebaut wird, und Phase 9 steht in Bereich M — H bloc
 also nicht. Damit hängt die Freigabe an genau einer Entscheidung: Phase 8 bauen, oder
 Musik nach Bereich M verschieben.
 
+**Variante „Eine Fläche" (Branch `claude/pensive-ramanujan-j2l7in`, 2026-10-01):** Chat und
+Create teilen eine Hülle, Visualize und Compose sind aus dem Chat raus, Bilder entstehen im
+Chat sichtbar (Plan [`PLAN-entschlackung-2026-10-01.md`](PLAN-entschlackung-2026-10-01.md),
+Handoff [`HANDOFF-2026-10-01-eine-flaeche.md`](HANDOFF-2026-10-01-eine-flaeche.md)). Was das am
+Gate ändert: L-F.1 hat einen neuen Endzustand (unten), Bereich **N — Zugänglichkeit** ist neu,
+und **L-E.1 und L-E.2 müssen auf der Variante neu gemessen werden** — die Hülle um Create ist
+neu, die Messungen vom 2026-09-01 gelten für `main`. Alle übrigen Status sind die von `main`.
+
 **Zweck:** Dieses Dokument beantwortet die Frage „Darf die Adresse öffentlich geteilt
 werden?" mit Ja oder Nein. Es beschreibt beobachtbare Endzustände aus Nutzersicht —
-wie sie hergestellt werden, steht in [`FAHRPLAN-create.md`](FAHRPLAN-create.md).
+wie sie hergestellt werden, steht in [`FAHRPLAN-create.md`](archive/2026-08-create-fahrplan/FAHRPLAN-create.md).
 
-**Freigaberegel:** Alle Kriterien in **A–G und I–K** sind erfüllt → die Adresse darf
+**Freigaberegel:** Alle Kriterien in **A–G, I–K und N** sind erfüllt → die Adresse darf
 geteilt werden; L-I.1 und L-K.1 werden erst unmittelbar vor der Freigabe geprüft, weil
 sie den fertigen Stand messen. Ein offenes Kriterium blockiert. Bereich **H** greift nur, falls der
 ASCII-Flow gebaut wird (Phase 9 steht in Bereich M). Ein bewusst akzeptiertes Risiko
@@ -279,7 +287,7 @@ Status: erledigt (2026-09-01, Betreiber)
 > Die Grundlage dafür kam aus Phase 6 — die Shell bezieht ihre Höhe aus `--vvh`
 > (`useViewportHeight`) statt aus `dvh`, weil die Tastatur den visual viewport
 > verkleinert und `dvh` ihm nicht folgt.
-> Betreiberaufgabe — Checkliste in [`PLAN-phase-6-create-telefon.md`](PLAN-phase-6-create-telefon.md),
+> Betreiberaufgabe — Checkliste in [`PLAN-phase-6-create-telefon.md`](archive/2026-08-create-fahrplan/PLAN-phase-6-create-telefon.md),
 > Abschnitt 8. Braucht zwei echte Geräte.
 
 **L-E.2 — Kein horizontales Scrollen bei 375 px**
@@ -297,7 +305,7 @@ Status: erledigt (2026-09-01)
 > jeweils 375, kein Element ragt über den Viewport.
 > Betreiberaufgabe — die Browser-Messung macht der Betreiber selbst (keine
 > Agenten-Browser-Tests). Prüfweg: Q Schritt 5 in
-> [`PLAN-phase-6-create-telefon.md`](PLAN-phase-6-create-telefon.md); die Code-Seite ist
+> [`PLAN-phase-6-create-telefon.md`](archive/2026-08-create-fahrplan/PLAN-phase-6-create-telefon.md); die Code-Seite ist
 > umgesetzt (Phase 6, Commit `cbf3011`).
 
 ## F — Chat-Oberfläche *(Phase 7)*
@@ -315,6 +323,12 @@ haben live erzeugt.
 **Endzustand seit Phase 7:** Der Chat führt `flux`, `gpt-image`, `klein` — die Regel
 „schlüsselfrei, Pollinations, Bild" in `getChatImageModelGroups()`. Video und Pruna sind
 strukturell abwesend (E7-2, E7-3). Der Verweis steht als letzte Zeile im Modell-Panel.
+**Endzustand der Variante (2026-10-01):** Im Chat gibt es kein Bild-Panel mehr. Bilder
+entstehen nur über `[IMAGE_GEN]` mit dem Modell aus den Einstellungen — dieselbe Regel
+`getChatImageModelGroups()`, dieselben drei Modelle. Der Weg ins Create steht an **jedem**
+Bild („In Create weiterarbeiten", Prompt und Modell vorbelegt). Der Prüfweg liest sich dort:
+Modellwahl in den Einstellungen mit L-B.4 vergleichen, „In Create weiterarbeiten" führt mit
+vorbelegtem Prompt ins Create.
 
 ## G — Musik *(Phase 8)*
 
@@ -455,6 +469,65 @@ Status: erledigt (2026-08-29)
 > („Der Lauf läuft beim Anbieter weiter und wird berechnet") hängt am `title`. Dass er
 > dort auf dem Telefon unsichtbar ist, gehört zu L-K.2 und Phase 6.
 
+## N — Zugänglichkeit *(WCAG 2.2 AA · Variante „Eine Fläche", E14)*
+
+Ziel ist WCAG 2.2 AA. Die Kriterien unten sind die Teile davon, die sich prüfen lassen, ohne
+ein Gutachten zu bestellen. Trefferflächen: 2.2 AA verlangt 24 px (2.5.8); 44 px ist die
+strengere Hausregel für Touch.
+
+**L-N.1 — Automatische Prüfung ohne Befund**
+Kriterium: axe meldet auf `/` und `/create` — jeweils mit geschlossenem und mit jedem offenen
+Sheet, in beiden Themes — keinen Verstoß.
+Prüfweg: axe (Browser-Erweiterung oder `@axe-core/playwright`) auf den sechs Zuständen
+laufen lassen; null Verstöße.
+Herkunft: E14
+Status: teilweise — Sheet, Composer, Nachricht und Chat-Bild prüfen in den Tests mit
+jest-axe (`toHaveNoViolations`), ein Befund macht den Test rot. Ein Lauf über die ganze
+Seite fehlt; jsdom misst keinen Kontrast (siehe L-N.4). Am 2026-10-01 behoben: Create
+setzte ein zweites `<main>` in das der Hülle.
+
+**L-N.2 — Alles per Tastatur, Fokus immer sichtbar**
+Kriterium: Jede Funktion beider Räume ist per Tastatur erreichbar, der Fokus ist an jeder
+Stelle sichtbar, Escape schließt Ablagen und Sheets und gibt den Fokus an den Auslöser zurück.
+Der erste Tab-Halt springt zur Eingabe.
+Prüfweg: Ohne Maus eine Nachricht mit Bild senden, das Bild ins Create übernehmen, dort
+einen Lauf starten, Verlauf/Galerie/Einstellungen öffnen und schließen.
+Herkunft: E14
+Status: teilweise — Skip-Link zu `#composer-input`, Escape mit Fokus-Rückgabe an den
+Composer-Ablagen (getestet), Sheets schließen per Escape und per Zurück (im Browser
+gesehen). Jede `outline-none`-Stelle hat einen sichtbaren Ersatz (`focus-visible`-Ring,
+`focus-within` am Eingabefeld, Hintergrund am Menüeintrag). Ein vollständiger Durchgang
+ohne Maus durch Create fehlt.
+
+**L-N.3 — Trefferflächen**
+Kriterium: Auf Touch-Geräten ist jedes Bedienelement mindestens 44 × 44 px groß, mit Zeiger
+mindestens 24 × 24 px.
+Prüfweg: Bei 375 px Breite mit Touch-Emulation die Bedienelemente beider Räume und der drei
+Sheets ausmessen; dazu am Desktop die Nachrichtenaktionen.
+Herkunft: E14
+Status: offen — Hülle und Sheets sind auf 44 px gebaut, Create unter `md` seit Phase 6. Die
+Composer-Knöpfe sind sichtbar 36 px, am Touchgerät wächst ihre Trefferfläche unsichtbar
+auf 44 px (`.touch-hit`). Nicht systematisch gemessen.
+
+**L-N.4 — Kontrast**
+Kriterium: Text erreicht 4,5 : 1, große Schrift und Bedienelemente 3 : 1 — in beiden Themes,
+auch die `muted`-Töne.
+Prüfweg: Die Farb-Tokens beider Themes gegen ihre Hintergründe rechnen; Stichproben im
+Browser.
+Herkunft: E14
+Status: offen — das helle Theme ist laut Kommentar geprüft, das dunkle nicht belegt.
+
+**L-N.5 — Reduzierte Bewegung**
+Kriterium: Mit `prefers-reduced-motion` gleitet nichts mehr, Übergänge sind höchstens
+120 ms kurze Überblendungen, und ein ASCII-Feld steht still, bleibt aber sichtbar.
+Prüfweg: Mit gesetzter Einstellung ein Bild im Chat erzeugen, ein Sheet öffnen, den Raum
+wechseln.
+Herkunft: E14
+Status: teilweise — im Code vollständig: die Motion-Tokens fallen global auf 1/120 ms,
+framer-motion folgt über `MotionConfig reducedMotion="user"`, `useAsciiFrames` friert auf
+dem ersten Frame ein (das Feld zeigt dort lose Ringe, kein leeres Rechteck). Im Browser
+mit gesetzter Einstellung nicht geprüft.
+
 ## L — Bewusst akzeptierte Risiken *(phasenlos — blockiert nicht, muss schriftlich stehen)*
 
 **L-L.1 — BYOP-Schlüssel im Browser-Speicher sind XSS-empfindlich**
@@ -485,7 +558,7 @@ Status: akzeptiert (Betreiber, 2026-08-28)
   launchrelevant, jederzeit nachrüstbar. L-H.1 bleibt Bedingung, falls sie gebaut wird.
 - **Phase 10 — Musik auf eigener Infrastruktur.** Zurückgestellt; Musik bleibt hinter
   der Pollenwall.
-- **Echtes Streaming im Chat.** Bewusst offen, siehe `docs/streaming-status.md`.
+- ~~Echtes Streaming im Chat.~~ Stand 2026-10-01: Der Chat streamt bereits per SSE (`httpsPostStream`), die Notiz „bewusst offen“ war überholt — siehe [`streaming-status.md`](streaming-status.md).
 - **Web-Crypto-Verschlüsselung lokaler Daten.** Audit-Punkt D, kein Launch-Gate.
 - **Öffentliche Produktseite / Marketing.** Nutzerentscheidung 2026-08-27.
 - **Umbenennung von `src/components/playground/`, `src/lib/playground/`, der
@@ -516,12 +589,14 @@ Status: akzeptiert (Betreiber, 2026-08-28)
 | 8 | Musik im Create | L-G.1 – L-G.4 |
 | 9 | ASCII-Flow | L-H.1 — kein Gate, gilt nur falls gebaut (Bereich M) |
 | 10 | Musik auf eigener Infrastruktur | keine — Bereich M |
+| E14 | Zugänglichkeit (Variante „Eine Fläche") | L-N.1 – L-N.5 |
 | — | Abschlussprüfung vor der Freigabe | L-I.1, L-K.1 |
 
 ## Verweise
 
-- [`FAHRPLAN-create.md`](FAHRPLAN-create.md) — der Weg dorthin, Phase für Phase
-- [`CLAUDE.md`](../CLAUDE.md) — Laufzeitwahrheit (Achtung: Modell-Listen bis Phase 3 gedriftet)
+- [`FAHRPLAN-create.md`](archive/2026-08-create-fahrplan/FAHRPLAN-create.md) — der Weg dorthin, Phase für Phase (Phasen 0–7 erledigt, archiviert)
+- [`PLAN-entschlackung-2026-10-01.md`](PLAN-entschlackung-2026-10-01.md) — die Variante „Eine Fläche" und Bereich N
+- [`CLAUDE.md`](../CLAUDE.md) — Laufzeitwahrheit
 - [`PRODUCT_IDENTITY.md`](PRODUCT_IDENTITY.md) — Produktversprechen und Sprache
-- [`PRODUCT_AUDIT_2026-04-21.md`](PRODUCT_AUDIT_2026-04-21.md) +
-  [`PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md`](PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md) — offener Rückstand
+- [`PRODUCT_AUDIT_2026-04-21.md`](archive/audits/PRODUCT_AUDIT_2026-04-21.md) +
+  [`PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md`](archive/audits/PRODUCT_AUDIT_FOLLOWUP_2026-04-21.md) — Rückstand vom April (archiviert)

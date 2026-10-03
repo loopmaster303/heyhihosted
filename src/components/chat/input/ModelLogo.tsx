@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { imageModelIcons } from '@/config/ui-constants';
+import { imageModelIcons, modelIcons } from '@/config/ui-constants';
 
 /**
  * Das Logo des Anbieters, nicht ein Symbol fuer die Funktion "Modell".
@@ -13,11 +13,12 @@ import { imageModelIcons } from '@/config/ui-constants';
  * Piktogramm, die aus der Leiste verschwinden sollte. Ein Anbieterlogo dagegen
  * ist Information: man erkennt es wieder, ohne es zu lernen.
  *
- * Kein Logo hinterlegt heisst: nichts rendern. Der Modellname steht ohnehin
- * daneben und traegt den Chip allein.
+ * Text- und Bildmodelle haben getrennte Tabellen; gesucht wird in beiden,
+ * Textmodelle zuerst. Kein Logo hinterlegt heisst: nichts rendern. Der
+ * Modellname steht ohnehin daneben und traegt den Chip allein.
  */
 export const ModelLogo: React.FC<{ modelId: string; className?: string }> = ({ modelId, className }) => {
-  const icon = imageModelIcons[modelId];
+  const icon = modelIcons[modelId] ?? imageModelIcons[modelId];
   if (!icon) return null;
 
   if (typeof icon === 'string') {

@@ -5,10 +5,9 @@
  * ChatProvider). They intentionally do NOT assert on internal implementation —
  * instead they verify:
  *   - Conversation lifecycle transitions (new chat, select, delete → fallback).
- *   - Send-flow entry point delegates to `executeChatSendCoordinator` with the
- *     correct routing signal (text vs image vs compose vs error).
- *   - State persistence hooks (setActiveConversation + localStorage for image
- *     model) are invoked on relevant actions.
+ *   - Send-flow entry point delegates to `executeChatSendCoordinator` and hands
+ *     it the image hooks (a marker becomes a pending part with the chat model).
+ *   - An image can be retried in place, with its own prompt.
  *
  * Boundary mocks only:
  *   - `useChatPersistence` (IndexedDB / Dexie) → in-memory fake.
@@ -135,8 +134,12 @@ jest.mock('@/lib/services/chat-service', () => ({
   ChatService: {
     generateTitle: jest.fn(async () => ''),
     sendChatCompletion: jest.fn(async () => ''),
-    generateImage: jest.fn(async () => ''),
+    generateImage: jest.fn(async () => 'https://cdn.example.com/retry.png'),
   },
+}));
+
+jest.mock('@/lib/services/output-service', () => ({
+  OutputService: { saveGeneratedAsset: jest.fn(async () => 'asset-retry') },
 }));
 
 // -----------------------------------------------------------------------------
@@ -160,8 +163,6 @@ function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
     toolType: 'long language loops',
     selectedModelId: 'claude-fast',
     selectedResponseStyleName: 'Basic',
-    isImageMode: false,
-    isComposeMode: false,
     isCodeMode: false,
     webBrowsingEnabled: false,
     ...overrides,
@@ -275,47 +276,33 @@ describe('ChatProvider / useChatLogic contract', () => {
     const input = executeChatSendCoordinatorMock.mock.calls[0][0];
     expect(input.messageText).toBe('hello world');
     expect(input.conversation.id).toBe('conv-send');
-    // Text-path: no imageConfig on options.
-    expect(input.options.imageConfig).toBeUndefined();
-    expect(input.options.isImageModeIntent).toBeFalsy();
+    // Bilder entstehen nur noch ueber den Marker in der Antwort.
+    expect(input.media).toBeDefined();
+    expect(input.media.prepare('Bitte.\n[IMAGE_GEN: a fox]')).toEqual({
+      cleanText: 'Bitte.',
+      pendingParts: [expect.objectContaining({
+        type: 'image_url',
+        image_url: expect.objectContaining({ status: 'pending', prompt: 'a fox', modelId: 'klein' }),
+      })],
+    });
   });
 
-  it('sendMessage surfaces image-mode intent when the active conversation is in image mode', async () => {
-    const conv = makeConversation({ id: 'conv-img', isImageMode: true });
+  it('paints chat images with the free model the user picked in settings', async () => {
+    localStorage.setItem('defaultImageModelId', JSON.stringify('klein'));
+    const conv = makeConversation({ id: 'conv-klein' });
     resetPersistence({ allConversations: [conv], activeConversation: conv });
 
     const { result } = renderHook(() => useChatLogic({}), { wrapper });
-
-    await act(async () => {
-      await result.current.sendMessage('a cat astronaut', {
-        isImageModeIntent: true,
-        imageConfig: {
-          formFields: { width: 1024 },
-          uploadedImages: [],
-          selectedModelId: 'flux',
-        },
-      });
-    });
-
-    const input = executeChatSendCoordinatorMock.mock.calls[0][0];
-    expect(input.options.isImageModeIntent).toBe(true);
-    expect(input.options.imageConfig?.selectedModelId).toBe('flux');
-    expect(input.conversation.isImageMode).toBe(true);
+    expect(result.current.chatImageModelId).toBe('klein');
   });
 
-  it('sendMessage respects compose mode as a distinct conversation flag', async () => {
-    const conv = makeConversation({ id: 'conv-comp', isComposeMode: true });
+  it('never promises a key-gated model in chat — falls back to the free default', () => {
+    localStorage.setItem('defaultImageModelId', JSON.stringify('p-image'));
+    const conv = makeConversation({ id: 'conv-paid' });
     resetPersistence({ allConversations: [conv], activeConversation: conv });
 
     const { result } = renderHook(() => useChatLogic({}), { wrapper });
-
-    await act(async () => {
-      await result.current.sendMessage('warm synthwave loop');
-    });
-
-    const input = executeChatSendCoordinatorMock.mock.calls[0][0];
-    expect(input.conversation.isComposeMode).toBe(true);
-    expect(input.conversation.isImageMode).toBeFalsy();
+    expect(result.current.chatImageModelId).toBe('klein');
   });
 
   it('sendMessage delegates unhandled coordinator errors upward — the coordinator owns its own failure state', async () => {
@@ -390,47 +377,36 @@ describe('ChatProvider / useChatLogic contract', () => {
     expect(result.current.activeConversation?.selectedResponseStyleName).toBe('Precise');
   });
 
-  it('handleImageModelChange persists the selected image model to localStorage', () => {
-    const conv = makeConversation({ id: 'conv-imgsel' });
-    resetPersistence({ allConversations: [conv], activeConversation: conv });
-
-    const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
-
-    const { result } = renderHook(() => useChatLogic({}), { wrapper });
-
-    act(() => {
-      result.current.handleImageModelChange('flux');
-    });
-
-    expect(result.current.selectedImageModelId).toBe('flux');
-    expect(setItemSpy).toHaveBeenCalledWith(
-      'chatSelectedImageModel',
-      JSON.stringify('flux'),
-    );
-
-    setItemSpy.mockRestore();
-  });
-
-  it('toggleImageMode flips the image-mode flag and clears uploaded files when turning on', () => {
-    const fakeFile = new File(['x'], 'x.png', { type: 'image/png' });
+  it('retryMediaPart regenerates a failed image in place, with its own prompt', async () => {
     const conv = makeConversation({
-      id: 'conv-toggle',
-      isImageMode: false,
-      uploadedFile: fakeFile,
-      uploadedFilePreview: 'data:image/png;base64,xx',
+      id: 'conv-retry',
+      messages: [{
+        id: 'a1',
+        role: 'assistant',
+        timestamp: '2026-01-01T00:00:01.000Z',
+        content: [
+          { type: 'text', text: 'Hier.' },
+          { type: 'image_url', image_url: { url: '', status: 'error', error: 'weg', prompt: 'a fox', modelId: 'klein' } },
+        ],
+      }],
     });
     resetPersistence({ allConversations: [conv], activeConversation: conv });
 
     const { result } = renderHook(() => useChatLogic({}), { wrapper });
 
-    act(() => {
-      result.current.toggleImageMode(true);
+    await act(async () => {
+      await result.current.retryMediaPart('a1', 1);
     });
 
-    expect(result.current.activeConversation?.isImageMode).toBe(true);
-    // When image mode engages, the prior file upload is dropped so the next
-    // send does not accidentally pipe it to the image generation flow.
-    expect(result.current.activeConversation?.uploadedFile).toBeNull();
-    expect(result.current.activeConversation?.uploadedFilePreview).toBeNull();
+    const content = result.current.activeConversation?.messages[0].content;
+    expect(Array.isArray(content) && content[1]).toEqual({
+      type: 'image_url',
+      image_url: expect.objectContaining({
+        url: 'https://cdn.example.com/retry.png',
+        prompt: 'a fox',
+        metadata: { assetId: 'asset-retry' },
+      }),
+    });
+    expect(Array.isArray(content) && content[1].type === 'image_url' && content[1].image_url.status).toBeFalsy();
   });
 });

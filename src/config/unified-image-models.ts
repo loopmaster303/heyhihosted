@@ -248,6 +248,40 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     temporalControl: { mode: 'seconds', min: 1, max: 20, step: 1, defaultSeconds: 5 },
   },
   {
+    id: 'p-video-2',
+    name: 'P-Video 2',
+    provider: 'pruna',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 2,
+    isFree: false,
+    enabled: true,
+    byopVisible: true,
+    description: 'Pruna P-Video 2 — own contract, resolution and prompt upsampling controls',
+    supportsAudio: true,
+    supportsEndFrame: true,
+    referenceMode: 'start-end-frame',
+    temporalControl: { mode: 'seconds', min: 1, max: 20, step: 1, defaultSeconds: 5 },
+  },
+  {
+    id: 'p-video-2-pro',
+    name: 'P-Video 2 Pro',
+    provider: 'pruna',
+    kind: 'video',
+    category: 'Advanced',
+    supportsReference: true,
+    maxImages: 2,
+    isFree: false,
+    enabled: true,
+    byopVisible: true,
+    description: 'Pruna P-Video 2 Pro — 5-15s video with generated audio',
+    supportsAudio: true,
+    supportsEndFrame: true,
+    referenceMode: 'start-end-frame',
+    temporalControl: { mode: 'seconds', min: 5, max: 15, step: 1, defaultSeconds: 5 },
+  },
+  {
     id: 'p-video-avatar',
     name: 'P-Video Avatar',
     provider: 'pruna',
@@ -355,25 +389,9 @@ const POLLINATIONS_MODELS: UnifiedImageModel[] = [
     description: 'Wan Pro 1080p — start and end frame', supportsAudio: true, supportsEndFrame: true,
     durationRange: { options: [5, 10, 15] },
   },
-  {
-    id: 'nova-reel',
-    name: 'Nova Reel',
-    provider: 'pollinations',
-    kind: 'video',
-    category: 'Advanced',
-    supportsReference: true,
-    maxImages: 1,
-    isFree: false,
-    enabled: false,
-    description: 'Nova Reel — long-form video (up to 120s)',
-    supportsAudio: false,
-    durationRange: { options: [6, 12, 18, 24, 30] },
-  },
-  // nova-reel ist registry-frei, bleibt aber aus: live geprueft 2026-08-28 —
-  // ein 6s-Lauf brach nach 125s mit 524 ab, bevor das Ergebnis da war. Der
-  // Dispatch laeuft synchron; das 202-Protokoll deckt nur Pruna ab. Damit ist
-  // das Modell ohne weitere Arbeit (Phase 4) nicht anbietbar, auch wenn die
-  // Registry es als kostenlos fuehrt.
+  // nova-reel entfernt 2026-10-03: steht nicht mehr in der Live-Registry
+  // (weder als Name noch als Alias). Es war ohnehin aus (524 nach 125 s,
+  // synchroner Dispatch).
   {
     id: 'wan-t2v',
     name: 'Wan T2V',
