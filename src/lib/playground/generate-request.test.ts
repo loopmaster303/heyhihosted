@@ -3,6 +3,7 @@ import { buildGenerateBody, buildGenerateHeaders } from './generate-request';
 const modelPruna: any = { id: 'wan-i2v', provider: 'pruna', kind: 'video', supportsReference: true, requiresReference: true, maxImages: 2, referenceMode: 'start-end-frame', unmapped: false, name: 'Wan I2V', supportsEndFrame: true, supportsAudio: false, paidOnly: true };
 const modelPollen: any = { id: 'flux', provider: 'pollinations', kind: 'image', supportsReference: false, requiresReference: false, maxImages: 0, unmapped: false, name: 'Flux', supportsEndFrame: false, supportsAudio: false, paidOnly: false };
 const modelPVideo2: any = { id: 'p-video-2', provider: 'pruna', kind: 'video', supportsReference: true, requiresReference: false, maxImages: 2, referenceMode: 'start-end-frame', unmapped: false, name: 'P-Video 2', supportsEndFrame: true, supportsAudio: true, paidOnly: true };
+const modelPVideo2Pro: any = { id: 'p-video-2-pro', provider: 'pruna', kind: 'video', supportsReference: true, requiresReference: false, maxImages: 2, referenceMode: 'start-end-frame', unmapped: false, name: 'P-Video 2 Pro', supportsEndFrame: true, supportsAudio: true, paidOnly: true };
 
 const baseState: any = { mode: 't2i', modelId: null, prompt: 'hi', params: {}, uploads: [], sourceVideo: null };
 
@@ -94,6 +95,53 @@ describe('buildGenerateBody for p-video-2', () => {
     );
     expect(body.params).toEqual({ duration: 10, duration_auto: true });
     expect(body.duration).toBe(10);
+  });
+});
+
+describe('buildGenerateBody for p-video-2-pro', () => {
+  it('keeps Pro resolution in params and preserves the selected contract fields', () => {
+    const state: any = {
+      ...baseState,
+      mode: 'i2v',
+      uploads: ['start', 'end'],
+      params: {
+        duration: 8,
+        resolution: '768p',
+        aspect_ratio: '3:2',
+        mode: 'quality',
+        prompt_upsampler: 'off',
+        seed: 0,
+      },
+    };
+    const body = buildGenerateBody(state, modelPVideo2Pro);
+
+    expect(body.model).toBe('p-video-2-pro');
+    expect(body.params).toEqual(state.params);
+    expect(body.params?.resolution).toBe('768p');
+    expect(body.resolution).toBeUndefined();
+    expect(body.duration).toBe(8);
+    expect(body.seed).toBe(0);
+    expect(body.aspectRatio).toBe('3:2');
+    expect(body.image).toEqual(['start', 'end']);
+    expect(state.params).toEqual({
+      duration: 8,
+      resolution: '768p',
+      aspect_ratio: '3:2',
+      mode: 'quality',
+      prompt_upsampler: 'off',
+      seed: 0,
+    });
+  });
+
+  it('does not apply p-video-2 auto-duration cleanup', () => {
+    const state: any = {
+      ...baseState,
+      params: { duration: 7, duration_auto: true, resolution: '480p' },
+    };
+    const body = buildGenerateBody(state, modelPVideo2Pro);
+    expect(body.duration).toBe(7);
+    expect(body.params).toEqual(state.params);
+    expect(body.resolution).toBeUndefined();
   });
 });
 

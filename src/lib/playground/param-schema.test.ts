@@ -192,6 +192,57 @@ describe('p-video-2', () => {
   });
 });
 
+describe('p-video-2-pro', () => {
+  it('uses the Pro contract and defaults', () => {
+    const schema = schemaFor('p-video-2-pro')!;
+    expect(schema.images).toEqual({ min: 0, max: 2, roles: ['Start', 'Ende'] });
+    expect(schema.groups[0]?.label).toBe('Video · 24 fps · mit Ton');
+
+    const fields = schema.groups.flatMap((group) => group.fields);
+    const duration = fields.find((field) => field.name === 'duration');
+    expect(duration?.kind).toBe('seconds');
+    if (duration?.kind === 'seconds') {
+      expect(duration.options).toEqual(Array.from({ length: 11 }, (_, i) => i + 5));
+    }
+
+    const resolution = fields.find((field) => field.name === 'resolution');
+    expect(resolution?.kind).toBe('enum');
+    if (resolution?.kind === 'enum') {
+      expect(resolution.options.map((option) => option.value)).toEqual(['480p', '768p']);
+    }
+
+    const mode = fields.find((field) => field.name === 'mode');
+    const upsampler = fields.find((field) => field.name === 'prompt_upsampler');
+    expect(mode?.kind).toBe('enum');
+    expect(upsampler?.kind).toBe('enum');
+    if (mode?.kind === 'enum') expect(mode.options.map((option) => option.value)).toEqual(['speed', 'quality', 'cost']);
+    if (upsampler?.kind === 'enum') expect(upsampler.options.map((option) => option.value)).toEqual(['off', 'turbo', 'max']);
+
+    expect(defaultsFor(schema)).toMatchObject({
+      duration: 5,
+      resolution: '768p',
+      aspect_ratio: '16:9',
+      mode: 'speed',
+      prompt_upsampler: 'turbo',
+      seed: 0,
+    });
+  });
+
+  it('does not expose P-Video 2-only controls', () => {
+    const names = schemaFor('p-video-2-pro')!.groups.flatMap((group) => group.fields.map((field) => field.name));
+    expect(names).not.toEqual(expect.arrayContaining([
+      'fps', 'audio', 'save_audio', 'draft', 'duration_auto', 'prompt_upsampling',
+    ]));
+  });
+
+  it('hides aspect ratio for any reference image', () => {
+    const schema = schemaFor('p-video-2-pro')!;
+    const values = defaultsFor(schema);
+    expect(visibleFields(schema, values).map((field) => field.name)).toContain('aspect_ratio');
+    expect(visibleFields(schema, { ...values, image: 'start' }).map((field) => field.name)).not.toContain('aspect_ratio');
+  });
+});
+
 describe('schemaForPollinations', () => {
   function entry(over: Partial<PlaygroundModelEntry> = {}): PlaygroundModelEntry {
     return {

@@ -182,6 +182,23 @@ describe('model-source', () => {
     expect(pollEntries.map((m) => m.id)).not.toContain('p-video-2');
   });
 
+  it('p-video-2-pro gets its own end-frame/audio capabilities, no pollinations duplicate', () => {
+    const entries = buildPrunaEntries();
+    const pro = entries.find((m) => m.id === 'p-video-2-pro');
+    expect(pro).toMatchObject({
+      id: 'p-video-2-pro',
+      kind: 'video',
+      supportsReference: true,
+      supportsEndFrame: true,
+      supportsAudio: true,
+      maxImages: 2,
+      referenceMode: 'start-end-frame',
+    });
+
+    const pollEntries = buildPollinationsEntries([{ name: 'p-video-2-pro', output_modalities: ['video'] }]);
+    expect(pollEntries.map((m) => m.id)).not.toContain('p-video-2-pro');
+  });
+
   it('uses name as id when title is missing', () => {
     const [e] = buildPollinationsEntries([{
       name: 'my-model',

@@ -75,7 +75,9 @@ export function buildGenerateBody(
   if (typeof transparentVal === 'boolean') body.transparent = transparentVal;
 
   const resolutionVal = params?.resolution;
-  if (typeof resolutionVal === 'string') body.resolution = resolutionVal;
+  // The global request schema only accepts Pollinations resolutions. Pro's
+  // 768p value belongs exclusively in its Pruna params bag.
+  if (model.id !== 'p-video-2-pro' && typeof resolutionVal === 'string') body.resolution = resolutionVal;
 
   // Handle reference images
   if (model.supportsReference && state.uploads.length > 0) {

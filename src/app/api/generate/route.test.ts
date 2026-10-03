@@ -2,6 +2,9 @@ import { POST } from './route';
 import { UNIFIED_IMAGE_MODELS } from '@/config/unified-image-models';
 import { _resetRateLimitForTesting } from '@/lib/rate-limit';
 import { _clearRegistryCacheForTesting } from '@/lib/pollinations-registry';
+import { buildPrunaEntries } from '@/lib/playground/model-source';
+import { buildGenerateBody } from '@/lib/playground/generate-request';
+import { defaultsFor, schemaFor } from '@/lib/playground/param-schema';
 
 const enabledPrunaImageModelIds = UNIFIED_IMAGE_MODELS
   .filter((model) => model.provider === 'pruna' && model.kind === 'image' && model.enabled !== false)
@@ -1085,6 +1088,199 @@ describe('/api/generate route', () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toMatch(/invalid duration.*p-video-2/i);
+    expect(generateViaPrunaMock).not.toHaveBeenCalled();
+  });
+
+  const proRequest = (body: Record<string, unknown>) => new Request('http://localhost/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+    body: JSON.stringify({ prompt: 'pro duration contract', model: 'p-video-2-pro', ...body }),
+  });
+
+  describe('p-video-2-pro duration contract', () => {
+
+    it.each([5, 15])('accepts top-level duration boundary %s seconds', async (duration) => {
+      generateViaPrunaMock.mockResolvedValueOnce({ predictionId: `pro-top-${duration}` });
+
+      const response = await POST(proRequest({ duration }));
+
+      expect(response.status).toBe(202);
+      expect(generateViaPrunaMock).toHaveBeenCalledWith(
+        'p-video-2-pro',
+        expect.objectContaining({ duration }),
+        expect.any(AbortSignal),
+        'test-pruna-key',
+      );
+    });
+
+    it.each([5, 15])('accepts params-only duration boundary %s seconds', async (duration) => {
+      generateViaPrunaMock.mockResolvedValueOnce({ predictionId: `pro-params-${duration}` });
+
+      const response = await POST(proRequest({ params: { duration } }));
+
+      expect(response.status).toBe(202);
+      expect(generateViaPrunaMock).toHaveBeenCalledWith(
+        'p-video-2-pro',
+        expect.objectContaining({ duration: undefined, params: { duration } }),
+        expect.any(AbortSignal),
+        'test-pruna-key',
+      );
+    });
+
+    it.each([0, 4, 15.5, 16, 20])('rejects invalid top-level duration %s before Pruna dispatch', async (duration) => {
+      const response = await POST(proRequest({ duration }));
+      const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+      expect(response.status).toBe(400);
+      expect(body.error).toMatch(/invalid duration.*p-video-2-pro/i);
+      expect(generateViaPrunaMock).not.toHaveBeenCalled();
+    });
+
+    it.each([0, 4, 15.5, 16, 20])('rejects invalid params-only duration %s before Pruna dispatch', async (duration) => {
+      const response = await POST(proRequest({ params: { duration } }));
+      const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+      expect(response.status).toBe(400);
+      expect(body.error).toMatch(/invalid duration.*p-video-2-pro/i);
+      expect(generateViaPrunaMock).not.toHaveBeenCalled();
+    });
+
+    it('uses the mapper default when duration is absent', async () => {
+      generateViaPrunaMock.mockResolvedValueOnce({ predictionId: 'pro-default' });
+
+      const response = await POST(proRequest({}));
+
+      expect(response.status).toBe(202);
+      expect(generateViaPrunaMock).toHaveBeenCalledWith(
+        'p-video-2-pro',
+        expect.objectContaining({ duration: undefined, params: undefined }),
+        expect.any(AbortSignal),
+        'test-pruna-key',
+      );
+    });
+
+    it('gives a valid top-level duration precedence over a conflicting params duration', async () => {
+      generateViaPrunaMock.mockResolvedValueOnce({ predictionId: 'pro-precedence' });
+
+      const response = await POST(proRequest({ duration: 5, params: { duration: 15 } }));
+
+      expect(response.status).toBe(202);
+      expect(generateViaPrunaMock).toHaveBeenCalledWith(
+        'p-video-2-pro',
+        expect.objectContaining({ duration: 5, params: { duration: 15 } }),
+        expect.any(AbortSignal),
+        'test-pruna-key',
+      );
+    });
+
+    it('rejects a malformed params-only duration before dispatch', async () => {
+      const response = await POST(proRequest({ params: { duration: '5' } }));
+      const body = responseJson.mock.calls.at(-1)?.[0] as { error: string };
+
+      expect(response.status).toBe(400);
+      expect(body.error).toMatch(/invalid duration.*p-video-2-pro/i);
+      expect(generateViaPrunaMock).not.toHaveBeenCalled();
+    });
+
+    it('allows a valid top-level duration to win over malformed params duration', async () => {
+      generateViaPrunaMock.mockResolvedValueOnce({ predictionId: 'pro-malformed-duplicate' });
+
+      const response = await POST(proRequest({ duration: 5, params: { duration: '5' } }));
+
+      expect(response.status).toBe(202);
+      expect(generateViaPrunaMock).toHaveBeenCalledWith(
+        'p-video-2-pro',
+        expect.objectContaining({ duration: 5, params: { duration: '5' } }),
+        expect.any(AbortSignal),
+        'test-pruna-key',
+      );
+    });
+  });
+
+  it('returns 503 for p-video-2-pro when neither the request nor server Pruna key exists', async () => {
+    delete (process.env as any).PRUNA_API_KEY;
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({ prompt: 'no pro key', model: 'p-video-2-pro' }),
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { error: string; code?: string };
+
+    expect(response.status).toBe(503);
+    expect(body.error).toMatch(/p-video-2-pro requires a Pruna key/i);
+    expect(body.code).toBe('MISSING_PRUNA_KEY');
+    expect(generateViaPrunaMock).not.toHaveBeenCalled();
+  });
+
+  it('returns an async 202 with the p-video-2-pro identity and preserves two reference frames', async () => {
+    generateViaPrunaMock.mockResolvedValueOnce({ predictionId: 'pro-refs-202' });
+
+    const response = await POST(proRequest({
+      image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { pending: boolean; predictionId: string; model: string };
+
+    expect(response.status).toBe(202);
+    expect(body).toEqual({ pending: true, predictionId: 'pro-refs-202', model: 'p-video-2-pro' });
+    expect(generateViaPrunaMock).toHaveBeenCalledWith(
+      'p-video-2-pro',
+      expect.objectContaining({ image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'] }),
+      expect.any(AbortSignal),
+      'test-pruna-key',
+    );
+    expect(generatePollinationsImageMock).not.toHaveBeenCalled();
+    expect(videoUrlMock).not.toHaveBeenCalled();
+  });
+
+  it('passes the Pro schema default 768p through the real Create request builder in params', async () => {
+    generateViaPrunaMock.mockResolvedValueOnce({ predictionId: 'pro-schema-default' });
+    const model = buildPrunaEntries().find((entry) => entry.id === 'p-video-2-pro');
+    const schema = schemaFor('p-video-2-pro');
+    expect(model).toBeDefined();
+    expect(schema).toBeDefined();
+
+    const body = buildGenerateBody(
+      {
+        mode: 't2v',
+        modelId: 'p-video-2-pro',
+        prompt: 'schema default request',
+        params: defaultsFor(schema!),
+        uploads: [],
+        sourceVideo: null,
+      } as any,
+      model as any,
+      schema,
+    );
+
+    expect(body.resolution).toBeUndefined();
+    expect(body.params?.resolution).toBe('768p');
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify(body),
+    }));
+
+    expect(response.status).toBe(202);
+    expect(generateViaPrunaMock).toHaveBeenCalledWith(
+      'p-video-2-pro',
+      expect.objectContaining({ params: expect.objectContaining({ resolution: '768p' }) }),
+      expect.any(AbortSignal),
+      'test-pruna-key',
+    );
+  });
+
+  it('rejects more than two p-video-2-pro reference frames before dispatch', async () => {
+    const response = await POST(proRequest({
+      image: [
+        'https://example.com/start.jpg',
+        'https://example.com/end.jpg',
+        'https://example.com/extra.jpg',
+      ],
+    }));
+
+    expect(response.status).toBe(400);
     expect(generateViaPrunaMock).not.toHaveBeenCalled();
   });
 

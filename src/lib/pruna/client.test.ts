@@ -419,6 +419,84 @@ describe('Pruna client', () => {
     });
   });
 
+  describe('p-video-2-pro mapping (real config, mocked fetch)', () => {
+    it('submits Model: p-video-2-pro without Try-Sync and keeps input.mode independent of transport', async () => {
+      process.env.PRUNA_API_KEY = 'test-pruna-key';
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ status: 'starting', id: 'pv2-pro-1' }),
+      } as Response);
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      await generateViaPruna('p-video-2-pro', {
+        prompt: 'a car driving',
+        params: { mode: 'quality' },
+      });
+
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe('https://api.pruna.ai/v1/predictions');
+      expect(init.headers).toEqual(expect.objectContaining({ Model: 'p-video-2-pro' }));
+      expect(init.headers).not.toHaveProperty('Try-Sync');
+      const body = JSON.parse(init.body);
+      expect(body.input.mode).toBe('quality');
+      expect(body.input).toEqual({
+        prompt: 'a car driving',
+        duration: 5,
+        resolution: '768p',
+        mode: 'quality',
+        prompt_upsampler: 'turbo',
+        aspect_ratio: '16:9',
+      });
+    });
+
+    it('sends only documented Pro fields and preserves resolution and reference frame order', async () => {
+      process.env.PRUNA_API_KEY = 'test-pruna-key';
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ status: 'starting', id: 'pv2-pro-2' }),
+      } as Response);
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      await generateViaPruna('p-video-2-pro', {
+        prompt: 'a car driving',
+        seed: 0,
+        duration: 15,
+        image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+        params: {
+          resolution: '480p',
+          mode: 'cost',
+          prompt_upsampler: 'off',
+          aspect_ratio: '9:16',
+          fps: 48,
+          duration_auto: true,
+          width: 1024,
+          height: 576,
+          output_format: 'mp4',
+          audio: true,
+          save_audio: true,
+          prompt_upsampling: true,
+          draft: false,
+        },
+      });
+
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(body.input).toEqual({
+        prompt: 'a car driving',
+        duration: 15,
+        resolution: '480p',
+        mode: 'cost',
+        prompt_upsampler: 'off',
+        image: 'https://example.com/start.jpg',
+        last_frame_image: 'https://example.com/end.jpg',
+        seed: 0,
+      });
+      expect(Object.keys(body.input)).not.toEqual(expect.arrayContaining([
+        'fps', 'duration_auto', 'draft', 'save_audio', 'audio', 'prompt_upsampling',
+        'width', 'height', 'output_format', 'aspect_ratio',
+      ]));
+    });
+  });
+
   describe('downloadPrunaResult redirect policy', () => {
     it('rejects a generation URL pointing at a private/internal host', async () => {
       global.fetch = jest.fn() as any;

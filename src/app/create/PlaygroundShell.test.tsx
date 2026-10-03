@@ -8,7 +8,7 @@
  * based ui components) is stubbed — jest does not transform node_modules.
  */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 jest.mock('lucide-react', () => new Proxy({}, {
@@ -110,6 +110,7 @@ import { usePlaygroundModels } from '@/hooks/usePlaygroundModels';
 import { usePollenKey } from '@/hooks/usePollenKey';
 import { useProviderMode } from '@/hooks/useProviderMode';
 import { OutputService } from '@/lib/services/output-service';
+import { saveStoredRun } from '@/lib/generation/run-store';
 
 const DUMMY_MODEL = {
   id: 'flux',
@@ -136,6 +137,23 @@ const DUMMY_MODEL = {
 const P_VIDEO_2_MODEL = {
   id: 'p-video-2',
   name: 'P-Video 2',
+  provider: 'pruna' as const,
+  kind: 'video' as const,
+  supportsReference: true,
+  requiresReference: false,
+  maxImages: 2,
+  referenceMode: 'start-end-frame' as const,
+  unmapped: false,
+  supportsEndFrame: true,
+  supportsAudio: true,
+  paidOnly: true,
+  community: false,
+  runnableOnKey: true,
+};
+
+const P_VIDEO_2_PRO_MODEL = {
+  id: 'p-video-2-pro',
+  name: 'P-Video 2 Pro',
   provider: 'pruna' as const,
   kind: 'video' as const,
   supportsReference: true,
@@ -448,5 +466,233 @@ describe('PlaygroundShell generate flow: P-Video 2', () => {
     // abzuwarten haelt den anschliessenden Galerie-Refresh (setGalleryKey)
     // noch innerhalb des Tests, statt ihn unbeobachtet auslaufen zu lassen.
     await waitFor(() => expect(OutputService.saveGeneratedAsset).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('PlaygroundShell generate flow: P-Video 2 Pro', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
+    mockHooks({ entries: [DUMMY_MODEL, P_VIDEO_2_MODEL, P_VIDEO_2_PRO_MODEL] });
+    (window.matchMedia as jest.Mock).mockImplementation((query: string) => ({
+      matches: query.includes('1280'),
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
+    localStorage.setItem('heyhi_pruna_irreversible_ack', '1');
+  });
+
+  async function selectPro(user: ReturnType<typeof userEvent.setup>) {
+    await waitFor(() => expect(screen.queryByText('Lädt…')).not.toBeInTheDocument());
+    await user.click(screen.getByRole('tab', { name: 't2v' }));
+    await waitFor(() => expect(screen.getAllByText('P-Video 2').length).toBeGreaterThan(0));
+
+    // The test dropdown renders its menu items eagerly. The first matching
+    // button is the picker trigger; the exact Pro label is the menu item.
+    await user.click(screen.getAllByRole('button', { name: /P-Video 2/ })[0]);
+    await user.click(screen.getByRole('button', { name: 'P-Video 2 Pro' }));
+    await waitFor(() => expect(screen.getAllByText('P-Video 2 Pro').length).toBeGreaterThan(0));
+  }
+
+  function clickLastButton(name: string) {
+    const buttons = screen.getAllByRole('button', { name });
+    fireEvent.click(buttons[buttons.length - 1]);
+  }
+
+  it('switches from P-Video 2 to Pro defaults without carrying incompatible controls', async () => {
+    const user = userEvent.setup();
+    render(<PlaygroundShell />);
+    await selectPro(user);
+
+    expect(screen.getByText('Video · 24 fps · mit Ton')).toBeInTheDocument();
+    expect(screen.getAllByText('768p').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Automatische Dauer')).not.toBeInTheDocument();
+    expect(screen.queryByText('48 fps')).not.toBeInTheDocument();
+    expect(screen.queryByText('Entwurf')).not.toBeInTheDocument();
+    expect(screen.queryByText('Audio speichern')).not.toBeInTheDocument();
+    expect(screen.queryByText('Prompt-Upsampling')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Qualität' }));
+    expect(screen.getByText('Generierungsmodus')).toBeInTheDocument();
+    expect(screen.getByText('Prompt-Upsampler')).toBeInTheDocument();
+  });
+
+  it('restores a persisted Pro selection and valid values after remount', async () => {
+    const user = userEvent.setup();
+    const first = render(<PlaygroundShell />);
+    await selectPro(user);
+    await user.click(screen.getByRole('slider'));
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '8' } });
+    clickLastButton('480p');
+    await user.click(screen.getByRole('button', { name: 'Qualität' }));
+    clickLastButton('Qualität');
+    clickLastButton('Max');
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('playgroundState') ?? '{}');
+      expect(stored.modelId).toBe('p-video-2-pro');
+      expect(stored.mode).toBe('t2v');
+      expect(stored.params).toMatchObject({
+        duration: 13,
+        resolution: '480p',
+        mode: 'quality',
+        prompt_upsampler: 'max',
+      });
+    });
+
+    first.unmount();
+    render(<PlaygroundShell />);
+    await waitFor(() => expect(screen.getByText('Video · 24 fps · mit Ton')).toBeInTheDocument());
+    expect(screen.getByRole('slider')).toHaveValue('8');
+    expect(screen.getAllByRole('button', { name: '480p' })[0]).toHaveTextContent('480p');
+    expect(screen.queryByText('Automatische Dauer')).not.toBeInTheDocument();
+  });
+
+  it('saves a finished Pro result as video with the exact model and params', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('asset-p-video-2-pro');
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ videoUrl: 'https://x/pro.mp4' }),
+    });
+
+    const user = userEvent.setup();
+    render(<PlaygroundShell />);
+    await selectPro(user);
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '7' } });
+    clickLastButton('480p');
+    await user.click(screen.getByRole('button', { name: 'Qualität' }));
+    clickLastButton('Qualität');
+    clickLastButton('Max');
+    await user.type(screen.getByLabelText('Prompt'), 'ein Pro-Testvideo');
+    await user.click(screen.getByRole('button', { name: 'Senden' }));
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBe(1));
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body).toMatchObject({
+      model: 'p-video-2-pro',
+      duration: 12,
+      params: {
+        duration: 12,
+        resolution: '480p',
+        mode: 'quality',
+        prompt_upsampler: 'max',
+      },
+    });
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({
+      url: 'https://x/pro.mp4',
+      prompt: 'ein Pro-Testvideo',
+      modelId: 'p-video-2-pro',
+      isVideo: true,
+      params: expect.objectContaining({
+        duration: 12,
+        resolution: '480p',
+        mode: 'quality',
+        prompt_upsampler: 'max',
+      }),
+    }));
+  });
+
+  it('retries the frozen Pro request including mode and upsampler after composer changes', async () => {
+    jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('asset-p-video-2-pro');
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      json: async () => ({ error: 'upstream kaputt' }),
+    });
+
+    const user = userEvent.setup();
+    render(<PlaygroundShell />);
+    await selectPro(user);
+    await user.click(screen.getByRole('button', { name: 'Qualität' }));
+    clickLastButton('Qualität');
+    clickLastButton('Max');
+    await user.type(screen.getByLabelText('Prompt'), 'eingefrorener Pro-Lauf');
+    await user.click(screen.getByRole('button', { name: 'Senden' }));
+    await screen.findByRole('button', { name: 'Erneut versuchen' });
+    const firstBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+
+    clickLastButton('Speed');
+    clickLastButton('Aus');
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ videoUrl: 'https://x/pro-retry.mp4' }),
+    });
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+
+    await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBe(2));
+    const retryBody = JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body);
+    expect(retryBody).toEqual(firstBody);
+    expect(retryBody.model).toBe('p-video-2-pro');
+    expect(retryBody.params.mode).toBe('quality');
+    expect(retryBody.params.prompt_upsampler).toBe('max');
+    await waitFor(() => expect(OutputService.saveGeneratedAsset).toHaveBeenCalledTimes(1));
+  });
+
+  it('resumes an existing Pro pending run by polling without redispatching', async () => {
+    const save = jest.spyOn(OutputService, 'saveGeneratedAsset').mockResolvedValue('asset-p-video-2-pro');
+    saveStoredRun({
+      runId: 'resume-pro',
+      predictionId: 'prediction-pro',
+      model: 'p-video-2-pro',
+      prompt: 'wiederaufgenommenes Pro-Video',
+      params: {
+        duration: 11,
+        resolution: '480p',
+        aspect_ratio: '9:16',
+        mode: 'quality',
+        prompt_upsampler: 'max',
+        seed: 0,
+      },
+      isVideo: true,
+      aspectRatio: '9:16',
+      startedAt: Date.now(),
+      body: {
+        prompt: 'wiederaufgenommenes Pro-Video',
+        model: 'p-video-2-pro',
+        duration: 11,
+        params: {
+          duration: 11,
+          resolution: '480p',
+          aspect_ratio: '9:16',
+          mode: 'quality',
+          prompt_upsampler: 'max',
+          seed: 0,
+        },
+      },
+    });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ videoUrl: 'https://x/resumed-pro.mp4' }),
+    });
+
+    jest.useFakeTimers();
+    try {
+      render(<PlaygroundShell />);
+      await act(async () => { jest.advanceTimersByTime(3_000); });
+      await waitFor(() => expect((global.fetch as jest.Mock).mock.calls.length).toBe(1));
+      expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+        '/api/pruna/status?id=prediction-pro&model=p-video-2-pro',
+      );
+      expect((global.fetch as jest.Mock).mock.calls[0][1].method).toBeUndefined();
+      await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({
+        modelId: 'p-video-2-pro',
+        isVideo: true,
+        params: expect.objectContaining({ mode: 'quality', prompt_upsampler: 'max' }),
+      })));
+      expect((global.fetch as jest.Mock).mock.calls.some(([url]) => url === '/api/generate')).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

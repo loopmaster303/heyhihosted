@@ -222,6 +222,23 @@ export async function POST(request: Request) {
     // ungepruefter Wert an den Provider.
     const effectiveDuration = duration ?? (typeof params?.duration === 'number' ? params.duration : undefined);
 
+    // P-Video 2 Pro accepts duration in its params bag when the request comes
+    // from Create. A malformed params-only value must not silently turn into
+    // the adapter's default; an explicitly valid top-level duration wins over
+    // any duplicate params value and is validated below.
+    if (
+      canonicalModelId === 'p-video-2-pro'
+      && duration === undefined
+      && params?.duration !== undefined
+      && typeof params.duration !== 'number'
+    ) {
+      throw new ApiError(
+        400,
+        `Invalid duration for ${canonicalModelId}: expected a numeric duration`,
+        'INVALID_DURATION',
+      );
+    }
+
     if (prunaEligible && effectiveDuration !== undefined) {
       const temporalControl = modelInfo?.temporalControl;
 
