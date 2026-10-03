@@ -39,6 +39,36 @@ function cleanedPVideo2Params(
   return rest;
 }
 
+type ParamValue = string | number | boolean;
+type LiftableField = 'seed' | 'duration' | 'audio' | 'aspectRatio' | 'quality' | 'transparent' | 'resolution';
+
+/**
+ * Felder, die die Server-Route direkt erwartet (Legacy) — und alles, was
+ * Pollinations als eigenes Feld braucht: der params-Bag geht serverseitig nur
+ * an Pruna, ohne das Heraufheben blieben die Regler wirkungslos.
+ * Reihenfolge der Quellen = Vorrang (audio vor save_audio).
+ */
+const LIFTED_FIELDS: ReadonlyArray<{ field: LiftableField; sources: string[]; type: 'number' | 'string' | 'boolean' }> = [
+  { field: 'seed', sources: ['seed'], type: 'number' },
+  { field: 'duration', sources: ['duration'], type: 'number' },
+  { field: 'audio', sources: ['audio', 'save_audio'], type: 'boolean' },
+  { field: 'aspectRatio', sources: ['aspect_ratio'], type: 'string' },
+  { field: 'quality', sources: ['quality'], type: 'string' },
+  { field: 'transparent', sources: ['transparent'], type: 'boolean' },
+  { field: 'resolution', sources: ['resolution'], type: 'string' },
+];
+
+function liftTopLevelFields(body: GenerateBody, params: Record<string, ParamValue>, modelId: string): void {
+  for (const { field, sources, type } of LIFTED_FIELDS) {
+    const source = sources.find((name) => params[name] !== undefined);
+    const value = source === undefined ? undefined : params[source];
+    if (typeof value === type) (body as Record<LiftableField, ParamValue>)[field] = value as ParamValue;
+  }
+  // The global request schema only accepts Pollinations resolutions. Pro's
+  // 768p value belongs exclusively in its Pruna params bag.
+  if (modelId === 'p-video-2-pro') delete body.resolution;
+}
+
 export function buildGenerateBody(
   state: PlaygroundState,
   model: PlaygroundModelEntry,
@@ -53,31 +83,7 @@ export function buildGenerateBody(
     body.params = params;
   }
 
-  // Legacy support for fields that the server route still expects directly
-  const seedVal = params?.seed;
-  if (typeof seedVal === 'number') body.seed = seedVal;
-
-  const durationVal = params?.duration;
-  if (typeof durationVal === 'number') body.duration = durationVal;
-
-  const audioVal = params?.audio ?? params?.save_audio;
-  if (typeof audioVal === 'boolean') body.audio = audioVal;
-
-  const aspectVal = params?.aspect_ratio;
-  if (typeof aspectVal === 'string') body.aspectRatio = aspectVal;
-
-  // Der params-Bag geht serverseitig nur an Pruna. Was Pollinations als eigenes
-  // Feld erwartet, muss hier heraufgehoben werden, sonst bleiben die Regler wirkungslos.
-  const qualityVal = params?.quality;
-  if (typeof qualityVal === 'string') body.quality = qualityVal;
-
-  const transparentVal = params?.transparent;
-  if (typeof transparentVal === 'boolean') body.transparent = transparentVal;
-
-  const resolutionVal = params?.resolution;
-  // The global request schema only accepts Pollinations resolutions. Pro's
-  // 768p value belongs exclusively in its Pruna params bag.
-  if (model.id !== 'p-video-2-pro' && typeof resolutionVal === 'string') body.resolution = resolutionVal;
+  if (params) liftTopLevelFields(body, params, model.id);
 
   // Handle reference images
   if (model.supportsReference && state.uploads.length > 0) {

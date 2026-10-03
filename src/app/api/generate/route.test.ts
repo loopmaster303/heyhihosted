@@ -1,6 +1,7 @@
 import { POST } from './route';
 import { UNIFIED_IMAGE_MODELS } from '@/config/unified-image-models';
 import { _resetRateLimitForTesting } from '@/lib/rate-limit';
+import { _clearRegistryCacheForTesting } from '@/lib/pollinations-registry';
 import { buildPrunaEntries } from '@/lib/playground/model-source';
 import { buildGenerateBody } from '@/lib/playground/generate-request';
 import { defaultsFor, schemaFor } from '@/lib/playground/param-schema';
@@ -56,6 +57,27 @@ jest.mock('@/lib/pruna/client', () => ({
  */
 const TEST_POLLEN_KEY = 'sk_test_user_key';
 
+/**
+ * Zwei Tests unten prueften frueher gegen die echte Registry, ob ein Modell
+ * unbekannt ist — ihr Urteil hing damit am Netz: antwortete der Anbieter nicht,
+ * galt das Modell als unbekannt und der Test wurde gruen, obwohl die Route in
+ * Wahrheit durchreicht. Der Stub antwortet wie der echte Katalog (Liste ohne das
+ * gepruefte Modell), damit der Test die Route prueft und nicht den Anbieter.
+ */
+function registryResponse(models: unknown[]) {
+  return {
+    ok: true,
+    status: 200,
+    headers: { get: () => 'application/json' },
+    text: async () => JSON.stringify(models),
+  };
+}
+
+function stubModelRegistry(models: unknown[] = [{ name: 'flux' }]) {
+  global.fetch = jest.fn()
+    .mockResolvedValue(registryResponse(models)) as unknown as typeof fetch;
+}
+
 describe('/api/generate route', () => {
   const responseJson = jest.fn((body: unknown, init?: ResponseInit) => new Response(JSON.stringify(body), init));
   const originalFetch = global.fetch;
@@ -68,6 +90,7 @@ describe('/api/generate route', () => {
   beforeEach(() => {
     process.env.PRUNA_API_KEY = 'test-pruna-key';
     _resetRateLimitForTesting();
+    _clearRegistryCacheForTesting();
     global.fetch = originalFetch;
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -231,6 +254,8 @@ describe('/api/generate route', () => {
   });
 
   it('rejects unknown image models with a 400 response', async () => {
+    stubModelRegistry();
+
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
@@ -484,6 +509,8 @@ describe('/api/generate route', () => {
   });
 
   it('rejects removed stale visual models', async () => {
+    stubModelRegistry();
+
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
@@ -500,6 +527,103 @@ describe('/api/generate route', () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toMatch(/unknown or unavailable pollinations image\/video model/i);
+  });
+
+  // Der Befund vom 2026-09-10: die Registry-Sicht *mit* Schluessel ist
+  // berechtigungsgefiltert (Betreiber-Schluessel ohne Guthaben sah 2 von 82
+  // Modellen). Ein Modell, das nur der oeffentliche Katalog kennt, wurde deshalb
+  // als "unbekannt" abgewiesen — obwohl es eine Sekunde vorher Bilder lieferte.
+  it('nimmt ein Modell an, das nur der Katalog ohne Schluessel kennt', async () => {
+    const KEYED = [{ name: 'flux' }];
+    const KATALOG = [{ name: 'flux' }, { name: 'qwen/qwen-image-3', paid_only: true }];
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce(registryResponse(KEYED))
+      .mockResolvedValueOnce(registryResponse(KATALOG)) as unknown as typeof fetch;
+    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/qwen.png');
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({ prompt: 'roter apfel', model: 'qwen/qwen-image-3', width: 1024, height: 1024 }),
+    }));
+    const body = responseJson.mock.calls.at(-1)?.[0] as { imageUrl?: string };
+
+    expect(response.status).toBe(200);
+    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'qwen/qwen-image-3' }),
+    );
+    expect(body.imageUrl).toBe('https://media.pollinations.ai/stored-key');
+  });
+
+  // Ein Ausfall ist keine Aussage ueber das Modell. Vorher wurde daraus "das
+  // Modell gibt es nicht (mehr)" — ein Satz, der den Nutzer nach einem Fehler
+  // suchen laesst, den er nicht hat.
+  it('reicht bei einem Registry-Ausfall durch, statt "unbekannt" zu behaupten', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('socket hang up')) as unknown as typeof fetch;
+    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/geduldet.png');
+
+    const response = await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({ prompt: 'roter apfel', model: 'irgendein/neues-modell', width: 1024, height: 1024 }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'irgendein/neues-modell' }),
+    );
+  });
+
+  // Ohne Registry ist unbekannt, ob das Modell Geld kostet. Dann laeuft es nur
+  // auf dem Schluessel des Aufrufers — der Betreiber-Schluessel bleibt aus dem
+  // Spiel, sonst zahlt er fuer ein Modell, das er nie ausgewaehlt hat.
+  it('schickt den Betreiber-Schluessel bei Registry-Ausfall nicht mit', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('socket hang up')) as unknown as typeof fetch;
+    resolvePollenKeyMock.mockReturnValue('server-key-ohne-guthaben');
+    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/ohne-key.png');
+
+    await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'roter apfel', model: 'irgendein/neues-modell', width: 1024, height: 1024 }),
+    }));
+
+    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'irgendein/neues-modell', apiKey: undefined }),
+    );
+  });
+
+  // Wessen Schluessel lief? Das entscheidet den Satz bei 402/403. Der Aufruf
+  // oben (kein X-Pollen-Key, aber Server-Key) ist genau der Fall "Betreiber
+  // zahlt" — und muss als solcher unten ankommen.
+  it('meldet dem v1-Aufruf, dass kein eigener Schluessel im Spiel war', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('socket hang up')) as unknown as typeof fetch;
+    resolvePollenKeyMock.mockReturnValue('server-key-ohne-guthaben');
+    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/ohne-key.png');
+
+    await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'roter apfel', model: 'irgendein/neues-modell', width: 1024, height: 1024 }),
+    }));
+
+    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ hasUserKey: false }),
+    );
+  });
+
+  it('meldet dem v1-Aufruf einen eigenen Schluessel als solchen', async () => {
+    generatePollinationsImageMock.mockResolvedValueOnce('https://example.com/eigen.png');
+
+    await POST(new Request('http://localhost/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
+      body: JSON.stringify({ prompt: 'roter apfel', model: 'flux', width: 1024, height: 1024 }),
+    }));
+
+    expect(generatePollinationsImageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ hasUserKey: true }),
+    );
   });
 
   // ── Pruna AI dispatch tests ─────────────────────────────────────────
@@ -1374,6 +1498,9 @@ describe('/api/generate route', () => {
   // VACE ist in der Registry abgeschaltet (ein Lauf dauert 6-12 Minuten). Die
   // Route darf es deshalb gar nicht erst an Pruna weiterreichen.
   it('rejects the disabled vace model instead of dispatching it', async () => {
+    // Ohne Stub fragt die Route die echte Registry ab — offline wird daraus ein
+    // Registry-Ausfall statt der Ablehnung, die dieser Test prueft.
+    stubModelRegistry();
     const request = new Request('http://localhost/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Pollen-Key': TEST_POLLEN_KEY },
