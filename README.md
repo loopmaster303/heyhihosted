@@ -115,6 +115,6 @@ npm test             # Jest tests
 _Created with energy by [Loopmaster](https://github.com/johnmeckel) (John Meckel)_
 
 ## Reorg & GODSPACE (Master Plan 2026-06-01)
-Master Plan: `/Users/johnmeckel/heyhihosted/docs/plans/2026-06-01-heyhi-ecosystem-reorg-plan.md`
+Master Plan: historisch, abgelöst durch `~/heyhi/LEVELS.md` (der alte Plan liegt nur noch in der Git-Historie).
 New names: sayhi (ex-heyhiblogheyhiworld, L1 arts/roleplay), heyhiblog (ex-heyhi-ai-or-goodbye, content layer), democrabs (ex-buergerbuddy, "The crab snaps with everyone but it's yours"), heyhireset (GODSPACE central).
-Levels: L1 sayhi, L2 heyhihosted (this), L3 advanced (future). Cross-links via docs/project.html XLinks + central heyhi.html in heyhireset.
+Levels: L1 sayhi, L2 heyhihosted (this), L3 advanced (future). Cross-links via the central heyhi.html in heyhireset.

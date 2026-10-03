@@ -180,23 +180,6 @@ export async function refreshAssetUrl(assetId: string): Promise<AssetUrlResult> 
 }
 
 /**
- * Pre-cache multiple assets in the background.
- * Useful for gallery pre-loading.
- */
-export async function precacheAssets(assetIds: string[]): Promise<void> {
-  const promises = assetIds.map(async (id) => {
-    try {
-      await resolveAssetUrl(id, { downloadMissingBlob: true });
-    } catch (error) {
-      console.warn(`[AssetFallback] Precache failed for ${id}:`, error);
-    }
-  });
-
-  await Promise.all(promises);
-  console.log(`[AssetFallback] Precached ${assetIds.length} assets`);
-}
-
-/**
  * Validate if a URL is properly formed and not a blob URL.
  */
 function isValidUrl(url: string): boolean {

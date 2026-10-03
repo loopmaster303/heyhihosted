@@ -17,7 +17,6 @@ jest.mock('@/lib/services/web-context-service', () => ({
 
 jest.mock('@/lib/resolve-pollen-key', () => ({
   resolvePollenKey: jest.fn(() => 'sk_test'),
-  hasUserProvidedPollenKey: jest.fn(() => false),
 }));
 
 jest.mock('@/lib/https-post', () => ({

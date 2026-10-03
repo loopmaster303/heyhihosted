@@ -53,7 +53,7 @@ Removed on 2026-08-28 (registry truth): `ltx-2`, `grok-video`, `pollinations-wan
 
 Everything else in the file is `enabled: false` and waiting on upstream availability. Check the config rather than trusting a list in prose.
 
-**Der Chat ist die Ausnahme.** Seit Phase 7 liest die Bildauswahl im Chat nicht `getVisualizeModelGroupsForProvider`, sondern `getChatImageModelGroups()` — eine Regel ohne Optionsparameter: Pollinations, Bild, `isFree`, `enabled`. Sie wächst mit keinem Schlüssel und folgt dem Provider-Schalter nicht. Video und Pruna leben im Create. Wer die Chat-Auswahl ändern will, ändert die Regel, nicht die Registry.
+**Der Chat ist die Ausnahme.** Seit Phase 7 liest die Bildauswahl im Chat `getChatImageModelGroups()` — eine Regel ohne Optionsparameter: Pollinations, Bild, `isFree`, `enabled`. Sie wächst mit keinem Schlüssel und folgt dem Provider-Schalter nicht. Video und Pruna leben im Create. Wer die Chat-Auswahl ändern will, ändert die Regel, nicht die Registry.
 
 ### Modellwahrheit prüfen
 Model lists drift daily (35/39 → 28/42 → 32/45 within 48 hours). The check is tooling, not memory:
@@ -207,10 +207,10 @@ weiterhin, richtig so, sie dauern Sekunden.
 ## Upload Hardening
 
 - `readBodyWithLimit()` streams a request or response body and aborts at the limit. Use it instead of `arrayBuffer()`, which buffers before the size can be checked.
-- `isActiveContentType()` rejects payloads that would execute when served back from media storage (html, svg, js, xml). Images, video, audio and the composer's document types stay allowed — note that this also means **SVG uploads and SVG through the image proxy are rejected**.
+- `isActiveContentType()` rejects payloads that would execute when served back from media storage (html, svg, js, xml). Images, video, audio and the composer's document types stay allowed — note that this also means **SVG uploads are rejected**.
 - `/api/media/upload` accepts raw bodies only; multipart returns 415 because `formData()` cannot be size-limited.
 - **Never hand-roll an upload `fetch`.** Go through `uploadFileToPruna` / `uploadFileToPollinationsMedia` in [src/lib/upload/](/Users/johnmeckel/heyhihosted/src/lib/upload). They own the endpoint, the raw body, the BYOP key header *and* its normalisation, and the route's error message. The Playground once had its own copy that got everything right except the key header — every Pruna reference upload answered 503 while the key sat in settings, and the source-video slot sent multipart to a route that answers 415.
-- `/api/proxy-image` only fetches the three Pollinations hosts allowlisted in `remote-fetch-policy.ts`.
+- `remote-fetch-policy.ts` allowlists the three Pollinations hosts that server-side media fetches may reach.
 
 ## Important Files
 
@@ -245,7 +245,7 @@ CI=1 npm test -- --runInBand path/to/test.ts
 - **Server-key allowlist decides the free tier.** The Pollinations registry is key-scoped: the response differs per API key, and the operator server key currently allows only a subset of the registry-free models (live 2026-08-28: `kontext`, `gptimage-large` → 403). Widening the allowlist at enter.pollinations.ai re-enables those config entries; until then they stay hidden.
 - **`zimage` works free via Pollinations but is claimed by the Pruna dispatch.** A provider decision (like the `p-*` question above) could route it to Pollinations and restore it as a free model. Not done here — dispatch hangs on the model, not the switch.
 - **TTS is a registry blind spot.** `/api/tts` runs on server-key `tts-1`/`elevenlabs`; the `/audio/models` registry does not list `tts-1`, yet the endpoint works (verified live 2026-08-28). Free for users, paid by the operator — fine today, but not represented by the registry check.
-- **Deploy truth resolved for this domain.** `chat.hey-hi.cloud` is served by Vercel (connected GitHub project, auto-deploy from `main`), with **Cloudflare as proxy in front** (`server: cloudflare` in every response — DNS entries live in Cloudflare, not Vercel). `create.hey-hi.cloud` does **not** exist (NXDOMAIN, checked 2026-08-29) and is not planned: a second hostname is a second browser origin, which would split IndexedDB and localStorage. `next.config.ts` still carries the `CREATE_HOST` redirect rules — dormant, ready if the decision ever flips. `apphosting.yaml` still exists but is not the active host for this domain.
+- **Deploy truth resolved for this domain.** `chat.hey-hi.cloud` is served by Vercel (connected GitHub project, auto-deploy from `main`), with **Cloudflare as proxy in front** (`server: cloudflare` in every response — DNS entries live in Cloudflare, not Vercel). `create.hey-hi.cloud` does **not** exist (NXDOMAIN, checked 2026-08-29) and is not planned: a second hostname is a second browser origin, which would split IndexedDB and localStorage. `next.config.ts` still carries the `CREATE_HOST` redirect rules — dormant, ready if the decision ever flips.
 - Search/research routing is delegated through a single strategy path; `WebContextService` is an optional helper invoked only when `shouldFetchWebContext` is set, not the default delegated path.
 - The system prompt in `chat-options.ts` still contains "Burn the Corpos" and filter-evasion passages. Editorial hardening only on explicit instruction. It also still names removed video models (`ltx-2`, `grok-video`) in its formatting guidance — model names in the system prompt are frozen for this repo; changing them needs an explicit mandate.
 
@@ -272,4 +272,4 @@ Kein globales `lowercase` im Chat: dort steht deutscher Fliesstext, Substantive 
 
 ## Ökosystem (kanonisch: ~/heyhi/LEVELS.md, Stand 2026-07-05)
 Dieses Repo ist **Level 2 („Benutzen")**. Level 1 = JUSTSAY (justsaywow ⊕ justsayhi), Level 3 = democrabs (Hermes/NUC/WhatsApp). Querschichten: heyhiblog (Haltung), meinbild (Schutz). heyhicreator eingefroren.
-Der Reorg-Plan 2026-06-01 (`docs/plans/2026-06-01-heyhi-ecosystem-reorg-plan.md`) ist historisch — sein Level-Modell ist durch LEVELS.md abgelöst.
+Der Reorg-Plan 2026-06-01 ist historisch (nur noch in der Git-Historie) — sein Level-Modell ist durch LEVELS.md abgelöst.

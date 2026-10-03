@@ -4,11 +4,9 @@ import { OutputService } from '@/lib/services/output-service';
 import { getPollenHeaders } from '@/lib/pollen-key';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useHasPollenKey } from '@/hooks/useHasPollenKey';
-import { AVAILABLE_COMPOSE_MODELS, getComposeDurations } from '@/config/chat-options';
+import { getComposeDurations } from '@/config/chat-options';
 
 export type ComposeMusicModel = 'elevenmusic' | 'stable-audio-3-medium';
-
-export const COMPOSE_MODELS = AVAILABLE_COMPOSE_MODELS;
 
 const clampToSteps = (value: number, steps: number[]): number => {
   if (steps.length === 0) return value;

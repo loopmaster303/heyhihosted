@@ -14,7 +14,3 @@ export function resolvePollenKey(request: Request): string | undefined {
     || normalizePollenKey(process.env.POLLINATIONS_API_KEY)
     || normalizePollenKey(process.env.POLLINATIONS_API_TOKEN);
 }
-
-export function hasUserProvidedPollenKey(request: Request): boolean {
-  return !!normalizePollenKey(request.headers.get('X-Pollen-Key'));
-}
