@@ -207,7 +207,7 @@ export async function POST(request: Request) {
     ];
 
     // === CALL POLLINATIONS API via Node https helper ===
-    // Next.js 16 can patch outbound fetch behavior; we use httpsPost for deterministic headers.
+    // httpsPost ist ein schlichter fetch mit Zeitlimit (siehe lib/https-post.ts).
     
     console.log(
       `[API] Pollinations: model=${routedModelId}, original=${modelId}, strategy=${strategy}, webContext=${shouldFetchWebContext ? webContextMode : 'off'}, msgs=${apiMessages.length}`

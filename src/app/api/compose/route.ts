@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
-import { httpsFetchBinary } from '@/lib/https-post';
+import { httpsFetchBinary, LONG_RUNNING_TIMEOUT_MS } from '@/lib/https-post';
 import { handleApiError } from '@/lib/api-error-handler';
 import { checkRateLimit } from '@/lib/rate-limit';
 
@@ -89,7 +89,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Compose] Requesting audio:', url.slice(0, 120) + (url.length > 120 ? '…' : ''));
-    resp = await httpsFetchBinary(url, headers);
+    // Musik rechnet laenger als 30 s — der alte Proxy-Deckel liess keinen
+    // Pollinations-Musiklauf je fertig werden (Sound-Plan, Befund 3.1).
+    resp = await httpsFetchBinary(url, headers, LONG_RUNNING_TIMEOUT_MS);
 
     if (resp.status !== 200) {
       console.error('[Compose] API Error:', resp.status);
