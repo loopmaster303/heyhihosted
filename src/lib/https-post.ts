@@ -21,6 +21,21 @@ export const DEFAULT_TIMEOUT_MS = 30_000;
 /** Musik rechnet Minuten; Vercel erlaubt der Funktion 300 s (vercel.json). */
 export const LONG_RUNNING_TIMEOUT_MS = 290_000;
 
+/**
+ * Diese Helfer tragen den Betreiber-Schluessel, also gehen sie nur an
+ * Pollinations. Jeder Aufrufer nutzt heute eine feste Konstante auf diesem
+ * Host; die Pruefung haelt das fest, falls je eine variable URL hineinrutscht.
+ */
+const ALLOWED_UPSTREAM_ORIGIN = 'https://gen.pollinations.ai';
+
+function upstreamUrl(url: string): URL {
+  const parsed = new URL(url);
+  if (parsed.origin !== ALLOWED_UPSTREAM_ORIGIN) {
+    throw new Error(`Upstream origin not allowed: ${parsed.origin}`);
+  }
+  return parsed;
+}
+
 function timeoutError(ms: number): Error {
   return new Error(`Upstream request timed out after ${ms}ms`);
 }
@@ -33,7 +48,7 @@ async function request(
   timeoutMs: number,
 ): Promise<Response> {
   try {
-    return await fetch(url, {
+    return await fetch(upstreamUrl(url), {
       method,
       headers,
       body,
@@ -87,11 +102,12 @@ export async function httpsPostStream(
   body: string,
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
 ): Promise<{ status: number; headers: Record<string, string>; stream: ReadableStream<Uint8Array> }> {
+  const target = upstreamUrl(url);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
-    res = await fetch(url, { method: 'POST', headers, body, cache: 'no-store', signal: controller.signal });
+    res = await fetch(target, { method: 'POST', headers, body, cache: 'no-store', signal: controller.signal });
   } catch (error) {
     if (controller.signal.aborted) throw timeoutError(timeoutMs);
     throw error;
