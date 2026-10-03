@@ -54,7 +54,7 @@ const MarkdownRenderer: FC<MarkdownRendererProps> = ({ content }) => {
                             </SyntaxHighlighter>
                         </div>
                     ) : (
-                        <code className="px-1 py-0.5 rounded bg-muted text-muted-foreground" {...props}>
+                        <code className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono" {...props}>
                             {children}
                         </code>
                     );

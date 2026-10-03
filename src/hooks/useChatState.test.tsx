@@ -42,7 +42,7 @@ describe('useChatState', () => {
 
     expect(result.current.chatInputValue).toBe('');
     expect(result.current.webBrowsingEnabled).toBe(false);
-    expect(result.current.chatImageModelId).toBe('flux');
+    expect(result.current.chatImageModelId).toBe('klein');
     expect(result.current.lastFailedRequest).toBeNull();
   });
 
@@ -71,6 +71,26 @@ describe('useChatState', () => {
 
     await act(async () => {});
     expect(loadConversationMock).toHaveBeenCalledWith('conv-42');
+  });
+
+  // A8: Der Effekt hing am Rueckgabeobjekt des Persistence-Hooks und konnte
+  // deshalb pro Render ein weiteres Laden starten.
+  it('laedt die gespeicherte Unterhaltung genau einmal, auch bei weiteren Renders', async () => {
+    localStorage.setItem('activeConversationId', JSON.stringify('conv-42'));
+    const { rerender } = renderHook(() => useChatState());
+
+    await act(async () => {});
+    rerender();
+    await act(async () => {});
+
+    expect(loadConversationMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the configured free image model in the shared chat', async () => {
+    localStorage.setItem('defaultImageModelId', JSON.stringify('z-image'));
+    const { result } = renderHook(() => useChatState());
+    await act(async () => {});
+    expect(result.current.chatImageModelId).toBe('z-image');
   });
 
   it('runs the migration service once on mount', async () => {

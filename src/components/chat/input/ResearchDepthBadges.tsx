@@ -2,6 +2,7 @@ import React from 'react';
 import { Zap, Telescope } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/components/LanguageProvider';
+import { useRovingRadioGroup } from '@/components/a11y/useRovingRadioGroup';
 
 /**
  * Deep Research hatte bislang nur eine Farbe. Die Unterscheidung steckt seit
@@ -43,9 +44,20 @@ export const ResearchDepthBadges: React.FC<ResearchDepthBadgesProps> = ({
 }) => {
     const { t } = useLanguage();
     const active = resolveResearchDepth(selectedModelId);
+    // `active` darf null sein (eigenes Modell, keine der beiden Tiefen) — dann
+    // faellt der Hook auf die erste aktivierbare Option zurueck.
+    const { containerProps, getTabIndex } = useRovingRadioGroup<ResearchDepth | null>(
+        OPTIONS.map(({ depth }) => ({ value: depth, disabled })),
+        active,
+    );
 
     return (
-        <div role="radiogroup" aria-label={t('research.depth')} className="flex flex-wrap items-center gap-2">
+        <div
+            role="radiogroup"
+            aria-label={t('research.depth')}
+            className="flex flex-wrap items-center gap-2"
+            {...containerProps}
+        >
             {OPTIONS.map(({ depth, icon: Icon }) => {
                 const isActive = active === depth;
                 return (
@@ -54,7 +66,7 @@ export const ResearchDepthBadges: React.FC<ResearchDepthBadgesProps> = ({
                         type="button"
                         role="radio"
                         aria-checked={isActive}
-                        tabIndex={isActive ? 0 : -1}
+                        tabIndex={getTabIndex(depth)}
                         disabled={disabled}
                         onClick={() => onModelChange(RESEARCH_DEPTH_MODELS[depth])}
                         className={cn(

@@ -1,7 +1,6 @@
 import { DatabaseService } from '@/lib/services/database';
 import { ingestGeneratedAsset } from '@/lib/upload/ingest';
 import { generateUUID } from '@/lib/uuid';
-import { resolveAssetUrl } from '@/lib/services/asset-fallback-service';
 import { SMALL_BLOB_SKIP_BYTES } from '@/lib/upload/constants';
 
 export interface SaveGeneratedAssetOptions {
@@ -21,21 +20,9 @@ export interface SaveGeneratedAssetOptions {
  *
  * Asset facade for generation flows. Thin pass-through CRUD lives on
  * DatabaseService directly; this module only owns generation-specific
- * save (with Pollinations ingest backfill) and resolved-URL lookup.
+ * save (with Pollinations ingest backfill).
  */
 export const OutputService = {
-  /**
-   * Get a resolved asset URL with full fallback chain.
-   * Uses AssetFallbackService for retry logic and auto-caching.
-   */
-  async getResolvedAssetUrl(id: string): Promise<string | null> {
-    const result = await resolveAssetUrl(id, {
-      maxRetries: 3,
-      downloadMissingBlob: true,
-    });
-    return result.url;
-  },
-
   /**
    * Save a generated asset to the local output store.
    * Handles Pollinations Media Storage ingest and local/direct fetch flows.

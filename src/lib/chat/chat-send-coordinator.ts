@@ -1,3 +1,4 @@
+import { MEMORY_EXTRACTION_ENABLED } from '@/lib/services/memory-service';
 import type {
   ApiChatMessage,
   ChatMessage,
@@ -372,7 +373,7 @@ export async function executeChatSendCoordinator(input: ExecuteChatSendCoordinat
       finalTitle,
       createTimestamp: input.createTimestamp,
     });
-    if (shouldExtractMemories) {
+    if (MEMORY_EXTRACTION_ENABLED && shouldExtractMemories) {
       void input.extractMemories(convId, finalMessages).catch(input.onError);
     }
     input.setActiveConversation((prev) => (prev ? { ...prev, ...finalConversationState } : null));

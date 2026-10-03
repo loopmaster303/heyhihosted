@@ -607,7 +607,7 @@ export const DEFAULT_RESPONSE_STYLE_NAME = AVAILABLE_RESPONSE_STYLES[0].name;
 
 // 'zimage' war die Vorgabe und haengt am Pruna-Dispatch (BYOP-only) — keylose
 // Nutzer bekamen garantiert 503. 'flux' ist live verifiziert frei (2026-08-28).
-export const DEFAULT_IMAGE_MODEL = 'flux';
+export const DEFAULT_IMAGE_MODEL = 'klein';
 
 // Code reasoning system prompt used when Code Mode is enabled
 export const CODE_REASONING_SYSTEM_PROMPT = `<system_prompt>

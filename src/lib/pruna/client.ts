@@ -34,6 +34,30 @@ export function isPendingPrediction(result: PrunaDispatchResult): result is Prun
   return 'predictionId' in result;
 }
 
+/**
+ * Der Feldname ist die einzige verwertbare Information in einer Pruna-400:
+ * "property input validation failed: additional properties forbidden, found <feld>".
+ */
+const EXTRA_PROPERTY_PATTERN = /additional properties forbidden, found ([A-Za-z0-9_.-]+)/;
+
+/** Live belegt am 2026-09-10 gegen https://api.pruna.ai/v1/predictions (403). */
+const NO_CREDIT_PATTERN = /no more credit|insufficient credit|not enough credit/i;
+
+/**
+ * So oft wird ein abgelehntes Zusatzfeld weggelassen und neu gesendet.
+ *
+ * Pruna verschaerft seine Schemas ohne Vorwarnung: am 2026-09-10 lehnte
+ * `z-image-turbo` das Feld `disable_safety_checker` ab, das die Config genau
+ * dafuer mitsendet. Jedes Modell mit einem solchen Feld war damit tot, obwohl
+ * die Generierung ohne das Feld laeuft. Ein 400 ueber ein Feld, das wir selbst
+ * angehaengt haben, ist kein Fehler des Laufs, sondern eine Aussage ueber das
+ * Schema — also einmal ohne das Feld fragen.
+ *
+ * Zwei Versuche, dann ist Schluss: ein Schema, das zwei Felder gleichzeitig
+ * nicht kennt, ist kein Zufall mehr, sondern ein anderer Fehler.
+ */
+const MAX_SCHEMA_RETRIES = 2;
+
 /** Pruna-Ids sind undurchsichtige Tokens; alles andere gehoert nicht in eine URL. */
 const PREDICTION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
@@ -54,7 +78,7 @@ export async function generateViaPruna(
   }
 
   const prunaModel = getPrunaModelName(modelId, fields) ?? mapping.prunaModel;
-  const input = mapping.buildInput(fields);
+  let input = mapping.buildInput(fields);
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -67,34 +91,60 @@ export async function generateViaPruna(
   }
 
   let submitResponse: Response;
-  try {
-    submitResponse = await fetch(`${PRUNA_BASE_URL}/predictions`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ input }),
-      signal,
-    });
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    if (signal?.aborted) {
-      throw new ApiError(499, 'Pruna prediction aborted', 'PRUNA_ABORTED');
+  let errorText = '';
+  const verworfeneFelder: string[] = [];
+
+  for (;;) {
+    try {
+      submitResponse = await fetch(`${PRUNA_BASE_URL}/predictions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ input }),
+        signal,
+      });
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      if (signal?.aborted) {
+        throw new ApiError(499, 'Pruna prediction aborted', 'PRUNA_ABORTED');
+      }
+      throw new ApiError(
+        502,
+        `Unable to reach Pruna API while submitting ${modelId}`,
+        'PRUNA_NETWORK_ERROR',
+      );
     }
-    throw new ApiError(
-      502,
-      `Unable to reach Pruna API while submitting ${modelId}`,
-      'PRUNA_NETWORK_ERROR',
+
+    if (submitResponse.ok) break;
+
+    errorText = await submitResponse.text().catch(() => 'Unknown error');
+    const abgelehnt = EXTRA_PROPERTY_PATTERN.exec(errorText)?.[1];
+    if (
+      !abgelehnt
+      || !Object.prototype.hasOwnProperty.call(input, abgelehnt)
+      || verworfeneFelder.length >= MAX_SCHEMA_RETRIES
+    ) {
+      break;
+    }
+
+    console.warn(
+      `[Pruna] ${prunaModel} kennt "${abgelehnt}" nicht (400: additional properties forbidden) — neuer Versuch ohne das Feld`,
     );
+    const { [abgelehnt]: _abgelehnt, ...ohneFeld } = input;
+    input = ohneFeld;
+    verworfeneFelder.push(abgelehnt);
   }
 
   if (!submitResponse.ok) {
-    const errorText = await submitResponse.text().catch(() => 'Unknown error');
-    // Der Feldname ist die einzige verwertbare Information in einer Pruna-400:
-    // "property input validation failed: additional properties forbidden, found <feld>"
-    const field = /additional properties forbidden, found ([A-Za-z0-9_.-]+)/.exec(errorText)?.[1];
+    const field = EXTRA_PROPERTY_PATTERN.exec(errorText)?.[1];
+    // 403 "no more credit available" ist kein Schema- und kein Serverproblem:
+    // der Schluessel, mit dem der Lauf gestartet wurde, ist leer. Ohne eigenen
+    // Code las der Nutzer den Unknown-Field-Satz ("Das ist ein Fehler bei uns")
+    // fuer eine Rechnung, die er selbst begleichen muss.
+    const keinGuthaben = submitResponse.status === 402 || NO_CREDIT_PATTERN.test(errorText);
     throw new ApiError(
       submitResponse.status >= 500 ? 502 : 400,
       `Pruna API error (${submitResponse.status}): ${errorText}`,
-      'PRUNA_API_ERROR',
+      keinGuthaben ? 'PRUNA_NO_CREDIT' : 'PRUNA_API_ERROR',
       field ? { field } : undefined
     );
   }

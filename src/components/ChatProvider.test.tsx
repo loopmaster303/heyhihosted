@@ -282,7 +282,7 @@ describe('ChatProvider / useChatLogic contract', () => {
       cleanText: 'Bitte.',
       pendingParts: [expect.objectContaining({
         type: 'image_url',
-        image_url: expect.objectContaining({ status: 'pending', prompt: 'a fox', modelId: 'flux' }),
+        image_url: expect.objectContaining({ status: 'pending', prompt: 'a fox', modelId: 'klein' }),
       })],
     });
   });
@@ -302,7 +302,7 @@ describe('ChatProvider / useChatLogic contract', () => {
     resetPersistence({ allConversations: [conv], activeConversation: conv });
 
     const { result } = renderHook(() => useChatLogic({}), { wrapper });
-    expect(result.current.chatImageModelId).toBe('flux');
+    expect(result.current.chatImageModelId).toBe('klein');
   });
 
   it('sendMessage delegates unhandled coordinator errors upward — the coordinator owns its own failure state', async () => {
@@ -386,7 +386,7 @@ describe('ChatProvider / useChatLogic contract', () => {
         timestamp: '2026-01-01T00:00:01.000Z',
         content: [
           { type: 'text', text: 'Hier.' },
-          { type: 'image_url', image_url: { url: '', status: 'error', error: 'weg', prompt: 'a fox', modelId: 'flux' } },
+          { type: 'image_url', image_url: { url: '', status: 'error', error: 'weg', prompt: 'a fox', modelId: 'klein' } },
         ],
       }],
     });

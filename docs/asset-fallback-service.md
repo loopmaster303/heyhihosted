@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `AssetFallbackService` provides a comprehensive fallback chain for asset URL resolution with automatic retry logic and background caching. It ensures assets are always accessible even when local output metadata is incomplete or URLs expire.
+The `AssetFallbackService` provides a comprehensive fallback chain for asset URL resolution with background caching. It ensures assets are always accessible even when local output metadata is incomplete or URLs expire.
 
 ## Problem It Solves
 
@@ -12,7 +12,7 @@ In a local-first architecture with remote asset storage, several issues can occu
 3. **Network Failures**: Temporary network issues prevent asset loading
 4. **Offline Access**: User needs assets when offline
 
-AssetFallbackService addresses all these issues with intelligent fallback and retry mechanisms.
+AssetFallbackService addresses all these issues with a fixed fallback chain.
 
 ## Fallback Priority Chain
 
@@ -21,7 +21,7 @@ AssetFallbackService addresses all these issues with intelligent fallback and re
    ↓ (if missing)
 2. Remote URL (direct, no signing)
    ↓ (if missing)
-3. Pollinations Media URL via storageKey (with retry)
+3. Pollinations Media URL via storageKey
    ↓ (if all fail)
 4. Download and cache in background
 ```
@@ -37,8 +37,6 @@ Resolves an asset ID to a usable URL with comprehensive fallback logic.
 **Parameters**:
 - `assetId`: The asset ID to resolve
 - `options`: Configuration options
-  - `maxRetries`: Max retry attempts for storageKey resolution (default: 3)
-  - `retryDelay`: Base delay between retries in ms (default: 1000)
   - `downloadMissingBlob`: Auto-download and cache if blob missing (default: true)
 
 **Returns**: Promise resolving to:
@@ -55,7 +53,6 @@ interface AssetUrlResult {
 import { resolveAssetUrl } from '@/lib/services/asset-fallback-service';
 
 const result = await resolveAssetUrl('asset-id-123', {
-  maxRetries: 3,
   downloadMissingBlob: true
 });
 
@@ -67,7 +64,7 @@ if (result.url) {
 
 ### Helper Functions
 
-#### `refreshAssetUrl(assetId: string): Promise<string | null>`
+#### `refreshAssetUrl(assetId: string): Promise<AssetUrlResult>`
 
 Refreshes an expired or invalid asset URL. Useful when a displayed URL suddenly fails.
 
@@ -75,30 +72,17 @@ Refreshes an expired or invalid asset URL. Useful when a displayed URL suddenly 
 ```typescript
 import { refreshAssetUrl } from '@/lib/services/asset-fallback-service';
 
-const newUrl = await refreshAssetUrl('asset-id-123');
-if (newUrl) {
+const result = await refreshAssetUrl('asset-id-123');
+if (result.url) {
   // Update displayed asset
 }
-```
-
-#### `precacheAssets(assetIds: string[]): Promise<void>`
-
-Pre-caches multiple assets in the background. Downloads and stores blobs for offline access.
-
-**Example**:
-```typescript
-import { precacheAssets } from '@/lib/services/asset-fallback-service';
-
-// Precache output assets
-await precacheAssets(['id1', 'id2', 'id3']);
-console.log('Output assets cached for offline use');
 ```
 
 ## React Hooks
 
 ### `useAssetUrl(assetId?: string, initialUrl?: string)`
 
-Enhanced hook for asset URL management with automatic fallback and retry.
+Hook for asset URL management with automatic fallback.
 
 **Returns**:
 ```typescript
@@ -124,79 +108,6 @@ function AssetImage({ assetId }: { assetId: string }) {
 }
 ```
 
-### `useAssetPrecache(assetIds: string[], enabled?: boolean)`
-
-Hook to precache multiple assets in the background.
-
-**Returns**:
-```typescript
-{
-  isPrecaching: boolean;
-  precachedCount: number;
-}
-```
-
-**Example**:
-```typescript
-import { useAssetPrecache } from '@/hooks/useAssetPrecache';
-
-function OutputGrid({ assets }: { assets: Asset[] }) {
-  const assetIds = assets.map(a => a.id);
-  const { isPrecaching, precachedCount } = useAssetPrecache(assetIds);
-
-  return (
-    <div>
-      {isPrecaching && <div>Caching {precachedCount}/{assetIds.length}...</div>}
-      {/* Output content */}
-    </div>
-  );
-}
-```
-
-## Output Persistence Integration (`OutputService`)
-
-### `getResolvedAssetUrl(id: string): Promise<string | null>`
-
-Convenience method on the internal `OutputService` that wraps `resolveAssetUrl`.
-
-**Example**:
-```typescript
-import { OutputService } from '@/lib/services/output-service';
-
-const url = await OutputService.getResolvedAssetUrl('asset-id-123');
-```
-
-### `verifyAndRepairAssets(assetIds: string[]): Promise<number>`
-
-Bulk repair operation for assets with missing blobs.
-
-**Example**:
-```typescript
-import { OutputService } from '@/lib/services/output-service';
-
-// Repair all output assets
-const repairedCount = await OutputService.verifyAndRepairAssets(assetIds);
-console.log(`Repaired ${repairedCount} assets`);
-```
-
-## Retry Logic
-
-The service uses **exponential backoff** for retries:
-
-| Attempt | Delay |
-|---------|-------|
-| 1st retry | 1000ms |
-| 2nd retry | 2000ms |
-| 3rd retry | 4000ms |
-
-**Example flow**:
-```
-Initial attempt → Fail (network error)
-Wait 1s → Retry 1 → Fail (still down)
-Wait 2s → Retry 2 → Fail (still down)
-Wait 4s → Retry 3 → Success!
-```
-
 ## Background Caching
 
 When `downloadMissingBlob: true` (default), the service automatically downloads and caches assets in the background:
@@ -214,12 +125,6 @@ When `downloadMissingBlob: true` (default), the service automatically downloads 
 ## Error Handling
 
 The service handles various error scenarios gracefully:
-
-### Network Failures
-```typescript
-// Automatic retry with exponential backoff
-const result = await resolveAssetUrl('asset-id', { maxRetries: 3 });
-```
 
 ### Media URL Refresh
 ```typescript
@@ -249,21 +154,6 @@ for (const id of assetIds) {
 await Promise.all(
   assetIds.map(id => resolveAssetUrl(id))
 );
-```
-
-### Precaching Strategy
-```typescript
-// Precache output assets on mount
-useAssetPrecache(visibleAssetIds, true);
-
-// Defer non-visible assets
-useEffect(() => {
-  const timer = setTimeout(() => {
-    precacheAssets(hiddenAssetIds);
-  }, 5000); // Wait 5s after initial render
-
-  return () => clearTimeout(timer);
-}, [hiddenAssetIds]);
 ```
 
 ### Memory Management
@@ -306,24 +196,7 @@ function AssetViewer({ assetId }: { assetId: string }) {
 }
 ```
 
-### 3. Precache for Better UX
-```typescript
-function OutputGrid({ assets }: { assets: Asset[] }) {
-  // Precache visible assets
-  const visibleIds = assets.slice(0, 10).map(a => a.id);
-  useAssetPrecache(visibleIds, true);
-
-  return (
-    <div>
-      {assets.map(asset => (
-        <AssetCard key={asset.id} assetId={asset.id} />
-      ))}
-    </div>
-  );
-}
-```
-
-### 4. Manual Refresh for Expired URLs
+### 3. Manual Refresh for Expired URLs
 ```typescript
 function AssetImage({ assetId }: { assetId: string }) {
   const { url, refresh } = useAssetUrl(assetId);
@@ -346,7 +219,7 @@ function AssetImage({ assetId }: { assetId: string }) {
 **Possible Causes**:
 1. Asset doesn't exist in database
 2. No valid source (no blob, remoteUrl, or storageKey)
-3. Network failure on all retry attempts
+3. Network failure while fetching the remote or media URL
 4. Pollinations media URL resolution failing
 
 **Solution**:
@@ -371,16 +244,16 @@ if (!url) {
 
 **Solution**:
 ```typescript
-// Precache assets ahead of time
-useAssetPrecache(assetIds, true);
-
-// Or use progressive loading
+// Progressive loading keeps the first paint fast
 <img
   src={lowResUrl}
   onLoad={() => setShowHighRes(true)}
 />
 {showHighRes && <img src={highResUrl} />}
 ```
+
+Render assets through `useAssetUrl` so the first successful resolution stores the
+blob locally; every later load reads from IndexedDB.
 
 ### Memory Leaks
 
@@ -401,28 +274,10 @@ Complete example showing all features:
 
 ```typescript
 import { useAssetUrl } from '@/hooks/useAssetUrl';
-import { useAssetPrecache } from '@/hooks/useAssetPrecache';
-import { OutputService } from '@/lib/services/output-service';
 
 function OutputView({ assets }: { assets: Asset[] }) {
-  // Precache visible assets
-  const visibleIds = assets.slice(0, 20).map(a => a.id);
-  const { isPrecaching, precachedCount } = useAssetPrecache(visibleIds);
-
-  // Repair missing blobs on mount
-  useEffect(() => {
-    const allIds = assets.map(a => a.id);
-    OutputService.verifyAndRepairAssets(allIds).then(count => {
-      console.log(`Repaired ${count} assets`);
-    });
-  }, [assets]);
-
   return (
     <div>
-      {isPrecaching && (
-        <div>Caching assets: {precachedCount}/{visibleIds.length}</div>
-      )}
-
       {assets.map(asset => (
         <AssetCard key={asset.id} assetId={asset.id} />
       ))}

@@ -2,9 +2,6 @@
 tmp/
 .codex-skill-build/
 
-# Audit secrets
-scripts/audit/.env
-
 # Firebase
 .firebase/
 *-debug.log

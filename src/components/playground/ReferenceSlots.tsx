@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { ImageOff, X } from 'lucide-react';
+import { useReferencePreviews } from '@/hooks/useReferencePreviews';
 import type { PlaygroundModelEntry } from '@/lib/playground/model-source';
 import type { ModelParamSchema } from '@/lib/playground/param-schema';
-import { uploadFileToPruna } from '@/lib/upload/pruna';
-import { uploadFileToPollinationsMedia } from '@/lib/upload/pollinations-media';
+import { uploadReferenceImage } from '@/lib/upload/reference-upload';
+import {
+  forgetPrunaReferencePreview,
+  isPrunaReferenceUrl,
+} from '@/lib/upload/pruna-reference-preview';
 import { cn } from '@/lib/utils';
 
 /**
@@ -17,18 +21,15 @@ import { cn } from '@/lib/utils';
  * Env-Variable und antwortete mit 503, obwohl der Key in den Einstellungen lag.
  *
  * Deshalb keine zweite Implementierung mehr: die Clients kennen Endpunkt,
- * Rohbody (multipart quittieren beide Routen mit 415), Key-Header samt
- * Normalisierung und die Fehlermeldung der Route.
+ * Rohbody, Key-Header samt Normalisierung und die Fehlermeldung der Route.
+ * Seit dem Ausweichpfad auf media.pollinations.ai liegt die Reihenfolge der
+ * beiden Wege in `uploadReferenceImage` und nicht mehr hier.
  */
 export async function uploadPlaygroundReference(
   file: File,
   provider: 'pollinations' | 'pruna'
 ): Promise<string> {
-  if (provider === 'pruna') {
-    return uploadFileToPruna(file, file.name);
-  }
-  const { mediaUrl } = await uploadFileToPollinationsMedia(file, file.name, file.type);
-  return mediaUrl;
+  return uploadReferenceImage(file, provider);
 }
 
 function labelFor(model: PlaygroundModelEntry, schema: ModelParamSchema | undefined, i: number): string {
@@ -51,6 +52,9 @@ export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
   // Ein gescheiterter Upload sah vorher wie gar nichts aus — der Platz blieb
   // leer und der Grund stand nur in der Konsole.
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // Pruna-Referenzen sind Handles ohne abrufbare Bildadresse; die Vorschau
+  // kommt aus dem lokalen Cache.
+  const previews = useReferencePreviews(uploads);
 
   if (!model.supportsReference || model.maxImages === 0) return null;
   const maxImages = schema?.images.max ?? model.maxImages;
@@ -63,6 +67,10 @@ export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
   const slots = Array.from({ length: visible }, (_, i) => i);
 
   const removeAt = (index: number) => {
+    // Die Referenz verschwindet aus dem Zustand — ihre lokale Vorschau hat
+    // dann keinen Abnehmer mehr.
+    const removed = uploads[index];
+    if (removed) void forgetPrunaReferencePreview(removed);
     onChange(uploads.filter((_, i) => i !== index));
   };
 
@@ -109,6 +117,8 @@ export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
       {slots.map((i) => {
         const url = uploads[i];
         const label = labelFor(model, schema, i);
+        // Fremde URLs laden direkt; nur bei Pruna braucht es den Cache.
+        const previewSrc = url ? previews[url] ?? (isPrunaReferenceUrl(url) ? null : url) : null;
 
         return (
           <div
@@ -120,8 +130,15 @@ export function ReferenceSlots({ model, schema, uploads, onChange }: Props) {
           >
             {url ? (
               <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="Referenzbild" className="absolute inset-0 h-full w-full object-cover" />
+                {previewSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={previewSrc} alt="Referenzbild" className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-muted/25 px-2 text-center text-muted-foreground">
+                    <ImageOff className="h-4 w-4" aria-hidden="true" />
+                    <span className="text-[9.5px] leading-tight">Vorschau fehlt</span>
+                  </div>
+                )}
                 <span className="absolute left-1.5 top-1.5 z-10 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
                   {label}
                 </span>

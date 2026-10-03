@@ -4,7 +4,7 @@ import { handleApiError, validateRequest, ApiError } from '@/lib/api-error-handl
 import { imageUrl, videoUrl } from '@/lib/pollinations-sdk';
 import { generatePollinationsImage } from '@/lib/pollinations-image-v1';
 import { resolvePollenKey } from '@/lib/resolve-pollen-key';
-import { assertKeyForPaidModel, visualModelIsPaid } from '@/lib/pollen-cost-guard';
+import { assertKeyForPaidModel, hasUserKey, visualModelIsPaid } from '@/lib/pollen-cost-guard';
 import { resolvePrunaKey } from '@/lib/resolve-pruna-key';
 import { fetchAndStoreRemoteMedia } from '@/lib/media/server-media-ingest';
 import {
@@ -19,7 +19,7 @@ import { deliverPrunaResult } from '@/lib/pruna/deliver';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { pixelsForAspect, QUALITY_MODELS } from '@/lib/playground/pollinations-caps';
 import {
-  findRegistryModel,
+  lookupRegistryModel,
   registryModelIsVideo,
   registryMaxImages,
   type RegistryModel,
@@ -105,13 +105,55 @@ export async function POST(request: Request) {
     // trifft diesen Zweig also nie.
     let canonicalModelId = resolvePollinationsVisualModelId(model || 'flux');
     let liveModel: RegistryModel | undefined;
+    // Die Registry ist eine Momentaufnahme und kann ausfallen. Weder ein
+    // Ausfall noch eine gefilterte Sicht darf als "das Modell gibt es nicht"
+    // beim Nutzer landen: dieser Satz schickt ihn auf die Suche nach einem
+    // Fehler, den er nicht hat. Unbekannt heisst hier unbekannt.
+    let registryBlind = false;
     if (!canonicalModelId) {
-      liveModel = model ? await findRegistryModel(model, apiKey) : undefined;
-      if (!liveModel) {
-        throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`, 'UNKNOWN_MODEL', { modelLabel: model ?? 'unbekannt' });
+      // Ohne Modell-ID gibt es nichts zu schlagen: das bleibt der alte Fehler.
+      if (!model) {
+        throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`, 'UNKNOWN_MODEL', { modelLabel: 'unbekannt' });
       }
-      canonicalModelId = liveModel.name;
+      // Ein abgeschaltetes Pruna-Modell (z. B. vace) gehoert nicht in den
+      // Registry-Zweig: Pollinations kennt es nicht, und bei blinder Registry
+      // ginge es ungeprueft an den falschen Anbieter.
+      if (getUnifiedModel(model)?.provider === 'pruna') {
+        throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`, 'UNKNOWN_MODEL', { modelLabel: model });
+      }
+      const lookup = await lookupRegistryModel(model, apiKey);
+      if (lookup.status === 'found') {
+        liveModel = lookup.model;
+        canonicalModelId = liveModel.name;
+      } else if (lookup.status === 'missing') {
+        throw new ApiError(400, `Unknown or unavailable Pollinations image/video model: ${model}`, 'UNKNOWN_MODEL', { modelLabel: model });
+      } else {
+        // Keine der beiden Sichten hat geantwortet. Die ID geht unveraendert
+        // weiter: der Anbieter kennt seine Modelle besser als wir und antwortet
+        // selbst — mit einem Fehler, den der Nutzer einordnen kann.
+        registryBlind = true;
+        canonicalModelId = model;
+        console.warn(`[Registry] nicht erreichbar (${lookup.reason}); reiche "${model}" ungeprueft an Pollinations durch`);
+      }
     }
+
+    // Eine Video-Anfrage braucht die Modalitaet aus der Registry: ohne sie
+    // ginge sie als Bild raus, und der Nutzer laese einen Fehler, der nicht nach
+    // Ausfall aussieht. Lieber ehrlich warten lassen.
+    if (registryBlind && (video !== undefined || duration !== undefined || audio !== undefined || resolution !== undefined)) {
+      throw new ApiError(
+        503,
+        `Model registry unavailable; cannot route video request for ${canonicalModelId}`,
+        'PROVIDER_UNAVAILABLE',
+        { modelLabel: canonicalModelId },
+      );
+    }
+
+    // Ohne Registry wissen wir nicht, ob das Modell Geld kostet. Dann laeuft es
+    // nur auf dem Schluessel des Aufrufers: wer keinen hat, bekommt vom Anbieter
+    // ein ehrliches 401 ("key required") statt einer Rechnung auf den
+    // Betreiber-Schluessel.
+    const dispatchApiKey = registryBlind && !hasUserKey(request) ? undefined : apiKey;
 
     const modelInfo = getUnifiedModel(canonicalModelId);
 
@@ -126,9 +168,15 @@ export async function POST(request: Request) {
     );
     const modelId = toPollinationsVisualApiModelId(canonicalModelId);
     // Fehlt der Config-Eintrag, liefert die Registry dieselben Angaben.
-    const isVideoModel = modelInfo ? modelInfo.kind === 'video' : !!liveModel && registryModelIsVideo(liveModel);
+    const isVideoModel = registryBlind
+      ? false
+      : modelInfo ? modelInfo.kind === 'video' : !!liveModel && registryModelIsVideo(liveModel);
     const maxImages = modelInfo?.maxImages ?? (liveModel ? registryMaxImages(liveModel) : undefined);
-    const supportsReference = modelInfo ? modelInfo.supportsReference === true : (maxImages ?? 0) > 0;
+    // Ohne Registry-Antwort sind die Faehigkeiten des Modells unbekannt. Dann
+    // prueft der Anbieter selbst: nicht wissen ist nicht verbieten.
+    const supportsReference = registryBlind
+      ? true
+      : modelInfo ? modelInfo.supportsReference === true : (maxImages ?? 0) > 0;
     const referenceMode = modelInfo ? getReferenceMode(modelInfo) : 'multi-image';
     const referenceImages = image ? (Array.isArray(image) ? image : [image]) : [];
 
@@ -138,7 +186,7 @@ export async function POST(request: Request) {
     if (referenceMode === 'start-frame' && referenceImages.length > 1) {
       throw new ApiError(400, `Model ${canonicalModelId} does not support an end frame`);
     }
-    if (maxImages !== undefined && referenceImages.length > maxImages) {
+    if (!registryBlind && maxImages !== undefined && referenceImages.length > maxImages) {
       throw new ApiError(400, `Model ${canonicalModelId} accepts a maximum ${maxImages} reference image${maxImages === 1 ? '' : 's'}`);
     }
 
@@ -337,8 +385,12 @@ export async function POST(request: Request) {
 
         const stored = await fetchAndStoreRemoteMedia({
             sourceUrl: generationUrl,
-            apiKey: hasToken ? apiKey : undefined,
+            apiKey: dispatchApiKey,
             kind: isVideoModel ? 'video' : 'image',
+            // Kam der Schluessel vom Server, darf er einmal wegfallen: ein
+            // leerer Betreiber-Schluessel blockiert auch die freien Modelle.
+            fallbackToAnonymous: !hasUserKey(request),
+            modelLabel: modelInfo?.name ?? canonicalModelId,
         });
         resultUrl = stored.url;
     } else {
@@ -355,7 +407,10 @@ export async function POST(request: Request) {
           negative_prompt,
           image,
           ...(QUALITY_MODELS.has(modelId) ? { quality: quality ?? ('hd' as const) } : {}),
-          apiKey: hasToken ? apiKey : undefined,
+          apiKey: dispatchApiKey,
+          // Damit ein 402/403 den Schluessel benennt, der wirklich lief:
+          // Betreiber-Topf und Nutzer-Topf sind nicht derselbe Fehler.
+          hasUserKey: hasUserKey(request),
         });
 
         // Pollinations antwortet mit einer eigenen URL, die beim Abruf erneut
@@ -367,8 +422,10 @@ export async function POST(request: Request) {
         } else {
           const stored = await fetchAndStoreRemoteMedia({
             sourceUrl: generated,
-            apiKey: hasToken ? apiKey : undefined,
+            apiKey: dispatchApiKey,
             kind: 'image',
+            fallbackToAnonymous: !hasUserKey(request),
+            modelLabel: modelInfo?.name ?? canonicalModelId,
           });
           resultUrl = stored.url;
         }

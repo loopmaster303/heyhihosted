@@ -53,8 +53,11 @@ const VACE: PlaygroundModelEntry = {
   unmapped: false,
   supportsEndFrame: false,
   supportsAudio: false,
-  paidOnly: true,
-  community: false,
+    paidOnly: true,
+    community: false,
+    // Fixture fuer die Darstellung: die Freigabe des Schluessels interessiert
+    // hier nicht.
+    runnableOnKey: true,
 };
 
 function renderSidebar(onSourceVideo = jest.fn()) {

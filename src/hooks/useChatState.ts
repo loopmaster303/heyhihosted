@@ -46,12 +46,17 @@ export function useChatState() {
     } | null>(null);
     const retryLastRequestRef = useRef<(() => Promise<void>) | null>(null);
 
-    // Sync persisted active ID with persistence hook
+    // Load only when the persisted ID changes, not when Dexie publishes metadata.
+    const activeConversationRef = useRef(persistence.activeConversation);
     useEffect(() => {
-        if (persistedActiveConversationId && !persistence.activeConversation) {
-            persistence.loadConversation(persistedActiveConversationId);
+        activeConversationRef.current = persistence.activeConversation;
+    }, [persistence.activeConversation]);
+    const { loadConversation } = persistence;
+    useEffect(() => {
+        if (persistedActiveConversationId && !activeConversationRef.current) {
+            loadConversation(persistedActiveConversationId);
         }
-    }, [persistedActiveConversationId, persistence]);
+    }, [persistedActiveConversationId, loadConversation]);
 
     // Computed values
     const webBrowsingEnabled = persistence.activeConversation?.webBrowsingEnabled ?? false;

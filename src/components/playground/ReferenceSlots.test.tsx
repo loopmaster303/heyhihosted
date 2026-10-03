@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 
 jest.mock('lucide-react', () => new Proxy({}, {
   get: (_target, prop) => {
@@ -9,8 +9,47 @@ jest.mock('lucide-react', () => new Proxy({}, {
   },
 }));
 
+// Nur die Dexie-Aufrufe werden ersetzt: Dexie braucht IndexedDB, das jsdom
+// nicht hat. Die Handle-Erkennung kommt aus dem echten Modul, damit der Test
+// nicht eine zweite Kopie derselben Regel prueft.
+jest.mock('@/lib/upload/pruna-reference-preview', () => ({
+  ...jest.requireActual('@/lib/upload/pruna-reference-preview'),
+  getPrunaReferencePreviews: jest.fn(async () => new Map()),
+  rememberPrunaReferencePreview: jest.fn(async () => {}),
+  forgetPrunaReferencePreview: jest.fn(async () => {}),
+}));
+
 import { ReferenceSlots, uploadPlaygroundReference } from './ReferenceSlots';
 import type { PlaygroundModelEntry } from '@/lib/playground/model-source';
+import {
+  forgetPrunaReferencePreview,
+  getPrunaReferencePreviews,
+  rememberPrunaReferencePreview,
+} from '@/lib/upload/pruna-reference-preview';
+
+// jsdom kennt keine Objekt-URLs; BlobManager erzeugt daraus die Vorschau.
+let objectUrlCounter = 0;
+Object.defineProperty(URL, 'createObjectURL', {
+  configurable: true,
+  writable: true,
+  value: jest.fn(() => `blob:reference-preview-${++objectUrlCounter}`),
+});
+Object.defineProperty(URL, 'revokeObjectURL', {
+  configurable: true,
+  writable: true,
+  value: jest.fn(),
+});
+
+const PRUNA_HANDLE =
+  'https://api.pruna.ai/v1/files/NTNlZjczNmEtNzM1Mi00NTliLWIzZWYtMDc3ZWM1NzM3YTQ4.jpeg';
+
+/** Antwortet wie der echte Cache: nur, was gefragt wurde. */
+function servePreview(blob: Blob) {
+  const entries: Array<[string, Blob]> = [[PRUNA_HANDLE, blob]];
+  (getPrunaReferencePreviews as jest.Mock).mockImplementation(async (handles: string[]) =>
+    new Map(entries.filter(([handle]) => handles.includes(handle)))
+  );
+}
 
 function model(overrides: Partial<PlaygroundModelEntry> = {}): PlaygroundModelEntry {
   return {
@@ -27,11 +66,17 @@ function model(overrides: Partial<PlaygroundModelEntry> = {}): PlaygroundModelEn
     supportsAudio: false,
     paidOnly: true,
     community: false,
+    runnableOnKey: true,
     ...overrides,
   };
 }
 
 describe('ReferenceSlots', () => {
+  beforeEach(() => {
+    (getPrunaReferencePreviews as jest.Mock).mockImplementation(async () => new Map());
+    (forgetPrunaReferencePreview as jest.Mock).mockImplementation(async () => {});
+  });
+
   it('renders nothing when the model does not support references', () => {
     const { container } = render(
       <ReferenceSlots
@@ -128,6 +173,66 @@ describe('ReferenceSlots', () => {
     rerender(<ReferenceSlots model={model()} uploads={['https://x/start.png']} onChange={() => {}} />);
     expect(screen.getByText('Ende')).toBeInTheDocument();
   });
+
+  // Pruna liefert mit urls.get eine API-Referenz, keine Bildadresse: ein
+  // <img src={handle}> ist garantiert kaputt (GET /v1/files/<id> -> 404) und
+  // zeigte nur das Broken-Image-Symbol mit herausquellendem Alt-Text.
+  it('shows a placeholder for a Pruna handle without a cached preview', async () => {
+    const { container } = render(
+      <ReferenceSlots model={model()} uploads={[PRUNA_HANDLE]} onChange={() => {}} />
+    );
+
+    expect(await screen.findByText('Vorschau fehlt')).toBeInTheDocument();
+    expect(container.querySelector('img')).toBeNull();
+    // Der Platz bleibt bedienbar: entfernen geht weiter.
+    expect(screen.getByRole('button', { name: 'Start entfernen' })).toBeInTheDocument();
+  });
+
+  it('renders the cached preview for a Pruna handle', async () => {
+    servePreview(new Blob(['x'], { type: 'image/png' }));
+
+    const { container } = render(
+      <ReferenceSlots model={model()} uploads={[PRUNA_HANDLE]} onChange={() => {}} />
+    );
+
+    const image = await screen.findByRole('img');
+    expect(image.getAttribute('src')).toMatch(/^blob:reference-preview-\d+$/);
+    expect(container.querySelector('img')).toBe(image);
+    expect(screen.queryByText('Vorschau fehlt')).not.toBeInTheDocument();
+  });
+
+  it('keeps loading references that are not Pruna handles straight from the URL', () => {
+    const { container } = render(
+      <ReferenceSlots model={model()} uploads={['https://x/a.png']} onChange={() => {}} />
+    );
+
+    expect(container.querySelector('img')).toHaveAttribute('src', 'https://x/a.png');
+  });
+
+  // Sonst sammeln sich Handles samt Bytes in IndexedDB, die niemand mehr sieht.
+  it('drops the cached preview when the reference is removed', async () => {
+    render(<ReferenceSlots model={model()} uploads={[PRUNA_HANDLE]} onChange={() => {}} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Start entfernen' }));
+
+    await waitFor(() => expect(forgetPrunaReferencePreview).toHaveBeenCalledWith(PRUNA_HANDLE));
+  });
+
+  // Ein Wechsel der Ansicht ist kein Entfernen: derselbe Handle kann in einer
+  // anderen Liste haengen. Nur die Objekt-URL geht zurueck.
+  it('releases the preview URL when the reference leaves the view without deleting the cache', async () => {
+    servePreview(new Blob(['x'], { type: 'image/png' }));
+
+    const { rerender } = render(
+      <ReferenceSlots model={model()} uploads={[PRUNA_HANDLE]} onChange={() => {}} />
+    );
+    const image = await screen.findByRole('img');
+
+    rerender(<ReferenceSlots model={model()} uploads={[]} onChange={() => {}} />);
+
+    await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith(image.getAttribute('src')));
+    expect(forgetPrunaReferencePreview).not.toHaveBeenCalled();
+  });
 });
 
 
@@ -159,6 +264,17 @@ describe('uploadPlaygroundReference', () => {
     expect(init.headers['Content-Type']).toBe('image/png');
   });
 
+  // Die Bytes liegen beim Upload im Browser — genau dort entsteht die
+  // Vorschau, die der Slot danach anzeigt.
+  it('remembers a local preview for the uploaded Pruna handle', async () => {
+    const uploaded = new File([new Uint8Array([1, 2, 3])], 'ref.png', { type: 'image/png' });
+
+    const handle = await uploadPlaygroundReference(uploaded, 'pruna');
+
+    expect(handle).toBe('https://x/ref.png');
+    expect(rememberPrunaReferencePreview).toHaveBeenCalledWith('https://x/ref.png', uploaded);
+  });
+
   it('sends the stored Pollen key to the media upload route', async () => {
     localStorage.setItem('pollenApiKey', 'pollen_secret');
 
@@ -183,6 +299,35 @@ describe('uploadPlaygroundReference', () => {
     const [, init] = (global.fetch as jest.Mock).mock.calls[0];
     expect(init.headers['X-Pruna-Key']).toBeUndefined();
     expect(init.headers['X-Pollen-Key']).toBeUndefined();
+  });
+
+  // Live belegt am 2026-09-10: Prunas Dateispeicher antwortet ohne Guthaben mit
+  // 403 "no more credit available". Vorher fehlte das Referenzbild dann
+  // vollstaendig — der Slot blieb leer, die Generierung lief ohne Vorlage.
+  it('weicht bei gescheitertem Pruna-Upload auf media.pollinations.ai aus', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: 'no more credit available' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'abc',
+          url: 'https://media.pollinations.ai/abc',
+          contentType: 'image/png',
+          size: 3,
+        }),
+      });
+
+    await expect(uploadPlaygroundReference(file(), 'pruna')).resolves.toBe(
+      'https://media.pollinations.ai/abc',
+    );
+
+    const calls = (global.fetch as jest.Mock).mock.calls;
+    expect(calls[0][0]).toContain('/api/pruna/upload');
+    expect(calls[1][0]).toBe('/api/media/upload');
   });
 
   it('surfaces the server error message instead of the bare status code', async () => {

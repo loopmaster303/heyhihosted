@@ -316,7 +316,10 @@ describe('model invariants', () => {
     // E7-1: eine Regel, keine Handliste. Wird der Free-Tier erweitert
     // (z. B. kontext nach Freischaltung der Allowlist), waechst diese
     // Erwartung mit — und genau dann soll der Test brechen und gelesen werden.
-    expect([...getChatImageModelIds()].sort()).toEqual(['flux', 'gpt-image', 'klein']);
+    // 2026-09-10: die Freigabe des Betreiber-Schluessels bedient genau
+    // z-image, gpt-image-2 und klein. flux und gpt-image antworten live mit
+    // 403 und stehen deshalb auf isFree: false / enabled: false.
+    expect([...getChatImageModelIds()].sort()).toEqual(['gpt-image-2', 'klein', 'z-image']);
   });
 
   test('die Chat-Bildauswahl waechst mit keinem Schluessel', () => {

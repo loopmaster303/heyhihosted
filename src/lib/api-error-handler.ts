@@ -102,31 +102,6 @@ export function validateRequest<T>(
 }
 
 /**
- * Validates environment variable exists
- * Throws ApiError if not found
- */
-export function requireEnv(name: string): string {
-  const value = process.env[name];
-  
-  if (!value) {
-    throw new ApiError(
-      500,
-      `Server configuration error: ${name} is not set`,
-      'MISSING_ENV_VAR'
-    );
-  }
-  
-  return value;
-}
-
-/**
- * Type guard to check if error is ApiError
- */
-export function isApiError(error: unknown): error is ApiError {
-  return error instanceof ApiError;
-}
-
-/**
  * Common API error factory functions
  */
 export const apiErrors = {

@@ -91,6 +91,81 @@ describe('Pruna client', () => {
     });
   });
 
+  // Live belegt am 2026-09-10: `z-image-turbo` lehnt `disable_safety_checker`
+  // ab ("additional properties forbidden"), das unsere Config genau fuer dieses
+  // Modell mitsendet. Jeder Lauf endete deshalb in einem 400 — das Modell war
+  // tot, obwohl die Generierung ohne das Feld laeuft.
+  it('laesst ein abgelehntes Zusatzfeld weg und fragt erneut', async () => {
+    process.env.PRUNA_API_KEY = 'test-pruna-key';
+    const fetchMock = jest.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({
+          message: 'property input validation failed: additional properties forbidden, found disable_safety_checker',
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'succeeded',
+          generation_url: 'https://api.pruna.ai/v1/predictions/delivery/out.jpg',
+        }),
+      } as Response);
+    global.fetch = fetchMock as unknown as typeof fetch;
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await expect(generateViaPruna('zimage', { prompt: 'a red apple' })).resolves.toEqual({
+      generationUrl: 'https://api.pruna.ai/v1/predictions/delivery/out.jpg',
+      contentType: 'image/jpeg',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const ersterBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const zweiterBody = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(ersterBody.input).toHaveProperty('disable_safety_checker', true);
+    expect(zweiterBody.input).not.toHaveProperty('disable_safety_checker');
+    expect(zweiterBody.input).toHaveProperty('prompt', 'a red apple');
+  });
+
+  // Ein Feld, das wir gar nicht angehaengt haben, laesst sich nicht weglassen:
+  // dann bleibt es beim alten Fehler samt Feldnamen.
+  it('wiederholt nicht endlos, wenn ein fremdes Feld abgelehnt wird', async () => {
+    process.env.PRUNA_API_KEY = 'test-pruna-key';
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => JSON.stringify({
+        message: 'property input validation failed: additional properties forbidden, found unbekanntes_feld',
+      }),
+    } as Response);
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(generateViaPruna('zimage', { prompt: 'x' })).rejects.toMatchObject({
+      code: 'PRUNA_API_ERROR',
+      details: { field: 'unbekanntes_feld' },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  // Live belegt am 2026-09-10: 403 "Forbidden: no more credit available."
+  // Ohne eigenen Code las der Nutzer den Unknown-Field-Satz („ein Fehler bei
+  // uns") fuer eine Rechnung, die nur er begleichen kann.
+  it('meldet fehlendes Pruna-Guthaben als PRUNA_NO_CREDIT', async () => {
+    process.env.PRUNA_API_KEY = 'test-pruna-key';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () => JSON.stringify({
+        message: 'Forbidden: no more credit available. Please go to https://dashboard.pruna.ai/ and add more credit.',
+      }),
+    } as Response);
+
+    await expect(generateViaPruna('zimage', { prompt: 'x' })).rejects.toMatchObject({
+      code: 'PRUNA_NO_CREDIT',
+    });
+  });
+
   it('throws PRUNA_PREDICTION_FAILED when Pruna submit returns an immediate failed status', async () => {
     process.env.PRUNA_API_KEY = 'test-pruna-key';
     global.fetch = jest.fn().mockResolvedValue({

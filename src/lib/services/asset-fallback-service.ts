@@ -1,11 +1,11 @@
 /**
  * AssetFallbackService
  *
- * Handles fallback logic for asset URL resolution with retry mechanisms.
+ * Handles fallback logic for asset URL resolution.
  * Ensures assets are always accessible even when local output metadata is incomplete or URLs expire.
  */
 
-import { DatabaseService, type Asset } from '@/lib/services/database';
+import { DatabaseService } from '@/lib/services/database';
 import { BlobManager } from '@/lib/blob-manager';
 import { resolvePollinationsMediaUrl } from '@/lib/upload/pollinations-media';
 import { getPollenHeaders } from '@/lib/pollen-key';
@@ -13,8 +13,6 @@ import { isAllowedRemoteMediaUrl } from '@/lib/media/remote-fetch-policy';
 import { SMALL_BLOB_SKIP_BYTES } from '@/lib/upload/constants';
 
 interface FallbackOptions {
-  maxRetries?: number;
-  retryDelay?: number;
   downloadMissingBlob?: boolean;
 }
 
@@ -25,10 +23,42 @@ export interface AssetUrlResult {
 }
 
 const DEFAULT_OPTIONS: Required<FallbackOptions> = {
-  maxRetries: 3,
-  retryDelay: 1000, // 1 second
   downloadMissingBlob: true,
 };
+
+/**
+ * Merker fuer Hintergrund-Downloads. Dieselbe Galerie rendert ein Asset oft in
+ * mehreren Komponenten gleichzeitig; jede startete ihren eigenen Download, und
+ * bei einer URL ohne CORS-Antwort standen pro Sekunde vier identische
+ * "Load failed"-Fehler im Log. Zusaetzlich wird nur noch geladen, was der
+ * Browser ueberhaupt laden darf: ein Pruna-Ergebnis oder eine fremde URL endet
+ * garantierbar in "TypeError: Load failed".
+ */
+const downloadsInFlight = new Set<string>();
+const lastDownloadAttempt = new Map<string, number>();
+const RETRY_AFTER_MS = 5 * 60 * 1000;
+
+function startBackgroundCache(assetId: string, url: string, contentType: string): void {
+  if (typeof window === 'undefined') return;
+  if (!isAllowedRemoteMediaUrl(url)) return;
+  if (downloadsInFlight.has(assetId)) return;
+
+  const lastAttempt = lastDownloadAttempt.get(assetId);
+  if (lastAttempt !== undefined && Date.now() - lastAttempt < RETRY_AFTER_MS) return;
+
+  lastDownloadAttempt.set(assetId, Date.now());
+  downloadsInFlight.add(assetId);
+  downloadAndCacheAsset(assetId, url, contentType)
+    .catch((error: unknown) => {
+      // Erwarteter Fall bei toten oder geschuetzten URLs: eine Zeile statt
+      // Stacktrace-Rauschen.
+      const reason = error instanceof Error ? error.message : String(error);
+      console.debug(`[AssetFallback] Kein Cache-Download fuer ${assetId}: ${reason}`);
+    })
+    .finally(() => {
+      downloadsInFlight.delete(assetId);
+    });
+}
 
 /**
  * Comprehensive fallback chain for asset URL resolution.
@@ -36,7 +66,7 @@ const DEFAULT_OPTIONS: Required<FallbackOptions> = {
  * Priority order:
  * 1. Local blob (fastest, no network)
  * 2. Remote URL (if provided)
- * 3. Media URL via storageKey/hash (with retry)
+ * 3. Media URL via storageKey/hash
  * 4. Download and cache if only remote URL exists
  *
  * @param assetId The asset ID to resolve
@@ -65,22 +95,18 @@ export async function resolveAssetUrl(
   if (asset.remoteUrl && isValidUrl(asset.remoteUrl)) {
     // Optionally download and cache
     if (opts.downloadMissingBlob) {
-      downloadAndCacheAsset(assetId, asset.remoteUrl, asset.contentType).catch(err => {
-        console.warn(`[AssetFallback] Background cache failed for ${assetId}:`, err);
-      });
+      startBackgroundCache(assetId, asset.remoteUrl, asset.contentType);
     }
     return { url: asset.remoteUrl, source: 'remote', needsCleanup: false };
   }
 
-  // 3. Try media URL with retry
+  // 3. Media-URL aus dem storageKey bauen
   if (asset.storageKey) {
-    const mediaUrl = await fetchMediaUrlWithRetry(asset.storageKey, opts.maxRetries, opts.retryDelay);
+    const mediaUrl = await fetchMediaUrl(asset.storageKey);
     if (mediaUrl) {
       // Optionally download and cache for offline use
       if (opts.downloadMissingBlob) {
-        downloadAndCacheAsset(assetId, mediaUrl, asset.contentType).catch(err => {
-          console.warn(`[AssetFallback] Background cache failed for ${assetId}:`, err);
-        });
+        startBackgroundCache(assetId, mediaUrl, asset.contentType);
       }
       return { url: mediaUrl, source: 'media', needsCleanup: false };
     }
@@ -91,39 +117,22 @@ export async function resolveAssetUrl(
 }
 
 /**
- * Resolve media URL from storage key/hash with exponential backoff retry.
+ * Media-URL aus storageKey/hash bauen.
+ *
+ * `resolvePollinationsMediaUrl` ist ein reiner String-Bauer: kein Netzwerk,
+ * kein Werfen. Ein Wiederholungs-Zweig hatte hier nie etwas zu tun.
+ *
+ * Der catch haelt den bisherigen Vertrag: ein Fehler beim URL-Bau fuehrt zu
+ * null statt zu einem geworfenen Fehler (die Aufrufer verarbeiten null).
  */
-async function fetchMediaUrlWithRetry(
-  storageKey: string,
-  maxRetries: number,
-  baseDelay: number
-): Promise<string | null> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const data = await resolvePollinationsMediaUrl(storageKey);
-      if (data?.mediaUrl) {
-        if (attempt > 0) {
-          console.log(`[AssetFallback] Media URL retrieved on retry ${attempt + 1}`);
-        }
-        return data.mediaUrl;
-      }
-
-      throw new Error('No mediaUrl in response');
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-
-      if (attempt < maxRetries - 1) {
-        const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
-        console.warn(`[AssetFallback] Retry ${attempt + 1}/${maxRetries} after ${delay}ms:`, lastError.message);
-        await sleep(delay);
-      }
-    }
+async function fetchMediaUrl(storageKey: string): Promise<string | null> {
+  try {
+    const data = await resolvePollinationsMediaUrl(storageKey);
+    return data.mediaUrl || null;
+  } catch (error) {
+    console.warn(`[AssetFallback] Media-URL nicht baubar fuer ${storageKey}:`, error);
+    return null;
   }
-
-  console.error(`[AssetFallback] Failed to fetch media URL after ${maxRetries} attempts:`, lastError);
-  return null;
 }
 
 /**
@@ -136,7 +145,7 @@ async function downloadAndCacheAsset(
   contentType: string
 ): Promise<void> {
   try {
-    console.log(`[AssetFallback] Downloading asset for cache: ${assetId}`);
+    console.debug(`[AssetFallback] Downloading asset for cache: ${assetId}`);
 
     // Only send Pollinations auth headers to Pollinations hosts to avoid
     // leaking the user's key to third-party origins.
@@ -174,26 +183,8 @@ async function downloadAndCacheAsset(
  */
 export async function refreshAssetUrl(assetId: string): Promise<AssetUrlResult> {
   return resolveAssetUrl(assetId, {
-    maxRetries: 2,
     downloadMissingBlob: true,
   });
-}
-
-/**
- * Pre-cache multiple assets in the background.
- * Useful for gallery pre-loading.
- */
-export async function precacheAssets(assetIds: string[]): Promise<void> {
-  const promises = assetIds.map(async (id) => {
-    try {
-      await resolveAssetUrl(id, { downloadMissingBlob: true });
-    } catch (error) {
-      console.warn(`[AssetFallback] Precache failed for ${id}:`, error);
-    }
-  });
-
-  await Promise.all(promises);
-  console.log(`[AssetFallback] Precached ${assetIds.length} assets`);
 }
 
 /**
@@ -207,11 +198,4 @@ function isValidUrl(url: string): boolean {
   } catch {
     return false;
   }
-}
-
-/**
- * Sleep utility for retry delays.
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
