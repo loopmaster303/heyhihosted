@@ -82,6 +82,7 @@ const P_IMAGE_ASPECT_RATIOS = new Set([...IMAGE_ASPECT_RATIOS, 'custom']);
 const QWEN_EDIT_ASPECT_RATIOS = new Set([...IMAGE_ASPECT_RATIOS, 'match_input_image']);
 const WAN_VIDEO_ASPECT_RATIOS = new Set(['16:9', '9:16']);
 const WAN_IMAGE_SMALL_ASPECT_RATIOS = new Set([...IMAGE_ASPECT_RATIOS, '21:9']);
+const P_VIDEO_2_RESOLUTIONS = new Set(['720p', '1080p']);
 const P_VIDEO_2_PRO_ASPECT_RATIOS = IMAGE_ASPECT_RATIOS;
 const P_VIDEO_2_PRO_RESOLUTIONS = new Set(['480p', '768p']);
 const P_VIDEO_2_PRO_MODES = new Set(['speed', 'quality', 'cost']);
@@ -170,6 +171,18 @@ function applyStartEndFrames(input: Record<string, unknown>, frames: string[]): 
   if (frames.length === 0) return;
   input.image = frames[0];
   if (frames[1]) input.last_frame_image = frames[1];
+}
+
+/**
+ * duration_auto ist ein reines UI-Feld: bei true bleibt die Dauer auf beiden
+ * Request-Ebenen weg, der Provider bestimmt die Laenge selbst. Sonst hat eine
+ * ausdrueckliche Top-Level-Dauer Vorrang vor einem Params-Duplikat.
+ */
+function pVideo2Duration(f: PrunaFieldInput): number | undefined {
+  const params = f.params ?? {};
+  if (params.duration_auto === true) return undefined;
+  const duration = f.duration ?? params.duration;
+  return typeof duration === 'number' ? duration : undefined;
 }
 
 function resolveSupportedAspectRatio(
@@ -563,7 +576,7 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
       const input: Record<string, unknown> = {
         prompt: f.prompt,
         ...DISABLE_SAFETY_FILTER,
-        resolution: params.resolution === '1080p' ? '1080p' : '720p',
+        resolution: allowedParam(params.resolution, P_VIDEO_2_RESOLUTIONS, '720p'),
         fps: Number(params.fps) === 48 ? 48 : 24,
         draft: booleanOr(params.draft, false),
         prompt_upsampling: booleanOr(params.prompt_upsampling, true),
@@ -576,11 +589,8 @@ const PRUNA_MODEL_MAP: Record<string, PrunaModelMapping> = {
         input.aspect_ratio = resolveSupportedAspectRatio(f, IMAGE_ASPECT_RATIOS, '16:9');
       }
 
-      // duration_auto ist ein reines UI-Feld: bei true bleibt die Dauer auf beiden
-      // Request-Ebenen weg, der Provider bestimmt die Laenge selbst. Sonst hat eine
-      // ausdrueckliche Top-Level-Dauer Vorrang vor einem Params-Duplikat.
-      const duration = params.duration_auto === true ? undefined : (f.duration ?? params.duration);
-      if (typeof duration === 'number') input.duration = duration;
+      const duration = pVideo2Duration(f);
+      if (duration !== undefined) input.duration = duration;
 
       if (f.seed !== undefined) input.seed = f.seed;
       applyStartEndFrames(input, frames);
