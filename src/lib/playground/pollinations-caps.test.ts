@@ -17,7 +17,7 @@ describe('pollinations-caps', () => {
 
   it('durationOptionsFor returns correct values for known models', () => {
     expect(durationOptionsFor('veo')).toEqual([4, 6, 8]);
-    expect(durationOptionsFor('nova-reel')).toEqual([6, 12, 18, 24, 30, 60, 120]);
+    expect(durationOptionsFor('wan')).toEqual([2, 5, 10, 15]);
   });
 
   it('pixelsForAspect returns correct dimensions', () => {

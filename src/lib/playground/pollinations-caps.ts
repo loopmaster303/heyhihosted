@@ -11,7 +11,6 @@ export const DURATION_OPTIONS: Record<string, number[]> = {
   wan: [2, 5, 10, 15],
   'wan-fast': [2, 5, 10, 15],
   'wan-pro': [2, 5, 10, 15],
-  'nova-reel': [6, 12, 18, 24, 30, 60, 120],
   'p-video': [1, 5, 10, 15, 20],
 };
 
@@ -22,7 +21,6 @@ export const SEED_MODELS = new Set([
   'seedream',
   'klein',
   'seedance',
-  'nova-reel',
 ]);
 
 /** quality low|medium|high|hd gibt es nur hier. */

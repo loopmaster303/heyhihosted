@@ -51,7 +51,7 @@ Marked free and enabled in the config (verified live 2026-08-28): `flux`, `gpt-i
 
 Key-gated and BYOP-visible: the `p-*` Pruna family (`p-image`, `p-image-edit`, `p-image-try-on`, `p-image-upscale`, `p-video`, `p-video-avatar`, `p-video-animate`, `p-video-replace`), `p-image-ideogram`, `p-flux-klein`, plus `qwen-image-edit-plus`, `wan-t2v`, `wan-i2v`, `vace`, and the former "free" Pruna models `zimage`, `qwen-image`, `wan-image-small` (Pruna is BYOP-only — `isFree: true` on a Pruna model was a false promise).
 
-Removed on 2026-08-28 (registry truth): `ltx-2`, `grok-video`, `pollinations-wan-fast` (do not exist upstream), `veo-1080p` (alias of `veo` — internal alias kept for saved selections). `nova-reel` stays disabled: registry-free but a 6 s run timed out after 125 s behind the synchronous dispatch (524) — it needs the async protocol first.
+Removed on 2026-08-28 (registry truth): `ltx-2`, `grok-video`, `pollinations-wan-fast` (do not exist upstream), `veo-1080p` (alias of `veo` — internal alias kept for saved selections). `nova-reel` removed on 2026-10-03: it is gone from the live registry (it was disabled anyway — a 6 s run timed out after 125 s behind the synchronous dispatch).
 
 Everything else in the file is `enabled: false` and waiting on upstream availability. Check the config rather than trusting a list in prose.
 
@@ -62,7 +62,7 @@ Model lists drift daily (35/39 → 28/42 → 32/45 within 48 hours). The check i
 
 - `node scripts/check-model-registry.mjs` pulls all three registry endpoints live and diffs them against the led model ids. Exit 1 = drift.
 - `node scripts/check-model-registry.mjs --update-snapshot` refreshes `src/config/__fixtures__/registry-snapshot.json` — the offline fixture the tests T1–T3 run against. Refresh it deliberately, with the diff reviewed; never let a script write config silently.
-- A weekly GitHub Action runs the check and fails visibly on drift.
+- There is no GitHub Actions run (removed 2026-10-03, the operator does not want Actions): the check runs by hand, on a machine with network access to Pollinations.
 - Rule: **a registry finding never silently rewrites the config.** Whether a model is offered is a product decision; the registry only reports facts. The registry is **key-scoped** — its response differs per API key, and the server key's allowlist (not `paid_only`) decides what keyless users can actually run.
 
 **The two views, measured 2026-09-10** (details and numbers in [docs/POLLINATIONS-API-2026-09-10.md](/Users/johnmeckel/heyhihosted/docs/POLLINATIONS-API-2026-09-10.md)):
