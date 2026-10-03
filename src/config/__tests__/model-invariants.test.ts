@@ -12,12 +12,14 @@ import {
   getChatImageModelGroups,
   getChatImageModelIds,
   getImageModels,
+  getReferenceMode,
   getUnifiedModel,
   getVisualizeModelGroups,
   resolvePollinationsVisualModelId,
   shouldIncludeByopHidden,
 } from '@/config/unified-image-models';
 import { getPrunaModelMapping } from '@/config/pruna-models';
+import { imageModelIcons } from '@/config/ui-constants';
 
   test('visual reference limits match enabled upstream model capabilities', () => {
     expect(getUnifiedModel('gpt-image')).toEqual(expect.objectContaining({ maxImages: 16 }));
@@ -236,6 +238,57 @@ describe('model invariants', () => {
     expect(getDefaultDurationSeconds(legacyPollinations)).toBe(5);
     expect(getDurationOptionsSeconds(getUnifiedModel('vace'))).toEqual([1, 2, 3, 4, 5]);
     expect(getDefaultDurationSeconds(getUnifiedModel('vace'))).toBe(5);
+  });
+
+  test('P-Video 2 is registered as its own BYOP-visible Pruna video model, and P-Video 1 stays untouched', () => {
+    const model = getUnifiedModel('p-video-2');
+    expect(model).toEqual(expect.objectContaining({
+      provider: 'pruna',
+      kind: 'video',
+      enabled: true,
+      isFree: false,
+      byopVisible: true,
+      supportsReference: true,
+      maxImages: 2,
+      supportsEndFrame: true,
+      referenceMode: 'start-end-frame',
+      temporalControl: { mode: 'seconds', min: 1, max: 20, step: 1, defaultSeconds: 5 },
+    }));
+    expect(getReferenceMode(model!)).toBe('start-end-frame');
+    expect(getPrunaModelMapping('p-video-2')).toBeDefined();
+
+    // Keine Migration, kein Default-Wechsel — P-Video 1 bleibt eigenstaendig.
+    expect(getUnifiedModel('p-video')).toEqual(expect.objectContaining({
+      id: 'p-video',
+      enabled: true,
+      temporalControl: { mode: 'seconds', min: 1, max: 20, step: 1, defaultSeconds: 5 },
+    }));
+  });
+
+  test('P-Video 2 Pro is an enabled BYOP-visible start/end Pruna video model', () => {
+    const model = getUnifiedModel('p-video-2-pro');
+    expect(model).toEqual(expect.objectContaining({
+      id: 'p-video-2-pro',
+      name: 'P-Video 2 Pro',
+      provider: 'pruna',
+      kind: 'video',
+      enabled: true,
+      isFree: false,
+      byopVisible: true,
+      supportsReference: true,
+      maxImages: 2,
+      supportsAudio: true,
+      supportsEndFrame: true,
+      referenceMode: 'start-end-frame',
+      temporalControl: { mode: 'seconds', min: 5, max: 15, step: 1, defaultSeconds: 5 },
+    }));
+    expect(getReferenceMode(model!)).toBe('start-end-frame');
+    expect(getPrunaModelMapping('p-video-2-pro')).toEqual(expect.objectContaining({
+      prunaModel: 'p-video-2-pro',
+      mode: 'async',
+      isVideo: true,
+    }));
+    expect(imageModelIcons['p-video-2-pro']).toBeDefined();
   });
 
   test('every unified Pruna model has an explicit Pruna adapter mapping', () => {

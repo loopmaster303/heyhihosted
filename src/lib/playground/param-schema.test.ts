@@ -22,6 +22,7 @@ describe('param-schema', () => {
   });
 
   it('defaults are within allowed ranges when visible', () => {
+    const offenders: string[] = [];
     for (const id of PLAYGROUND_PRUNA_IDS) {
       const schema = schemaFor(id)!;
       const d = defaultsFor(schema);
@@ -30,27 +31,29 @@ describe('param-schema', () => {
         if (field.default === undefined) continue;
         const val = d[field.name];
         if (val === undefined) {
-          throw new Error(`FAIL: ${id}.${field.name} kind=${field.kind} default=${field.default} keys=${Object.keys(d).join(',')}`);
+          offenders.push(`${id}.${field.name}: default ${field.default} has no value (keys=${Object.keys(d).join(',')})`);
+          continue;
         }
         if (val !== field.default) {
-          throw new Error(`FAIL: ${id}.${field.name} val=${val} !== default=${field.default}`);
+          offenders.push(`${id}.${field.name}: value ${JSON.stringify(val)} !== default ${JSON.stringify(field.default)}`);
+          continue;
         }
         if (field.kind === 'number') {
-          if (typeof val !== 'number') throw new Error(`FAIL: ${id}.${field.name} not number`);
-          if (val < field.min) throw new Error(`FAIL: ${id}.${field.name} ${val} < ${field.min}`);
-          if (val > field.max) throw new Error(`FAIL: ${id}.${field.name} ${val} > ${field.max}`);
+          if (typeof val !== 'number') offenders.push(`${id}.${field.name}: not a number`);
+          else if (val < field.min) offenders.push(`${id}.${field.name}: ${val} < ${field.min}`);
+          else if (val > field.max) offenders.push(`${id}.${field.name}: ${val} > ${field.max}`);
         }
         if (field.kind === 'seconds') {
-          if (typeof val !== 'number') throw new Error(`FAIL: ${id}.${field.name} not number`);
-          if (!field.options.includes(val)) throw new Error(`FAIL: ${id}.${field.name} ${val} not in ${field.options.join(',')}`);
+          if (typeof val !== 'number') offenders.push(`${id}.${field.name}: not a number`);
+          else if (!field.options.includes(val)) offenders.push(`${id}.${field.name}: ${val} not in [${field.options.join(',')}]`);
         }
         if (field.kind === 'enum') {
           const values = field.options.map((o) => o.value);
-          if (!values.includes(val as string)) throw new Error(`FAIL: ${id}.${field.name} ${val} not in ${values.join(',')}`);
+          if (!values.includes(val as string)) offenders.push(`${id}.${field.name}: ${val} not in [${values.join(',')}]`);
         }
       }
     }
-    expect(true).toBe(true);
+    expect(offenders).toEqual([]);
   });
 
   // The visibility-scoped check above skips fields behind a showIf, which is how
@@ -122,6 +125,121 @@ describe('param-schema', () => {
     const names = schemaFor('p-video')!.groups.flatMap((g) => g.fields.map((f) => f.name));
     expect(names).not.toContain('fps');
     expect(names).toContain('duration');
+  });
+});
+
+describe('p-video-2', () => {
+  it('has the same start/end reference roles as p-video', () => {
+    const schema = schemaFor('p-video-2');
+    expect(schema?.images).toEqual({ min: 0, max: 2, roles: ['Start', 'Ende'] });
+  });
+
+  it('offers seconds from 1 to 20, default 5', () => {
+    const schema = schemaFor('p-video-2')!;
+    const duration = schema.groups.flatMap((g) => g.fields).find((f) => f.name === 'duration');
+    expect(duration?.kind).toBe('seconds');
+    if (duration?.kind === 'seconds') {
+      expect(duration.options).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+    }
+    expect(defaultsFor(schema).duration).toBe(5);
+  });
+
+  it('exposes resolution and frame rate as explicit controls', () => {
+    const schema = schemaFor('p-video-2')!;
+    const names = schema.groups.flatMap((g) => g.fields.map((f) => f.name));
+    expect(names).toContain('resolution');
+    expect(names).toContain('fps');
+    const fps = schema.groups.flatMap((g) => g.fields).find((f) => f.name === 'fps');
+    expect(fps?.kind).toBe('enum');
+    if (fps?.kind === 'enum') {
+      expect(fps.options.map((o) => o.value)).toEqual(['24', '48']);
+    }
+    expect(defaultsFor(schema).fps).toBe('24');
+  });
+
+  it('keeps draft, save_audio, prompt_upsampling and seed like p-video', () => {
+    const schema = schemaFor('p-video-2')!;
+    const names = schema.groups.flatMap((g) => g.fields.map((f) => f.name));
+    expect(names).toEqual(expect.arrayContaining(['draft', 'save_audio', 'prompt_upsampling', 'seed']));
+    const d = defaultsFor(schema);
+    expect(d.draft).toBe(false);
+    expect(d.save_audio).toBe(true);
+    expect(d.prompt_upsampling).toBe(true);
+    expect(d.seed).toBe(0);
+  });
+
+  // 'Automatische Dauer' ist ein reines UI-Feld: bei true entfaellt die feste
+  // Dauer, der Provider bestimmt die Laenge selbst.
+  it('duration_auto hides the fixed duration field', () => {
+    const schema = schemaFor('p-video-2')!;
+    const d = defaultsFor(schema);
+    expect(d.duration_auto).toBe(false);
+    expect(visibleFields(schema, d).map((f) => f.name)).toContain('duration');
+
+    const withAuto: ParamValues = { ...d, duration_auto: true };
+    expect(visibleFields(schema, withAuto).map((f) => f.name)).not.toContain('duration');
+  });
+
+  // Ein Referenzbild bestimmt laut Provider-Dokumentation das Seitenverhaeltnis
+  // selbst, wie bei p-video.
+  it('a reference image hides the aspect ratio field', () => {
+    const schema = schemaFor('p-video-2')!;
+    const d = defaultsFor(schema);
+    expect(visibleFields(schema, d).map((f) => f.name)).toContain('aspect_ratio');
+
+    const withImage: ParamValues = { ...d, image: 'https://x/a.jpg' };
+    expect(visibleFields(schema, withImage).map((f) => f.name)).not.toContain('aspect_ratio');
+  });
+});
+
+describe('p-video-2-pro', () => {
+  it('uses the Pro contract and defaults', () => {
+    const schema = schemaFor('p-video-2-pro')!;
+    expect(schema.images).toEqual({ min: 0, max: 2, roles: ['Start', 'Ende'] });
+    expect(schema.groups[0]?.label).toBe('Video · 24 fps · mit Ton');
+
+    const fields = schema.groups.flatMap((group) => group.fields);
+    const duration = fields.find((field) => field.name === 'duration');
+    expect(duration?.kind).toBe('seconds');
+    if (duration?.kind === 'seconds') {
+      expect(duration.options).toEqual(Array.from({ length: 11 }, (_, i) => i + 5));
+    }
+
+    const resolution = fields.find((field) => field.name === 'resolution');
+    expect(resolution?.kind).toBe('enum');
+    if (resolution?.kind === 'enum') {
+      expect(resolution.options.map((option) => option.value)).toEqual(['480p', '768p']);
+    }
+
+    const mode = fields.find((field) => field.name === 'mode');
+    const upsampler = fields.find((field) => field.name === 'prompt_upsampler');
+    expect(mode?.kind).toBe('enum');
+    expect(upsampler?.kind).toBe('enum');
+    if (mode?.kind === 'enum') expect(mode.options.map((option) => option.value)).toEqual(['speed', 'quality', 'cost']);
+    if (upsampler?.kind === 'enum') expect(upsampler.options.map((option) => option.value)).toEqual(['off', 'turbo', 'max']);
+
+    expect(defaultsFor(schema)).toMatchObject({
+      duration: 5,
+      resolution: '768p',
+      aspect_ratio: '16:9',
+      mode: 'speed',
+      prompt_upsampler: 'turbo',
+      seed: 0,
+    });
+  });
+
+  it('does not expose P-Video 2-only controls', () => {
+    const names = schemaFor('p-video-2-pro')!.groups.flatMap((group) => group.fields.map((field) => field.name));
+    expect(names).not.toEqual(expect.arrayContaining([
+      'fps', 'audio', 'save_audio', 'draft', 'duration_auto', 'prompt_upsampling',
+    ]));
+  });
+
+  it('hides aspect ratio for any reference image', () => {
+    const schema = schemaFor('p-video-2-pro')!;
+    const values = defaultsFor(schema);
+    expect(visibleFields(schema, values).map((field) => field.name)).toContain('aspect_ratio');
+    expect(visibleFields(schema, { ...values, image: 'start' }).map((field) => field.name)).not.toContain('aspect_ratio');
   });
 });
 

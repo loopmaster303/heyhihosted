@@ -31,10 +31,14 @@ jest.mock('@/components/ui/slider', () => ({
 
 jest.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => (
+    React.isValidElement(children)
+      ? React.cloneElement(children as React.ReactElement<{ role?: string }>, { role: 'button' })
+      : <button type="button">{children}</button>
+  ),
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuItem: ({ children, onSelect }: { children: React.ReactNode; onSelect?: () => void }) => (
-    <button onClick={onSelect}>{children}</button>
+    <div role="menuitem" tabIndex={-1} onClick={onSelect}>{children}</div>
   ),
 }));
 
@@ -93,6 +97,75 @@ describe('ParamControls', () => {
     const vals = defaultsFor(schema);
     render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
     expect(screen.getByText(/5s/i)).toBeInTheDocument();
+  });
+
+  it('p-video-2 hides the fixed duration when Automatische Dauer is on', () => {
+    const schema = schemaFor('p-video-2')!;
+    const vals = defaultsFor(schema);
+    const { rerender } = render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
+    expect(screen.getByText('Dauer')).toBeInTheDocument();
+    expect(screen.getByText('Automatische Dauer')).toBeInTheDocument();
+
+    const withAuto: ParamValues = { ...vals, duration_auto: true };
+    rerender(<ParamControls schema={schema} values={withAuto} onChange={() => {}} uploadCount={0} />);
+    expect(screen.queryByText('Dauer')).not.toBeInTheDocument();
+    expect(screen.getByText('Automatische Dauer')).toBeInTheDocument();
+  });
+
+  it('p-video-2 hides the aspect ratio once a reference image is set', () => {
+    const schema = schemaFor('p-video-2')!;
+    const vals = defaultsFor(schema);
+    render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
+    expect(screen.getByText('Seitenverhältnis')).toBeInTheDocument();
+  });
+
+  it('p-video-2 hides the aspect ratio once a reference upload exists (runtime state)', () => {
+    const schema = schemaFor('p-video-2')!;
+    const vals = defaultsFor(schema);
+    const { rerender } = render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
+    expect(screen.getByText('Seitenverhältnis')).toBeInTheDocument();
+
+    // Referenzbilder liegen in state.uploads (uploadCount), nicht in params.image —
+    // der params-Bag bleibt leer. Der Regler muss trotzdem weichen.
+    rerender(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={1} />);
+    expect(screen.queryByText('Seitenverhältnis')).not.toBeInTheDocument();
+
+    rerender(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
+    expect(screen.getByText('Seitenverhältnis')).toBeInTheDocument();
+  });
+
+  it('p-video-2-pro hides and restores aspect ratio from uploadCount', () => {
+    const schema = schemaFor('p-video-2-pro')!;
+    const vals = defaultsFor(schema);
+    const { rerender } = render(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
+    expect(screen.getByText('Seitenverhältnis')).toBeInTheDocument();
+
+    rerender(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={1} />);
+    expect(screen.queryByText('Seitenverhältnis')).not.toBeInTheDocument();
+    rerender(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={2} />);
+    expect(screen.queryByText('Seitenverhältnis')).not.toBeInTheDocument();
+    rerender(<ParamControls schema={schema} values={vals} onChange={() => {}} uploadCount={0} />);
+    expect(screen.getByText('Seitenverhältnis')).toBeInTheDocument();
+  });
+
+  it('p-video-2-pro shows fixed audio/fps heading and independent mode controls', () => {
+    const schema = schemaFor('p-video-2-pro')!;
+    const vals = defaultsFor(schema);
+    const onChange = jest.fn();
+    render(<ParamControls schema={schema} values={vals} onChange={onChange} uploadCount={0} />);
+
+    expect(screen.getByText('Video · 24 fps · mit Ton')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Qualität'));
+    expect(screen.getByText('Generierungsmodus')).toBeInTheDocument();
+    expect(screen.getByText('Prompt-Upsampler')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Speed' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Qualität' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Turbo' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Aus' }));
+    expect(onChange).toHaveBeenNthCalledWith(1, expect.objectContaining({ mode: 'quality' }));
+    expect(onChange).toHaveBeenNthCalledWith(2, expect.objectContaining({ prompt_upsampler: 'off' }));
+    expect(onChange.mock.calls[1][0]).not.toHaveProperty('mode', 'quality');
   });
 
   it('emits boolean changes', () => {

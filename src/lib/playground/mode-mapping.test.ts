@@ -16,6 +16,9 @@ describe('mode-mapping', () => {
   it('smart video model lands in both T2V and I2V', () => {
     expect(modesFor({ id: 'p-video', kind: 'video', supportsReference: true, requiresReference: false }).sort()).toEqual(['i2v', 't2v']);
   });
+  it('p-video-2-pro lands in both T2V and I2V', () => {
+    expect(modesFor({ id: 'p-video-2-pro', kind: 'video', supportsReference: true, requiresReference: false }).sort()).toEqual(['i2v', 't2v']);
+  });
   it('I2V-only model lands only in I2V', () => {
     expect(modesFor({ id: 'wan-i2v', kind: 'video', supportsReference: true, requiresReference: true })).toEqual(['i2v']);
   });

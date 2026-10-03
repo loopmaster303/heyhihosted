@@ -227,10 +227,32 @@ export function PlaygroundShell() {
     modeEntries.find((e) => e.id === state.modelId) ??
     (pollenKey ? modeEntries[0] : modeEntries.find((e) => !e.paidOnly) ?? modeEntries[0]);
 
+  // usePlaygroundState hydrates localStorage in an effect. On that first
+  // render `modelId` is still null, so choosing the first available entry here
+  // would overwrite a persisted selection before the hook can publish it.
+  // Only defer when the persisted model is present in this provider catalog;
+  // an unavailable model must still take the normal fallback path.
+  const persistedModelId = (() => {
+    const raw = readLocal('playgroundState');
+    if (!raw) return null;
+    try {
+      const stored = JSON.parse(raw) as { modelId?: unknown };
+      return typeof stored.modelId === 'string' ? stored.modelId : null;
+    } catch {
+      return null;
+    }
+  })();
+  const waitingForStateHydration = loading || (
+    state.modelId === null
+    && persistedModelId !== null
+    && entries.some((entry) => entry.id === persistedModelId)
+  );
+
   useEffect(() => {
+    if (waitingForStateHydration) return;
     if (currentModel && state.modelId !== currentModel.id) setModelId(currentModel.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentModel?.id]);
+  }, [currentModel?.id, waitingForStateHydration]);
 
   const currentSchema = currentModel ? schemaForEntry(currentModel) : undefined;
 
@@ -261,7 +283,7 @@ export function PlaygroundShell() {
     : undefined;
 
   useEffect(() => {
-    if (!currentModel) return;
+    if (!currentModel || waitingForStateHydration) return;
     // Bei "Nochmal" mit Modellwechsel liegen hier die uebernommenen
     // Parameter statt der Schema-Defaults.
     const override = rerunParamsRef.current;
@@ -291,7 +313,7 @@ export function PlaygroundShell() {
       uploads: prev.uploads.slice(0, currentModel.maxImages),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentModel?.id]);
+  }, [currentModel?.id, waitingForStateHydration]);
 
   // "In Create weiterarbeiten" aus dem Chat: Prompt und, wenn Create es fuehrt,
   // das Modell uebernehmen. Bild-Modus, kein Auto-Senden — erst anpassen.

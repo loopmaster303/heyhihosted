@@ -200,6 +200,127 @@ describe('Pruna model mappings', () => {
     }));
   });
 
+  // ── P-Video 2 (own mapping, own contract — P-Video 1 stays untouched) ──
+
+  it('defaults P-Video 2 resolution and fps to the documented values', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({ prompt: 'a still lake at dawn' });
+
+    expect(input).toEqual(expect.objectContaining({ resolution: '720p', fps: 24 }));
+  });
+
+  it.each(['16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '1:1'])(
+    'accepts %s as a P-Video 2 aspect ratio',
+    (ratio) => {
+      const input = getPrunaModelMapping('p-video-2')?.buildInput({
+        prompt: 'seven supported formats',
+        aspectRatio: ratio,
+      });
+      expect(input?.aspect_ratio).toBe(ratio);
+    },
+  );
+
+  it.each([
+    [24, 24],
+    ['24', 24],
+    [48, 48],
+    ['48', 48],
+    [30, 24],
+    ['bogus', 24],
+  ])('normalizes P-Video 2 fps input %s to %s', (raw, expected) => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'fps normalization',
+      params: { fps: raw as string | number },
+    });
+    expect(input?.fps).toBe(expected);
+  });
+
+  it('accepts 1080p as a P-Video 2 resolution', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'high resolution shot',
+      params: { resolution: '1080p' },
+    });
+    expect(input?.resolution).toBe('1080p');
+  });
+
+  it('falls back to the documented 720p default for an unsupported P-Video 2 resolution', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'unsupported resolution',
+      params: { resolution: '4k' },
+    });
+    expect(input?.resolution).toBe('720p');
+  });
+
+  it('maps P-Video 2 start and end frames to distinct documented fields and omits aspect_ratio', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'transition between frames',
+      image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+    });
+
+    expect(input).toEqual(expect.objectContaining({
+      image: 'https://example.com/start.jpg',
+      last_frame_image: 'https://example.com/end.jpg',
+    }));
+    expect(input).not.toHaveProperty('aspect_ratio');
+  });
+
+  it('prefers top-level duration over a params duplicate for P-Video 2', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'explicit duration',
+      duration: 12,
+      params: { duration: 3 },
+    });
+    expect(input?.duration).toBe(12);
+  });
+
+  it('omits duration for P-Video 2 when none is provided', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({ prompt: 'omitted duration' });
+    expect(input).not.toHaveProperty('duration');
+  });
+
+  it('drops duration entirely for P-Video 2 when duration_auto is true, even with a top-level duration', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'auto duration',
+      duration: 8,
+      params: { duration_auto: true, duration: 8 },
+    });
+    expect(input).not.toHaveProperty('duration');
+    expect(input).not.toHaveProperty('duration_auto');
+  });
+
+  it('keeps false booleans and seed 0 for P-Video 2', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'falsy values must survive',
+      seed: 0,
+      params: { draft: false, save_audio: false, prompt_upsampling: false },
+    });
+
+    expect(input).toEqual(expect.objectContaining({
+      seed: 0,
+      draft: false,
+      save_audio: false,
+      prompt_upsampling: false,
+    }));
+  });
+
+  it('drops unsupported params for P-Video 2 instead of forwarding them upstream', () => {
+    const input = getPrunaModelMapping('p-video-2')?.buildInput({
+      prompt: 'whitelist only',
+      params: {
+        duration_auto: false,
+        width: 1024,
+        height: 576,
+        output_format: 'mp4',
+        unknown_field: 'nope',
+      } as unknown as Record<string, string | number | boolean>,
+    });
+
+    expect(input).not.toHaveProperty('duration_auto');
+    expect(input).not.toHaveProperty('width');
+    expect(input).not.toHaveProperty('height');
+    expect(input).not.toHaveProperty('output_format');
+    expect(input).not.toHaveProperty('unknown_field');
+  });
+
   it('accepts normal reference image plumbing for VACE', () => {
     const input = getPrunaModelMapping('vace')?.buildInput({
       prompt: 'consistent cast',
@@ -443,7 +564,7 @@ describe('Pruna model mappings', () => {
   it('disables the provider safety filter for every registered Pruna model', () => {
     // VACE ausgenommen: sein Input-Schema kennt kein Safety-Feld und die API
     // antwortet auf jedes zusaetzliche Feld mit 400.
-    for (const modelId of PRUNA_MODEL_IDS.filter((id) => id !== 'vace')) {
+    for (const modelId of PRUNA_MODEL_IDS.filter((id) => id !== 'vace' && id !== 'p-video-2-pro')) {
       const input = getPrunaModelMapping(modelId)?.buildInput({ prompt: 'test' });
       const safetyDisabled = input?.disable_safety_checker === true || input?.disable_safety_filter === true;
 
@@ -518,3 +639,147 @@ describe('Pruna model mappings', () => {
     expect(input?.prompt).toBeUndefined();
     expect(input?.target).toBe(8);
   });
+
+describe('P-Video 2 Pro mapping', () => {
+  const mapping = () => getPrunaModelMapping('p-video-2-pro');
+
+  it('uses its own async video mapping and documented defaults', () => {
+    expect(mapping()).toEqual(expect.objectContaining({
+      prunaModel: 'p-video-2-pro',
+      mode: 'async',
+      isVideo: true,
+      defaultParams: expect.objectContaining({
+        duration: 5,
+        resolution: '768p',
+        mode: 'speed',
+        prompt_upsampler: 'turbo',
+        aspect_ratio: '16:9',
+      }),
+    }));
+
+    expect(mapping()?.buildInput({ prompt: 'a quiet lake at dawn' })).toEqual({
+      prompt: 'a quiet lake at dawn',
+      duration: 5,
+      resolution: '768p',
+      mode: 'speed',
+      prompt_upsampler: 'turbo',
+      aspect_ratio: '16:9',
+    });
+  });
+
+  it.each([
+    ['480p', '480p'],
+    ['768p', '768p'],
+    ['bogus', '768p'],
+  ])('normalizes Pro resolution %s to %s', (raw, expected) => {
+    const input = mapping()?.buildInput({ prompt: 'resolution', params: { resolution: raw } });
+    expect(input?.resolution).toBe(expected);
+  });
+
+  it.each([
+    ['speed', 'speed'],
+    ['quality', 'quality'],
+    ['cost', 'cost'],
+    ['bogus', 'speed'],
+  ])('normalizes Pro generation mode %s to %s', (raw, expected) => {
+    const input = mapping()?.buildInput({ prompt: 'mode', params: { mode: raw } });
+    expect(input?.mode).toBe(expected);
+  });
+
+  it.each([
+    ['off', 'off'],
+    ['turbo', 'turbo'],
+    ['max', 'max'],
+    ['bogus', 'turbo'],
+  ])('normalizes Pro prompt upsampler %s to %s', (raw, expected) => {
+    const input = mapping()?.buildInput({ prompt: 'upsampler', params: { prompt_upsampler: raw } });
+    expect(input?.prompt_upsampler).toBe(expected);
+  });
+
+  it.each(['16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '1:1'])(
+    'accepts the documented Pro aspect ratio %s without references',
+    (aspectRatio) => {
+      const input = mapping()?.buildInput({ prompt: 'ratio', aspectRatio });
+      expect(input?.aspect_ratio).toBe(aspectRatio);
+    },
+  );
+
+  it('defaults an invalid Pro aspect ratio and omits it when references define the frame', () => {
+    const withoutReference = mapping()?.buildInput({ prompt: 'fallback ratio', aspectRatio: 'custom' });
+    expect(withoutReference?.aspect_ratio).toBe('16:9');
+
+    const withReferences = mapping()?.buildInput({
+      prompt: 'start to end',
+      aspectRatio: '9:16',
+      image: ['https://example.com/start.jpg', 'https://example.com/end.jpg'],
+    });
+    expect(withReferences).toEqual(expect.objectContaining({
+      image: 'https://example.com/start.jpg',
+      last_frame_image: 'https://example.com/end.jpg',
+    }));
+    expect(withReferences).not.toHaveProperty('aspect_ratio');
+  });
+
+  it('treats an empty image array as text-to-video and keeps seed zero', () => {
+    const input = mapping()?.buildInput({
+      prompt: 'no reference images',
+      image: [],
+      seed: 0,
+    });
+
+    expect(input).toEqual(expect.objectContaining({
+      seed: 0,
+      aspect_ratio: '16:9',
+    }));
+    expect(input).not.toHaveProperty('image');
+    expect(input).not.toHaveProperty('last_frame_image');
+  });
+
+  it('uses top-level duration first, params duration second, and five by default', () => {
+    expect(mapping()?.buildInput({ prompt: 'top-level wins', duration: 12, params: { duration: 6 } })).toEqual(
+      expect.objectContaining({ duration: 12 }),
+    );
+    expect(mapping()?.buildInput({ prompt: 'params duration', params: { duration: 9 } })).toEqual(
+      expect.objectContaining({ duration: 9 }),
+    );
+    expect(mapping()?.buildInput({ prompt: 'default duration' })).toEqual(
+      expect.objectContaining({ duration: 5 }),
+    );
+  });
+
+  it('builds only the documented Pro payload and ignores arbitrary params', () => {
+    const input = mapping()?.buildInput({
+      prompt: 'strict contract',
+      aspectRatio: '4:3',
+      seed: 0,
+      params: {
+        duration: 8,
+        resolution: '480p',
+        mode: 'quality',
+        prompt_upsampler: 'max',
+        fps: 48,
+        duration_auto: false,
+        draft: true,
+        save_audio: false,
+        audio: false,
+        prompt_upsampling: true,
+        width: 1024,
+        height: 576,
+        output_format: 'mp4',
+        disable_safety_checker: true,
+        disable_safety_filter: true,
+        unknown_field: 'nope',
+      },
+    });
+
+    expect(input).toEqual({
+      prompt: 'strict contract',
+      duration: 8,
+      resolution: '480p',
+      mode: 'quality',
+      prompt_upsampler: 'max',
+      aspect_ratio: '4:3',
+      seed: 0,
+    });
+  });
+});
