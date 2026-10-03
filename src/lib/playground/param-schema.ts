@@ -706,6 +706,160 @@ const pVideoSchema: ModelParamSchema = {
   ],
 };
 
+// ── p-video-2 ──────────────────────────────────────────────────────
+// Eigenes Schema statt Kopie von p-video: Version 2 akzeptiert alle sieben
+// Seitenverhaeltnisse (kein WAN_VIDEO_ASPECT_RATIOS-Downsample), zeigt die
+// Bildrate als echtes Bedienelement und kennt zusaetzlich die automatische
+// Dauer. Sekunden bleiben Sekunden — keine Frame-Umrechnung.
+const showIfNoDurationAuto: ShowIfFn = (v) => v.duration_auto !== true;
+
+const pVideo2Schema: ModelParamSchema = {
+  promptRequired: true,
+  images: { min: 0, max: 2, roles: ['Start', 'Ende'] },
+  groups: [
+    {
+      label: 'Video',
+      fields: [
+        { kind: 'boolean', name: 'duration_auto', label: 'Automatische Dauer', default: false },
+        {
+          kind: 'seconds',
+          name: 'duration',
+          label: 'Dauer',
+          options: Array.from({ length: 20 }, (_, i) => i + 1),
+          default: 5,
+          showIf: showIfNoDurationAuto,
+        },
+        {
+          kind: 'enum',
+          name: 'resolution',
+          label: 'Auflösung',
+          options: [
+            { value: '720p', label: '720p' },
+            { value: '1080p', label: '1080p' },
+          ],
+          default: '720p',
+        },
+        {
+          kind: 'enum',
+          name: 'fps',
+          label: 'Bildrate',
+          options: [
+            { value: '24', label: '24 fps' },
+            { value: '48', label: '48 fps' },
+          ],
+          default: '24',
+        },
+        {
+          kind: 'enum',
+          name: 'aspect_ratio',
+          label: 'Seitenverhältnis',
+          options: [
+            { value: '16:9', label: '16:9' },
+            { value: '9:16', label: '9:16' },
+            { value: '4:3', label: '4:3' },
+            { value: '3:4', label: '3:4' },
+            { value: '3:2', label: '3:2' },
+            { value: '2:3', label: '2:3' },
+            { value: '1:1', label: '1:1' },
+          ],
+          default: '16:9',
+          showIf: showIfNoImage,
+        },
+      ],
+    },
+    {
+      label: 'Qualität',
+      advanced: true,
+      fields: [
+        { kind: 'boolean', name: 'draft', label: 'Entwurf', default: false },
+        { kind: 'boolean', name: 'save_audio', label: 'Audio speichern', default: true },
+        { kind: 'boolean', name: 'prompt_upsampling', label: 'Prompt-Upsampling', default: true },
+        { kind: 'number', name: 'seed', label: 'Seed', min: 0, max: 999999999, default: 0 },
+      ],
+    },
+  ],
+};
+
+// ── p-video-2-pro ──────────────────────────────────────────────────
+// Pro has its own provider contract: fixed 24 fps with generated audio,
+// integer seconds from 5 to 15, and independent generation/upsampler modes.
+// Reference images determine the image area, so aspect ratio is hidden once
+// an upload exists. Keep this schema separate from p-video-2: its controls
+// are not interchangeable.
+const pVideo2ProSchema: ModelParamSchema = {
+  promptRequired: true,
+  images: { min: 0, max: 2, roles: ['Start', 'Ende'] },
+  groups: [
+    {
+      label: 'Video · 24 fps · mit Ton',
+      fields: [
+        {
+          kind: 'seconds',
+          name: 'duration',
+          label: 'Dauer',
+          options: Array.from({ length: 11 }, (_, i) => i + 5),
+          default: 5,
+        },
+        {
+          kind: 'enum',
+          name: 'resolution',
+          label: 'Auflösung',
+          options: [
+            { value: '480p', label: '480p' },
+            { value: '768p', label: '768p' },
+          ],
+          default: '768p',
+        },
+        {
+          kind: 'enum',
+          name: 'aspect_ratio',
+          label: 'Seitenverhältnis',
+          options: [
+            { value: '16:9', label: '16:9' },
+            { value: '9:16', label: '9:16' },
+            { value: '4:3', label: '4:3' },
+            { value: '3:4', label: '3:4' },
+            { value: '3:2', label: '3:2' },
+            { value: '2:3', label: '2:3' },
+            { value: '1:1', label: '1:1' },
+          ],
+          default: '16:9',
+          showIf: showIfNoImage,
+        },
+      ],
+    },
+    {
+      label: 'Qualität',
+      advanced: true,
+      fields: [
+        {
+          kind: 'enum',
+          name: 'mode',
+          label: 'Generierungsmodus',
+          options: [
+            { value: 'speed', label: 'Speed' },
+            { value: 'quality', label: 'Qualität' },
+            { value: 'cost', label: 'Kosten' },
+          ],
+          default: 'speed',
+        },
+        {
+          kind: 'enum',
+          name: 'prompt_upsampler',
+          label: 'Prompt-Upsampler',
+          options: [
+            { value: 'off', label: 'Aus' },
+            { value: 'turbo', label: 'Turbo' },
+            { value: 'max', label: 'Max' },
+          ],
+          default: 'turbo',
+        },
+        { kind: 'number', name: 'seed', label: 'Seed', min: 0, max: 999999999, default: 0 },
+      ],
+    },
+  ],
+};
+
 export const PLAYGROUND_PRUNA_IDS = [
   'zimage',
   'qwen-image',
@@ -720,6 +874,8 @@ export const PLAYGROUND_PRUNA_IDS = [
   'wan-i2v',
   'vace',
   'p-video',
+  'p-video-2',
+  'p-video-2-pro',
 ] as const;
 
 const SCHEMA_MAP: Record<string, ModelParamSchema> = {
@@ -736,6 +892,8 @@ const SCHEMA_MAP: Record<string, ModelParamSchema> = {
   'wan-i2v': wanI2VSchema,
   vace: vaceSchema,
   'p-video': pVideoSchema,
+  'p-video-2': pVideo2Schema,
+  'p-video-2-pro': pVideo2ProSchema,
 };
 
 export function schemaFor(modelId: string): ModelParamSchema | undefined {

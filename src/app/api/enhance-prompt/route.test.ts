@@ -865,6 +865,55 @@ describe('/api/enhance-prompt route', () => {
     );
   });
 
+  // p-video-2 hat einen eigenen Generierungs-Contract (Aufgabe 1/2), aber
+  // keinen eigenen Prompting-Bedarf — MODEL_ALIASES bildet die ID nur fuer die
+  // Prompt-Auswahl auf 'p-video' ab. Die Generierungs-ID selbst bleibt unberuehrt.
+  it('maps p-video-2 to the maintained p-video prompt family', async () => {
+    getPollinationsChatCompletionMock.mockResolvedValueOnce({
+      responseText: '* **Mode:** T2V generation\n* **Subject & Motion:** A rider accelerates through drifting smoke.\n* **Scene & Camera:** Low tracking shot alongside the bike.\n* **Lighting, Style & Pacing:** Harsh desert light, fast opening acceleration.\n* **Constraints:** smooth motion, no jitter',
+    });
+
+    const request = new Request('http://localhost/api/enhance-prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'a rider accelerating through drifting smoke',
+        modelId: 'p-video-2',
+        language: 'en',
+      }),
+    });
+
+    await POST(request as any);
+
+    expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelId: 'deepseek',
+        systemPrompt: expect.stringContaining('P-Video prompt specialist'),
+      }),
+    );
+    expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        systemPrompt: expect.stringContaining('Subject -> Action -> Scene -> Camera -> Lighting/Atmosphere -> Style -> Timing/Pacing'),
+      }),
+    );
+  });
+
+  it('maps p-video-2-pro to the maintained p-video prompt family without changing its model identity', async () => {
+    getPollinationsChatCompletionMock.mockResolvedValueOnce({
+      responseText: '* **Mode:** T2V generation\n* **Subject & Motion:** A cyclist cuts through mist.\n* **Scene & Camera:** Low tracking frame.\n* **Lighting, Style & Pacing:** Cool dawn light, measured acceleration.\n* **Constraints:** stable motion, no jitter',
+    });
+
+    await POST(enhanceRequest('p-video-2-pro', 'a cyclist cuts through mist') as any);
+
+    expect(getPollinationsChatCompletionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelId: 'deepseek',
+        systemPrompt: expect.stringContaining('P-Video prompt specialist'),
+      }),
+    );
+    expect(enhancerSystemPrompt()).toContain('Subject -> Action -> Scene -> Camera -> Lighting/Atmosphere -> Style -> Timing/Pacing');
+  });
+
   it('uses a pure t2i z-image turbo prompt with positive constraints only', async () => {
     getPollinationsChatCompletionMock
       .mockResolvedValueOnce({ responseText: 'research suggestion' })

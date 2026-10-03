@@ -30,6 +30,8 @@ const CHIP_DEFS: {
   { name: 'steps', label: 'steps' },
   { name: 'guidance', label: 'guid' },
   { name: 'duration', format: (v) => `${v} s` },
+  { name: 'mode', label: 'mode' },
+  { name: 'prompt_upsampler', label: 'upsampler' },
   { name: 'output_format' },
   { name: 'go_fast', booleanLabel: 'fast' },
   { name: 'audio', booleanLabel: 'audio' },

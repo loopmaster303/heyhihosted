@@ -40,7 +40,15 @@ export function ParamControls({ schema, values, onChange, uploadCount }: Props) 
   };
 
   const allImages = (vals.image ? (Array.isArray(vals.image) ? vals.image : [vals.image]) : []) as string[];
-  const effectiveValues: ParamValues = { ...vals, image: allImages as unknown as string };
+  // Referenzbilder leben in state.uploads (uploadCount), nicht im params-Bag.
+  // showIfHasImage/showIfNoImage pruefen values.image — ohne diesen Schuss bliebe
+  // z.B. das Seitenverhaeltnis sichtbar, obwohl der Adapter es bei einem
+  // Referenzbild verwirft (der Provider bestimmt es dann selbst). Ein
+  // Platzhalter-Array genuegt: die Praedikate fragen nur nach length.
+  const effectiveImages: string[] = uploadCount > 0
+    ? Array.from({ length: uploadCount }, (_, i) => `upload-${i}`)
+    : allImages;
+  const effectiveValues: ParamValues = { ...vals, image: effectiveImages as unknown as string };
 
   return (
     <div className="flex flex-col gap-3">

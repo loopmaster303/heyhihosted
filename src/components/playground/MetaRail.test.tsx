@@ -93,4 +93,11 @@ describe('MetaRail', () => {
     expect(chipsFor({ go_fast: false, audio: true, duration: 8 })).toEqual(['8 s', 'audio']);
     expect(chipsFor(undefined)).toEqual([]);
   });
+
+  it('formats Pro generation mode and prompt upsampler chips, including off', () => {
+    expect(chipsFor({ mode: 'quality', prompt_upsampler: 'off' })).toEqual([
+      'mode quality',
+      'upsampler off',
+    ]);
+  });
 });
